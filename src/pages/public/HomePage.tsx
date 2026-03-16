@@ -1,94 +1,9 @@
 import Navbar from '@/components/layout/Navbar'
 import SearchBar from '@/components/search/SearchBar'
 import ListingGrid from '@/components/listings/ListingGrid'
-import type { ListingCardData } from '@/components/listings/ListingCard'
+import { MOCK_LISTINGS, toCardData } from '@/lib/mockData'
 
-const MOCK_LISTINGS: ListingCardData[] = [
-  {
-    id: '1',
-    title: 'Appartement lumineux aux Eaux-Vives',
-    price: 720000,
-    address: 'Rue du Lac 12',
-    city: 'Genève',
-    rooms: 4,
-    bedrooms: 2,
-    surface_m2: 95,
-    is_hot: true,
-    photos: [
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-    ],
-  },
-  {
-    id: '2',
-    title: 'Duplex moderne à Champel',
-    price: 1250000,
-    address: 'Avenue de Champel 45',
-    city: 'Genève',
-    rooms: 5,
-    bedrooms: 3,
-    surface_m2: 140,
-    photos: [
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
-    ],
-  },
-  {
-    id: '3',
-    title: 'Studio rénové à Plainpalais',
-    price: 385000,
-    address: 'Rue de Carouge 78',
-    city: 'Genève',
-    rooms: 2,
-    bedrooms: 1,
-    surface_m2: 42,
-    photos: [
-      'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800&h=600&fit=crop',
-    ],
-  },
-  {
-    id: '4',
-    title: 'Villa avec vue sur le lac',
-    price: 2950000,
-    address: 'Chemin des Crêts 5',
-    city: 'Cologny',
-    rooms: 7,
-    bedrooms: 4,
-    surface_m2: 280,
-    is_hot: true,
-    photos: [
-      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
-    ],
-  },
-  {
-    id: '5',
-    title: 'Loft industriel aux Pâquis',
-    price: 890000,
-    address: 'Rue de Berne 22',
-    city: 'Genève',
-    rooms: 3,
-    bedrooms: 1,
-    surface_m2: 110,
-    photos: [
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
-    ],
-  },
-  {
-    id: '6',
-    title: 'Appartement familial à Carouge',
-    price: 650000,
-    address: 'Place du Marché 8',
-    city: 'Carouge',
-    rooms: 4,
-    bedrooms: 2,
-    surface_m2: 88,
-    photos: [
-      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-    ],
-  },
-]
+const listings = MOCK_LISTINGS.slice(0, 6).map(toCardData)
 
 export default function HomePage() {
   return (
@@ -128,7 +43,7 @@ export default function HomePage() {
           </button>
         </div>
 
-        <ListingGrid listings={MOCK_LISTINGS} />
+        <ListingGrid listings={listings} />
       </section>
     </div>
   )

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Heart, BedDouble, DoorOpen, Maximize } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 
@@ -25,7 +26,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
   const [currentPhoto, setCurrentPhoto] = useState(0)
 
   return (
-    <div className={cn('bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group', className)}>
+    <Link to={`/listing/${listing.id}`} className={cn('block bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group', className)}>
       {/* Photo */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
@@ -36,7 +37,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
 
         {/* Favorite button */}
         <button
-          onClick={() => setIsFavorite(!isFavorite)}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorite(!isFavorite) }}
           className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors"
         >
           <Heart
@@ -61,7 +62,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
             {listing.photos.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setCurrentPhoto(i)}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(i) }}
                 className={cn(
                   'h-1.5 rounded-full transition-all',
                   currentPhoto === i
@@ -103,6 +104,6 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
           </span>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }

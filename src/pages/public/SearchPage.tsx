@@ -3,107 +3,15 @@ import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import SearchFilters, { type SearchFiltersState } from '@/components/search/SearchFilters'
 import ListingCard from '@/components/listings/ListingCard'
-import type { ListingCardData } from '@/components/listings/ListingCard'
 import MapView from '@/components/map/MapView'
+import { MOCK_LISTINGS, toCardData } from '@/lib/mockData'
 
-const MOCK_LISTINGS: ListingCardData[] = [
-  {
-    id: '1',
-    title: 'Appartement lumineux aux Eaux-Vives',
-    price: 720000,
-    address: 'Rue du Lac 12',
-    city: 'Genève',
-    rooms: 4,
-    bedrooms: 2,
-    surface_m2: 95,
-    is_hot: true,
-    photos: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop'],
-  },
-  {
-    id: '2',
-    title: 'Duplex moderne à Champel',
-    price: 1250000,
-    address: 'Avenue de Champel 45',
-    city: 'Genève',
-    rooms: 5,
-    bedrooms: 3,
-    surface_m2: 140,
-    photos: ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'],
-  },
-  {
-    id: '3',
-    title: 'Studio rénové à Plainpalais',
-    price: 385000,
-    address: 'Rue de Carouge 78',
-    city: 'Genève',
-    rooms: 2,
-    bedrooms: 1,
-    surface_m2: 42,
-    photos: ['https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800&h=600&fit=crop'],
-  },
-  {
-    id: '4',
-    title: 'Villa avec vue sur le lac',
-    price: 2950000,
-    address: 'Chemin des Crêts 5',
-    city: 'Cologny',
-    rooms: 7,
-    bedrooms: 4,
-    surface_m2: 280,
-    is_hot: true,
-    photos: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop'],
-  },
-  {
-    id: '5',
-    title: 'Loft industriel aux Pâquis',
-    price: 890000,
-    address: 'Rue de Berne 22',
-    city: 'Genève',
-    rooms: 3,
-    bedrooms: 1,
-    surface_m2: 110,
-    photos: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop'],
-  },
-  {
-    id: '6',
-    title: 'Appartement familial à Carouge',
-    price: 650000,
-    address: 'Place du Marché 8',
-    city: 'Carouge',
-    rooms: 4,
-    bedrooms: 2,
-    surface_m2: 88,
-    photos: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'],
-  },
-  {
-    id: '7',
-    title: 'Penthouse avec terrasse panoramique',
-    price: 3200000,
-    address: 'Quai du Mont-Blanc 18',
-    city: 'Genève',
-    rooms: 6,
-    bedrooms: 3,
-    surface_m2: 210,
-    is_hot: true,
-    photos: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'],
-  },
-  {
-    id: '8',
-    title: 'Maison de ville rénovée',
-    price: 1450000,
-    address: 'Rue Ancienne 34',
-    city: 'Carouge',
-    rooms: 5,
-    bedrooms: 3,
-    surface_m2: 160,
-    photos: ['https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop'],
-  },
-]
+const ALL_CARDS = MOCK_LISTINGS.map(toCardData)
 
-const mapMarkers = MOCK_LISTINGS.map((l, i) => ({
+const mapMarkers = MOCK_LISTINGS.map((l) => ({
   id: l.id,
-  lat: 46.2 + i * 0.005,
-  lng: 6.14 + i * 0.008,
+  lat: l.lat,
+  lng: l.lng,
   price: l.price,
   label: l.title,
 }))
@@ -121,7 +29,7 @@ export default function SearchPage() {
   })
 
   // Simple client-side filtering on mock data
-  const filtered = MOCK_LISTINGS.filter((l) => {
+  const filtered = ALL_CARDS.filter((l) => {
     if (filters.city && l.city !== filters.city) return false
     if (filters.minPrice && l.price < Number(filters.minPrice)) return false
     if (filters.minRooms && l.rooms < Number(filters.minRooms)) return false

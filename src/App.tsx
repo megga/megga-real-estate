@@ -6,6 +6,7 @@ import SearchPage from '@/pages/public/SearchPage'
 import LoginPage from '@/pages/public/LoginPage'
 import RegisterPage from '@/pages/public/RegisterPage'
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
+import ListingPage from '@/pages/public/ListingPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +26,7 @@ export default function App() {
             {/* Public */}
             <Route path="/" element={<HomePage />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/listing/:id" element={<ListingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
