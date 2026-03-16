@@ -1006,3 +1006,165 @@ export const MOCK_CONTACTS: MockContact[] = [
 export function getContactById(id: string): MockContact | undefined {
   return MOCK_CONTACTS.find((c) => c.id === id)
 }
+
+// ─── PIPELINE DEALS ──────────────────────────────────────────────────────────
+
+export interface MockDeal {
+  id: string
+  contact_name: string
+  contact_avatar_color: string
+  property_title: string
+  property_address: string
+  price: number
+  stage: 'lead' | 'qualified' | 'visit_planned' | 'offer' | 'negotiation' | 'signed'
+  agent: string
+  agent_avatar_color: string
+  updated_at: string
+}
+
+export const MOCK_DEALS: MockDeal[] = [
+  {
+    id: 'd1',
+    contact_name: 'Laurent Berset',
+    contact_avatar_color: 'bg-primary-600',
+    property_title: 'Appartement Eaux-Vives',
+    property_address: 'Rue du Lac 12, Genève',
+    price: 720000,
+    stage: 'lead',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-16T09:00:00Z',
+  },
+  {
+    id: 'd2',
+    contact_name: 'Andreas Huber',
+    contact_avatar_color: 'bg-warning',
+    property_title: 'Studio Plainpalais',
+    property_address: 'Rue de Carouge 78, Genève',
+    price: 385000,
+    stage: 'lead',
+    agent: 'Sophie M.',
+    agent_avatar_color: 'bg-danger',
+    updated_at: '2026-03-15T14:00:00Z',
+  },
+  {
+    id: 'd3',
+    contact_name: 'Brigitte Zufferey',
+    contact_avatar_color: 'bg-success',
+    property_title: 'Appartement Carouge',
+    property_address: 'Place du Marché 8, Carouge',
+    price: 650000,
+    stage: 'lead',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-14T11:00:00Z',
+  },
+  {
+    id: 'd4',
+    contact_name: 'Claudine Thévenaz',
+    contact_avatar_color: 'bg-primary-400',
+    property_title: 'Maison de ville rénovée',
+    property_address: 'Rue Ancienne 34, Carouge',
+    price: 1450000,
+    stage: 'qualified',
+    agent: 'Sophie M.',
+    agent_avatar_color: 'bg-danger',
+    updated_at: '2026-03-11T09:00:00Z',
+  },
+  {
+    id: 'd5',
+    contact_name: 'Hans Zimmermann',
+    contact_avatar_color: 'bg-accent',
+    property_title: 'Duplex Champel',
+    property_address: 'Av. de Champel 45, Genève',
+    price: 1250000,
+    stage: 'qualified',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-10T10:30:00Z',
+  },
+  {
+    id: 'd6',
+    contact_name: 'Marie Dupont',
+    contact_avatar_color: 'bg-danger',
+    property_title: 'Appartement Eaux-Vives',
+    property_address: 'Rue du Lac 12, Genève',
+    price: 720000,
+    stage: 'visit_planned',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-14T09:00:00Z',
+  },
+  {
+    id: 'd7',
+    contact_name: 'Thomas Wenger',
+    contact_avatar_color: 'bg-warning',
+    property_title: 'Penthouse Quai du Mont-Blanc',
+    property_address: 'Quai du Mont-Blanc 18, Genève',
+    price: 3200000,
+    stage: 'visit_planned',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-14T14:00:00Z',
+  },
+  {
+    id: 'd8',
+    contact_name: 'Isabelle Rochat',
+    contact_avatar_color: 'bg-success',
+    property_title: 'Duplex moderne Champel',
+    property_address: 'Av. de Champel 45, Genève',
+    price: 1250000,
+    stage: 'visit_planned',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-15T17:00:00Z',
+  },
+  {
+    id: 'd9',
+    contact_name: 'Nathalie Schmid',
+    contact_avatar_color: 'bg-primary-600',
+    property_title: 'Villa vue lac Cologny',
+    property_address: 'Chemin des Crêts 5, Cologny',
+    price: 2950000,
+    stage: 'offer',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-13T15:30:00Z',
+  },
+  {
+    id: 'd10',
+    contact_name: 'Amir Khoury',
+    contact_avatar_color: 'bg-accent',
+    property_title: 'Loft industriel Pâquis',
+    property_address: 'Rue de Berne 22, Genève',
+    price: 890000,
+    stage: 'offer',
+    agent: 'Sophie M.',
+    agent_avatar_color: 'bg-danger',
+    updated_at: '2026-03-15T10:00:00Z',
+  },
+  {
+    id: 'd11',
+    contact_name: 'Sophie Favre',
+    contact_avatar_color: 'bg-warning',
+    property_title: 'Studio rénové Plainpalais',
+    property_address: 'Rue de Carouge 78, Genève',
+    price: 385000,
+    stage: 'negotiation',
+    agent: 'Sophie M.',
+    agent_avatar_color: 'bg-danger',
+    updated_at: '2026-03-14T16:45:00Z',
+  },
+  {
+    id: 'd12',
+    contact_name: 'Isabelle Rochat',
+    contact_avatar_color: 'bg-success',
+    property_title: 'Appartement familial Carouge',
+    property_address: 'Place du Marché 8, Carouge',
+    price: 650000,
+    stage: 'signed',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-10T10:00:00Z',
+  },
+]
