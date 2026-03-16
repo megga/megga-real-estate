@@ -1419,3 +1419,227 @@ export const MOCK_DEALS: MockDeal[] = [
     updated_at: '2026-03-10T10:00:00Z',
   },
 ]
+
+// ─── KYC Mock Data ─────────────────────────────────────────────────────────
+
+export interface MockKycCase {
+  id: string
+  contact_name: string
+  contact_avatar_color: string
+  type: 'buyer_pp' | 'buyer_pm' | 'seller_pp' | 'seller_pm'
+  risk_level: 'low' | 'medium' | 'high' | 'unassessed'
+  status: 'pending' | 'in_progress' | 'review' | 'validated' | 'rejected'
+  completion_pct: number
+  property_title: string
+  assigned_to: string
+  validated_by: string | null
+  validated_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MockKycChecklistItem {
+  id: string
+  kyc_case_id: string
+  label: string
+  category: 'Identité' | 'Domicile' | 'Revenus' | 'Origine des fonds' | 'Compliance'
+  is_required: boolean
+  is_completed: boolean
+  document_status: 'validated' | 'pending' | 'missing' | null
+  notes: string | null
+  completed_at: string | null
+}
+
+export interface MockKycDocument {
+  id: string
+  kyc_case_id: string
+  name: string
+  type: string
+  size_display: string
+  status: 'validated' | 'pending' | 'rejected'
+  uploaded_at: string
+  uploaded_by: string
+}
+
+export interface MockKycAuditEvent {
+  id: string
+  kyc_case_id: string
+  action: string
+  actor: string
+  timestamp: string
+  details: string | null
+}
+
+export const MOCK_KYC_CASES: MockKycCase[] = [
+  {
+    id: 'kyc1',
+    contact_name: 'Marc Dupont',
+    contact_avatar_color: 'bg-accent',
+    type: 'buyer_pp',
+    risk_level: 'low',
+    status: 'validated',
+    completion_pct: 100,
+    property_title: '4.5 pièces vue lac Cologny',
+    assigned_to: 'Gregory L.',
+    validated_by: 'Gregory L.',
+    validated_at: '2026-03-12T14:30:00Z',
+    created_at: '2026-02-15T09:00:00Z',
+    updated_at: '2026-03-12T14:30:00Z',
+  },
+  {
+    id: 'kyc2',
+    contact_name: 'Immobilière Léman SA',
+    contact_avatar_color: 'bg-primary-700',
+    type: 'buyer_pm',
+    risk_level: 'high',
+    status: 'review',
+    completion_pct: 85,
+    property_title: 'Immeuble commercial Rive',
+    assigned_to: 'Gregory L.',
+    validated_by: null,
+    validated_at: null,
+    created_at: '2026-02-20T11:00:00Z',
+    updated_at: '2026-03-16T10:00:00Z',
+  },
+  {
+    id: 'kyc3',
+    contact_name: 'Sophie Favre',
+    contact_avatar_color: 'bg-warning',
+    type: 'seller_pp',
+    risk_level: 'low',
+    status: 'in_progress',
+    completion_pct: 60,
+    property_title: 'Studio rénové Plainpalais',
+    assigned_to: 'Sophie M.',
+    validated_by: null,
+    validated_at: null,
+    created_at: '2026-03-01T08:30:00Z',
+    updated_at: '2026-03-15T16:45:00Z',
+  },
+  {
+    id: 'kyc4',
+    contact_name: 'Pierre & Marie Keller',
+    contact_avatar_color: 'bg-success',
+    type: 'buyer_pp',
+    risk_level: 'medium',
+    status: 'in_progress',
+    completion_pct: 45,
+    property_title: 'Villa mitoyenne Vandoeuvres',
+    assigned_to: 'Gregory L.',
+    validated_by: null,
+    validated_at: null,
+    created_at: '2026-03-05T14:00:00Z',
+    updated_at: '2026-03-16T09:20:00Z',
+  },
+  {
+    id: 'kyc5',
+    contact_name: 'Régie du Rhône Sàrl',
+    contact_avatar_color: 'bg-danger',
+    type: 'seller_pm',
+    risk_level: 'high',
+    status: 'rejected',
+    completion_pct: 70,
+    property_title: 'Arcade commerciale Carouge',
+    assigned_to: 'Sophie M.',
+    validated_by: 'Gregory L.',
+    validated_at: '2026-03-14T11:00:00Z',
+    created_at: '2026-02-10T10:00:00Z',
+    updated_at: '2026-03-14T11:00:00Z',
+  },
+  {
+    id: 'kyc6',
+    contact_name: 'Jean-Luc Bonvin',
+    contact_avatar_color: 'bg-accent',
+    type: 'buyer_pp',
+    risk_level: 'unassessed',
+    status: 'pending',
+    completion_pct: 10,
+    property_title: 'Loft industriel Sécheron',
+    assigned_to: 'Gregory L.',
+    validated_by: null,
+    validated_at: null,
+    created_at: '2026-03-14T16:00:00Z',
+    updated_at: '2026-03-14T16:00:00Z',
+  },
+  {
+    id: 'kyc7',
+    contact_name: 'Isabelle Rochat',
+    contact_avatar_color: 'bg-success',
+    type: 'seller_pp',
+    risk_level: 'low',
+    status: 'validated',
+    completion_pct: 100,
+    property_title: 'Appartement familial Carouge',
+    assigned_to: 'Gregory L.',
+    validated_by: 'Gregory L.',
+    validated_at: '2026-03-10T15:00:00Z',
+    created_at: '2026-01-20T09:30:00Z',
+    updated_at: '2026-03-10T15:00:00Z',
+  },
+  {
+    id: 'kyc8',
+    contact_name: 'Ahmed El-Fassi',
+    contact_avatar_color: 'bg-warning',
+    type: 'buyer_pp',
+    risk_level: 'medium',
+    status: 'review',
+    completion_pct: 90,
+    property_title: '3.5 pièces Eaux-Vives',
+    assigned_to: 'Sophie M.',
+    validated_by: null,
+    validated_at: null,
+    created_at: '2026-02-25T13:00:00Z',
+    updated_at: '2026-03-16T08:00:00Z',
+  },
+  {
+    id: 'kyc9',
+    contact_name: 'GlobalTrust Holdings AG',
+    contact_avatar_color: 'bg-primary-700',
+    type: 'buyer_pm',
+    risk_level: 'high',
+    status: 'in_progress',
+    completion_pct: 35,
+    property_title: 'Bureaux Acacias 450m²',
+    assigned_to: 'Gregory L.',
+    validated_by: null,
+    validated_at: null,
+    created_at: '2026-03-08T10:00:00Z',
+    updated_at: '2026-03-15T14:30:00Z',
+  },
+]
+
+export const MOCK_KYC_CHECKLIST: MockKycChecklistItem[] = [
+  // kyc2 — Immobilière Léman SA (buyer_pm, review, 85%)
+  { id: 'cl1', kyc_case_id: 'kyc2', label: 'Extrait du registre du commerce', category: 'Identité', is_required: true, is_completed: true, document_status: 'validated', notes: null, completed_at: '2026-03-01T10:00:00Z' },
+  { id: 'cl2', kyc_case_id: 'kyc2', label: 'Statuts de la société', category: 'Identité', is_required: true, is_completed: true, document_status: 'validated', notes: null, completed_at: '2026-03-01T10:30:00Z' },
+  { id: 'cl3', kyc_case_id: 'kyc2', label: 'Identification des ayants droit économiques', category: 'Identité', is_required: true, is_completed: true, document_status: 'pending', notes: 'En attente de vérification finale', completed_at: '2026-03-10T09:00:00Z' },
+  { id: 'cl4', kyc_case_id: 'kyc2', label: 'Siège social — attestation de domicile', category: 'Domicile', is_required: true, is_completed: true, document_status: 'validated', notes: null, completed_at: '2026-03-02T14:00:00Z' },
+  { id: 'cl5', kyc_case_id: 'kyc2', label: 'Derniers états financiers (3 ans)', category: 'Revenus', is_required: true, is_completed: true, document_status: 'validated', notes: null, completed_at: '2026-03-05T11:00:00Z' },
+  { id: 'cl6', kyc_case_id: 'kyc2', label: 'Rapport de révision', category: 'Revenus', is_required: true, is_completed: true, document_status: 'validated', notes: null, completed_at: '2026-03-05T11:30:00Z' },
+  { id: 'cl7', kyc_case_id: 'kyc2', label: 'Origine des fonds — déclaration signée', category: 'Origine des fonds', is_required: true, is_completed: false, document_status: 'missing', notes: 'Relance envoyée le 15.03', completed_at: null },
+  { id: 'cl8', kyc_case_id: 'kyc2', label: 'Relevé bancaire de provenance', category: 'Origine des fonds', is_required: true, is_completed: false, document_status: 'missing', notes: null, completed_at: null },
+  { id: 'cl9', kyc_case_id: 'kyc2', label: 'Vérification PEP (Personnes Exposées Politiquement)', category: 'Compliance', is_required: true, is_completed: true, document_status: 'validated', notes: 'Aucune correspondance', completed_at: '2026-03-03T09:00:00Z' },
+  { id: 'cl10', kyc_case_id: 'kyc2', label: 'Vérification sanctions internationales', category: 'Compliance', is_required: true, is_completed: true, document_status: 'validated', notes: 'Aucune correspondance', completed_at: '2026-03-03T09:15:00Z' },
+  { id: 'cl11', kyc_case_id: 'kyc2', label: 'Formulaire A — déclaration ayant droit économique', category: 'Compliance', is_required: true, is_completed: true, document_status: 'pending', notes: 'Signature en cours', completed_at: '2026-03-14T10:00:00Z' },
+]
+
+export const MOCK_KYC_DOCUMENTS: MockKycDocument[] = [
+  { id: 'doc1', kyc_case_id: 'kyc2', name: 'Extrait_RC_Leman_SA.pdf', type: 'pdf', size_display: '245 Ko', status: 'validated', uploaded_at: '2026-03-01T10:00:00Z', uploaded_by: 'Gregory L.' },
+  { id: 'doc2', kyc_case_id: 'kyc2', name: 'Statuts_2024.pdf', type: 'pdf', size_display: '1.2 Mo', status: 'validated', uploaded_at: '2026-03-01T10:30:00Z', uploaded_by: 'Gregory L.' },
+  { id: 'doc3', kyc_case_id: 'kyc2', name: 'Attestation_siege_social.pdf', type: 'pdf', size_display: '120 Ko', status: 'validated', uploaded_at: '2026-03-02T14:00:00Z', uploaded_by: 'Gregory L.' },
+  { id: 'doc4', kyc_case_id: 'kyc2', name: 'Bilan_2023_2024_2025.xlsx', type: 'xlsx', size_display: '3.8 Mo', status: 'validated', uploaded_at: '2026-03-05T11:00:00Z', uploaded_by: 'Sophie M.' },
+  { id: 'doc5', kyc_case_id: 'kyc2', name: 'Rapport_revision_2025.pdf', type: 'pdf', size_display: '890 Ko', status: 'validated', uploaded_at: '2026-03-05T11:30:00Z', uploaded_by: 'Sophie M.' },
+  { id: 'doc6', kyc_case_id: 'kyc2', name: 'PEP_screening_result.pdf', type: 'pdf', size_display: '56 Ko', status: 'validated', uploaded_at: '2026-03-03T09:00:00Z', uploaded_by: 'Gregory L.' },
+  { id: 'doc7', kyc_case_id: 'kyc2', name: 'Formulaire_A_signe.pdf', type: 'pdf', size_display: '340 Ko', status: 'pending', uploaded_at: '2026-03-14T10:00:00Z', uploaded_by: 'Gregory L.' },
+]
+
+export const MOCK_KYC_AUDIT: MockKycAuditEvent[] = [
+  { id: 'ev1', kyc_case_id: 'kyc2', action: 'Dossier créé', actor: 'Gregory L.', timestamp: '2026-02-20T11:00:00Z', details: 'Dossier KYC ouvert pour Immobilière Léman SA — acquisition immeuble commercial Rive' },
+  { id: 'ev2', kyc_case_id: 'kyc2', action: 'Document ajouté', actor: 'Gregory L.', timestamp: '2026-03-01T10:00:00Z', details: 'Extrait_RC_Leman_SA.pdf téléversé' },
+  { id: 'ev3', kyc_case_id: 'kyc2', action: 'Document ajouté', actor: 'Gregory L.', timestamp: '2026-03-01T10:30:00Z', details: 'Statuts_2024.pdf téléversé' },
+  { id: 'ev4', kyc_case_id: 'kyc2', action: 'Niveau de risque modifié', actor: 'Gregory L.', timestamp: '2026-03-02T09:00:00Z', details: 'Risque passé de "Non évalué" à "Élevé" — structure actionnariale complexe' },
+  { id: 'ev5', kyc_case_id: 'kyc2', action: 'Document validé', actor: 'Sophie M.', timestamp: '2026-03-05T12:00:00Z', details: 'États financiers et rapport de révision validés' },
+  { id: 'ev6', kyc_case_id: 'kyc2', action: 'Vérification PEP effectuée', actor: 'Gregory L.', timestamp: '2026-03-03T09:15:00Z', details: 'Aucune correspondance trouvée dans les bases PEP et sanctions' },
+  { id: 'ev7', kyc_case_id: 'kyc2', action: 'Relance envoyée', actor: 'Gregory L.', timestamp: '2026-03-15T14:00:00Z', details: 'Relance par e-mail pour la déclaration d\'origine des fonds' },
+  { id: 'ev8', kyc_case_id: 'kyc2', action: 'Statut modifié', actor: 'Gregory L.', timestamp: '2026-03-16T10:00:00Z', details: 'Statut passé à "En revue" — en attente des 2 derniers documents' },
+]
