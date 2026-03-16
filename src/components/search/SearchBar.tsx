@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -72,11 +73,22 @@ function SearchDropdown({ label, options, value, onChange }: DropdownProps) {
 }
 
 export default function SearchBar() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabId>('buy')
   const [propertyType, setPropertyType] = useState('')
   const [rooms, setRooms] = useState('')
   const [budget, setBudget] = useState('')
   const [location, setLocation] = useState('')
+
+  function handleSearch() {
+    const params = new URLSearchParams()
+    if (propertyType) params.set('type', propertyType)
+    if (rooms) params.set('rooms', rooms)
+    if (budget) params.set('budget', budget)
+    if (location) params.set('city', location)
+    params.set('tab', activeTab)
+    navigate(`/search?${params.toString()}`)
+  }
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -128,6 +140,7 @@ export default function SearchBar() {
         </div>
         <button
           type="button"
+          onClick={handleSearch}
           className="flex-shrink-0 m-2 h-10 w-10 bg-accent hover:bg-accent-hover rounded-full flex items-center justify-center transition-colors"
         >
           <Search className="h-5 w-5 text-white" />
