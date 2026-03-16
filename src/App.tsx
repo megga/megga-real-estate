@@ -10,6 +10,8 @@ import ListingPage from '@/pages/public/ListingPage'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import AgentLayout from '@/components/layout/AgentLayout'
 import DashboardPage from '@/pages/agent/DashboardPage'
+import ContactsPage from '@/pages/agent/ContactsPage'
+import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,7 +46,9 @@ export default function App() {
               }
             >
               <Route index element={<DashboardPage />} />
-              {/* Future routes: pipeline, contacts, listings, kyc, messages, calendar, settings */}
+              <Route path="contacts" element={<ContactsPage />} />
+              <Route path="contacts/:id" element={<ContactDetailPage />} />
+              {/* Future routes: pipeline, listings, kyc, messages, calendar, settings */}
             </Route>
           </Routes>
         </AuthProvider>
