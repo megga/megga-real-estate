@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Plus, Menu, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Plus, Menu, X, LogOut, LayoutDashboard, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
   { label: 'Acheter', href: '/acheter' },
@@ -12,9 +13,50 @@ const navLinks = [
   { label: 'Services', href: '/services' },
 ]
 
+function UserAvatar({ name, email }: { name: string; email: string }) {
+  const initials = name
+    ? name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : email[0].toUpperCase()
+
+  return (
+    <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
+      <span className="text-xs font-semibold text-white">{initials}</span>
+    </div>
+  )
+}
+
 export default function Navbar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, loading, signOut } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    if (dropdownOpen) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [dropdownOpen])
+
+  const displayName = user?.user_metadata?.full_name || user?.email || ''
+  const displayEmail = user?.email || ''
+
+  async function handleSignOut() {
+    await signOut()
+    setDropdownOpen(false)
+    navigate('/')
+  }
 
   return (
     <header className="h-16 border-b border-border bg-white shadow-navbar sticky top-0 z-50">
@@ -51,9 +93,72 @@ export default function Navbar() {
             <Plus className="h-4 w-4" />
             Publier une annonce
           </Button>
-          <Button variant="outline" size="default" className="rounded-full">
-            Se connecter
-          </Button>
+
+          {loading ? (
+            <div className="h-9 w-9 rounded-full bg-section animate-pulse" />
+          ) : user ? (
+            /* Logged in — avatar dropdown */
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="rounded-full focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+              >
+                <UserAvatar name={displayName} email={displayEmail} />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-border py-2 z-50">
+                  {/* User info */}
+                  <div className="px-4 py-3 border-b border-border">
+                    <p className="text-sm font-medium text-primary-900 truncate">
+                      {displayName}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {displayEmail}
+                    </p>
+                  </div>
+
+                  {/* Menu items */}
+                  <div className="py-1">
+                    <Link
+                      to="/dashboard"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                      Dashboard
+                    </Link>
+                    <Link
+                      to="/settings/profile"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      Mon profil
+                    </Link>
+                  </div>
+
+                  {/* Sign out */}
+                  <div className="border-t border-border pt-1">
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger-light transition-colors w-full text-left"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Déconnexion
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Not logged in */
+            <Link to="/login">
+              <Button variant="outline" size="default" className="rounded-full">
+                Se connecter
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -79,14 +184,47 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            {/* Mobile auth section */}
             <div className="flex flex-col gap-2 pt-3 border-t border-border mt-2">
               <Button size="default" className="rounded-full gap-2 w-full">
                 <Plus className="h-4 w-4" />
                 Publier une annonce
               </Button>
-              <Button variant="outline" size="default" className="rounded-full w-full">
-                Se connecter
-              </Button>
+
+              {user ? (
+                <>
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    <UserAvatar name={displayName} email={displayEmail} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-primary-900 truncate">{displayName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/dashboard"
+                    className="px-3 py-2 text-sm font-medium text-primary-700 hover:bg-section rounded-md"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleSignOut()
+                      setMobileOpen(false)
+                    }}
+                    className="px-3 py-2 text-sm font-medium text-danger hover:bg-danger-light rounded-md text-left"
+                  >
+                    Déconnexion
+                  </button>
+                </>
+              ) : (
+                <Link to="/login" onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" size="default" className="rounded-full w-full">
+                    Se connecter
+                  </Button>
+                </Link>
+              )}
             </div>
           </nav>
         </div>
