@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Search, Plus, Eye, Heart, Pencil, Archive, Send, LayoutGrid, List,
   ChevronLeft, ChevronRight, MoreHorizontal,
@@ -132,10 +133,13 @@ export default function ListingsPage() {
           <h1 className="text-2xl font-semibold text-primary-900">Mes biens</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{MOCK_AGENT_LISTINGS.length} biens au total</p>
         </div>
-        <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
+        <Link
+          to="/dashboard/listings/new"
+          className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors"
+        >
           <Plus className="h-4 w-4" />
           Ajouter un bien
-        </button>
+        </Link>
       </div>
 
       {/* Status tabs */}

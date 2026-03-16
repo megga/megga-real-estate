@@ -10,7 +10,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
+  // Dev mode: bypass auth when no Supabase credentials configured
+  const isDev = import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL
+
+  if (!isDev && loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
@@ -18,7 +21,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     )
   }
 
-  if (!user) {
+  if (!isDev && !user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
