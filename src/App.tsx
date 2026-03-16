@@ -13,6 +13,7 @@ import DashboardPage from '@/pages/agent/DashboardPage'
 import ContactsPage from '@/pages/agent/ContactsPage'
 import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 import PipelinePage from '@/pages/agent/PipelinePage'
+import ListingsPage from '@/pages/agent/ListingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,7 +51,8 @@ export default function App() {
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="contacts/:id" element={<ContactDetailPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
-              {/* Future routes: listings, kyc, messages, calendar, settings */}
+              <Route path="listings" element={<ListingsPage />} />
+              {/* Future routes: kyc, messages, calendar, settings */}
             </Route>
           </Routes>
         </AuthProvider>

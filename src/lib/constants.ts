@@ -92,6 +92,14 @@ export const PROPERTY_STATUSES = [
 
 export type PropertyStatus = typeof PROPERTY_STATUSES[number]
 
+export const PROPERTY_STATUS_LABELS: Record<PropertyStatus, string> = {
+  draft: 'Brouillon',
+  active: 'Actif',
+  reserved: 'Réservé',
+  sold: 'Vendu',
+  archived: 'Archivé',
+}
+
 export const TRANSACTION_STAGES = [
   'lead',
   'qualified',
