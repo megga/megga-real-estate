@@ -1,0 +1,108 @@
+import { useState } from 'react'
+import { Heart, BedDouble, DoorOpen, Maximize } from 'lucide-react'
+import { cn, formatCHF, formatSurface } from '@/lib/utils'
+
+export interface ListingCardData {
+  id: string
+  title: string
+  price: number
+  address: string
+  city: string
+  rooms: number
+  bedrooms: number
+  surface_m2: number
+  photos: string[]
+  is_hot?: boolean
+}
+
+interface ListingCardProps {
+  listing: ListingCardData
+  className?: string
+}
+
+export default function ListingCard({ listing, className }: ListingCardProps) {
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [currentPhoto, setCurrentPhoto] = useState(0)
+
+  return (
+    <div className={cn('bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group', className)}>
+      {/* Photo */}
+      <div className="relative aspect-[4/3] overflow-hidden">
+        <img
+          src={listing.photos[currentPhoto]}
+          alt={listing.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+
+        {/* Favorite button */}
+        <button
+          onClick={() => setIsFavorite(!isFavorite)}
+          className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors"
+        >
+          <Heart
+            className={cn(
+              'h-4 w-4 transition-colors',
+              isFavorite ? 'fill-danger text-danger' : 'text-primary-600'
+            )}
+          />
+        </button>
+
+        {/* Hot price badge */}
+        {listing.is_hot && (
+          <div className="absolute top-3 left-3 bg-danger text-white text-xs font-medium px-2 py-0.5 rounded-badge flex items-center gap-1">
+            <span className="text-[10px]">🔥</span>
+            Hot price
+          </div>
+        )}
+
+        {/* Photo dots */}
+        {listing.photos.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {listing.photos.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPhoto(i)}
+                className={cn(
+                  'h-1.5 rounded-full transition-all',
+                  currentPhoto === i
+                    ? 'w-4 bg-white'
+                    : 'w-1.5 bg-white/60 hover:bg-white/80'
+                )}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <span className="text-xl font-bold text-primary-900">
+            {formatCHF(listing.price)}
+          </span>
+        </div>
+
+        <p className="text-sm text-muted-foreground mb-2">
+          {listing.address}, {listing.city}
+        </p>
+
+        <div className="flex items-center gap-3 text-sm text-primary-400">
+          <span className="flex items-center gap-1">
+            <DoorOpen className="h-3.5 w-3.5" />
+            {listing.rooms} pièces
+          </span>
+          <span className="text-primary-200">·</span>
+          <span className="flex items-center gap-1">
+            <BedDouble className="h-3.5 w-3.5" />
+            {listing.bedrooms} ch.
+          </span>
+          <span className="text-primary-200">·</span>
+          <span className="flex items-center gap-1">
+            <Maximize className="h-3.5 w-3.5" />
+            {formatSurface(listing.surface_m2)}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
