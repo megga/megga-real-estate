@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'motion/react';
+import { motion, useMotionValue, useTransform, motionValue } from 'motion/react';
 import { Link } from 'react-router-dom';
 
 interface City {
@@ -54,6 +54,14 @@ const CITIES: City[] = [
   },
 ];
 
+// Preload city card images so they're ready for the reveal
+if (typeof window !== 'undefined') {
+  CITIES.forEach((city) => {
+    const img = new Image();
+    img.src = city.image;
+  });
+}
+
 function formatCount(n: number): string {
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u2019');
 }
@@ -62,15 +70,40 @@ function easeOutExpo(t: number): number {
   return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 }
 
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [query]);
+
+  return matches;
+}
+
+function usePrefersReducedMotion(): boolean {
+  return useMediaQuery('(prefers-reduced-motion: reduce)');
+}
+
 function AnimatedCounter({ target, active }: { target: number; active: boolean }) {
   const [value, setValue] = useState(0);
   const rafRef = useRef<number>(0);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (!active) {
       setValue(0);
       return;
     }
+    if (reducedMotion) {
+      setValue(target);
+      return;
+    }
+
     const duration = 1500;
     const start = performance.now();
 
@@ -85,61 +118,124 @@ function AnimatedCounter({ target, active }: { target: number; active: boolean }
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [active, target]);
+  }, [active, target, reducedMotion]);
 
   return <>{formatCount(value)}</>;
 }
 
 export default function ScrollExpandExplorer() {
-  const [progress, setProgress] = useState(0);
+  const progress = useMotionValue(0);
   const [isComplete, setIsComplete] = useState(false);
+  // State trigger for city cards reveal (avoids re-rendering on every scroll tick)
+  const [cardsVisible, setCardsVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
-  const progressRef = useRef(0);
   const isTransitioning = useRef(false);
   const isInView = useRef(false);
+  const skipRafRef = useRef<number>(0);
+  const isMountedRef = useRef(true);
+
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const reducedMotion = usePrefersReducedMotion();
+
+  // Derived motion values — bypass React reconciler
+  const bgOpacity = useTransform(progress, [0, 1], [1, 0]);
+  const cardOverlayOpacity = useTransform(progress, [0, 1], [0.5, 0.2]);
+  const hintOpacity = useTransform(progress, [0, 0.33], [1, 0]);
+  const textOpacity = useTransform(progress, [0, 0.5], [1, 0]);
+  const textSpreadLeft = useTransform(progress, (p) => `translate(calc(-100% - ${p * 150}vw - 1rem), -50%)`);
+  const textSpreadRight = useTransform(progress, (p) => `translate(calc(${p * 150}vw + 1rem), -50%)`);
+  const darkenOverlay = useTransform(progress, [0.6, 1], [0, 0.5]);
+
+  // Card dimensions as motion values
+  const cardWidth = useTransform(progress, (p) => {
+    const base = 300 + p * (isMobile ? 650 : 1250);
+    const maxW = window.innerWidth * 0.95;
+    return Math.min(base, maxW);
+  });
+  const cardHeight = useTransform(progress, (p) => {
+    const base = 400 + p * (isMobile ? 200 : 400);
+    const maxH = window.innerHeight * 0.85;
+    return Math.min(base, maxH);
+  });
+  const cardBorderRadius = useTransform(progress, [0, 1], [16, 4]);
+  const cardShadow = useTransform(progress, (p) =>
+    `0 ${20 - p * 15}px ${60 - p * 40}px rgba(0,0,0,${0.3 - p * 0.2})`
+  );
+
+  // Track mount state for RAF cleanup
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // If reduced motion, skip directly to end state
+  useEffect(() => {
+    if (reducedMotion) {
+      progress.set(1);
+      setCardsVisible(true);
+      setIsComplete(true);
+    }
+  }, [reducedMotion, progress]);
 
   const updateProgress = useCallback((delta: number) => {
     if (isTransitioning.current) return;
 
-    setProgress((prev) => {
-      const next = Math.max(0, Math.min(1, prev + delta));
-      progressRef.current = next;
+    const prev = progress.get();
+    const next = Math.max(0, Math.min(1, prev + delta));
+    progress.set(next);
 
-      if (next >= 1 && !isComplete) {
-        setIsComplete(true);
-      }
-      if (next < 1 && isComplete) {
-        setIsComplete(false);
-      }
+    if (next >= 1 && !isComplete) {
+      setIsComplete(true);
+    }
+    if (next < 1 && isComplete) {
+      setIsComplete(false);
+    }
 
-      return next;
-    });
-  }, [isComplete]);
+    // Toggle cards visibility at threshold
+    if (next >= 0.75 && !cardsVisible) {
+      setCardsVisible(true);
+    }
+    if (next < 0.75 && cardsVisible) {
+      setCardsVisible(false);
+    }
+  }, [progress, isComplete, cardsVisible]);
 
   const skipToEnd = useCallback(() => {
     isTransitioning.current = true;
-    const start = progressRef.current;
+    const start = progress.get();
     const duration = 500;
     const startTime = performance.now();
 
     const animate = (now: number) => {
+      if (!isMountedRef.current) return;
       const elapsed = now - startTime;
       const t = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
       const val = start + (1 - start) * eased;
-      progressRef.current = val;
-      setProgress(val);
+      progress.set(val);
+
+      if (val >= 0.75 && !cardsVisible) {
+        setCardsVisible(true);
+      }
 
       if (t < 1) {
-        requestAnimationFrame(animate);
+        skipRafRef.current = requestAnimationFrame(animate);
       } else {
         setIsComplete(true);
+        setCardsVisible(true);
         isTransitioning.current = false;
       }
     };
 
-    requestAnimationFrame(animate);
+    skipRafRef.current = requestAnimationFrame(animate);
+  }, [progress, cardsVisible]);
+
+  // Cleanup skip RAF on unmount
+  useEffect(() => {
+    return () => cancelAnimationFrame(skipRafRef.current);
   }, []);
 
   // Track visibility with IntersectionObserver
@@ -164,22 +260,26 @@ export default function ScrollExpandExplorer() {
     if (!container) return;
     const rect = container.getBoundingClientRect();
     if (Math.abs(rect.top) > 5) {
-      window.scrollTo({ top: window.scrollY + rect.top, behavior: 'instant' });
+      window.scrollTo({ top: window.scrollY + rect.top, behavior: 'auto' });
     }
   }, []);
 
   useEffect(() => {
+    if (reducedMotion) return; // No scroll hijack with reduced motion
+
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
       if (!isInView.current) return;
 
+      const p = progress.get();
+
       // If complete and user scrolls down, let page scroll normally
-      if (progressRef.current >= 1 && e.deltaY > 0) return;
+      if (p >= 1 && e.deltaY > 0) return;
 
       // If complete and at top of component, recapture scroll back
-      if (progressRef.current >= 1 && e.deltaY < 0) {
+      if (p >= 1 && e.deltaY < 0) {
         const rect = container.getBoundingClientRect();
         if (rect.top >= -5) {
           e.preventDefault();
@@ -190,7 +290,7 @@ export default function ScrollExpandExplorer() {
       }
 
       // If not complete, capture scroll
-      if (progressRef.current < 1) {
+      if (p < 1) {
         e.preventDefault();
         scrollToContainer();
         updateProgress(e.deltaY * 0.0009);
@@ -206,12 +306,13 @@ export default function ScrollExpandExplorer() {
 
       const deltaY = touchStartY.current - e.touches[0].clientY;
       touchStartY.current = e.touches[0].clientY;
+      const p = progress.get();
 
       // If complete and scrolling down, let page scroll
-      if (progressRef.current >= 1 && deltaY > 0) return;
+      if (p >= 1 && deltaY > 0) return;
 
       // If complete and at top, recapture
-      if (progressRef.current >= 1 && deltaY < 0) {
+      if (p >= 1 && deltaY < 0) {
         const rect = container.getBoundingClientRect();
         if (rect.top >= -5) {
           e.preventDefault();
@@ -221,7 +322,7 @@ export default function ScrollExpandExplorer() {
         return;
       }
 
-      if (progressRef.current < 1) {
+      if (p < 1) {
         e.preventDefault();
         scrollToContainer();
         const sensitivity = deltaY > 0 ? 0.005 : 0.008;
@@ -229,7 +330,6 @@ export default function ScrollExpandExplorer() {
       }
     };
 
-    // Use window-level listeners to capture scroll before it happens
     window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -239,148 +339,141 @@ export default function ScrollExpandExplorer() {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [updateProgress, scrollToContainer]);
+  }, [updateProgress, scrollToContainer, reducedMotion, progress]);
 
-  // Derived animation values
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-
-  const cardWidth = 300 + progress * (isMobile ? 650 : 1250);
-  const cardHeight = 400 + progress * (isMobile ? 200 : 400);
-  const maxW = typeof window !== 'undefined' ? window.innerWidth * 0.95 : 1400;
-  const maxH = typeof window !== 'undefined' ? window.innerHeight * 0.85 : 800;
-  const clampedW = Math.min(cardWidth, maxW);
-  const clampedH = Math.min(cardHeight, maxH);
-
-  const borderRadius = 16 - progress * 12;
-  const bgOpacity = 1 - progress;
-  const cardOverlayOpacity = Math.max(0, 0.5 - progress * 0.3);
-  const hintOpacity = Math.max(0, 1 - progress * 3);
-  const textSpread = progress * 150;
-
-  // Phase 3: darken + reveal
-  const darkenProgress = Math.max(0, (progress - 0.6) / 0.4);
-  const darkenOverlay = darkenProgress * 0.5;
-  const revealProgress = Math.max(0, (progress - 0.75) / 0.25);
-  const cardsVisible = progress >= 0.75;
+  // Compute revealProgress for city cards
+  const revealProgress = useTransform(progress, [0.75, 1], [0, 1]);
 
   return (
     <div
       ref={containerRef}
-      className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden"
+      className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-gray-900"
       style={{ touchAction: isComplete ? 'auto' : 'none' }}
+      role="region"
+      aria-label="Explorer les villes de Suisse"
     >
       {/* Background image */}
-      <img
+      <motion.img
         src="https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=1920"
+        srcSet="https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=800 800w, https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=1200 1200w, https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=1920 1920w"
+        sizes="100vw"
         alt=""
-        className="absolute inset-0 w-full h-full object-cover blur-sm"
+        className="absolute inset-0 w-full h-full object-cover blur-sm will-change-[opacity]"
         style={{ opacity: bgOpacity }}
+        loading="lazy"
       />
-      <div
+      <motion.div
         className="absolute inset-0 bg-black/10"
         style={{ opacity: bgOpacity }}
       />
 
-      {/* Split text — "Explorez" left, "la Suisse" right */}
-      <div
-        className="absolute text-3xl md:text-5xl lg:text-6xl font-bold text-white pointer-events-none z-20"
+      {/* Split text — "Explorez" left of card, "la Suisse" right */}
+      <motion.div
+        className="absolute text-3xl md:text-5xl lg:text-6xl font-bold text-white pointer-events-none z-20 will-change-transform"
         style={{
           left: '50%',
           top: '50%',
-          transform: `translate(calc(-50% - ${textSpread}vw), -50%)`,
+          transform: textSpreadLeft,
           textShadow: '0 2px 12px rgba(0,0,0,0.5)',
-          opacity: Math.max(0, 1 - progress * 2),
+          opacity: textOpacity,
         }}
       >
         Explorez
-      </div>
-      <div
-        className="absolute text-3xl md:text-5xl lg:text-6xl font-bold text-white pointer-events-none z-20"
+      </motion.div>
+      <motion.div
+        className="absolute text-3xl md:text-5xl lg:text-6xl font-bold text-white pointer-events-none z-20 will-change-transform"
         style={{
           left: '50%',
           top: '50%',
-          transform: `translate(calc(-50% + ${textSpread}vw), -50%)`,
+          transform: textSpreadRight,
           textShadow: '0 2px 12px rgba(0,0,0,0.5)',
-          opacity: Math.max(0, 1 - progress * 2),
+          opacity: textOpacity,
         }}
       >
         la Suisse
-      </div>
+      </motion.div>
 
       {/* Expanding media card */}
-      <div
-        className="relative z-10 overflow-hidden"
+      <motion.div
+        className="relative z-10 overflow-hidden will-change-[width,height]"
         style={{
-          width: clampedW,
-          height: clampedH,
-          borderRadius,
-          boxShadow: `0 ${20 - progress * 15}px ${60 - progress * 40}px rgba(0,0,0,${0.3 - progress * 0.2})`,
-          transition: isTransitioning.current ? 'all 0.05s linear' : 'none',
+          width: cardWidth,
+          height: cardHeight,
+          borderRadius: cardBorderRadius,
+          boxShadow: cardShadow,
         }}
       >
         {/* Base image */}
         <img
           src="https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=1200"
+          srcSet="https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=600 600w, https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=1200 1200w"
+          sizes="(max-width: 768px) 95vw, 80vw"
           alt="Paysage suisse"
           className="absolute inset-0 w-full h-full object-cover"
         />
 
         {/* Card dark overlay (phase 1-2) */}
-        <div
+        <motion.div
           className="absolute inset-0 bg-black"
           style={{ opacity: cardOverlayOpacity }}
         />
 
         {/* Phase 3 darken overlay */}
-        <div
+        <motion.div
           className="absolute inset-0 bg-black"
           style={{ opacity: darkenOverlay }}
         />
 
-        {/* City cards grid (phase 3) */}
+        {/* City cards grid (phase 3) — single responsive grid */}
         {cardsVisible && (
           <div className="absolute inset-0 p-4 md:p-6 z-10">
-            {/* Desktop grid */}
-            <div className="hidden md:grid h-full gap-3 md:gap-4" style={{ gridTemplateColumns: '1.4fr 1fr 1fr', gridTemplateRows: '1fr 1fr' }}>
+            <div
+              className="grid h-full gap-3 md:gap-4 grid-cols-2 grid-rows-3 md:grid-rows-2"
+              style={{
+                gridTemplateColumns: isMobile ? '1fr 1fr' : '1.4fr 1fr 1fr',
+              }}
+            >
               {CITIES.map((city, i) => (
                 <CityCard
                   key={city.slug}
                   city={city}
                   index={i}
                   revealProgress={revealProgress}
-                  className={i === 0 ? 'row-span-2' : ''}
-                />
-              ))}
-            </div>
-            {/* Mobile grid */}
-            <div className="grid md:hidden h-full gap-3 grid-cols-2 grid-rows-3">
-              {CITIES.map((city, i) => (
-                <CityCard
-                  key={city.slug}
-                  city={city}
-                  index={i}
-                  revealProgress={revealProgress}
-                  className={i === 0 ? 'col-span-2' : ''}
+                  className={
+                    i === 0
+                      ? isMobile
+                        ? 'col-span-2'
+                        : 'row-span-2'
+                      : ''
+                  }
                 />
               ))}
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Scroll hint */}
-      <div
+      <motion.div
         className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 text-sm text-white/40"
         style={{ opacity: hintOpacity }}
+        aria-hidden="true"
       >
         Scroll pour découvrir &darr;
-      </div>
+      </motion.div>
 
-      {/* Skip button */}
+      {/* Skip button — keyboard accessible */}
       {!isComplete && (
         <button
           onClick={skipToEnd}
-          className="absolute bottom-4 md:bottom-6 right-4 md:right-6 z-30 text-white/40 hover:text-white/70 text-xs md:text-sm font-medium transition-colors cursor-pointer"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              skipToEnd();
+            }
+          }}
+          className="absolute bottom-4 md:bottom-6 right-4 md:right-6 z-30 text-white/40 hover:text-white/70 focus-visible:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent text-xs md:text-sm font-medium transition-colors cursor-pointer rounded-md px-2 py-1"
+          aria-label="Passer l'animation et afficher les villes"
         >
           Passer &rarr;
         </button>
@@ -397,32 +490,36 @@ function CityCard({
 }: {
   city: City;
   index: number;
-  revealProgress: number;
+  revealProgress: ReturnType<typeof motionValue<number>> | ReturnType<typeof useMotionValue<number>>;
   className?: string;
 }) {
   const delay = index * 0.08;
-  const cardProgress = Math.max(0, Math.min(1, (revealProgress - delay) / (1 - delay)));
-  const isVisible = cardProgress > 0;
+  const opacity = useTransform(revealProgress, [delay, Math.min(delay + 0.3, 1)], [0, 1]);
+  const y = useTransform(revealProgress, [delay, Math.min(delay + 0.3, 1)], [60, 0]);
+  const scale = useTransform(revealProgress, [delay, Math.min(delay + 0.3, 1)], [0.9, 1]);
+  const isVisible = useTransform(revealProgress, (p) => p > delay);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    return isVisible.on('change', (v) => setActive(v));
+  }, [isVisible]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 60, scale: 0.9 }}
-      animate={
-        isVisible
-          ? { opacity: 1, y: 0, scale: 1 }
-          : { opacity: 0, y: 60, scale: 0.9 }
-      }
-      transition={{ type: 'spring', stiffness: 300, damping: 24, delay: delay }}
+      style={{ opacity, y, scale }}
       className={`relative rounded-xl overflow-hidden group ${className}`}
     >
-      <Link to={`/search?city=${city.slug}`} className="absolute inset-0 z-10" />
+      <Link
+        to={`/search?city=${city.slug}`}
+        className="absolute inset-0 z-10"
+        aria-label={`Rechercher des biens à ${city.name}`}
+      />
 
       {/* Photo */}
       <img
         src={city.image}
         alt={city.name}
         className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-        loading="lazy"
       />
 
       {/* Gradient overlay */}
@@ -439,7 +536,7 @@ function CityCard({
       <div className="absolute bottom-0 left-0 p-4 z-10">
         <h3 className="text-xl font-bold text-white">{city.name}</h3>
         <p className="text-xs text-white/70 mt-0.5">
-          <AnimatedCounter target={city.count} active={isVisible} />
+          <AnimatedCounter target={city.count} active={active} />
           {' '}{city.label}
           {city.hot && ' \u00b7 Marché actif \uD83D\uDD25'}
         </p>
