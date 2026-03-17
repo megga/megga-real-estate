@@ -76,29 +76,32 @@ export default function Footer() {
     <footer className="bg-[#F5F5F5] border-t border-[var(--color-border)]">
       {/* ─── Floating CTA card ─── */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-[60px] relative z-10">
-        <div className="bg-accent rounded-2xl p-8 md:p-12 shadow-lg">
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start lg:items-center">
+        <div className="bg-[#1A1A1A] rounded-2xl p-8 md:p-12 shadow-lg overflow-hidden relative">
+          {/* Subtle accent glow */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative flex flex-col lg:flex-row gap-8 lg:gap-12 items-start lg:items-center">
             {/* Left — text */}
             <div className="flex-[3]">
               <h2 className="text-xl md:text-2xl font-bold text-white">
                 Vous êtes professionnel de l&apos;immobilier ?
               </h2>
-              <p className="text-sm text-white/80 mt-2">
+              <p className="text-sm text-white/60 mt-2">
                 Rejoignez MEGGA et accédez aux outils les plus avancés du marché suisse.
               </p>
 
               <div className="mt-5 space-y-2.5">
                 {CTA_BULLETS.map((point) => (
                   <div key={point} className="flex items-center gap-3">
-                    <Check className="w-5 h-5 text-white shrink-0" />
-                    <span className="text-sm text-white/90">{point}</span>
+                    <Check className="w-5 h-5 text-accent shrink-0" />
+                    <span className="text-sm text-white/70">{point}</span>
                   </div>
                 ))}
               </div>
 
               <a
                 href="/register"
-                className="inline-flex items-center gap-2 mt-6 px-6 h-11 bg-white text-accent font-medium rounded-xl hover:bg-white/90 transition-colors text-sm shadow-lg"
+                className="inline-flex items-center gap-2 mt-6 px-6 h-11 bg-accent text-white font-medium rounded-xl hover:bg-accent/90 transition-colors text-sm shadow-lg"
               >
                 Découvrir MEGGA Pro
                 <ArrowRight className="w-4 h-4" />
@@ -111,10 +114,10 @@ export default function Footer() {
                 {CTA_STATS.map((stat) => (
                   <div
                     key={stat.label}
-                    className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center lg:text-left"
+                    className="bg-white/5 border border-white/10 rounded-xl p-4 text-center lg:text-left"
                   >
                     <div className="text-2xl font-bold text-white">{stat.value}</div>
-                    <div className="text-xs text-white/60 mt-0.5">{stat.label}</div>
+                    <div className="text-xs text-white/40 mt-0.5">{stat.label}</div>
                   </div>
                 ))}
               </div>
