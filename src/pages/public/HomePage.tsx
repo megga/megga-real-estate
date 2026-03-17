@@ -1,72 +1,9 @@
 import HeroSearch from '@/components/search/HeroSearch';
-import ListingCard from '@/components/listings/ListingCard';
+import FeaturedCarousel from '@/components/home/FeaturedCarousel';
+import BentoCards from '@/components/home/BentoCards';
+import ExploreCities from '@/components/home/ExploreCities';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-
-const FEATURED_LISTINGS = [
-  {
-    id: '1',
-    title: 'Appartement lumineux Champel',
-    price: 1250000,
-    address: 'Rue de Champel 15, 1206 Genève',
-    rooms: 4,
-    bedrooms: 2,
-    surface: 95,
-    imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80',
-    isHot: true,
-  },
-  {
-    id: '2',
-    title: 'Villa contemporaine Cologny',
-    price: 3950000,
-    address: 'Chemin de Ruth 8, 1223 Cologny',
-    rooms: 7,
-    bedrooms: 4,
-    surface: 280,
-    imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
-  },
-  {
-    id: '3',
-    title: 'Loft rénové Plainpalais',
-    price: 890000,
-    address: 'Rue de Carouge 42, 1205 Genève',
-    rooms: 3,
-    bedrooms: 1,
-    surface: 78,
-    imageUrl: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80',
-  },
-  {
-    id: '4',
-    title: 'Penthouse vue lac',
-    price: 2750000,
-    address: 'Quai du Mont-Blanc 3, 1201 Genève',
-    rooms: 5,
-    bedrooms: 3,
-    surface: 160,
-    imageUrl: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=800&q=80',
-    isHot: true,
-  },
-  {
-    id: '5',
-    title: 'Appartement familial Eaux-Vives',
-    price: 1580000,
-    address: 'Rue du Lac 27, 1207 Genève',
-    rooms: 5,
-    bedrooms: 3,
-    surface: 120,
-    imageUrl: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&q=80',
-  },
-  {
-    id: '6',
-    title: 'Studio design Pâquis',
-    price: 485000,
-    address: 'Rue de Berne 12, 1201 Genève',
-    rooms: 2,
-    bedrooms: 1,
-    surface: 42,
-    imageUrl: 'https://images.unsplash.com/photo-1600573472592-401b489a3cdc?w=800&q=80',
-  },
-];
 
 export default function HomePage() {
   return (
@@ -98,22 +35,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured listings */}
-      <section className="pt-16 pb-12 md:pt-20 md:pb-16">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-          <h2 className="text-2xl md:text-3xl font-semibold text-gray-900">
-            Biens en vedette
-          </h2>
-          <p className="text-gray-500 mt-2">
-            Découvrez notre sélection de biens d&apos;exception en Suisse
-          </p>
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {FEATURED_LISTINGS.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Featured listings carousel */}
+      <FeaturedCarousel />
+
+      {/* Bento cards — Acheter / Louer / Estimer */}
+      <BentoCards />
+
+      {/* Explorer par ville */}
+      <ExploreCities />
 
       {/* CTA for agents */}
       <section className="py-12 md:py-16 bg-[var(--color-bg-section)]">
