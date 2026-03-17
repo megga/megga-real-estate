@@ -13,6 +13,13 @@ import DashboardPage from '@/pages/agent/DashboardPage'
 import ContactsPage from '@/pages/agent/ContactsPage'
 import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 import PipelinePage from '@/pages/agent/PipelinePage'
+import AcheterPage from '@/pages/public/AcheterPage'
+import LouerPage from '@/pages/public/LouerPage'
+import VendrePage from '@/pages/public/VendrePage'
+import EstimationsPage from '@/pages/public/EstimationsPage'
+import ServicesPage from '@/pages/public/ServicesPage'
+import PublierPage from '@/pages/public/PublierPage'
+import NotFoundPage from '@/pages/public/NotFoundPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +43,13 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/acheter" element={<AcheterPage />} />
+            <Route path="/louer" element={<LouerPage />} />
+            <Route path="/vendre" element={<VendrePage />} />
+            <Route path="/estimations" element={<EstimationsPage />} />
+            <Route path="/estimer" element={<EstimationsPage />} />
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/publier" element={<PublierPage />} />
 
             {/* Agent dashboard (protected) */}
             <Route
@@ -52,6 +66,9 @@ export default function App() {
               <Route path="pipeline" element={<PipelinePage />} />
               {/* Future routes: listings, kyc, messages, calendar, settings */}
             </Route>
+
+            {/* 404 */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
