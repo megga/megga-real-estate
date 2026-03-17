@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, Clock, XCircle,
-  Upload, FileText, AlertTriangle, MessageSquare,
-  ClipboardList, FolderOpen, ScrollText, StickyNote,
-  Plus, Send, ChevronDown, ChevronRight,
+  Upload, FileText, MessageSquare, RefreshCw,
+  ClipboardCheck, Eye, Download, Trash2,
+  Plus, Send, ChevronDown, ChevronRight, Calendar,
+  User, Building2, Wallet, Landmark, Scale,
 } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate } from '@/lib/utils'
 import {
@@ -20,12 +21,12 @@ import EmptyState from '@/components/ui/empty-state'
 
 // ─── Status & Risk config ────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<MockKycCase['status'], { label: string; cls: string }> = {
-  pending: { label: 'En attente', cls: 'bg-primary-100 text-primary-600' },
-  in_progress: { label: 'En cours', cls: 'bg-accent/10 text-accent' },
-  review: { label: 'En revue', cls: 'bg-warning/10 text-warning' },
-  validated: { label: 'Validé', cls: 'bg-success/10 text-success' },
-  rejected: { label: 'Rejeté', cls: 'bg-danger/10 text-danger' },
+const STATUS_CONFIG: Record<MockKycCase['status'], { label: string; cls: string; iconBg: string }> = {
+  pending: { label: 'En attente', cls: 'bg-primary-100 text-primary-600', iconBg: 'bg-primary-400' },
+  in_progress: { label: 'En cours', cls: 'bg-warning/10 text-warning', iconBg: 'bg-warning' },
+  review: { label: 'En revue', cls: 'bg-accent/10 text-accent', iconBg: 'bg-accent' },
+  validated: { label: 'Validé', cls: 'bg-success/10 text-success', iconBg: 'bg-success' },
+  rejected: { label: 'Rejeté', cls: 'bg-danger/10 text-danger', iconBg: 'bg-danger' },
 }
 
 const RISK_CONFIG: Record<MockKycCase['riskLevel'], { label: string; cls: string; dotCls: string }> = {
@@ -42,37 +43,54 @@ const TYPE_CONFIG: Record<MockKycCase['type'], { label: string; cls: string }> =
   seller_pm: { label: 'Vendeur PM', cls: 'bg-success/10 text-success' },
 }
 
+// Category icon/color mapping for checklist
+const CATEGORY_STYLE: Record<string, { icon: typeof User; bg: string; text: string }> = {
+  'Identité': { icon: User, bg: 'bg-blue-50', text: 'text-blue-600' },
+  'Domicile': { icon: Building2, bg: 'bg-green-50', text: 'text-green-600' },
+  'Revenus': { icon: Wallet, bg: 'bg-purple-50', text: 'text-purple-600' },
+  'Origine des fonds': { icon: Landmark, bg: 'bg-orange-50', text: 'text-orange-600' },
+  'Conformité': { icon: Scale, bg: 'bg-red-50', text: 'text-red-600' },
+  'Société': { icon: Building2, bg: 'bg-blue-50', text: 'text-blue-600' },
+  'Représentants': { icon: User, bg: 'bg-green-50', text: 'text-green-600' },
+  'Actionnariat': { icon: User, bg: 'bg-purple-50', text: 'text-purple-600' },
+  'Finances': { icon: Wallet, bg: 'bg-orange-50', text: 'text-orange-600' },
+  'Propriété': { icon: Landmark, bg: 'bg-blue-50', text: 'text-blue-600' },
+}
+
+const DEFAULT_CATEGORY_STYLE = { icon: FileText, bg: 'bg-gray-50', text: 'text-gray-600' }
+
 type TabId = 'checklist' | 'documents' | 'audit' | 'notes'
 
-const TABS: { id: TabId; label: string; icon: typeof ClipboardList }[] = [
-  { id: 'checklist', label: 'Checklist', icon: ClipboardList },
-  { id: 'documents', label: 'Documents', icon: FolderOpen },
-  { id: 'audit', label: 'Journal d\'audit', icon: ScrollText },
-  { id: 'notes', label: 'Notes', icon: StickyNote },
+const TABS: { id: TabId; label: string; icon: typeof ClipboardCheck }[] = [
+  { id: 'checklist', label: 'Checklist', icon: ClipboardCheck },
+  { id: 'documents', label: 'Documents', icon: FileText },
+  { id: 'audit', label: 'Journal', icon: Clock },
+  { id: 'notes', label: 'Notes', icon: MessageSquare },
 ]
 
 // ─── Progress Bar ────────────────────────────────────────────────────────────
 
-function ProgressBar({ pct }: { pct: number }) {
+function ProgressBar({ pct, completedCount, totalCount }: { pct: number; completedCount: number; totalCount: number }) {
   const color = pct >= 70 ? 'bg-success' : pct >= 40 ? 'bg-warning' : 'bg-danger'
+  const textColor = pct >= 70 ? 'text-success' : pct >= 40 ? 'text-warning' : 'text-danger'
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-primary-700">Progression globale</span>
-        <span className={cn(
-          'text-sm font-semibold',
-          pct >= 70 ? 'text-success' : pct >= 40 ? 'text-warning' : 'text-danger'
-        )}>
+        <span className={cn('text-lg font-bold', textColor)}>
           {pct}%
         </span>
       </div>
-      <div className="w-full h-2.5 bg-primary-100 rounded-full overflow-hidden">
+      <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
         <div
-          className={cn('h-full rounded-full transition-all duration-500', color)}
+          className={cn('h-full rounded-full transition-all duration-500 ease-out', color)}
           style={{ width: `${pct}%` }}
         />
       </div>
+      <p className="text-sm text-gray-500">
+        {completedCount} sur {totalCount} items complétés
+      </p>
     </div>
   )
 }
@@ -104,11 +122,23 @@ function ChecklistTab({ items }: { items: MockKycChecklistItem[] }) {
   const statusIcon = (status: MockKycChecklistItem['status']) => {
     switch (status) {
       case 'validated':
-        return <CheckCircle2 className="h-4.5 w-4.5 text-success flex-shrink-0" aria-label="Validé" />
+        return (
+          <div className="h-6 w-6 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="h-4 w-4 text-success" aria-label="Validé" />
+          </div>
+        )
       case 'pending':
-        return <Clock className="h-4.5 w-4.5 text-warning flex-shrink-0" aria-label="En attente" />
+        return (
+          <div className="h-6 w-6 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+            <Clock className="h-4 w-4 text-warning" aria-label="En attente" />
+          </div>
+        )
       case 'missing':
-        return <XCircle className="h-4.5 w-4.5 text-danger flex-shrink-0" aria-label="Manquant" />
+        return (
+          <div className="h-6 w-6 rounded-full bg-danger/10 flex items-center justify-center flex-shrink-0">
+            <XCircle className="h-4 w-4 text-danger" aria-label="Manquant" />
+          </div>
+        )
     }
   }
 
@@ -117,64 +147,70 @@ function ChecklistTab({ items }: { items: MockKycChecklistItem[] }) {
       {Array.from(grouped.entries()).map(([category, categoryItems]) => {
         const completed = categoryItems.filter((i) => i.isCompleted).length
         const isCollapsed = collapsed.has(category)
+        const catStyle = CATEGORY_STYLE[category] || DEFAULT_CATEGORY_STYLE
+        const CatIcon = catStyle.icon
+        const pctCategory = categoryItems.length > 0 ? (completed / categoryItems.length) * 100 : 0
 
         return (
-          <div key={category} className="bg-white rounded-card border border-border overflow-hidden">
+          <div key={category} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            {/* Category header */}
             <button
               onClick={() => toggleCategory(category)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-section/50 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50/80 transition-colors"
             >
               <div className="flex items-center gap-3">
                 {isCollapsed
-                  ? <ChevronRight className="h-4 w-4 text-primary-400" aria-hidden="true" />
-                  : <ChevronDown className="h-4 w-4 text-primary-400" aria-hidden="true" />
+                  ? <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                  : <ChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
                 }
-                <span className="text-sm font-semibold text-primary-900">{category}</span>
-                <span className="text-xs text-muted-foreground">
-                  {completed}/{categoryItems.length}
-                </span>
+                <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center', catStyle.bg)}>
+                  <CatIcon className={cn('h-4 w-4', catStyle.text)} aria-hidden="true" />
+                </div>
+                <span className="text-base font-semibold text-primary-900">{category}</span>
+                <span className="text-sm text-gray-400 ml-1">{completed}/{categoryItems.length}</span>
               </div>
-              <div className="w-16 h-1.5 bg-primary-100 rounded-full overflow-hidden">
+              <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden hidden sm:block">
                 <div
                   className={cn(
-                    'h-full rounded-full',
+                    'h-full rounded-full transition-all duration-300',
                     completed === categoryItems.length ? 'bg-success' : 'bg-accent'
                   )}
-                  style={{ width: `${categoryItems.length > 0 ? (completed / categoryItems.length) * 100 : 0}%` }}
+                  style={{ width: `${pctCategory}%` }}
                 />
               </div>
             </button>
 
+            {/* Category items */}
             {!isCollapsed && (
-              <div className="border-t border-border divide-y divide-border/50">
+              <div className="px-4 pb-3 space-y-2">
                 {categoryItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+                  <div key={item.id} className="flex items-center gap-3 bg-gray-50/50 rounded-lg p-3">
                     {statusIcon(item.status)}
                     <div className="flex-1 min-w-0">
                       <p className={cn(
                         'text-sm',
-                        item.isCompleted ? 'text-primary-500 line-through' : 'text-primary-900'
+                        item.isCompleted ? 'text-gray-400 line-through' : 'text-primary-900 font-medium'
                       )}>
                         {item.label}
                         {item.isRequired && <span className="text-danger ml-1">*</span>}
                       </p>
                       {item.documentName ? (
-                        <p className="text-xs text-accent mt-0.5 flex items-center gap-1">
-                          <FileText className="h-3 w-3" aria-hidden="true" />
+                        <p className="text-sm text-accent mt-0.5 flex items-center gap-1 hover:underline cursor-pointer">
+                          <FileText className="h-3.5 w-3.5" aria-hidden="true" />
                           {item.documentName}
                         </p>
                       ) : (
-                        <p className="text-xs text-muted-foreground mt-0.5">Aucun document lié</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Aucun document lié</p>
                       )}
                     </div>
                     {!item.isCompleted && (
-                      <button className="flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover px-2.5 py-1.5 rounded-button border border-accent/20 hover:border-accent/40 transition-colors">
-                        <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+                      <button className="flex items-center gap-1.5 text-sm font-medium text-accent border-2 border-dashed border-accent/30 rounded-lg px-4 py-2 hover:bg-accent/5 hover:border-accent/50 transition-all">
+                        <Upload className="h-4 w-4" aria-hidden="true" />
                         Uploader
                       </button>
                     )}
                     {item.completedAt && (
-                      <span className="text-[10px] text-muted-foreground hidden sm:block">
+                      <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">
                         {formatDate(item.completedAt)}
                       </span>
                     )}
@@ -199,69 +235,70 @@ const DOC_STATUS_CONFIG: Record<MockKycDocument['status'], { label: string; cls:
 
 function DocumentsTab({ documents }: { documents: MockKycDocument[] }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Upload zone */}
-      <div className="border-2 border-dashed border-border rounded-card p-8 flex flex-col items-center justify-center text-center hover:border-accent/40 hover:bg-accent/5 transition-colors cursor-pointer">
-        <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center mb-3">
-          <Upload className="h-6 w-6 text-accent" aria-hidden="true" />
-        </div>
-        <p className="text-sm font-medium text-primary-700">Glissez-déposez vos fichiers ici</p>
-        <p className="text-xs text-muted-foreground mt-1">ou cliquez pour sélectionner — PDF, JPG, PNG (max 10 Mo)</p>
+      <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:border-accent hover:bg-accent/5 transition-all cursor-pointer group">
+        <Upload className="h-12 w-12 text-gray-300 group-hover:text-accent transition-colors mb-3" aria-hidden="true" />
+        <p className="text-gray-500 font-medium">Glissez-déposez vos fichiers ici</p>
+        <p className="text-gray-400 text-sm mt-1">ou cliquez pour sélectionner — PDF, JPG, PNG (max 10 Mo)</p>
       </div>
 
       {/* Document list */}
       {documents.length === 0 ? (
         <EmptyState
-          icon={FolderOpen}
+          icon={FileText}
           title="Aucun document"
           description="Les documents uploadés apparaîtront ici."
         />
       ) : (
-        <div className="bg-white rounded-card border border-border overflow-hidden">
+        <div className="rounded-xl overflow-hidden border border-gray-100">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-section/50">
-                  <th className="text-left px-4 py-3 font-medium text-primary-600 text-xs uppercase tracking-wider">Fichier</th>
-                  <th className="text-left px-4 py-3 font-medium text-primary-600 text-xs uppercase tracking-wider hidden sm:table-cell">Type</th>
-                  <th className="text-left px-4 py-3 font-medium text-primary-600 text-xs uppercase tracking-wider hidden md:table-cell">Taille</th>
-                  <th className="text-left px-4 py-3 font-medium text-primary-600 text-xs uppercase tracking-wider hidden md:table-cell">Uploadé par</th>
-                  <th className="text-left px-4 py-3 font-medium text-primary-600 text-xs uppercase tracking-wider hidden lg:table-cell">Date</th>
-                  <th className="text-left px-4 py-3 font-medium text-primary-600 text-xs uppercase tracking-wider">Statut</th>
-                  <th className="text-right px-4 py-3 font-medium text-primary-600 text-xs uppercase tracking-wider">Actions</th>
+                <tr className="bg-gray-50">
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider">Fichier</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden sm:table-cell">Type</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden md:table-cell">Taille</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden md:table-cell">Uploadé par</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden lg:table-cell">Date</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider">Statut</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
+              <tbody>
                 {documents.map((doc) => {
                   const docStatus = DOC_STATUS_CONFIG[doc.status]
                   return (
-                    <tr key={doc.id} className="hover:bg-section/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-primary-400 flex-shrink-0" aria-hidden="true" />
+                    <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <FileText className="h-4 w-4 text-gray-500" aria-hidden="true" />
+                          </div>
                           <span className="text-primary-900 font-medium truncate max-w-[200px]">{doc.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{doc.type}</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{doc.sizeMb.toFixed(1)} Mo</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{doc.uploadedBy}</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{formatDate(doc.uploadedAt)}</td>
-                      <td className="px-4 py-3">
-                        <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-badge', docStatus.cls)}>
+                      <td className="px-4 py-3.5 text-gray-500 hidden sm:table-cell">{doc.type}</td>
+                      <td className="px-4 py-3.5 text-gray-500 hidden md:table-cell">{doc.sizeMb.toFixed(1)} Mo</td>
+                      <td className="px-4 py-3.5 text-gray-500 hidden md:table-cell">{doc.uploadedBy}</td>
+                      <td className="px-4 py-3.5 text-gray-500 hidden lg:table-cell">{formatDate(doc.uploadedAt)}</td>
+                      <td className="px-4 py-3.5">
+                        <span className={cn('text-xs font-medium px-3 py-1 rounded-full', docStatus.cls)}>
                           {docStatus.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-accent hover:bg-accent/5 transition-colors" aria-label="Voir">
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-accent hover:bg-accent/5 transition-colors" aria-label="Télécharger">
+                            <Download className="h-4 w-4" />
+                          </button>
                           {doc.status === 'pending' && (
-                            <>
-                              <button className="text-xs font-medium text-success hover:text-success-dark px-2 py-1 rounded-button hover:bg-success/10 transition-colors">
-                                Valider
-                              </button>
-                              <button className="text-xs font-medium text-danger hover:text-danger-dark px-2 py-1 rounded-button hover:bg-danger/10 transition-colors">
-                                Rejeter
-                              </button>
-                            </>
+                            <button className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/5 transition-colors" aria-label="Supprimer">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -279,20 +316,23 @@ function DocumentsTab({ documents }: { documents: MockKycDocument[] }) {
 
 // ─── Tab: Audit ──────────────────────────────────────────────────────────────
 
-const AUDIT_ICON_MAP: Record<MockKycAuditEvent['type'], { icon: typeof FileText; cls: string }> = {
-  create: { icon: Plus, cls: 'bg-accent/10 text-accent' },
-  upload: { icon: Upload, cls: 'bg-primary-100 text-primary-600' },
-  checklist: { icon: CheckCircle2, cls: 'bg-success/10 text-success' },
-  comment: { icon: MessageSquare, cls: 'bg-warning/10 text-warning' },
-  status: { icon: AlertTriangle, cls: 'bg-accent/10 text-accent' },
-  validate: { icon: ShieldCheck, cls: 'bg-success/10 text-success' },
+const AUDIT_ICON_MAP: Record<MockKycAuditEvent['type'], { icon: typeof FileText; bg: string; text: string }> = {
+  create: { icon: Plus, bg: 'bg-blue-50', text: 'text-blue-600' },
+  upload: { icon: Upload, bg: 'bg-green-50', text: 'text-green-600' },
+  checklist: { icon: CheckCircle2, bg: 'bg-success/10', text: 'text-success' },
+  comment: { icon: MessageSquare, bg: 'bg-purple-50', text: 'text-purple-600' },
+  status: { icon: RefreshCw, bg: 'bg-warning/10', text: 'text-warning' },
+  validate: { icon: ShieldCheck, bg: 'bg-success/10', text: 'text-success' },
 }
 
 function AuditTab({ events }: { events: MockKycAuditEvent[] }) {
-  if (events.length === 0) {
+  // Reverse chronological order
+  const sortedEvents = useMemo(() => [...events].reverse(), [events])
+
+  if (sortedEvents.length === 0) {
     return (
       <EmptyState
-        icon={ScrollText}
+        icon={Clock}
         title="Aucun événement"
         description="Le journal d'audit sera alimenté au fur et à mesure des actions."
       />
@@ -300,38 +340,35 @@ function AuditTab({ events }: { events: MockKycAuditEvent[] }) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative pl-5">
       {/* Timeline line */}
-      <div className="absolute left-5 top-0 bottom-0 w-px bg-border" aria-hidden="true" />
+      <div className="absolute left-[19px] top-5 bottom-5 w-0.5 bg-gray-200" aria-hidden="true" />
 
-      <div className="space-y-0">
-        {events.map((event, idx) => {
+      <div className="space-y-6">
+        {sortedEvents.map((event) => {
           const config = AUDIT_ICON_MAP[event.type]
           const Icon = config.icon
-          const isLast = idx === events.length - 1
 
           return (
-            <div key={event.id} className={cn('relative flex gap-4 pl-0', !isLast && 'pb-6')}>
-              {/* Icon */}
+            <div key={event.id} className="relative flex gap-4">
+              {/* Icon on timeline */}
               <div className={cn(
-                'relative z-10 h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0',
-                config.cls
+                'relative z-10 h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 -ml-5',
+                config.bg
               )}>
-                <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+                <Icon className={cn('h-4.5 w-4.5', config.text)} aria-hidden="true" />
               </div>
 
               {/* Content */}
-              <div className="flex-1 min-w-0 pt-1">
+              <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium text-primary-900">{event.action}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{event.description}</p>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0">
+                  <p className="text-sm font-medium text-primary-900">{event.action}</p>
+                  <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
                     {formatRelativeDate(event.timestamp)}
                   </span>
                 </div>
-                <p className="text-[10px] text-primary-400 mt-1">
+                <p className="text-sm text-gray-500 mt-0.5">{event.description}</p>
+                <p className="text-xs text-gray-400 mt-1">
                   Par {event.actor} — {formatDate(event.timestamp)}
                 </p>
               </div>
@@ -349,9 +386,9 @@ function NotesTab({ notes }: { notes: MockKycNote[] }) {
   const [newNote, setNewNote] = useState('')
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* New note input */}
-      <div className="bg-white rounded-card border border-border p-4">
+      <div>
         <label htmlFor="new-note" className="text-sm font-medium text-primary-700 block mb-2">
           Ajouter un commentaire
         </label>
@@ -360,20 +397,20 @@ function NotesTab({ notes }: { notes: MockKycNote[] }) {
           value={newNote}
           onChange={(e) => setNewNote(e.target.value)}
           placeholder="Écrivez votre commentaire..."
-          rows={3}
-          className="w-full text-sm bg-section/50 border border-border rounded-input px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+          rows={4}
+          className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
         />
-        <div className="flex justify-end mt-2">
+        <div className="flex justify-end mt-3">
           <button
             disabled={!newNote.trim()}
             className={cn(
-              'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-button transition-colors',
+              'inline-flex items-center gap-2 px-6 h-10 text-sm font-medium rounded-lg transition-colors',
               newNote.trim()
-                ? 'bg-accent text-white hover:bg-accent-hover'
-                : 'bg-primary-100 text-primary-300 cursor-not-allowed'
+                ? 'bg-accent text-white hover:bg-accent-hover shadow-sm'
+                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
             )}
           >
-            <Send className="h-3.5 w-3.5" aria-hidden="true" />
+            <Send className="h-4 w-4" aria-hidden="true" />
             Envoyer
           </button>
         </div>
@@ -382,28 +419,29 @@ function NotesTab({ notes }: { notes: MockKycNote[] }) {
       {/* Existing notes */}
       {notes.length === 0 ? (
         <EmptyState
-          icon={StickyNote}
+          icon={MessageSquare}
           title="Aucune note"
           description="Les notes ajoutées par les agents apparaîtront ici."
         />
       ) : (
         <div className="space-y-3">
-          {notes.map((note) => (
-            <div key={note.id} className="bg-white rounded-card border border-border p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-full bg-accent/10 flex items-center justify-center">
-                    <span className="text-[10px] font-semibold text-accent">
-                      {note.author.split(' ').map((n) => n[0]).join('').toUpperCase()}
-                    </span>
+          {notes.map((note) => {
+            const initials = note.author.split(' ').map((n) => n[0]).join('').toUpperCase()
+            return (
+              <div key={note.id} className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
+                      <span className="text-xs font-semibold text-white">{initials}</span>
+                    </div>
+                    <span className="text-sm font-medium text-primary-900">{note.author}</span>
                   </div>
-                  <span className="text-sm font-medium text-primary-900">{note.author}</span>
+                  <span className="text-xs text-gray-400">{formatRelativeDate(note.createdAt)}</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">{formatRelativeDate(note.createdAt)}</span>
+                <p className="text-sm text-gray-700 leading-relaxed mt-2">{note.content}</p>
               </div>
-              <p className="text-sm text-primary-700 leading-relaxed">{note.content}</p>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
@@ -440,11 +478,13 @@ export default function KycDetailPage() {
     )
   }
 
-  const status = STATUS_CONFIG[isValidated ? 'validated' : kycCase.status]
+  const currentStatus = isValidated ? 'validated' : kycCase.status
+  const status = STATUS_CONFIG[currentStatus]
   const risk = RISK_CONFIG[kycCase.riskLevel]
   const typeInfo = TYPE_CONFIG[kycCase.type]
-  const currentStatus = isValidated ? 'validated' : kycCase.status
   const currentPct = isValidated ? 100 : kycCase.completionPct
+  const completedItems = kycCase.checklistItems.filter((i) => i.isCompleted).length
+  const totalItems = kycCase.checklistItems.length
 
   const canValidate = currentStatus !== 'validated' && currentStatus !== 'rejected'
 
@@ -460,31 +500,36 @@ export default function KycDetailPage() {
       </Link>
 
       {/* Header card */}
-      <div className="bg-white rounded-card shadow-card border border-border p-5 md:p-6">
+      <div className="bg-white rounded-xl shadow-card border border-gray-100 p-5 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           {/* Left: Info */}
           <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
-              <ShieldCheck className="h-6 w-6 text-accent" aria-hidden="true" />
+            {/* Status icon circle */}
+            <div className={cn(
+              'h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0',
+              status.iconBg
+            )}>
+              <ShieldCheck className="h-5 w-5 text-white" aria-hidden="true" />
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-semibold text-primary-900">
                 {kycCase.contactName}
               </h1>
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge', typeInfo.cls)}>
+              <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                <span className={cn('text-xs font-medium px-3 py-1 rounded-full', typeInfo.cls)}>
                   {typeInfo.label}
                 </span>
-                <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge inline-flex items-center gap-1', risk.cls)}>
+                <span className={cn('text-xs font-medium px-3 py-1 rounded-full inline-flex items-center gap-1.5', risk.cls)}>
                   <span className={cn('h-1.5 w-1.5 rounded-full', risk.dotCls)} aria-hidden="true" />
                   Risque {risk.label}
                 </span>
-                <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge', status.cls)}>
+                <span className={cn('text-xs font-medium px-3 py-1 rounded-full', status.cls)}>
                   {status.label}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Créé le {formatDate(kycCase.createdAt)} — Dernière mise à jour {formatRelativeDate(kycCase.updatedAt)}
+              <p className="text-sm text-gray-400 mt-2.5 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+                Créé le {formatDate(kycCase.createdAt)} — Mis à jour {formatRelativeDate(kycCase.updatedAt)}
               </p>
             </div>
           </div>
@@ -493,14 +538,14 @@ export default function KycDetailPage() {
           {canValidate && (
             <button
               onClick={() => setShowValidateDialog(true)}
-              className="inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium px-5 py-2.5 rounded-button transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 whitespace-nowrap"
+              className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium h-11 px-6 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2 whitespace-nowrap"
             >
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
               Valider le dossier
             </button>
           )}
           {currentStatus === 'validated' && (
-            <div className="inline-flex items-center gap-2 bg-success/10 text-success text-sm font-medium px-4 py-2.5 rounded-button">
+            <div className="inline-flex items-center gap-2 bg-success/10 text-success text-sm font-medium h-11 px-6 rounded-lg">
               <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
               Dossier validé
             </div>
@@ -508,15 +553,15 @@ export default function KycDetailPage() {
         </div>
 
         {/* Progress bar */}
-        <div className="mt-5 pt-5 border-t border-border">
-          <ProgressBar pct={currentPct} />
+        <div className="mt-5 pt-5 border-t border-gray-100">
+          <ProgressBar pct={currentPct} completedCount={isValidated ? totalItems : completedItems} totalCount={totalItems} />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-card shadow-card border border-border overflow-hidden">
-        {/* Tab headers */}
-        <div className="flex border-b border-border overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-card border border-gray-100 overflow-hidden">
+        {/* Tab headers — pill style */}
+        <div className="flex gap-1 p-3 border-b border-gray-100 overflow-x-auto">
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -525,26 +570,26 @@ export default function KycDetailPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'flex items-center gap-2 px-4 md:px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px',
+                  'flex items-center gap-2 px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-all',
                   isActive
-                    ? 'text-accent border-accent'
-                    : 'text-primary-400 border-transparent hover:text-primary-700 hover:border-primary-200'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
                 {tab.label}
                 {tab.id === 'checklist' && (
                   <span className={cn(
-                    'text-[10px] font-medium px-1.5 py-0.5 rounded-badge',
-                    isActive ? 'bg-accent/10 text-accent' : 'bg-primary-100 text-primary-400'
+                    'text-xs font-medium px-2 py-0.5 rounded-full',
+                    isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
                   )}>
-                    {kycCase.checklistItems.filter((i) => i.isCompleted).length}/{kycCase.checklistItems.length}
+                    {completedItems}/{totalItems}
                   </span>
                 )}
                 {tab.id === 'documents' && (
                   <span className={cn(
-                    'text-[10px] font-medium px-1.5 py-0.5 rounded-badge',
-                    isActive ? 'bg-accent/10 text-accent' : 'bg-primary-100 text-primary-400'
+                    'text-xs font-medium px-2 py-0.5 rounded-full',
+                    isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
                   )}>
                     {kycCase.documents.length}
                   </span>
