@@ -83,8 +83,8 @@ export default function HomePage() {
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
-        {/* Gradient overlay — CRITIQUE #1: stronger */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/50 to-black/30" />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/55 to-black/25" />
         {/* Grain texture overlay */}
         <div
           className="absolute inset-0 opacity-[0.03]"
@@ -92,9 +92,6 @@ export default function HomePage() {
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           }}
         />
-        {/* Bottom fade to white — MINEUR #2: smooth transition */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent" />
-
         {/* Content */}
         <div className="relative z-10 w-full px-4 md:px-6 pt-28 pb-20 md:pt-32 md:pb-28">
           <HeroSearch />

@@ -15,9 +15,9 @@ type ModeTab = 'libre' | 'filtres' | 'adresse';
 const SUGGESTIONS: Record<ContextTab, Record<ModeTab, { text: string; sparkle?: boolean }[]>> = {
   acheter: {
     libre: [
-      { text: "3 pièces lumineux à Champel, max 800K", sparkle: true },
+      { text: "3 pièces à Champel, max 800K", sparkle: true },
       { text: "Maison avec jardin, 20min de Genève", sparkle: true },
-      { text: "Attique vue lac, standing", sparkle: true },
+      { text: "Attique vue lac", sparkle: true },
     ],
     filtres: [
       { text: "3+ pièces" },
@@ -244,7 +244,7 @@ export default function HeroSearch() {
               'px-5 md:px-6 py-2 md:py-2.5 rounded-full text-sm md:text-base transition-all cursor-pointer',
               contextTab === tab.value
                 ? 'bg-white text-gray-900 font-semibold shadow-lg'
-                : 'text-white/70 hover:text-white hover:bg-white/10 font-medium'
+                : 'text-white/75 hover:text-white hover:bg-white/10 font-medium'
             )}
           >
             {tab.label}
@@ -294,7 +294,7 @@ export default function HeroSearch() {
           {activeSuggestions.map((suggestion) => (
             <button
               key={suggestion.text}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/60 hover:bg-white/15 hover:border-white/25 hover:text-white/85 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/60 hover:bg-white/15 hover:border-white/25 hover:text-white/85 transition-all cursor-pointer"
             >
               {suggestion.sparkle && (
                 <Sparkles className="w-3 h-3 opacity-60" />
