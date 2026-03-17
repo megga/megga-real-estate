@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Plus, Menu, X, LogOut, LayoutDashboard, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,7 +25,7 @@ function UserAvatar({ name, email }: { name: string; email: string }) {
 
   return (
     <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
-      <span className="text-xs font-semibold text-white">{initials}</span>
+      <span className="text-xs font-semibold text-white" aria-hidden="true">{initials}</span>
     </div>
   )
 }
@@ -49,6 +49,13 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [dropdownOpen])
 
+  // Close dropdown on Escape
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setDropdownOpen(false)
+    }
+  }, [])
+
   const displayName = user?.user_metadata?.full_name || user?.email || ''
   const displayEmail = user?.email || ''
 
@@ -62,12 +69,12 @@ export default function Navbar() {
     <header className="h-16 border-b border-border bg-white shadow-navbar sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex-shrink-0">
+        <Link to="/" className="flex-shrink-0" aria-label="MEGGA — Accueil">
           <span className="text-2xl font-bold tracking-tight text-primary-900">MEGGA</span>
         </Link>
 
         {/* Navigation desktop */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-1" aria-label="Navigation principale">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.href
             return (
@@ -80,6 +87,7 @@ export default function Navbar() {
                     ? 'text-accent border-b-2 border-accent'
                     : 'text-primary-700 hover:text-accent'
                 )}
+                aria-current={isActive ? 'page' : undefined}
               >
                 {link.label}
               </Link>
@@ -90,26 +98,33 @@ export default function Navbar() {
         {/* Actions desktop */}
         <div className="hidden md:flex items-center gap-3">
           <Button size="default" className="rounded-full gap-2">
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Publier une annonce
           </Button>
 
           {loading ? (
-            <div className="h-9 w-9 rounded-full bg-section animate-pulse" />
+            <div className="h-9 w-9 rounded-full bg-section animate-pulse" role="status" aria-label="Chargement" />
           ) : user ? (
             /* Logged in — avatar dropdown */
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative" ref={dropdownRef} onKeyDown={handleKeyDown}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="rounded-full focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                aria-expanded={dropdownOpen}
+                aria-haspopup="true"
+                aria-label={`Menu utilisateur — ${displayName}`}
               >
                 <UserAvatar name={displayName} email={displayEmail} />
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-border py-2 z-50">
+                <div
+                  className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-border py-2 z-50"
+                  role="menu"
+                  aria-label="Menu utilisateur"
+                >
                   {/* User info */}
-                  <div className="px-4 py-3 border-b border-border">
+                  <div className="px-4 py-3 border-b border-border" role="none">
                     <p className="text-sm font-medium text-primary-900 truncate">
                       {displayName}
                     </p>
@@ -119,32 +134,35 @@ export default function Navbar() {
                   </div>
 
                   {/* Menu items */}
-                  <div className="py-1">
+                  <div className="py-1" role="none">
                     <Link
                       to="/dashboard"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
                       onClick={() => setDropdownOpen(false)}
+                      role="menuitem"
                     >
-                      <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                      <LayoutDashboard className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       Dashboard
                     </Link>
                     <Link
                       to="/settings/profile"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
                       onClick={() => setDropdownOpen(false)}
+                      role="menuitem"
                     >
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       Mon profil
                     </Link>
                   </div>
 
                   {/* Sign out */}
-                  <div className="border-t border-border pt-1">
+                  <div className="border-t border-border pt-1" role="none">
                     <button
                       onClick={handleSignOut}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger-light transition-colors w-full text-left"
+                      role="menuitem"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="h-4 w-4" aria-hidden="true" />
                       Déconnexion
                     </button>
                   </div>
@@ -163,17 +181,20 @@ export default function Navbar() {
 
         {/* Mobile menu button */}
         <button
-          className="md:hidden p-2 rounded-md hover:bg-section"
+          className="md:hidden p-2 rounded-md hover:bg-section focus:outline-none focus:ring-2 focus:ring-accent"
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-menu"
+          aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-white border-b border-border shadow-dropdown">
-          <nav className="flex flex-col px-4 py-3 gap-1">
+        <div id="mobile-menu" className="md:hidden bg-white border-b border-border shadow-dropdown">
+          <nav className="flex flex-col px-4 py-3 gap-1" aria-label="Navigation principale mobile">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -188,7 +209,7 @@ export default function Navbar() {
             {/* Mobile auth section */}
             <div className="flex flex-col gap-2 pt-3 border-t border-border mt-2">
               <Button size="default" className="rounded-full gap-2 w-full">
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4" aria-hidden="true" />
                 Publier une annonce
               </Button>
 

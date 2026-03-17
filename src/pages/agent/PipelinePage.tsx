@@ -4,6 +4,7 @@ import {
   DragOverlay,
   closestCorners,
   PointerSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -13,6 +14,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
+  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
@@ -62,7 +64,7 @@ function DealCardContent({ deal }: { deal: MockDeal }) {
           <p className="text-sm font-medium text-primary-900 truncate">{deal.contact_name}</p>
           <p className="text-xs text-muted-foreground truncate">{deal.property_title}</p>
         </div>
-        <GripVertical className="h-4 w-4 text-primary-200 flex-shrink-0 mt-0.5" />
+        <GripVertical className="h-4 w-4 text-primary-200 flex-shrink-0 mt-0.5" aria-hidden="true" />
       </div>
 
       <p className="text-xs text-muted-foreground truncate mb-2">{deal.property_address}</p>
@@ -99,7 +101,7 @@ function SortableDealCard({ deal }: { deal: MockDeal }) {
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} role="option" aria-label={`${deal.contact_name} — ${deal.property_title} — ${formatCHF(deal.price)}`}>
       <DealCardContent deal={deal} />
     </div>
   )
@@ -181,7 +183,8 @@ export default function PipelinePage() {
   const [activeDeal, setActiveDeal] = useState<MockDeal | null>(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   // Filter deals
@@ -273,7 +276,7 @@ export default function PipelinePage() {
                 view === 'kanban' ? 'bg-white shadow-sm text-primary-900' : 'text-primary-400 hover:text-primary-600'
               )}
             >
-              <Kanban className="h-4 w-4" />
+              <Kanban className="h-4 w-4" aria-hidden="true" />
               Kanban
             </button>
             <button
@@ -283,13 +286,13 @@ export default function PipelinePage() {
                 view === 'list' ? 'bg-white shadow-sm text-primary-900' : 'text-primary-400 hover:text-primary-600'
               )}
             >
-              <List className="h-4 w-4" />
+              <List className="h-4 w-4" aria-hidden="true" />
               Liste
             </button>
           </div>
 
           <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Nouveau deal
           </button>
         </div>
@@ -298,10 +301,11 @@ export default function PipelinePage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-400" aria-hidden="true" />
           <input
             type="text"
             placeholder="Rechercher contact ou bien..."
+            aria-label="Rechercher un contact ou un bien"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -311,6 +315,7 @@ export default function PipelinePage() {
         <select
           value={agentFilter}
           onChange={(e) => setAgentFilter(e.target.value)}
+          aria-label="Filtrer par agent"
           className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les agents</option>
@@ -322,6 +327,7 @@ export default function PipelinePage() {
         <select
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value)}
+          aria-label="Filtrer par étape"
           className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Toutes les étapes</option>
@@ -380,25 +386,25 @@ export default function PipelinePage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-section">
-                  <th className="text-left px-4 py-3">
+                  <th scope="col" className="text-left px-4 py-3">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Contact</span>
                   </th>
-                  <th className="text-left px-4 py-3 hidden md:table-cell">
+                  <th scope="col" className="text-left px-4 py-3 hidden md:table-cell">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Bien</span>
                   </th>
-                  <th className="text-left px-4 py-3">
+                  <th scope="col" className="text-left px-4 py-3">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Prix</span>
                   </th>
-                  <th className="text-left px-4 py-3">
+                  <th scope="col" className="text-left px-4 py-3">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Étape</span>
                   </th>
-                  <th className="text-left px-4 py-3 hidden lg:table-cell">
+                  <th scope="col" className="text-left px-4 py-3 hidden lg:table-cell">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Agent</span>
                   </th>
-                  <th className="text-left px-4 py-3 hidden sm:table-cell">
+                  <th scope="col" className="text-left px-4 py-3 hidden sm:table-cell">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Mise à jour</span>
                   </th>
-                  <th className="text-right px-4 py-3">
+                  <th scope="col" className="text-right px-4 py-3">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Actions</span>
                   </th>
                 </tr>
@@ -451,8 +457,8 @@ export default function PipelinePage() {
                           <span className="text-xs text-muted-foreground">{formatRelativeDate(deal.updated_at)}</span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button className="p-1.5 rounded-md text-primary-400 hover:text-accent hover:bg-accent/10 transition-colors">
-                            <ChevronRight className="h-4 w-4" />
+                          <button className="p-1.5 rounded-md text-primary-400 hover:text-accent hover:bg-accent/10 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20" aria-label={`Voir le deal de ${deal.contact_name}`}>
+                            <ChevronRight className="h-4 w-4" aria-hidden="true" />
                           </button>
                         </td>
                       </tr>

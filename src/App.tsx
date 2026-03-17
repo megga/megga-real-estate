@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/hooks/useAuth'
+import SkipToContent from '@/components/layout/SkipToContent'
 import HomePage from '@/pages/public/HomePage'
 import SearchPage from '@/pages/public/SearchPage'
 import LoginPage from '@/pages/public/LoginPage'
@@ -28,6 +29,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
+          <SkipToContent />
           <Routes>
             {/* Public */}
             <Route path="/" element={<HomePage />} />

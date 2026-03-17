@@ -186,12 +186,13 @@ export default function ContactDetailPage() {
 
           {/* Notes */}
           <div className="bg-white rounded-card shadow-card p-5">
-            <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3">Notes</h2>
+            <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3" id="notes-heading">Notes</h2>
             <textarea
               defaultValue={contact.notes}
               rows={4}
               className="w-full text-sm text-primary-700 bg-section border border-border rounded-input p-3 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
               placeholder="Ajouter des notes..."
+              aria-labelledby="notes-heading"
             />
           </div>
         </div>

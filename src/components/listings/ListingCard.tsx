@@ -38,27 +38,30 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
         {/* Favorite button */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorite(!isFavorite) }}
-          className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors"
+          className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+          aria-label={isFavorite ? `Retirer ${listing.title} des favoris` : `Ajouter ${listing.title} aux favoris`}
+          aria-pressed={isFavorite}
         >
           <Heart
             className={cn(
               'h-4 w-4 transition-colors',
               isFavorite ? 'fill-danger text-danger' : 'text-primary-600'
             )}
+            aria-hidden="true"
           />
         </button>
 
         {/* Hot price badge */}
         {listing.is_hot && (
           <div className="absolute top-3 left-3 bg-danger text-white text-xs font-medium px-2 py-0.5 rounded-badge flex items-center gap-1">
-            <span className="text-[10px]">🔥</span>
+            <span className="text-[10px]" aria-hidden="true">🔥</span>
             Hot price
           </div>
         )}
 
         {/* Photo dots */}
         {listing.photos.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5" role="tablist" aria-label="Photos du bien">
             {listing.photos.map((_, i) => (
               <button
                 key={i}
@@ -69,6 +72,9 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
                     ? 'w-4 bg-white'
                     : 'w-1.5 bg-white/60 hover:bg-white/80'
                 )}
+                role="tab"
+                aria-selected={currentPhoto === i}
+                aria-label={`Photo ${i + 1} sur ${listing.photos.length}`}
               />
             ))}
           </div>
@@ -89,18 +95,18 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
 
         <div className="flex items-center gap-3 text-sm text-primary-400">
           <span className="flex items-center gap-1">
-            <DoorOpen className="h-3.5 w-3.5" />
-            {listing.rooms} pièces
+            <DoorOpen className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{listing.rooms} pièces</span>
           </span>
-          <span className="text-primary-200">·</span>
+          <span className="text-primary-200" aria-hidden="true">·</span>
           <span className="flex items-center gap-1">
-            <BedDouble className="h-3.5 w-3.5" />
-            {listing.bedrooms} ch.
+            <BedDouble className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{listing.bedrooms} ch.</span>
           </span>
-          <span className="text-primary-200">·</span>
+          <span className="text-primary-200" aria-hidden="true">·</span>
           <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5" />
-            {formatSurface(listing.surface_m2)}
+            <Maximize className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{formatSurface(listing.surface_m2)}</span>
           </span>
         </div>
       </div>

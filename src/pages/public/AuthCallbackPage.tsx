@@ -31,8 +31,8 @@ export default function AuthCallbackPage() {
   }, [navigate])
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-accent mb-4" />
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center" role="status" aria-label="Connexion en cours">
+      <Loader2 className="h-8 w-8 animate-spin text-accent mb-4" aria-hidden="true" />
       <p className="text-sm text-muted-foreground">Connexion en cours...</p>
     </div>
   )

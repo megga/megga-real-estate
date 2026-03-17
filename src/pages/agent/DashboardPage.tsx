@@ -177,7 +177,7 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground mt-1">{today}</p>
         </div>
         <Button className="gap-2 rounded-button self-start">
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4" aria-hidden="true" />
           Nouvelle transaction
         </Button>
       </div>
@@ -190,16 +190,16 @@ export default function DashboardPage() {
             <div key={kpi.label} className="bg-white rounded-card p-5 shadow-card border border-border">
               <div className="flex items-start justify-between mb-3">
                 <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', kpi.iconBg)}>
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5" aria-hidden="true" />
                 </div>
               </div>
               <p className="text-2xl font-bold text-primary-900">{kpi.value}</p>
               <p className="text-sm text-muted-foreground mt-0.5">{kpi.label}</p>
               <div className="flex items-center gap-1 mt-2">
                 {kpi.trend.positive ? (
-                  <ArrowUpRight className="h-3.5 w-3.5 text-success" />
+                  <ArrowUpRight className="h-3.5 w-3.5 text-success" aria-hidden="true" />
                 ) : (
-                  <ArrowDownRight className="h-3.5 w-3.5 text-danger" />
+                  <ArrowDownRight className="h-3.5 w-3.5 text-danger" aria-hidden="true" />
                 )}
                 <span className={cn('text-xs font-medium', kpi.trend.positive ? 'text-success' : 'text-danger')}>
                   {kpi.trend.value}
@@ -248,7 +248,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-card p-5 shadow-card border border-border">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-primary-900 flex items-center gap-2">
-              <AlertTriangle className="h-4.5 w-4.5 text-warning" />
+              <AlertTriangle className="h-4.5 w-4.5 text-warning" aria-hidden="true" />
               Tâches urgentes
             </h2>
             <span className="text-xs text-muted-foreground">{tasks.length} tâches</span>
@@ -284,7 +284,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-primary-900">Activité récente</h2>
           <button className="text-sm text-accent hover:text-accent-hover font-medium transition-colors">
-            Voir tout →
+            Voir tout <span aria-hidden="true">→</span>
           </button>
         </div>
         <div className="space-y-0">

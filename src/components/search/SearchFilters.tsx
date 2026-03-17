@@ -49,31 +49,39 @@ function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps
             ? 'border-accent bg-accent-light text-accent font-medium'
             : 'border-border bg-white text-primary-700 hover:border-primary-300'
         )}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={selected ? `${label} : ${selected.label}` : label}
       >
         {selected?.label || label}
-        <ChevronDown className="h-3.5 w-3.5" />
+        <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-lg shadow-dropdown border border-border z-20 py-1">
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
+          <ul
+            className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-lg shadow-dropdown border border-border z-20 py-1"
+            role="listbox"
+            aria-label={label}
+          >
             {options.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={cn(
-                  'w-full text-left px-4 py-2 text-sm hover:bg-section transition-colors',
-                  value === opt.value ? 'text-accent font-medium bg-accent-light' : 'text-primary-700'
-                )}
-                onClick={() => {
-                  onChange(opt.value)
-                  setOpen(false)
-                }}
-              >
-                {opt.label}
-              </button>
+              <li key={opt.value} role="option" aria-selected={value === opt.value}>
+                <button
+                  type="button"
+                  className={cn(
+                    'w-full text-left px-4 py-2 text-sm hover:bg-section transition-colors',
+                    value === opt.value ? 'text-accent font-medium bg-accent-light' : 'text-primary-700'
+                  )}
+                  onClick={() => {
+                    onChange(opt.value)
+                    setOpen(false)
+                  }}
+                >
+                  {opt.label}
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         </>
       )}
     </div>
@@ -116,10 +124,10 @@ export default function SearchFilters({ filters, onChange, resultCount }: Search
   const cityOptions = cities.map((c) => ({ value: c === 'Toutes' ? '' : c, label: c }))
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
+    <div className="flex items-center gap-3 flex-wrap" role="search" aria-label="Filtres de recherche">
       <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
-        <SlidersHorizontal className="h-4 w-4" />
-        <span className="font-medium text-primary-900">{resultCount} biens</span>
+        <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+        <span className="font-medium text-primary-900" aria-live="polite">{resultCount} biens</span>
       </div>
 
       <FilterDropdown
@@ -160,7 +168,7 @@ export default function SearchFilters({ filters, onChange, resultCount }: Search
           onClick={clearAll}
           className="text-muted-foreground hover:text-danger gap-1"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
           Effacer
         </Button>
       )}

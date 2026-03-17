@@ -18,9 +18,9 @@ interface MapViewProps {
 
 export default function MapView({ markers, className, selectedId, onMarkerClick }: MapViewProps) {
   return (
-    <div className={cn('relative bg-section rounded-card overflow-hidden', className)}>
+    <div className={cn('relative bg-section rounded-card overflow-hidden', className)} role="img" aria-label={`Carte avec ${markers.length} biens immobiliers`}>
       {/* Placeholder map background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100" aria-hidden="true">
         {/* Grid pattern to simulate map */}
         <div
           className="absolute inset-0 opacity-10"
@@ -61,6 +61,8 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
               )}
               style={{ top: pos.top, left: pos.left }}
               onClick={() => onMarkerClick?.(marker.id)}
+              aria-label={`${marker.label} — ${formatCHF(marker.price)}`}
+              aria-pressed={isSelected}
             >
               {/* Price pill */}
               <div
@@ -74,7 +76,7 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
                 {formatCHF(marker.price)}
               </div>
               {/* Pin */}
-              <div className="flex justify-center -mt-0.5">
+              <div className="flex justify-center -mt-0.5" aria-hidden="true">
                 <div
                   className={cn(
                     'w-2 h-2 rotate-45 transition-colors',
@@ -89,17 +91,23 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
 
       {/* Map controls placeholder */}
       <div className="absolute top-4 right-4 flex flex-col gap-2">
-        <button className="h-8 w-8 bg-white rounded-lg shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold">
+        <button
+          className="h-8 w-8 bg-white rounded-lg shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent"
+          aria-label="Zoom avant"
+        >
           +
         </button>
-        <button className="h-8 w-8 bg-white rounded-lg shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold">
+        <button
+          className="h-8 w-8 bg-white rounded-lg shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent"
+          aria-label="Zoom arrière"
+        >
           −
         </button>
       </div>
 
       {/* Attribution placeholder */}
       <div className="absolute bottom-2 right-2 text-[10px] text-primary-400 bg-white/80 px-1.5 py-0.5 rounded">
-        <MapPin className="h-2.5 w-2.5 inline mr-0.5" />
+        <MapPin className="h-2.5 w-2.5 inline mr-0.5" aria-hidden="true" />
         Carte — Mapbox (bientôt)
       </div>
     </div>

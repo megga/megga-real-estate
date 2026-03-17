@@ -39,33 +39,41 @@ function SearchDropdown({ label, options, value, onChange }: DropdownProps) {
         type="button"
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between gap-2 px-4 py-3 text-sm text-left hover:bg-gray-50 transition-colors"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={value ? `${label} : ${value}` : label}
       >
         <span className={cn('truncate', value ? 'text-primary-900 font-medium' : 'text-primary-400')}>
           {value || label}
         </span>
-        <ChevronDown className="h-4 w-4 text-primary-400 flex-shrink-0" />
+        <ChevronDown className="h-4 w-4 text-primary-400 flex-shrink-0" aria-hidden="true" />
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white rounded-lg shadow-dropdown border border-border z-20 py-1">
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
+          <ul
+            className="absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white rounded-lg shadow-dropdown border border-border z-20 py-1"
+            role="listbox"
+            aria-label={label}
+          >
             {options.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                className={cn(
-                  'w-full text-left px-4 py-2 text-sm hover:bg-section transition-colors',
-                  value === opt ? 'text-accent font-medium bg-accent-light' : 'text-primary-700'
-                )}
-                onClick={() => {
-                  onChange(opt)
-                  setOpen(false)
-                }}
-              >
-                {opt}
-              </button>
+              <li key={opt} role="option" aria-selected={value === opt}>
+                <button
+                  type="button"
+                  className={cn(
+                    'w-full text-left px-4 py-2 text-sm hover:bg-section transition-colors',
+                    value === opt ? 'text-accent font-medium bg-accent-light' : 'text-primary-700'
+                  )}
+                  onClick={() => {
+                    onChange(opt)
+                    setOpen(false)
+                  }}
+                >
+                  {opt}
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         </>
       )}
     </div>
@@ -91,9 +99,9 @@ export default function SearchBar() {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto" role="search" aria-label="Recherche de biens immobiliers">
       {/* Tabs */}
-      <div className="flex gap-1 mb-4">
+      <div className="flex gap-1 mb-4" role="tablist" aria-label="Type de recherche">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -104,6 +112,8 @@ export default function SearchBar() {
                 ? 'bg-primary-900 text-white'
                 : 'bg-white/20 text-white/80 hover:bg-white/30'
             )}
+            role="tab"
+            aria-selected={activeTab === tab.id}
           >
             {tab.label}
           </button>
@@ -141,9 +151,10 @@ export default function SearchBar() {
         <button
           type="button"
           onClick={handleSearch}
-          className="flex-shrink-0 m-2 h-10 w-10 bg-accent hover:bg-accent-hover rounded-full flex items-center justify-center transition-colors"
+          className="flex-shrink-0 m-2 h-10 w-10 bg-accent hover:bg-accent-hover rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+          aria-label="Rechercher"
         >
-          <Search className="h-5 w-5 text-white" />
+          <Search className="h-5 w-5 text-white" aria-hidden="true" />
         </button>
       </div>
     </div>

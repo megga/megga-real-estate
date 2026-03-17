@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z" fill="#4285F4" />
       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z" fill="#34A853" />
       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84Z" fill="#FBBC05" />
@@ -63,9 +63,9 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+      <main id="main-content" className="w-full max-w-md">
         {/* Logo */}
-        <Link to="/" className="block text-center mb-10">
+        <Link to="/" className="block text-center mb-10" aria-label="MEGGA — Accueil">
           <span className="text-3xl font-bold tracking-tight text-primary-900">MEGGA</span>
         </Link>
 
@@ -87,7 +87,7 @@ export default function RegisterPage() {
             disabled={googleLoading}
           >
             {googleLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
               <GoogleIcon className="h-5 w-5" />
             )}
@@ -95,15 +95,15 @@ export default function RegisterPage() {
           </Button>
 
           {/* Separator */}
-          <div className="flex items-center gap-4 my-6">
+          <div className="flex items-center gap-4 my-6" role="separator">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs text-muted-foreground uppercase tracking-wide">ou</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
           {success ? (
-            <div className="text-center py-4">
-              <CheckCircle className="h-10 w-10 text-success mx-auto mb-3" />
+            <div className="text-center py-4" role="status">
+              <CheckCircle className="h-10 w-10 text-success mx-auto mb-3" aria-hidden="true" />
               <p className="text-sm font-medium text-primary-900 mb-1">
                 Compte créé !
               </p>
@@ -122,7 +122,7 @@ export default function RegisterPage() {
                     Prénom
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <input
                       id="firstName"
                       type="text"
@@ -130,6 +130,7 @@ export default function RegisterPage() {
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="Jean"
                       required
+                      autoComplete="given-name"
                       className="w-full h-11 pl-10 pr-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                     />
                   </div>
@@ -145,6 +146,7 @@ export default function RegisterPage() {
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Dupont"
                     required
+                    autoComplete="family-name"
                     className="w-full h-11 px-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                   />
                 </div>
@@ -152,18 +154,20 @@ export default function RegisterPage() {
 
               {/* Email */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-primary-700 mb-1.5">
+                <label htmlFor="reg-email" className="block text-sm font-medium text-primary-700 mb-1.5">
                   Adresse e-mail
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   <input
-                    id="email"
+                    id="reg-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="vous@exemple.ch"
                     required
+                    autoComplete="email"
+                    aria-describedby={error ? 'register-error' : undefined}
                     className="w-full h-11 pl-10 pr-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                   />
                 </div>
@@ -171,19 +175,20 @@ export default function RegisterPage() {
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-primary-700 mb-1.5">
+                <label htmlFor="reg-password" className="block text-sm font-medium text-primary-700 mb-1.5">
                   Mot de passe
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   <input
-                    id="password"
+                    id="reg-password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Minimum 6 caractères"
                     required
                     minLength={6}
+                    autoComplete="new-password"
                     className="w-full h-11 pl-10 pr-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
                   />
                 </div>
@@ -195,7 +200,7 @@ export default function RegisterPage() {
                 disabled={loading || !email.trim() || !password || !firstName.trim() || !lastName.trim()}
               >
                 {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 ) : (
                   'Créer mon compte'
                 )}
@@ -205,7 +210,7 @@ export default function RegisterPage() {
 
           {/* Error */}
           {error && (
-            <div className="mt-4 p-3 bg-danger-light rounded-lg">
+            <div id="register-error" className="mt-4 p-3 bg-danger-light rounded-lg" role="alert">
               <p className="text-xs text-danger">{error}</p>
             </div>
           )}
@@ -218,7 +223,7 @@ export default function RegisterPage() {
             Se connecter
           </Link>
         </p>
-      </div>
+      </main>
     </div>
   )
 }

@@ -145,7 +145,7 @@ export default function ContactsPage() {
           <p className="text-sm text-muted-foreground mt-0.5">{MOCK_CONTACTS.length} contacts au total</p>
         </div>
         <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4" aria-hidden="true" />
           Ajouter un contact
         </button>
       </div>
@@ -154,12 +154,13 @@ export default function ContactsPage() {
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-400" aria-hidden="true" />
           <input
             type="text"
             placeholder="Rechercher par nom ou email..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            aria-label="Rechercher par nom ou email"
             className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
@@ -168,6 +169,7 @@ export default function ContactsPage() {
         <select
           value={typeFilter}
           onChange={(e) => { setTypeFilter(e.target.value); setPage(1) }}
+          aria-label="Filtrer par type"
           className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les types</option>
@@ -181,6 +183,7 @@ export default function ContactsPage() {
         <select
           value={scoreFilter}
           onChange={(e) => { setScoreFilter(e.target.value); setPage(1) }}
+          aria-label="Filtrer par score"
           className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les scores</option>
@@ -193,6 +196,7 @@ export default function ContactsPage() {
         <select
           value={tagFilter}
           onChange={(e) => { setTagFilter(e.target.value); setPage(1) }}
+          aria-label="Filtrer par tag"
           className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les tags</option>
@@ -218,7 +222,7 @@ export default function ContactsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-section">
-                <th className="text-left px-4 py-3">
+                <th scope="col" className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('name')}
                     className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
@@ -233,10 +237,10 @@ export default function ContactsPage() {
                 <th className="text-left px-4 py-3 hidden lg:table-cell">
                   <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Téléphone</span>
                 </th>
-                <th className="text-left px-4 py-3">
+                <th scope="col" className="text-left px-4 py-3">
                   <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Type</span>
                 </th>
-                <th className="text-left px-4 py-3">
+                <th scope="col" className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('score')}
                     className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
@@ -257,7 +261,7 @@ export default function ContactsPage() {
                     <SortIcon field="last_activity" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="text-right px-4 py-3">
+                <th scope="col" className="text-right px-4 py-3">
                   <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Actions</span>
                 </th>
               </tr>
@@ -318,19 +322,20 @@ export default function ContactsPage() {
                           className="p-1.5 rounded-md text-primary-400 hover:text-accent hover:bg-accent/10 transition-colors"
                           title="Voir"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4" aria-hidden="true" />
+                          <span className="sr-only">Voir</span>
                         </Link>
                         <button
                           className="p-1.5 rounded-md text-primary-400 hover:text-warning hover:bg-warning/10 transition-colors"
-                          title="Éditer"
+                          aria-label="Éditer"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
                         </button>
                         <button
                           className="p-1.5 rounded-md text-primary-400 hover:text-danger hover:bg-danger/10 transition-colors"
-                          title="Supprimer"
+                          aria-label="Supprimer"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
                     </td>
@@ -352,8 +357,9 @@ export default function ContactsPage() {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={safePage <= 1}
                 className="p-1.5 rounded-md text-primary-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Page précédente"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button
@@ -373,8 +379,9 @@ export default function ContactsPage() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={safePage >= totalPages}
                 className="p-1.5 rounded-md text-primary-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Page suivante"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>

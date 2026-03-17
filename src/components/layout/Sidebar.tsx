@@ -31,7 +31,7 @@ function UserAvatar({ name }: { name: string }) {
 
   return (
     <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
-      <span className="text-xs font-semibold text-white">{initials}</span>
+      <span className="text-xs font-semibold text-white" aria-hidden="true">{initials}</span>
     </div>
   )
 }
@@ -49,8 +49,8 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-5 border-b border-border">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="h-7 w-7 bg-primary-900 rounded-lg flex items-center justify-center">
+        <Link to="/" className="flex items-center gap-2" aria-label="MEGGA — Accueil">
+          <div className="h-7 w-7 bg-primary-900 rounded-lg flex items-center justify-center" aria-hidden="true">
             <span className="text-xs font-bold text-white">GG</span>
           </div>
           <span className="text-lg font-bold text-primary-900">MEGGA</span>
@@ -58,14 +58,15 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         {/* Mobile close */}
         <button
           onClick={onClose}
-          className="lg:hidden p-1.5 rounded-md hover:bg-section"
+          className="lg:hidden p-1.5 rounded-md hover:bg-section focus:outline-none focus:ring-2 focus:ring-accent"
+          aria-label="Fermer le menu"
         >
-          <X className="h-5 w-5 text-primary-600" />
+          <X className="h-5 w-5 text-primary-600" aria-hidden="true" />
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto" aria-label="Navigation du dashboard">
         {navItems.map((item) => {
           const active = isActive(item.href)
           const Icon = item.icon
@@ -80,11 +81,15 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                   ? 'bg-accent/10 text-accent border-l-2 border-accent pl-[10px]'
                   : 'text-primary-600 hover:bg-gray-100 hover:text-primary-900'
               )}
+              aria-current={active ? 'page' : undefined}
             >
-              <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+              <Icon className="h-[18px] w-[18px] flex-shrink-0" aria-hidden="true" />
               <span className="flex-1">{item.label}</span>
               {item.badge && item.badge > 0 && (
-                <span className="h-5 min-w-[20px] px-1.5 bg-accent text-white text-[11px] font-semibold rounded-full flex items-center justify-center">
+                <span
+                  className="h-5 min-w-[20px] px-1.5 bg-accent text-white text-[11px] font-semibold rounded-full flex items-center justify-center"
+                  aria-label={`${item.badge} notifications`}
+                >
                   {item.badge}
                 </span>
               )}
@@ -105,8 +110,9 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               ? 'bg-accent/10 text-accent'
               : 'text-primary-600 hover:bg-gray-100 hover:text-primary-900'
           )}
+          aria-current={location.pathname.startsWith('/dashboard/settings') ? 'page' : undefined}
         >
-          <Settings className="h-[18px] w-[18px]" />
+          <Settings className="h-[18px] w-[18px]" aria-hidden="true" />
           Paramètres
         </Link>
 
@@ -119,10 +125,10 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           </div>
           <button
             onClick={async () => { await signOut(); }}
-            className="p-1.5 rounded-md hover:bg-white text-primary-400 hover:text-danger transition-colors"
-            title="Déconnexion"
+            className="p-1.5 rounded-md hover:bg-white text-primary-400 hover:text-danger transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+            aria-label="Déconnexion"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -132,15 +138,24 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 bg-sidebar border-r border-border h-screen sticky top-0">
+      <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 bg-sidebar border-r border-border h-screen sticky top-0" aria-label="Menu principal">
         {sidebarContent}
       </aside>
 
       {/* Mobile overlay */}
       {mobileOpen && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
-          <aside className="fixed inset-y-0 left-0 w-64 bg-sidebar z-50 lg:hidden shadow-modal">
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={onClose}
+            aria-hidden="true"
+          />
+          <aside
+            className="fixed inset-y-0 left-0 w-64 bg-sidebar z-50 lg:hidden shadow-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu principal"
+          >
             {sidebarContent}
           </aside>
         </>

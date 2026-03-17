@@ -47,11 +47,12 @@ export default function SearchPage() {
     <div className="h-screen flex flex-col bg-white">
       <Navbar />
 
-      <div className="flex-1 flex overflow-hidden">
+      <main id="main-content" className="flex-1 flex overflow-hidden">
         {/* Results panel */}
-        <div className="w-full lg:w-1/2 xl:w-[55%] flex flex-col overflow-hidden border-r border-border">
+        <section className="w-full lg:w-1/2 xl:w-[55%] flex flex-col overflow-hidden border-r border-border" aria-label="Résultats de recherche">
           {/* Filters */}
           <div className="px-4 md:px-6 py-4 border-b border-border bg-white">
+            <h1 className="sr-only">Résultats de recherche</h1>
             <SearchFilters
               filters={filters}
               onChange={setFilters}
@@ -77,6 +78,8 @@ export default function SearchPage() {
                     key={listing.id}
                     onMouseEnter={() => setSelectedListing(listing.id)}
                     onMouseLeave={() => setSelectedListing(undefined)}
+                    onFocus={() => setSelectedListing(listing.id)}
+                    onBlur={() => setSelectedListing(undefined)}
                   >
                     <ListingCard listing={listing} />
                   </div>
@@ -84,18 +87,18 @@ export default function SearchPage() {
               </div>
             )}
           </div>
-        </div>
+        </section>
 
         {/* Map panel */}
-        <div className="hidden lg:block lg:w-1/2 xl:w-[45%]">
+        <section className="hidden lg:block lg:w-1/2 xl:w-[45%]" aria-label="Carte des biens">
           <MapView
             markers={filteredMarkers}
             selectedId={selectedListing}
             onMarkerClick={setSelectedListing}
             className="h-full rounded-none"
           />
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }
