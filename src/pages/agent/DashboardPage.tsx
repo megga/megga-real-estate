@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import {
   Building2, TrendingUp, Users, CalendarDays, Plus,
   UserPlus, Eye, FileText, HandshakeIcon, AlertTriangle,
@@ -164,6 +165,7 @@ const priorityLabels = {
 
 /* ─── Component ─── */
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const today = formatDate(new Date())
 
   return (
@@ -176,7 +178,7 @@ export default function DashboardPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{today}</p>
         </div>
-        <Button className="gap-2 rounded-button self-start">
+        <Button className="gap-2 rounded-button self-start" onClick={() => navigate('/dashboard/pipeline?create=true')}>
           <Plus className="h-4 w-4" />
           Nouvelle transaction
         </Button>

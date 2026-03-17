@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   DndContext,
   DragOverlay,
@@ -17,10 +18,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   Plus, Kanban, List, Search, GripVertical,
-  ChevronRight,
+  ChevronRight, X,
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
-import { MOCK_DEALS, type MockDeal } from '@/lib/mockData'
+import { MOCK_DEALS, MOCK_CONTACTS, MOCK_AGENT_LISTINGS, type MockDeal } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 
 // Pipeline columns config — subset of stages for Kanban
@@ -170,15 +171,234 @@ function StageBadge({ stage }: { stage: string }) {
   )
 }
 
+// ── Avatar color pool ────────────────────────────────────────────────────────
+const AVATAR_COLORS = ['bg-accent', 'bg-success', 'bg-warning', 'bg-danger', 'bg-primary-600', 'bg-purple-500']
+
+// ── Create Deal Modal ────────────────────────────────────────────────────────
+
+const CREATE_STAGES: MockDeal['stage'][] = ['lead', 'qualified', 'visit_planned']
+
+interface CreateDealFormData {
+  contactId: string
+  listingId: string
+  price: string
+  stage: MockDeal['stage']
+  agent: string
+  notes: string
+}
+
+function CreateDealModal({
+  open,
+  onClose,
+  onCreate,
+}: {
+  open: boolean
+  onClose: () => void
+  onCreate: (deal: MockDeal) => void
+}) {
+  const [form, setForm] = useState<CreateDealFormData>({
+    contactId: '',
+    listingId: '',
+    price: '',
+    stage: 'lead',
+    agent: AGENTS[0],
+    notes: '',
+  })
+
+  function handleChange(field: keyof CreateDealFormData, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+
+    // Auto-fill price from selected listing
+    if (field === 'listingId' && value) {
+      const listing = MOCK_AGENT_LISTINGS.find((l) => l.id === value)
+      if (listing) {
+        setForm((prev) => ({ ...prev, listingId: value, price: String(listing.price) }))
+      }
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.contactId || !form.listingId || !form.price) return
+
+    const contact = MOCK_CONTACTS.find((c) => c.id === form.contactId)
+    const listing = MOCK_AGENT_LISTINGS.find((l) => l.id === form.listingId)
+    if (!contact || !listing) return
+
+    const contactName = `${contact.first_name} ${contact.last_name}`
+    const randomColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]
+    const agentColor = form.agent === 'Gregory L.' ? 'bg-accent' : 'bg-danger'
+
+    const newDeal: MockDeal = {
+      id: `d-${Date.now()}`,
+      contact_name: contactName,
+      contact_avatar_color: randomColor,
+      property_title: listing.title,
+      property_address: `${listing.address}, ${listing.city}`,
+      price: Number(form.price),
+      stage: form.stage,
+      agent: form.agent,
+      agent_avatar_color: agentColor,
+      updated_at: new Date().toISOString(),
+    }
+
+    onCreate(newDeal)
+    setForm({ contactId: '', listingId: '', price: '', stage: 'lead', agent: AGENTS[0], notes: '' })
+    onClose()
+  }
+
+  if (!open) return null
+
+  const inputClass = 'w-full h-10 px-3 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors'
+  const labelClass = 'block text-sm font-medium text-primary-700 mb-1'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-modal w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-primary-900">Nouvelle transaction</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-primary-400 hover:text-primary-600 transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Contact */}
+          <div>
+            <label className={labelClass}>Contact *</label>
+            <select
+              value={form.contactId}
+              onChange={(e) => handleChange('contactId', e.target.value)}
+              className={inputClass}
+              required
+            >
+              <option value="">Sélectionner un contact...</option>
+              {MOCK_CONTACTS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.first_name} {c.last_name} — {c.type === 'buyer' ? 'Acheteur' : c.type === 'seller' ? 'Vendeur' : c.type === 'both' ? 'Acheteur/Vendeur' : 'Lead'}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Property */}
+          <div>
+            <label className={labelClass}>Bien lié *</label>
+            <select
+              value={form.listingId}
+              onChange={(e) => handleChange('listingId', e.target.value)}
+              className={inputClass}
+              required
+            >
+              <option value="">Sélectionner un bien...</option>
+              {MOCK_AGENT_LISTINGS.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.title} — {formatCHF(l.price)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Price */}
+          <div>
+            <label className={labelClass}>Prix proposé (CHF) *</label>
+            <input
+              type="number"
+              value={form.price}
+              onChange={(e) => handleChange('price', e.target.value)}
+              placeholder="Ex: 750000"
+              className={inputClass}
+              required
+              min={0}
+            />
+          </div>
+
+          {/* Stage */}
+          <div>
+            <label className={labelClass}>Étape initiale</label>
+            <select
+              value={form.stage}
+              onChange={(e) => handleChange('stage', e.target.value)}
+              className={inputClass}
+            >
+              {CREATE_STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {TRANSACTION_STAGE_LABELS[s as TransactionStage]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Agent */}
+          <div>
+            <label className={labelClass}>Agent assigné</label>
+            <select
+              value={form.agent}
+              onChange={(e) => handleChange('agent', e.target.value)}
+              className={inputClass}
+            >
+              {AGENTS.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className={labelClass}>Notes</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => handleChange('notes', e.target.value)}
+              placeholder="Notes sur la transaction..."
+              rows={3}
+              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 text-sm font-medium text-primary-600 hover:bg-gray-100 rounded-button transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-button transition-colors"
+            >
+              Créer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PipelinePage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [deals, setDeals] = useState<MockDeal[]>(MOCK_DEALS)
   const [view, setView] = useState<'kanban' | 'list'>('kanban')
   const [search, setSearch] = useState('')
   const [agentFilter, setAgentFilter] = useState('')
   const [stageFilter, setStageFilter] = useState('')
   const [activeDeal, setActiveDeal] = useState<MockDeal | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+
+  // Open modal if navigated with ?create=true
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setShowCreateModal(true)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -288,7 +508,10 @@ export default function PipelinePage() {
             </button>
           </div>
 
-          <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors"
+          >
             <Plus className="h-4 w-4" />
             Nouveau deal
           </button>
@@ -464,6 +687,13 @@ export default function PipelinePage() {
           </div>
         </div>
       )}
+
+      {/* Create Deal Modal */}
+      <CreateDealModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreate={(newDeal) => setDeals((prev) => [newDeal, ...prev])}
+      />
     </div>
   )
 }
