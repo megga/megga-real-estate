@@ -21,6 +21,12 @@ import OnboardingBuyerPP from '@/pages/onboarding/OnboardingBuyerPP'
 import OnboardingBuyerPM from '@/pages/onboarding/OnboardingBuyerPM'
 import OnboardingSellerPP from '@/pages/onboarding/OnboardingSellerPP'
 import OnboardingSellerPM from '@/pages/onboarding/OnboardingSellerPM'
+import SellerLayout from '@/pages/seller/SellerLayout'
+import SellerDashboard from '@/pages/seller/SellerDashboard'
+import SellerVisits from '@/pages/seller/SellerVisits'
+import SellerOffers from '@/pages/seller/SellerOffers'
+import SellerDocuments from '@/pages/seller/SellerDocuments'
+import SellerMessages from '@/pages/seller/SellerMessages'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +56,15 @@ export default function App() {
             <Route path="/onboarding/buyer/company" element={<OnboardingBuyerPM />} />
             <Route path="/onboarding/seller/individual" element={<OnboardingSellerPP />} />
             <Route path="/onboarding/seller/company" element={<OnboardingSellerPM />} />
+
+            {/* Seller portal */}
+            <Route path="/seller" element={<SellerLayout />}>
+              <Route index element={<SellerDashboard />} />
+              <Route path="visits" element={<SellerVisits />} />
+              <Route path="offers" element={<SellerOffers />} />
+              <Route path="documents" element={<SellerDocuments />} />
+              <Route path="messages" element={<SellerMessages />} />
+            </Route>
 
             {/* Agent dashboard (protected) */}
             <Route
