@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { UNREAD_THREAD_COUNT } from '@/pages/agent/messagingMockData'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -12,7 +13,7 @@ const navItems = [
   { label: 'Contacts', href: '/dashboard/contacts', icon: Users },
   { label: 'Mes biens', href: '/dashboard/listings', icon: Building2 },
   { label: 'KYC', href: '/dashboard/kyc', icon: ShieldCheck, badge: 2 },
-  { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, badge: 3 },
+  { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, badge: UNREAD_THREAD_COUNT },
   { label: 'Calendrier', href: '/dashboard/calendar', icon: Calendar },
 ]
 
