@@ -59,11 +59,11 @@ export default function Navbar() {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-white shadow-navbar sticky top-0 z-50">
+    <header className="h-16 bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex-shrink-0">
-          <span className="text-2xl font-bold tracking-tight text-primary-900">MEGGA</span>
+          <span className="text-xl font-bold tracking-tight text-primary-900">MEGGA</span>
         </Link>
 
         {/* Navigation desktop */}
@@ -75,9 +75,9 @@ export default function Navbar() {
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  'px-3 py-2 text-sm font-medium transition-colors rounded-md',
+                  'px-3 py-2 text-sm font-medium transition-colors duration-200 rounded-md',
                   isActive
-                    ? 'text-accent border-b-2 border-accent'
+                    ? 'text-accent'
                     : 'text-primary-700 hover:text-accent'
                 )}
               >
@@ -89,7 +89,7 @@ export default function Navbar() {
 
         {/* Actions desktop */}
         <div className="hidden md:flex items-center gap-3">
-          <Button size="default" className="rounded-full gap-2">
+          <Button size="default" className="rounded-full px-5 h-10 gap-2 hover:bg-accent/90">
             <Plus className="h-4 w-4" />
             Publier une annonce
           </Button>
@@ -154,7 +154,7 @@ export default function Navbar() {
           ) : (
             /* Not logged in */
             <Link to="/login">
-              <Button variant="outline" size="default" className="rounded-full">
+              <Button variant="outline" size="default" className="rounded-full px-5 h-10 border-gray-200 hover:bg-gray-50">
                 Se connecter
               </Button>
             </Link>

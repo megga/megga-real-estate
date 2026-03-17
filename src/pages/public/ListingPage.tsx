@@ -66,13 +66,13 @@ export default function ListingPage() {
 
       {/* === PHOTO GALLERY — Desktop: Airbnb grid === */}
       <section className="hidden md:block max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pt-6">
-        <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[420px] rounded-card overflow-hidden relative">
+        <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[420px] rounded-xl overflow-hidden relative">
           {/* Main photo */}
           <button
             className="col-span-2 row-span-2 relative overflow-hidden"
             onClick={() => openLightbox(0)}
           >
-            <img src={photos[0]} alt={listing.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+            <img src={photos[0]} alt={listing.title} className="w-full h-full object-cover hover:opacity-90 transition-all duration-300" />
           </button>
           {/* Secondary photos */}
           {photos.slice(1, 5).map((photo, i) => (
@@ -81,7 +81,7 @@ export default function ListingPage() {
               className="relative overflow-hidden"
               onClick={() => openLightbox(i + 1)}
             >
-              <img src={photo} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+              <img src={photo} alt="" className="w-full h-full object-cover hover:opacity-90 transition-all duration-300" />
               {/* "See all" overlay on last visible photo */}
               {i === 3 && photos.length > 5 && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -255,7 +255,7 @@ export default function ListingPage() {
           <div className="hidden lg:block w-[380px] flex-shrink-0">
             <div className="sticky top-24 space-y-4">
               {/* Price card */}
-              <div className="bg-white rounded-card border border-border p-6 shadow-card">
+              <div className="bg-white rounded-xl border border-border p-6 shadow-lg">
                 <p className="text-3xl font-bold text-primary-900 mb-1">
                   {formatCHF(listing.price)}
                 </p>
@@ -284,7 +284,7 @@ export default function ListingPage() {
               </div>
 
               {/* Agent card */}
-              <div className="bg-white rounded-card border border-border p-6 shadow-card">
+              <div className="bg-white rounded-xl border border-border p-6 shadow-lg">
                 <div className="flex items-center gap-3 mb-4">
                   <img
                     src={listing.agent.photo}

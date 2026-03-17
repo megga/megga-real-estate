@@ -87,7 +87,7 @@ export default function SearchPage() {
         </div>
 
         {/* Map panel */}
-        <div className="hidden lg:block lg:w-1/2 xl:w-[45%]">
+        <div className="hidden lg:block lg:w-1/2 xl:w-[45%] bg-blue-50">
           <MapView
             markers={filteredMarkers}
             selectedId={selectedListing}

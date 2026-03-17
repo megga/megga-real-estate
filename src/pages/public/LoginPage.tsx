@@ -62,11 +62,10 @@ export default function LoginPage() {
       setError(err)
       setGoogleLoading(false)
     }
-    // If successful, Supabase redirects — no need to setGoogleLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-section flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link to="/" className="block text-center mb-10">
@@ -74,7 +73,7 @@ export default function LoginPage() {
         </Link>
 
         {/* Card */}
-        <div className="bg-white rounded-xl border border-border p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
           <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">
             Connexion
           </h1>
@@ -83,10 +82,9 @@ export default function LoginPage() {
           </p>
 
           {/* Google OAuth */}
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className="w-full h-11 rounded-button gap-3 text-sm font-medium"
+            className="w-full h-12 rounded-xl border border-gray-200 flex items-center justify-center gap-3 text-sm font-medium text-primary-700 hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
             onClick={handleGoogle}
             disabled={googleLoading}
           >
@@ -96,13 +94,13 @@ export default function LoginPage() {
               <GoogleIcon className="h-5 w-5" />
             )}
             Se connecter avec Google
-          </Button>
+          </button>
 
           {/* Separator */}
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-border" />
+            <div className="flex-1 h-px bg-gray-200" />
             <span className="text-xs text-muted-foreground uppercase tracking-wide">ou</span>
-            <div className="flex-1 h-px bg-border" />
+            <div className="flex-1 h-px bg-gray-200" />
           </div>
 
           {/* Magic link form */}
@@ -123,7 +121,7 @@ export default function LoginPage() {
                   Adresse e-mail
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     id="email"
                     type="email"
@@ -131,13 +129,13 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="vous@exemple.ch"
                     required
-                    className="w-full h-11 pl-10 pr-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                    className="w-full h-12 pl-10 pr-4 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all duration-200"
                   />
                 </div>
               </div>
               <Button
                 type="submit"
-                className="w-full h-11 rounded-button"
+                className="w-full h-12 rounded-xl font-medium"
                 disabled={loading || !email.trim()}
               >
                 {loading ? (
@@ -151,7 +149,7 @@ export default function LoginPage() {
 
           {/* Error */}
           {error && (
-            <div className="mt-4 p-3 bg-danger-light rounded-lg">
+            <div className="mt-4 p-3 bg-danger-light rounded-xl">
               <p className="text-xs text-danger">{error}</p>
             </div>
           )}

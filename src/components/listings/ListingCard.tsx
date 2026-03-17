@@ -26,23 +26,29 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
   const [currentPhoto, setCurrentPhoto] = useState(0)
 
   return (
-    <Link to={`/listing/${listing.id}`} className={cn('block bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group', className)}>
+    <Link
+      to={`/listing/${listing.id}`}
+      className={cn(
+        'block bg-white rounded-card shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden group',
+        className
+      )}
+    >
       {/* Photo */}
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-t-card">
         <img
           src={listing.photos[currentPhoto]}
           alt={listing.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
         {/* Favorite button */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorite(!isFavorite) }}
-          className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors"
+          className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all duration-200 shadow-sm"
         >
           <Heart
             className={cn(
-              'h-4 w-4 transition-colors',
+              'h-4 w-4 transition-colors duration-200',
               isFavorite ? 'fill-danger text-danger' : 'text-primary-600'
             )}
           />
@@ -50,8 +56,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
 
         {/* Hot price badge */}
         {listing.is_hot && (
-          <div className="absolute top-3 left-3 bg-danger text-white text-xs font-medium px-2 py-0.5 rounded-badge flex items-center gap-1">
-            <span className="text-[10px]">🔥</span>
+          <div className="absolute top-3 left-3 bg-danger text-white text-xs font-medium px-2.5 py-1 rounded-badge flex items-center gap-1 shadow-sm">
             Hot price
           </div>
         )}
@@ -64,7 +69,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
                 key={i}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(i) }}
                 className={cn(
-                  'h-1.5 rounded-full transition-all',
+                  'h-1.5 rounded-full transition-all duration-200',
                   currentPhoto === i
                     ? 'w-4 bg-white'
                     : 'w-1.5 bg-white/60 hover:bg-white/80'
@@ -83,7 +88,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
           </span>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-2">
+        <p className="text-sm text-muted-foreground mb-3">
           {listing.address}, {listing.city}
         </p>
 
