@@ -26,7 +26,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
   const [currentPhoto, setCurrentPhoto] = useState(0)
 
   return (
-    <Link to={`/listing/${listing.id}`} className={cn('block bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group', className)}>
+    <Link to={`/listing/${listing.id}`} className={cn('block bg-card rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group', className)}>
       {/* Photo */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
@@ -38,7 +38,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
         {/* Favorite button */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorite(!isFavorite) }}
-          className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+          className="absolute top-3 right-3 h-9 w-9 bg-card/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-card transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
           aria-label={isFavorite ? `Retirer ${listing.title} des favoris` : `Ajouter ${listing.title} aux favoris`}
           aria-pressed={isFavorite}
         >

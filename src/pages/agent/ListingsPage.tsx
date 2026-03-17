@@ -105,14 +105,14 @@ export default function ListingsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Rechercher un bien"
-            className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           aria-label="Filtrer par statut"
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les statuts</option>
           <option value="active">Actif</option>
@@ -133,7 +133,7 @@ export default function ListingsPage() {
 
       {/* Property grid */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-card shadow-card border border-border p-12">
+        <div className="bg-card rounded-card shadow-card border border-border p-12">
           <EmptyState
             icon={Building2}
             title="Aucun bien trouvé"
@@ -148,7 +148,7 @@ export default function ListingsPage() {
             return (
               <div
                 key={property.id}
-                className="bg-white rounded-card shadow-card border border-border overflow-hidden hover:shadow-card-hover transition-shadow duration-200 group"
+                className="bg-card rounded-card shadow-card border border-border overflow-hidden hover:shadow-card-hover transition-shadow duration-200 group"
               >
                 {/* Photo */}
                 <div className="relative aspect-[4/3] bg-primary-100 overflow-hidden">
@@ -161,7 +161,7 @@ export default function ListingsPage() {
                     {status.label}
                   </span>
                   <button
-                    className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur rounded-full hover:bg-white transition-colors"
+                    className="absolute top-3 right-3 p-1.5 bg-card/80 backdrop-blur rounded-full hover:bg-card transition-colors"
                     aria-label="Plus d'options"
                   >
                     <MoreHorizontal className="h-4 w-4 text-primary-600" aria-hidden="true" />

@@ -3,11 +3,11 @@ import { cn } from '@/lib/utils'
 import { useToast, type ToastVariant } from '@/hooks/useToast'
 
 const variantStyles: Record<ToastVariant, { container: string; icon: typeof CheckCircle2 }> = {
-  default: { container: 'bg-white border-border', icon: Info },
-  success: { container: 'bg-white border-success/30', icon: CheckCircle2 },
-  error:   { container: 'bg-white border-danger/30', icon: AlertCircle },
-  warning: { container: 'bg-white border-warning/30', icon: AlertTriangle },
-  info:    { container: 'bg-white border-accent/30', icon: Info },
+  default: { container: 'bg-card border-border', icon: Info },
+  success: { container: 'bg-card border-success/30', icon: CheckCircle2 },
+  error:   { container: 'bg-card border-danger/30', icon: AlertCircle },
+  warning: { container: 'bg-card border-warning/30', icon: AlertTriangle },
+  info:    { container: 'bg-card border-accent/30', icon: Info },
 }
 
 const iconColors: Record<ToastVariant, string> = {

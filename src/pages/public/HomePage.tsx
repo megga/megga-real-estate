@@ -7,7 +7,7 @@ const listings = MOCK_LISTINGS.slice(0, 6).map(toCardData)
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main id="main-content">

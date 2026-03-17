@@ -100,14 +100,14 @@ export default function KycPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Rechercher un dossier KYC"
-            className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           aria-label="Filtrer par statut"
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les statuts</option>
           <option value="pending">En attente</option>
@@ -128,7 +128,7 @@ export default function KycPage() {
 
       {/* KYC cases list */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-card shadow-card border border-border p-12">
+        <div className="bg-card rounded-card shadow-card border border-border p-12">
           <EmptyState
             icon={ShieldCheck}
             title="Aucun dossier trouvé"
@@ -150,7 +150,7 @@ export default function KycPage() {
                 tabIndex={0}
                 onClick={() => navigate(`/dashboard/kyc/${kycCase.id}`)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/dashboard/kyc/${kycCase.id}`) } }}
-                className="bg-white rounded-card shadow-card border border-border p-4 hover:shadow-card-hover transition-shadow duration-200 cursor-pointer group"
+                className="bg-card rounded-card shadow-card border border-border p-4 hover:shadow-card-hover transition-shadow duration-200 cursor-pointer group"
               >
                 <div className="flex items-center gap-4">
                   {/* Icon */}

@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Kanban, Users, Building2, ShieldCheck,
-  MessageSquare, Calendar, Settings, LogOut, X,
+  MessageSquare, Calendar, Settings, LogOut, X, Sun, Moon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/hooks/useTheme'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -39,6 +40,7 @@ function UserAvatar({ name }: { name: string }) {
 export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const { signOut } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
 
   function isActive(href: string) {
     if (href === '/dashboard') return location.pathname === '/dashboard'
@@ -100,6 +102,19 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
       {/* Bottom section */}
       <div className="border-t border-border px-3 py-3 space-y-1">
+        {/* Theme toggle */}
+        <button
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-200 text-primary-600 hover:bg-section hover:text-primary-900 w-full focus:outline-none focus:ring-2 focus:ring-accent/20"
+          aria-label={resolvedTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+        >
+          {resolvedTheme === 'dark' ? (
+            <Sun className="h-[18px] w-[18px]" aria-hidden="true" />
+          ) : (
+            <Moon className="h-[18px] w-[18px]" aria-hidden="true" />
+          )}
+          {resolvedTheme === 'dark' ? 'Mode clair' : 'Mode sombre'}
+        </button>
         {/* Settings */}
         <Link
           to="/dashboard/settings"
@@ -131,7 +146,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           </Link>
           <button
             onClick={async () => { await signOut(); }}
-            className="p-1.5 rounded-md hover:bg-white text-primary-400 hover:text-danger transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
+            className="p-1.5 rounded-md hover:bg-card text-primary-400 hover:text-danger transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
             aria-label="Déconnexion"
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />

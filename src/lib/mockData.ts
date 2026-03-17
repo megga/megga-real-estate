@@ -1318,13 +1318,6 @@ const BUYER_PM_CHECKLIST: MockKycChecklistItem[] = [
   { id: 'ck18', label: 'Procuration / pouvoir de signature', category: 'Représentants', isRequired: false, isCompleted: false, status: 'pending', documentName: null, completedAt: null, completedBy: null },
 ]
 
-const SELLER_PP_CHECKLIST: MockKycChecklistItem[] = [
-  { id: 'ck20', label: 'Passeport ou carte d\'identité', category: 'Identité', isRequired: true, isCompleted: false, status: 'pending', documentName: null, completedAt: null, completedBy: null },
-  { id: 'ck21', label: 'Attestation de domicile', category: 'Domicile', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
-  { id: 'ck22', label: 'Titre de propriété', category: 'Propriété', isRequired: true, isCompleted: true, status: 'validated', documentName: 'titre_propriete.pdf', completedAt: '2026-03-14T09:00:00Z', completedBy: 'Gregory L.' },
-  { id: 'ck23', label: 'Extrait du Registre Foncier', category: 'Propriété', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
-]
-
 const SELLER_PP_VALIDATED_CHECKLIST: MockKycChecklistItem[] = [
   { id: 'ck30', label: 'Passeport ou carte d\'identité', category: 'Identité', isRequired: true, isCompleted: true, status: 'validated', documentName: 'id_huber.pdf', completedAt: '2026-03-02T09:00:00Z', completedBy: 'Gregory L.' },
   { id: 'ck31', label: 'Attestation de domicile', category: 'Domicile', isRequired: true, isCompleted: true, status: 'validated', documentName: 'domicile_huber.pdf', completedAt: '2026-03-02T10:00:00Z', completedBy: 'Gregory L.' },

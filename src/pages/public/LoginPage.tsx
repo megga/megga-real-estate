@@ -68,7 +68,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <main id="main-content" className="w-full max-w-md">
         {/* Logo */}
         <Link to="/" className="block text-center mb-10" aria-label="MEGGA — Accueil">
@@ -76,7 +76,7 @@ export default function LoginPage() {
         </Link>
 
         {/* Card */}
-        <div className="bg-white rounded-card border border-border p-8">
+        <div className="bg-card rounded-card border border-border p-8">
           <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">
             Connexion
           </h1>

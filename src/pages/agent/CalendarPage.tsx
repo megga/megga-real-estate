@@ -137,7 +137,7 @@ export default function CalendarPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         {/* Calendar grid */}
-        <div className="bg-white rounded-card shadow-card border border-border p-5">
+        <div className="bg-card rounded-card shadow-card border border-border p-5">
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold text-primary-900">
@@ -239,7 +239,7 @@ export default function CalendarPage() {
           </h3>
 
           {selectedEvents.length === 0 ? (
-            <div className="bg-white rounded-card shadow-card border border-border p-6 text-center">
+            <div className="bg-card rounded-card shadow-card border border-border p-6 text-center">
               <Clock className="h-8 w-8 text-primary-200 mx-auto mb-2" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">Aucun événement ce jour</p>
             </div>
@@ -249,7 +249,7 @@ export default function CalendarPage() {
               return (
                 <div
                   key={event.id}
-                  className="bg-white rounded-card shadow-card border border-border p-4 hover:shadow-card-hover transition-shadow duration-200 cursor-pointer"
+                  className="bg-card rounded-card shadow-card border border-border p-4 hover:shadow-card-hover transition-shadow duration-200 cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
                     <div className={cn('h-2 w-2 rounded-full mt-1.5 flex-shrink-0', colors.dot)} />

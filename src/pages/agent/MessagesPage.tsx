@@ -79,7 +79,7 @@ export default function MessagesPage() {
   const activeThread = MOCK_THREADS.find((t) => t.id === selectedThread)
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-0 bg-white rounded-card shadow-card border border-border overflow-hidden">
+    <div className="flex h-[calc(100vh-8rem)] gap-0 bg-card rounded-card shadow-card border border-border overflow-hidden">
       {/* Thread list */}
       <div className="w-80 flex-shrink-0 border-r border-border flex flex-col">
         {/* Search */}

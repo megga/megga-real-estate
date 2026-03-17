@@ -70,7 +70,7 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
                   'px-2.5 py-1 rounded-full text-xs font-bold shadow-card whitespace-nowrap transition-colors',
                   isSelected
                     ? 'bg-accent text-white scale-110'
-                    : 'bg-white text-primary-900 hover:bg-accent hover:text-white'
+                    : 'bg-card text-primary-900 hover:bg-accent hover:text-white'
                 )}
               >
                 {formatCHF(marker.price)}
@@ -80,7 +80,7 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
                 <div
                   className={cn(
                     'w-2 h-2 rotate-45 transition-colors',
-                    isSelected ? 'bg-accent' : 'bg-white'
+                    isSelected ? 'bg-accent' : 'bg-card'
                   )}
                 />
               </div>
@@ -92,13 +92,13 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
       {/* Map controls placeholder */}
       <div className="absolute top-4 right-4 flex flex-col gap-2">
         <button
-          className="h-8 w-8 bg-white rounded-button shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
+          className="h-8 w-8 bg-card rounded-button shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
           aria-label="Zoom avant"
         >
           +
         </button>
         <button
-          className="h-8 w-8 bg-white rounded-button shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
+          className="h-8 w-8 bg-card rounded-button shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
           aria-label="Zoom arrière"
         >
           −
@@ -106,7 +106,7 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
       </div>
 
       {/* Attribution placeholder */}
-      <div className="absolute bottom-2 right-2 text-[10px] text-primary-400 bg-white/80 px-1.5 py-0.5 rounded">
+      <div className="absolute bottom-2 right-2 text-[10px] text-primary-400 bg-card/80 px-1.5 py-0.5 rounded">
         <MapPin className="h-2.5 w-2.5 inline mr-0.5" aria-hidden="true" />
         Carte — Mapbox (bientôt)
       </div>

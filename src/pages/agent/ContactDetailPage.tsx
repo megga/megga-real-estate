@@ -106,7 +106,7 @@ export default function ContactDetailPage() {
       </Link>
 
       {/* Header */}
-      <div className="bg-white rounded-card shadow-card border border-border p-6">
+      <div className="bg-card rounded-card shadow-card border border-border p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <ContactAvatar name={fullName} size="lg" />
           <div className="flex-1 min-w-0">
@@ -141,7 +141,7 @@ export default function ContactDetailPage() {
         {/* Left column: info + criteria */}
         <div className="lg:col-span-1 space-y-6">
           {/* Contact info */}
-          <div className="bg-white rounded-card shadow-card border border-border p-5">
+          <div className="bg-card rounded-card shadow-card border border-border p-5">
             <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3">Informations</h2>
             <div className="space-y-0.5">
               <InfoRow icon={Mail} label="Email" value={contact.email} />
@@ -168,7 +168,7 @@ export default function ContactDetailPage() {
 
           {/* Search criteria (buyers only) */}
           {contact.search_criteria && (
-            <div className="bg-white rounded-card shadow-card border border-border p-5">
+            <div className="bg-card rounded-card shadow-card border border-border p-5">
               <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3">Critères de recherche</h2>
               <div className="space-y-0.5">
                 <InfoRow icon={Building2} label="Type de bien" value={contact.search_criteria.property_type} />
@@ -185,7 +185,7 @@ export default function ContactDetailPage() {
           )}
 
           {/* Notes */}
-          <div className="bg-white rounded-card shadow-card border border-border p-5">
+          <div className="bg-card rounded-card shadow-card border border-border p-5">
             <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3" id="notes-heading">Notes</h2>
             <textarea
               defaultValue={contact.notes}
@@ -200,7 +200,7 @@ export default function ContactDetailPage() {
         {/* Right column: transactions + activity */}
         <div className="lg:col-span-2 space-y-6">
           {/* Linked transactions */}
-          <div className="bg-white rounded-card shadow-card border border-border p-5">
+          <div className="bg-card rounded-card shadow-card border border-border p-5">
             <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3">
               Transactions liées
               {contact.transactions.length > 0 && (
@@ -247,7 +247,7 @@ export default function ContactDetailPage() {
           </div>
 
           {/* Activity timeline */}
-          <div className="bg-white rounded-card shadow-card border border-border p-5">
+          <div className="bg-card rounded-card shadow-card border border-border p-5">
             <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-4">
               Historique d'activité
             </h2>
@@ -264,7 +264,7 @@ export default function ContactDetailPage() {
                     <div key={activity.id} className="relative flex gap-4">
                       <div className={cn(
                         'h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 z-10',
-                        isFirst ? 'bg-accent text-white' : 'bg-white border-2 border-border text-primary-400'
+                        isFirst ? 'bg-accent text-white' : 'bg-card border-2 border-border text-primary-400'
                       )}>
                         <Icon className="h-4 w-4" />
                       </div>

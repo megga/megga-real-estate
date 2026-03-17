@@ -47,7 +47,7 @@ function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps
           'flex items-center gap-1.5 px-3 py-2 text-sm rounded-full border transition-colors',
           value
             ? 'border-accent bg-accent-light text-accent font-medium'
-            : 'border-border bg-white text-primary-700 hover:border-primary-300'
+            : 'border-border bg-card text-primary-700 hover:border-primary-300'
         )}
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -60,7 +60,7 @@ function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
           <ul
-            className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-card shadow-dropdown border border-border z-20 py-1"
+            className="absolute top-full left-0 mt-1 min-w-[180px] bg-card rounded-card shadow-dropdown border border-border z-20 py-1"
             role="listbox"
             aria-label={label}
           >

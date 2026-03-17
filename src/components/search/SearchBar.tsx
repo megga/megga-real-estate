@@ -52,7 +52,7 @@ function SearchDropdown({ label, options, value, onChange }: DropdownProps) {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
           <ul
-            className="absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white rounded-card shadow-dropdown border border-border z-20 py-1"
+            className="absolute top-full left-0 mt-1 w-full min-w-[200px] bg-card rounded-card shadow-dropdown border border-border z-20 py-1"
             role="listbox"
             aria-label={label}
           >
@@ -121,7 +121,7 @@ export default function SearchBar() {
       </div>
 
       {/* Search bar */}
-      <div className="bg-white rounded-card shadow-lg flex items-center overflow-hidden">
+      <div className="bg-card rounded-card shadow-lg flex items-center overflow-hidden">
         <div className="flex-1 flex items-center divide-x divide-border">
           <SearchDropdown
             label="Type de bien"

@@ -4,16 +4,18 @@ import {
   Mail, Phone, MapPin, Globe, Plus, Trash2, Shield,
   Lock, Key, Smartphone, Monitor, Clock, AlertTriangle,
   CheckCircle2, XCircle, LogOut, Eye, EyeOff, ShieldCheck,
-  History, FileText, ChevronDown, Download,
+  History, FileText, ChevronDown, Download, Sun, Moon, Palette,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/hooks/useTheme'
 import { toast } from '@/hooks/useToast'
 
-type SettingsTab = 'profile' | 'agency' | 'team' | 'notifications' | 'security'
+type SettingsTab = 'profile' | 'agency' | 'team' | 'notifications' | 'security' | 'appearance'
 
 const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
   { id: 'profile', label: 'Profil personnel', icon: User },
+  { id: 'appearance', label: 'Apparence', icon: Palette },
   { id: 'agency', label: 'Agence', icon: Building2 },
   { id: 'team', label: 'Équipe', icon: Users },
   { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -35,7 +37,7 @@ function ProfileTab({ fullName, email }: { fullName: string; email: string }) {
             <span className="text-2xl font-semibold text-white">{initials}</span>
           </div>
           <button
-            className="absolute bottom-0 right-0 h-7 w-7 bg-white border border-border rounded-full flex items-center justify-center shadow-card hover:bg-section transition-colors"
+            className="absolute bottom-0 right-0 h-7 w-7 bg-card border border-border rounded-full flex items-center justify-center shadow-card hover:bg-section transition-colors"
             aria-label="Changer la photo"
           >
             <Camera className="h-3.5 w-3.5 text-primary-600" aria-hidden="true" />
@@ -55,7 +57,7 @@ function ProfileTab({ fullName, email }: { fullName: string; email: string }) {
             id="firstName"
             type="text"
             defaultValue={firstName}
-            className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
         <div>
@@ -64,7 +66,7 @@ function ProfileTab({ fullName, email }: { fullName: string; email: string }) {
             id="lastName"
             type="text"
             defaultValue={lastName}
-            className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
         <div>
@@ -75,7 +77,7 @@ function ProfileTab({ fullName, email }: { fullName: string; email: string }) {
               id="email"
               type="email"
               defaultValue={email}
-              className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -87,7 +89,7 @@ function ProfileTab({ fullName, email }: { fullName: string; email: string }) {
               id="phone"
               type="tel"
               defaultValue="+41 22 123 45 67"
-              className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -99,7 +101,7 @@ function ProfileTab({ fullName, email }: { fullName: string; email: string }) {
           id="bio"
           rows={3}
           defaultValue="Agent immobilier spécialisé dans l'immobilier de prestige à Genève. Plus de 15 ans d'expérience."
-          className="w-full px-3 py-2.5 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
+          className="w-full px-3 py-2.5 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
         />
       </div>
 
@@ -111,6 +113,64 @@ function ProfileTab({ fullName, email }: { fullName: string; email: string }) {
           <Save className="h-4 w-4" aria-hidden="true" />
           Enregistrer
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Appearance Tab ───────────────────────────────────────────────────────────
+
+function AppearanceTab() {
+  const { theme, setTheme } = useTheme()
+
+  const options: { value: 'light' | 'dark' | 'system'; label: string; description: string; icon: typeof Sun }[] = [
+    { value: 'light', label: 'Clair', description: 'Interface lumineuse sur fond blanc', icon: Sun },
+    { value: 'dark', label: 'Sombre', description: 'Interface sombre, confortable de nuit', icon: Moon },
+    { value: 'system', label: 'Système', description: 'Suit les préférences de votre appareil', icon: Monitor },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-sm font-semibold text-primary-900">Thème de l&apos;interface</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Choisissez comment MEGGA s&apos;affiche sur votre écran.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {options.map((opt) => {
+          const Icon = opt.icon
+          const isActive = theme === opt.value
+          return (
+            <button
+              key={opt.value}
+              onClick={() => setTheme(opt.value)}
+              className={cn(
+                'flex flex-col items-center gap-3 p-5 rounded-card border-2 transition-all duration-200 text-center',
+                isActive
+                  ? 'border-accent bg-accent/5 shadow-card'
+                  : 'border-border hover:border-primary-300 hover:bg-section/50'
+              )}
+            >
+              <div className={cn(
+                'h-12 w-12 rounded-full flex items-center justify-center',
+                isActive ? 'bg-accent/10' : 'bg-section'
+              )}>
+                <Icon className={cn('h-6 w-6', isActive ? 'text-accent' : 'text-primary-400')} aria-hidden="true" />
+              </div>
+              <div>
+                <p className={cn('text-sm font-semibold', isActive ? 'text-accent' : 'text-primary-900')}>
+                  {opt.label}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
+              </div>
+              {isActive && (
+                <div className="h-2 w-2 rounded-full bg-accent" />
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -128,7 +188,7 @@ function AgencyTab() {
             <span className="text-lg font-bold text-white">GG</span>
           </div>
           <button
-            className="absolute bottom-0 right-0 h-6 w-6 bg-white border border-border rounded-full flex items-center justify-center shadow-card hover:bg-section transition-colors"
+            className="absolute bottom-0 right-0 h-6 w-6 bg-card border border-border rounded-full flex items-center justify-center shadow-card hover:bg-section transition-colors"
             aria-label="Changer le logo"
           >
             <Camera className="h-3 w-3 text-primary-600" aria-hidden="true" />
@@ -148,7 +208,7 @@ function AgencyTab() {
             id="agencyName"
             type="text"
             defaultValue="MEGGA Real Estate"
-            className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
         <div>
@@ -159,7 +219,7 @@ function AgencyTab() {
               id="agencyEmail"
               type="email"
               defaultValue="contact@megga.ch"
-              className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -171,7 +231,7 @@ function AgencyTab() {
               id="agencyPhone"
               type="tel"
               defaultValue="+41 22 700 00 00"
-              className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -183,7 +243,7 @@ function AgencyTab() {
               id="agencyWebsite"
               type="url"
               defaultValue="https://megga.ch"
-              className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -195,7 +255,7 @@ function AgencyTab() {
               id="agencyAddress"
               type="text"
               defaultValue="Rue du Rhône 42, 1204 Genève"
-              className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
             />
           </div>
         </div>
@@ -207,7 +267,7 @@ function AgencyTab() {
           id="agencyDesc"
           rows={3}
           defaultValue="MEGGA Real Estate — Premier portail immobilier suisse AI-first. Marketplace, CRM intégré, compliance LAB/KYC."
-          className="w-full px-3 py-2.5 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
+          className="w-full px-3 py-2.5 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
         />
       </div>
 
@@ -258,7 +318,7 @@ function TeamTab() {
           const initials = member.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
           const role = ROLE_MAP[member.role]
           return (
-            <div key={member.id} className="bg-white rounded-card shadow-card p-4 flex items-center gap-4">
+            <div key={member.id} className="bg-card rounded-card shadow-card p-4 flex items-center gap-4">
               <div className={cn('h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0', member.avatar)}>
                 <span className="text-xs font-semibold text-white">{initials}</span>
               </div>
@@ -272,7 +332,7 @@ function TeamTab() {
               <select
                 defaultValue={member.role}
                 aria-label={`Rôle de ${member.name}`}
-                className="h-8 px-2 text-xs bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="h-8 px-2 text-xs bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20"
               >
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
@@ -322,7 +382,7 @@ function NotificationsTab() {
 
       <div className="space-y-2">
         {NOTIF_SETTINGS.map((setting) => (
-          <div key={setting.id} className="bg-white rounded-card shadow-card px-4 py-3 flex items-center gap-3">
+          <div key={setting.id} className="bg-card rounded-card shadow-card px-4 py-3 flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-primary-900">{setting.label}</p>
               <p className="text-xs text-muted-foreground">{setting.description}</p>
@@ -395,7 +455,7 @@ function SecuritySection({
   const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div className="bg-white rounded-card border border-border overflow-hidden transition-shadow hover:shadow-card">
+    <div className="bg-card rounded-card border border-border overflow-hidden transition-shadow hover:shadow-card">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-section/30"
@@ -567,7 +627,7 @@ function SecurityTab({ email }: { email: string }) {
                   id="currentPassword"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="w-full h-10 pl-9 pr-10 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                  className="w-full h-10 pl-9 pr-10 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                 />
                 <button
                   type="button"
@@ -588,7 +648,7 @@ function SecurityTab({ email }: { email: string }) {
                 id="newPassword"
                 type="password"
                 placeholder="Minimum 8 caractères"
-                className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
               />
             </div>
             <div>
@@ -599,7 +659,7 @@ function SecurityTab({ email }: { email: string }) {
                 id="confirmPassword"
                 type="password"
                 placeholder="Retapez le mot de passe"
-                className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
               />
             </div>
           </div>
@@ -903,8 +963,9 @@ export default function SettingsPage() {
         </nav>
 
         {/* Tab content */}
-        <div className="flex-1 bg-white rounded-card shadow-card p-6">
+        <div className="flex-1 bg-card rounded-card shadow-card p-6">
           {activeTab === 'profile' && <ProfileTab fullName={fullName} email={email} />}
+          {activeTab === 'appearance' && <AppearanceTab />}
           {activeTab === 'agency' && <AgencyTab />}
           {activeTab === 'team' && <TeamTab />}
           {activeTab === 'notifications' && <NotificationsTab />}

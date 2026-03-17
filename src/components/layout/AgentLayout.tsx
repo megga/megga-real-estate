@@ -12,7 +12,7 @@ export default function AgentLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
-        <header className="lg:hidden h-14 bg-white border-b border-border flex items-center px-4 sticky top-0 z-30">
+        <header className="lg:hidden h-14 bg-card border-b border-border flex items-center px-4 sticky top-0 z-30">
           <button
             onClick={() => setMobileOpen(true)}
             className="p-2 -ml-2 rounded-md hover:bg-section focus:outline-none focus:ring-2 focus:ring-accent"

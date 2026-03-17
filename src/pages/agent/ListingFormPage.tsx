@@ -172,7 +172,7 @@ export default function ListingFormPage() {
       </div>
 
       {/* Step content */}
-      <div className="bg-white rounded-card shadow-card p-6">
+      <div className="bg-card rounded-card shadow-card p-6">
         {/* Step 1: Property type */}
         {currentStep === 'type' && (
           <div className="space-y-6">
@@ -192,7 +192,7 @@ export default function ListingFormPage() {
                       'flex-1 py-3 rounded-button text-sm font-medium border transition-colors',
                       form.transactionType === t.value
                         ? 'bg-accent text-white border-accent'
-                        : 'bg-white text-primary-700 border-border hover:border-accent/30'
+                        : 'bg-card text-primary-700 border-border hover:border-accent/30'
                     )}
                   >
                     {t.label}
@@ -212,7 +212,7 @@ export default function ListingFormPage() {
                       'flex flex-col items-center gap-2 p-4 rounded-card border transition-all',
                       form.propertyType === t.value
                         ? 'bg-accent/5 border-accent shadow-card'
-                        : 'bg-white border-border hover:border-accent/30 hover:shadow-card'
+                        : 'bg-card border-border hover:border-accent/30 hover:shadow-card'
                     )}
                   >
                     <span className="text-2xl">{t.icon}</span>
@@ -241,7 +241,7 @@ export default function ListingFormPage() {
                   value={form.title}
                   onChange={(e) => update('title', e.target.value)}
                   placeholder="ex: Bel appartement lumineux Eaux-Vives"
-                  className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                  className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                 />
               </div>
               <div>
@@ -252,7 +252,7 @@ export default function ListingFormPage() {
                   value={form.price}
                   onChange={(e) => update('price', e.target.value)}
                   placeholder="720000"
-                  className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                  className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                 />
               </div>
               <div>
@@ -263,7 +263,7 @@ export default function ListingFormPage() {
                   value={form.surface}
                   onChange={(e) => update('surface', e.target.value)}
                   placeholder="75"
-                  className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                  className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                 />
               </div>
               <div>
@@ -274,7 +274,7 @@ export default function ListingFormPage() {
                   value={form.rooms}
                   onChange={(e) => update('rooms', e.target.value)}
                   placeholder="3"
-                  className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                  className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                 />
               </div>
               <div>
@@ -285,7 +285,7 @@ export default function ListingFormPage() {
                   value={form.bedrooms}
                   onChange={(e) => update('bedrooms', e.target.value)}
                   placeholder="2"
-                  className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                  className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                 />
               </div>
               <div>
@@ -296,7 +296,7 @@ export default function ListingFormPage() {
                   value={form.bathrooms}
                   onChange={(e) => update('bathrooms', e.target.value)}
                   placeholder="1"
-                  className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                  className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                 />
               </div>
             </div>
@@ -314,7 +314,7 @@ export default function ListingFormPage() {
                       value={form.address}
                       onChange={(e) => update('address', e.target.value)}
                       placeholder="Rue du Lac 12"
-                      className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                      className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                     />
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export default function ListingFormPage() {
                     value={form.city}
                     onChange={(e) => update('city', e.target.value)}
                     placeholder="Genève"
-                    className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                    className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                   />
                 </div>
                 <div className="flex gap-3">
@@ -336,7 +336,7 @@ export default function ListingFormPage() {
                       id="canton"
                       value={form.canton}
                       onChange={(e) => update('canton', e.target.value)}
-                      className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                      className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                     >
                       {CANTONS.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -349,7 +349,7 @@ export default function ListingFormPage() {
                       value={form.postalCode}
                       onChange={(e) => update('postalCode', e.target.value)}
                       placeholder="1200"
-                      className="w-full h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                      className="w-full h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
                     />
                   </div>
                 </div>
@@ -367,7 +367,7 @@ export default function ListingFormPage() {
                       'text-xs font-medium px-3 py-1.5 rounded-badge border transition-colors',
                       form.features.includes(f)
                         ? 'bg-accent/10 text-accent border-accent/20'
-                        : 'bg-white text-primary-600 border-border hover:border-accent/20'
+                        : 'bg-card text-primary-600 border-border hover:border-accent/20'
                     )}
                   >
                     {f}
@@ -405,7 +405,7 @@ export default function ListingFormPage() {
                     <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     <button
                       onClick={() => setPhotos(photos.filter((_, j) => j !== i))}
-                      className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 p-1.5 bg-card/80 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label={`Supprimer la photo ${i + 1}`}
                     >
                       <Trash2 className="h-3.5 w-3.5 text-danger" aria-hidden="true" />
@@ -446,7 +446,7 @@ export default function ListingFormPage() {
                 value={form.description}
                 onChange={(e) => update('description', e.target.value)}
                 placeholder="Décrivez les atouts du bien : luminosité, vue, rénovations, proximité transports et commerces..."
-                className="w-full px-3 py-2.5 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
+                className="w-full px-3 py-2.5 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
               />
               <p className="text-xs text-muted-foreground mt-1.5">
                 {form.description.length} caractères — Recommandé : 200 à 500 caractères

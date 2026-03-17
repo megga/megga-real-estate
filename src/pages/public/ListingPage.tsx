@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   MapPin, DoorOpen, BedDouble, Bath, Maximize, Building2, Heart, Share2,
   Phone, Mail, CalendarDays, ChevronLeft, ChevronRight, X, Images,
+  FileText, Grid3X3, Expand,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -11,15 +12,24 @@ import { getListingById } from '@/lib/mockData'
 
 function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'hot' | 'new' | 'exclusive' | 'default' }) {
   const styles = {
-    hot: 'bg-danger text-white',
-    new: 'bg-accent text-white',
-    exclusive: 'bg-primary-900 text-white',
-    default: 'bg-section text-primary-700',
+    hot: 'bg-danger/20 text-danger backdrop-blur-sm',
+    new: 'bg-accent/20 text-accent backdrop-blur-sm',
+    exclusive: 'bg-success/20 text-success backdrop-blur-sm',
+    default: 'bg-card/80 text-primary-700 backdrop-blur-sm',
   }
   return (
-    <span className={cn('text-xs font-medium px-2.5 py-1 rounded-badge inline-flex items-center gap-1', styles[variant])}>
+    <span className={cn('text-sm font-medium px-3 py-1 rounded-full inline-flex items-center gap-1', styles[variant])}>
       {children}
     </span>
+  )
+}
+
+function SectionTitle({ icon: Icon, children }: { icon: typeof FileText; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 border-b border-[var(--border-default)] pb-3 mb-6">
+      <Icon className="h-5 w-5 text-accent" aria-hidden="true" />
+      <h2 className="text-xl font-semibold text-[var(--text-primary)]">{children}</h2>
+    </div>
   )
 }
 
@@ -30,6 +40,7 @@ export default function ListingPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [mobilePhotoIndex, setMobilePhotoIndex] = useState(0)
+  const [hoverMainPhoto, setHoverMainPhoto] = useState(false)
   const carouselRef = useRef<HTMLDivElement>(null)
 
   // Close lightbox on Escape, navigate with arrow keys
@@ -52,7 +63,7 @@ export default function ListingPage() {
 
   if (!listing) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-background">
         <Navbar />
         <main id="main-content" className="flex flex-col items-center justify-center h-[60vh]">
           <p className="text-xl font-semibold text-primary-900 mb-2">Bien non trouvé</p>
@@ -79,7 +90,7 @@ export default function ListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main id="main-content">
@@ -88,21 +99,28 @@ export default function ListingPage() {
           <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[420px] rounded-card overflow-hidden relative">
             {/* Main photo */}
             <button
-              className="col-span-2 row-span-2 relative overflow-hidden"
+              className="col-span-2 row-span-2 relative overflow-hidden group"
               onClick={() => openLightbox(0)}
+              onMouseEnter={() => setHoverMainPhoto(true)}
+              onMouseLeave={() => setHoverMainPhoto(false)}
               aria-label={`Photo principale de ${listing.title} — Ouvrir la galerie`}
             >
-              <img src={photos[0]} alt={listing.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+              <img src={photos[0]} alt={listing.title} className="w-full h-full object-cover group-hover:brightness-110 transition-all duration-200" />
+              {hoverMainPhoto && (
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center transition-opacity">
+                  <Expand className="h-8 w-8 text-white" aria-hidden="true" />
+                </div>
+              )}
             </button>
             {/* Secondary photos */}
             {photos.slice(1, 5).map((photo, i) => (
               <button
                 key={i}
-                className="relative overflow-hidden"
+                className="relative overflow-hidden group"
                 onClick={() => openLightbox(i + 1)}
                 aria-label={`Photo ${i + 2} sur ${photos.length} — Ouvrir la galerie`}
               >
-                <img src={photo} alt={`${listing.title} — Photo ${i + 2}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                <img src={photo} alt={`${listing.title} — Photo ${i + 2}`} className="w-full h-full object-cover group-hover:brightness-110 transition-all duration-200 cursor-pointer" />
                 {i === 3 && photos.length > 5 && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <span className="text-white text-sm font-medium flex items-center gap-1.5">
@@ -113,9 +131,17 @@ export default function ListingPage() {
                 )}
               </button>
             ))}
+
+            {/* Overlay badges — bottom left */}
+            <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
+              <Badge variant="new">Vente</Badge>
+              {listing.is_hot && <Badge variant="hot"><span aria-hidden="true">🔥</span> Hot price</Badge>}
+              {listing.is_exclusive && <Badge variant="exclusive">Exclusif</Badge>}
+            </div>
+
             <button
               onClick={() => openLightbox(0)}
-              className="absolute bottom-4 right-4 bg-white/90 backdrop-blur text-primary-900 text-sm font-medium px-4 py-2 rounded-button shadow-card hover:bg-white transition-colors flex items-center gap-2"
+              className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm hover:bg-black/80 text-white text-sm font-medium px-4 py-2 rounded-button shadow-card transition-colors flex items-center gap-2"
             >
               <Images className="h-4 w-4" aria-hidden="true" />
               Voir les {photos.length} photos
@@ -147,6 +173,11 @@ export default function ListingPage() {
               </div>
             ))}
           </div>
+          {/* Overlay badges — mobile */}
+          <div className="absolute bottom-10 left-3 flex items-center gap-2 z-10">
+            <Badge variant="new">Vente</Badge>
+            {listing.is_hot && <Badge variant="hot"><span aria-hidden="true">🔥</span> Hot price</Badge>}
+          </div>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5" aria-hidden="true">
             {photos.map((_, i) => (
               <div key={i} className={cn('h-1.5 rounded-full transition-all', mobilePhotoIndex === i ? 'w-4 bg-white' : 'w-1.5 bg-white/60')} />
@@ -154,10 +185,10 @@ export default function ListingPage() {
           </div>
           {photos.length > 1 && (
             <>
-              <button onClick={() => scrollCarousel('left')} className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-white/80 backdrop-blur rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent" aria-label="Photo précédente">
+              <button onClick={() => scrollCarousel('left')} className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-card/80 backdrop-blur rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent" aria-label="Photo précédente">
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
-              <button onClick={() => scrollCarousel('right')} className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-white/80 backdrop-blur rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent" aria-label="Photo suivante">
+              <button onClick={() => scrollCarousel('right')} className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-card/80 backdrop-blur rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-accent" aria-label="Photo suivante">
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </button>
             </>
@@ -168,76 +199,82 @@ export default function ListingPage() {
         </section>
 
         {/* === MAIN CONTENT === */}
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 mt-8">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* LEFT COLUMN — Details */}
             <div className="flex-1 min-w-0">
               <div className="mb-4">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {listing.is_hot && <Badge variant="hot"><span aria-hidden="true">🔥</span> Hot price</Badge>}
-                  {listing.is_new && <Badge variant="new">Nouveau</Badge>}
-                  {listing.is_exclusive && <Badge variant="exclusive">Exclusif</Badge>}
-                </div>
-                <h1 className="text-2xl md:text-3xl font-bold text-primary-900 mb-2">{listing.title}</h1>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
+                <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] mb-2">{listing.title}</h1>
+                <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
                   <MapPin className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                   <span className="text-sm">{listing.address}, {listing.postal_code} {listing.city} ({listing.canton})</span>
                 </div>
               </div>
 
               {/* Key stats */}
-              <div className="flex flex-wrap items-center gap-4 md:gap-6 py-5 border-y border-border mb-6" role="list" aria-label="Caractéristiques principales">
-                <div className="flex items-center gap-2" role="listitem">
+              <div className="flex flex-wrap items-center gap-6 md:gap-8 py-5 border-y border-[var(--border-default)] mb-8" role="list" aria-label="Caractéristiques principales">
+                <div className="flex items-center gap-3" role="listitem">
                   <DoorOpen className="h-5 w-5 text-accent" aria-hidden="true" />
-                  <div><p className="text-sm font-semibold text-primary-900">{listing.rooms}</p><p className="text-xs text-muted-foreground">Pièces</p></div>
+                  <div><p className="text-lg font-semibold text-[var(--text-primary)]">{listing.rooms}</p><p className="text-sm text-[var(--text-muted)]">Pièces</p></div>
                 </div>
-                <div className="flex items-center gap-2" role="listitem">
+                <div className="flex items-center gap-3" role="listitem">
                   <BedDouble className="h-5 w-5 text-accent" aria-hidden="true" />
-                  <div><p className="text-sm font-semibold text-primary-900">{listing.bedrooms}</p><p className="text-xs text-muted-foreground">Chambres</p></div>
+                  <div><p className="text-lg font-semibold text-[var(--text-primary)]">{listing.bedrooms}</p><p className="text-sm text-[var(--text-muted)]">Chambres</p></div>
                 </div>
-                <div className="flex items-center gap-2" role="listitem">
+                <div className="flex items-center gap-3" role="listitem">
                   <Bath className="h-5 w-5 text-accent" aria-hidden="true" />
-                  <div><p className="text-sm font-semibold text-primary-900">{listing.bathrooms}</p><p className="text-xs text-muted-foreground">Salle{listing.bathrooms > 1 ? 's' : ''} de bain</p></div>
+                  <div><p className="text-lg font-semibold text-[var(--text-primary)]">{listing.bathrooms}</p><p className="text-sm text-[var(--text-muted)]">Salle{listing.bathrooms > 1 ? 's' : ''} de bain</p></div>
                 </div>
-                <div className="flex items-center gap-2" role="listitem">
+                <div className="flex items-center gap-3" role="listitem">
                   <Maximize className="h-5 w-5 text-accent" aria-hidden="true" />
-                  <div><p className="text-sm font-semibold text-primary-900">{formatSurface(listing.surface_m2)}</p><p className="text-xs text-muted-foreground">Surface</p></div>
+                  <div><p className="text-lg font-semibold text-[var(--text-primary)]">{formatSurface(listing.surface_m2)}</p><p className="text-sm text-[var(--text-muted)]">Surface</p></div>
                 </div>
                 {listing.floor !== null && (
-                  <div className="flex items-center gap-2" role="listitem">
+                  <div className="flex items-center gap-3" role="listitem">
                     <Building2 className="h-5 w-5 text-accent" aria-hidden="true" />
-                    <div><p className="text-sm font-semibold text-primary-900">{listing.floor}e/{listing.total_floors}</p><p className="text-xs text-muted-foreground">Étage</p></div>
+                    <div><p className="text-lg font-semibold text-[var(--text-primary)]">{listing.floor}e/{listing.total_floors}</p><p className="text-sm text-[var(--text-muted)]">Étage</p></div>
                   </div>
                 )}
               </div>
 
               <section className="mb-8" aria-label="Description">
-                <h2 className="text-xl font-semibold text-primary-900 mb-4">Description</h2>
-                <div className="text-sm text-primary-700 leading-relaxed space-y-4">
+                <SectionTitle icon={FileText}>Description</SectionTitle>
+                <div className="text-sm text-[var(--text-primary)]/90 leading-relaxed space-y-4">
                   {listing.description.split('\n\n').map((p, i) => (<p key={i}>{p}</p>))}
                 </div>
               </section>
 
               <section className="mb-8" aria-label="Caractéristiques">
-                <h2 className="text-xl font-semibold text-primary-900 mb-4">Caractéristiques</h2>
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-                  {Object.entries(listing.features).map(([key, value]) => (
-                    <div key={key} className="flex justify-between py-2.5 border-b border-border-light">
-                      <dt className="text-sm text-muted-foreground">{key}</dt>
-                      <dd className="text-sm font-medium text-primary-900 text-right">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <SectionTitle icon={Grid3X3}>Caractéristiques</SectionTitle>
+                <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-default)] overflow-hidden">
+                  <dl>
+                    {Object.entries(listing.features).map(([key, value], i, arr) => (
+                      <div
+                        key={key}
+                        className={cn(
+                          'flex justify-between py-3 px-4',
+                          i < arr.length - 1 && 'border-b border-[var(--border-default)]/50',
+                          i % 2 === 1 && 'bg-[var(--bg-surface)]/50'
+                        )}
+                      >
+                        <dt className="text-sm text-[var(--text-muted)]">{key}</dt>
+                        <dd className="text-sm font-medium text-[var(--text-primary)] text-right">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
               </section>
 
               <section className="mb-8" aria-label="Localisation">
-                <h2 className="text-xl font-semibold text-primary-900 mb-4">Localisation</h2>
-                <div className="bg-section rounded-card h-64 flex items-center justify-center border border-border">
+                <SectionTitle icon={MapPin}>Localisation</SectionTitle>
+                <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] min-h-[300px] flex items-center justify-center">
                   <div className="text-center">
-                    <MapPin className="h-8 w-8 text-accent mx-auto mb-2" aria-hidden="true" />
-                    <p className="text-sm font-medium text-primary-700">{listing.address}</p>
-                    <p className="text-xs text-muted-foreground">{listing.postal_code} {listing.city}</p>
-                    <p className="text-xs text-muted-foreground mt-2">Carte Mapbox — bientôt disponible</p>
+                    <div className="bg-accent/10 rounded-full p-3 w-14 h-14 flex items-center justify-center mx-auto mb-3">
+                      <MapPin className="h-8 w-8 text-accent" aria-hidden="true" />
+                    </div>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{listing.address}</p>
+                    <p className="text-sm text-[var(--text-muted)]">{listing.postal_code} {listing.city}</p>
+                    <p className="text-xs text-[var(--text-muted)] italic mt-3">Carte Mapbox — bientôt disponible</p>
                   </div>
                 </div>
               </section>
@@ -246,39 +283,72 @@ export default function ListingPage() {
             {/* RIGHT SIDEBAR */}
             <aside className="hidden lg:block w-[380px] flex-shrink-0" aria-label="Contact et prix">
               <div className="sticky top-24 space-y-4">
-                <div className="bg-white rounded-card border border-border p-6 shadow-card">
-                  <p className="text-2xl font-bold text-primary-900 mb-1">{formatCHF(listing.price)}</p>
-                  {listing.charges_monthly > 0 && (<p className="text-sm text-muted-foreground">Charges : {formatCHF(listing.charges_monthly)}/mois</p>)}
-                  <div className="flex gap-2 mt-4">
-                    <button onClick={() => setIsFavorite(!isFavorite)} className={cn('flex-1 h-10 rounded-button border flex items-center justify-center gap-2 text-sm font-medium transition-colors', isFavorite ? 'bg-danger-light border-danger text-danger' : 'border-border text-primary-700 hover:bg-section')} aria-pressed={isFavorite} aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
+                <div className="bg-[var(--bg-card)] rounded-card border border-[var(--border-default)] ring-1 ring-white/5 p-6 shadow-card">
+                  {/* Price */}
+                  <div className="mb-4">
+                    <span className="text-sm font-medium text-[var(--text-muted)] block">CHF</span>
+                    <p className="text-3xl font-bold text-[var(--text-primary)]">{formatCHF(listing.price).replace('CHF ', '')}</p>
+                    {listing.charges_monthly > 0 && (<p className="text-sm text-[var(--text-muted)] mt-1">Charges : {formatCHF(listing.charges_monthly)}/mois</p>)}
+                  </div>
+
+                  {/* Separator */}
+                  <div className="border-t border-[var(--border-default)] my-4" />
+
+                  {/* Save + Share */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsFavorite(!isFavorite)}
+                      className={cn(
+                        'flex-1 h-10 rounded-button border flex items-center justify-center gap-2 text-sm font-medium transition-colors',
+                        isFavorite
+                          ? 'bg-danger-light border-danger text-danger'
+                          : 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-muted)] hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]'
+                      )}
+                      aria-pressed={isFavorite}
+                      aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    >
                       <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} aria-hidden="true" />
                       {isFavorite ? 'Sauvegardé' : 'Sauvegarder'}
                     </button>
-                    <button className="h-10 w-10 rounded-button border border-border flex items-center justify-center text-primary-700 hover:bg-section transition-colors" aria-label="Partager ce bien">
+                    <button
+                      className="h-10 w-10 rounded-button bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)] transition-colors"
+                      aria-label="Partager ce bien"
+                    >
                       <Share2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-card border border-border p-6 shadow-card">
+                <div className="bg-[var(--bg-card)] rounded-card border border-[var(--border-default)] ring-1 ring-white/5 p-6 shadow-card">
                   <div className="flex items-center gap-3 mb-4">
-                    <img src={listing.agent.photo} alt={`Photo de ${listing.agent.name}`} className="h-12 w-12 rounded-full object-cover" />
+                    {listing.agent.photo ? (
+                      <img src={listing.agent.photo} alt={`Photo de ${listing.agent.name}`} className="h-12 w-12 rounded-full object-cover ring-2 ring-accent/20" />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center ring-2 ring-accent/20 flex-shrink-0">
+                        <span className="text-sm font-semibold text-white">
+                          {listing.agent.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </span>
+                      </div>
+                    )}
                     <div>
-                      <p className="text-sm font-semibold text-primary-900">{listing.agent.name}</p>
-                      <p className="text-xs text-muted-foreground">{listing.agent.agency}</p>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">{listing.agent.name}</p>
+                      <p className="text-sm text-[var(--text-muted)]">{listing.agent.agency}</p>
                     </div>
                   </div>
                   <div className="space-y-2 mb-4">
-                    <a href={`tel:${listing.agent.phone}`} className="flex items-center gap-2 text-sm text-primary-700 hover:text-accent transition-colors">
-                      <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />{listing.agent.phone}
+                    <a href={`tel:${listing.agent.phone}`} className="flex items-center gap-2 text-sm text-[var(--text-primary)] hover:text-accent transition-colors">
+                      <Phone className="h-4 w-4 text-[var(--text-muted)]" aria-hidden="true" />{listing.agent.phone}
                     </a>
-                    <a href={`mailto:${listing.agent.email}`} className="flex items-center gap-2 text-sm text-primary-700 hover:text-accent transition-colors">
-                      <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />{listing.agent.email}
+                    <a href={`mailto:${listing.agent.email}`} className="flex items-center gap-2 text-sm text-[var(--text-primary)] hover:text-accent transition-colors">
+                      <Mail className="h-4 w-4 text-[var(--text-muted)]" aria-hidden="true" />{listing.agent.email}
                     </a>
                   </div>
                   <div className="space-y-2">
                     <Button className="w-full h-11 rounded-button gap-2"><Mail className="h-4 w-4" aria-hidden="true" />Contacter l'agent</Button>
-                    <Button variant="outline" className="w-full h-11 rounded-button gap-2"><CalendarDays className="h-4 w-4" aria-hidden="true" />Planifier une visite</Button>
+                    <button className="w-full h-11 rounded-button gap-2 bg-[var(--bg-surface)] border border-[var(--border-default)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] font-medium text-sm inline-flex items-center justify-center transition-colors">
+                      <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                      Planifier une visite
+                    </button>
                   </div>
                 </div>
               </div>
@@ -287,11 +357,11 @@ export default function ListingPage() {
         </div>
 
         {/* === MOBILE STICKY PRICE BAR === */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 shadow-navbar z-40">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 shadow-navbar z-40">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-lg font-bold text-primary-900">{formatCHF(listing.price)}</p>
-              {listing.charges_monthly > 0 && (<p className="text-xs text-muted-foreground">Charges : {formatCHF(listing.charges_monthly)}/mois</p>)}
+              <p className="text-lg font-bold text-[var(--text-primary)]">{formatCHF(listing.price)}</p>
+              {listing.charges_monthly > 0 && (<p className="text-xs text-[var(--text-muted)]">Charges : {formatCHF(listing.charges_monthly)}/mois</p>)}
             </div>
             <div className="flex gap-2">
               <button onClick={() => setIsFavorite(!isFavorite)} className={cn('h-10 w-10 rounded-full border flex items-center justify-center transition-colors', isFavorite ? 'bg-danger-light border-danger text-danger' : 'border-border text-primary-600')} aria-pressed={isFavorite} aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>

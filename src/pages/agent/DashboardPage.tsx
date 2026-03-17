@@ -62,7 +62,7 @@ export default function DashboardPage() {
         {DASHBOARD_KPIS.map((kpi) => {
           const Icon = kpiIconMap[kpi.iconName]
           return (
-            <div key={kpi.label} className="bg-white rounded-card p-6 shadow-card border border-border hover:shadow-card-hover transition-shadow duration-200">
+            <div key={kpi.label} className="bg-card rounded-card p-6 shadow-card border border-border hover:shadow-card-hover transition-shadow duration-200">
               <div className="flex items-center justify-between mb-4">
                 <div className={cn('h-11 w-11 rounded-button flex items-center justify-center', kpi.iconBg)}>
                   <Icon className="h-5 w-5" aria-hidden="true" />
@@ -88,7 +88,7 @@ export default function DashboardPage() {
       {/* Pipeline + Tasks row */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Mini Pipeline */}
-        <div className="lg:col-span-3 bg-white rounded-card p-6 shadow-card border border-border">
+        <div className="lg:col-span-3 bg-card rounded-card p-6 shadow-card border border-border">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold text-primary-900">Pipeline</h2>
             <span className="text-sm font-medium text-primary-700">{totalDeals} deals</span>
@@ -124,7 +124,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Urgent Tasks */}
-        <div className="lg:col-span-2 bg-white rounded-card p-6 shadow-card border border-border">
+        <div className="lg:col-span-2 bg-card rounded-card p-6 shadow-card border border-border">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold text-primary-900 flex items-center gap-2">
               <AlertTriangle className="h-4.5 w-4.5 text-warning" aria-hidden="true" />
@@ -159,7 +159,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-card p-6 shadow-card border border-border">
+      <div className="bg-card rounded-card p-6 shadow-card border border-border">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-primary-900">Activité récente</h2>
           <button className="text-sm text-accent hover:text-accent-hover font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 rounded-button px-2.5 py-1">

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Plus, Menu, X, LogOut, LayoutDashboard, User } from 'lucide-react'
+import { Plus, Menu, X, LogOut, LayoutDashboard, User, Sun, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
+import { useTheme } from '@/hooks/useTheme'
 
 const navLinks = [
   { label: 'Acheter', href: '/acheter' },
@@ -34,6 +35,7 @@ export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, loading, signOut } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -66,7 +68,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-white shadow-navbar sticky top-0 z-50">
+    <header className="h-16 border-b border-border bg-card shadow-navbar sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex-shrink-0" aria-label="MEGGA — Accueil">
@@ -97,6 +99,14 @@ export default function Navbar() {
 
         {/* Actions desktop */}
         <div className="hidden md:flex items-center gap-3">
+          <button
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            className="p-2 rounded-lg hover:bg-[var(--bg-surface)] text-primary-500 hover:text-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20"
+            aria-label={resolvedTheme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+            title="Changer de thème"
+          >
+            {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" aria-hidden="true" /> : <Moon className="h-5 w-5" aria-hidden="true" />}
+          </button>
           <Button
             size="default"
             className="rounded-full gap-2"
@@ -129,7 +139,7 @@ export default function Navbar() {
 
               {dropdownOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-64 bg-white rounded-card shadow-dropdown border border-border py-2 z-50"
+                  className="absolute right-0 mt-2 w-64 bg-card rounded-card shadow-dropdown border border-border py-2 z-50"
                   role="menu"
                   aria-label="Menu utilisateur"
                 >
@@ -203,7 +213,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div id="mobile-menu" className="md:hidden bg-white border-b border-border shadow-dropdown">
+        <div id="mobile-menu" className="md:hidden bg-card border-b border-border shadow-dropdown">
           <nav className="flex flex-col px-4 py-3 gap-1" aria-label="Navigation principale mobile">
             {navLinks.map((link) => (
               <Link

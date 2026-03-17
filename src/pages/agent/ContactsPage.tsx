@@ -182,7 +182,7 @@ export default function ContactsPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             aria-label="Rechercher par nom ou email"
-            className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
 
@@ -191,7 +191,7 @@ export default function ContactsPage() {
           value={typeFilter}
           onChange={(e) => { setTypeFilter(e.target.value); setPage(1) }}
           aria-label="Filtrer par type"
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les types</option>
           <option value="buyer">Acheteur</option>
@@ -205,7 +205,7 @@ export default function ContactsPage() {
           value={scoreFilter}
           onChange={(e) => { setScoreFilter(e.target.value); setPage(1) }}
           aria-label="Filtrer par score"
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les scores</option>
           <option value="hot">🔴 Hot</option>
@@ -218,7 +218,7 @@ export default function ContactsPage() {
           value={tagFilter}
           onChange={(e) => { setTagFilter(e.target.value); setPage(1) }}
           aria-label="Filtrer par tag"
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les tags</option>
           {allTags.map((tag) => (
@@ -238,7 +238,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-card shadow-card border border-border overflow-hidden">
+      <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -386,7 +386,7 @@ export default function ContactsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={safePage <= 1}
-                className="p-1.5 rounded-md text-primary-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-md text-primary-600 hover:bg-card disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 aria-label="Page précédente"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -399,7 +399,7 @@ export default function ContactsPage() {
                     'h-8 min-w-[32px] px-2 rounded-md text-sm font-medium transition-colors',
                     p === safePage
                       ? 'bg-accent text-white'
-                      : 'text-primary-600 hover:bg-white'
+                      : 'text-primary-600 hover:bg-card'
                   )}
                 >
                   {p}
@@ -408,7 +408,7 @@ export default function ContactsPage() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={safePage >= totalPages}
-                className="p-1.5 rounded-md text-primary-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-md text-primary-600 hover:bg-card disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 aria-label="Page suivante"
               >
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />

@@ -44,14 +44,14 @@ export default function SearchPage() {
   const filteredMarkers = mapMarkers.filter((m) => filtered.some((l) => l.id === m.id))
 
   return (
-    <div className="h-screen flex flex-col bg-white">
+    <div className="h-screen flex flex-col bg-background">
       <Navbar />
 
       <main id="main-content" className="flex-1 flex overflow-hidden">
         {/* Results panel */}
         <section className="w-full lg:w-1/2 xl:w-[55%] flex flex-col overflow-hidden border-r border-border" aria-label="Résultats de recherche">
           {/* Filters */}
-          <div className="px-4 md:px-6 py-4 border-b border-border bg-white">
+          <div className="px-4 md:px-6 py-4 border-b border-border bg-card">
             <h1 className="sr-only">Résultats de recherche</h1>
             <SearchFilters
               filters={filters}

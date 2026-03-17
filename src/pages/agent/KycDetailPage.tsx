@@ -57,7 +57,7 @@ const CATEGORY_STYLE: Record<string, { icon: typeof User; bg: string; text: stri
   'Propriété': { icon: Landmark, bg: 'bg-blue-50', text: 'text-blue-600' },
 }
 
-const DEFAULT_CATEGORY_STYLE = { icon: FileText, bg: 'bg-gray-50', text: 'text-gray-600' }
+const DEFAULT_CATEGORY_STYLE = { icon: FileText, bg: 'bg-section', text: 'text-primary-600' }
 
 type TabId = 'checklist' | 'documents' | 'audit' | 'notes'
 
@@ -82,13 +82,13 @@ function ProgressBar({ pct, completedCount, totalCount }: { pct: number; complet
           {pct}%
         </span>
       </div>
-      <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+      <div className="w-full h-3 bg-section rounded-full overflow-hidden">
         <div
           className={cn('h-full rounded-full transition-all duration-500 ease-out', color)}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-primary-500">
         {completedCount} sur {totalCount} items complétés
       </p>
     </div>
@@ -152,24 +152,24 @@ function ChecklistTab({ items }: { items: MockKycChecklistItem[] }) {
         const pctCategory = categoryItems.length > 0 ? (completed / categoryItems.length) * 100 : 0
 
         return (
-          <div key={category} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div key={category} className="bg-card rounded-xl border border-border overflow-hidden">
             {/* Category header */}
             <button
               onClick={() => toggleCategory(category)}
-              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50/80 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-section/80 transition-colors"
             >
               <div className="flex items-center gap-3">
                 {isCollapsed
-                  ? <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden="true" />
-                  : <ChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                  ? <ChevronRight className="h-4 w-4 text-primary-400" aria-hidden="true" />
+                  : <ChevronDown className="h-4 w-4 text-primary-400" aria-hidden="true" />
                 }
                 <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center', catStyle.bg)}>
                   <CatIcon className={cn('h-4 w-4', catStyle.text)} aria-hidden="true" />
                 </div>
                 <span className="text-base font-semibold text-primary-900">{category}</span>
-                <span className="text-sm text-gray-400 ml-1">{completed}/{categoryItems.length}</span>
+                <span className="text-sm text-primary-400 ml-1">{completed}/{categoryItems.length}</span>
               </div>
-              <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden hidden sm:block">
+              <div className="w-32 h-2 bg-section rounded-full overflow-hidden hidden sm:block">
                 <div
                   className={cn(
                     'h-full rounded-full transition-all duration-300',
@@ -184,12 +184,12 @@ function ChecklistTab({ items }: { items: MockKycChecklistItem[] }) {
             {!isCollapsed && (
               <div className="px-4 pb-3 space-y-2">
                 {categoryItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 bg-gray-50/50 rounded-lg p-3">
+                  <div key={item.id} className="flex items-center gap-3 bg-section/50 rounded-lg p-3">
                     {statusIcon(item.status)}
                     <div className="flex-1 min-w-0">
                       <p className={cn(
                         'text-sm',
-                        item.isCompleted ? 'text-gray-400 line-through' : 'text-primary-900 font-medium'
+                        item.isCompleted ? 'text-primary-400 line-through' : 'text-primary-900 font-medium'
                       )}>
                         {item.label}
                         {item.isRequired && <span className="text-danger ml-1">*</span>}
@@ -200,7 +200,7 @@ function ChecklistTab({ items }: { items: MockKycChecklistItem[] }) {
                           {item.documentName}
                         </p>
                       ) : (
-                        <p className="text-xs text-gray-400 mt-0.5">Aucun document lié</p>
+                        <p className="text-xs text-primary-400 mt-0.5">Aucun document lié</p>
                       )}
                     </div>
                     {!item.isCompleted && (
@@ -210,7 +210,7 @@ function ChecklistTab({ items }: { items: MockKycChecklistItem[] }) {
                       </button>
                     )}
                     {item.completedAt && (
-                      <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">
+                      <span className="text-xs text-primary-400 hidden sm:block whitespace-nowrap">
                         {formatDate(item.completedAt)}
                       </span>
                     )}
@@ -237,10 +237,10 @@ function DocumentsTab({ documents }: { documents: MockKycDocument[] }) {
   return (
     <div className="space-y-5">
       {/* Upload zone */}
-      <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:border-accent hover:bg-accent/5 transition-all cursor-pointer group">
-        <Upload className="h-12 w-12 text-gray-300 group-hover:text-accent transition-colors mb-3" aria-hidden="true" />
-        <p className="text-gray-500 font-medium">Glissez-déposez vos fichiers ici</p>
-        <p className="text-gray-400 text-sm mt-1">ou cliquez pour sélectionner — PDF, JPG, PNG (max 10 Mo)</p>
+      <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center text-center hover:border-accent hover:bg-accent/5 transition-all cursor-pointer group">
+        <Upload className="h-12 w-12 text-primary-300 group-hover:text-accent transition-colors mb-3" aria-hidden="true" />
+        <p className="text-primary-500 font-medium">Glissez-déposez vos fichiers ici</p>
+        <p className="text-primary-400 text-sm mt-1">ou cliquez pour sélectionner — PDF, JPG, PNG (max 10 Mo)</p>
       </div>
 
       {/* Document list */}
@@ -251,37 +251,37 @@ function DocumentsTab({ documents }: { documents: MockKycDocument[] }) {
           description="Les documents uploadés apparaîtront ici."
         />
       ) : (
-        <div className="rounded-xl overflow-hidden border border-gray-100">
+        <div className="rounded-xl overflow-hidden border border-border">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider">Fichier</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden sm:table-cell">Type</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden md:table-cell">Taille</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden md:table-cell">Uploadé par</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider hidden lg:table-cell">Date</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider">Statut</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs uppercase tracking-wider">Actions</th>
+                <tr className="bg-section">
+                  <th className="text-left px-4 py-3 font-medium text-primary-500 text-xs uppercase tracking-wider">Fichier</th>
+                  <th className="text-left px-4 py-3 font-medium text-primary-500 text-xs uppercase tracking-wider hidden sm:table-cell">Type</th>
+                  <th className="text-left px-4 py-3 font-medium text-primary-500 text-xs uppercase tracking-wider hidden md:table-cell">Taille</th>
+                  <th className="text-left px-4 py-3 font-medium text-primary-500 text-xs uppercase tracking-wider hidden md:table-cell">Uploadé par</th>
+                  <th className="text-left px-4 py-3 font-medium text-primary-500 text-xs uppercase tracking-wider hidden lg:table-cell">Date</th>
+                  <th className="text-left px-4 py-3 font-medium text-primary-500 text-xs uppercase tracking-wider">Statut</th>
+                  <th className="text-right px-4 py-3 font-medium text-primary-500 text-xs uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {documents.map((doc) => {
                   const docStatus = DOC_STATUS_CONFIG[doc.status]
                   return (
-                    <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <tr key={doc.id} className="border-b border-border hover:bg-section transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <FileText className="h-4 w-4 text-gray-500" aria-hidden="true" />
+                          <div className="h-8 w-8 rounded-lg bg-section flex items-center justify-center flex-shrink-0">
+                            <FileText className="h-4 w-4 text-primary-500" aria-hidden="true" />
                           </div>
                           <span className="text-primary-900 font-medium truncate max-w-[200px]">{doc.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-500 hidden sm:table-cell">{doc.type}</td>
-                      <td className="px-4 py-3.5 text-gray-500 hidden md:table-cell">{doc.sizeMb.toFixed(1)} Mo</td>
-                      <td className="px-4 py-3.5 text-gray-500 hidden md:table-cell">{doc.uploadedBy}</td>
-                      <td className="px-4 py-3.5 text-gray-500 hidden lg:table-cell">{formatDate(doc.uploadedAt)}</td>
+                      <td className="px-4 py-3.5 text-primary-500 hidden sm:table-cell">{doc.type}</td>
+                      <td className="px-4 py-3.5 text-primary-500 hidden md:table-cell">{doc.sizeMb.toFixed(1)} Mo</td>
+                      <td className="px-4 py-3.5 text-primary-500 hidden md:table-cell">{doc.uploadedBy}</td>
+                      <td className="px-4 py-3.5 text-primary-500 hidden lg:table-cell">{formatDate(doc.uploadedAt)}</td>
                       <td className="px-4 py-3.5">
                         <span className={cn('text-xs font-medium px-3 py-1 rounded-full', docStatus.cls)}>
                           {docStatus.label}
@@ -289,14 +289,14 @@ function DocumentsTab({ documents }: { documents: MockKycDocument[] }) {
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-accent hover:bg-accent/5 transition-colors" aria-label="Voir">
+                          <button className="p-1.5 rounded-lg text-primary-400 hover:text-accent hover:bg-accent/5 transition-colors" aria-label="Voir">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button className="p-1.5 rounded-lg text-gray-400 hover:text-accent hover:bg-accent/5 transition-colors" aria-label="Télécharger">
+                          <button className="p-1.5 rounded-lg text-primary-400 hover:text-accent hover:bg-accent/5 transition-colors" aria-label="Télécharger">
                             <Download className="h-4 w-4" />
                           </button>
                           {doc.status === 'pending' && (
-                            <button className="p-1.5 rounded-lg text-gray-400 hover:text-danger hover:bg-danger/5 transition-colors" aria-label="Supprimer">
+                            <button className="p-1.5 rounded-lg text-primary-400 hover:text-danger hover:bg-danger/5 transition-colors" aria-label="Supprimer">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           )}
@@ -342,7 +342,7 @@ function AuditTab({ events }: { events: MockKycAuditEvent[] }) {
   return (
     <div className="relative pl-5">
       {/* Timeline line */}
-      <div className="absolute left-[19px] top-5 bottom-5 w-0.5 bg-gray-200" aria-hidden="true" />
+      <div className="absolute left-[19px] top-5 bottom-5 w-0.5 bg-surface" aria-hidden="true" />
 
       <div className="space-y-6">
         {sortedEvents.map((event) => {
@@ -363,12 +363,12 @@ function AuditTab({ events }: { events: MockKycAuditEvent[] }) {
               <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-medium text-primary-900">{event.action}</p>
-                  <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+                  <span className="text-xs text-primary-400 whitespace-nowrap flex-shrink-0">
                     {formatRelativeDate(event.timestamp)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500 mt-0.5">{event.description}</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-sm text-primary-500 mt-0.5">{event.description}</p>
+                <p className="text-xs text-primary-400 mt-1">
                   Par {event.actor} — {formatDate(event.timestamp)}
                 </p>
               </div>
@@ -398,7 +398,7 @@ function NotesTab({ notes }: { notes: MockKycNote[] }) {
           onChange={(e) => setNewNote(e.target.value)}
           placeholder="Écrivez votre commentaire..."
           rows={4}
-          className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+          className="w-full text-sm border border-border rounded-xl px-4 py-3 min-h-[120px] resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
         />
         <div className="flex justify-end mt-3">
           <button
@@ -407,7 +407,7 @@ function NotesTab({ notes }: { notes: MockKycNote[] }) {
               'inline-flex items-center gap-2 px-6 h-10 text-sm font-medium rounded-lg transition-colors',
               newNote.trim()
                 ? 'bg-accent text-white hover:bg-accent-hover shadow-sm'
-                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                : 'bg-section text-primary-300 cursor-not-allowed'
             )}
           >
             <Send className="h-4 w-4" aria-hidden="true" />
@@ -428,7 +428,7 @@ function NotesTab({ notes }: { notes: MockKycNote[] }) {
           {notes.map((note) => {
             const initials = note.author.split(' ').map((n) => n[0]).join('').toUpperCase()
             return (
-              <div key={note.id} className="bg-gray-50 rounded-xl p-4">
+              <div key={note.id} className="bg-section rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2.5">
                     <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
@@ -436,9 +436,9 @@ function NotesTab({ notes }: { notes: MockKycNote[] }) {
                     </div>
                     <span className="text-sm font-medium text-primary-900">{note.author}</span>
                   </div>
-                  <span className="text-xs text-gray-400">{formatRelativeDate(note.createdAt)}</span>
+                  <span className="text-xs text-primary-400">{formatRelativeDate(note.createdAt)}</span>
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed mt-2">{note.content}</p>
+                <p className="text-sm text-primary-700 leading-relaxed mt-2">{note.content}</p>
               </div>
             )
           })}
@@ -467,7 +467,7 @@ export default function KycDetailPage() {
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Retour aux dossiers KYC
         </Link>
-        <div className="bg-white rounded-card shadow-card border border-border p-12">
+        <div className="bg-card rounded-card shadow-card border border-border p-12">
           <EmptyState
             icon={ShieldCheck}
             title="Dossier introuvable"
@@ -500,7 +500,7 @@ export default function KycDetailPage() {
       </Link>
 
       {/* Header card */}
-      <div className="bg-white rounded-xl shadow-card border border-gray-100 p-5 md:p-6">
+      <div className="bg-card rounded-xl shadow-card border border-border p-5 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           {/* Left: Info */}
           <div className="flex items-start gap-4">
@@ -527,7 +527,7 @@ export default function KycDetailPage() {
                   {status.label}
                 </span>
               </div>
-              <p className="text-sm text-gray-400 mt-2.5 flex items-center gap-1.5">
+              <p className="text-sm text-primary-400 mt-2.5 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
                 Créé le {formatDate(kycCase.createdAt)} — Mis à jour {formatRelativeDate(kycCase.updatedAt)}
               </p>
@@ -553,15 +553,15 @@ export default function KycDetailPage() {
         </div>
 
         {/* Progress bar */}
-        <div className="mt-5 pt-5 border-t border-gray-100">
+        <div className="mt-5 pt-5 border-t border-border">
           <ProgressBar pct={currentPct} completedCount={isValidated ? totalItems : completedItems} totalCount={totalItems} />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-card border border-gray-100 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-card border border-border overflow-hidden">
         {/* Tab headers — pill style */}
-        <div className="flex gap-1 p-3 border-b border-gray-100 overflow-x-auto">
+        <div className="flex gap-1 p-3 border-b border-border overflow-x-auto">
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -573,7 +573,7 @@ export default function KycDetailPage() {
                   'flex items-center gap-2 px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-all',
                   isActive
                     ? 'bg-accent text-white shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    : 'text-primary-500 hover:text-primary-700 hover:bg-section'
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
@@ -581,7 +581,7 @@ export default function KycDetailPage() {
                 {tab.id === 'checklist' && (
                   <span className={cn(
                     'text-xs font-medium px-2 py-0.5 rounded-full',
-                    isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                    isActive ? 'bg-white/20 text-white' : 'bg-surface text-primary-600'
                   )}>
                     {completedItems}/{totalItems}
                   </span>
@@ -589,7 +589,7 @@ export default function KycDetailPage() {
                 {tab.id === 'documents' && (
                   <span className={cn(
                     'text-xs font-medium px-2 py-0.5 rounded-full',
-                    isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                    isActive ? 'bg-white/20 text-white' : 'bg-surface text-primary-600'
                   )}>
                     {kycCase.documents.length}
                   </span>

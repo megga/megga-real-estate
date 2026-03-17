@@ -59,7 +59,7 @@ function DealCardContent({ deal, isDragOverlay }: { deal: MockDeal; isDragOverla
   return (
     <div
       className={cn(
-        'bg-white rounded-card border border-border p-3.5 cursor-grab active:cursor-grabbing transition-all duration-200',
+        'bg-card rounded-card border border-border p-3.5 cursor-grab active:cursor-grabbing transition-all duration-200',
         isDragOverlay
           ? 'shadow-modal rotate-1 scale-105'
           : 'shadow-card hover:shadow-card-hover'
@@ -86,7 +86,7 @@ function DealCardContent({ deal, isDragOverlay }: { deal: MockDeal; isDragOverla
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground">{formatRelativeDate(deal.updated_at)}</span>
           <div
-            className={cn('h-5 w-5 rounded-full flex items-center justify-center ring-2 ring-white', deal.agent_avatar_color)}
+            className={cn('h-5 w-5 rounded-full flex items-center justify-center ring-2 ring-card', deal.agent_avatar_color)}
             title={deal.agent}
           >
             <span className="text-[7px] font-bold text-white">{agentInitials}</span>
@@ -149,7 +149,7 @@ function KanbanColumn({
   return (
     <div className="flex-shrink-0 w-[280px] flex flex-col max-h-full">
       {/* Column header */}
-      <div className="bg-white rounded-t-card px-4 py-3 border border-b-0 border-border">
+      <div className="bg-card rounded-t-card px-4 py-3 border border-b-0 border-border">
         <div className="flex items-center gap-2.5">
           <div className={cn('h-2.5 w-2.5 rounded-full flex-shrink-0', dotColor)} />
           <span className="text-sm font-semibold text-primary-900 flex-1">{label}</span>
@@ -173,7 +173,7 @@ function KanbanColumn({
         </SortableContext>
 
         {deals.length === 0 && (
-          <div className="flex items-center justify-center h-24 text-xs text-muted-foreground border-2 border-dashed border-accent/20 rounded-card bg-white/50">
+          <div className="flex items-center justify-center h-24 text-xs text-muted-foreground border-2 border-dashed border-accent/20 rounded-card bg-card/50">
             Déposez un deal ici
           </div>
         )}
@@ -303,7 +303,7 @@ export default function PipelinePage() {
         </div>
         <div className="flex items-center gap-3">
           {/* View toggle */}
-          <div className="flex items-center bg-white border border-border rounded-button p-0.5">
+          <div className="flex items-center bg-card border border-border rounded-button p-0.5">
             <button
               onClick={() => setView('kanban')}
               className={cn(
@@ -335,7 +335,7 @@ export default function PipelinePage() {
 
       {/* Summary bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white rounded-card border border-border p-4 flex items-center gap-3">
+        <div className="bg-card rounded-card border border-border p-4 flex items-center gap-3">
           <div className="h-10 w-10 rounded-button bg-accent/10 flex items-center justify-center flex-shrink-0">
             <Briefcase className="h-5 w-5 text-accent" aria-hidden="true" />
           </div>
@@ -344,7 +344,7 @@ export default function PipelinePage() {
             <p className="text-xs text-muted-foreground">Deals actifs</p>
           </div>
         </div>
-        <div className="bg-white rounded-card border border-border p-4 flex items-center gap-3">
+        <div className="bg-card rounded-card border border-border p-4 flex items-center gap-3">
           <div className="h-10 w-10 rounded-button bg-warning/10 flex items-center justify-center flex-shrink-0">
             <DollarSign className="h-5 w-5 text-warning" aria-hidden="true" />
           </div>
@@ -353,7 +353,7 @@ export default function PipelinePage() {
             <p className="text-xs text-muted-foreground">Valeur totale</p>
           </div>
         </div>
-        <div className="bg-white rounded-card border border-border p-4 flex items-center gap-3">
+        <div className="bg-card rounded-card border border-border p-4 flex items-center gap-3">
           <div className="h-10 w-10 rounded-button bg-success/10 flex items-center justify-center flex-shrink-0">
             <Trophy className="h-5 w-5 text-success" aria-hidden="true" />
           </div>
@@ -374,7 +374,7 @@ export default function PipelinePage() {
             aria-label="Rechercher un contact ou un bien"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all duration-200"
+            className="w-full h-10 pl-9 pr-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all duration-200"
           />
         </div>
 
@@ -382,7 +382,7 @@ export default function PipelinePage() {
           value={agentFilter}
           onChange={(e) => setAgentFilter(e.target.value)}
           aria-label="Filtrer par agent"
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+          className="h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
         >
           <option value="">Tous les agents</option>
           {AGENTS.map((a) => (
@@ -394,7 +394,7 @@ export default function PipelinePage() {
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value)}
           aria-label="Filtrer par étape"
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+          className="h-10 px-3 text-sm bg-card border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
         >
           <option value="">Toutes les étapes</option>
           {PIPELINE_COLUMNS.map((col) => (
@@ -446,7 +446,7 @@ export default function PipelinePage() {
 
       {/* List View */}
       {view === 'list' && (
-        <div className="bg-white rounded-card shadow-card border border-border overflow-hidden">
+        <div className="bg-card rounded-card shadow-card border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
