@@ -2,6 +2,9 @@ import HeroSearch from '@/components/search/HeroSearch';
 import FeaturedCarousel from '@/components/home/FeaturedCarousel';
 import BentoCards from '@/components/home/BentoCards';
 import ExploreCities from '@/components/home/ExploreCities';
+import WhyMegga from '@/components/home/WhyMegga';
+import CtaAgent from '@/components/home/CtaAgent';
+import Testimonials from '@/components/home/Testimonials';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
@@ -44,23 +47,14 @@ export default function HomePage() {
       {/* Explorer par ville */}
       <ExploreCities />
 
-      {/* CTA for agents */}
-      <section className="py-12 md:py-16 bg-[var(--color-bg-section)]">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl md:text-3xl font-semibold text-gray-900">
-            Vous êtes agent immobilier ?
-          </h2>
-          <p className="text-gray-500 mt-2 max-w-xl mx-auto">
-            Gérez vos biens, contacts et transactions avec notre plateforme tout-en-un. CRM intégré, pipeline KYC et portail vendeur inclus.
-          </p>
-          <a
-            href="/register"
-            className="inline-flex items-center mt-6 px-8 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-full transition-colors text-sm"
-          >
-            Créer mon compte agent
-          </a>
-        </div>
-      </section>
+      {/* Pourquoi MEGGA */}
+      <WhyMegga />
+
+      {/* CTA Agent */}
+      <CtaAgent />
+
+      {/* Témoignages */}
+      <Testimonials />
 
       <Footer />
     </div>
