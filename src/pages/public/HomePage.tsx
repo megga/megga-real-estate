@@ -3,8 +3,6 @@ import FeaturedCarousel from '@/components/home/FeaturedCarousel';
 import BentoCards from '@/components/home/BentoCards';
 import ScrollExpandExplorer from '@/components/home/ScrollExpandExplorer';
 import WhyMegga from '@/components/home/WhyMegga';
-import CtaAgent from '@/components/home/CtaAgent';
-import Testimonials from '@/components/home/Testimonials';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
@@ -49,12 +47,6 @@ export default function HomePage() {
 
       {/* Feature carousel — Tout ce dont vous avez besoin */}
       <WhyMegga />
-
-      {/* CTA Agent */}
-      <CtaAgent />
-
-      {/* Témoignages */}
-      <Testimonials />
 
       <Footer />
     </div>
