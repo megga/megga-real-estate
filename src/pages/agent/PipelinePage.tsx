@@ -19,12 +19,13 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   Plus, Kanban, List, Search, GripVertical,
-  ChevronRight,
+  ChevronRight, Briefcase,
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { MOCK_DEALS, type MockDeal } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 import { toast } from '@/hooks/useToast'
+import EmptyState from '@/components/ui/empty-state'
 
 // Pipeline columns config — subset of stages for Kanban
 const PIPELINE_COLUMNS: { stage: MockDeal['stage']; color: string; headerBg: string }[] = [
@@ -415,8 +416,16 @@ export default function PipelinePage() {
               <tbody className="divide-y divide-border">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center">
-                      <p className="text-sm text-muted-foreground">Aucun deal trouvé</p>
+                    <td colSpan={7} className="px-4 py-12">
+                      <EmptyState
+                        icon={Briefcase}
+                        title="Aucun deal trouvé"
+                        description="Essayez de modifier vos filtres ou créez un nouveau deal."
+                        action={{
+                          label: 'Effacer les filtres',
+                          onClick: () => { setSearch(''); setAgentFilter(''); setStageFilter('') },
+                        }}
+                      />
                     </td>
                   </tr>
                 ) : (

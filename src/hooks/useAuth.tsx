@@ -14,11 +14,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Dev mode: bypass auth when no Supabase is configured
+const isDevBypass = import.meta.env.DEV && !import.meta.env.VITE_SUPABASE_URL
+
+const DEV_USER = {
+  id: 'dev-user-001',
+  email: 'gregory@megga.ch',
+  user_metadata: { full_name: 'Gregory Lyonnet' },
+  app_metadata: {},
+  aud: 'authenticated',
+  created_at: '2026-01-01T00:00:00Z',
+} as unknown as User
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (isDevBypass) {
+      setSession({ user: DEV_USER } as unknown as Session)
+      setLoading(false)
+      return
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
