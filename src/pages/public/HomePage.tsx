@@ -1,10 +1,8 @@
 import HeroSearch from '@/components/search/HeroSearch'
 import FeaturedCarousel from '@/components/home/FeaturedCarousel'
 import BentoCards from '@/components/home/BentoCards'
-import ExploreCities from '@/components/home/ExploreCities'
+import ScrollExpandExplorer from '@/components/home/ScrollExpandExplorer'
 import WhyMegga from '@/components/home/WhyMegga'
-import CtaAgent from '@/components/home/CtaAgent'
-import Testimonials from '@/components/home/Testimonials'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
@@ -34,10 +32,15 @@ export default function HomePage() {
 
       <FeaturedCarousel />
       <BentoCards />
-      <ExploreCities />
+
+      {/* Explorer par ville — scroll expand immersif */}
+      <div className="mt-8 md:mt-16">
+        <ScrollExpandExplorer />
+      </div>
+
+      {/* Feature carousel — Tout ce dont vous avez besoin */}
       <WhyMegga />
-      <CtaAgent />
-      <Testimonials />
+
       <Footer />
     </div>
   )
