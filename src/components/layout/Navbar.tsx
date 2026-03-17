@@ -76,7 +76,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
           </button>
           <a
             href="/publier"
-            className="px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-full shadow-sm transition-all"
+            className="px-5 py-2.5 text-sm font-medium text-white bg-[#2563EB] hover:opacity-90 rounded-full shadow-sm transition-all"
           >
             Publier une annonce
           </a>
@@ -131,7 +131,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
           <div className="mt-3 flex flex-col gap-2">
             <a
               href="/publier"
-              className="text-center px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-full shadow-sm"
+              className="text-center px-5 py-2.5 text-sm font-medium text-white bg-[#2563EB] hover:opacity-90 rounded-full shadow-sm"
             >
               Publier une annonce
             </a>

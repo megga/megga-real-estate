@@ -16,7 +16,7 @@ const SUGGESTIONS: Record<ContextTab, Record<ModeTab, { text: string; sparkle?: 
   acheter: {
     libre: [
       { text: "3 pièces à Champel, max 800K", sparkle: true },
-      { text: "Maison avec jardin, 20min de Genève", sparkle: true },
+      { text: "Maison jardin, 20min Genève", sparkle: true },
       { text: "Attique vue lac", sparkle: true },
     ],
     filtres: [
@@ -235,7 +235,10 @@ export default function HeroSearch() {
       </div>
 
       {/* Context tabs — CRITIQUE #2: stronger glassmorphism */}
-      <div className="mt-10 inline-flex gap-0.5 p-1.5 rounded-full bg-black/30 backdrop-blur-xl border border-white/15">
+      <div
+        className="mt-10 inline-flex gap-0.5 rounded-full"
+        style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.15)', padding: '6px' }}
+      >
         {contextTabs.map((tab) => (
           <button
             key={tab.value}
@@ -290,11 +293,11 @@ export default function HeroSearch() {
 
       {/* Suggestions — MAJEUR #4: more padding/contrast, sparkle only on libre */}
       {activeSuggestions.length > 0 && (
-        <div className="mt-5 flex flex-wrap justify-center gap-3">
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
           {activeSuggestions.map((suggestion) => (
             <button
               key={suggestion.text}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/60 hover:bg-white/15 hover:border-white/25 hover:text-white/85 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/15 text-white/60 hover:bg-white/15 hover:border-white/25 hover:text-white/85 transition-all cursor-pointer"
             >
               {suggestion.sparkle && (
                 <Sparkles className="w-3 h-3 opacity-60" />
