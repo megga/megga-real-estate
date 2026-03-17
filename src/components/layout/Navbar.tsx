@@ -97,7 +97,17 @@ export default function Navbar() {
 
         {/* Actions desktop */}
         <div className="hidden md:flex items-center gap-3">
-          <Button size="default" className="rounded-full gap-2">
+          <Button
+            size="default"
+            className="rounded-full gap-2"
+            onClick={() => {
+              if (user) {
+                navigate('/dashboard/listings/new')
+              } else {
+                navigate('/login', { state: { from: { pathname: '/dashboard/listings/new' } } })
+              }
+            }}
+          >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Publier une annonce
           </Button>
@@ -208,7 +218,18 @@ export default function Navbar() {
 
             {/* Mobile auth section */}
             <div className="flex flex-col gap-2 pt-3 border-t border-border mt-2">
-              <Button size="default" className="rounded-full gap-2 w-full">
+              <Button
+                size="default"
+                className="rounded-full gap-2 w-full"
+                onClick={() => {
+                  setMobileOpen(false)
+                  if (user) {
+                    navigate('/dashboard/listings/new')
+                  } else {
+                    navigate('/login', { state: { from: { pathname: '/dashboard/listings/new' } } })
+                  }
+                }}
+              >
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 Publier une annonce
               </Button>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Mail, Loader2, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
@@ -29,15 +29,17 @@ function GoogleIcon({ className }: { className?: string }) {
 
 export default function LoginPage() {
   const { user, loading: authLoading, signInWithEmail, signInWithGoogle } = useAuth()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Redirect if already logged in
+  // Redirect if already logged in — to the page they came from, or home
+  const redirectTo = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
   if (!authLoading && user) {
-    return <Navigate to="/" replace />
+    return <Navigate to={redirectTo} replace />
   }
 
   async function handleMagicLink(e: React.FormEvent) {

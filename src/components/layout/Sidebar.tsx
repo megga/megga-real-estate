@@ -118,11 +118,17 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
         {/* Profile */}
         <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-md bg-section">
-          <UserAvatar name="Gregory Lyonnet" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-primary-900 truncate">Gregory Lyonnet</p>
-            <p className="text-xs text-muted-foreground truncate">Agent principal</p>
-          </div>
+          <Link
+            to="/dashboard/settings"
+            onClick={onClose}
+            className="flex items-center gap-3 min-w-0 flex-1 group"
+          >
+            <UserAvatar name="Gregory Lyonnet" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-primary-900 truncate group-hover:text-accent transition-colors">Gregory Lyonnet</p>
+              <p className="text-xs text-muted-foreground truncate">Agent principal</p>
+            </div>
+          </Link>
           <button
             onClick={async () => { await signOut(); }}
             className="p-1.5 rounded-md hover:bg-white text-primary-400 hover:text-danger transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
