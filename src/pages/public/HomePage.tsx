@@ -44,11 +44,11 @@ export default function HomePage() {
       {/* Bento cards — Acheter / Louer / Estimer */}
       <BentoCards />
 
+      {/* Feature carousel — Tout ce dont vous avez besoin */}
+      <WhyMegga />
+
       {/* Explorer par ville */}
       <ExploreCities />
-
-      {/* Pourquoi MEGGA */}
-      <WhyMegga />
 
       {/* CTA Agent */}
       <CtaAgent />
