@@ -19,6 +19,7 @@ import SettingsPage from '@/pages/agent/SettingsPage'
 import ListingsPage from '@/pages/agent/ListingsPage'
 import ListingFormPage from '@/pages/agent/ListingFormPage'
 import KycPage from '@/pages/agent/KycPage'
+import KycDetailPage from '@/pages/agent/KycDetailPage'
 import MessagesPage from '@/pages/agent/MessagesPage'
 import CalendarPage from '@/pages/agent/CalendarPage'
 
@@ -63,6 +64,7 @@ export default function App() {
               <Route path="listings" element={<ListingsPage />} />
               <Route path="listings/new" element={<ListingFormPage />} />
               <Route path="kyc" element={<KycPage />} />
+              <Route path="kyc/:id" element={<KycDetailPage />} />
               <Route path="messages" element={<MessagesPage />} />
               <Route path="calendar" element={<CalendarPage />} />
               <Route path="settings" element={<SettingsPage />} />

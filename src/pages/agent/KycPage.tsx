@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Search, ShieldCheck, AlertTriangle, Clock, CheckCircle2,
   ChevronRight, FileText,
@@ -65,6 +66,7 @@ const MOCK_KYC_CASES: MockKycCase[] = [
 ]
 
 export default function KycPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
 
@@ -144,6 +146,10 @@ export default function KycPage() {
             return (
               <div
                 key={kycCase.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/dashboard/kyc/${kycCase.id}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/dashboard/kyc/${kycCase.id}`) } }}
                 className="bg-white rounded-card shadow-card border border-border p-4 hover:shadow-card-hover transition-shadow duration-200 cursor-pointer group"
               >
                 <div className="flex items-center gap-4">

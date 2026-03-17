@@ -1233,3 +1233,283 @@ export const MOCK_DEALS: MockDeal[] = [
     updated_at: '2026-03-10T10:00:00Z',
   },
 ]
+
+// ─── KYC Detail Mock Data ─────────────────────────────────────────────────────
+
+export type KycType = 'buyer_pp' | 'buyer_pm' | 'seller_pp' | 'seller_pm'
+export type KycStatus = 'pending' | 'in_progress' | 'review' | 'validated' | 'rejected'
+export type KycRiskLevel = 'low' | 'medium' | 'high' | 'unassessed'
+
+export interface MockKycCase {
+  id: string
+  contactName: string
+  type: KycType
+  typeLabel: string
+  status: KycStatus
+  riskLevel: KycRiskLevel
+  completionPct: number
+  updatedAt: string
+  createdAt: string
+  documentsCount: number
+  documentsTotal: number
+  checklistItems: MockKycChecklistItem[]
+  documents: MockKycDocument[]
+  auditEvents: MockKycAuditEvent[]
+  notes: MockKycNote[]
+}
+
+export interface MockKycChecklistItem {
+  id: string
+  label: string
+  category: string
+  isRequired: boolean
+  isCompleted: boolean
+  status: 'validated' | 'pending' | 'missing'
+  documentName: string | null
+  completedAt: string | null
+  completedBy: string | null
+}
+
+export interface MockKycDocument {
+  id: string
+  name: string
+  type: string
+  sizeMb: number
+  status: 'validated' | 'pending' | 'rejected'
+  uploadedAt: string
+  uploadedBy: string
+}
+
+export interface MockKycAuditEvent {
+  id: string
+  action: string
+  description: string
+  actor: string
+  timestamp: string
+  type: 'create' | 'upload' | 'checklist' | 'comment' | 'status' | 'validate'
+}
+
+export interface MockKycNote {
+  id: string
+  content: string
+  author: string
+  createdAt: string
+}
+
+const BUYER_PP_CHECKLIST: MockKycChecklistItem[] = [
+  { id: 'ck1', label: 'Passeport ou carte d\'identité', category: 'Identité', isRequired: true, isCompleted: true, status: 'validated', documentName: 'passeport_berset.pdf', completedAt: '2026-03-10T09:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck2', label: 'Attestation de domicile', category: 'Domicile', isRequired: true, isCompleted: true, status: 'validated', documentName: 'attestation_domicile.pdf', completedAt: '2026-03-11T14:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck3', label: '3 dernières fiches de salaire', category: 'Revenus', isRequired: true, isCompleted: true, status: 'validated', documentName: 'fiches_salaire_2026.pdf', completedAt: '2026-03-12T10:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck4', label: 'Dernier avis d\'imposition', category: 'Revenus', isRequired: true, isCompleted: true, status: 'validated', documentName: 'avis_imposition_2025.pdf', completedAt: '2026-03-12T10:30:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck5', label: 'Formulaire A — Origine des fonds', category: 'Origine des fonds', isRequired: true, isCompleted: false, status: 'pending', documentName: null, completedAt: null, completedBy: null },
+  { id: 'ck6', label: 'Déclaration PEP', category: 'Conformité', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+  { id: 'ck7', label: 'Vérification sanctions (SECO/UE/OFAC)', category: 'Conformité', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+]
+
+const BUYER_PM_CHECKLIST: MockKycChecklistItem[] = [
+  { id: 'ck10', label: 'Extrait du Registre du Commerce', category: 'Société', isRequired: true, isCompleted: true, status: 'validated', documentName: 'extrait_rc_thevenaz.pdf', completedAt: '2026-03-08T09:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck11', label: 'Statuts de la société', category: 'Société', isRequired: true, isCompleted: true, status: 'validated', documentName: 'statuts_sarl.pdf', completedAt: '2026-03-08T10:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck12', label: 'Identité des représentants légaux', category: 'Représentants', isRequired: true, isCompleted: true, status: 'validated', documentName: 'id_representants.pdf', completedAt: '2026-03-09T11:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck13', label: 'Actionnariat et ayants droit économiques', category: 'Actionnariat', isRequired: true, isCompleted: true, status: 'validated', documentName: 'actionnariat.pdf', completedAt: '2026-03-10T14:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck14', label: 'Bilan et comptes annuels', category: 'Finances', isRequired: true, isCompleted: true, status: 'validated', documentName: 'bilan_2025.pdf', completedAt: '2026-03-10T15:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck15', label: 'Formulaire A — Origine des fonds', category: 'Origine des fonds', isRequired: true, isCompleted: true, status: 'validated', documentName: 'formulaire_a_pm.pdf', completedAt: '2026-03-11T09:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck16', label: 'Déclaration PEP des dirigeants', category: 'Conformité', isRequired: true, isCompleted: true, status: 'validated', documentName: 'pep_dirigeants.pdf', completedAt: '2026-03-12T10:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck17', label: 'Vérification sanctions (SECO/UE/OFAC)', category: 'Conformité', isRequired: true, isCompleted: true, status: 'validated', documentName: 'sanctions_check.pdf', completedAt: '2026-03-13T08:00:00Z', completedBy: 'Sophie M.' },
+  { id: 'ck18', label: 'Procuration / pouvoir de signature', category: 'Représentants', isRequired: false, isCompleted: false, status: 'pending', documentName: null, completedAt: null, completedBy: null },
+]
+
+const SELLER_PP_CHECKLIST: MockKycChecklistItem[] = [
+  { id: 'ck20', label: 'Passeport ou carte d\'identité', category: 'Identité', isRequired: true, isCompleted: false, status: 'pending', documentName: null, completedAt: null, completedBy: null },
+  { id: 'ck21', label: 'Attestation de domicile', category: 'Domicile', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+  { id: 'ck22', label: 'Titre de propriété', category: 'Propriété', isRequired: true, isCompleted: true, status: 'validated', documentName: 'titre_propriete.pdf', completedAt: '2026-03-14T09:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck23', label: 'Extrait du Registre Foncier', category: 'Propriété', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+]
+
+const SELLER_PP_VALIDATED_CHECKLIST: MockKycChecklistItem[] = [
+  { id: 'ck30', label: 'Passeport ou carte d\'identité', category: 'Identité', isRequired: true, isCompleted: true, status: 'validated', documentName: 'id_huber.pdf', completedAt: '2026-03-02T09:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck31', label: 'Attestation de domicile', category: 'Domicile', isRequired: true, isCompleted: true, status: 'validated', documentName: 'domicile_huber.pdf', completedAt: '2026-03-02T10:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck32', label: 'Titre de propriété', category: 'Propriété', isRequired: true, isCompleted: true, status: 'validated', documentName: 'titre_huber.pdf', completedAt: '2026-03-03T14:00:00Z', completedBy: 'Gregory L.' },
+  { id: 'ck33', label: 'Extrait du Registre Foncier', category: 'Propriété', isRequired: true, isCompleted: true, status: 'validated', documentName: 'rf_huber.pdf', completedAt: '2026-03-04T11:00:00Z', completedBy: 'Gregory L.' },
+]
+
+const SELLER_PP_HIGH_RISK_CHECKLIST: MockKycChecklistItem[] = [
+  { id: 'ck40', label: 'Passeport ou carte d\'identité', category: 'Identité', isRequired: true, isCompleted: true, status: 'validated', documentName: 'id_muller.pdf', completedAt: '2026-03-10T09:00:00Z', completedBy: 'Sophie M.' },
+  { id: 'ck41', label: 'Attestation de domicile', category: 'Domicile', isRequired: true, isCompleted: true, status: 'validated', documentName: 'domicile_muller.pdf', completedAt: '2026-03-10T10:00:00Z', completedBy: 'Sophie M.' },
+  { id: 'ck42', label: 'Titre de propriété', category: 'Propriété', isRequired: true, isCompleted: true, status: 'validated', documentName: 'titre_muller.pdf', completedAt: '2026-03-11T14:00:00Z', completedBy: 'Sophie M.' },
+  { id: 'ck43', label: 'Extrait du Registre Foncier', category: 'Propriété', isRequired: true, isCompleted: false, status: 'pending', documentName: null, completedAt: null, completedBy: null },
+  { id: 'ck44', label: 'Justificatif d\'origine du bien', category: 'Conformité', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+  { id: 'ck45', label: 'Déclaration PEP', category: 'Conformité', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+  { id: 'ck46', label: 'Vérification sanctions (SECO/UE/OFAC)', category: 'Conformité', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+]
+
+export const MOCK_KYC_CASES: MockKycCase[] = [
+  {
+    id: '1',
+    contactName: 'Laurent Berset',
+    type: 'buyer_pp',
+    typeLabel: 'Acheteur PP',
+    status: 'in_progress',
+    riskLevel: 'low',
+    completionPct: 57,
+    updatedAt: '2026-03-16T10:00:00Z',
+    createdAt: '2026-03-09T08:00:00Z',
+    documentsCount: 4,
+    documentsTotal: 7,
+    checklistItems: BUYER_PP_CHECKLIST,
+    documents: [
+      { id: 'doc1', name: 'passeport_berset.pdf', type: 'Identité', sizeMb: 1.2, status: 'validated', uploadedAt: '2026-03-10T09:00:00Z', uploadedBy: 'Gregory L.' },
+      { id: 'doc2', name: 'attestation_domicile.pdf', type: 'Domicile', sizeMb: 0.8, status: 'validated', uploadedAt: '2026-03-11T14:00:00Z', uploadedBy: 'Gregory L.' },
+      { id: 'doc3', name: 'fiches_salaire_2026.pdf', type: 'Revenus', sizeMb: 2.1, status: 'validated', uploadedAt: '2026-03-12T10:00:00Z', uploadedBy: 'Laurent Berset' },
+      { id: 'doc4', name: 'avis_imposition_2025.pdf', type: 'Revenus', sizeMb: 1.5, status: 'validated', uploadedAt: '2026-03-12T10:30:00Z', uploadedBy: 'Laurent Berset' },
+    ],
+    auditEvents: [
+      { id: 'ae1', action: 'Dossier créé', description: 'Dossier KYC créé pour Laurent Berset (Acheteur PP)', actor: 'Gregory L.', timestamp: '2026-03-09T08:00:00Z', type: 'create' },
+      { id: 'ae2', action: 'Document uploadé', description: 'passeport_berset.pdf ajouté au dossier', actor: 'Gregory L.', timestamp: '2026-03-10T09:00:00Z', type: 'upload' },
+      { id: 'ae3', action: 'Item validé', description: 'Passeport ou carte d\'identité marqué comme validé', actor: 'Gregory L.', timestamp: '2026-03-10T09:05:00Z', type: 'checklist' },
+      { id: 'ae4', action: 'Document uploadé', description: 'attestation_domicile.pdf ajouté au dossier', actor: 'Gregory L.', timestamp: '2026-03-11T14:00:00Z', type: 'upload' },
+      { id: 'ae5', action: 'Item validé', description: 'Attestation de domicile marquée comme validée', actor: 'Gregory L.', timestamp: '2026-03-11T14:05:00Z', type: 'checklist' },
+      { id: 'ae6', action: 'Document uploadé', description: 'fiches_salaire_2026.pdf ajouté par le client', actor: 'Laurent Berset', timestamp: '2026-03-12T10:00:00Z', type: 'upload' },
+      { id: 'ae7', action: 'Document uploadé', description: 'avis_imposition_2025.pdf ajouté par le client', actor: 'Laurent Berset', timestamp: '2026-03-12T10:30:00Z', type: 'upload' },
+      { id: 'ae8', action: 'Items validés', description: 'Fiches de salaire et avis d\'imposition validés', actor: 'Gregory L.', timestamp: '2026-03-12T11:00:00Z', type: 'checklist' },
+      { id: 'ae9', action: 'Commentaire ajouté', description: 'En attente du Formulaire A — relance envoyée par e-mail', actor: 'Gregory L.', timestamp: '2026-03-14T16:00:00Z', type: 'comment' },
+      { id: 'ae10', action: 'Statut changé', description: 'Statut passé de "En attente" à "En cours"', actor: 'Système', timestamp: '2026-03-10T09:05:00Z', type: 'status' },
+    ],
+    notes: [
+      { id: 'n1', content: 'Client très réactif, documents fournis rapidement. En attente du Formulaire A — relance envoyée le 14.03.', author: 'Gregory L.', createdAt: '2026-03-14T16:00:00Z' },
+      { id: 'n2', content: 'PEP check et sanctions à effectuer une fois le Formulaire A reçu.', author: 'Gregory L.', createdAt: '2026-03-12T11:30:00Z' },
+    ],
+  },
+  {
+    id: '2',
+    contactName: 'Claudine Thévenaz',
+    type: 'buyer_pm',
+    typeLabel: 'Acheteur PM',
+    status: 'review',
+    riskLevel: 'medium',
+    completionPct: 89,
+    updatedAt: '2026-03-15T14:00:00Z',
+    createdAt: '2026-03-07T10:00:00Z',
+    documentsCount: 8,
+    documentsTotal: 9,
+    checklistItems: BUYER_PM_CHECKLIST,
+    documents: [
+      { id: 'doc10', name: 'extrait_rc_thevenaz.pdf', type: 'Société', sizeMb: 0.5, status: 'validated', uploadedAt: '2026-03-08T09:00:00Z', uploadedBy: 'Gregory L.' },
+      { id: 'doc11', name: 'statuts_sarl.pdf', type: 'Société', sizeMb: 3.2, status: 'validated', uploadedAt: '2026-03-08T10:00:00Z', uploadedBy: 'Claudine Thévenaz' },
+      { id: 'doc12', name: 'id_representants.pdf', type: 'Représentants', sizeMb: 1.8, status: 'validated', uploadedAt: '2026-03-09T11:00:00Z', uploadedBy: 'Gregory L.' },
+      { id: 'doc13', name: 'actionnariat.pdf', type: 'Actionnariat', sizeMb: 0.9, status: 'validated', uploadedAt: '2026-03-10T14:00:00Z', uploadedBy: 'Claudine Thévenaz' },
+      { id: 'doc14', name: 'bilan_2025.pdf', type: 'Finances', sizeMb: 4.5, status: 'validated', uploadedAt: '2026-03-10T15:00:00Z', uploadedBy: 'Claudine Thévenaz' },
+      { id: 'doc15', name: 'formulaire_a_pm.pdf', type: 'Origine des fonds', sizeMb: 1.1, status: 'validated', uploadedAt: '2026-03-11T09:00:00Z', uploadedBy: 'Gregory L.' },
+      { id: 'doc16', name: 'pep_dirigeants.pdf', type: 'Conformité', sizeMb: 0.6, status: 'validated', uploadedAt: '2026-03-12T10:00:00Z', uploadedBy: 'Sophie M.' },
+      { id: 'doc17', name: 'sanctions_check.pdf', type: 'Conformité', sizeMb: 0.4, status: 'validated', uploadedAt: '2026-03-13T08:00:00Z', uploadedBy: 'Sophie M.' },
+    ],
+    auditEvents: [
+      { id: 'ae20', action: 'Dossier créé', description: 'Dossier KYC créé pour Thévenaz Sàrl (Acheteur PM)', actor: 'Gregory L.', timestamp: '2026-03-07T10:00:00Z', type: 'create' },
+      { id: 'ae21', action: 'Document uploadé', description: 'extrait_rc_thevenaz.pdf ajouté', actor: 'Gregory L.', timestamp: '2026-03-08T09:00:00Z', type: 'upload' },
+      { id: 'ae22', action: 'Document uploadé', description: 'statuts_sarl.pdf ajouté par le client', actor: 'Claudine Thévenaz', timestamp: '2026-03-08T10:00:00Z', type: 'upload' },
+      { id: 'ae23', action: 'Items validés', description: 'Extrait RC et Statuts marqués validés', actor: 'Gregory L.', timestamp: '2026-03-08T11:00:00Z', type: 'checklist' },
+      { id: 'ae24', action: 'Statut changé', description: 'Statut passé à "En cours"', actor: 'Système', timestamp: '2026-03-08T11:00:00Z', type: 'status' },
+      { id: 'ae25', action: 'Documents uploadés', description: '6 documents supplémentaires ajoutés', actor: 'Plusieurs', timestamp: '2026-03-13T08:00:00Z', type: 'upload' },
+      { id: 'ae26', action: 'Commentaire ajouté', description: 'Procuration optionnelle en attente — pas bloquant pour la validation', actor: 'Gregory L.', timestamp: '2026-03-14T09:00:00Z', type: 'comment' },
+      { id: 'ae27', action: 'Statut changé', description: 'Statut passé à "En revue"', actor: 'Gregory L.', timestamp: '2026-03-15T14:00:00Z', type: 'status' },
+    ],
+    notes: [
+      { id: 'n10', content: 'Dossier quasi complet. Procuration optionnelle en attente mais ne bloque pas la validation. Risque moyen dû à la structure actionnariale complexe.', author: 'Gregory L.', createdAt: '2026-03-15T14:00:00Z' },
+    ],
+  },
+  {
+    id: '3',
+    contactName: 'Pierre Lefèvre',
+    type: 'buyer_pp',
+    typeLabel: 'Acheteur PP',
+    status: 'pending',
+    riskLevel: 'unassessed',
+    completionPct: 20,
+    updatedAt: '2026-03-14T09:00:00Z',
+    createdAt: '2026-03-13T15:00:00Z',
+    documentsCount: 1,
+    documentsTotal: 7,
+    checklistItems: [
+      { id: 'ck50', label: 'Passeport ou carte d\'identité', category: 'Identité', isRequired: true, isCompleted: true, status: 'validated', documentName: 'id_lefevre.pdf', completedAt: '2026-03-14T09:00:00Z', completedBy: 'Gregory L.' },
+      { id: 'ck51', label: 'Attestation de domicile', category: 'Domicile', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+      { id: 'ck52', label: '3 dernières fiches de salaire', category: 'Revenus', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+      { id: 'ck53', label: 'Dernier avis d\'imposition', category: 'Revenus', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+      { id: 'ck54', label: 'Formulaire A — Origine des fonds', category: 'Origine des fonds', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+      { id: 'ck55', label: 'Déclaration PEP', category: 'Conformité', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+      { id: 'ck56', label: 'Vérification sanctions (SECO/UE/OFAC)', category: 'Conformité', isRequired: true, isCompleted: false, status: 'missing', documentName: null, completedAt: null, completedBy: null },
+    ],
+    documents: [
+      { id: 'doc30', name: 'id_lefevre.pdf', type: 'Identité', sizeMb: 1.0, status: 'validated', uploadedAt: '2026-03-14T09:00:00Z', uploadedBy: 'Pierre Lefèvre' },
+    ],
+    auditEvents: [
+      { id: 'ae30', action: 'Dossier créé', description: 'Dossier KYC créé pour Pierre Lefèvre (Acheteur PP)', actor: 'Gregory L.', timestamp: '2026-03-13T15:00:00Z', type: 'create' },
+      { id: 'ae31', action: 'Document uploadé', description: 'id_lefevre.pdf ajouté par le client', actor: 'Pierre Lefèvre', timestamp: '2026-03-14T09:00:00Z', type: 'upload' },
+      { id: 'ae32', action: 'Item validé', description: 'Pièce d\'identité validée', actor: 'Gregory L.', timestamp: '2026-03-14T09:10:00Z', type: 'checklist' },
+    ],
+    notes: [],
+  },
+  {
+    id: '4',
+    contactName: 'Andreas Huber',
+    type: 'seller_pp',
+    typeLabel: 'Vendeur PP',
+    status: 'validated',
+    riskLevel: 'low',
+    completionPct: 100,
+    updatedAt: '2026-03-10T16:00:00Z',
+    createdAt: '2026-03-01T09:00:00Z',
+    documentsCount: 4,
+    documentsTotal: 4,
+    checklistItems: SELLER_PP_VALIDATED_CHECKLIST,
+    documents: [
+      { id: 'doc40', name: 'id_huber.pdf', type: 'Identité', sizeMb: 1.3, status: 'validated', uploadedAt: '2026-03-02T09:00:00Z', uploadedBy: 'Andreas Huber' },
+      { id: 'doc41', name: 'domicile_huber.pdf', type: 'Domicile', sizeMb: 0.7, status: 'validated', uploadedAt: '2026-03-02T10:00:00Z', uploadedBy: 'Andreas Huber' },
+      { id: 'doc42', name: 'titre_huber.pdf', type: 'Propriété', sizeMb: 2.4, status: 'validated', uploadedAt: '2026-03-03T14:00:00Z', uploadedBy: 'Gregory L.' },
+      { id: 'doc43', name: 'rf_huber.pdf', type: 'Propriété', sizeMb: 1.1, status: 'validated', uploadedAt: '2026-03-04T11:00:00Z', uploadedBy: 'Gregory L.' },
+    ],
+    auditEvents: [
+      { id: 'ae40', action: 'Dossier créé', description: 'Dossier KYC créé pour Andreas Huber (Vendeur PP)', actor: 'Gregory L.', timestamp: '2026-03-01T09:00:00Z', type: 'create' },
+      { id: 'ae41', action: 'Documents uploadés', description: '4 documents ajoutés au dossier', actor: 'Plusieurs', timestamp: '2026-03-04T11:00:00Z', type: 'upload' },
+      { id: 'ae42', action: 'Checklist complétée', description: 'Tous les items obligatoires validés', actor: 'Gregory L.', timestamp: '2026-03-05T10:00:00Z', type: 'checklist' },
+      { id: 'ae43', action: 'Statut changé', description: 'Statut passé à "En revue"', actor: 'Gregory L.', timestamp: '2026-03-08T09:00:00Z', type: 'status' },
+      { id: 'ae44', action: 'Dossier validé', description: 'Dossier KYC validé par Gregory L.', actor: 'Gregory L.', timestamp: '2026-03-10T16:00:00Z', type: 'validate' },
+    ],
+    notes: [
+      { id: 'n20', content: 'Dossier complet et conforme. Client coopératif, aucun risque identifié.', author: 'Gregory L.', createdAt: '2026-03-10T16:00:00Z' },
+    ],
+  },
+  {
+    id: '5',
+    contactName: 'Sophie Müller',
+    type: 'seller_pp',
+    typeLabel: 'Vendeur PP',
+    status: 'in_progress',
+    riskLevel: 'high',
+    completionPct: 43,
+    updatedAt: '2026-03-13T11:00:00Z',
+    createdAt: '2026-03-08T14:00:00Z',
+    documentsCount: 3,
+    documentsTotal: 7,
+    checklistItems: SELLER_PP_HIGH_RISK_CHECKLIST,
+    documents: [
+      { id: 'doc50', name: 'id_muller.pdf', type: 'Identité', sizeMb: 1.1, status: 'validated', uploadedAt: '2026-03-10T09:00:00Z', uploadedBy: 'Sophie Müller' },
+      { id: 'doc51', name: 'domicile_muller.pdf', type: 'Domicile', sizeMb: 0.6, status: 'validated', uploadedAt: '2026-03-10T10:00:00Z', uploadedBy: 'Sophie Müller' },
+      { id: 'doc52', name: 'titre_muller.pdf', type: 'Propriété', sizeMb: 2.8, status: 'pending', uploadedAt: '2026-03-11T14:00:00Z', uploadedBy: 'Sophie M.' },
+    ],
+    auditEvents: [
+      { id: 'ae50', action: 'Dossier créé', description: 'Dossier KYC créé pour Sophie Müller (Vendeur PP)', actor: 'Sophie M.', timestamp: '2026-03-08T14:00:00Z', type: 'create' },
+      { id: 'ae51', action: 'Commentaire ajouté', description: 'Risque élevé — bien acquis récemment, origine à vérifier', actor: 'Sophie M.', timestamp: '2026-03-08T14:30:00Z', type: 'comment' },
+      { id: 'ae52', action: 'Statut changé', description: 'Niveau de risque passé à "Élevé"', actor: 'Sophie M.', timestamp: '2026-03-08T14:35:00Z', type: 'status' },
+      { id: 'ae53', action: 'Documents uploadés', description: '3 documents ajoutés', actor: 'Plusieurs', timestamp: '2026-03-11T14:00:00Z', type: 'upload' },
+      { id: 'ae54', action: 'Items validés', description: 'Identité et domicile validés', actor: 'Sophie M.', timestamp: '2026-03-11T15:00:00Z', type: 'checklist' },
+      { id: 'ae55', action: 'Commentaire ajouté', description: 'Titre de propriété en attente de validation — vérification en cours', actor: 'Sophie M.', timestamp: '2026-03-13T11:00:00Z', type: 'comment' },
+    ],
+    notes: [
+      { id: 'n30', content: 'Risque élevé : bien acquis il y a moins de 2 ans, revente rapide suspecte. Vérification approfondie de l\'origine du bien nécessaire.', author: 'Sophie M.', createdAt: '2026-03-08T14:30:00Z' },
+      { id: 'n31', content: 'Titre de propriété reçu — en attente de validation par le service compliance.', author: 'Sophie M.', createdAt: '2026-03-13T11:00:00Z' },
+    ],
+  },
+]
+
+export function getKycCaseById(id: string): MockKycCase | undefined {
+  return MOCK_KYC_CASES.find((c) => c.id === id)
+}
