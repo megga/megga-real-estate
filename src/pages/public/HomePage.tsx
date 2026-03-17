@@ -1,7 +1,7 @@
 import HeroSearch from '@/components/search/HeroSearch';
 import FeaturedCarousel from '@/components/home/FeaturedCarousel';
 import BentoCards from '@/components/home/BentoCards';
-import ExploreCities from '@/components/home/ExploreCities';
+import ScrollExpandExplorer from '@/components/home/ScrollExpandExplorer';
 import WhyMegga from '@/components/home/WhyMegga';
 import CtaAgent from '@/components/home/CtaAgent';
 import Testimonials from '@/components/home/Testimonials';
@@ -44,11 +44,11 @@ export default function HomePage() {
       {/* Bento cards — Acheter / Louer / Estimer */}
       <BentoCards />
 
+      {/* Explorer par ville — scroll expand immersif */}
+      <ScrollExpandExplorer />
+
       {/* Feature carousel — Tout ce dont vous avez besoin */}
       <WhyMegga />
-
-      {/* Explorer par ville */}
-      <ExploreCities />
 
       {/* CTA Agent */}
       <CtaAgent />
