@@ -18,6 +18,7 @@ import ListingFormPage from '@/pages/agent/ListingFormPage'
 import KycListPage from '@/pages/agent/KycListPage'
 import KycDetailPage from '@/pages/agent/KycDetailPage'
 import MessagesPage from '@/pages/agent/MessagesPage'
+import CalendarPage from '@/pages/agent/CalendarPage'
 import OnboardingBuyerPP from '@/pages/onboarding/OnboardingBuyerPP'
 import OnboardingBuyerPM from '@/pages/onboarding/OnboardingBuyerPM'
 import OnboardingSellerPP from '@/pages/onboarding/OnboardingSellerPP'
@@ -85,7 +86,7 @@ export default function App() {
               <Route path="kyc" element={<KycListPage />} />
               <Route path="kyc/:id" element={<KycDetailPage />} />
               <Route path="messages" element={<MessagesPage />} />
-              {/* Future routes: calendar, settings */}
+              <Route path="calendar" element={<CalendarPage />} />
             </Route>
           </Routes>
         </AuthProvider>
