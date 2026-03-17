@@ -70,7 +70,7 @@ export default function RegisterPage() {
         </Link>
 
         {/* Card */}
-        <div className="bg-white rounded-xl border border-border p-8">
+        <div className="bg-white rounded-card border border-border p-8">
           <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">
             Créer un compte
           </h1>
@@ -210,7 +210,7 @@ export default function RegisterPage() {
 
           {/* Error */}
           {error && (
-            <div id="register-error" className="mt-4 p-3 bg-danger-light rounded-lg" role="alert">
+            <div id="register-error" className="mt-4 p-3 bg-danger-light rounded-button" role="alert">
               <p className="text-xs text-danger">{error}</p>
             </div>
           )}

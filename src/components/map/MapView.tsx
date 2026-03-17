@@ -20,7 +20,7 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
   return (
     <div className={cn('relative bg-section rounded-card overflow-hidden', className)} role="img" aria-label={`Carte avec ${markers.length} biens immobiliers`}>
       {/* Placeholder map background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100" aria-hidden="true">
+      <div className="absolute inset-0 bg-gradient-to-br from-accent-light to-section" aria-hidden="true">
         {/* Grid pattern to simulate map */}
         <div
           className="absolute inset-0 opacity-10"
@@ -34,7 +34,7 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
         />
 
         {/* Simulated water body (lac Léman) */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-blue-200/40 rounded-t-[100px]" />
+        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-accent/10 rounded-t-[100px]" />
       </div>
 
       {/* Map markers */}
@@ -67,7 +67,7 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
               {/* Price pill */}
               <div
                 className={cn(
-                  'px-2.5 py-1 rounded-full text-xs font-bold shadow-md whitespace-nowrap transition-colors',
+                  'px-2.5 py-1 rounded-full text-xs font-bold shadow-card whitespace-nowrap transition-colors',
                   isSelected
                     ? 'bg-accent text-white scale-110'
                     : 'bg-white text-primary-900 hover:bg-accent hover:text-white'
@@ -92,13 +92,13 @@ export default function MapView({ markers, className, selectedId, onMarkerClick 
       {/* Map controls placeholder */}
       <div className="absolute top-4 right-4 flex flex-col gap-2">
         <button
-          className="h-8 w-8 bg-white rounded-lg shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent"
+          className="h-8 w-8 bg-white rounded-button shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
           aria-label="Zoom avant"
         >
           +
         </button>
         <button
-          className="h-8 w-8 bg-white rounded-lg shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent"
+          className="h-8 w-8 bg-white rounded-button shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
           aria-label="Zoom arrière"
         >
           −

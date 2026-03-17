@@ -219,9 +219,9 @@ export default function ContactDetailPage() {
                   return (
                     <div
                       key={tx.id}
-                      className="flex items-center gap-4 p-3 rounded-lg bg-section hover:bg-primary-50 transition-colors cursor-pointer"
+                      className="flex items-center gap-4 p-3 rounded-button bg-section hover:bg-primary-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/20"
                     >
-                      <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="h-10 w-10 bg-accent/10 rounded-button flex items-center justify-center flex-shrink-0">
                         <Building2 className="h-5 w-5 text-accent" />
                       </div>
                       <div className="flex-1 min-w-0">

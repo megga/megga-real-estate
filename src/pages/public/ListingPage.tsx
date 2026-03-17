@@ -247,7 +247,7 @@ export default function ListingPage() {
             <aside className="hidden lg:block w-[380px] flex-shrink-0" aria-label="Contact et prix">
               <div className="sticky top-24 space-y-4">
                 <div className="bg-white rounded-card border border-border p-6 shadow-card">
-                  <p className="text-3xl font-bold text-primary-900 mb-1">{formatCHF(listing.price)}</p>
+                  <p className="text-2xl font-bold text-primary-900 mb-1">{formatCHF(listing.price)}</p>
                   {listing.charges_monthly > 0 && (<p className="text-sm text-muted-foreground">Charges : {formatCHF(listing.charges_monthly)}/mois</p>)}
                   <div className="flex gap-2 mt-4">
                     <button onClick={() => setIsFavorite(!isFavorite)} className={cn('flex-1 h-10 rounded-button border flex items-center justify-center gap-2 text-sm font-medium transition-colors', isFavorite ? 'bg-danger-light border-danger text-danger' : 'border-border text-primary-700 hover:bg-section')} aria-pressed={isFavorite} aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
@@ -287,7 +287,7 @@ export default function ListingPage() {
         </div>
 
         {/* === MOBILE STICKY PRICE BAR === */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-40">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 shadow-navbar z-40">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-lg font-bold text-primary-900">{formatCHF(listing.price)}</p>
@@ -313,7 +313,7 @@ export default function ListingPage() {
             </button>
           </div>
           <div className="flex-1 flex items-center justify-center px-4 relative">
-            <img src={photos[lightboxIndex]} alt={`${listing.title} — Photo ${lightboxIndex + 1} sur ${photos.length}`} className="max-h-full max-w-full object-contain rounded-lg" />
+            <img src={photos[lightboxIndex]} alt={`${listing.title} — Photo ${lightboxIndex + 1} sur ${photos.length}`} className="max-h-full max-w-full object-contain rounded-card" />
             {lightboxIndex > 0 && (
               <button onClick={() => setLightboxIndex(lightboxIndex - 1)} className="absolute left-4 h-12 w-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-white" aria-label="Photo précédente">
                 <ChevronLeft className="h-6 w-6 text-white" aria-hidden="true" />
@@ -327,7 +327,7 @@ export default function ListingPage() {
           </div>
           <div className="flex justify-center gap-2 px-4 py-4 overflow-x-auto" role="tablist" aria-label="Miniatures">
             {photos.map((photo, i) => (
-              <button key={i} onClick={() => setLightboxIndex(i)} className={cn('h-16 w-24 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all', lightboxIndex === i ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-75')} role="tab" aria-selected={lightboxIndex === i} aria-label={`Miniature photo ${i + 1}`}>
+              <button key={i} onClick={() => setLightboxIndex(i)} className={cn('h-16 w-24 rounded-button overflow-hidden flex-shrink-0 border-2 transition-all', lightboxIndex === i ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-75')} role="tab" aria-selected={lightboxIndex === i} aria-label={`Miniature photo ${i + 1}`}>
                 <img src={photo} alt="" className="w-full h-full object-cover" />
               </button>
             ))}

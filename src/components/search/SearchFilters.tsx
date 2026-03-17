@@ -60,7 +60,7 @@ function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden="true" />
           <ul
-            className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-lg shadow-dropdown border border-border z-20 py-1"
+            className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-card shadow-dropdown border border-border z-20 py-1"
             role="listbox"
             aria-label={label}
           >

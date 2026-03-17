@@ -1022,6 +1022,71 @@ export interface MockDeal {
   updated_at: string
 }
 
+// ─── DASHBOARD DATA ─────────────────────────────────────────────────────────
+
+export interface DashboardKpi {
+  label: string
+  value: string
+  trend: { value: string; positive: boolean }
+  iconName: 'Building2' | 'TrendingUp' | 'Users' | 'CalendarDays'
+  iconBg: string
+}
+
+export const DASHBOARD_KPIS: DashboardKpi[] = [
+  { label: 'Biens actifs', value: '12', trend: { value: '+2 ce mois', positive: true }, iconName: 'Building2', iconBg: 'bg-accent/10 text-accent' },
+  { label: 'Transactions en cours', value: '8', trend: { value: '+12% ce mois', positive: true }, iconName: 'TrendingUp', iconBg: 'bg-success/10 text-success' },
+  { label: 'Contacts', value: '156', trend: { value: '+8 cette semaine', positive: true }, iconName: 'Users', iconBg: 'bg-warning/10 text-warning' },
+  { label: 'Visites ce mois', value: '23', trend: { value: '-3 vs dernier mois', positive: false }, iconName: 'CalendarDays', iconBg: 'bg-danger/10 text-danger' },
+]
+
+export interface DashboardPipelineStage {
+  label: string
+  count: number
+  color: string
+}
+
+export const DASHBOARD_PIPELINE: DashboardPipelineStage[] = [
+  { label: 'Lead', count: 5, color: 'bg-primary-300' },
+  { label: 'Qualifié', count: 3, color: 'bg-accent' },
+  { label: 'Visite', count: 4, color: 'bg-warning' },
+  { label: 'Offre', count: 2, color: 'bg-warning' },
+  { label: 'Signé', count: 1, color: 'bg-success' },
+]
+
+export interface DashboardActivity {
+  id: string
+  iconName: 'UserPlus' | 'Eye' | 'TrendingUp' | 'FileText' | 'HandshakeIcon'
+  iconColor: string
+  title: string
+  description: string
+  time: string
+}
+
+export const DASHBOARD_ACTIVITIES: DashboardActivity[] = [
+  { id: '1', iconName: 'UserPlus', iconColor: 'text-accent bg-accent/10', title: 'Nouveau contact ajouté', description: 'Marie Dubois — acheteuse, recherche 4 pièces à Champel', time: 'Il y a 25 min' },
+  { id: '2', iconName: 'Eye', iconColor: 'text-warning bg-warning/10', title: 'Visite planifiée', description: 'Appartement Eaux-Vives — Jean-Marc Weber, demain 14h', time: 'Il y a 2h' },
+  { id: '3', iconName: 'TrendingUp', iconColor: 'text-success bg-success/10', title: 'Offre reçue', description: "Villa Cologny — CHF 2'800'000 par Famille Rossi", time: 'Il y a 4h' },
+  { id: '4', iconName: 'FileText', iconColor: 'text-primary-500 bg-primary-100', title: 'Document uploadé', description: 'Passeport de Pierre Lefèvre — dossier KYC #12', time: 'Hier, 16:30' },
+  { id: '5', iconName: 'HandshakeIcon', iconColor: 'text-success bg-success/10', title: 'Deal signé', description: "Duplex Champel — CHF 1'250'000, acheteur confirmé", time: 'Hier, 11:00' },
+]
+
+export interface DashboardTask {
+  id: string
+  title: string
+  description: string
+  priority: 'high' | 'medium' | 'low'
+  iconName: 'ShieldAlert' | 'Phone' | 'CalendarDays' | 'Clock'
+}
+
+export const DASHBOARD_TASKS: DashboardTask[] = [
+  { id: '1', title: 'Dossier KYC incomplet', description: 'Pierre Lefèvre — documents manquants : justificatif de domicile', priority: 'high', iconName: 'ShieldAlert' },
+  { id: '2', title: 'Relance client', description: "Jean-Marc Weber n'a pas répondu depuis 5 jours — visite à replanifier", priority: 'high', iconName: 'Phone' },
+  { id: '3', title: 'Visite à confirmer', description: 'Appartement Plainpalais — Sophie Muller, vendredi 14h', priority: 'medium', iconName: 'CalendarDays' },
+  { id: '4', title: 'Mandat à renouveler', description: 'Villa Cologny — mandat expire dans 10 jours', priority: 'medium', iconName: 'Clock' },
+]
+
+// ─── PIPELINE DEALS ──────────────────────────────────────────────────────────
+
 export const MOCK_DEALS: MockDeal[] = [
   {
     id: 'd1',

@@ -24,13 +24,14 @@ import {
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { MOCK_DEALS, type MockDeal } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
+import { toast } from '@/hooks/useToast'
 
 // Pipeline columns config — subset of stages for Kanban
 const PIPELINE_COLUMNS: { stage: MockDeal['stage']; color: string; headerBg: string }[] = [
   { stage: 'lead',          color: 'bg-primary-300', headerBg: 'bg-primary-50' },
   { stage: 'qualified',     color: 'bg-accent',      headerBg: 'bg-accent/5' },
   { stage: 'visit_planned', color: 'bg-warning',     headerBg: 'bg-warning/5' },
-  { stage: 'offer',         color: 'bg-purple-500',  headerBg: 'bg-purple-50' },
+  { stage: 'offer',         color: 'bg-accent-dark',  headerBg: 'bg-accent-light' },
   { stage: 'negotiation',   color: 'bg-danger',      headerBg: 'bg-danger/5' },
   { stage: 'signed',        color: 'bg-success',     headerBg: 'bg-success/5' },
 ]
@@ -55,7 +56,7 @@ function DealCardContent({ deal }: { deal: MockDeal }) {
     .slice(0, 2)
 
   return (
-    <div className="bg-white rounded-lg shadow-card border border-border p-3 cursor-grab active:cursor-grabbing hover:shadow-card-hover transition-shadow">
+    <div className="bg-white rounded-button shadow-card border border-border p-3 cursor-grab active:cursor-grabbing hover:shadow-card-hover transition-shadow">
       <div className="flex items-start gap-2 mb-2">
         <div className={cn('h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0', deal.contact_avatar_color)}>
           <span className="text-[10px] font-semibold text-white">{initials}</span>
@@ -144,7 +145,7 @@ function KanbanColumn({
         </SortableContext>
 
         {deals.length === 0 && (
-          <div className="flex items-center justify-center h-20 text-xs text-muted-foreground border-2 border-dashed border-border rounded-lg">
+          <div className="flex items-center justify-center h-20 text-xs text-muted-foreground border-2 border-dashed border-border rounded-button">
             Déposez ici
           </div>
         )}
@@ -160,7 +161,7 @@ function StageBadge({ stage }: { stage: string }) {
     lead: 'bg-primary-100 text-primary-600',
     qualified: 'bg-accent/10 text-accent',
     visit_planned: 'bg-warning/10 text-warning',
-    offer: 'bg-purple-100 text-purple-700',
+    offer: 'bg-accent-light text-accent-dark',
     negotiation: 'bg-danger/10 text-danger',
     signed: 'bg-success/10 text-success',
   }
@@ -229,13 +230,15 @@ export default function PipelinePage() {
 
     // Find which column the item was dropped into
     const overDeal = deals.find((d) => d.id === overId)
-    if (overDeal) {
-      // Dropped on another deal card — take its stage
+    const activeDealObj = deals.find((d) => d.id === activeId)
+    if (overDeal && activeDealObj && activeDealObj.stage !== overDeal.stage) {
+      const newStageLabel = TRANSACTION_STAGE_LABELS[overDeal.stage as TransactionStage]
       setDeals((prev) =>
         prev.map((d) =>
           d.id === activeId ? { ...d, stage: overDeal.stage, updated_at: new Date().toISOString() } : d
         )
       )
+      toast.success('Deal déplacé', `${activeDealObj.contact_name} → ${newStageLabel}`)
     }
   }
 

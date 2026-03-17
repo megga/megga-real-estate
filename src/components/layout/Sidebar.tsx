@@ -50,7 +50,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-5 border-b border-border">
         <Link to="/" className="flex items-center gap-2" aria-label="MEGGA — Accueil">
-          <div className="h-7 w-7 bg-primary-900 rounded-lg flex items-center justify-center" aria-hidden="true">
+          <div className="h-7 w-7 bg-primary-900 rounded-button flex items-center justify-center" aria-hidden="true">
             <span className="text-xs font-bold text-white">GG</span>
           </div>
           <span className="text-lg font-bold text-primary-900">MEGGA</span>
@@ -79,7 +79,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors relative',
                 active
                   ? 'bg-accent/10 text-accent border-l-2 border-accent pl-[10px]'
-                  : 'text-primary-600 hover:bg-gray-100 hover:text-primary-900'
+                  : 'text-primary-600 hover:bg-section hover:text-primary-900'
               )}
               aria-current={active ? 'page' : undefined}
             >
@@ -108,7 +108,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
             location.pathname.startsWith('/dashboard/settings')
               ? 'bg-accent/10 text-accent'
-              : 'text-primary-600 hover:bg-gray-100 hover:text-primary-900'
+              : 'text-primary-600 hover:bg-section hover:text-primary-900'
           )}
           aria-current={location.pathname.startsWith('/dashboard/settings') ? 'page' : undefined}
         >

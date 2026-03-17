@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/hooks/useAuth'
 import SkipToContent from '@/components/layout/SkipToContent'
+import Toaster from '@/components/ui/toaster'
 import HomePage from '@/pages/public/HomePage'
 import SearchPage from '@/pages/public/SearchPage'
 import LoginPage from '@/pages/public/LoginPage'
@@ -30,6 +31,7 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <SkipToContent />
+          <Toaster />
           <Routes>
             {/* Public */}
             <Route path="/" element={<HomePage />} />

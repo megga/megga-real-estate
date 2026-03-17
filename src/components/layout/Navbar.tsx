@@ -119,7 +119,7 @@ export default function Navbar() {
 
               {dropdownOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-border py-2 z-50"
+                  className="absolute right-0 mt-2 w-64 bg-white rounded-card shadow-dropdown border border-border py-2 z-50"
                   role="menu"
                   aria-label="Menu utilisateur"
                 >

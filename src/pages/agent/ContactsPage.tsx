@@ -2,10 +2,13 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
-  Eye, Pencil, Trash2,
+  Eye, Pencil, Trash2, Users,
 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { MOCK_CONTACTS, type MockContact } from '@/lib/mockData'
+import { toast } from '@/hooks/useToast'
+import ConfirmDialog from '@/components/ui/confirm-dialog'
+import EmptyState from '@/components/ui/empty-state'
 
 type SortField = 'name' | 'last_activity' | 'score'
 type SortDir = 'asc' | 'desc'
@@ -82,6 +85,7 @@ export default function ContactsPage() {
   const [sortField, setSortField] = useState<SortField>('last_activity')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
+  const [deleteTarget, setDeleteTarget] = useState<MockContact | null>(null)
 
   // All unique tags
   const allTags = useMemo(() => {
@@ -136,8 +140,25 @@ export default function ContactsPage() {
     }
   }
 
+  function handleDeleteConfirm() {
+    if (!deleteTarget) return
+    toast.success('Contact supprimé', `${deleteTarget.first_name} ${deleteTarget.last_name} a été supprimé.`)
+    setDeleteTarget(null)
+  }
+
   return (
     <div className="space-y-6">
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        title="Supprimer le contact"
+        description={deleteTarget ? `Êtes-vous sûr de vouloir supprimer ${deleteTarget.first_name} ${deleteTarget.last_name} ? Cette action est irréversible.` : ''}
+        confirmLabel="Supprimer"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -231,10 +252,10 @@ export default function ContactsPage() {
                     <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="text-left px-4 py-3 hidden md:table-cell">
+                <th scope="col" className="text-left px-4 py-3 hidden md:table-cell">
                   <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Email</span>
                 </th>
-                <th className="text-left px-4 py-3 hidden lg:table-cell">
+                <th scope="col" className="text-left px-4 py-3 hidden lg:table-cell">
                   <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Téléphone</span>
                 </th>
                 <th scope="col" className="text-left px-4 py-3">
@@ -249,10 +270,10 @@ export default function ContactsPage() {
                     <SortIcon field="score" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="text-left px-4 py-3 hidden xl:table-cell">
+                <th scope="col" className="text-left px-4 py-3 hidden xl:table-cell">
                   <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Source</span>
                 </th>
-                <th className="text-left px-4 py-3 hidden sm:table-cell">
+                <th scope="col" className="text-left px-4 py-3 hidden sm:table-cell">
                   <button
                     onClick={() => toggleSort('last_activity')}
                     className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
@@ -269,8 +290,16 @@ export default function ContactsPage() {
             <tbody className="divide-y divide-border">
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center">
-                    <p className="text-sm text-muted-foreground">Aucun contact trouvé</p>
+                  <td colSpan={8} className="px-4 py-12">
+                    <EmptyState
+                      icon={Users}
+                      title="Aucun contact trouvé"
+                      description="Essayez de modifier vos filtres ou ajoutez un nouveau contact."
+                      action={{
+                        label: 'Effacer les filtres',
+                        onClick: () => { setSearch(''); setTypeFilter(''); setScoreFilter(''); setTagFilter(''); setPage(1) },
+                      }}
+                    />
                   </td>
                 </tr>
               ) : (
@@ -332,8 +361,9 @@ export default function ContactsPage() {
                           <Pencil className="h-4 w-4" aria-hidden="true" />
                         </button>
                         <button
+                          onClick={() => setDeleteTarget(contact)}
                           className="p-1.5 rounded-md text-primary-400 hover:text-danger hover:bg-danger/10 transition-colors"
-                          aria-label="Supprimer"
+                          aria-label={`Supprimer ${contact.first_name} ${contact.last_name}`}
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>

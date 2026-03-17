@@ -74,7 +74,7 @@ export default function LoginPage() {
         </Link>
 
         {/* Card */}
-        <div className="bg-white rounded-xl border border-border p-8">
+        <div className="bg-white rounded-card border border-border p-8">
           <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">
             Connexion
           </h1>
@@ -153,7 +153,7 @@ export default function LoginPage() {
 
           {/* Error */}
           {error && (
-            <div id="login-error" className="mt-4 p-3 bg-danger-light rounded-lg" role="alert">
+            <div id="login-error" className="mt-4 p-3 bg-danger-light rounded-button" role="alert">
               <p className="text-xs text-danger">{error}</p>
             </div>
           )}
