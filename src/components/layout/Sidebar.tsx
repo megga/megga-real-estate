@@ -49,12 +49,12 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-5 border-b border-border">
+      <div className="h-16 flex items-center justify-between px-5 border-b border-gray-100">
         <Link to="/" className="flex items-center gap-2">
-          <div className="h-7 w-7 bg-primary-900 rounded-lg flex items-center justify-center">
+          <div className="h-8 w-8 bg-primary-900 rounded-lg flex items-center justify-center">
             <span className="text-xs font-bold text-white">GG</span>
           </div>
-          <span className="text-lg font-bold text-primary-900">MEGGA</span>
+          <span className="text-sm font-bold text-primary-900">MEGGA</span>
         </Link>
         {/* Mobile close */}
         <button
@@ -76,13 +76,13 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               to={item.href}
               onClick={onClose}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors relative',
+                'flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-colors duration-150 relative',
                 active
                   ? 'bg-accent/10 text-accent border-l-2 border-accent pl-[10px]'
-                  : 'text-primary-600 hover:bg-gray-100 hover:text-primary-900'
+                  : 'text-primary-600 hover:bg-gray-50 hover:text-primary-900'
               )}
             >
-              <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+              <Icon className="h-5 w-5 flex-shrink-0" />
               <span className="flex-1">{item.label}</span>
               {item.badge && item.badge > 0 && (
                 <span className="h-5 min-w-[20px] px-1.5 bg-accent text-white text-[11px] font-semibold rounded-full flex items-center justify-center">
@@ -95,19 +95,19 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       </nav>
 
       {/* Bottom section */}
-      <div className="border-t border-border px-3 py-3 space-y-1">
+      <div className="border-t border-gray-100 px-3 py-3 space-y-1">
         {/* Settings */}
         <Link
           to="/dashboard/settings"
           onClick={onClose}
           className={cn(
-            'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+            'flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-colors duration-150',
             location.pathname.startsWith('/dashboard/settings')
               ? 'bg-accent/10 text-accent'
-              : 'text-primary-600 hover:bg-gray-100 hover:text-primary-900'
+              : 'text-primary-600 hover:bg-gray-50 hover:text-primary-900'
           )}
         >
-          <Settings className="h-[18px] w-[18px]" />
+          <Settings className="h-5 w-5" />
           Paramètres
         </Link>
 
@@ -133,7 +133,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 bg-sidebar border-r border-border h-screen sticky top-0">
+      <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 bg-white border-r border-gray-100 h-screen sticky top-0">
         {sidebarContent}
       </aside>
 
@@ -141,7 +141,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       {mobileOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
-          <aside className="fixed inset-y-0 left-0 w-64 bg-sidebar z-50 lg:hidden shadow-modal">
+          <aside className="fixed inset-y-0 left-0 w-64 bg-white z-50 lg:hidden shadow-modal">
             {sidebarContent}
           </aside>
         </>

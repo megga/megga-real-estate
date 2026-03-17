@@ -315,11 +315,11 @@ export default function ListingsPage() {
 
       {/* Table view */}
       {filtered.length > 0 && viewMode === 'table' && (
-        <div className="bg-white rounded-card shadow-card overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-section">
+                <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-4 py-3">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Bien</span>
                   </th>
@@ -348,13 +348,13 @@ export default function ListingsPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {paginated.map((listing) => (
-                  <tr key={listing.id} className="hover:bg-section/50 transition-colors group">
+                  <tr key={listing.id} className="hover:bg-gray-50 transition-colors duration-150 group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <img
                           src={listing.photo}
                           alt={listing.title}
-                          className="h-10 w-14 rounded-md object-cover flex-shrink-0"
+                          className="h-12 w-12 rounded-lg object-cover flex-shrink-0"
                         />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-primary-900 truncate group-hover:text-accent transition-colors">

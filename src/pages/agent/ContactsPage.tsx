@@ -17,7 +17,7 @@ const scoreBadge = (score: MockContact['score']) => {
   const map = {
     hot:  { label: 'Hot',  dot: 'bg-danger',  bg: 'bg-danger/10 text-danger' },
     warm: { label: 'Warm', dot: 'bg-warning', bg: 'bg-warning/10 text-warning' },
-    cold: { label: 'Cold', dot: 'bg-accent',  bg: 'bg-accent/10 text-accent' },
+    cold: { label: 'Cold', dot: 'bg-blue-500',  bg: 'bg-blue-100 text-blue-600' },
   }
   const s = map[score]
   return (
@@ -213,11 +213,11 @@ export default function ContactsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-card shadow-card overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-section">
+              <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('name')}
@@ -273,7 +273,7 @@ export default function ContactsPage() {
                 paginated.map((contact) => (
                   <tr
                     key={contact.id}
-                    className="hover:bg-section/50 transition-colors group"
+                    className="hover:bg-gray-50 transition-colors duration-150 group"
                   >
                     <td className="px-4 py-3">
                       <Link
@@ -343,7 +343,7 @@ export default function ContactsPage() {
 
         {/* Pagination */}
         {filtered.length > ITEMS_PER_PAGE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-section/50">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
             <p className="text-xs text-muted-foreground">
               {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} sur {filtered.length} contacts
             </p>

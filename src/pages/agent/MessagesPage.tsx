@@ -211,10 +211,10 @@ export default function MessagesPage() {
               <div className="max-w-[75%] space-y-0.5">
                 <div
                   className={cn(
-                    'rounded-xl px-4 py-2.5 text-sm',
+                    'rounded-2xl px-4 py-2.5 text-sm',
                     isAgent
-                      ? 'bg-accent text-white rounded-br-sm'
-                      : 'bg-section text-primary-900 rounded-bl-sm'
+                      ? 'bg-accent text-white rounded-br-md'
+                      : 'bg-gray-100 text-primary-900 rounded-bl-md'
                   )}
                 >
                   {msg.content}
@@ -238,7 +238,7 @@ export default function MessagesPage() {
           <input
             type="text"
             placeholder="Écrire un message..."
-            className="flex-1 h-10 px-4 bg-section rounded-input text-sm text-primary-900 placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-accent/20"
+            className="flex-1 h-10 px-4 bg-gray-50 rounded-xl border-0 text-sm text-primary-900 placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-accent/20"
           />
           <button className="h-10 w-10 rounded-button bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors">
             <Send className="h-4 w-4" />

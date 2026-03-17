@@ -53,9 +53,9 @@ function DealCardContent({ deal }: { deal: MockDeal }) {
     .slice(0, 2)
 
   return (
-    <div className="bg-white rounded-lg shadow-card border border-border p-3 cursor-grab active:cursor-grabbing hover:shadow-card-hover transition-shadow">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow duration-150">
       <div className="flex items-start gap-2 mb-2">
-        <div className={cn('h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0', deal.contact_avatar_color)}>
+        <div className={cn('h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0', deal.contact_avatar_color)}>
           <span className="text-[10px] font-semibold text-white">{initials}</span>
         </div>
         <div className="min-w-0 flex-1">
@@ -123,7 +123,7 @@ function KanbanColumn({
   return (
     <div className="flex-shrink-0 w-72 flex flex-col max-h-full">
       {/* Column header */}
-      <div className={cn('rounded-t-lg px-3 py-2.5 border border-b-0 border-border', headerBg)}>
+      <div className={cn('rounded-t-xl px-3 py-2.5', headerBg)}>
         <div className="flex items-center gap-2">
           <div className={cn('h-2 w-2 rounded-full', color)} />
           <span className="text-sm font-semibold text-primary-900">{label}</span>
@@ -134,7 +134,7 @@ function KanbanColumn({
       </div>
 
       {/* Column body */}
-      <div className="flex-1 bg-section/50 border border-t-0 border-border rounded-b-lg p-2 space-y-2 overflow-y-auto min-h-[120px]">
+      <div className="flex-1 bg-gray-50 rounded-b-xl p-3 space-y-2 overflow-y-auto min-h-[120px]">
         <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
             <SortableDealCard key={deal.id} deal={deal} />
@@ -375,11 +375,11 @@ export default function PipelinePage() {
 
       {/* List View */}
       {view === 'list' && (
-        <div className="bg-white rounded-card shadow-card overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-section">
+                <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-4 py-3">
                     <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Contact</span>
                   </th>
@@ -420,7 +420,7 @@ export default function PipelinePage() {
                       .slice(0, 2)
 
                     return (
-                      <tr key={deal.id} className="hover:bg-section/50 transition-colors group">
+                      <tr key={deal.id} className="hover:bg-gray-50 transition-colors duration-150 group">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className={cn('h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0', deal.contact_avatar_color)}>

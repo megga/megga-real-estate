@@ -23,9 +23,9 @@ const TAB_CONFIG: Record<SettingsTab, { label: string; icon: React.ElementType }
 
 /* ─── Shared Styles ─── */
 
-const inputClasses = 'w-full h-11 px-3 rounded-input border border-border bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
+const inputClasses = 'w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
 const labelClasses = 'block text-sm font-medium text-primary-900 mb-1.5'
-const readonlyClasses = 'w-full h-11 px-3 rounded-input border border-border bg-gray-50 text-sm text-gray-500 cursor-not-allowed'
+const readonlyClasses = 'w-full h-11 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 cursor-not-allowed'
 
 /* ─── Profile Tab ─── */
 
@@ -538,7 +538,7 @@ function SubscriptionTab() {
       </div>
 
       {/* Current plan card */}
-      <div className="bg-white rounded-card border-2 border-accent p-5">
+      <div className="bg-white rounded-xl border-2 border-accent p-6">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
             <Zap className="w-5 h-5 text-accent" />
@@ -569,8 +569,8 @@ function SubscriptionTab() {
             <div
               key={plan.name}
               className={cn(
-                'bg-white rounded-card border p-5 relative',
-                plan.isCurrent ? 'border-accent shadow-card-hover' : 'border-border shadow-card',
+                'bg-white rounded-xl border-2 p-6 relative transition-shadow duration-200 hover:shadow-lg',
+                plan.isCurrent ? 'border-accent shadow-card-hover' : 'border-gray-200 shadow-sm',
               )}
             >
               {plan.isPopular && (

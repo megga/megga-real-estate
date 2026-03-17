@@ -183,17 +183,17 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi) => {
           const Icon = kpi.icon
           return (
-            <div key={kpi.label} className="bg-white rounded-card p-5 shadow-card border border-border">
+            <div key={kpi.label} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between mb-3">
                 <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', kpi.iconBg)}>
                   <Icon className="h-5 w-5" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-primary-900">{kpi.value}</p>
+              <p className="text-3xl font-bold text-primary-900">{kpi.value}</p>
               <p className="text-sm text-muted-foreground mt-0.5">{kpi.label}</p>
               <div className="flex items-center gap-1 mt-2">
                 {kpi.trend.positive ? (
@@ -211,16 +211,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Pipeline + Tasks row */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Mini Pipeline */}
-        <div className="lg:col-span-3 bg-white rounded-card p-5 shadow-card border border-border">
+        <div className="lg:col-span-3 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-primary-900">Pipeline</h2>
             <span className="text-sm text-muted-foreground">{totalDeals} deals</span>
           </div>
 
           {/* Pipeline bar */}
-          <div className="flex rounded-full overflow-hidden h-8 mb-4">
+          <div className="flex rounded-xl overflow-hidden h-8 mb-4">
             {pipelineStages.map((stage) => (
               <div
                 key={stage.label}
@@ -245,7 +245,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Urgent Tasks */}
-        <div className="lg:col-span-2 bg-white rounded-card p-5 shadow-card border border-border">
+        <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-primary-900 flex items-center gap-2">
               <AlertTriangle className="h-4.5 w-4.5 text-warning" />
@@ -280,7 +280,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-card p-5 shadow-card border border-border">
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-primary-900">Activité récente</h2>
           <button className="text-sm text-accent hover:text-accent-hover font-medium transition-colors">
@@ -294,8 +294,8 @@ export default function DashboardPage() {
               <div
                 key={activity.id}
                 className={cn(
-                  'flex items-start gap-4 py-3.5 group cursor-pointer',
-                  i < activities.length - 1 && 'border-b border-border-light'
+                  'flex items-start gap-4 py-3.5 rounded-lg px-2 -mx-2 group cursor-pointer hover:bg-gray-50 transition-colors duration-150',
+                  i < activities.length - 1 && 'border-b border-gray-50'
                 )}
               >
                 <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0', activity.iconColor)}>

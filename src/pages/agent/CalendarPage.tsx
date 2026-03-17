@@ -476,9 +476,9 @@ function MonthView({ currentDate, events, onSelectEvent }: {
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
   return (
-    <div className="bg-white rounded-card shadow-card overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Week day headers */}
-      <div className="grid grid-cols-7 border-b border-border">
+      <div className="grid grid-cols-7 border-b border-gray-100">
         {weekDays.map(day => (
           <div key={day} className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
             {day}
@@ -497,9 +497,9 @@ function MonthView({ currentDate, events, onSelectEvent }: {
             <div
               key={idx}
               className={cn(
-                'min-h-[100px] lg:min-h-[120px] border-b border-r border-border/50 p-1.5 transition-colors',
+                'min-h-[100px] lg:min-h-[120px] border-b border-r border-gray-100/50 p-1.5 transition-colors',
                 !inMonth && 'bg-gray-50/50',
-                today && 'bg-accent/5',
+                today && 'bg-accent/10 rounded-lg',
               )}
             >
               <div className={cn(
@@ -519,7 +519,7 @@ function MonthView({ currentDate, events, onSelectEvent }: {
                       key={event.id}
                       onClick={() => onSelectEvent(event)}
                       className={cn(
-                        'w-full text-left text-[11px] leading-tight px-1.5 py-0.5 rounded truncate border transition-all hover:shadow-sm',
+                        'w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-lg truncate border transition-all hover:shadow-sm',
                         config.bg, config.color,
                       )}
                     >
@@ -550,9 +550,9 @@ function WeekView({ currentDate, events, onSelectEvent }: {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
   return (
-    <div className="bg-white rounded-card shadow-card overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Header row */}
-      <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border">
+      <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-100">
         <div className="border-r border-border" />
         {weekDays.map((day, i) => (
           <div key={i} className={cn(
@@ -629,10 +629,10 @@ function DayView({ currentDate, events, onSelectEvent }: {
   const dayEvents = getEventsForDay(events, currentDate)
 
   return (
-    <div className="bg-white rounded-card shadow-card overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Header */}
       <div className={cn(
-        'px-5 py-4 border-b border-border',
+        'px-5 py-4 border-b border-gray-100',
         isToday(currentDate) && 'bg-accent/5',
       )}>
         <div className="text-sm text-gray-500 capitalize">{format(currentDate, 'EEEE', { locale: fr })}</div>
