@@ -17,6 +17,10 @@ import ListingsPage from '@/pages/agent/ListingsPage'
 import ListingFormPage from '@/pages/agent/ListingFormPage'
 import KycListPage from '@/pages/agent/KycListPage'
 import KycDetailPage from '@/pages/agent/KycDetailPage'
+import OnboardingBuyerPP from '@/pages/onboarding/OnboardingBuyerPP'
+import OnboardingBuyerPM from '@/pages/onboarding/OnboardingBuyerPM'
+import OnboardingSellerPP from '@/pages/onboarding/OnboardingSellerPP'
+import OnboardingSellerPM from '@/pages/onboarding/OnboardingSellerPM'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +44,12 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+            {/* Onboarding client (public) */}
+            <Route path="/onboarding/buyer/individual" element={<OnboardingBuyerPP />} />
+            <Route path="/onboarding/buyer/company" element={<OnboardingBuyerPM />} />
+            <Route path="/onboarding/seller/individual" element={<OnboardingSellerPP />} />
+            <Route path="/onboarding/seller/company" element={<OnboardingSellerPM />} />
 
             {/* Agent dashboard (protected) */}
             <Route
