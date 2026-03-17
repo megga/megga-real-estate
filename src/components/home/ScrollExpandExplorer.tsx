@@ -123,10 +123,72 @@ function AnimatedCounter({ target, active }: { target: number; active: boolean }
   return <>{formatCount(value)}</>;
 }
 
+/* ─── Custom cursor component ─── */
+function CustomCursor({ containerRef, isComplete }: { containerRef: React.RefObject<HTMLDivElement | null>; isComplete: boolean }) {
+  const x = useMotionValue(-100);
+  const y = useMotionValue(-100);
+  const [isInside, setIsInside] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 767px)');
+
+  useEffect(() => {
+    if (isMobile) return; // No custom cursor on mobile
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleMove = (e: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      if (
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom
+      ) {
+        x.set(e.clientX);
+        y.set(e.clientY);
+        setIsInside(true);
+      } else {
+        setIsInside(false);
+      }
+    };
+
+    const handleLeave = () => setIsInside(false);
+
+    window.addEventListener('mousemove', handleMove);
+    container.addEventListener('mouseleave', handleLeave);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      container.removeEventListener('mouseleave', handleLeave);
+    };
+  }, [containerRef, x, y, isMobile]);
+
+  if (isMobile || !isInside) return null;
+
+  return (
+    <motion.div
+      className="fixed top-0 left-0 z-50 pointer-events-none flex items-center justify-center"
+      style={{
+        x,
+        y,
+        translateX: '-50%',
+        translateY: '-50%',
+      }}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+    >
+      <div className="w-16 h-16 rounded-full border border-white/40 bg-white/10 backdrop-blur-sm flex items-center justify-center">
+        <span className="text-white text-[10px] font-medium tracking-wide uppercase">
+          {isComplete ? 'Explorer' : 'Scroll'}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function ScrollExpandExplorer() {
   const progress = useMotionValue(0);
   const [isComplete, setIsComplete] = useState(false);
-  // State trigger for city cards reveal (avoids re-rendering on every scroll tick)
   const [cardsVisible, setCardsVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
@@ -138,7 +200,18 @@ export default function ScrollExpandExplorer() {
   const isMobile = useMediaQuery('(max-width: 767px)');
   const reducedMotion = usePrefersReducedMotion();
 
-  // Derived motion values — bypass React reconciler
+  // ─── Parallax multicouche ───
+  // Layer 0: main background moves at 0.3x speed
+  const bgParallaxY = useTransform(progress, [0, 1], [0, -80]);
+  // Layer 1: subtle grain/noise layer moves at 0.6x speed
+  const grainParallaxY = useTransform(progress, [0, 1], [0, -40]);
+  // Layer 2: text at 1x (handled by textSpread)
+
+  // ─── Depth-of-field: blur increases with scroll ───
+  const bgBlur = useTransform(progress, [0, 0.6, 1], [2, 12, 24]);
+  const bgFilter = useTransform(bgBlur, (b) => `blur(${b}px)`);
+
+  // ─── Standard derived motion values ───
   const bgOpacity = useTransform(progress, [0, 1], [1, 0]);
   const cardOverlayOpacity = useTransform(progress, [0, 1], [0.5, 0.2]);
   const hintOpacity = useTransform(progress, [0, 0.33], [1, 0]);
@@ -146,6 +219,9 @@ export default function ScrollExpandExplorer() {
   const textSpreadLeft = useTransform(progress, (p) => `translate(calc(-100% - ${p * 150}vw - 1rem), -50%)`);
   const textSpreadRight = useTransform(progress, (p) => `translate(calc(${p * 150}vw + 1rem), -50%)`);
   const darkenOverlay = useTransform(progress, [0.6, 1], [0, 0.5]);
+
+  // ─── Scroll progress bar ───
+  const progressBarWidth = useTransform(progress, [0, 1], ['0%', '100%']);
 
   // Card dimensions as motion values
   const cardWidth = useTransform(progress, (p) => {
@@ -194,7 +270,6 @@ export default function ScrollExpandExplorer() {
       setIsComplete(false);
     }
 
-    // Toggle cards visibility at threshold
     if (next >= 0.75 && !cardsVisible) {
       setCardsVisible(true);
     }
@@ -265,7 +340,7 @@ export default function ScrollExpandExplorer() {
   }, []);
 
   useEffect(() => {
-    if (reducedMotion) return; // No scroll hijack with reduced motion
+    if (reducedMotion) return;
 
     const container = containerRef.current;
     if (!container) return;
@@ -275,10 +350,8 @@ export default function ScrollExpandExplorer() {
 
       const p = progress.get();
 
-      // If complete and user scrolls down, let page scroll normally
       if (p >= 1 && e.deltaY > 0) return;
 
-      // If complete and at top of component, recapture scroll back
       if (p >= 1 && e.deltaY < 0) {
         const rect = container.getBoundingClientRect();
         if (rect.top >= -5) {
@@ -289,7 +362,6 @@ export default function ScrollExpandExplorer() {
         return;
       }
 
-      // If not complete, capture scroll
       if (p < 1) {
         e.preventDefault();
         scrollToContainer();
@@ -308,10 +380,8 @@ export default function ScrollExpandExplorer() {
       touchStartY.current = e.touches[0].clientY;
       const p = progress.get();
 
-      // If complete and scrolling down, let page scroll
       if (p >= 1 && deltaY > 0) return;
 
-      // If complete and at top, recapture
       if (p >= 1 && deltaY < 0) {
         const rect = container.getBoundingClientRect();
         if (rect.top >= -5) {
@@ -341,7 +411,24 @@ export default function ScrollExpandExplorer() {
     };
   }, [updateProgress, scrollToContainer, reducedMotion, progress]);
 
-  // Compute revealProgress for city cards
+  // Hide default cursor when inside container
+  useEffect(() => {
+    if (isMobile) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleEnter = () => { container.style.cursor = 'none'; };
+    const handleLeave = () => { container.style.cursor = ''; };
+
+    container.addEventListener('mouseenter', handleEnter);
+    container.addEventListener('mouseleave', handleLeave);
+    return () => {
+      container.removeEventListener('mouseenter', handleEnter);
+      container.removeEventListener('mouseleave', handleLeave);
+      container.style.cursor = '';
+    };
+  }, [isMobile]);
+
   const revealProgress = useTransform(progress, [0.75, 1], [0, 1]);
 
   return (
@@ -352,22 +439,43 @@ export default function ScrollExpandExplorer() {
       role="region"
       aria-label="Explorer les villes de Suisse"
     >
-      {/* Background image */}
+      {/* ─── Parallax Layer 0: Background image with depth-of-field ─── */}
       <motion.img
         src="https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=1920"
         srcSet="https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=800 800w, https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=1200 1200w, https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=1920 1920w"
         sizes="100vw"
         alt=""
-        className="absolute inset-0 w-full h-full object-cover blur-sm will-change-[opacity]"
-        style={{ opacity: bgOpacity }}
+        className="absolute inset-0 w-full h-full object-cover will-change-[filter,opacity,transform] scale-110"
+        style={{
+          opacity: bgOpacity,
+          filter: bgFilter,
+          y: bgParallaxY,
+        }}
         loading="lazy"
       />
+
+      {/* ─── Parallax Layer 1: Subtle grain texture ─── */}
+      <motion.div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{ y: grainParallaxY }}
+        aria-hidden="true"
+      >
+        <svg width="100%" height="100%">
+          <filter id="grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#grain)" />
+        </svg>
+      </motion.div>
+
+      {/* Background tint overlay */}
       <motion.div
         className="absolute inset-0 bg-black/10"
         style={{ opacity: bgOpacity }}
       />
 
-      {/* Split text — "Explorez" left of card, "la Suisse" right */}
+      {/* ─── Parallax Layer 2: Split text ─── */}
       <motion.div
         className="absolute text-3xl md:text-5xl lg:text-6xl font-bold text-white pointer-events-none z-20 will-change-transform"
         style={{
@@ -393,7 +501,7 @@ export default function ScrollExpandExplorer() {
         la Suisse
       </motion.div>
 
-      {/* Expanding media card */}
+      {/* ─── Expanding media card ─── */}
       <motion.div
         className="relative z-10 overflow-hidden will-change-[width,height]"
         style={{
@@ -403,7 +511,6 @@ export default function ScrollExpandExplorer() {
           boxShadow: cardShadow,
         }}
       >
-        {/* Base image */}
         <img
           src="https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=1200"
           srcSet="https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=600 600w, https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=1200 1200w"
@@ -424,7 +531,7 @@ export default function ScrollExpandExplorer() {
           style={{ opacity: darkenOverlay }}
         />
 
-        {/* City cards grid (phase 3) — single responsive grid */}
+        {/* ─── City cards grid with clip-path reveal + asymmetric stagger ─── */}
         {cardsVisible && (
           <div className="absolute inset-0 p-4 md:p-6 z-10">
             <div
@@ -453,6 +560,19 @@ export default function ScrollExpandExplorer() {
         )}
       </motion.div>
 
+      {/* ─── Scroll progress bar ─── */}
+      {!isComplete && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/10 z-30">
+          <motion.div
+            className="h-full bg-white/50"
+            style={{ width: progressBarWidth }}
+          />
+        </div>
+      )}
+
+      {/* ─── Custom cursor ─── */}
+      <CustomCursor containerRef={containerRef} isComplete={isComplete} />
+
       {/* Scroll hint */}
       <motion.div
         className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 text-sm text-white/40"
@@ -462,7 +582,7 @@ export default function ScrollExpandExplorer() {
         Scroll pour découvrir &darr;
       </motion.div>
 
-      {/* Skip button — keyboard accessible */}
+      {/* Skip button */}
       {!isComplete && (
         <button
           onClick={skipToEnd}
@@ -482,6 +602,38 @@ export default function ScrollExpandExplorer() {
   );
 }
 
+/* ─── City Card with clip-path reveal + asymmetric stagger ─── */
+
+// Clip-path directions for visual variety
+const CLIP_DIRECTIONS: Array<'left' | 'right' | 'bottom' | 'top'> = [
+  'bottom', // Genève — reveals from bottom up (hero card)
+  'left',   // Lausanne
+  'right',  // Zurich
+  'bottom', // Bâle
+  'left',   // Berne
+];
+
+function getClipPath(direction: 'left' | 'right' | 'bottom' | 'top', t: number): string {
+  // t goes from 0 (hidden) to 1 (fully revealed)
+  // inset(top right bottom left)
+  switch (direction) {
+    case 'left':
+      return `inset(0 ${(1 - t) * 100}% 0 0)`;
+    case 'right':
+      return `inset(0 0 0 ${(1 - t) * 100}%)`;
+    case 'bottom':
+      return `inset(0 0 ${(1 - t) * 100}% 0)`;
+    case 'top':
+      return `inset(${(1 - t) * 100}% 0 0 0)`;
+  }
+}
+
+// Asymmetric stagger: Genève alone first (delay 0), then the 4 others arrive in quick succession
+function getStaggerDelay(index: number): number {
+  if (index === 0) return 0;       // Genève: immediate
+  return 0.35 + (index - 1) * 0.06; // Others: start at 0.35, tight 0.06 spacing
+}
+
 function CityCard({
   city,
   index,
@@ -493,10 +645,15 @@ function CityCard({
   revealProgress: ReturnType<typeof motionValue<number>> | ReturnType<typeof useMotionValue<number>>;
   className?: string;
 }) {
-  const delay = index * 0.08;
-  const opacity = useTransform(revealProgress, [delay, Math.min(delay + 0.3, 1)], [0, 1]);
-  const y = useTransform(revealProgress, [delay, Math.min(delay + 0.3, 1)], [60, 0]);
-  const scale = useTransform(revealProgress, [delay, Math.min(delay + 0.3, 1)], [0.9, 1]);
+  const delay = getStaggerDelay(index);
+  const clipDirection = CLIP_DIRECTIONS[index] || 'bottom';
+
+  // Map revealProgress to per-card progress (0→1) with stagger delay
+  const cardProgress = useTransform(revealProgress, [delay, Math.min(delay + 0.4, 1)], [0, 1]);
+  const opacity = useTransform(cardProgress, [0, 0.3], [0, 1]);
+  const scale = useTransform(cardProgress, [0, 1], [0.92, 1]);
+  const clipPath = useTransform(cardProgress, (t) => getClipPath(clipDirection, t));
+
   const isVisible = useTransform(revealProgress, (p) => p > delay);
   const [active, setActive] = useState(false);
 
@@ -506,7 +663,7 @@ function CityCard({
 
   return (
     <motion.div
-      style={{ opacity, y, scale }}
+      style={{ opacity, scale, clipPath }}
       className={`relative rounded-xl overflow-hidden group ${className}`}
     >
       <Link
