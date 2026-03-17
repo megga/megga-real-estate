@@ -138,7 +138,7 @@ export default function WhyMegga() {
   }
 
   return (
-    <section className="py-20">
+    <section className="py-24 md:py-32">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-10">

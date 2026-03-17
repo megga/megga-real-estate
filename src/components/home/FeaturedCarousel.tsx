@@ -111,7 +111,7 @@ export default function FeaturedCarousel() {
   }
 
   return (
-    <section className="pt-16 pb-12 md:pt-20 md:pb-16">
+    <section className="pt-16 pb-16 md:pt-20 md:pb-24">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         {/* Header */}
         <div className="flex items-end justify-between">

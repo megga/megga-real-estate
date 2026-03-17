@@ -43,7 +43,9 @@ export default function HomePage() {
       <BentoCards />
 
       {/* Explorer par ville — scroll expand immersif */}
-      <ScrollExpandExplorer />
+      <div className="mt-8 md:mt-16">
+        <ScrollExpandExplorer />
+      </div>
 
       {/* Feature carousel — Tout ce dont vous avez besoin */}
       <WhyMegga />

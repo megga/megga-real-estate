@@ -129,7 +129,7 @@ export default function Footer() {
       {/* ─── Footer content ─── */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         {/* Main grid */}
-        <div className="pt-16 md:pt-20 pb-12 md:pb-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2.2fr_1fr_1fr_1fr] gap-10 md:gap-8">
+        <div className="pt-20 md:pt-24 pb-12 md:pb-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2.2fr_1fr_1fr_1fr] gap-10 md:gap-8">
           {/* Column 1 — Brand */}
           <div>
             <span className="text-xl font-bold tracking-tight text-gray-900">MEGGA</span>

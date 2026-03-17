@@ -142,7 +142,7 @@ const CARDS = [
 
 export default function BentoCards() {
   return (
-    <section className="py-12 md:py-16 bg-[var(--color-bg-section)]">
+    <section className="py-16 md:py-24 bg-[var(--color-bg-section)]">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {CARDS.map((card) => {
