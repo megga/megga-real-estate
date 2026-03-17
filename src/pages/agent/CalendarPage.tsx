@@ -129,7 +129,7 @@ export default function CalendarPage() {
           <h1 className="text-2xl font-semibold text-primary-900">Calendrier</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Gérez vos visites et rendez-vous</p>
         </div>
-        <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
+        <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2">
           <Plus className="h-4 w-4" aria-hidden="true" />
           Nouveau RDV
         </button>
@@ -137,7 +137,7 @@ export default function CalendarPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         {/* Calendar grid */}
-        <div className="bg-white rounded-card shadow-card p-5">
+        <div className="bg-white rounded-card shadow-card border border-border p-5">
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold text-primary-900">
@@ -239,7 +239,7 @@ export default function CalendarPage() {
           </h3>
 
           {selectedEvents.length === 0 ? (
-            <div className="bg-white rounded-card shadow-card p-6 text-center">
+            <div className="bg-white rounded-card shadow-card border border-border p-6 text-center">
               <Clock className="h-8 w-8 text-primary-200 mx-auto mb-2" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">Aucun événement ce jour</p>
             </div>
@@ -249,7 +249,7 @@ export default function CalendarPage() {
               return (
                 <div
                   key={event.id}
-                  className="bg-white rounded-card shadow-card p-4 hover:shadow-card-hover transition-shadow cursor-pointer"
+                  className="bg-white rounded-card shadow-card border border-border p-4 hover:shadow-card-hover transition-shadow duration-200 cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
                     <div className={cn('h-2 w-2 rounded-full mt-1.5 flex-shrink-0', colors.dot)} />

@@ -88,7 +88,7 @@ export default function ListingsPage() {
         </div>
         <Link
           to="/dashboard/listings/new"
-          className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors"
+          className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Ajouter un bien
@@ -133,7 +133,7 @@ export default function ListingsPage() {
 
       {/* Property grid */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-card shadow-card p-12">
+        <div className="bg-white rounded-card shadow-card border border-border p-12">
           <EmptyState
             icon={Building2}
             title="Aucun bien trouvé"
@@ -148,7 +148,7 @@ export default function ListingsPage() {
             return (
               <div
                 key={property.id}
-                className="bg-white rounded-card shadow-card overflow-hidden hover:shadow-card-hover transition-shadow group"
+                className="bg-white rounded-card shadow-card border border-border overflow-hidden hover:shadow-card-hover transition-shadow duration-200 group"
               >
                 {/* Photo */}
                 <div className="relative aspect-[4/3] bg-primary-100 overflow-hidden">

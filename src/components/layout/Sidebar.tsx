@@ -76,7 +76,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               to={item.href}
               onClick={onClose}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors relative',
+                'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-200 relative focus:outline-none focus:ring-2 focus:ring-accent/20',
                 active
                   ? 'bg-accent/10 text-accent border-l-2 border-accent pl-[10px]'
                   : 'text-primary-600 hover:bg-section hover:text-primary-900'
@@ -105,7 +105,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           to="/dashboard/settings"
           onClick={onClose}
           className={cn(
-            'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
+            'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent/20',
             location.pathname.startsWith('/dashboard/settings')
               ? 'bg-accent/10 text-accent'
               : 'text-primary-600 hover:bg-section hover:text-primary-900'

@@ -165,7 +165,7 @@ export default function ContactsPage() {
           <h1 className="text-2xl font-semibold text-primary-900">Contacts</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{MOCK_CONTACTS.length} contacts au total</p>
         </div>
-        <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
+        <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 focus:ring-offset-2">
           <Plus className="h-4 w-4" aria-hidden="true" />
           Ajouter un contact
         </button>
@@ -238,7 +238,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-card shadow-card overflow-hidden">
+      <div className="bg-white rounded-card shadow-card border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -348,21 +348,21 @@ export default function ContactsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           to={`/dashboard/contacts/${contact.id}`}
-                          className="p-1.5 rounded-md text-primary-400 hover:text-accent hover:bg-accent/10 transition-colors"
+                          className="p-1.5 rounded-md text-primary-400 hover:text-accent hover:bg-accent/10 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20"
                           title="Voir"
                         >
                           <Eye className="h-4 w-4" aria-hidden="true" />
                           <span className="sr-only">Voir</span>
                         </Link>
                         <button
-                          className="p-1.5 rounded-md text-primary-400 hover:text-warning hover:bg-warning/10 transition-colors"
+                          className="p-1.5 rounded-md text-primary-400 hover:text-warning hover:bg-warning/10 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20"
                           aria-label="Éditer"
                         >
                           <Pencil className="h-4 w-4" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => setDeleteTarget(contact)}
-                          className="p-1.5 rounded-md text-primary-400 hover:text-danger hover:bg-danger/10 transition-colors"
+                          className="p-1.5 rounded-md text-primary-400 hover:text-danger hover:bg-danger/10 transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20"
                           aria-label={`Supprimer ${contact.first_name} ${contact.last_name}`}
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />

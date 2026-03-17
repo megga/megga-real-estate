@@ -62,24 +62,24 @@ export default function DashboardPage() {
         {DASHBOARD_KPIS.map((kpi) => {
           const Icon = kpiIconMap[kpi.iconName]
           return (
-            <div key={kpi.label} className="bg-white rounded-card p-5 shadow-card border border-border hover:shadow-card-hover transition-shadow duration-200">
-              <div className="flex items-start justify-between mb-3">
-                <div className={cn('h-10 w-10 rounded-button flex items-center justify-center', kpi.iconBg)}>
+            <div key={kpi.label} className="bg-white rounded-card p-6 shadow-card border border-border hover:shadow-card-hover transition-shadow duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className={cn('h-11 w-11 rounded-button flex items-center justify-center', kpi.iconBg)}>
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </div>
+                <div className="flex items-center gap-1">
+                  {kpi.trend.positive ? (
+                    <ArrowUpRight className="h-3.5 w-3.5 text-success" aria-hidden="true" />
+                  ) : (
+                    <ArrowDownRight className="h-3.5 w-3.5 text-danger" aria-hidden="true" />
+                  )}
+                  <span className={cn('text-xs font-medium', kpi.trend.positive ? 'text-success' : 'text-danger')}>
+                    {kpi.trend.value}
+                  </span>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-primary-900">{kpi.value}</p>
-              <p className="text-sm text-muted-foreground mt-0.5">{kpi.label}</p>
-              <div className="flex items-center gap-1 mt-2">
-                {kpi.trend.positive ? (
-                  <ArrowUpRight className="h-3.5 w-3.5 text-success" aria-hidden="true" />
-                ) : (
-                  <ArrowDownRight className="h-3.5 w-3.5 text-danger" aria-hidden="true" />
-                )}
-                <span className={cn('text-xs font-medium', kpi.trend.positive ? 'text-success' : 'text-danger')}>
-                  {kpi.trend.value}
-                </span>
-              </div>
+              <p className="text-3xl font-bold text-primary-900 tracking-tight">{kpi.value}</p>
+              <p className="text-sm text-muted-foreground mt-1">{kpi.label}</p>
             </div>
           )
         })}
@@ -88,51 +88,55 @@ export default function DashboardPage() {
       {/* Pipeline + Tasks row */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Mini Pipeline */}
-        <div className="lg:col-span-3 bg-white rounded-card p-5 shadow-card border border-border">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-3 bg-white rounded-card p-6 shadow-card border border-border">
+          <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold text-primary-900">Pipeline</h2>
-            <span className="text-sm text-muted-foreground">{totalDeals} deals</span>
+            <span className="text-sm font-medium text-primary-700">{totalDeals} deals</span>
           </div>
 
           {/* Pipeline bar */}
-          <div className="flex rounded-full overflow-hidden h-8 mb-4">
-            {DASHBOARD_PIPELINE.map((stage) => (
-              <div
-                key={stage.label}
-                className={cn('flex items-center justify-center text-xs font-semibold text-white transition-all', stage.color)}
-                style={{ width: `${(stage.count / totalDeals) * 100}%` }}
-              >
-                {stage.count}
-              </div>
-            ))}
+          <div className="flex rounded-full overflow-hidden h-9 mb-5 bg-section">
+            {DASHBOARD_PIPELINE.map((stage) => {
+              const pct = (stage.count / totalDeals) * 100
+              return (
+                <div
+                  key={stage.label}
+                  className={cn('flex items-center justify-center text-xs font-semibold text-white transition-all duration-300', stage.color)}
+                  style={{ width: `${pct}%` }}
+                  title={`${stage.label}: ${stage.count}`}
+                >
+                  {pct >= 10 && stage.count}
+                </div>
+              )
+            })}
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             {DASHBOARD_PIPELINE.map((stage) => (
-              <div key={stage.label} className="flex items-center gap-1.5">
+              <div key={stage.label} className="flex items-center gap-2">
                 <div className={cn('h-2.5 w-2.5 rounded-full', stage.color)} />
                 <span className="text-xs text-muted-foreground">{stage.label}</span>
-                <span className="text-xs font-medium text-primary-700">{stage.count}</span>
+                <span className="text-xs font-semibold text-primary-900">{stage.count}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Urgent Tasks */}
-        <div className="lg:col-span-2 bg-white rounded-card p-5 shadow-card border border-border">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-2 bg-white rounded-card p-6 shadow-card border border-border">
+          <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-semibold text-primary-900 flex items-center gap-2">
               <AlertTriangle className="h-4.5 w-4.5 text-warning" aria-hidden="true" />
               Tâches urgentes
             </h2>
-            <span className="text-xs text-muted-foreground">{DASHBOARD_TASKS.length} tâches</span>
+            <span className="text-xs font-medium text-muted-foreground">{DASHBOARD_TASKS.length} tâches</span>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {DASHBOARD_TASKS.map((task) => {
               const Icon = taskIconMap[task.iconName]
               return (
-                <div key={task.id} className="flex items-start gap-3 group cursor-pointer rounded-button p-1 -m-1 transition-colors hover:bg-section">
+                <div key={task.id} className="flex items-start gap-3 group cursor-pointer rounded-button p-2.5 -mx-1 transition-colors hover:bg-section focus-within:ring-2 focus-within:ring-accent/20 focus-within:rounded-button">
                   <div className={cn('h-8 w-8 rounded-button flex items-center justify-center flex-shrink-0 mt-0.5', priorityStyles[task.priority])}>
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </div>
@@ -141,7 +145,7 @@ export default function DashboardPage() {
                       <p className="text-sm font-medium text-primary-900 group-hover:text-accent transition-colors truncate">
                         {task.title}
                       </p>
-                      <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge border', priorityStyles[task.priority])}>
+                      <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge border flex-shrink-0', priorityStyles[task.priority])}>
                         {priorityLabels[task.priority]}
                       </span>
                     </div>
@@ -155,10 +159,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-card p-5 shadow-card border border-border">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white rounded-card p-6 shadow-card border border-border">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-primary-900">Activité récente</h2>
-          <button className="text-sm text-accent hover:text-accent-hover font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 rounded px-2 py-1">
+          <button className="text-sm text-accent hover:text-accent-hover font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent/20 rounded-button px-2.5 py-1">
             Voir tout <span aria-hidden="true">→</span>
           </button>
         </div>
@@ -169,7 +173,7 @@ export default function DashboardPage() {
               <div
                 key={activity.id}
                 className={cn(
-                  'flex items-start gap-4 py-3.5 group cursor-pointer rounded-button transition-colors hover:bg-section',
+                  'flex items-start gap-4 py-3.5 px-2 -mx-2 group cursor-pointer rounded-button transition-colors hover:bg-section',
                   i < DASHBOARD_ACTIVITIES.length - 1 && 'border-b border-border-light'
                 )}
               >

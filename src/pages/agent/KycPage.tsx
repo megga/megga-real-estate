@@ -126,7 +126,7 @@ export default function KycPage() {
 
       {/* KYC cases list */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-card shadow-card p-12">
+        <div className="bg-white rounded-card shadow-card border border-border p-12">
           <EmptyState
             icon={ShieldCheck}
             title="Aucun dossier trouvé"
@@ -144,7 +144,7 @@ export default function KycPage() {
             return (
               <div
                 key={kycCase.id}
-                className="bg-white rounded-card shadow-card p-4 hover:shadow-card-hover transition-shadow cursor-pointer group"
+                className="bg-white rounded-card shadow-card border border-border p-4 hover:shadow-card-hover transition-shadow duration-200 cursor-pointer group"
               >
                 <div className="flex items-center gap-4">
                   {/* Icon */}

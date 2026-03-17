@@ -79,7 +79,7 @@ export default function MessagesPage() {
   const activeThread = MOCK_THREADS.find((t) => t.id === selectedThread)
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-0 bg-white rounded-card shadow-card overflow-hidden">
+    <div className="flex h-[calc(100vh-8rem)] gap-0 bg-white rounded-card shadow-card border border-border overflow-hidden">
       {/* Thread list */}
       <div className="w-80 flex-shrink-0 border-r border-border flex flex-col">
         {/* Search */}
@@ -202,7 +202,7 @@ export default function MessagesPage() {
                   className="flex-1 h-10 px-4 text-sm bg-section border-0 rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
                 <button
-                  className="h-10 w-10 bg-accent hover:bg-accent/90 text-white rounded-button flex items-center justify-center transition-colors disabled:opacity-40"
+                  className="h-10 w-10 bg-accent hover:bg-accent/90 text-white rounded-button flex items-center justify-center transition-colors disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-accent/20"
                   disabled={!newMessage.trim()}
                   aria-label="Envoyer"
                 >
