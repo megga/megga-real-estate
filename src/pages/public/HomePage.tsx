@@ -71,18 +71,20 @@ const FEATURED_LISTINGS = [
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {/* Navbar — fixed, transparent over hero, solid on scroll */}
+      <Navbar transparent />
 
       {/* Hero */}
-      <section className="relative min-h-[520px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[560px] flex items-center justify-center overflow-hidden">
+
         {/* Background image */}
         <img
           src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/35 to-black/20" />
+        {/* Gradient overlay — CRITIQUE #1: stronger */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/50 to-black/30" />
         {/* Grain texture overlay */}
         <div
           className="absolute inset-0 opacity-[0.03]"
@@ -90,15 +92,17 @@ export default function HomePage() {
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           }}
         />
+        {/* Bottom fade to white — MINEUR #2: smooth transition */}
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent" />
 
         {/* Content */}
-        <div className="relative z-10 w-full px-4 md:px-6 py-16 md:py-24">
+        <div className="relative z-10 w-full px-4 md:px-6 pt-28 pb-20 md:pt-32 md:pb-28">
           <HeroSearch />
         </div>
       </section>
 
       {/* Featured listings */}
-      <section className="py-12 md:py-16">
+      <section className="pt-16 pb-12 md:pt-20 md:pb-16">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           <h2 className="text-2xl md:text-3xl font-semibold text-gray-900">
             Biens en vedette
