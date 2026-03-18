@@ -9,11 +9,26 @@ export interface ListingCardData {
   price: number
   address: string
   city: string
+  canton?: string
   rooms: number
   bedrooms: number
   surface_m2: number
   photos: string[]
   is_hot?: boolean
+  is_new?: boolean
+  is_exclusive?: boolean
+  is_3d?: boolean
+  type?: string
+  context?: 'buy' | 'rent'
+  description?: string
+  published_at?: string
+  agent?: {
+    name: string
+    agency: string
+    phone: string
+    email: string
+    photo: string
+  }
 }
 
 interface ListingCardProps {
