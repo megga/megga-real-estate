@@ -1109,6 +1109,29 @@ export default function SearchPage() {
                 </div>
               </FilterPill>
 
+              {/* Lifestyle tags */}
+              <FilterPill
+                label={filters.lifestyleTags.length ? `Style de vie (${filters.lifestyleTags.length})` : 'Style de vie'}
+                active={filters.lifestyleTags.length > 0}
+              >
+                <div className="grid grid-cols-2 gap-1.5 min-w-[280px]">
+                  {LIFESTYLE_TAGS.map((tag) => (
+                    <FilterOption
+                      key={tag.value}
+                      selected={filters.lifestyleTags.includes(tag.value)}
+                      onClick={() => {
+                        const next = filters.lifestyleTags.includes(tag.value)
+                          ? filters.lifestyleTags.filter((t) => t !== tag.value)
+                          : [...filters.lifestyleTags, tag.value]
+                        updateFilter({ lifestyleTags: next })
+                      }}
+                    >
+                      <span className="mr-1">{tag.icon}</span> {tag.label}
+                    </FilterOption>
+                  ))}
+                </div>
+              </FilterPill>
+
               {/* More filters placeholder */}
               <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">
                 <SlidersHorizontal className="h-3.5 w-3.5" />

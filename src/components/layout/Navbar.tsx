@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
-  { label: 'Acheter', href: '/search?context=buy' },
-  { label: 'Louer', href: '/search?context=rent' },
+  { label: 'Acheter', href: '/acheter' },
+  { label: 'Louer', href: '/louer' },
   { label: 'Vendre', href: '/vendre' },
   { label: 'Estimations', href: '/estimations' },
   { label: 'Services', href: '/services' },
@@ -24,7 +24,7 @@ function UserAvatar({ name, email }: { name: string; email: string }) {
     : email[0].toUpperCase()
 
   return (
-    <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
+    <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
       <span className="text-xs font-semibold text-white">{initials}</span>
     </div>
   )
@@ -59,31 +59,27 @@ export default function Navbar() {
   }
 
   return (
-    <header className="h-16 border-b border-gray-100 bg-white sticky top-0 z-50">
+    <header className="h-16 border-b border-border bg-white shadow-navbar sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center justify-between">
-        {/* Logo SVG */}
-        <Link to="/" className="flex-shrink-0 mr-12">
-          <img src="/megga-logo.svg" alt="MEGGA" className="h-5" />
+        {/* Logo */}
+        <Link to="/" className="flex-shrink-0">
+          <img src="/megga-logo.svg" alt="MEGGA" className="h-7 hidden sm:block" />
+          <img src="/megga-gg.svg" alt="MEGGA" className="h-7 sm:hidden" />
         </Link>
 
         {/* Navigation desktop */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => {
-            const linkUrl = new URL(link.href, window.location.origin)
-            const isActive =
-              location.pathname === linkUrl.pathname &&
-              (linkUrl.search
-                ? location.search.includes(linkUrl.search.slice(1))
-                : !location.search)
+            const isActive = location.pathname === link.href
             return (
               <Link
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  'text-sm transition-colors',
+                  'px-3 py-2 text-sm font-medium transition-colors rounded-md',
                   isActive
-                    ? 'text-primary-900 font-semibold'
-                    : 'text-gray-500 font-medium hover:text-primary-900'
+                    ? 'text-accent border-b-2 border-accent'
+                    : 'text-primary-700 hover:text-accent'
                 )}
               >
                 {link.label}
@@ -92,22 +88,17 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Actions desktop — order: Se connecter → Publier → Avatar */}
-        <div className="hidden md:flex items-center gap-4">
-          {!loading && !user && (
-            <Link to="/login" className="text-sm font-medium text-gray-700 hover:text-primary-900 transition-colors">
-              Se connecter
-            </Link>
-          )}
-
-          <button className="h-9 px-5 text-sm font-medium rounded-full bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-1.5 cursor-pointer">
-            <Plus className="h-3.5 w-3.5" />
+        {/* Actions desktop */}
+        <div className="hidden md:flex items-center gap-3">
+          <Button size="default" className="rounded-full gap-2">
+            <Plus className="h-4 w-4" />
             Publier une annonce
-          </button>
+          </Button>
 
           {loading ? (
-            <div className="h-8 w-8 rounded-full bg-gray-100 animate-pulse" />
+            <div className="h-9 w-9 rounded-full bg-section animate-pulse" />
           ) : user ? (
+            /* Logged in — avatar dropdown */
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -117,37 +108,42 @@ export default function Navbar() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-gray-100 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-gray-100">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-border py-2 z-50">
+                  {/* User info */}
+                  <div className="px-4 py-3 border-b border-border">
                     <p className="text-sm font-medium text-primary-900 truncate">
                       {displayName}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {displayEmail}
                     </p>
                   </div>
+
+                  {/* Menu items */}
                   <div className="py-1">
                     <Link
                       to="/dashboard"
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      <LayoutDashboard className="h-4 w-4 text-gray-400" />
+                      <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
                       Dashboard
                     </Link>
                     <Link
                       to="/settings/profile"
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      <User className="h-4 w-4 text-gray-400" />
+                      <User className="h-4 w-4 text-muted-foreground" />
                       Mon profil
                     </Link>
                   </div>
-                  <div className="border-t border-gray-100 pt-1">
+
+                  {/* Sign out */}
+                  <div className="border-t border-border pt-1">
                     <button
                       onClick={handleSignOut}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-red-50 transition-colors w-full text-left"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger-light transition-colors w-full text-left"
                     >
                       <LogOut className="h-4 w-4" />
                       Déconnexion
@@ -156,7 +152,14 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-          ) : null}
+          ) : (
+            /* Not logged in */
+            <Link to="/login">
+              <Button variant="outline" size="default" className="rounded-full">
+                Se connecter
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Mobile menu button */}
