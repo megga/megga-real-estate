@@ -63,8 +63,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex-shrink-0">
-          <img src="/megga-logo.svg" alt="MEGGA" className="h-7 hidden sm:block" />
-          <img src="/megga-gg.svg" alt="MEGGA" className="h-7 sm:hidden" />
+          <img src="/megga-logo.svg" alt="MEGGA" className="h-5 hidden sm:block" />
+          <img src="/megga-gg.svg" alt="MEGGA" className="h-5 sm:hidden" />
         </Link>
 
         {/* Navigation desktop */}
