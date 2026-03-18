@@ -17,7 +17,7 @@ import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibWVnZ2FpIiwiYSI6ImNtbXZiM3JpYzIwdGQycXF4cnI2bDdhYzAifQ.xvmW0Co7J3F497zSCXNQsw'
 
 interface MapViewProps {
   listings: ListingCardData[]
