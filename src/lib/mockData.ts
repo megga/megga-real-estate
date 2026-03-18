@@ -27,6 +27,7 @@ export interface MockListing {
   lat: number
   lng: number
   published_at: string
+  lifestyle_tags?: string[]
   agent: {
     name: string
     agency: string
@@ -58,6 +59,7 @@ export const MOCK_LISTINGS: MockListing[] = [
     status: 'active',
     is_hot: true,
     published_at: '2026-03-14T10:00:00Z',
+    lifestyle_tags: ['vue_lac', 'lumineux', 'proche_transports', 'proche_ecoles', 'balcon', 'parking', 'ascenseur'],
     photos: [
       'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&h=800&fit=crop',
       'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
@@ -1000,6 +1002,9 @@ export function toCardData(l: MockListing) {
     context: l.context,
     description: l.description,
     published_at: l.published_at,
+    lat: l.lat,
+    lng: l.lng,
+    lifestyle_tags: l.lifestyle_tags,
     agent: l.agent,
   }
 }

@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  MessageSquare,
-  ArrowRight,
   Search,
   ChevronDown,
   X,
@@ -15,11 +13,14 @@ import {
   BedDouble,
   Maximize,
   Map,
-  Expand,
-  Send,
   SlidersHorizontal,
+  Sparkles,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
+import MapView from '@/components/map/MapView'
+import SaveSearchModal from '@/components/search/SaveSearchModal'
+import SavedSearchesPanel from '@/components/search/SavedSearchesPanel'
+import { useSavedSearches } from '@/hooks/useSavedSearches'
 import { MOCK_LISTINGS, toCardData } from '@/lib/mockData'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
@@ -42,6 +43,7 @@ interface Filters {
   bedrooms: string
   city: string
   canton: string
+  lifestyleTags: string[]
   sort: SortOption
   view: ViewMode
 }
@@ -60,6 +62,24 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 
 const ROOM_OPTIONS = ['1', '2', '3', '4', '5+']
 const BEDROOM_OPTIONS = ['1', '2', '3', '4+']
+
+const LIFESTYLE_TAGS: { value: string; label: string; icon: string }[] = [
+  { value: 'vue_lac', label: 'Vue lac', icon: '🌊' },
+  { value: 'vue_montagne', label: 'Vue montagne', icon: '⛰️' },
+  { value: 'lumineux', label: 'Lumineux', icon: '☀️' },
+  { value: 'quartier_calme', label: 'Quartier calme', icon: '🤫' },
+  { value: 'proche_transports', label: 'Transports', icon: '🚆' },
+  { value: 'proche_ecoles', label: 'Écoles', icon: '🎓' },
+  { value: 'terrasse', label: 'Terrasse', icon: '🌿' },
+  { value: 'balcon', label: 'Balcon', icon: '🏗️' },
+  { value: 'jardin', label: 'Jardin', icon: '🌳' },
+  { value: 'parking', label: 'Parking', icon: '🅿️' },
+  { value: 'piscine', label: 'Piscine', icon: '🏊' },
+  { value: 'dernier_etage', label: 'Dernier étage', icon: '🔝' },
+  { value: 'ascenseur', label: 'Ascenseur', icon: '🛗' },
+  { value: 'meuble', label: 'Meublé', icon: '🛋️' },
+  { value: 'centre_ville', label: 'Centre-ville', icon: '🏙️' },
+]
 
 const CITIES = [
   'Genève', 'Carouge', 'Lancy', 'Vernier', 'Meyrin', 'Cologny', 'Veyrier', 'Vandoeuvres',
@@ -81,6 +101,189 @@ const PRICE_RANGES_RENT = [
   { min: '4000', max: '', label: "Dès CHF 4'000/mois" },
 ]
 
+// ─── AI QUERY PARSER ────────────────────────────────────────────────────────
+
+interface ParsedQuery {
+  filters: Partial<Filters>
+  understood: string[]
+}
+
+const CITY_ALIASES: Record<string, string> = {
+  genève: 'Genève', geneve: 'Genève', gva: 'Genève',
+  lausanne: 'Lausanne',
+  nyon: 'Nyon',
+  montreux: 'Montreux',
+  vevey: 'Vevey',
+  carouge: 'Carouge',
+  lancy: 'Lancy',
+  vernier: 'Vernier',
+  meyrin: 'Meyrin',
+  cologny: 'Cologny',
+  veyrier: 'Veyrier',
+  vandoeuvres: 'Vandoeuvres',
+  champel: 'Genève',
+  'eaux_vives': 'Genève', 'eaux-vives': 'Genève',
+  plainpalais: 'Genève',
+  cornavin: 'Genève',
+  pâquis: 'Genève', paquis: 'Genève',
+  servette: 'Genève',
+  jonction: 'Genève',
+}
+
+const TYPE_ALIASES: Record<string, string> = {
+  appartement: 'apartment', appart: 'apartment', apt: 'apartment',
+  maison: 'house',
+  villa: 'villa',
+  commercial: 'commercial', bureau: 'commercial', bureaux: 'commercial',
+  terrain: 'land', parcelle: 'land',
+}
+
+function parseNaturalLanguageQuery(query: string): ParsedQuery {
+  const q = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const original = query.toLowerCase()
+  const filters: Partial<Filters> = {}
+  const understood: string[] = []
+
+  // Context: buy or rent
+  if (/\b(louer|location|loue|a\s+louer|mensuel|mois)\b/.test(original)) {
+    filters.context = 'rent'
+    understood.push('Location')
+  } else if (/\b(acheter|achat|achete|vente|a\s+vendre)\b/.test(original)) {
+    filters.context = 'buy'
+    understood.push('Achat')
+  }
+
+  // Rooms: "3 pièces", "4p", "3.5 pièces"
+  const roomsMatch = q.match(/(\d+(?:[.,]\d)?)\s*(?:pieces?|pi[eè]ces?|p\.?\b|½)/i)
+  if (roomsMatch) {
+    const rooms = Math.floor(parseFloat(roomsMatch[1].replace(',', '.')))
+    if (rooms >= 1 && rooms <= 10) {
+      filters.rooms = rooms >= 5 ? '5+' : String(rooms)
+      understood.push(`${rooms} pièces`)
+    }
+  }
+
+  // Bedrooms: "3 chambres", "2 ch"
+  const bedroomsMatch = q.match(/(\d+)\s*(?:chambres?|ch\.?\b)/i)
+  if (bedroomsMatch) {
+    const bed = parseInt(bedroomsMatch[1])
+    if (bed >= 1 && bed <= 10) {
+      filters.bedrooms = bed >= 4 ? '4+' : String(bed)
+      understood.push(`${bed} chambre${bed > 1 ? 's' : ''}`)
+    }
+  }
+
+  // Price: "max 800k", "moins de 500000", "budget 1.2m", "max 2500/mois"
+  const priceMax = q.match(/(?:max(?:imum)?|moins\s+de|budget|jusqu'?\s*[aà])\s*(?:chf\s*)?(\d+(?:[.,]\d+)?)\s*(k|m|'?\d*)/)
+  if (priceMax) {
+    let price = parseFloat(priceMax[1].replace(',', '.'))
+    const unit = priceMax[2]?.toLowerCase()
+    if (unit === 'k') price *= 1000
+    else if (unit === 'm') price *= 1000000
+    filters.maxPrice = String(Math.round(price))
+    understood.push(`Max CHF ${price >= 1000000 ? `${price / 1000000}M` : price >= 1000 ? `${price / 1000}K` : price}`)
+  }
+
+  // Price min: "à partir de", "dès", "min"
+  const priceMin = q.match(/(?:a\s+partir\s+de|des|minimum|min)\s*(?:chf\s*)?(\d+(?:[.,]\d+)?)\s*(k|m|'?\d*)/)
+  if (priceMin) {
+    let price = parseFloat(priceMin[1].replace(',', '.'))
+    const unit = priceMin[2]?.toLowerCase()
+    if (unit === 'k') price *= 1000
+    else if (unit === 'm') price *= 1000000
+    filters.minPrice = String(Math.round(price))
+    understood.push(`Min CHF ${price >= 1000000 ? `${price / 1000000}M` : price >= 1000 ? `${price / 1000}K` : price}`)
+  }
+
+  // Standalone price (just a number with k/m): "800k", "1.5m"
+  if (!priceMax && !priceMin) {
+    const standalonePrice = q.match(/(?:chf\s*)?(\d+(?:[.,]\d+)?)\s*(k|m)\b/)
+    if (standalonePrice) {
+      let price = parseFloat(standalonePrice[1].replace(',', '.'))
+      const unit = standalonePrice[2].toLowerCase()
+      if (unit === 'k') price *= 1000
+      else if (unit === 'm') price *= 1000000
+      filters.maxPrice = String(Math.round(price))
+      understood.push(`Max CHF ${price >= 1000000 ? `${price / 1000000}M` : `${price / 1000}K`}`)
+    }
+  }
+
+  // Surface: "100m²", "min 80 m2"
+  const surfaceMatch = q.match(/(?:min(?:imum)?\s*)?(\d+)\s*m[²2]/)
+  if (surfaceMatch) {
+    filters.minSurface = surfaceMatch[1]
+    understood.push(`Min ${surfaceMatch[1]} m²`)
+  }
+
+  // City detection
+  for (const [alias, city] of Object.entries(CITY_ALIASES)) {
+    if (original.includes(alias)) {
+      filters.city = city
+      understood.push(city)
+      break
+    }
+  }
+
+  // Property type detection
+  for (const [alias, type] of Object.entries(TYPE_ALIASES)) {
+    if (original.includes(alias)) {
+      filters.types = [type]
+      understood.push(alias.charAt(0).toUpperCase() + alias.slice(1))
+      break
+    }
+  }
+
+  // Lifestyle tags detection
+  const lifestyleKeywords: Record<string, { tag: string; label: string }> = {
+    'vue lac': { tag: 'vue_lac', label: 'Vue lac' },
+    'vue sur le lac': { tag: 'vue_lac', label: 'Vue lac' },
+    'bord du lac': { tag: 'vue_lac', label: 'Vue lac' },
+    'vue montagne': { tag: 'vue_montagne', label: 'Vue montagne' },
+    'vue alpes': { tag: 'vue_montagne', label: 'Vue montagne' },
+    'lumineux': { tag: 'lumineux', label: 'Lumineux' },
+    'lumiere': { tag: 'lumineux', label: 'Lumineux' },
+    'ensoleille': { tag: 'lumineux', label: 'Lumineux' },
+    'calme': { tag: 'quartier_calme', label: 'Quartier calme' },
+    'tranquille': { tag: 'quartier_calme', label: 'Quartier calme' },
+    'residentiel': { tag: 'quartier_calme', label: 'Quartier calme' },
+    'transport': { tag: 'proche_transports', label: 'Transports' },
+    'tram': { tag: 'proche_transports', label: 'Transports' },
+    'bus': { tag: 'proche_transports', label: 'Transports' },
+    'gare': { tag: 'proche_transports', label: 'Transports' },
+    'metro': { tag: 'proche_transports', label: 'Transports' },
+    'ecole': { tag: 'proche_ecoles', label: 'Écoles' },
+    'ecoles': { tag: 'proche_ecoles', label: 'Écoles' },
+    'enfant': { tag: 'proche_ecoles', label: 'Écoles' },
+    'familial': { tag: 'proche_ecoles', label: 'Écoles' },
+    'famille': { tag: 'proche_ecoles', label: 'Écoles' },
+    'terrasse': { tag: 'terrasse', label: 'Terrasse' },
+    'balcon': { tag: 'balcon', label: 'Balcon' },
+    'jardin': { tag: 'jardin', label: 'Jardin' },
+    'parking': { tag: 'parking', label: 'Parking' },
+    'garage': { tag: 'parking', label: 'Parking' },
+    'piscine': { tag: 'piscine', label: 'Piscine' },
+    'dernier etage': { tag: 'dernier_etage', label: 'Dernier étage' },
+    'attique': { tag: 'dernier_etage', label: 'Dernier étage' },
+    'ascenseur': { tag: 'ascenseur', label: 'Ascenseur' },
+    'meuble': { tag: 'meuble', label: 'Meublé' },
+    'centre': { tag: 'centre_ville', label: 'Centre-ville' },
+    'centre-ville': { tag: 'centre_ville', label: 'Centre-ville' },
+  }
+
+  const detectedTags: string[] = []
+  for (const [keyword, { tag, label }] of Object.entries(lifestyleKeywords)) {
+    if (q.includes(keyword) && !detectedTags.includes(tag)) {
+      detectedTags.push(tag)
+      understood.push(label)
+    }
+  }
+  if (detectedTags.length) {
+    filters.lifestyleTags = detectedTags
+  }
+
+  return { filters, understood }
+}
+
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
 function parseFiltersFromParams(params: URLSearchParams): Filters {
@@ -95,6 +298,7 @@ function parseFiltersFromParams(params: URLSearchParams): Filters {
     bedrooms: params.get('bedrooms') || '',
     city: params.get('city') || '',
     canton: params.get('canton') || '',
+    lifestyleTags: params.get('lifestyle')?.split(',').filter(Boolean) || [],
     sort: (params.get('sort') as SortOption) || 'relevance',
     view: (params.get('view') as ViewMode) || 'list',
   }
@@ -112,18 +316,10 @@ function filtersToParams(filters: Filters): Record<string, string> {
   if (filters.bedrooms) p.bedrooms = filters.bedrooms
   if (filters.city) p.city = filters.city
   if (filters.canton) p.canton = filters.canton
+  if (filters.lifestyleTags.length) p.lifestyle = filters.lifestyleTags.join(',')
   if (filters.sort !== 'relevance') p.sort = filters.sort
   if (filters.view !== 'list') p.view = filters.view
   return p
-}
-
-function formatPriceShort(price: number, context: Context): string {
-  if (context === 'rent') return `${formatCHF(price)}/m`
-  if (price >= 1000000) {
-    const m = price / 1000000
-    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
-  }
-  return `${Math.round(price / 1000)}K`
 }
 
 function applyFilters(listings: ListingCardData[], filters: Filters): ListingCardData[] {
@@ -174,6 +370,12 @@ function applyFilters(listings: ListingCardData[], filters: Filters): ListingCar
   }
   if (filters.canton) {
     result = result.filter((l) => l.canton === filters.canton)
+  }
+
+  if (filters.lifestyleTags.length) {
+    result = result.filter((l) =>
+      filters.lifestyleTags.every((tag) => l.lifestyle_tags?.includes(tag))
+    )
   }
 
   // Sort
@@ -227,14 +429,14 @@ function FilterPill({ label, active, children }: FilterPillProps) {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-full border transition-colors whitespace-nowrap cursor-pointer',
+          'flex items-center gap-1.5 px-4 py-2 text-sm rounded-full border transition-all duration-150 whitespace-nowrap cursor-pointer',
           active
             ? 'bg-accent text-white border-accent font-medium'
-            : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
         )}
       >
         {label}
-        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('h-3.5 w-3.5 ml-0.5 transition-transform', active ? 'text-white/70' : 'text-gray-400', open && 'rotate-180')} />
       </button>
       {open && (
         <>
@@ -271,205 +473,32 @@ function FilterOption({
   )
 }
 
-// ─── CHAT PANEL ─────────────────────────────────────────────────────────────
-
-interface ChatMessage {
-  id: string
-  role: 'assistant' | 'user'
-  content: string
-  suggestions?: string[]
-  miniCards?: { id: string; title: string; price: number; context: Context }[]
-}
-
-function ChatPanel({
-  open,
-  onClose,
-  context,
-}: {
-  open: boolean
-  onClose: () => void
-  context: Context
-}) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content:
-        'Bonjour ! Je peux vous aider à affiner votre recherche. Décrivez ce que vous cherchez ou posez-moi une question sur les résultats affichés.',
-      suggestions: ['Biens avec vue lac', 'Moins de CHF 500K', 'Proche des transports'],
-    },
-  ])
-  const [input, setInput] = useState('')
-  const [typing, setTyping] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages, typing])
-
-  function handleSend(text: string) {
-    if (!text.trim()) return
-    const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content: text }
-    setMessages((prev) => [...prev, userMsg])
-    setInput('')
-    setTyping(true)
-
-    setTimeout(() => {
-      const mockCards =
-        context === 'buy'
-          ? [
-              { id: '1', title: 'Appartement lumineux aux Eaux-Vives', price: 720000, context: 'buy' as Context },
-              { id: '4', title: 'Villa avec vue sur le lac', price: 2950000, context: 'buy' as Context },
-            ]
-          : [
-              { id: '20', title: 'Appartement vue lac Montreux', price: 2200, context: 'rent' as Context },
-              { id: '24', title: 'Attique avec terrasse Carouge', price: 3200, context: 'rent' as Context },
-            ]
-      const reply: ChatMessage = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: `J'ai trouvé ${mockCards.length} biens qui correspondent à votre demande. Voici les meilleurs :`,
-        miniCards: mockCards,
-      }
-      setMessages((prev) => [...prev, reply])
-      setTyping(false)
-    }, 1500)
-  }
-
-  return (
-    <>
-      {/* Backdrop mobile */}
-      {open && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={onClose} />}
-
-      <div
-        className={cn(
-          'fixed z-50 bg-white shadow-modal flex flex-col transition-transform duration-300',
-          // Desktop: side panel
-          'right-0 top-0 h-full w-96 max-lg:hidden',
-          open ? 'translate-x-0' : 'translate-x-full',
-          // Mobile: bottom drawer
-          'max-lg:inset-x-0 max-lg:bottom-0 max-lg:top-auto max-lg:w-full max-lg:h-[85vh] max-lg:rounded-t-2xl',
-          open ? 'max-lg:translate-y-0' : 'max-lg:translate-y-full'
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center">
-              <MessageSquare className="h-4 w-4 text-accent" />
-            </div>
-            <span className="font-semibold text-gray-900">Assistant MEGGA</span>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
-            <X className="h-4 w-4 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-              <div
-                className={cn(
-                  'max-w-[85%] px-3.5 py-2.5 text-sm',
-                  msg.role === 'user'
-                    ? 'bg-accent text-white rounded-2xl rounded-br-md'
-                    : 'bg-gray-100 text-gray-800 rounded-2xl rounded-bl-md'
-                )}
-              >
-                <p>{msg.content}</p>
-
-                {msg.suggestions && (
-                  <div className="flex flex-wrap gap-1.5 mt-2.5">
-                    {msg.suggestions.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => handleSend(s)}
-                        className="text-xs px-2.5 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {msg.miniCards && (
-                  <div className="space-y-2 mt-2.5">
-                    {msg.miniCards.map((card) => (
-                      <Link
-                        key={card.id}
-                        to={`/listing/${card.id}`}
-                        className="block bg-white rounded-lg border border-gray-200 px-3 py-2 hover:border-accent transition-colors"
-                      >
-                        <p className="text-sm font-medium text-gray-900">{card.title}</p>
-                        <p className="text-xs font-bold text-accent mt-0.5">
-                          {formatCHF(card.price)}
-                          {card.context === 'rent' ? '/mois' : ''}
-                        </p>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {typing && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1">
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Input */}
-        <div className="px-4 py-3 border-t border-gray-100">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSend(input)
-            }}
-            className="flex items-center gap-2"
-          >
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Décrivez ce que vous cherchez..."
-              className="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-            />
-            <button
-              type="submit"
-              className="h-10 w-10 bg-accent hover:bg-accent/90 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
-            >
-              <Send className="h-4 w-4 text-white" />
-            </button>
-          </form>
-        </div>
-      </div>
-    </>
-  )
-}
-
 // ─── LISTING CARD (HORIZONTAL) ──────────────────────────────────────────────
 
 function ListingCardHorizontal({
   listing,
   onHover,
+  isHovered,
 }: {
   listing: ListingCardData
   onHover?: (id: string | undefined) => void
+  isHovered?: boolean
 }) {
+  const cardRef = useRef<HTMLAnchorElement>(null)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
 
+  // Scroll into view when hovered from map
+  useEffect(() => {
+    if (isHovered && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [isHovered])
+
   const badge = listing.is_new
-    ? { label: 'Nouveau', bg: 'bg-accent' }
+    ? { label: 'Nouveau', bg: 'bg-accent/90' }
     : listing.is_hot
-      ? { label: 'Hot price', bg: 'bg-danger' }
+      ? { label: 'Hot price', bg: 'bg-red-500/90' }
       : listing.is_exclusive
         ? { label: 'Exclusif', bg: 'bg-gray-900' }
         : listing.is_3d
@@ -481,25 +510,34 @@ function ListingCardHorizontal({
 
   return (
     <Link
+      ref={cardRef}
       to={`/listing/${listing.id}`}
-      className="flex flex-col sm:flex-row bg-white rounded-card shadow-card hover:shadow-card-hover transition-all duration-200 hover:scale-[1.01] overflow-hidden group"
+      className={cn(
+        'flex flex-col sm:flex-row bg-white border rounded-xl transition-all duration-200 overflow-hidden group',
+        isHovered
+          ? 'border-accent/40 shadow-card-hover ring-1 ring-accent/20'
+          : 'border-gray-100 hover:border-gray-200 hover:shadow-card-hover'
+      )}
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
       {/* Photo */}
-      <div className="relative w-full sm:w-64 shrink-0 aspect-[4/3] overflow-hidden">
+      <div className="relative w-full sm:w-56 lg:w-64 shrink-0 aspect-[4/3] overflow-hidden sm:rounded-l-xl">
         <img
           src={listing.photos[currentPhoto]}
           alt={listing.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
 
+        {/* Gradient for dot visibility */}
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+
         {/* Badge */}
         {badge && (
           <div
             className={cn(
               badge.bg,
-              'absolute top-3 left-3 text-white text-xs font-medium px-2 py-0.5 rounded-badge'
+              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md'
             )}
           >
             {badge.label}
@@ -513,19 +551,19 @@ function ListingCardHorizontal({
             e.stopPropagation()
             setIsFavorite(!isFavorite)
           }}
-          className="absolute top-3 right-3 h-8 w-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors cursor-pointer"
+          className="absolute top-3 right-3 h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
         >
           <Heart
             className={cn(
               'h-4 w-4 transition-colors',
-              isFavorite ? 'fill-danger text-danger' : 'text-gray-600'
+              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'
             )}
           />
         </button>
 
         {/* Photo dots */}
         {listing.photos.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
             {listing.photos.slice(0, 5).map((_, i) => (
               <button
                 key={i}
@@ -535,8 +573,8 @@ function ListingCardHorizontal({
                   setCurrentPhoto(i)
                 }}
                 className={cn(
-                  'h-1.5 rounded-full transition-all cursor-pointer',
-                  currentPhoto === i ? 'w-3 bg-white' : 'w-1.5 bg-white/60 hover:bg-white/80'
+                  'rounded-full transition-all cursor-pointer',
+                  currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
                 )}
               />
             ))}
@@ -544,51 +582,48 @@ function ListingCardHorizontal({
         )}
       </div>
 
-      {/* Info */}
+      {/* Info — compact layout with gap-1, agent at bottom via mt-auto */}
       <div className="flex-1 p-4 flex flex-col min-w-0">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <span className="text-xl font-bold text-gray-900">{priceLabel}</span>
+        <div className="flex flex-col gap-1">
+          <span className="text-lg font-bold text-primary-900">{priceLabel}</span>
+
+          <p className="flex items-center gap-1 text-sm text-gray-500">
+            <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+            <span className="truncate">
+              {listing.address}, {listing.city}
+            </span>
+          </p>
+
+          <div className="flex items-center text-sm text-gray-500">
+            {listing.rooms > 0 && (
+              <span className="flex items-center gap-1">
+                <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
+                {listing.rooms} pièces
+              </span>
+            )}
+            {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-300 mx-1.5">·</span>}
+            {listing.bedrooms > 0 && (
+              <span className="flex items-center gap-1">
+                <BedDouble className="h-3.5 w-3.5 text-gray-400" />
+                {listing.bedrooms} ch.
+              </span>
+            )}
+            {(listing.rooms > 0 || listing.bedrooms > 0) && <span className="text-gray-300 mx-1.5">·</span>}
+            <span className="flex items-center gap-1">
+              <Maximize className="h-3.5 w-3.5 text-gray-400" />
+              {formatSurface(listing.surface_m2)}
+            </span>
+          </div>
         </div>
 
-        <p className="flex items-center gap-1 text-sm text-gray-500 mb-1.5">
-          <MapPin className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">
-            {listing.address}, {listing.city}
-          </span>
-        </p>
-
-        <div className="flex items-center gap-3 text-sm text-gray-400 mb-2">
-          {listing.rooms > 0 && (
-            <span className="flex items-center gap-1">
-              <DoorOpen className="h-3.5 w-3.5" />
-              {listing.rooms} pièces
-            </span>
-          )}
-          {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-200">·</span>}
-          {listing.bedrooms > 0 && (
-            <span className="flex items-center gap-1">
-              <BedDouble className="h-3.5 w-3.5" />
-              {listing.bedrooms} ch.
-            </span>
-          )}
-          {(listing.rooms > 0 || listing.bedrooms > 0) && <span className="text-gray-200">·</span>}
-          <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5" />
-            {formatSurface(listing.surface_m2)}
-          </span>
-        </div>
-
-        {listing.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-auto">{listing.description}</p>
-        )}
-
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
+        {/* Agent line — pushed to bottom */}
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
           {listing.agent && (
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <img
                 src={listing.agent.photo}
                 alt={listing.agent.name}
-                className="h-6 w-6 rounded-full object-cover shrink-0"
+                className="h-5 w-5 rounded-full object-cover shrink-0"
               />
               <span className="text-xs text-gray-400 truncate">
                 {listing.agent.name} · {listing.agent.agency}
@@ -597,7 +632,7 @@ function ListingCardHorizontal({
           )}
           {listing.published_at && (
             <span className="text-xs text-gray-400 shrink-0">
-              Publié {formatRelativeDate(listing.published_at)}
+              {formatRelativeDate(listing.published_at)}
             </span>
           )}
         </div>
@@ -611,17 +646,26 @@ function ListingCardHorizontal({
 function ListingCardGrid({
   listing,
   onHover,
+  isHovered,
 }: {
   listing: ListingCardData
   onHover?: (id: string | undefined) => void
+  isHovered?: boolean
 }) {
+  const cardRef = useRef<HTMLAnchorElement>(null)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
 
+  useEffect(() => {
+    if (isHovered && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [isHovered])
+
   const badge = listing.is_new
-    ? { label: 'Nouveau', bg: 'bg-accent' }
+    ? { label: 'Nouveau', bg: 'bg-accent/90' }
     : listing.is_hot
-      ? { label: 'Hot price', bg: 'bg-danger' }
+      ? { label: 'Hot price', bg: 'bg-red-500/90' }
       : listing.is_exclusive
         ? { label: 'Exclusif', bg: 'bg-gray-900' }
         : listing.is_3d
@@ -633,8 +677,14 @@ function ListingCardGrid({
 
   return (
     <Link
+      ref={cardRef}
       to={`/listing/${listing.id}`}
-      className="block bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group"
+      className={cn(
+        'block bg-white border rounded-xl transition-all duration-200 overflow-hidden group',
+        isHovered
+          ? 'border-accent/40 shadow-card-hover ring-1 ring-accent/20'
+          : 'border-gray-100 hover:border-gray-200 hover:shadow-card-hover'
+      )}
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
@@ -644,11 +694,13 @@ function ListingCardGrid({
           alt={listing.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
+        {/* Gradient for dot visibility */}
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
         {badge && (
           <div
             className={cn(
               badge.bg,
-              'absolute top-3 left-3 text-white text-xs font-medium px-2 py-0.5 rounded-badge'
+              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md'
             )}
           >
             {badge.label}
@@ -660,17 +712,17 @@ function ListingCardGrid({
             e.stopPropagation()
             setIsFavorite(!isFavorite)
           }}
-          className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors cursor-pointer"
+          className="absolute top-3 right-3 h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
         >
           <Heart
             className={cn(
               'h-4 w-4 transition-colors',
-              isFavorite ? 'fill-danger text-danger' : 'text-gray-600'
+              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'
             )}
           />
         </button>
         {listing.photos.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
             {listing.photos.slice(0, 5).map((_, i) => (
               <button
                 key={i}
@@ -680,8 +732,8 @@ function ListingCardGrid({
                   setCurrentPhoto(i)
                 }}
                 className={cn(
-                  'h-1.5 rounded-full transition-all cursor-pointer',
-                  currentPhoto === i ? 'w-4 bg-white' : 'w-1.5 bg-white/60 hover:bg-white/80'
+                  'rounded-full transition-all cursor-pointer',
+                  currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
                 )}
               />
             ))}
@@ -689,112 +741,34 @@ function ListingCardGrid({
         )}
       </div>
       <div className="p-4">
-        <span className="text-xl font-bold text-gray-900">{priceLabel}</span>
+        <span className="text-xl font-bold text-primary-900">{priceLabel}</span>
         <p className="text-sm text-gray-500 mt-1">
           {listing.address}, {listing.city}
         </p>
-        <div className="flex items-center gap-3 text-sm text-gray-400 mt-2">
+        <div className="flex items-center text-sm text-gray-500 mt-2">
           {listing.rooms > 0 && (
             <span className="flex items-center gap-1">
-              <DoorOpen className="h-3.5 w-3.5" />
+              <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
               {listing.rooms} p.
             </span>
           )}
           {listing.bedrooms > 0 && (
             <>
-              <span className="text-gray-200">·</span>
+              <span className="text-gray-300 mx-1.5">·</span>
               <span className="flex items-center gap-1">
-                <BedDouble className="h-3.5 w-3.5" />
+                <BedDouble className="h-3.5 w-3.5 text-gray-400" />
                 {listing.bedrooms} ch.
               </span>
             </>
           )}
-          <span className="text-gray-200">·</span>
+          <span className="text-gray-300 mx-1.5">·</span>
           <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5" />
+            <Maximize className="h-3.5 w-3.5 text-gray-400" />
             {formatSurface(listing.surface_m2)}
           </span>
         </div>
       </div>
     </Link>
-  )
-}
-
-// ─── MAP PLACEHOLDER ────────────────────────────────────────────────────────
-
-function MapPlaceholder({
-  listings,
-  hoveredId,
-  context,
-}: {
-  listings: ListingCardData[]
-  hoveredId?: string
-  context: Context
-}) {
-  // Simulated pin positions (percentage-based)
-  const pins = listings.slice(0, 12).map((l, i) => ({
-    id: l.id,
-    price: l.price,
-    label: formatPriceShort(l.price, context),
-    top: 15 + ((i * 37 + i * i * 11) % 65),
-    left: 10 + ((i * 29 + i * 13) % 75),
-  }))
-
-  return (
-    <div className="relative w-full h-full bg-blue-50/50 overflow-hidden">
-      {/* Grid pattern to simulate map */}
-      <div
-        className="absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(0,0,0,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.3) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
-
-      {/* Simulated roads */}
-      <div className="absolute top-[30%] left-0 right-0 h-px bg-gray-200" />
-      <div className="absolute top-[60%] left-0 right-0 h-px bg-gray-200" />
-      <div className="absolute left-[40%] top-0 bottom-0 w-px bg-gray-200" />
-      <div className="absolute left-[70%] top-0 bottom-0 w-px bg-gray-200" />
-
-      {/* Water area (simulated lake) */}
-      <div className="absolute top-0 right-0 w-[35%] h-[40%] bg-blue-100/60 rounded-bl-[80px]" />
-
-      {/* Price pins */}
-      {pins.map((pin) => (
-        <div
-          key={pin.id}
-          className={cn(
-            'absolute flex items-center justify-center rounded-full border shadow-sm text-xs font-bold transition-all duration-200 cursor-pointer',
-            hoveredId === pin.id
-              ? 'bg-accent text-white border-accent scale-110 z-10'
-              : 'bg-white text-gray-900 border-gray-200 hover:border-accent hover:text-accent'
-          )}
-          style={{
-            top: `${pin.top}%`,
-            left: `${pin.left}%`,
-            minWidth: '56px',
-            height: '28px',
-            padding: '0 8px',
-          }}
-        >
-          {pin.label}
-        </div>
-      ))}
-
-      {/* Center message */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl px-6 py-4 text-center shadow-sm border border-gray-100">
-          <Map className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">Carte interactive bientôt disponible</p>
-          <button className="mt-2 text-xs text-accent font-medium flex items-center gap-1 mx-auto pointer-events-auto cursor-pointer hover:underline">
-            <Expand className="h-3 w-3" />
-            Voir en plein écran
-          </button>
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -804,11 +778,17 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<Filters>(() => parseFiltersFromParams(searchParams))
   const [hoveredListing, setHoveredListing] = useState<string>()
-  const [chatOpen, setChatOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(10)
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [searchInput, setSearchInput] = useState(filters.q)
+  const [aiUnderstood, setAiUnderstood] = useState<string[]>([])
+  const [showAiBanner, setShowAiBanner] = useState(false)
+  const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showSavedPanel, setShowSavedPanel] = useState(false)
+  const [saveModalAlertDefault, setSaveModalAlertDefault] = useState(false)
+  const { savedSearches } = useSavedSearches()
 
   // Sync filters to URL
   useEffect(() => {
@@ -824,7 +804,10 @@ export default function SearchPage() {
     []
   )
 
-  const filtered = applyFilters(ALL_LISTINGS, filters)
+  const filteredByFilters = applyFilters(ALL_LISTINGS, filters)
+  const filtered = zoneFilterIds
+    ? filteredByFilters.filter((l) => zoneFilterIds.includes(l.id))
+    : filteredByFilters
   const visible = filtered.slice(0, visibleCount)
   const hasMore = visibleCount < filtered.length
 
@@ -836,7 +819,8 @@ export default function SearchPage() {
     filters.bedrooms !== '' ||
     filters.minSurface !== '' ||
     filters.city !== '' ||
-    filters.canton !== ''
+    filters.canton !== '' ||
+    filters.lifestyleTags.length > 0
 
   const activeFilterCount = [
     filters.types.length > 0,
@@ -845,6 +829,7 @@ export default function SearchPage() {
     filters.bedrooms,
     filters.minSurface,
     filters.city || filters.canton,
+    filters.lifestyleTags.length > 0,
   ].filter(Boolean).length
 
   function clearAllFilters() {
@@ -857,6 +842,7 @@ export default function SearchPage() {
       minSurface: '',
       city: '',
       canton: '',
+      lifestyleTags: [],
       q: '',
     })
     setSearchInput('')
@@ -864,11 +850,41 @@ export default function SearchPage() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    updateFilter({ q: searchInput })
+    if (!searchInput.trim()) {
+      updateFilter({ q: '' })
+      setShowAiBanner(false)
+      setAiUnderstood([])
+      return
+    }
+
+    // Parse natural language query
+    const parsed = parseNaturalLanguageQuery(searchInput)
+
+    if (parsed.understood.length > 0) {
+      // AI understood something → reset all filters then apply extracted ones
+      const resetFilters: Partial<Filters> = {
+        types: [],
+        minPrice: '',
+        maxPrice: '',
+        rooms: '',
+        minSurface: '',
+        bedrooms: '',
+        city: '',
+        canton: '',
+        lifestyleTags: [],
+        q: '',
+      }
+      updateFilter({ ...resetFilters, ...parsed.filters })
+      setAiUnderstood(parsed.understood)
+      setShowAiBanner(true)
+    } else {
+      // Fallback: use as text search
+      updateFilter({ q: searchInput })
+      setShowAiBanner(false)
+      setAiUnderstood([])
+    }
   }
 
-  const contextLabel = filters.context === 'rent' ? 'location' : 'achat'
-  const locationLabel = filters.city || filters.canton || 'Suisse'
   const priceRanges = filters.context === 'rent' ? PRICE_RANGES_RENT : PRICE_RANGES_BUY
 
   // Price pill label
@@ -888,8 +904,8 @@ export default function SearchPage() {
       <Navbar />
 
       {/* ─── ZONE 1: Sticky search bar ─── */}
-      <div className="sticky top-16 z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-[1800px] mx-auto px-4 md:px-6 py-3">
+      <div className="sticky top-16 z-40 bg-white border-b border-gray-100">
+        <div className="max-w-[1800px] mx-auto px-4 md:px-6 py-2.5">
           <div className="flex items-center gap-3">
             {/* Context tabs */}
             <div className="hidden sm:flex items-center gap-1 shrink-0">
@@ -899,7 +915,7 @@ export default function SearchPage() {
                   'px-4 py-1.5 text-sm rounded-full font-medium transition-colors cursor-pointer',
                   filters.context === 'buy'
                     ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'text-gray-500 hover:bg-gray-100'
                 )}
               >
                 Acheter
@@ -910,37 +926,30 @@ export default function SearchPage() {
                   'px-4 py-1.5 text-sm rounded-full font-medium transition-colors cursor-pointer',
                   filters.context === 'rent'
                     ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'text-gray-500 hover:bg-gray-100'
                 )}
               >
                 Louer
               </button>
             </div>
 
-            {/* Search bar */}
-            <form onSubmit={handleSearch} className="flex-1 flex items-center gap-1 bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30 transition-all">
-              <MessageSquare className="h-4 w-4 text-gray-400 shrink-0" />
+            {/* Search bar with IA integration */}
+            <form onSubmit={handleSearch} className="flex items-center gap-2.5 bg-white rounded-full px-3 py-1.5 border border-gray-200 shadow-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/20 transition-all max-w-md w-full">
+              <Sparkles className="h-4 w-4 text-accent/60 shrink-0" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Rechercher un bien, une ville, un quartier..."
-                className="flex-1 text-sm bg-transparent py-2.5 outline-none text-gray-900 placeholder-gray-400 min-w-0"
+                placeholder="Rechercher un bien, une ville..."
+                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
               />
               <button
                 type="submit"
-                className="h-8 w-8 bg-accent hover:bg-accent/90 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                className="w-8 h-8 bg-accent hover:bg-accent/90 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
               >
-                <ArrowRight className="h-4 w-4 text-white" />
+                <Search className="w-3.5 h-3.5 text-white" />
               </button>
             </form>
-
-            {/* Context label */}
-            <div className="hidden md:flex items-center gap-1.5 text-sm text-gray-500 shrink-0">
-              <span>
-                Résultats {contextLabel} — {locationLabel}
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -949,9 +958,36 @@ export default function SearchPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left panel: filters + results */}
         <div className="w-full lg:w-[55%] flex flex-col overflow-hidden">
+          {/* ─── AI Understanding Banner ─── */}
+          {showAiBanner && aiUnderstood.length > 0 && (
+            <div className="px-4 md:px-6 py-2 bg-accent/5 border-b border-accent/10 flex items-center gap-2 flex-wrap">
+              <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+              <span className="text-xs text-accent font-medium">Recherche IA :</span>
+              {aiUnderstood.map((item, i) => (
+                <span
+                  key={i}
+                  className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-medium"
+                >
+                  {item}
+                </span>
+              ))}
+              <button
+                onClick={() => {
+                  clearAllFilters()
+                  setShowAiBanner(false)
+                  setAiUnderstood([])
+                }}
+                className="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <X className="h-3 w-3" />
+                Effacer
+              </button>
+            </div>
+          )}
+
           {/* ─── ZONE 2: Filter pills (desktop) ─── */}
           <div className="hidden md:block px-4 md:px-6 py-3 border-b border-gray-100 bg-white">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
               {/* Type */}
               <FilterPill
                 label={
@@ -1073,8 +1109,31 @@ export default function SearchPage() {
                 </div>
               </FilterPill>
 
+              {/* Lifestyle tags */}
+              <FilterPill
+                label={filters.lifestyleTags.length ? `Style de vie (${filters.lifestyleTags.length})` : 'Style de vie'}
+                active={filters.lifestyleTags.length > 0}
+              >
+                <div className="grid grid-cols-2 gap-1.5 min-w-[280px]">
+                  {LIFESTYLE_TAGS.map((tag) => (
+                    <FilterOption
+                      key={tag.value}
+                      selected={filters.lifestyleTags.includes(tag.value)}
+                      onClick={() => {
+                        const next = filters.lifestyleTags.includes(tag.value)
+                          ? filters.lifestyleTags.filter((t) => t !== tag.value)
+                          : [...filters.lifestyleTags, tag.value]
+                        updateFilter({ lifestyleTags: next })
+                      }}
+                    >
+                      <span className="mr-1">{tag.icon}</span> {tag.label}
+                    </FilterOption>
+                  ))}
+                </div>
+              </FilterPill>
+
               {/* More filters placeholder */}
-              <button className="flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">
+              <button className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 Plus de filtres
               </button>
@@ -1083,7 +1142,7 @@ export default function SearchPage() {
               {hasActiveFilters && (
                 <button
                   onClick={clearAllFilters}
-                  className="text-sm text-gray-400 hover:text-gray-700 transition-colors cursor-pointer ml-auto"
+                  className="text-sm text-gray-400 hover:text-primary-900 transition-colors cursor-pointer ml-2 whitespace-nowrap"
                 >
                   Effacer tout
                 </button>
@@ -1117,7 +1176,6 @@ export default function SearchPage() {
           {showMobileFilters && (
             <div className="md:hidden px-4 py-3 border-b border-gray-100 bg-gray-50">
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Simplified mobile filters */}
                 <FilterPill
                   label={filters.types.length ? 'Type ✓' : 'Type'}
                   active={filters.types.length > 0}
@@ -1161,13 +1219,13 @@ export default function SearchPage() {
           )}
 
           {/* ─── ZONE 3: Results bar ─── */}
-          <div className="px-4 md:px-6 py-3 flex items-center justify-between border-b border-gray-50">
-            <span className="text-sm font-medium text-gray-900">
-              {filtered.length} bien{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
+          <div className="px-4 md:px-6 py-2.5 flex items-center justify-between border-b border-gray-100">
+            <span className="text-sm text-gray-500">
+              <span className="font-semibold text-primary-900">{filtered.length}</span> bien{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
               {filters.city ? ` à ${filters.city}` : filters.canton ? ` (${filters.canton})` : ''}
             </span>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               {/* Sort */}
               <div className="hidden sm:block">
                 <select
@@ -1183,13 +1241,16 @@ export default function SearchPage() {
                 </select>
               </div>
 
+              {/* Separator */}
+              <div className="hidden md:block border-l border-gray-200 h-5 mx-3" />
+
               {/* View toggle (desktop only) */}
-              <div className="hidden md:flex items-center border border-gray-200 rounded-lg overflow-hidden">
+              <div className="hidden md:flex items-center gap-0.5">
                 <button
                   onClick={() => updateFilter({ view: 'list' })}
                   className={cn(
-                    'p-1.5 transition-colors cursor-pointer',
-                    filters.view === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'
+                    'p-1.5 rounded-md transition-colors cursor-pointer',
+                    filters.view === 'list' ? 'bg-gray-100 text-primary-900' : 'text-gray-400 hover:text-gray-600'
                   )}
                 >
                   <List className="h-4 w-4" />
@@ -1197,29 +1258,51 @@ export default function SearchPage() {
                 <button
                   onClick={() => updateFilter({ view: 'grid' })}
                   className={cn(
-                    'p-1.5 transition-colors cursor-pointer',
-                    filters.view === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'
+                    'p-1.5 rounded-md transition-colors cursor-pointer',
+                    filters.view === 'grid' ? 'bg-gray-100 text-primary-900' : 'text-gray-400 hover:text-gray-600'
                   )}
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
               </div>
 
-              {/* Save & Alert placeholders */}
+              {/* Separator */}
+              <div className="hidden sm:block border-l border-gray-200 h-5 mx-3" />
+
+              {/* Save & Alert */}
               <button
-                onClick={() => alert('Bientôt disponible')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => {
+                  setSaveModalAlertDefault(false)
+                  setShowSaveModal(true)
+                }}
+                className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary-900 transition-colors cursor-pointer mr-3 relative"
               >
-                <Heart className="h-3.5 w-3.5" />
+                <Heart className="h-4 w-4" />
                 Sauvegarder
+                {savedSearches.length > 0 && (
+                  <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {savedSearches.length}
+                  </span>
+                )}
               </button>
               <button
-                onClick={() => alert('Bientôt disponible')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => {
+                  setSaveModalAlertDefault(true)
+                  setShowSaveModal(true)
+                }}
+                className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary-900 transition-colors cursor-pointer mr-3"
               >
-                <Bell className="h-3.5 w-3.5" />
+                <Bell className="h-4 w-4" />
                 Alerte
               </button>
+              {savedSearches.length > 0 && (
+                <button
+                  onClick={() => setShowSavedPanel(true)}
+                  className="hidden sm:flex items-center gap-1.5 text-xs text-accent font-medium hover:text-accent/80 transition-colors cursor-pointer"
+                >
+                  Mes recherches
+                </button>
+              )}
             </div>
           </div>
 
@@ -1246,6 +1329,7 @@ export default function SearchPage() {
                     key={listing.id}
                     listing={listing}
                     onHover={setHoveredListing}
+                    isHovered={hoveredListing === listing.id}
                   />
                 ))}
               </div>
@@ -1256,6 +1340,7 @@ export default function SearchPage() {
                     key={listing.id}
                     listing={listing}
                     onHover={setHoveredListing}
+                    isHovered={hoveredListing === listing.id}
                   />
                 ))}
               </div>
@@ -1276,11 +1361,12 @@ export default function SearchPage() {
         </div>
 
         {/* ─── ZONE 5: Map (desktop) ─── */}
-        <div className="hidden lg:block lg:w-[45%] sticky top-32">
-          <MapPlaceholder
-            listings={filtered}
+        <div className="hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)] border-l border-gray-200">
+          <MapView
+            listings={filteredByFilters}
             hoveredId={hoveredListing}
-            context={filters.context}
+            onHover={setHoveredListing}
+            onZoneFilter={setZoneFilterIds}
           />
         </div>
       </div>
@@ -1288,7 +1374,7 @@ export default function SearchPage() {
       {/* Mobile: Map FAB */}
       <button
         onClick={() => setShowMobileMap(true)}
-        className="lg:hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-5 py-3 bg-gray-900 text-white text-sm font-medium rounded-full shadow-lg hover:shadow-xl transition-all cursor-pointer"
+        className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 h-10 px-4 bg-gray-900 text-white text-sm font-medium rounded-full shadow-lg hover:shadow-xl transition-all cursor-pointer"
       >
         <Map className="h-4 w-4" />
         Voir la carte
@@ -1297,29 +1383,40 @@ export default function SearchPage() {
       {/* Mobile: Map overlay */}
       {showMobileMap && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <MapPlaceholder listings={filtered} context={filters.context} />
+          <MapView
+            listings={filteredByFilters}
+            hoveredId={hoveredListing}
+            onHover={setHoveredListing}
+            onZoneFilter={setZoneFilterIds}
+          />
           <button
             onClick={() => setShowMobileMap(false)}
-            className="absolute top-4 right-4 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer"
+            className="absolute top-4 right-4 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer z-10"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
       )}
 
-      {/* ─── ZONE 6: Chat IA ─── */}
-      <button
-        onClick={() => setChatOpen(true)}
-        className={cn(
-          'fixed bottom-6 right-6 z-30 flex items-center gap-2 bg-accent text-white rounded-full shadow-lg px-4 py-3 hover:shadow-xl transition-all cursor-pointer',
-          chatOpen && 'hidden'
-        )}
-      >
-        <MessageSquare className="h-5 w-5" />
-        <span className="text-sm font-medium hidden sm:inline">Affiner ma recherche</span>
-      </button>
+      {/* Save search modal */}
+      <SaveSearchModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        filters={filters}
+        resultsCount={filtered.length}
+        defaultAlertEnabled={saveModalAlertDefault}
+      />
 
-      <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} context={filters.context} />
+      {/* Saved searches panel */}
+      <SavedSearchesPanel
+        isOpen={showSavedPanel}
+        onClose={() => setShowSavedPanel(false)}
+        onApply={(savedFilters) => {
+          const f = savedFilters as unknown as Filters
+          setFilters(f)
+          setSearchInput(f.q || '')
+        }}
+      />
     </div>
   )
 }

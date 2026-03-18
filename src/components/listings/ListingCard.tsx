@@ -22,6 +22,9 @@ export interface ListingCardData {
   context?: 'buy' | 'rent'
   description?: string
   published_at?: string
+  lat?: number
+  lng?: number
+  lifestyle_tags?: string[]
   agent?: {
     name: string
     agency: string
