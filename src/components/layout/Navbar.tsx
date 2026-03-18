@@ -78,7 +78,7 @@ export default function Navbar() {
                 className={cn(
                   'px-3 py-2 text-sm font-medium transition-colors rounded-md',
                   isActive
-                    ? 'text-accent border-b-2 border-accent'
+                    ? 'text-accent font-semibold'
                     : 'text-primary-700 hover:text-accent'
                 )}
               >
