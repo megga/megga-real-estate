@@ -92,12 +92,22 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Actions desktop */}
+        {/* Actions desktop — order: Se connecter → Publier → Avatar */}
         <div className="hidden md:flex items-center gap-4">
+          {!loading && !user && (
+            <Link to="/login" className="text-sm font-medium text-primary-900 hover:text-accent transition-colors">
+              Se connecter
+            </Link>
+          )}
+
+          <button className="h-9 px-5 text-sm font-medium rounded-full bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-2 cursor-pointer">
+            <Plus className="h-3.5 w-3.5" />
+            Publier une annonce
+          </button>
+
           {loading ? (
             <div className="h-8 w-8 rounded-full bg-gray-100 animate-pulse" />
           ) : user ? (
-            /* Logged in — avatar dropdown */
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -108,7 +118,6 @@ export default function Navbar() {
 
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-dropdown border border-gray-100 py-2 z-50">
-                  {/* User info */}
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-medium text-primary-900 truncate">
                       {displayName}
@@ -117,8 +126,6 @@ export default function Navbar() {
                       {displayEmail}
                     </p>
                   </div>
-
-                  {/* Menu items */}
                   <div className="py-1">
                     <Link
                       to="/dashboard"
@@ -137,8 +144,6 @@ export default function Navbar() {
                       Mon profil
                     </Link>
                   </div>
-
-                  {/* Sign out */}
                   <div className="border-t border-gray-100 pt-1">
                     <button
                       onClick={handleSignOut}
@@ -151,17 +156,7 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-          ) : (
-            /* Not logged in */
-            <Link to="/login" className="text-sm font-medium text-primary-900 hover:text-accent transition-colors">
-              Se connecter
-            </Link>
-          )}
-
-          <button className="h-9 px-5 text-sm font-medium rounded-full bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-2 cursor-pointer">
-            <Plus className="h-3.5 w-3.5" />
-            Publier une annonce
-          </button>
+          ) : null}
         </div>
 
         {/* Mobile menu button */}

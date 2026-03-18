@@ -549,18 +549,16 @@ function ListingCardHorizontal({
 
       {/* Info */}
       <div className="flex-1 p-4 flex flex-col min-w-0">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <span className="text-lg font-bold text-primary-900">{priceLabel}</span>
-        </div>
+        <span className="text-lg font-bold text-primary-900 mb-0.5">{priceLabel}</span>
 
-        <p className="flex items-center gap-1 text-sm text-gray-500 mb-1.5">
+        <p className="flex items-center gap-1 text-sm text-gray-500 mb-1">
           <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
           <span className="truncate">
             {listing.address}, {listing.city}
           </span>
         </p>
 
-        <div className="flex items-center text-sm text-gray-500 mb-auto">
+        <div className="flex items-center text-sm text-gray-500">
           {listing.rooms > 0 && (
             <span className="flex items-center gap-1">
               <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
@@ -581,7 +579,7 @@ function ListingCardHorizontal({
           </span>
         </div>
 
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
           {listing.agent && (
             <div className="flex items-center gap-1.5 min-w-0">
               <img
@@ -918,16 +916,11 @@ export default function SearchPage() {
               />
               <button
                 type="submit"
-                className="w-10 h-10 bg-accent hover:bg-accent/90 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer -mr-1"
+                className="w-9 h-9 bg-accent hover:bg-accent/90 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer -mr-0.5"
               >
                 <Search className="w-4 h-4 text-white" />
               </button>
             </form>
-
-            {/* Context label — very discreet */}
-            <div className="hidden lg:block text-xs text-gray-400 shrink-0">
-              Résultats {contextLabel} — {locationLabel}
-            </div>
           </div>
         </div>
       </div>
