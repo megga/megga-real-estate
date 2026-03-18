@@ -1,6 +1,5 @@
-import { Key } from 'lucide-react';
-import PlaceholderPage from './PlaceholderPage';
+import { Navigate } from 'react-router-dom'
 
 export default function LouerPage() {
-  return <PlaceholderPage icon={Key} subtitle="Biens à louer en Suisse" />;
+  return <Navigate to="/search?context=rent" replace />
 }
