@@ -115,7 +115,7 @@ export default function MapView({ listings, hoveredId, onHover, className }: Map
   }
 
   return (
-    <div className={cn('relative w-full h-full', className)}>
+    <div className={cn('relative w-full h-full [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden', className)}>
       <MapGL
         ref={mapRef}
         {...viewState}
