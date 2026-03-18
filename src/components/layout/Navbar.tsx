@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 
 const navLinks = [
-  { label: 'Acheter', href: '/acheter' },
-  { label: 'Louer', href: '/louer' },
+  { label: 'Acheter', href: '/search?context=buy' },
+  { label: 'Louer', href: '/search?context=rent' },
   { label: 'Vendre', href: '/vendre' },
   { label: 'Estimations', href: '/estimations' },
   { label: 'Services', href: '/services' },
@@ -69,7 +69,12 @@ export default function Navbar() {
         {/* Navigation desktop */}
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => {
-            const isActive = location.pathname === link.href
+            const linkUrl = new URL(link.href, window.location.origin)
+            const isActive =
+              location.pathname === linkUrl.pathname &&
+              (linkUrl.search
+                ? location.search.includes(linkUrl.search.slice(1))
+                : !location.search)
             return (
               <Link
                 key={link.href}
