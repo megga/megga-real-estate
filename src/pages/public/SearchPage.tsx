@@ -441,7 +441,7 @@ function FilterPill({ label, active, children }: FilterPillProps) {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1.5 min-w-[200px] bg-white rounded-xl shadow-dropdown border border-gray-100 z-20 py-1.5 max-h-64 overflow-y-auto">
+          <div className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-lg shadow-dropdown border border-gray-100 z-20 py-1 max-h-60 overflow-y-auto">
             {children}
           </div>
         </>
@@ -463,12 +463,17 @@ function FilterOption({
     <button
       type="button"
       className={cn(
-        'w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors cursor-pointer',
-        selected ? 'text-accent font-medium bg-blue-50' : 'text-gray-700'
+        'w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-2',
+        selected ? 'text-accent font-medium bg-accent/5' : 'text-gray-700'
       )}
       onClick={onClick}
     >
-      {children}
+      <span className="flex-1">{children}</span>
+      {selected && (
+        <svg className="w-3.5 h-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </button>
   )
 }
@@ -1114,22 +1119,20 @@ export default function SearchPage() {
                 label={filters.lifestyleTags.length ? `Style de vie (${filters.lifestyleTags.length})` : 'Style de vie'}
                 active={filters.lifestyleTags.length > 0}
               >
-                <div className="grid grid-cols-2 gap-1.5 min-w-[280px]">
-                  {LIFESTYLE_TAGS.map((tag) => (
-                    <FilterOption
-                      key={tag.value}
-                      selected={filters.lifestyleTags.includes(tag.value)}
-                      onClick={() => {
-                        const next = filters.lifestyleTags.includes(tag.value)
-                          ? filters.lifestyleTags.filter((t) => t !== tag.value)
-                          : [...filters.lifestyleTags, tag.value]
-                        updateFilter({ lifestyleTags: next })
-                      }}
-                    >
-                      <span className="mr-1">{tag.icon}</span> {tag.label}
-                    </FilterOption>
-                  ))}
-                </div>
+                {LIFESTYLE_TAGS.map((tag) => (
+                  <FilterOption
+                    key={tag.value}
+                    selected={filters.lifestyleTags.includes(tag.value)}
+                    onClick={() => {
+                      const next = filters.lifestyleTags.includes(tag.value)
+                        ? filters.lifestyleTags.filter((t) => t !== tag.value)
+                        : [...filters.lifestyleTags, tag.value]
+                      updateFilter({ lifestyleTags: next })
+                    }}
+                  >
+                    <span className="mr-0.5 text-sm">{tag.icon}</span> {tag.label}
+                  </FilterOption>
+                ))}
               </FilterPill>
 
               {/* Clear all */}
