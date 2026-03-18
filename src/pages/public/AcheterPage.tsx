@@ -1,6 +1,5 @@
-import { Home } from 'lucide-react';
-import PlaceholderPage from './PlaceholderPage';
+import { Navigate } from 'react-router-dom'
 
 export default function AcheterPage() {
-  return <PlaceholderPage icon={Home} subtitle="Trouvez votre futur bien" />;
+  return <Navigate to="/search?context=buy" replace />
 }
