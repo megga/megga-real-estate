@@ -1132,12 +1132,6 @@ export default function SearchPage() {
                 </div>
               </FilterPill>
 
-              {/* More filters placeholder */}
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                Plus de filtres
-              </button>
-
               {/* Clear all */}
               {hasActiveFilters && (
                 <button
