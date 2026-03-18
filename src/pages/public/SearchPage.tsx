@@ -24,6 +24,8 @@ export default function SearchPage() {
     minPrice: '',
     maxPrice: '',
     minRooms: '',
+    minBedrooms: '',
+    minSurface: '',
     city: searchParams.get('city') || '',
     sortBy: 'newest',
   })
@@ -33,6 +35,8 @@ export default function SearchPage() {
     if (filters.city && l.city !== filters.city) return false
     if (filters.minPrice && l.price < Number(filters.minPrice)) return false
     if (filters.minRooms && l.rooms < Number(filters.minRooms)) return false
+    if (filters.minBedrooms && l.bedrooms < Number(filters.minBedrooms)) return false
+    if (filters.minSurface && l.surface_m2 < Number(filters.minSurface)) return false
     return true
   }).sort((a, b) => {
     if (filters.sortBy === 'price_asc') return a.price - b.price
