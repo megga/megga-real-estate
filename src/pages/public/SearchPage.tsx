@@ -227,14 +227,14 @@ function FilterPill({ label, active, children }: FilterPillProps) {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-full border transition-colors whitespace-nowrap cursor-pointer',
+          'flex items-center gap-1.5 px-4 py-2 text-sm rounded-full border transition-all duration-150 whitespace-nowrap cursor-pointer',
           active
             ? 'bg-accent text-white border-accent font-medium'
-            : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+            : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50'
         )}
       >
         {label}
-        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
+        <ChevronDown className={cn('h-3.5 w-3.5 ml-0.5 transition-transform', active ? 'text-white/70' : 'text-gray-400', open && 'rotate-180')} />
       </button>
       {open && (
         <>
@@ -467,9 +467,9 @@ function ListingCardHorizontal({
   const [isFavorite, setIsFavorite] = useState(false)
 
   const badge = listing.is_new
-    ? { label: 'Nouveau', bg: 'bg-accent' }
+    ? { label: 'Nouveau', bg: 'bg-accent/90' }
     : listing.is_hot
-      ? { label: 'Hot price', bg: 'bg-danger' }
+      ? { label: 'Hot price', bg: 'bg-red-500/90' }
       : listing.is_exclusive
         ? { label: 'Exclusif', bg: 'bg-gray-900' }
         : listing.is_3d
@@ -482,24 +482,27 @@ function ListingCardHorizontal({
   return (
     <Link
       to={`/listing/${listing.id}`}
-      className="flex flex-col sm:flex-row bg-white rounded-card shadow-card hover:shadow-card-hover transition-all duration-200 hover:scale-[1.01] overflow-hidden group"
+      className="flex flex-col sm:flex-row bg-white border border-gray-100 rounded-xl hover:border-gray-200 hover:shadow-card-hover transition-all duration-200 overflow-hidden group"
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
       {/* Photo */}
-      <div className="relative w-full sm:w-64 shrink-0 aspect-[4/3] overflow-hidden">
+      <div className="relative w-full sm:w-56 lg:w-64 shrink-0 aspect-[4/3] overflow-hidden sm:rounded-l-xl">
         <img
           src={listing.photos[currentPhoto]}
           alt={listing.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
 
+        {/* Gradient for dot visibility */}
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+
         {/* Badge */}
         {badge && (
           <div
             className={cn(
               badge.bg,
-              'absolute top-3 left-3 text-white text-xs font-medium px-2 py-0.5 rounded-badge'
+              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md'
             )}
           >
             {badge.label}
@@ -513,19 +516,19 @@ function ListingCardHorizontal({
             e.stopPropagation()
             setIsFavorite(!isFavorite)
           }}
-          className="absolute top-3 right-3 h-8 w-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors cursor-pointer"
+          className="absolute top-3 right-3 h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
         >
           <Heart
             className={cn(
               'h-4 w-4 transition-colors',
-              isFavorite ? 'fill-danger text-danger' : 'text-gray-600'
+              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'
             )}
           />
         </button>
 
         {/* Photo dots */}
         {listing.photos.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
             {listing.photos.slice(0, 5).map((_, i) => (
               <button
                 key={i}
@@ -535,8 +538,8 @@ function ListingCardHorizontal({
                   setCurrentPhoto(i)
                 }}
                 className={cn(
-                  'h-1.5 rounded-full transition-all cursor-pointer',
-                  currentPhoto === i ? 'w-3 bg-white' : 'w-1.5 bg-white/60 hover:bg-white/80'
+                  'rounded-full transition-all cursor-pointer',
+                  currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
                 )}
               />
             ))}
@@ -547,48 +550,44 @@ function ListingCardHorizontal({
       {/* Info */}
       <div className="flex-1 p-4 flex flex-col min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <span className="text-xl font-bold text-gray-900">{priceLabel}</span>
+          <span className="text-lg font-bold text-primary-900">{priceLabel}</span>
         </div>
 
         <p className="flex items-center gap-1 text-sm text-gray-500 mb-1.5">
-          <MapPin className="h-3.5 w-3.5 shrink-0" />
+          <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
           <span className="truncate">
             {listing.address}, {listing.city}
           </span>
         </p>
 
-        <div className="flex items-center gap-3 text-sm text-gray-400 mb-2">
+        <div className="flex items-center text-sm text-gray-500 mb-auto">
           {listing.rooms > 0 && (
             <span className="flex items-center gap-1">
-              <DoorOpen className="h-3.5 w-3.5" />
+              <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
               {listing.rooms} pièces
             </span>
           )}
-          {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-200">·</span>}
+          {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-300 mx-1.5">·</span>}
           {listing.bedrooms > 0 && (
             <span className="flex items-center gap-1">
-              <BedDouble className="h-3.5 w-3.5" />
+              <BedDouble className="h-3.5 w-3.5 text-gray-400" />
               {listing.bedrooms} ch.
             </span>
           )}
-          {(listing.rooms > 0 || listing.bedrooms > 0) && <span className="text-gray-200">·</span>}
+          {(listing.rooms > 0 || listing.bedrooms > 0) && <span className="text-gray-300 mx-1.5">·</span>}
           <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5" />
+            <Maximize className="h-3.5 w-3.5 text-gray-400" />
             {formatSurface(listing.surface_m2)}
           </span>
         </div>
 
-        {listing.description && (
-          <p className="text-sm text-gray-500 line-clamp-2 mb-auto">{listing.description}</p>
-        )}
-
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
           {listing.agent && (
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <img
                 src={listing.agent.photo}
                 alt={listing.agent.name}
-                className="h-6 w-6 rounded-full object-cover shrink-0"
+                className="h-5 w-5 rounded-full object-cover shrink-0"
               />
               <span className="text-xs text-gray-400 truncate">
                 {listing.agent.name} · {listing.agent.agency}
@@ -597,7 +596,7 @@ function ListingCardHorizontal({
           )}
           {listing.published_at && (
             <span className="text-xs text-gray-400 shrink-0">
-              Publié {formatRelativeDate(listing.published_at)}
+              {formatRelativeDate(listing.published_at)}
             </span>
           )}
         </div>
@@ -619,9 +618,9 @@ function ListingCardGrid({
   const [isFavorite, setIsFavorite] = useState(false)
 
   const badge = listing.is_new
-    ? { label: 'Nouveau', bg: 'bg-accent' }
+    ? { label: 'Nouveau', bg: 'bg-accent/90' }
     : listing.is_hot
-      ? { label: 'Hot price', bg: 'bg-danger' }
+      ? { label: 'Hot price', bg: 'bg-red-500/90' }
       : listing.is_exclusive
         ? { label: 'Exclusif', bg: 'bg-gray-900' }
         : listing.is_3d
@@ -634,7 +633,7 @@ function ListingCardGrid({
   return (
     <Link
       to={`/listing/${listing.id}`}
-      className="block bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group"
+      className="block bg-white border border-gray-100 rounded-xl hover:border-gray-200 hover:shadow-card-hover transition-all duration-200 overflow-hidden group"
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
@@ -644,11 +643,13 @@ function ListingCardGrid({
           alt={listing.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
+        {/* Gradient for dot visibility */}
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
         {badge && (
           <div
             className={cn(
               badge.bg,
-              'absolute top-3 left-3 text-white text-xs font-medium px-2 py-0.5 rounded-badge'
+              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md'
             )}
           >
             {badge.label}
@@ -660,17 +661,17 @@ function ListingCardGrid({
             e.stopPropagation()
             setIsFavorite(!isFavorite)
           }}
-          className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors cursor-pointer"
+          className="absolute top-3 right-3 h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
         >
           <Heart
             className={cn(
               'h-4 w-4 transition-colors',
-              isFavorite ? 'fill-danger text-danger' : 'text-gray-600'
+              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'
             )}
           />
         </button>
         {listing.photos.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
             {listing.photos.slice(0, 5).map((_, i) => (
               <button
                 key={i}
@@ -680,8 +681,8 @@ function ListingCardGrid({
                   setCurrentPhoto(i)
                 }}
                 className={cn(
-                  'h-1.5 rounded-full transition-all cursor-pointer',
-                  currentPhoto === i ? 'w-4 bg-white' : 'w-1.5 bg-white/60 hover:bg-white/80'
+                  'rounded-full transition-all cursor-pointer',
+                  currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
                 )}
               />
             ))}
@@ -689,29 +690,29 @@ function ListingCardGrid({
         )}
       </div>
       <div className="p-4">
-        <span className="text-xl font-bold text-gray-900">{priceLabel}</span>
+        <span className="text-xl font-bold text-primary-900">{priceLabel}</span>
         <p className="text-sm text-gray-500 mt-1">
           {listing.address}, {listing.city}
         </p>
-        <div className="flex items-center gap-3 text-sm text-gray-400 mt-2">
+        <div className="flex items-center text-sm text-gray-500 mt-2">
           {listing.rooms > 0 && (
             <span className="flex items-center gap-1">
-              <DoorOpen className="h-3.5 w-3.5" />
+              <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
               {listing.rooms} p.
             </span>
           )}
           {listing.bedrooms > 0 && (
             <>
-              <span className="text-gray-200">·</span>
+              <span className="text-gray-300 mx-1.5">·</span>
               <span className="flex items-center gap-1">
-                <BedDouble className="h-3.5 w-3.5" />
+                <BedDouble className="h-3.5 w-3.5 text-gray-400" />
                 {listing.bedrooms} ch.
               </span>
             </>
           )}
-          <span className="text-gray-200">·</span>
+          <span className="text-gray-300 mx-1.5">·</span>
           <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5" />
+            <Maximize className="h-3.5 w-3.5 text-gray-400" />
             {formatSurface(listing.surface_m2)}
           </span>
         </div>
@@ -741,57 +742,45 @@ function MapPlaceholder({
   }))
 
   return (
-    <div className="relative w-full h-full bg-blue-50/50 overflow-hidden">
-      {/* Grid pattern to simulate map */}
-      <div
-        className="absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(0,0,0,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.3) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
+    <div className="relative w-full h-full overflow-hidden bg-gradient-to-b from-blue-50/80 to-blue-100/50">
+      {/* Background aerial image */}
+      <img
+        src="https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=800"
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover opacity-[0.15]"
       />
 
-      {/* Simulated roads */}
-      <div className="absolute top-[30%] left-0 right-0 h-px bg-gray-200" />
-      <div className="absolute top-[60%] left-0 right-0 h-px bg-gray-200" />
-      <div className="absolute left-[40%] top-0 bottom-0 w-px bg-gray-200" />
-      <div className="absolute left-[70%] top-0 bottom-0 w-px bg-gray-200" />
+      {/* Simulated blocks/streets overlay */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.4) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
 
       {/* Water area (simulated lake) */}
-      <div className="absolute top-0 right-0 w-[35%] h-[40%] bg-blue-100/60 rounded-bl-[80px]" />
+      <div className="absolute top-0 right-0 w-[35%] h-[40%] bg-blue-200/30 rounded-bl-[80px]" />
 
       {/* Price pins */}
       {pins.map((pin) => (
         <div
           key={pin.id}
           className={cn(
-            'absolute flex items-center justify-center rounded-full border shadow-sm text-xs font-bold transition-all duration-200 cursor-pointer',
+            'absolute flex items-center justify-center rounded-full border shadow-sm text-[11px] font-bold transition-all duration-200 cursor-pointer',
             hoveredId === pin.id
               ? 'bg-accent text-white border-accent scale-110 z-10'
-              : 'bg-white text-gray-900 border-gray-200 hover:border-accent hover:text-accent'
+              : 'bg-white text-primary-900 border-gray-200 hover:bg-accent hover:text-white hover:scale-110'
           )}
           style={{
             top: `${pin.top}%`,
             left: `${pin.left}%`,
-            minWidth: '56px',
-            height: '28px',
-            padding: '0 8px',
+            padding: '4px 10px',
           }}
         >
           {pin.label}
         </div>
       ))}
 
-      {/* Center message */}
+      {/* Center message — very discreet */}
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl px-6 py-4 text-center shadow-sm border border-gray-100">
-          <Map className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">Carte interactive bientôt disponible</p>
-          <button className="mt-2 text-xs text-accent font-medium flex items-center gap-1 mx-auto pointer-events-auto cursor-pointer hover:underline">
-            <Expand className="h-3 w-3" />
-            Voir en plein écran
-          </button>
+        <div className="flex flex-col items-center gap-1">
+          <Map className="h-5 w-5 text-gray-300" />
+          <p className="text-xs text-gray-400">Carte interactive bientôt disponible</p>
         </div>
       </div>
     </div>
@@ -888,8 +877,8 @@ export default function SearchPage() {
       <Navbar />
 
       {/* ─── ZONE 1: Sticky search bar ─── */}
-      <div className="sticky top-16 z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-[1800px] mx-auto px-4 md:px-6 py-3">
+      <div className="sticky top-16 z-40 bg-white border-b border-gray-100">
+        <div className="max-w-[1800px] mx-auto px-4 md:px-6 py-2.5">
           <div className="flex items-center gap-3">
             {/* Context tabs */}
             <div className="hidden sm:flex items-center gap-1 shrink-0">
@@ -899,7 +888,7 @@ export default function SearchPage() {
                   'px-4 py-1.5 text-sm rounded-full font-medium transition-colors cursor-pointer',
                   filters.context === 'buy'
                     ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'text-gray-500 hover:bg-gray-100'
                 )}
               >
                 Acheter
@@ -910,7 +899,7 @@ export default function SearchPage() {
                   'px-4 py-1.5 text-sm rounded-full font-medium transition-colors cursor-pointer',
                   filters.context === 'rent'
                     ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'text-gray-500 hover:bg-gray-100'
                 )}
               >
                 Louer
@@ -918,28 +907,26 @@ export default function SearchPage() {
             </div>
 
             {/* Search bar */}
-            <form onSubmit={handleSearch} className="flex-1 flex items-center gap-1 bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30 transition-all">
+            <form onSubmit={handleSearch} className="flex-1 flex items-center gap-3 bg-white rounded-xl px-4 py-2 border border-gray-200 shadow-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30 transition-all">
               <MessageSquare className="h-4 w-4 text-gray-400 shrink-0" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Rechercher un bien, une ville, un quartier..."
-                className="flex-1 text-sm bg-transparent py-2.5 outline-none text-gray-900 placeholder-gray-400 min-w-0"
+                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
               />
               <button
                 type="submit"
-                className="h-8 w-8 bg-accent hover:bg-accent/90 rounded-lg flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                className="w-10 h-10 bg-accent hover:bg-accent/90 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer -mr-1"
               >
-                <ArrowRight className="h-4 w-4 text-white" />
+                <Search className="w-4 h-4 text-white" />
               </button>
             </form>
 
-            {/* Context label */}
-            <div className="hidden md:flex items-center gap-1.5 text-sm text-gray-500 shrink-0">
-              <span>
-                Résultats {contextLabel} — {locationLabel}
-              </span>
+            {/* Context label — very discreet */}
+            <div className="hidden lg:block text-xs text-gray-400 shrink-0">
+              Résultats {contextLabel} — {locationLabel}
             </div>
           </div>
         </div>
@@ -1161,13 +1148,13 @@ export default function SearchPage() {
           )}
 
           {/* ─── ZONE 3: Results bar ─── */}
-          <div className="px-4 md:px-6 py-3 flex items-center justify-between border-b border-gray-50">
-            <span className="text-sm font-medium text-gray-900">
-              {filtered.length} bien{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
+          <div className="px-4 md:px-6 py-2.5 flex items-center justify-between border-b border-gray-100">
+            <span className="text-sm text-gray-500">
+              <span className="font-semibold text-primary-900">{filtered.length}</span> bien{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
               {filters.city ? ` à ${filters.city}` : filters.canton ? ` (${filters.canton})` : ''}
             </span>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center">
               {/* Sort */}
               <div className="hidden sm:block">
                 <select
@@ -1183,13 +1170,16 @@ export default function SearchPage() {
                 </select>
               </div>
 
+              {/* Separator */}
+              <div className="hidden md:block border-l border-gray-200 h-5 mx-3" />
+
               {/* View toggle (desktop only) */}
-              <div className="hidden md:flex items-center border border-gray-200 rounded-lg overflow-hidden">
+              <div className="hidden md:flex items-center gap-0.5">
                 <button
                   onClick={() => updateFilter({ view: 'list' })}
                   className={cn(
-                    'p-1.5 transition-colors cursor-pointer',
-                    filters.view === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'
+                    'p-1.5 rounded-md transition-colors cursor-pointer',
+                    filters.view === 'list' ? 'bg-gray-100 text-primary-900' : 'text-gray-400 hover:text-gray-600'
                   )}
                 >
                   <List className="h-4 w-4" />
@@ -1197,27 +1187,30 @@ export default function SearchPage() {
                 <button
                   onClick={() => updateFilter({ view: 'grid' })}
                   className={cn(
-                    'p-1.5 transition-colors cursor-pointer',
-                    filters.view === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'
+                    'p-1.5 rounded-md transition-colors cursor-pointer',
+                    filters.view === 'grid' ? 'bg-gray-100 text-primary-900' : 'text-gray-400 hover:text-gray-600'
                   )}
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
               </div>
 
+              {/* Separator */}
+              <div className="hidden sm:block border-l border-gray-200 h-5 mx-3" />
+
               {/* Save & Alert placeholders */}
               <button
                 onClick={() => alert('Bientôt disponible')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary-900 transition-colors cursor-pointer mr-3"
               >
-                <Heart className="h-3.5 w-3.5" />
+                <Heart className="h-4 w-4" />
                 Sauvegarder
               </button>
               <button
                 onClick={() => alert('Bientôt disponible')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary-900 transition-colors cursor-pointer"
               >
-                <Bell className="h-3.5 w-3.5" />
+                <Bell className="h-4 w-4" />
                 Alerte
               </button>
             </div>
@@ -1276,7 +1269,7 @@ export default function SearchPage() {
         </div>
 
         {/* ─── ZONE 5: Map (desktop) ─── */}
-        <div className="hidden lg:block lg:w-[45%] sticky top-32">
+        <div className="hidden lg:block lg:w-[45%] sticky top-32 border-l border-gray-200">
           <MapPlaceholder
             listings={filtered}
             hoveredId={hoveredListing}
@@ -1311,11 +1304,12 @@ export default function SearchPage() {
       <button
         onClick={() => setChatOpen(true)}
         className={cn(
-          'fixed bottom-6 right-6 z-30 flex items-center gap-2 bg-accent text-white rounded-full shadow-lg px-4 py-3 hover:shadow-xl transition-all cursor-pointer',
+          'fixed bottom-6 right-6 z-30 flex items-center gap-2 bg-accent text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer',
+          'w-12 h-12 sm:w-auto sm:h-auto sm:px-4 sm:py-3 justify-center sm:justify-start',
           chatOpen && 'hidden'
         )}
       >
-        <MessageSquare className="h-5 w-5" />
+        <MessageSquare className="h-5 w-5 animate-pulse" />
         <span className="text-sm font-medium hidden sm:inline">Affiner ma recherche</span>
       </button>
 
