@@ -10,7 +10,7 @@ import MapGL, {
   type ViewStateChangeEvent,
   type MapRef,
   type MapLayerMouseEvent,
-} from 'react-map-gl'
+} from 'react-map-gl/mapbox'
 import Supercluster from 'supercluster'
 import { LocateFixed, PenTool, X } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
