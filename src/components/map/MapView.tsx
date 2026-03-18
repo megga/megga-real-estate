@@ -9,7 +9,7 @@ import MapGL, {
   FullscreenControl,
   type ViewStateChangeEvent,
   type MapRef,
-  type MapLayerMouseEvent,
+  type MapMouseEvent,
 } from 'react-map-gl/mapbox'
 import Supercluster from 'supercluster'
 import { LocateFixed, PenTool, X } from 'lucide-react'
@@ -17,7 +17,7 @@ import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoibWVnZ2FpIiwiYSI6ImNtbXZiM3JpYzIwdGQycXF4cnI2bDdhYzAifQ.xvmW0Co7J3F497zSCXNQsw'
 
 interface MapViewProps {
   listings: ListingCardData[]
@@ -155,7 +155,7 @@ export default function MapView({ listings, hoveredId, onHover, onZoneFilter, cl
     onZoneFilter?.(null)
   }
 
-  function handleMapClick(e: MapLayerMouseEvent) {
+  function handleMapClick(e: MapMouseEvent) {
     if (!isDrawing) return
 
     const newPoint: [number, number] = [e.lngLat.lng, e.lngLat.lat]
@@ -181,13 +181,13 @@ export default function MapView({ listings, hoveredId, onHover, onZoneFilter, cl
     setDrawPoints((prev) => [...prev, newPoint])
   }
 
-  function handleMapDoubleClick(e: MapLayerMouseEvent) {
+  function handleMapDoubleClick(e: MapMouseEvent) {
     if (!isDrawing || drawPoints.length < 3) return
     e.preventDefault()
     closePolygon(drawPoints)
   }
 
-  function handleMapMouseMove(e: MapLayerMouseEvent) {
+  function handleMapMouseMove(e: MapMouseEvent) {
     if (!isDrawing || drawPoints.length === 0) return
     setCursorPos([e.lngLat.lng, e.lngLat.lat])
   }
@@ -339,10 +339,11 @@ export default function MapView({ listings, hoveredId, onHover, onZoneFilter, cl
         {/* Render clusters and individual pins */}
         {clusters.map((cluster) => {
           const [lng, lat] = cluster.geometry.coordinates
-          const isCluster = cluster.properties.cluster
+          const props = cluster.properties as Record<string, unknown>
+          const isCluster = props.cluster
 
           if (isCluster) {
-            const pointCount = cluster.properties.point_count
+            const pointCount = props.point_count as number
             return (
               <Marker key={`cluster-${cluster.id}`} longitude={lng} latitude={lat} anchor="center">
                 <button
