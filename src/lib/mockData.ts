@@ -425,7 +425,16 @@ export function toCardData(l: MockListing) {
     bedrooms: l.bedrooms,
     surface_m2: l.surface_m2,
     is_hot: l.is_hot,
+    is_new: l.is_new,
+    is_exclusive: l.is_exclusive,
     photos: l.photos,
+    type: l.type,
+    context: 'buy' as const,
+    description: l.description,
+    canton: l.canton,
+    agent: l.agent,
+    lat: l.lat,
+    lng: l.lng,
   }
 }
 
