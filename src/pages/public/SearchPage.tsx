@@ -429,14 +429,14 @@ function FilterPill({ label, active, children }: FilterPillProps) {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1.5 px-4 py-2 text-sm rounded-full border transition-all duration-150 whitespace-nowrap cursor-pointer',
+          'flex items-center px-3 py-1.5 text-xs rounded-full border transition-all duration-150 whitespace-nowrap cursor-pointer',
           active
             ? 'bg-accent text-white border-accent font-medium'
             : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
         )}
       >
         {label}
-        <ChevronDown className={cn('h-3.5 w-3.5 ml-0.5 transition-transform', active ? 'text-white/70' : 'text-gray-400', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-3 h-3 ml-1 transition-transform', active ? 'text-white/70' : 'text-gray-400', open && 'rotate-180')} />
       </button>
       {open && (
         <>
@@ -784,7 +784,7 @@ export default function SearchPage() {
   const [searchInput, setSearchInput] = useState(filters.q)
   const [aiUnderstood, setAiUnderstood] = useState<string[]>([])
   const [showAiBanner, setShowAiBanner] = useState(false)
-  const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
+  const [zoneFilterIds] = useState<string[] | null>(null)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showSavedPanel, setShowSavedPanel] = useState(false)
   const [saveModalAlertDefault, setSaveModalAlertDefault] = useState(false)
@@ -987,7 +987,7 @@ export default function SearchPage() {
 
           {/* ─── ZONE 2: Filter pills (desktop) ─── */}
           <div className="hidden md:block px-4 md:px-6 py-3 border-b border-gray-100 bg-white">
-            <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {/* Type */}
               <FilterPill
                 label={
@@ -1109,31 +1109,8 @@ export default function SearchPage() {
                 </div>
               </FilterPill>
 
-              {/* Lifestyle tags */}
-              <FilterPill
-                label={filters.lifestyleTags.length ? `Style de vie (${filters.lifestyleTags.length})` : 'Style de vie'}
-                active={filters.lifestyleTags.length > 0}
-              >
-                <div className="grid grid-cols-2 gap-1.5 min-w-[280px]">
-                  {LIFESTYLE_TAGS.map((tag) => (
-                    <FilterOption
-                      key={tag.value}
-                      selected={filters.lifestyleTags.includes(tag.value)}
-                      onClick={() => {
-                        const next = filters.lifestyleTags.includes(tag.value)
-                          ? filters.lifestyleTags.filter((t) => t !== tag.value)
-                          : [...filters.lifestyleTags, tag.value]
-                        updateFilter({ lifestyleTags: next })
-                      }}
-                    >
-                      <span className="mr-1">{tag.icon}</span> {tag.label}
-                    </FilterOption>
-                  ))}
-                </div>
-              </FilterPill>
-
               {/* More filters placeholder */}
-              <button className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 Plus de filtres
               </button>
@@ -1363,10 +1340,10 @@ export default function SearchPage() {
         {/* ─── ZONE 5: Map (desktop) ─── */}
         <div className="hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)] border-l border-gray-200">
           <MapView
-            listings={filteredByFilters}
-            hoveredId={hoveredListing}
-            onHover={setHoveredListing}
-            onZoneFilter={setZoneFilterIds}
+            markers={filteredByFilters.filter(l => l.lat && l.lng).map(l => ({ id: l.id, lat: l.lat!, lng: l.lng!, price: l.price, label: l.title }))}
+            selectedId={hoveredListing}
+            onMarkerClick={setHoveredListing}
+            className="h-full rounded-none"
           />
         </div>
       </div>
@@ -1384,10 +1361,10 @@ export default function SearchPage() {
       {showMobileMap && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <MapView
-            listings={filteredByFilters}
-            hoveredId={hoveredListing}
-            onHover={setHoveredListing}
-            onZoneFilter={setZoneFilterIds}
+            markers={filteredByFilters.filter(l => l.lat && l.lng).map(l => ({ id: l.id, lat: l.lat!, lng: l.lng!, price: l.price, label: l.title }))}
+            selectedId={hoveredListing}
+            onMarkerClick={setHoveredListing}
+            className="h-full rounded-none"
           />
           <button
             onClick={() => setShowMobileMap(false)}
