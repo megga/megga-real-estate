@@ -21,3 +21,35 @@
     display: none;
   }
 }
+
+/* ─── Mapbox control overrides ─── */
+.mapboxgl-ctrl-group {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden !important;
+}
+
+.mapboxgl-ctrl-group button {
+  width: 36px !important;
+  height: 36px !important;
+  border: none !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.mapboxgl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+.mapboxgl-ctrl-group button:hover {
+  background-color: #f9fafb !important;
+}
+
+.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  opacity: 0.5;
+}
+
+.mapboxgl-ctrl-group button:hover .mapboxgl-ctrl-icon {
+  opacity: 0.8;
+}

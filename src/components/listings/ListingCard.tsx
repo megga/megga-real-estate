@@ -24,6 +24,7 @@ export interface ListingCardData {
   published_at?: string
   lat?: number
   lng?: number
+  lifestyle_tags?: string[]
   agent?: {
     name: string
     agency: string

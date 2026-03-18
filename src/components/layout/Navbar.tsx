@@ -24,7 +24,7 @@ function UserAvatar({ name, email }: { name: string; email: string }) {
     : email[0].toUpperCase()
 
   return (
-    <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
+    <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
       <span className="text-xs font-semibold text-white">{initials}</span>
     </div>
   )
@@ -61,9 +61,9 @@ export default function Navbar() {
   return (
     <header className="h-16 border-b border-gray-100 bg-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo SVG */}
         <Link to="/" className="flex-shrink-0 mr-12">
-          <span className="text-2xl font-bold tracking-tight text-primary-900">MEGGA</span>
+          <img src="/megga-logo.svg" alt="MEGGA" className="h-5" />
         </Link>
 
         {/* Navigation desktop */}
@@ -83,7 +83,7 @@ export default function Navbar() {
                   'text-sm transition-colors',
                   isActive
                     ? 'text-primary-900 font-semibold'
-                    : 'text-gray-600 font-medium hover:text-primary-900'
+                    : 'text-gray-500 font-medium hover:text-primary-900'
                 )}
               >
                 {link.label}
@@ -95,12 +95,12 @@ export default function Navbar() {
         {/* Actions desktop — order: Se connecter → Publier → Avatar */}
         <div className="hidden md:flex items-center gap-4">
           {!loading && !user && (
-            <Link to="/login" className="text-sm font-medium text-primary-900 hover:text-accent transition-colors">
+            <Link to="/login" className="text-sm font-medium text-gray-700 hover:text-primary-900 transition-colors">
               Se connecter
             </Link>
           )}
 
-          <button className="h-9 px-5 text-sm font-medium rounded-full bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-2 cursor-pointer">
+          <button className="h-9 px-5 text-sm font-medium rounded-full bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-1.5 cursor-pointer">
             <Plus className="h-3.5 w-3.5" />
             Publier une annonce
           </button>
