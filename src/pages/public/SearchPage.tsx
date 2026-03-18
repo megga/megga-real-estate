@@ -784,7 +784,7 @@ export default function SearchPage() {
   const [searchInput, setSearchInput] = useState(filters.q)
   const [aiUnderstood, setAiUnderstood] = useState<string[]>([])
   const [showAiBanner, setShowAiBanner] = useState(false)
-  const [zoneFilterIds] = useState<string[] | null>(null)
+  const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showSavedPanel, setShowSavedPanel] = useState(false)
   const [saveModalAlertDefault, setSaveModalAlertDefault] = useState(false)
@@ -1340,10 +1340,10 @@ export default function SearchPage() {
         {/* ─── ZONE 5: Map (desktop) ─── */}
         <div className="hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)] border-l border-gray-200">
           <MapView
-            markers={filteredByFilters.filter(l => l.lat && l.lng).map(l => ({ id: l.id, lat: l.lat!, lng: l.lng!, price: l.price, label: l.title }))}
-            selectedId={hoveredListing}
-            onMarkerClick={setHoveredListing}
-            className="h-full rounded-none"
+            listings={filteredByFilters}
+            hoveredId={hoveredListing}
+            onHover={setHoveredListing}
+            onZoneFilter={setZoneFilterIds}
           />
         </div>
       </div>
@@ -1361,10 +1361,10 @@ export default function SearchPage() {
       {showMobileMap && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <MapView
-            markers={filteredByFilters.filter(l => l.lat && l.lng).map(l => ({ id: l.id, lat: l.lat!, lng: l.lng!, price: l.price, label: l.title }))}
-            selectedId={hoveredListing}
-            onMarkerClick={setHoveredListing}
-            className="h-full rounded-none"
+            listings={filteredByFilters}
+            hoveredId={hoveredListing}
+            onHover={setHoveredListing}
+            onZoneFilter={setZoneFilterIds}
           />
           <button
             onClick={() => setShowMobileMap(false)}
