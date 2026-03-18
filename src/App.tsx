@@ -13,7 +13,6 @@ import DashboardPage from '@/pages/agent/DashboardPage'
 import ContactsPage from '@/pages/agent/ContactsPage'
 import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 import PipelinePage from '@/pages/agent/PipelinePage'
-import AcheterPage from '@/pages/public/AcheterPage'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
@@ -43,7 +42,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
-            <Route path="/acheter" element={<AcheterPage />} />
+            <Route path="/acheter" element={<SearchPage />} />
             <Route path="/louer" element={<LouerPage />} />
             <Route path="/vendre" element={<VendrePage />} />
             <Route path="/estimations" element={<EstimationsPage />} />
