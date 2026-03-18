@@ -44,14 +44,14 @@ function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1.5 px-3 py-2 text-sm rounded-full border transition-colors',
+          'flex items-center px-3 py-1.5 text-xs rounded-full border transition-colors',
           value
             ? 'border-accent bg-accent-light text-accent font-medium'
             : 'border-border bg-white text-primary-700 hover:border-primary-300'
         )}
       >
         {selected?.label || label}
-        <ChevronDown className="h-3.5 w-3.5" />
+        <ChevronDown className="w-3 h-3 ml-1" />
       </button>
       {open && (
         <>
@@ -116,7 +116,7 @@ export default function SearchFilters({ filters, onChange, resultCount }: Search
   const cityOptions = cities.map((c) => ({ value: c === 'Toutes' ? '' : c, label: c }))
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
         <SlidersHorizontal className="h-4 w-4" />
         <span className="font-medium text-primary-900">{resultCount} biens</span>
