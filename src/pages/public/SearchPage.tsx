@@ -424,12 +424,12 @@ function FilterPill({ label, active, children }: FilterPillProps) {
   }, [open])
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative flex-1" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center px-3 py-1.5 text-xs rounded-full border transition-all duration-150 whitespace-nowrap cursor-pointer',
+          'flex items-center justify-center w-full px-3 py-1.5 text-xs rounded-full border transition-all duration-150 whitespace-nowrap cursor-pointer',
           active
             ? 'bg-accent text-white border-accent font-medium'
             : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -987,7 +987,7 @@ export default function SearchPage() {
 
           {/* ─── ZONE 2: Filter pills (desktop) ─── */}
           <div className="hidden md:block px-4 md:px-6 py-3 border-b border-gray-100 bg-white">
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-2">
               {/* Type */}
               <FilterPill
                 label={
