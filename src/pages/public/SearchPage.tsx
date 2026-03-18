@@ -15,11 +15,11 @@ import {
   BedDouble,
   Maximize,
   Map,
-  Expand,
   Send,
   SlidersHorizontal,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
+import MapView from '@/components/map/MapView'
 import { MOCK_LISTINGS, toCardData } from '@/lib/mockData'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
@@ -115,15 +115,6 @@ function filtersToParams(filters: Filters): Record<string, string> {
   if (filters.sort !== 'relevance') p.sort = filters.sort
   if (filters.view !== 'list') p.view = filters.view
   return p
-}
-
-function formatPriceShort(price: number, context: Context): string {
-  if (context === 'rent') return `${formatCHF(price)}/m`
-  if (price >= 1000000) {
-    const m = price / 1000000
-    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
-  }
-  return `${Math.round(price / 1000)}K`
 }
 
 function applyFilters(listings: ListingCardData[], filters: Filters): ListingCardData[] {
@@ -719,72 +710,6 @@ function ListingCardGrid({
   )
 }
 
-// ─── MAP PLACEHOLDER ────────────────────────────────────────────────────────
-
-function MapPlaceholder({
-  listings,
-  hoveredId,
-  context,
-}: {
-  listings: ListingCardData[]
-  hoveredId?: string
-  context: Context
-}) {
-  // Simulated pin positions (percentage-based)
-  const pins = listings.slice(0, 12).map((l, i) => ({
-    id: l.id,
-    price: l.price,
-    label: formatPriceShort(l.price, context),
-    top: 15 + ((i * 37 + i * i * 11) % 65),
-    left: 10 + ((i * 29 + i * 13) % 75),
-  }))
-
-  return (
-    <div className="relative w-full h-full overflow-hidden bg-gradient-to-b from-blue-50/80 to-blue-100/50">
-      {/* Background aerial image */}
-      <img
-        src="https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=800"
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover opacity-[0.15]"
-      />
-
-      {/* Simulated blocks/streets overlay */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.4) 1px, transparent 1px)', backgroundSize: '50px 50px' }} />
-
-      {/* Water area (simulated lake) */}
-      <div className="absolute top-0 right-0 w-[35%] h-[40%] bg-blue-200/30 rounded-bl-[80px]" />
-
-      {/* Price pins */}
-      {pins.map((pin) => (
-        <div
-          key={pin.id}
-          className={cn(
-            'absolute flex items-center justify-center rounded-full border shadow-sm text-[11px] font-bold transition-all duration-200 cursor-pointer',
-            hoveredId === pin.id
-              ? 'bg-accent text-white border-accent scale-110 z-10'
-              : 'bg-white text-primary-900 border-gray-200 hover:bg-accent hover:text-white hover:scale-110'
-          )}
-          style={{
-            top: `${pin.top}%`,
-            left: `${pin.left}%`,
-            padding: '4px 10px',
-          }}
-        >
-          {pin.label}
-        </div>
-      ))}
-
-      {/* Center message — very discreet */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <div className="flex flex-col items-center gap-1">
-          <Map className="h-5 w-5 text-gray-300" />
-          <p className="text-xs text-gray-400">Carte interactive bientôt disponible</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── MAIN SEARCH PAGE ───────────────────────────────────────────────────────
 
 export default function SearchPage() {
@@ -1262,11 +1187,11 @@ export default function SearchPage() {
         </div>
 
         {/* ─── ZONE 5: Map (desktop) ─── */}
-        <div className="hidden lg:block lg:w-[45%] sticky top-32 border-l border-gray-200">
-          <MapPlaceholder
+        <div className="hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)] border-l border-gray-200">
+          <MapView
             listings={filtered}
             hoveredId={hoveredListing}
-            context={filters.context}
+            onHover={setHoveredListing}
           />
         </div>
       </div>
@@ -1283,10 +1208,14 @@ export default function SearchPage() {
       {/* Mobile: Map overlay */}
       {showMobileMap && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <MapPlaceholder listings={filtered} context={filters.context} />
+          <MapView
+            listings={filtered}
+            hoveredId={hoveredListing}
+            onHover={setHoveredListing}
+          />
           <button
             onClick={() => setShowMobileMap(false)}
-            className="absolute top-4 right-4 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer"
+            className="absolute top-4 right-4 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer z-10"
           >
             <X className="h-5 w-5" />
           </button>

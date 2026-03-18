@@ -1000,6 +1000,8 @@ export function toCardData(l: MockListing) {
     context: l.context,
     description: l.description,
     published_at: l.published_at,
+    lat: l.lat,
+    lng: l.lng,
     agent: l.agent,
   }
 }

@@ -1,107 +1,230 @@
-import { MapPin } from 'lucide-react'
-import { cn, formatCHF } from '@/lib/utils'
+import { useState, useCallback, useMemo, useRef } from 'react'
+import { Link } from 'react-router-dom'
+import MapGL, {
+  Marker,
+  Popup,
+  NavigationControl,
+  FullscreenControl,
+  type ViewStateChangeEvent,
+  type MapRef,
+} from 'react-map-gl'
+import Supercluster from 'supercluster'
+import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import type { ListingCardData } from '@/components/listings/ListingCard'
+import 'mapbox-gl/dist/mapbox-gl.css'
 
-interface MapMarker {
-  id: string
-  lat: number
-  lng: number
-  price: number
-  label: string
-}
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 
 interface MapViewProps {
-  markers: MapMarker[]
+  listings: ListingCardData[]
+  hoveredId?: string
+  onHover?: (id: string | undefined) => void
   className?: string
-  selectedId?: string
-  onMarkerClick?: (id: string) => void
 }
 
-export default function MapView({ markers, className, selectedId, onMarkerClick }: MapViewProps) {
+function formatPricePin(price: number, context?: string): string {
+  if (context === 'rent') {
+    if (price >= 10000) return `${Math.round(price / 1000)}K/m`
+    return `${price.toLocaleString('fr-CH').replace(/\s/g, "'")}/m`
+  }
+  if (price >= 1000000) {
+    const m = price / 1000000
+    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
+  }
+  return `${Math.round(price / 1000)}K`
+}
+
+type ListingPoint = Supercluster.PointFeature<{ listing: ListingCardData }>
+
+export default function MapView({ listings, hoveredId, onHover, className }: MapViewProps) {
+  const mapRef = useRef<MapRef>(null)
+  const [viewState, setViewState] = useState({
+    longitude: 6.1432,
+    latitude: 46.2044,
+    zoom: 11.5,
+  })
+  const [selectedListing, setSelectedListing] = useState<ListingCardData | null>(null)
+
+  // Build GeoJSON points from listings
+  const points: ListingPoint[] = useMemo(
+    () =>
+      listings
+        .filter((l) => l.lat && l.lng)
+        .map((l) => ({
+          type: 'Feature' as const,
+          properties: { listing: l },
+          geometry: {
+            type: 'Point' as const,
+            coordinates: [l.lng!, l.lat!],
+          },
+        })),
+    [listings]
+  )
+
+  // Build supercluster index
+  const supercluster = useMemo(() => {
+    const sc = new Supercluster<{ listing: ListingCardData }>({
+      radius: 60,
+      maxZoom: 16,
+    })
+    sc.load(points)
+    return sc
+  }, [points])
+
+  // Get clusters for current viewport
+  const clusters = useMemo(() => {
+    const bounds = mapRef.current?.getMap().getBounds()
+    if (!bounds) {
+      // Fallback: use wide bounds around Geneva
+      return supercluster.getClusters([5.5, 45.5, 7.0, 47.0], Math.floor(viewState.zoom))
+    }
+    return supercluster.getClusters(
+      [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
+      Math.floor(viewState.zoom)
+    )
+  }, [supercluster, viewState.zoom])
+
+  const handleMove = useCallback((evt: ViewStateChangeEvent) => {
+    setViewState(evt.viewState)
+  }, [])
+
+  function handleClusterClick(clusterId: number, lng: number, lat: number) {
+    const zoom = supercluster.getClusterExpansionZoom(clusterId)
+    mapRef.current?.flyTo({ center: [lng, lat], zoom, duration: 500 })
+  }
+
+  function handlePinClick(listing: ListingCardData) {
+    setSelectedListing(listing)
+  }
+
+  // Fit bounds to all listings
+  function fitToListings() {
+    if (!listings.length || !mapRef.current) return
+    const validListings = listings.filter((l) => l.lat && l.lng)
+    if (!validListings.length) return
+
+    const lngs = validListings.map((l) => l.lng!)
+    const lats = validListings.map((l) => l.lat!)
+    mapRef.current.fitBounds(
+      [
+        [Math.min(...lngs) - 0.02, Math.min(...lats) - 0.02],
+        [Math.max(...lngs) + 0.02, Math.max(...lats) + 0.02],
+      ],
+      { duration: 600, padding: 50 }
+    )
+  }
+
   return (
-    <div className={cn('relative bg-section rounded-card overflow-hidden', className)}>
-      {/* Placeholder map background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100">
-        {/* Grid pattern to simulate map */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '40px 40px',
-          }}
-        />
+    <div className={cn('relative w-full h-full', className)}>
+      <MapGL
+        ref={mapRef}
+        {...viewState}
+        onMove={handleMove}
+        mapboxAccessToken={MAPBOX_TOKEN}
+        mapStyle="mapbox://styles/mapbox/light-v11"
+        style={{ width: '100%', height: '100%' }}
+        attributionControl={false}
+        reuseMaps
+      >
+        <NavigationControl position="bottom-right" showCompass={false} />
+        <FullscreenControl position="bottom-right" />
 
-        {/* Simulated water body (lac Léman) */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-blue-200/40 rounded-t-[100px]" />
-      </div>
+        {/* Render clusters and individual pins */}
+        {clusters.map((cluster) => {
+          const [lng, lat] = cluster.geometry.coordinates
+          const isCluster = cluster.properties.cluster
 
-      {/* Map markers */}
-      <div className="relative h-full">
-        {markers.map((marker, i) => {
-          const isSelected = selectedId === marker.id
-          // Distribute markers across the map area
-          const positions = [
-            { top: '20%', left: '30%' },
-            { top: '35%', left: '55%' },
-            { top: '15%', left: '70%' },
-            { top: '50%', left: '25%' },
-            { top: '45%', left: '65%' },
-            { top: '60%', left: '45%' },
-          ]
-          const pos = positions[i % positions.length]
+          if (isCluster) {
+            const pointCount = cluster.properties.point_count
+            return (
+              <Marker key={`cluster-${cluster.id}`} longitude={lng} latitude={lat} anchor="center">
+                <button
+                  onClick={() => handleClusterClick(cluster.id as number, lng, lat)}
+                  className="w-10 h-10 bg-accent text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md border-2 border-white hover:scale-110 transition-transform cursor-pointer"
+                >
+                  {pointCount}
+                </button>
+              </Marker>
+            )
+          }
+
+          // Individual pin
+          const listing = cluster.properties.listing
+          const isHovered = hoveredId === listing.id
+          const isSelected = selectedListing?.id === listing.id
 
           return (
-            <button
-              key={marker.id}
-              className={cn(
-                'absolute transform -translate-x-1/2 -translate-y-full transition-all z-10 hover:z-20',
-                isSelected && 'z-20'
-              )}
-              style={{ top: pos.top, left: pos.left }}
-              onClick={() => onMarkerClick?.(marker.id)}
+            <Marker
+              key={`pin-${listing.id}`}
+              longitude={lng}
+              latitude={lat}
+              anchor="center"
             >
-              {/* Price pill */}
-              <div
+              <button
+                onClick={() => handlePinClick(listing)}
+                onMouseEnter={() => onHover?.(listing.id)}
+                onMouseLeave={() => onHover?.(undefined)}
                 className={cn(
-                  'px-2.5 py-1 rounded-full text-xs font-bold shadow-md whitespace-nowrap transition-colors',
-                  isSelected
-                    ? 'bg-accent text-white scale-110'
-                    : 'bg-white text-primary-900 hover:bg-accent hover:text-white'
+                  'rounded-full text-[11px] font-bold px-2.5 py-1 border shadow-sm whitespace-nowrap transition-all duration-200 cursor-pointer',
+                  isHovered || isSelected
+                    ? 'bg-accent text-white border-accent shadow-md scale-110 z-10'
+                    : 'bg-white text-gray-900 border-gray-200 hover:scale-110 hover:shadow-md'
                 )}
               >
-                {formatCHF(marker.price)}
-              </div>
-              {/* Pin */}
-              <div className="flex justify-center -mt-0.5">
-                <div
-                  className={cn(
-                    'w-2 h-2 rotate-45 transition-colors',
-                    isSelected ? 'bg-accent' : 'bg-white'
-                  )}
-                />
-              </div>
-            </button>
+                {formatPricePin(listing.price, listing.context)}
+              </button>
+            </Marker>
           )
         })}
-      </div>
 
-      {/* Map controls placeholder */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2">
-        <button className="h-8 w-8 bg-white rounded-lg shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold">
-          +
-        </button>
-        <button className="h-8 w-8 bg-white rounded-lg shadow-card flex items-center justify-center text-primary-600 hover:text-primary-900 text-lg font-bold">
-          −
-        </button>
-      </div>
+        {/* Popup */}
+        {selectedListing && selectedListing.lat && selectedListing.lng && (
+          <Popup
+            longitude={selectedListing.lng}
+            latitude={selectedListing.lat}
+            anchor="bottom"
+            onClose={() => setSelectedListing(null)}
+            closeOnClick={false}
+            offset={20}
+            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-lg [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-dropdown [&_.mapboxgl-popup-close-button]:text-gray-400 [&_.mapboxgl-popup-close-button]:text-lg [&_.mapboxgl-popup-close-button]:right-2 [&_.mapboxgl-popup-close-button]:top-1 [&_.mapboxgl-popup-close-button]:hover:text-gray-700"
+          >
+            <Link to={`/listing/${selectedListing.id}`} className="block w-48">
+              {selectedListing.photos[0] && (
+                <img
+                  src={selectedListing.photos[0]}
+                  alt={selectedListing.title}
+                  className="w-full h-28 object-cover"
+                />
+              )}
+              <div className="p-2.5">
+                <p className="text-sm font-bold text-gray-900">
+                  {formatCHF(selectedListing.price)}
+                  {selectedListing.context === 'rent' ? '/mois' : ''}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">
+                  {selectedListing.address}, {selectedListing.city}
+                </p>
+                {selectedListing.rooms > 0 && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {selectedListing.rooms} p. · {selectedListing.bedrooms} ch. · {formatSurface(selectedListing.surface_m2)}
+                  </p>
+                )}
+                <p className="text-xs text-accent font-medium mt-1.5">
+                  Voir le bien →
+                </p>
+              </div>
+            </Link>
+          </Popup>
+        )}
+      </MapGL>
 
-      {/* Attribution placeholder */}
-      <div className="absolute bottom-2 right-2 text-[10px] text-primary-400 bg-white/80 px-1.5 py-0.5 rounded">
-        <MapPin className="h-2.5 w-2.5 inline mr-0.5" />
-        Carte — Mapbox (bientôt)
-      </div>
+      {/* Recenter button */}
+      <button
+        onClick={fitToListings}
+        className="absolute top-3 left-3 bg-white text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        Recentrer
+      </button>
     </div>
   )
 }
