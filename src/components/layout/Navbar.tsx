@@ -90,10 +90,12 @@ export default function Navbar() {
 
         {/* Actions desktop */}
         <div className="hidden md:flex items-center gap-3">
-          <Button size="default" className="rounded-full gap-2">
-            <Plus className="h-4 w-4" />
-            Publier une annonce
-          </Button>
+          <Link to="/publier">
+            <Button size="default" className="rounded-full gap-2">
+              <Plus className="h-4 w-4" />
+              Publier une annonce
+            </Button>
+          </Link>
 
           {loading ? (
             <div className="h-9 w-9 rounded-full bg-section animate-pulse" />
@@ -218,10 +220,12 @@ export default function Navbar() {
 
             {/* Mobile auth section */}
             <div className="flex flex-col gap-2 pt-3 border-t border-border mt-2">
-              <Button size="default" className="rounded-full gap-2 w-full">
-                <Plus className="h-4 w-4" />
-                Publier une annonce
-              </Button>
+              <Link to="/publier" onClick={() => setMobileOpen(false)}>
+                <Button size="default" className="rounded-full gap-2 w-full">
+                  <Plus className="h-4 w-4" />
+                  Publier une annonce
+                </Button>
+              </Link>
 
               {user ? (
                 <>
