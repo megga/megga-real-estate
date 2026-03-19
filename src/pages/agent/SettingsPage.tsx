@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
 
 /* ─── Tab Types ─── */
 
@@ -30,12 +31,15 @@ const readonlyClasses = 'w-full h-11 px-3 rounded-lg border border-gray-200 bg-g
 /* ─── Profile Tab ─── */
 
 function ProfileTab() {
+  const { profile } = useAuth()
+  const nameParts = (profile?.full_name ?? 'Gregory Lyonnet').split(' ')
+
   const [form, setForm] = useState({
-    firstName: 'Gregory',
-    lastName: 'Lyonnet',
-    email: 'gregory.lyonnet@megga.ch',
-    phone: '+41 22 310 45 67',
-    role: 'Agent principal',
+    firstName: nameParts[0] ?? 'Gregory',
+    lastName: nameParts.slice(1).join(' ') || 'Lyonnet',
+    email: profile?.email ?? 'gregory.lyonnet@megga.ch',
+    phone: profile?.phone ?? '+41 22 310 45 67',
+    role: profile?.role ?? 'agent',
     bio: 'Agent immobilier spécialisé dans le marché genevois depuis 12 ans. Expertise en biens de prestige et transactions internationales.',
   })
 

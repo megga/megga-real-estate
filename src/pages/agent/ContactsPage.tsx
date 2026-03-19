@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { MOCK_CONTACTS, type MockContact } from '@/lib/mockData'
+import { useContacts } from '@/hooks/useContacts'
 
 type SortField = 'name' | 'last_activity' | 'score'
 type SortDir = 'asc' | 'desc'
@@ -83,16 +84,40 @@ export default function ContactsPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
 
+  // Real data from Supabase (falls back to mock if empty)
+  const { contacts: realContacts } = useContacts()
+  const dataSource: MockContact[] = realContacts.length > 0
+    ? realContacts.map(c => ({
+        id: c.id,
+        first_name: c.first_name,
+        last_name: c.last_name,
+        email: c.email ?? '',
+        phone: c.phone ?? '',
+        type: c.type as MockContact['type'],
+        score: (c.score ?? 'cold') as MockContact['score'],
+        source: (c.source ?? 'manual'),
+        tags: c.tags ?? [],
+        notes: c.notes ?? '',
+        address: '',
+        city: '',
+        canton: '',
+        created_at: c.created_at,
+        last_activity: c.created_at,
+        transactions: [] as MockContact['transactions'],
+        activities: [] as MockContact['activities'],
+      } as MockContact))
+    : MOCK_CONTACTS
+
   // All unique tags
   const allTags = useMemo(() => {
     const tags = new Set<string>()
-    MOCK_CONTACTS.forEach((c) => c.tags.forEach((t) => tags.add(t)))
+    dataSource.forEach((c) => c.tags.forEach((t) => tags.add(t)))
     return Array.from(tags).sort()
-  }, [])
+  }, [dataSource])
 
   // Filter
   const filtered = useMemo(() => {
-    let list = [...MOCK_CONTACTS]
+    let list = [...dataSource]
 
     if (search) {
       const q = search.toLowerCase()
@@ -142,7 +167,7 @@ export default function ContactsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-primary-900">Contacts</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{MOCK_CONTACTS.length} contacts au total</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{dataSource.length} contacts au total</p>
         </div>
         <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
           <Plus className="h-4 w-4" />

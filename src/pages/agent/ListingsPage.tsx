@@ -8,6 +8,7 @@ import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, PROPERTY_STATUS_LABELS } from '@/lib/constants'
 import type { PropertyStatus, PropertyType } from '@/lib/constants'
 import { MOCK_AGENT_LISTINGS, type MockAgentListing } from '@/lib/mockData'
+import { useAgencyListings } from '@/hooks/useListings'
 
 const ITEMS_PER_PAGE = 9
 
@@ -92,18 +93,45 @@ export default function ListingsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [page, setPage] = useState(1)
 
+  // Real data from Supabase with mock fallback
+  const { data: realListings } = useAgencyListings()
+  const dataSource: MockAgentListing[] = (realListings && realListings.length > 0)
+    ? realListings.map(l => {
+        const prop = l.property as unknown as Record<string, unknown> | undefined
+        return {
+          id: l.id,
+          title: l.title,
+          type: (prop?.type as MockAgentListing['type']) ?? 'apartment',
+          status: (prop?.status as MockAgentListing['status']) ?? 'draft',
+          price: (prop?.price as number) ?? 0,
+          address: (prop?.address as string) ?? '',
+          city: (prop?.city as string) ?? '',
+          canton: (prop?.canton as string) ?? '',
+          rooms: (prop?.rooms as number) ?? 0,
+          bedrooms: (prop?.bedrooms as number) ?? 0,
+          surface_m2: (prop?.surface_m2 as number) ?? 0,
+          photo: ((prop?.photos as string[]) ?? [])[0] ?? '',
+          views_count: l.views_count,
+          favorites_count: l.favorites_count,
+          created_at: l.published_at ?? '',
+          published_at: l.published_at,
+          updated_at: l.published_at ?? '',
+        }
+      })
+    : MOCK_AGENT_LISTINGS
+
   // Counts per status
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: MOCK_AGENT_LISTINGS.length }
-    for (const l of MOCK_AGENT_LISTINGS) {
+    const counts: Record<string, number> = { all: dataSource.length }
+    for (const l of dataSource) {
       counts[l.status] = (counts[l.status] || 0) + 1
     }
     return counts
-  }, [])
+  }, [dataSource])
 
   // Filtered list
   const filtered = useMemo(() => {
-    let list = [...MOCK_AGENT_LISTINGS]
+    let list = [...dataSource]
 
     if (search) {
       const q = search.toLowerCase()
@@ -131,7 +159,7 @@ export default function ListingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-primary-900">Mes biens</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{MOCK_AGENT_LISTINGS.length} biens au total</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{dataSource.length} biens au total</p>
         </div>
         <Link
           to="/dashboard/listings/new"
