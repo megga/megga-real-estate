@@ -73,8 +73,8 @@ export default function App() {
             <Route path="/onboarding/seller/individual" element={<OnboardingSellerPP />} />
             <Route path="/onboarding/seller/company" element={<OnboardingSellerPM />} />
 
-            {/* Seller portal */}
-            <Route path="/seller" element={<SellerLayout />}>
+            {/* Seller portal (protected) */}
+            <Route path="/seller" element={<ProtectedRoute allowedRoles={['seller', 'admin']}><SellerLayout /></ProtectedRoute>}>
               <Route index element={<SellerDashboard />} />
               <Route path="visits" element={<SellerVisits />} />
               <Route path="offers" element={<SellerOffers />} />
@@ -86,7 +86,7 @@ export default function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['agent', 'admin', 'manager', 'assistant']}>
                   <AgentLayout />
                 </ProtectedRoute>
               }
