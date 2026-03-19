@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import EstimationForm from '@/components/estimation/EstimationForm'
 
 const steps = [
   {
@@ -94,6 +95,11 @@ const testimonials = [
   },
 ]
 
+function scrollToEstimation(e: React.MouseEvent) {
+  e.preventDefault()
+  document.getElementById('estimation')?.scrollIntoView({ behavior: 'smooth' })
+}
+
 export default function VendrePage() {
   return (
     <div className="min-h-screen bg-white">
@@ -119,15 +125,14 @@ export default function VendrePage() {
             Suisse
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/estimations">
-              <Button
-                size="lg"
-                className="rounded-full px-8 h-12 text-lg font-medium bg-accent hover:bg-accent/90 text-white"
-              >
-                Estimer mon bien gratuitement
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              className="rounded-full px-8 h-12 text-lg font-medium bg-accent hover:bg-accent/90 text-white"
+              onClick={scrollToEstimation}
+            >
+              Estimer mon bien gratuitement
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
             <Link to="/services">
               <Button
                 variant="outline"
@@ -170,8 +175,21 @@ export default function VendrePage() {
         </div>
       </section>
 
+      {/* Section 2.5 — Formulaire d'estimation */}
+      <section id="estimation" className="bg-gray-50 py-16 px-4 md:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl font-semibold text-center text-primary-900">
+            Estimez votre bien gratuitement
+          </h2>
+          <p className="text-gray-500 text-center mt-2 mb-8">
+            Résultat instantané basé sur les données du marché suisse
+          </p>
+          <EstimationForm />
+        </div>
+      </section>
+
       {/* Section 3 — Avantages */}
-      <section className="py-16 md:py-20 px-4 md:px-6 lg:px-8 bg-[#F9FAFB]">
+      <section className="py-16 md:py-20 px-4 md:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-semibold text-center text-primary-900 mb-12">
             Pourquoi choisir MEGGA ?
@@ -240,14 +258,13 @@ export default function VendrePage() {
           <p className="mt-3 text-gray-500">
             Recevez votre estimation gratuite en 2 minutes
           </p>
-          <Link to="/estimations" className="inline-block mt-6">
-            <Button
-              size="lg"
-              className="rounded-full px-8 h-12 font-medium bg-accent hover:bg-accent/90 text-white"
-            >
-              Estimer mon bien
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            className="rounded-full px-8 h-12 font-medium bg-accent hover:bg-accent/90 text-white mt-6"
+            onClick={scrollToEstimation}
+          >
+            Estimer mon bien
+          </Button>
           <p className="mt-4 text-xs text-gray-400">
             Sans engagement · Gratuit · Résultat instantané
           </p>
