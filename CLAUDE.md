@@ -12,7 +12,9 @@
 **Client :** Gregory Lyonnet, agent immobilier à Genève
 **Développeur :** Julien (frontend, pas de compétences backend — Claude Code gère tout)
 
-**Vision :** Premier portail immobilier suisse "IA-first" — marketplace avec recherche conversationnelle, CRM intégré gratuit, pipeline transaction LAB/KYC, portail vendeur.
+**Vision :** Premier portail immobilier suisse "IA-first" — pas un simple CRM avec un chatbot, mais un **système d'exploitation du courtier immobilier** avec une couche IA au centre. Marketplace publique + CRM intégré gratuit + assistante personnelle IA + pipeline transaction LAB/KYC + portail vendeur.
+
+**En une phrase (Gregory Lyonnet) :** "Le courtier ne doit plus perdre du temps à chercher, relancer, rédiger, organiser et suivre manuellement."
 
 **Ce projet est SÉPARÉ de MEGGA (clones IA).** Repo différent, Supabase différent, design system différent.
 
@@ -38,19 +40,32 @@ Backend :      Supabase Pro
                - Edge Functions (Deno/TypeScript)
                - Auth (email + magic link + OAuth Google)
                - Storage (photos listings, documents KYC)
-               - Realtime (messaging, notifications)
+               - Realtime (messaging, notifications, matching alerts)
                - pgvector (embeddings listings pour recherche IA)
+               - pg_cron (tâches automatiques : relances, reminders, surveillance)
 
 IA :           Anthropic Claude API via Edge Functions
                - Recherche conversationnelle (RAG + pgvector)
-               - Copilote métier (résumés, suggestions, rédaction)
-               - Scoring leads, next-best-action
+               - Copilote métier (résumés, suggestions, rédaction, next-best-action)
+               - Scoring leads, buyer intelligence, seller intelligence
+               - Matching intelligent acheteurs ↔ biens
+               - Copilote de négociation
+               - Génération d'annonces multi-versions
+               - Analyse d'objections post-visite
 
-Email :        Resend
+Communication : WhatsApp Business API (Meta) via Edge Functions
+               - Envoi/réception messages
+               - Templates pré-approuvés
+               - Archivage automatique dans fiche contact
+
+Email :        Resend (transactionnel + relances automatiques)
 Payments :     Stripe (abonnements agents)
 Analytics :    PostHog
 Hosting :      Cloudflare Pages (PAS Vercel — gratuit, pas de surprise billing)
 CI/CD :        GitHub Actions → Cloudflare Pages auto-deploy
+
+Voice (Phase 2) : Speech-to-text (Whisper API ou Deepgram)
+                   Text-to-speech (ElevenLabs ou équivalent)
 ```
 
 ### Commandes de base
@@ -90,6 +105,9 @@ megga-real-estate/
 │   │   ├── useListings.ts
 │   │   ├── useContacts.ts
 │   │   ├── useTransactions.ts
+│   │   ├── useMatching.ts       # Matching acheteurs ↔ biens
+│   │   ├── useReminders.ts      # Relances et reminders
+│   │   ├── useActionBoard.ts    # Actions du jour
 │   │   └── use[Module].ts
 │   ├── components/
 │   │   ├── ui/                  # shadcn/ui components (Button, Input, Card...)
@@ -112,8 +130,26 @@ megga-real-estate/
 │   │   ├── crm/
 │   │   │   ├── ContactList.tsx
 │   │   │   ├── ContactCard.tsx
+│   │   │   ├── ContactDetail.tsx    # Fiche contact enrichie (timeline unifiée)
+│   │   │   ├── ContactTimeline.tsx  # Timeline unique : appels, emails, WhatsApp, visites, notes
 │   │   │   ├── PipelineKanban.tsx
 │   │   │   └── DealCard.tsx
+│   │   ├── matching/
+│   │   │   ├── MatchingPanel.tsx    # Panel de suggestions matching IA
+│   │   │   ├── MatchScoreCard.tsx   # Card avec score de compatibilité
+│   │   │   └── MatchActions.tsx     # Actions rapides : envoyer, planifier visite
+│   │   ├── automation/
+│   │   │   ├── ReminderList.tsx     # Liste des relances à faire
+│   │   │   ├── ReminderConfig.tsx   # Configuration relances auto
+│   │   │   └── AutomationRules.tsx  # Règles d'automatisation
+│   │   ├── action-board/
+│   │   │   ├── ActionBoard.tsx      # "Quoi faire aujourd'hui" — écran principal
+│   │   │   ├── ActionCard.tsx       # Card d'action suggérée
+│   │   │   └── NextBestAction.tsx   # Suggestion IA next-best-action par client/deal
+│   │   ├── ai-copilot/
+│   │   │   ├── CopilotPanel.tsx     # Panel IA global (commandes naturelles)
+│   │   │   ├── CopilotSummary.tsx   # Résumé intelligent d'une fiche
+│   │   │   └── CopilotNegotiation.tsx # Aide à la négociation
 │   │   ├── kyc/
 │   │   │   ├── KycCaseList.tsx
 │   │   │   ├── KycCaseDetail.tsx
@@ -121,10 +157,16 @@ megga-real-estate/
 │   │   ├── portal/              # Portail vendeur
 │   │   │   ├── SellerDashboard.tsx
 │   │   │   ├── SellerVisits.tsx
-│   │   │   └── SellerOffers.tsx
-│   │   └── messaging/
-│   │       ├── Inbox.tsx
-│   │       └── Thread.tsx
+│   │   │   ├── SellerOffers.tsx
+│   │   │   └── SellerAnalysis.tsx   # Positionnement marché, prix m², comparables
+│   │   ├── messaging/
+│   │   │   ├── Inbox.tsx
+│   │   │   ├── Thread.tsx
+│   │   │   └── WhatsAppThread.tsx   # Thread WhatsApp intégré
+│   │   └── documents/
+│   │       ├── TemplateList.tsx
+│   │       ├── DocumentGenerator.tsx
+│   │       └── DocumentViewer.tsx
 │   ├── pages/
 │   │   ├── public/
 │   │   │   ├── HomePage.tsx
@@ -133,13 +175,19 @@ megga-real-estate/
 │   │   │   ├── LoginPage.tsx
 │   │   │   └── RegisterPage.tsx
 │   │   ├── agent/
-│   │   │   ├── DashboardPage.tsx
+│   │   │   ├── ActionBoardPage.tsx  # "Quoi faire aujourd'hui" — PAGE PRINCIPALE AGENT
+│   │   │   ├── DashboardPage.tsx    # KPIs et analytics
 │   │   │   ├── ContactsPage.tsx
+│   │   │   ├── ContactDetailPage.tsx # Fiche contact complète + timeline + matching
 │   │   │   ├── PipelinePage.tsx
+│   │   │   ├── MatchingPage.tsx     # Vue matching acheteurs ↔ biens
 │   │   │   ├── ListingsPage.tsx
+│   │   │   ├── ListingFormPage.tsx  # Wizard création/édition bien
 │   │   │   ├── KycPage.tsx
+│   │   │   ├── KycDetailPage.tsx
 │   │   │   ├── MessagesPage.tsx
 │   │   │   ├── CalendarPage.tsx
+│   │   │   ├── DocumentsPage.tsx    # Templates + génération
 │   │   │   └── SettingsPage.tsx
 │   │   └── seller/
 │   │       └── PortalPage.tsx
@@ -148,6 +196,8 @@ megga-real-estate/
 │   │   ├── listing.ts
 │   │   ├── contact.ts
 │   │   ├── transaction.ts
+│   │   ├── matching.ts          # Types matching IA
+│   │   ├── automation.ts        # Types relances et règles auto
 │   │   └── kyc.ts
 │   └── styles/
 │       └── globals.css          # Tailwind base + custom CSS
@@ -155,7 +205,13 @@ megga-real-estate/
 │   ├── migrations/              # SQL migrations
 │   └── functions/               # Edge Functions Deno
 │       ├── ai-search/           # Recherche conversationnelle
-│       ├── ai-copilot/          # Copilote métier
+│       ├── ai-copilot/          # Copilote métier (résumés, rédaction, suggestions)
+│       ├── ai-matching/         # Moteur de matching acheteurs ↔ biens
+│       ├── ai-scoring/          # Buyer intelligence, seller intelligence
+│       ├── ai-negotiation/      # Copilote négociation
+│       ├── ai-listing-gen/      # Génération annonces multi-versions
+│       ├── automation-engine/   # Moteur de relances automatiques
+│       ├── whatsapp/            # Webhook + envoi WhatsApp Business API
 │       └── webhooks/            # Stripe, Resend...
 ```
 
@@ -359,15 +415,44 @@ Sidebar width :    w-64 (256px)
 - Position fixe à gauche, bg-sidebar, border-r
 - Logo GG en haut (petit, 28px)
 - Navigation verticale : icônes Lucide + labels
-- Sections : Dashboard, Pipeline, Contacts, Mes biens, KYC, Messages, Calendrier
+- Sections : **Aujourd'hui** (action board), Dashboard, Pipeline, Matching, Contacts, Mes biens, KYC, Messages, Documents, Calendrier
 - Item actif : bg-accent/10 text-accent font-medium border-l-2 border-accent
 - Item hover : bg-gray-100
 - Profil agent en bas avec avatar + nom + rôle
-- Compteurs (badges) : messages non lus, dossiers en attente
+- Compteurs (badges) : messages non lus, dossiers en attente, relances à faire, matchs trouvés
+
+#### Action Board ("Quoi faire aujourd'hui")
+- **C'est la page d'accueil de l'agent** — la première chose qu'il voit en se connectant
+- En-tête : "Bonjour [Prénom], voici votre journée" + date
+- Sections empilées par priorité :
+  1. **Urgences** (bg-danger/5 border-l-4 border-danger) : deals à risque, docs manquants, relances en retard
+  2. **Relances du jour** (bg-warning/5 border-l-4 border-warning) : clients à rappeler, feedbacks à demander
+  3. **Matchs trouvés** (bg-accent/5 border-l-4 border-accent) : nouveaux biens compatibles avec des recherches clients
+  4. **Visites à confirmer** : agenda du jour
+  5. **Suggestions IA** (bg-success/5 border-l-4 border-success) : next-best-actions proposées par l'IA
+- Chaque ActionCard : icône, titre, description courte, bouton d'action rapide ("Appeler", "Envoyer", "Voir le dossier")
+- Compteur global en haut : "X actions recommandées aujourd'hui"
+
+#### Contact Detail (fiche enrichie)
+- En-tête : nom complet, avatar, type (badge), score (badge couleur), WhatsApp/tel/email en actions rapides
+- **Résumé IA** en haut : encadré bg-accent/5, icône sparkle — 2-3 phrases auto-générées ("Client sérieux, budget CHF 1.2M, recherche active Eaux-Vives, 3 visites effectuées, dernière interaction il y a 5 jours")
+- **Next Best Action** : encadré vert, suggestion IA ("Proposer le 3 pièces rue du Rhône — 92% compatible")
+- Tabs : Infos · Timeline · Biens envoyés · Matching · Documents · Offres
+- **Timeline unifiée** : tous les événements sur une seule timeline chronologique — appels, emails, WhatsApp, visites, biens envoyés, notes, tâches, documents, offres, relances
+- Section critères de recherche : type, zone, budget (annoncé + estimé IA), pièces, surface, features
+- Tags et notes libres
+
+#### Matching Panel
+- S'affiche dans la ContactDetailPage ou comme page dédiée
+- Liste de biens compatibles, triés par score de matching (0-100%)
+- Chaque MatchScoreCard : photo bien, adresse, prix, score %, raisons du match (badges : "Budget ✓", "Zone ✓", "Critères ✓")
+- Actions rapides : "Envoyer au client" (email/WhatsApp), "Planifier visite", "Ignorer"
+- Filtre : base interne uniquement (Phase 1) | + portails externes (Phase 2)
 
 #### Pipeline Kanban
-- Colonnes : Nouveau lead → Qualifié → Visite planifiée → Offre → Négociation → Signé
-- Cards de deal : avatar contact, nom bien, prix, étape, date mise à jour
+- Colonnes : Nouveau lead → À qualifier → Recherche active → Visite planifiée → Visite effectuée → Intérêt confirmé → Offre → Négociation → Réservé → Notaire → Signé
+- Colonnes additionnelles visibles via scroll horizontal : Perdu | À relancer
+- Cards de deal : avatar contact, nom bien, prix, étape, date mise à jour, indicateur relance (badge orange si en retard)
 - Drag & drop via dnd-kit
 - Compteur par colonne
 - Couleur header colonne : gris par défaut, accent pour active
@@ -383,9 +468,18 @@ Sidebar width :    w-64 (256px)
 #### Portail Vendeur
 - Vue simplifiée, pas de sidebar
 - Dashboard : état du mandat, visites (compteur), offres, messages
+- **Dashboard de confiance** : activité récente, dynamique du bien, qualité des retours
+- **Analyse positionnement** : prix au m², biens comparables, risque de stagnation, suggestion de prix
 - Timeline des activités récentes
 - Accès documents
 - Ton rassurant : "Votre bien est entre de bonnes mains"
+
+#### Copilot Panel (IA globale)
+- Accessible depuis n'importe quel écran agent (bouton flottant ou sidebar)
+- Input texte : commandes en langage naturel
+- Exemples : "résume-moi ce client", "rédige une relance", "quels biens envoyer à M. Dupont", "prépare un mandat", "quelles sont les prochaines actions"
+- L'IA est TOUJOURS connectée au contexte réel du CRM (client actif, deal actif, page courante)
+- Réponses affichées dans un panel latéral avec actions cliquables
 
 ---
 
@@ -485,23 +579,140 @@ agencies (id, name, slug, logo_url, address, phone, email, plan, created_at)
 profiles (id, agency_id, email, full_name, avatar_url, role, phone, created_at)
   -- roles: 'admin' | 'manager' | 'agent' | 'assistant'
 
--- Contacts (acheteurs + vendeurs)
-contacts (id, agency_id, first_name, last_name, email, phone, type, source, score, tags, notes, created_at)
-  -- type: 'buyer' | 'seller' | 'both' | 'lead'
-  -- score: 'hot' | 'warm' | 'cold'
+-- Contacts (acheteurs + vendeurs + investisseurs + locataires + bailleurs)
+contacts (
+  id, agency_id,
+  -- Identité
+  first_name, last_name, email, phone, whatsapp_phone, language, nationality,
+  -- Classification
+  type,          -- 'buyer' | 'seller' | 'investor' | 'tenant' | 'landlord' | 'both' | 'lead'
+  source,        -- 'website' | 'referral' | 'portal' | 'walk_in' | 'social' | 'cold_call' | 'other'
+  score,         -- 'hot' | 'warm' | 'cold'
+  -- Budget
+  budget_announced, budget_estimated_ai,
+  -- Recherche
+  search_zones,  -- text[] (cantons ou quartiers)
+  search_criteria, -- jsonb (type, pièces min/max, surface min/max, features...)
+  -- Scoring IA (buyer/seller intelligence)
+  ai_seriousness_score,    -- 0-100, estimé par IA
+  ai_purchase_probability, -- 0-100
+  ai_timing,               -- 'immediate' | '1-3_months' | '3-6_months' | '6-12_months' | 'long_term'
+  ai_engagement_level,     -- 'very_high' | 'high' | 'medium' | 'low' | 'dormant'
+  -- Seller-specific
+  ai_tension_level,        -- 'calm' | 'moderate' | 'tense' | 'critical' (vendeurs)
+  ai_price_reduction_probability, -- 0-100 (vendeurs)
+  -- Meta
+  tags, notes, avatar_url,
+  last_interaction_at,     -- Date de la dernière interaction (calculé)
+  created_at, updated_at
+)
 
 -- Biens immobiliers
-properties (id, agency_id, title, description, type, status, price, currency, rooms, bedrooms, bathrooms, surface_m2, address, city, canton, postal_code, lat, lng, photos, features, created_by, created_at, published_at)
+properties (
+  id, agency_id,
+  title, description, type, status, price, currency,
+  rooms, bedrooms, bathrooms, surface_m2,
+  floor, has_outdoor, has_parking, charges_monthly, year_built, condition,
+  address, city, canton, postal_code, lat, lng,
+  photos, features,
+  -- Analyse marché IA
+  ai_price_per_m2, ai_comparable_properties, ai_stagnation_risk, ai_suggested_price,
+  -- Meta
+  availability_date, created_by, created_at, published_at, updated_at
+)
   -- type: 'apartment' | 'house' | 'villa' | 'commercial' | 'land'
-  -- status: 'draft' | 'active' | 'reserved' | 'sold' | 'archived'
+  -- status: 'draft' | 'active' | 'reserved' | 'sold' | 'off_market' | 'archived'
+  -- condition: 'new' | 'renovated' | 'good' | 'to_renovate'
 
 -- Listings (annonces publiées)
 listings (id, property_id, agency_id, title, description_ai, price_display, is_featured, is_hot, views_count, favorites_count, published_at, expires_at)
 
--- Transactions / Deals
-transactions (id, agency_id, property_id, contact_buyer_id, contact_seller_id, assigned_to, stage, status, price_offered, price_final, mandate_type, notes, created_at, updated_at)
-  -- stage: 'lead' | 'qualified' | 'visit_planned' | 'offer' | 'negotiation' | 'reserved' | 'financing' | 'notary' | 'signed' | 'closed'
+-- Recherches clients (sauvegardes)
+client_searches (
+  id, agency_id, contact_id,
+  label,            -- "Recherche 4p Eaux-Vives"
+  criteria,         -- jsonb : type, budget_min, budget_max, rooms_min, rooms_max, surface_min, zones[], features[]
+  is_active,        -- true = surveillance continue activée
+  last_matched_at,  -- Dernière fois que le matching a trouvé des résultats
+  created_at, updated_at
+)
+
+-- Matching acheteurs ↔ biens
+matches (
+  id, agency_id,
+  contact_id, property_id, client_search_id,
+  score,            -- 0-100 score de compatibilité
+  reasons,          -- jsonb : { budget: true, zone: true, rooms: true, surface: false, features: ['parking'] }
+  status,           -- 'suggested' | 'sent' | 'visit_planned' | 'interested' | 'rejected' | 'ignored'
+  sent_via,         -- 'email' | 'whatsapp' | 'both' | null
+  sent_at, response_at,
+  created_at
+)
+
+-- Transactions / Deals (pipeline enrichi)
+transactions (
+  id, agency_id, property_id, contact_buyer_id, contact_seller_id, assigned_to,
+  stage, status,
+  price_offered, price_final, mandate_type,
+  notes, created_at, updated_at
+)
+  -- stage (pipeline enrichi Gregory) :
+  --   'new_lead' | 'to_qualify' | 'active_search' | 'visit_planned' | 'visit_done' |
+  --   'interest_confirmed' | 'offer' | 'negotiation' | 'reserved' |
+  --   'financing' | 'notary' | 'signed' | 'closed' | 'lost' | 'to_recontact'
   -- status: 'active' | 'on_hold' | 'cancelled' | 'completed'
+
+-- Relances et reminders automatiques
+reminders (
+  id, agency_id,
+  contact_id, property_id, transaction_id, match_id,
+  type,             -- 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom'
+  trigger_rule,     -- 'days_after_event' | 'no_response' | 'inactivity' | 'manual'
+  trigger_days,     -- Nombre de jours avant déclenchement
+  status,           -- 'pending' | 'triggered' | 'done' | 'cancelled' | 'snoozed'
+  trigger_at,       -- Date prévue de déclenchement
+  completed_at,
+  message_template, -- Template du message de relance (optionnel)
+  channel,          -- 'email' | 'whatsapp' | 'task' | 'notification'
+  created_at
+)
+
+-- Règles d'automatisation (configurées par l'agent)
+automation_rules (
+  id, agency_id,
+  name,             -- "Relance J+3 après envoi bien"
+  trigger_event,    -- 'property_sent' | 'visit_completed' | 'lead_inactive' | 'document_missing' | 'new_match'
+  action,           -- 'create_reminder' | 'send_email' | 'send_whatsapp' | 'create_task' | 'notify_agent'
+  delay_days,       -- Délai avant exécution
+  template_id,      -- Référence au template de message
+  is_active,
+  created_at
+)
+
+-- Templates de messages (relances, confirmations, etc.)
+message_templates (
+  id, agency_id,
+  name,             -- "Relance acheteur après envoi"
+  category,         -- 'follow_up' | 'visit_confirmation' | 'property_presentation' | 'post_visit' | 'objection_response' | 'offer_follow_up' | 'thank_you' | 'seller_update'
+  channel,          -- 'email' | 'whatsapp' | 'both'
+  subject,          -- Sujet email (si applicable)
+  body,             -- Corps du message avec variables {{contact.first_name}}, {{property.address}}, etc.
+  is_ai_generated,  -- true si généré par IA
+  created_at
+)
+
+-- Visites
+visits (
+  id, agency_id,
+  property_id, contact_id, transaction_id,
+  scheduled_at, completed_at,
+  status,           -- 'planned' | 'confirmed' | 'done' | 'cancelled' | 'no_show'
+  feedback_buyer,   -- Feedback acheteur (texte libre ou structuré)
+  feedback_agent,   -- Notes agent post-visite
+  ai_objections,    -- jsonb : objections détectées par IA dans le feedback
+  rating,           -- 1-5 étoile (optionnel)
+  created_at
+)
 
 -- Dossiers KYC
 kyc_cases (id, agency_id, transaction_id, contact_id, type, risk_level, status, completion_pct, validated_by, validated_at, created_at)
@@ -513,12 +724,14 @@ kyc_cases (id, agency_id, transaction_id, contact_id, type, risk_level, status, 
 kyc_checklist_items (id, kyc_case_id, label, category, is_required, is_completed, document_id, notes, completed_at, completed_by)
 
 -- Documents
-documents (id, agency_id, kyc_case_id, transaction_id, name, type, storage_path, size_bytes, uploaded_by, status, created_at)
+documents (id, agency_id, kyc_case_id, transaction_id, contact_id, property_id, name, type, storage_path, size_bytes, uploaded_by, status, created_at)
   -- status: 'pending' | 'validated' | 'rejected'
+  -- type: 'mandate' | 'visit_voucher' | 'property_sheet' | 'offer' | 'kyc' | 'contract' | 'other'
 
--- Messages
-messages (id, thread_id, sender_id, sender_type, content, read_at, created_at)
-message_threads (id, agency_id, property_id, participants, last_message_at)
+-- Messages (email + WhatsApp unifiés)
+messages (id, thread_id, sender_id, sender_type, channel, content, read_at, created_at)
+  -- channel: 'internal' | 'email' | 'whatsapp'
+message_threads (id, agency_id, property_id, contact_id, channel, participants, last_message_at)
 
 -- Favoris
 favorites (id, user_id, listing_id, created_at)
@@ -528,6 +741,18 @@ activity_events (id, agency_id, actor_id, action, entity_type, entity_id, metada
 
 -- Embeddings pour recherche IA
 listing_embeddings (id, listing_id, embedding vector(1536), content_text, updated_at)
+
+-- Actions du jour (générées par IA, rafraîchies quotidiennement)
+daily_actions (
+  id, agency_id, agent_id,
+  priority,         -- 'urgent' | 'high' | 'medium' | 'low'
+  category,         -- 'follow_up' | 'match_found' | 'visit_confirm' | 'document_missing' | 'deal_at_risk' | 'suggestion'
+  title, description,
+  entity_type, entity_id, -- Lien vers le contact/deal/bien concerné
+  action_type,      -- 'call' | 'email' | 'whatsapp' | 'send_property' | 'plan_visit' | 'review_document' | 'adjust_price'
+  is_completed,
+  generated_at, completed_at
+)
 ```
 
 ### Row Level Security (RLS)
@@ -537,11 +762,12 @@ CRITIQUE : Chaque table DOIT avoir des policies RLS activées.
 - Les agents ne voient que les données de leur agence (agency_id = auth.jwt() -> agency_id)
 - Les vendeurs (portail) ne voient que leurs propres transactions
 - Les acheteurs (public) ne voient que les listings publiés (status = 'active')
+- Les relances et matchs sont filtrés par agency_id
 ```
 
 ---
 
-## 7. PAGES MVP (37 ÉCRANS)
+## 7. PAGES MVP (42 ÉCRANS)
 
 ### Public (4)
 1. **HomePage** — Hero avec barre de recherche IA + listings vedettes + CTA agent
@@ -549,45 +775,170 @@ CRITIQUE : Chaque table DOIT avoir des policies RLS activées.
 3. **ListingPage** — Fiche bien détaillée (photos, infos, carte, contact agent, estimation)
 4. **LoginPage / RegisterPage** — Auth Supabase (email + Google OAuth)
 
-### Agent Dashboard (10)
-5. **DashboardPage** — KPIs, pipeline mini, dernières activités, tâches urgentes
-6. **PipelinePage** — Kanban drag & drop des transactions
-7. **ContactsPage** — Liste + filtres + scoring + tags
-8. **ContactDetailPage** — Fiche contact, historique, transactions liées
-9. **ListingsPage** — Mes biens, statuts, vues, favoris
-10. **ListingFormPage** — Créer/éditer un listing (wizard multi-étapes)
-11. **KycListPage** — Liste dossiers KYC, statuts, progression
-12. **KycDetailPage** — Dossier KYC complet, checklist, documents, validation
-13. **MessagesPage** — Inbox + threads
-14. **CalendarPage** — Agenda visites, RDV (synchro Google Calendar Phase 2)
+### Agent Dashboard (15)
+5. **ActionBoardPage** — ⭐ PAGE D'ACCUEIL AGENT — "Quoi faire aujourd'hui" (relances, matchs, urgences, suggestions IA)
+6. **DashboardPage** — KPIs, analytics, pipeline mini, dernières activités
+7. **PipelinePage** — Kanban drag & drop des transactions (12 colonnes enrichies)
+8. **ContactsPage** — Liste + filtres + scoring + tags + scoring IA
+9. **ContactDetailPage** — Fiche enrichie : résumé IA, timeline unifiée, next-best-action, matching, critères, documents
+10. **MatchingPage** — Vue globale matching acheteurs ↔ biens, shortlists, envois en lot
+11. **ListingsPage** — Mes biens, statuts, vues, favoris, analyse positionnement IA
+12. **ListingFormPage** — Créer/éditer un listing (wizard multi-étapes) + génération annonce IA multi-versions
+13. **KycListPage** — Liste dossiers KYC, statuts, progression
+14. **KycDetailPage** — Dossier KYC complet, checklist, documents, validation
+15. **MessagesPage** — Inbox unifié (email + WhatsApp + interne) + threads
+16. **DocumentsPage** — Templates + génération mandat/bon de visite/fiche bien + signature
+17. **CalendarPage** — Agenda visites, RDV (synchro Google Calendar Phase 2)
+18. **AutomationPage** — Configuration des règles de relance automatique
+19. **SettingsPage** — Profil, agence, équipe, notifications
 
 ### Onboarding Client (4)
-15. **OnboardingBuyerPP** — Formulaire acquéreur personne physique
-16. **OnboardingBuyerPM** — Formulaire acquéreur personne morale
-17. **OnboardingSellePP** — Formulaire vendeur personne physique
-18. **OnboardingSellerPM** — Formulaire vendeur personne morale
+20. **OnboardingBuyerPP** — Formulaire acquéreur personne physique
+21. **OnboardingBuyerPM** — Formulaire acquéreur personne morale
+22. **OnboardingSellerPP** — Formulaire vendeur personne physique
+23. **OnboardingSellerPM** — Formulaire vendeur personne morale
 
-### Portail Vendeur (5)
-19. **SellerDashboard** — État du mandat, activité, stats
-20. **SellerVisits** — Visites planifiées + retours
-21. **SellerOffers** — Offres reçues
-22. **SellerDocuments** — Documents liés au mandat
-23. **SellerMessages** — Communication avec l'agent
+### Portail Vendeur (6)
+24. **SellerDashboard** — État du mandat, activité, stats, dashboard de confiance IA
+25. **SellerVisits** — Visites planifiées + retours + feedbacks
+26. **SellerOffers** — Offres reçues
+27. **SellerDocuments** — Documents liés au mandat
+28. **SellerMessages** — Communication avec l'agent
+29. **SellerAnalysis** — Positionnement marché, prix m², comparables, alertes stagnation
 
 ### Settings (4)
-24. **ProfileSettings** — Profil personnel
-25. **AgencySettings** — Infos agence, branding
-26. **TeamSettings** — Gestion équipe, rôles
-27. **NotificationSettings** — Préférences notifications
+30. **ProfileSettings** — Profil personnel
+31. **AgencySettings** — Infos agence, branding
+32. **TeamSettings** — Gestion équipe, rôles
+33. **NotificationSettings** — Préférences notifications
 
 ### Génération Documents (3)
-28. **TemplatesPage** — Liste templates (mandat, bon de visite, offre...)
-29. **DocumentGenerator** — Sélection template + preview + export PDF
-30. **DocumentViewer** — Visualisation document généré
+34. **TemplatesPage** — Liste templates (mandat, bon de visite, offre, lettre d'accompagnement...)
+35. **DocumentGenerator** — Sélection template + preview + export PDF
+36. **DocumentViewer** — Visualisation document généré
 
 ---
 
-## 8. RECHERCHE IA CONVERSATIONNELLE
+## 8. MODULES IA (spécifications Gregory Lyonnet)
+
+> Gregory Lyonnet, notre expert terrain, a défini ces modules comme essentiels au quotidien d'un courtier. L'IA n'est JAMAIS un gadget — elle est toujours connectée au contexte réel du CRM.
+
+### 8.1 Assistant IA global (Copilote)
+
+**Accès :** Bouton flottant ou panel latéral, disponible depuis toute page agent.
+
+**Commandes naturelles supportées :**
+- "Résume-moi ce client" → Résumé structuré (qui, où en est la relation, quoi faire ensuite)
+- "Rédige une relance pour [client]" → Email ou WhatsApp contextualisé
+- "Quels biens envoyer à [client]" → Shortlist matching avec scores
+- "Prépare un mandat pour [bien]" → Pré-remplissage document
+- "Quelles sont les prochaines actions" → Next-best-actions triées par priorité
+- "Résume les objections de [client]" → Analyse des feedbacks de visite
+
+**Règle clé :** L'IA doit TOUJOURS être nourrie par les vraies données CRM du client/bien/deal actif. Pas de réponse "dans le vide".
+
+### 8.2 Matching intelligent acheteurs ↔ biens
+
+**Flux quand un nouveau bien entre :**
+1. L'IA analyse tous les acheteurs existants + leurs critères de recherche (client_searches)
+2. Calcule un score de compatibilité (0-100%) basé sur : budget, zone, type, pièces, surface, features
+3. Classe les meilleurs matchs
+4. Propose l'envoi en un clic (email ou WhatsApp)
+
+**Flux quand un acheteur est créé/modifié :**
+1. L'IA surveille tous les biens déjà présents (status = 'active')
+2. Propose les biens pertinents automatiquement
+3. Suggère l'envoi immédiat
+
+**Surveillance continue (si client_search.is_active = true) :**
+- Nouveaux biens dans la base → notification agent
+- Changements de prix → re-matching
+- Biens remis en ligne → alerte
+- Message type : "3 nouveaux biens correspondent à la recherche de M. Dupont"
+
+**Phase 2 :** Recherche externe sur portails (dépend des API disponibles).
+
+### 8.3 Relances automatiques intelligentes
+
+**Types de relances :**
+
+| Trigger | Délai | Action | Canal |
+|---|---|---|---|
+| Bien envoyé à un client | J+3 | Reminder agent ou relance auto | Email/WhatsApp |
+| Visite effectuée | J+1 | Demande de feedback | Email/WhatsApp |
+| Lead inactif | J+30 | Relance douce + nouveau bien | Email |
+| Acheteur chaud non relancé | J+7 | Alerte agent | Notification |
+| Vendeur sans suivi récent | J+14 | Alerte + suggestion update | Notification |
+| Document manquant | J+3 | Relance client | Email |
+
+**Adaptation comportementale (Phase 2) :**
+- Email ouvert mais pas de réponse → relance différente
+- Bien consulté plusieurs fois → signal d'intérêt fort
+- Aucune ouverture → changer de canal (WhatsApp au lieu d'email)
+
+**Principe :** L'agent garde toujours le contrôle. Les relances "auto" créent des suggestions/tâches, pas des envois silencieux (sauf si l'agent active l'envoi automatique explicitement).
+
+### 8.4 Next Best Action
+
+Pour chaque client ou deal, l'IA suggère la meilleure prochaine action :
+- Appeler
+- Relancer (email/WhatsApp)
+- Envoyer un bien (avec lequel)
+- Proposer une visite
+- Revoir le prix (vendeur)
+- Envoyer un document
+- Passer à l'étape suivante du pipeline
+
+**Implémentation :** Edge Function `ai-copilot` qui reçoit le contexte complet (contact, transactions, matchs, interactions récentes, relances) et renvoie 1-3 actions classées par impact estimé.
+
+### 8.5 Buyer Intelligence
+
+L'IA estime pour chaque acheteur :
+- **Sérieux** (0-100) : basé sur réactivité, nombre de visites, cohérence budget/recherche
+- **Budget réel estimé** : basé sur les biens consultés, offres faites, interactions
+- **Timing** : immédiat, 1-3 mois, 3-6 mois, 6-12 mois, long terme
+- **Probabilité d'achat** (0-100)
+- **Niveau d'engagement** : very_high → dormant
+
+### 8.6 Seller Intelligence
+
+L'IA analyse pour chaque vendeur :
+- **Niveau de tension** : calm, moderate, tense, critical
+- **Risque d'insatisfaction** : basé sur durée de mise en vente, feedbacks, relances
+- **Probabilité d'accepter une baisse** (0-100)
+- **Niveau d'urgence** : pas pressé, modéré, urgent, très urgent
+
+### 8.7 Copilote de négociation
+
+Quand une offre arrive, l'IA aide sur :
+- Niveau de marge (écart offre vs prix demandé vs marché)
+- Timing (depuis combien de temps le bien est en vente, combien de visites)
+- Stratégie de contre-offre suggérée
+- Degré d'intérêt probable de l'acheteur (basé sur son historique)
+
+### 8.8 Génération d'annonces multi-versions
+
+Pour chaque bien, l'IA génère automatiquement :
+- **Version standard** — portails classiques
+- **Version premium** — mise en valeur haut de gamme
+- **Version luxe** — vocabulaire immobilier de prestige
+- **Version courte** — SMS/WhatsApp
+- **Version réseaux sociaux** — Instagram/LinkedIn
+
+L'agent choisit, édite, valide. Pas de publication automatique.
+
+### 8.9 Analyse d'objections post-visite
+
+Après les visites, l'IA regroupe et analyse :
+- Objections récurrentes (bruit, étage, luminosité, prix...)
+- Points faibles identifiés du bien
+- Suggestions d'ajustement (prix, mise en valeur, travaux à mentionner)
+
+Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymisé).
+
+---
+
+## 9. RECHERCHE IA CONVERSATIONNELLE
 
 ### Flux utilisateur
 1. L'utilisateur tape en langage naturel : "3 pièces lumineux près de Cornavin, max 2'500/mois"
@@ -606,9 +957,17 @@ CRITIQUE : Chaque table DOIT avoir des policies RLS activées.
 - Max 10 tours de conversation avant suggestion de contacter un agent
 - Temps de réponse cible : < 2 secondes
 
+### Garde-fous modules IA agent (section 8)
+- L'IA ne contacte JAMAIS un client sans validation agent (sauf si relance auto explicitement activée)
+- L'IA ne modifie JAMAIS un prix, un statut, ou une étape pipeline sans action humaine
+- L'IA n'envoie JAMAIS de document juridique sans validation agent
+- Les scores IA (buyer/seller intelligence) sont indicatifs — affichés comme "estimation IA", pas comme vérité
+- Le copilote de négociation donne des SUGGESTIONS, pas des décisions
+- Toute action IA est loggée dans `activity_events` avec `actor_id = 'ai'`
+
 ---
 
-## 9. RÈGLES ABSOLUES
+## 10. RÈGLES ABSOLUES
 
 ### DO ✅
 - Toujours utiliser TypeScript strict (pas de `any`)
@@ -620,23 +979,29 @@ CRITIQUE : Chaque table DOIT avoir des policies RLS activées.
 - Toujours gérer les états : loading, empty, error pour chaque liste/page
 - Toujours rendre responsive : mobile-first, puis md: et lg:
 - Human-in-the-loop pour toute validation KYC/compliance
-- Audit trail : logger toute action importante dans `activity_events`
+- Human-in-the-loop pour tout envoi de message/document au client
+- Audit trail : logger toute action importante dans `activity_events` (y compris actions IA)
+- Toujours afficher les scores IA comme "estimation" avec un indicateur visuel (icône sparkle/ai)
+- Timeline unifiée par contact : TOUT dans une seule timeline chronologique
 
 ### DON'T ❌
 - JAMAIS de `any` en TypeScript
 - JAMAIS de données en dur (hardcoded) — tout vient de Supabase
 - JAMAIS de localStorage pour les données sensibles (utiliser Supabase Auth)
 - JAMAIS de validation KYC automatique sans action humaine
+- JAMAIS d'envoi automatique au client sans validation agent (sauf relance auto explicitement activée)
+- JAMAIS d'action IA silencieuse — tout est loggé et visible
 - JAMAIS de dark mode pour l'instant (Phase 2)
 - JAMAIS de Next.js — c'est React + Vite (pas besoin de SSR, c'est un SaaS)
 - JAMAIS de Vercel — c'est Cloudflare Pages
 - JAMAIS de `console.log` en production
 - JAMAIS mentionner "Lovable", "Claude", "Dribbble", "ChatGPT" dans l'interface ou le code
 - JAMAIS afficher l'IA comme "automatique" ou "garantie" — c'est une "assistance"
+- JAMAIS présenter les scores IA comme des certitudes — toujours "estimation"
 
 ---
 
-## 10. MONNAIE ET LOCALISATION
+## 11. MONNAIE ET LOCALISATION
 
 ```
 Devise :          CHF (franc suisse)
@@ -649,44 +1014,71 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 11. PRIORITÉ DE DÉVELOPPEMENT
+## 12. PRIORITÉ DE DÉVELOPPEMENT
+
+> Stratégie : on construit d'abord les fondations + marketplace (vitrine), puis les outils agent qui changent leur quotidien (la vraie valeur pour embarquer les 10-20 agences pilotes).
 
 ### Sprint 1 (Semaine 1-2) — Fondations
 - Setup projet (Vite + React + TS + Tailwind + shadcn)
-- Supabase : schema, RLS, auth
-- Layout : Navbar, Footer, Sidebar
+- Supabase : schema complet (toutes les tables section 6), RLS, auth
+- Layout : Navbar, Footer, Sidebar (avec nouvelles entrées : Aujourd'hui, Matching, Documents)
 - HomePage avec hero + barre de recherche (statique d'abord)
 - LoginPage / RegisterPage (Supabase Auth)
 
-### Sprint 2 (Semaine 3-4) — Marketplace
+### Sprint 2 (Semaine 3-4) — Marketplace publique
 - ListingCard + ListingGrid
 - SearchPage avec filtres + résultats
 - ListingPage (fiche détaillée)
 - MapView (Mapbox intégration)
 - Favoris
 
-### Sprint 3 (Semaine 5-6) — Agent Dashboard
-- DashboardPage (KPIs, activité récente)
-- ContactsPage + ContactDetail
+### Sprint 3 (Semaine 5-6) — CRM Agent (base)
+- **ActionBoardPage** — "Quoi faire aujourd'hui" (statique d'abord, IA en Sprint 5)
+- ContactsPage + **ContactDetailPage enrichie** (timeline unifiée, résumé, critères, tabs)
 - ListingsPage + ListingForm (wizard)
-- PipelineKanban (dnd-kit)
+- **PipelineKanban** (12 colonnes enrichies Gregory, dnd-kit)
 
-### Sprint 4 (Semaine 7-8) — Compliance & Transaction
+### Sprint 4 (Semaine 7-8) — Matching + Relances + Documents
+- **MatchingPage** + MatchingPanel + MatchScoreCard (logique de scoring, envoi en un clic)
+- **Système de relances** : reminders, automation_rules, templates de messages
+- client_searches (sauvegardes de recherche acheteur)
+- Génération documentaire (mandat, bon de visite, fiche bien)
 - KYC : liste, détail, checklist, upload documents
-- Onboarding client (formulaires)
-- Pipeline transaction (stages)
-- Génération documentaire (templates)
-- Portail vendeur (dashboard + visites + offres)
 
-### Sprint 5 (Semaine 9-10) — IA & Messaging
-- Edge Function ai-search (pgvector + Claude API)
+### Sprint 5 (Semaine 9-10) — IA & Intelligence
+- Edge Functions : ai-search (pgvector + Claude API), ai-copilot, ai-matching, ai-scoring
+- **ActionBoardPage connecté à l'IA** (daily_actions générées)
+- **Next-best-action** par client/deal
+- **Buyer intelligence + Seller intelligence** (scores IA)
 - Recherche conversationnelle frontend
-- Messaging (threads, Realtime)
-- Copilote IA (suggestions, résumés)
+- Copilot Panel global (commandes naturelles)
 
-### Sprint 6 (Semaine 11-12) — Polish & Launch
+### Sprint 6 (Semaine 11-12) — Communication + Portail vendeur
+- **WhatsApp Business API** : envoi, réception, archivage dans timeline
+- Messaging unifié (email + WhatsApp + interne) + Inbox
+- **Portail vendeur** : dashboard confiance, visites, offres, documents, analyse positionnement
+- Onboarding client (formulaires PP/PM)
+
+### Sprint 7 (Semaine 13-14) — IA avancée + Polish
+- **Copilote de négociation** (aide à la contre-offre)
+- **Génération annonces multi-versions** (standard, premium, luxe, courte, social)
+- **Analyse d'objections** post-visite
 - Responsive mobile
 - Performance (lazy loading, image optimization)
+
+### Sprint 8 (Semaine 15-16) — Launch
 - Tests end-to-end
 - Déploiement Cloudflare Pages
 - Onboarding pilote : Gregory + 10-20 agences
+- Feedback loop → itérations
+
+### Phase 2 (post-launch)
+- Assistant vocal (speech-to-text → commandes CRM)
+- Notes vocales → texte (transcription auto dans fiche client)
+- Recherche externe sur portails (API ou scraping légal)
+- Analytics avancés (PostHog + dashboards custom)
+- Publication multiportails (export contenu vers portails)
+- Adaptation comportementale relances (email ouvert, lien cliqué)
+- Dark mode
+- i18n (DE, EN, IT)
+- Signature électronique intégrée
