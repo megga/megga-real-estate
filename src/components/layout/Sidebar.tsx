@@ -36,9 +36,20 @@ function UserAvatar({ name }: { name: string }) {
   )
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Administrateur',
+  manager: 'Manager',
+  agent: 'Agent immobilier',
+  assistant: 'Assistant',
+  buyer: 'Particulier',
+  seller: 'Vendeur',
+}
+
 export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const location = useLocation()
-  const { signOut } = useAuth()
+  const { signOut, profile } = useAuth()
+  const displayName = profile?.full_name || 'Utilisateur'
+  const roleLabel = ROLE_LABELS[profile?.role || 'agent'] || 'Agent'
 
   function isActive(href: string) {
     if (href === '/dashboard') return location.pathname === '/dashboard'
@@ -112,10 +123,14 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
         {/* Profile */}
         <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-md bg-section">
-          <UserAvatar name="Gregory Lyonnet" />
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt={displayName} className="h-9 w-9 rounded-full object-cover flex-shrink-0" />
+          ) : (
+            <UserAvatar name={displayName} />
+          )}
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-primary-900 truncate">Gregory Lyonnet</p>
-            <p className="text-xs text-muted-foreground truncate">Agent principal</p>
+            <p className="text-sm font-medium text-primary-900 truncate">{displayName}</p>
+            <p className="text-xs text-muted-foreground truncate">{roleLabel}</p>
           </div>
           <button
             onClick={async () => { await signOut(); }}

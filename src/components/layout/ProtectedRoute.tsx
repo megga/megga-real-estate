@@ -15,7 +15,6 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   const location = useLocation()
 
   if (DEV_BYPASS_AUTH) {
-    // En dev bypass, laisser passer sans vérifier les rôles
     return <>{children}</>
   }
 
@@ -31,8 +30,11 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-    return <Navigate to="/" replace />
+  if (allowedRoles && allowedRoles.length > 0 && profile) {
+    if (!allowedRoles.includes(profile.role)) {
+      const fallback = profile.role === 'buyer' || profile.role === 'seller' ? '/' : '/dashboard'
+      return <Navigate to={fallback} replace />
+    }
   }
 
   return <>{children}</>

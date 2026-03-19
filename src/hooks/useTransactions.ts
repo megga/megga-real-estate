@@ -1,0 +1,95 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import type { Transaction, TransactionStatus, MandateType } from '@/types/transaction'
+import type { TransactionStage } from '@/lib/constants'
+
+interface TransactionFilters {
+  stage?: TransactionStage
+  status?: TransactionStatus
+  assigned_to?: string
+}
+
+export function useTransactions(filters?: TransactionFilters) {
+  return useQuery({
+    queryKey: ['transactions', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('transactions')
+        .select('*, property:properties(title, address, city, price, photos), buyer:contacts!contact_buyer_id(first_name, last_name), seller:contacts!contact_seller_id(first_name, last_name), agent:profiles!assigned_to(full_name, avatar_url)')
+
+      if (filters?.stage) query = query.eq('stage', filters.stage)
+      if (filters?.status) query = query.eq('status', filters.status)
+      if (filters?.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
+
+      const { data, error } = await query.order('updated_at', { ascending: false })
+      if (error) throw error
+      return data as Transaction[]
+    },
+  })
+}
+
+export function useTransaction(id: string | undefined) {
+  return useQuery({
+    queryKey: ['transaction', id],
+    queryFn: async () => {
+      if (!id) throw new Error('No transaction ID')
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, property:properties(*), buyer:contacts!contact_buyer_id(*), seller:contacts!contact_seller_id(*), agent:profiles!assigned_to(full_name, avatar_url)')
+        .eq('id', id)
+        .single()
+      if (error) throw error
+      return data as Transaction
+    },
+    enabled: !!id,
+  })
+}
+
+interface CreateTransactionInput {
+  agency_id: string
+  property_id?: string
+  contact_buyer_id?: string
+  contact_seller_id?: string
+  assigned_to?: string
+  stage?: TransactionStage
+  mandate_type?: MandateType
+  notes?: string
+}
+
+export function useCreateTransaction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: CreateTransactionInput) => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert(input)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    },
+  })
+}
+
+export function useUpdateTransactionStage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, stage }: { id: string; stage: TransactionStage }) => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .update({ stage })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['transaction', variables.id] })
+    },
+  })
+}
