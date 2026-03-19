@@ -16,12 +16,39 @@ import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 import PipelinePage from '@/pages/agent/PipelinePage'
 import MatchingPage from '@/pages/agent/MatchingPage'
 import AutomationPage from '@/pages/agent/AutomationPage'
+import ListingsPage from '@/pages/agent/ListingsPage'
+import ListingFormPage from '@/pages/agent/ListingFormPage'
+import KycListPage from '@/pages/agent/KycListPage'
+import KycDetailPage from '@/pages/agent/KycDetailPage'
+import MessagesPage from '@/pages/agent/MessagesPage'
+import CalendarPage from '@/pages/agent/CalendarPage'
+import SettingsPage from '@/pages/agent/SettingsPage'
+import TemplatesPage from '@/pages/agent/TemplatesPage'
+import DocumentGenerator from '@/pages/agent/DocumentGenerator'
+import DocumentViewer from '@/pages/agent/DocumentViewer'
+import OnboardingBuyerPP from '@/pages/onboarding/OnboardingBuyerPP'
+import OnboardingBuyerPM from '@/pages/onboarding/OnboardingBuyerPM'
+import OnboardingSellerPP from '@/pages/onboarding/OnboardingSellerPP'
+import OnboardingSellerPM from '@/pages/onboarding/OnboardingSellerPM'
+import SellerLayout from '@/pages/seller/SellerLayout'
+import SellerDashboard from '@/pages/seller/SellerDashboard'
+import SellerVisits from '@/pages/seller/SellerVisits'
+import SellerOffers from '@/pages/seller/SellerOffers'
+import SellerDocuments from '@/pages/seller/SellerDocuments'
+import SellerMessages from '@/pages/seller/SellerMessages'
+import BuyerLayout from '@/pages/buyer/BuyerLayout'
+import BuyerDashboard from '@/pages/buyer/BuyerDashboard'
+import BuyerFavorites from '@/pages/buyer/BuyerFavorites'
+import BuyerSearches from '@/pages/buyer/BuyerSearches'
+import BuyerAlerts from '@/pages/buyer/BuyerAlerts'
+import BuyerMessages from '@/pages/buyer/BuyerMessages'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
 import ServicesPage from '@/pages/public/ServicesPage'
 import PublierPage from '@/pages/public/PublierPage'
 import NotFoundPage from '@/pages/public/NotFoundPage'
+import HelpCenterPage from '@/pages/public/HelpCenterPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,12 +79,37 @@ export default function App() {
             <Route path="/estimer" element={<EstimationsPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/publier" element={<PublierPage />} />
+            <Route path="/aide" element={<HelpCenterPage />} />
 
-            {/* Agent dashboard (protected) */}
+            {/* Onboarding client */}
+            <Route path="/onboarding/buyer/individual" element={<OnboardingBuyerPP />} />
+            <Route path="/onboarding/buyer/company" element={<OnboardingBuyerPM />} />
+            <Route path="/onboarding/seller/individual" element={<OnboardingSellerPP />} />
+            <Route path="/onboarding/seller/company" element={<OnboardingSellerPM />} />
+
+            {/* Buyer portal (protected — buyers) */}
+            <Route path="/mon-espace" element={<ProtectedRoute allowedRoles={['buyer', 'seller', 'admin']}><BuyerLayout /></ProtectedRoute>}>
+              <Route index element={<BuyerDashboard />} />
+              <Route path="favoris" element={<BuyerFavorites />} />
+              <Route path="recherches" element={<BuyerSearches />} />
+              <Route path="alertes" element={<BuyerAlerts />} />
+              <Route path="messages" element={<BuyerMessages />} />
+            </Route>
+
+            {/* Seller portal (protected — sellers only) */}
+            <Route path="/seller" element={<ProtectedRoute allowedRoles={['seller', 'admin']}><SellerLayout /></ProtectedRoute>}>
+              <Route index element={<SellerDashboard />} />
+              <Route path="visits" element={<SellerVisits />} />
+              <Route path="offers" element={<SellerOffers />} />
+              <Route path="documents" element={<SellerDocuments />} />
+              <Route path="messages" element={<SellerMessages />} />
+            </Route>
+
+            {/* Agent dashboard (protected — agents only) */}
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['agent', 'admin', 'manager', 'assistant']}>
                   <AgentLayout />
                 </ProtectedRoute>
               }
@@ -69,7 +121,17 @@ export default function App() {
               <Route path="pipeline" element={<PipelinePage />} />
               <Route path="matching" element={<MatchingPage />} />
               <Route path="automation" element={<AutomationPage />} />
-              {/* Future routes: listings, kyc, messages, calendar, settings */}
+              <Route path="listings" element={<ListingsPage />} />
+              <Route path="listings/new" element={<ListingFormPage />} />
+              <Route path="listings/:id/edit" element={<ListingFormPage />} />
+              <Route path="kyc" element={<KycListPage />} />
+              <Route path="kyc/:id" element={<KycDetailPage />} />
+              <Route path="messages" element={<MessagesPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="templates" element={<TemplatesPage />} />
+              <Route path="templates/generate" element={<DocumentGenerator />} />
+              <Route path="documents/view" element={<DocumentViewer />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* 404 */}

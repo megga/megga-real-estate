@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Kanban, Users, Building2, ShieldCheck,
-  MessageSquare, Calendar, Settings, LogOut, X, Zap, Sparkles,
+  MessageSquare, Calendar, FileText, Settings, LogOut, X, Zap, Sparkles,
   RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import NotificationCenter from '@/components/layout/NotificationCenter'
 
 const navItems = [
   { label: 'Aujourd\'hui', href: '/dashboard', icon: Zap, badge: 11 },
@@ -18,6 +19,7 @@ const navItems = [
   { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, badge: 3 },
   { label: 'Automatisation', href: '/dashboard/automation', icon: RotateCcw },
   { label: 'Calendrier', href: '/dashboard/calendar', icon: Calendar },
+  { label: 'Documents', href: '/dashboard/documents/view', icon: FileText },
 ]
 
 interface SidebarProps {
@@ -40,9 +42,20 @@ function UserAvatar({ name }: { name: string }) {
   )
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Administrateur',
+  manager: 'Manager',
+  agent: 'Agent immobilier',
+  assistant: 'Assistant',
+  buyer: 'Particulier',
+  seller: 'Vendeur',
+}
+
 export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const location = useLocation()
-  const { signOut } = useAuth()
+  const { signOut, profile } = useAuth()
+  const displayName = profile?.full_name || 'Utilisateur'
+  const roleLabel = ROLE_LABELS[profile?.role || 'agent'] || 'Agent'
 
   function isActive(href: string) {
     if (href === '/dashboard') return location.pathname === '/dashboard'
@@ -59,13 +72,16 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           </div>
           <span className="text-lg font-bold text-primary-900">MEGGA</span>
         </Link>
-        {/* Mobile close */}
-        <button
-          onClick={onClose}
-          className="lg:hidden p-1.5 rounded-md hover:bg-section"
-        >
-          <X className="h-5 w-5 text-primary-600" />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationCenter />
+          {/* Mobile close */}
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-md hover:bg-section"
+          >
+            <X className="h-5 w-5 text-primary-600" />
+          </button>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -116,10 +132,14 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
         {/* Profile */}
         <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-md bg-section">
-          <UserAvatar name="Gregory Lyonnet" />
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt={displayName} className="h-9 w-9 rounded-full object-cover flex-shrink-0" />
+          ) : (
+            <UserAvatar name={displayName} />
+          )}
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-primary-900 truncate">Gregory Lyonnet</p>
-            <p className="text-xs text-muted-foreground truncate">Agent principal</p>
+            <p className="text-sm font-medium text-primary-900 truncate">{displayName}</p>
+            <p className="text-xs text-muted-foreground truncate">{roleLabel}</p>
           </div>
           <button
             onClick={async () => { await signOut(); }}

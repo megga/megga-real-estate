@@ -1,8 +1,12 @@
 import HeroSearch from '@/components/search/HeroSearch'
+import TrustBar from '@/components/home/TrustBar'
 import FeaturedCarousel from '@/components/home/FeaturedCarousel'
+import RecentListings from '@/components/home/RecentListings'
 import BentoCards from '@/components/home/BentoCards'
 import ExploreCities from '@/components/home/ExploreCities'
+import PopularAreas from '@/components/home/PopularAreas'
 import WhyMegga from '@/components/home/WhyMegga'
+import Testimonials from '@/components/home/Testimonials'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
@@ -30,13 +34,19 @@ export default function HomePage() {
         </div>
       </section>
 
+      <TrustBar />
       <FeaturedCarousel />
+      <RecentListings />
       <BentoCards />
 
       <ExploreCities />
 
+      <PopularAreas />
+
       {/* Feature carousel — Tout ce dont vous avez besoin */}
       <WhyMegga />
+
+      <Testimonials />
 
       <Footer />
     </div>

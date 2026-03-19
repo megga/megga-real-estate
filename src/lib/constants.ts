@@ -92,6 +92,14 @@ export const PROPERTY_STATUSES = [
 
 export type PropertyStatus = typeof PROPERTY_STATUSES[number]
 
+export const PROPERTY_STATUS_LABELS: Record<PropertyStatus, string> = {
+  draft: 'Brouillon',
+  active: 'Actif',
+  reserved: 'Réservé',
+  sold: 'Vendu',
+  archived: 'Archivé',
+}
+
 export const TRANSACTION_STAGES = [
   'new_lead',
   'to_qualify',
@@ -137,6 +145,34 @@ export const LEGACY_STAGE_MAP: Record<string, TransactionStage> = {
 
 export const KYC_RISK_LEVELS = ['low', 'medium', 'high', 'unassessed'] as const
 export type KycRiskLevel = typeof KYC_RISK_LEVELS[number]
+
+export const KYC_RISK_LABELS: Record<KycRiskLevel, string> = {
+  low: 'Faible',
+  medium: 'Moyen',
+  high: 'Élevé',
+  unassessed: 'Non évalué',
+}
+
+export const KYC_STATUSES = ['pending', 'in_progress', 'review', 'validated', 'rejected'] as const
+export type KycStatus = typeof KYC_STATUSES[number]
+
+export const KYC_STATUS_LABELS: Record<KycStatus, string> = {
+  pending: 'En attente',
+  in_progress: 'En cours',
+  review: 'En revue',
+  validated: 'Validé',
+  rejected: 'Rejeté',
+}
+
+export const KYC_TYPES = ['buyer_pp', 'buyer_pm', 'seller_pp', 'seller_pm'] as const
+export type KycType = typeof KYC_TYPES[number]
+
+export const KYC_TYPE_LABELS: Record<KycType, string> = {
+  buyer_pp: 'Acheteur PP',
+  buyer_pm: 'Acheteur PM',
+  seller_pp: 'Vendeur PP',
+  seller_pm: 'Vendeur PM',
+}
 
 export const CONTACT_SCORES = ['hot', 'warm', 'cold'] as const
 export type ContactScore = typeof CONTACT_SCORES[number]

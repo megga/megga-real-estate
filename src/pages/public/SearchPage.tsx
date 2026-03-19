@@ -15,9 +15,11 @@ import {
   Map,
   SlidersHorizontal,
   Sparkles,
+  MessageCircle,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import MapView from '@/components/map/MapView'
+import ChatSearch from '@/components/search/ChatSearch'
 import SaveSearchModal from '@/components/search/SaveSearchModal'
 import SavedSearchesPanel from '@/components/search/SavedSearchesPanel'
 import { useSavedSearches } from '@/hooks/useSavedSearches'
@@ -793,6 +795,7 @@ export default function SearchPage() {
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showSavedPanel, setShowSavedPanel] = useState(false)
   const [saveModalAlertDefault, setSaveModalAlertDefault] = useState(false)
+  const [showChat, setShowChat] = useState(false)
   const { savedSearches } = useSavedSearches()
 
   // Sync filters to URL
@@ -1412,6 +1415,41 @@ export default function SearchPage() {
           const f = savedFilters as unknown as Filters
           setFilters(f)
           setSearchInput(f.q || '')
+        }}
+      />
+
+      {/* ─── Floating AI Chat Button ─── */}
+      {!showChat && (
+        <button
+          onClick={() => setShowChat(true)}
+          className="fixed bottom-6 right-6 z-40 h-14 bg-accent hover:bg-accent/90 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2.5 px-5 cursor-pointer group"
+        >
+          <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-medium hidden sm:inline">Recherche assistée</span>
+          <MessageCircle className="w-5 h-5 sm:hidden" />
+        </button>
+      )}
+
+      {/* AI Chat Panel */}
+      <ChatSearch
+        isOpen={showChat}
+        onClose={() => setShowChat(false)}
+        allListings={ALL_LISTINGS}
+        onHighlightListing={(id) => {
+          setHoveredListing(id)
+          setTimeout(() => setHoveredListing(undefined), 3000)
+        }}
+        onApplyFilters={(chatFilters) => {
+          const patch: Partial<Filters> = {}
+          if (chatFilters.context) patch.context = chatFilters.context as Context
+          if (chatFilters.city) patch.city = chatFilters.city as string
+          if (chatFilters.maxPrice) patch.maxPrice = chatFilters.maxPrice as string
+          if (chatFilters.minPrice) patch.minPrice = chatFilters.minPrice as string
+          if (chatFilters.rooms) patch.rooms = chatFilters.rooms as string
+          if (chatFilters.bedrooms) patch.bedrooms = chatFilters.bedrooms as string
+          if (chatFilters.minSurface) patch.minSurface = chatFilters.minSurface as string
+          if (Array.isArray(chatFilters.types)) patch.types = chatFilters.types as string[]
+          updateFilter(patch)
         }}
       />
     </div>

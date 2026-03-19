@@ -7,6 +7,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 type ContextTab = 'acheter' | 'louer' | 'estimer';
@@ -181,6 +182,7 @@ function SearchBarAdresse({ context }: { context: ContextTab }) {
 }
 
 export default function HeroSearch() {
+  const navigate = useNavigate();
   const [contextTab, setContextTab] = useState<ContextTab>('acheter');
   const [modeTab, setModeTab] = useState<ModeTab>('libre');
 
@@ -197,10 +199,11 @@ export default function HeroSearch() {
   ];
 
   function handleContextChange(tab: ContextTab) {
-    setContextTab(tab);
     if (tab === 'estimer') {
-      setModeTab('adresse');
+      navigate('/estimations');
+      return;
     }
+    setContextTab(tab);
   }
 
   const isEstimer = contextTab === 'estimer';

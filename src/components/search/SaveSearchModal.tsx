@@ -112,7 +112,7 @@ export default function SaveSearchModal({
   resultsCount,
   defaultAlertEnabled = false,
 }: SaveSearchModalProps) {
-  const { user, signInWithEmail, signInWithGoogle, signUp } = useAuth()
+  const { user, signInWithPassword, signInWithGoogle, signUp } = useAuth()
   const { create, isCreating } = useSavedSearches()
 
   const [name, setName] = useState(() => generateSearchName(filters))
@@ -158,12 +158,12 @@ export default function SaveSearchModal({
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault()
+    if (!email.trim() || !password.trim()) return
     setAuthLoading(true)
     setAuthError('')
-    const { error } = await signInWithEmail(email)
+    const { error } = await signInWithPassword(email, password)
     setAuthLoading(false)
     if (error) setAuthError(error)
-    else setMagicLinkSent(true)
   }
 
   async function handleRegister(e: React.FormEvent) {
