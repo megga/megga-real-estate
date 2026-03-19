@@ -18,7 +18,8 @@ interface AuthContextType {
   isParticulier: boolean
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithEmail: (email: string) => Promise<{ error: string | null }>
-  signInWithGoogle: () => Promise<{ error: string | null }>
+  signInWithGoogle: (role?: UserRole) => Promise<{ error: string | null }>
+  resetPassword: (email: string) => Promise<{ error: string | null }>
   signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -113,12 +114,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (role?: UserRole) => {
+    // Store selected role before OAuth redirect — will be read by AuthCallbackPage
+    if (role) {
+      localStorage.setItem('megga_oauth_role', role)
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
+  const resetPassword = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
     })
     return { error: error?.message ?? null }
   }, [])
@@ -161,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithEmail,
         signInWithGoogle,
         signUp,
+        resetPassword,
         signOut: handleSignOut,
         refreshProfile,
       }}

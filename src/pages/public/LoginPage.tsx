@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Mail, Lock, Loader2 } from 'lucide-react'
+import { Mail, Lock, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
+import { isAgentRole } from '@/types/auth'
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -16,15 +17,28 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export default function LoginPage() {
-  const { user, loading: authLoading, signInWithPassword, signInWithGoogle } = useAuth()
+  const { user, profile, loading: authLoading, signInWithPassword, signInWithGoogle, resetPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!authLoading && user) {
-    return <Navigate to="/" replace />
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
+
+  // Redirect by role if already logged in
+  if (!authLoading && user && profile) {
+    if (isAgentRole(profile.role)) return <Navigate to="/dashboard" replace />
+    if (profile.role === 'seller') return <Navigate to="/seller" replace />
+    return <Navigate to="/mon-espace" replace />
+  }
+  if (!authLoading && user && !profile) {
+    return <Navigate to="/mon-espace" replace />
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -49,6 +63,103 @@ export default function LoginPage() {
     }
   }
 
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (!resetEmail.trim()) return
+    setResetLoading(true)
+    setResetError(null)
+    const { error: err } = await resetPassword(resetEmail.trim())
+    setResetLoading(false)
+    if (err) {
+      setResetError(err)
+    } else {
+      setResetSent(true)
+    }
+  }
+
+  // ─── FORGOT PASSWORD VIEW ────────────────────────────────────────────
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <Link to="/" className="block text-center mb-10">
+            <span className="text-3xl font-bold tracking-tight text-primary-900">MEGGA</span>
+          </Link>
+
+          <div className="bg-white rounded-xl border border-border p-8">
+            <button
+              onClick={() => { setShowForgotPassword(false); setResetSent(false); setResetError(null) }}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-accent mb-6 cursor-pointer transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour à la connexion
+            </button>
+
+            <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">
+              Mot de passe oublié
+            </h1>
+            <p className="text-sm text-muted-foreground text-center mb-8">
+              Entrez votre adresse e-mail pour recevoir un lien de réinitialisation.
+            </p>
+
+            {resetSent ? (
+              <div className="text-center py-4">
+                <CheckCircle className="h-10 w-10 text-success mx-auto mb-3" />
+                <p className="text-sm font-medium text-primary-900 mb-1">
+                  E-mail envoyé !
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Vérifiez votre boîte de réception à{' '}
+                  <span className="font-medium text-primary-700">{resetEmail}</span>.
+                  Cliquez sur le lien pour réinitialiser votre mot de passe.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <label htmlFor="resetEmail" className="block text-sm font-medium text-primary-700 mb-1.5">
+                    Adresse e-mail
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      id="resetEmail"
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="vous@exemple.ch"
+                      required
+                      className="w-full h-11 pl-10 pr-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 rounded-button"
+                  disabled={resetLoading || !resetEmail.trim()}
+                >
+                  {resetLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Envoyer le lien'
+                  )}
+                </Button>
+              </form>
+            )}
+
+            {resetError && (
+              <div className="mt-4 p-3 bg-danger-light rounded-lg">
+                <p className="text-xs text-danger">{resetError}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── LOGIN VIEW ───────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md">
@@ -105,9 +216,18 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-primary-700 mb-1.5">
-                Mot de passe
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="block text-sm font-medium text-primary-700">
+                  Mot de passe
+                </label>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(true); setResetEmail(email) }}
+                  className="text-xs text-accent hover:underline cursor-pointer"
+                >
+                  Mot de passe oublié ?
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
