@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { usePageMeta } from '@/hooks/usePageMeta'
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -111,6 +112,12 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function EstimationsPage() {
+  usePageMeta({
+    title: 'Estimation immobilière gratuite en Suisse',
+    description:
+      "Estimez la valeur de votre bien immobilier gratuitement en 2 minutes. Analyse IA basée sur 47'000+ transactions suisses. Appartement, maison, villa — tous les cantons.",
+  })
+
   const maxTrend = 3.5
 
   function scrollToForm() {
