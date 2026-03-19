@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { SELLER_OFFERS, type SellerOffer } from '@/pages/seller/sellerMockData'
 
-const DEV_BYPASS = true
+const DEV_BYPASS = false
 
 export interface Offer {
   id: string

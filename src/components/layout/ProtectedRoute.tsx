@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react'
 import { useAuth, type UserRole } from '@/hooks/useAuth'
 
 // DEV_BYPASS: set to true to skip auth check during development
-const DEV_BYPASS_AUTH = true
+const DEV_BYPASS_AUTH = false
 
 interface ProtectedRouteProps {
   children: React.ReactNode

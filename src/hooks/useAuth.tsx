@@ -7,7 +7,7 @@ import { isAgentRole, isParticulierRole } from '@/types/auth'
 export type { UserRole, UserProfile } from '@/types/auth'
 
 // DEV_BYPASS: set to true to skip auth and use a mock user
-const DEV_BYPASS_AUTH = true
+const DEV_BYPASS_AUTH = false
 
 interface AuthContextType {
   session: Session | null

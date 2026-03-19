@@ -35,7 +35,7 @@ export interface NotificationPreferences {
 
 // ─── DEV BYPASS ─────────────────────────────────────────────────────────────
 
-const DEV_BYPASS = true
+const DEV_BYPASS = false
 
 const MOCK_NOTIFICATIONS: Notification[] = [
   {
