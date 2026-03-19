@@ -22,6 +22,7 @@ import CalendarPage from '@/pages/agent/CalendarPage'
 import SettingsPage from '@/pages/agent/SettingsPage'
 import TemplatesPage from '@/pages/agent/TemplatesPage'
 import DocumentGenerator from '@/pages/agent/DocumentGenerator'
+import DocumentViewer from '@/pages/agent/DocumentViewer'
 import OnboardingBuyerPP from '@/pages/onboarding/OnboardingBuyerPP'
 import OnboardingBuyerPM from '@/pages/onboarding/OnboardingBuyerPM'
 import OnboardingSellerPP from '@/pages/onboarding/OnboardingSellerPP'
@@ -123,6 +124,7 @@ export default function App() {
               <Route path="calendar" element={<CalendarPage />} />
               <Route path="templates" element={<TemplatesPage />} />
               <Route path="templates/generate" element={<DocumentGenerator />} />
+              <Route path="documents/view" element={<DocumentViewer />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 

@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Kanban, Users, Building2, ShieldCheck,
-  MessageSquare, Calendar, Settings, LogOut, X,
+  MessageSquare, Calendar, FileText, Settings, LogOut, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -15,6 +15,7 @@ const navItems = [
   { label: 'KYC', href: '/dashboard/kyc', icon: ShieldCheck, badge: 2 },
   { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, badge: 3 },
   { label: 'Calendrier', href: '/dashboard/calendar', icon: Calendar },
+  { label: 'Documents', href: '/dashboard/documents/view', icon: FileText },
 ]
 
 interface SidebarProps {
