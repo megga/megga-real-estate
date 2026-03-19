@@ -22,6 +22,9 @@ import {
   Zap,
   TrendingDown,
   ArrowRight,
+  ChevronDown,
+  Mail,
+  Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Navbar from '@/components/layout/Navbar'
@@ -171,15 +174,229 @@ function CompareRow({
   even: boolean
 }) {
   return (
-    <div className={cn('flex', even ? 'bg-gray-50/30' : 'bg-white')}>
-      <div className="w-1/2 flex items-center gap-3 py-4 px-6">
-        <X className="w-4 h-4 text-red-400 flex-shrink-0" />
-        <span className="text-sm text-gray-600">{before}</span>
+    <>
+      {/* Desktop: side by side */}
+      <div className={cn('hidden md:flex', even ? 'bg-gray-50/30' : 'bg-white')}>
+        <div className="w-1/2 flex items-center gap-3 py-4 px-6">
+          <X className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <span className="text-sm text-gray-600">{before}</span>
+        </div>
+        <div className="w-1/2 flex items-center gap-3 py-4 px-6 border-l-2 border-emerald-200">
+          <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+          <span className="text-sm text-gray-900 font-medium">{after}</span>
+        </div>
       </div>
-      <div className="w-1/2 flex items-center gap-3 py-4 px-6 border-l-2 border-emerald-200">
-        <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-        <span className="text-sm text-gray-900 font-medium">{after}</span>
+      {/* Mobile: stacked */}
+      <div className={cn('md:hidden', even ? 'bg-gray-50/30' : 'bg-white')}>
+        <div className="flex items-center gap-3 py-3 px-5 border-b border-gray-100/50">
+          <X className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <span className="text-xs text-gray-500 line-through">{before}</span>
+        </div>
+        <div className="flex items-center gap-3 py-3 px-5">
+          <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+          <span className="text-xs text-gray-900 font-medium">{after}</span>
+        </div>
       </div>
+    </>
+  )
+}
+
+// ─── Demo request modal ───────────────────────────────────────────────────────
+
+function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [submitted, setSubmitted] = useState(false)
+  const backdropRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+      setSubmitted(false)
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  if (!open) return null
+
+  return (
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === backdropRef.current) onClose() }}
+    >
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-2xl shadow-modal w-full max-w-lg p-8 animate-in">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <X className="w-5 h-5 text-gray-400" />
+        </button>
+
+        {submitted ? (
+          <div className="text-center py-8">
+            <div className="bg-emerald-50 rounded-full p-4 w-16 h-16 mx-auto flex items-center justify-center">
+              <Check className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-primary mt-5">Demande envoyée</h3>
+            <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
+              Notre équipe vous contactera dans les 24 heures pour planifier votre démonstration.
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-6 bg-primary text-white rounded-full px-6 h-10 text-sm font-medium hover:bg-primary/90 transition-all"
+            >
+              Fermer
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-accent/10 rounded-2xl p-3">
+                <Mail className="w-5 h-5 text-accent" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-primary">Demander une démo</h3>
+                <p className="text-xs text-gray-400">Découvrez MEGGA en 30 minutes</p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                setSubmitted(true)
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Nom complet</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Jean Dupont"
+                  className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Email professionnel</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="jean@agence.ch"
+                  className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Agence / Société</label>
+                <input
+                  type="text"
+                  placeholder="Nom de votre agence"
+                  className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Message (optionnel)</label>
+                <textarea
+                  rows={3}
+                  placeholder="Vos questions ou besoins spécifiques..."
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-none"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-accent text-white rounded-full h-11 text-sm font-medium hover:bg-accent/90 shadow-sm transition-all inline-flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                Envoyer la demande
+              </button>
+              <p className="text-[11px] text-gray-400 text-center">
+                Nous vous répondrons sous 24h. Aucun engagement.
+              </p>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── FAQ Accordion ────────────────────────────────────────────────────────────
+
+const faqItems = [
+  {
+    q: 'Puis-je tester gratuitement ?',
+    a: "Oui. Le plan Starter est 100% gratuit, sans limite de temps et sans carte bancaire. Vous pouvez gérer jusqu'à 5 biens actifs et accéder au CRM basique, à la recherche IA et au portail vendeur.",
+  },
+  {
+    q: 'Comment fonctionne la conformité LAB/KYC ?',
+    a: "MEGGA génère automatiquement un dossier KYC structuré pour chaque transaction : identification du client, classification du risque, checklist réglementaire et upload de documents. Chaque validation requiert une action humaine (human-in-the-loop) et un audit trail complet est conservé.",
+  },
+  {
+    q: 'Est-ce que mes données sont hébergées en Suisse ?',
+    a: "Nos bases de données sont hébergées sur des serveurs conformes aux exigences suisses en matière de protection des données. Nous utilisons Supabase avec chiffrement au repos et en transit.",
+  },
+  {
+    q: 'Puis-je migrer depuis un autre CRM ?',
+    a: "Oui. MEGGA supporte l'import CSV pour vos contacts, biens et transactions. Notre équipe peut aussi vous accompagner pour une migration assistée depuis HubSpot, Salesforce ou tout autre outil.",
+  },
+  {
+    q: 'Quelle est la différence entre Pro et Agency ?',
+    a: "Le plan Pro est conçu pour les agents indépendants (jusqu'à 25 biens). Le plan Agency ajoute le multi-utilisateurs, le branding personnalisé, les intégrations API, un manager de compte dédié et un nombre illimité de biens.",
+  },
+  {
+    q: "Comment fonctionne l'estimation IA ?",
+    a: "Notre modèle analyse plus de 47'000 transactions immobilières suisses et 70 critères (localisation, surface, étage, état, proximité transports, etc.) pour produire une fourchette de prix en temps réel. L'estimation est indicative et ne remplace pas une expertise officielle.",
+  },
+  {
+    q: 'Puis-je changer de plan à tout moment ?',
+    a: "Oui, vous pouvez upgrader ou downgrader votre plan à tout moment depuis les paramètres de votre compte. Le changement prend effet immédiatement avec un prorata sur la période en cours.",
+  },
+  {
+    q: 'La publication multicanal est-elle incluse ?',
+    a: "La publication sur MEGGA est incluse dans tous les plans. La diffusion sur ImmoScout24 et Homegate est disponible à partir du plan Pro. Vos annonces sont synchronisées automatiquement : une modification sur MEGGA se répercute sur tous les portails.",
+  },
+]
+
+function FaqAccordion() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
+  return (
+    <div className="max-w-3xl mx-auto mt-14 space-y-3">
+      {faqItems.map((item, i) => {
+        const isOpen = openIndex === i
+        return (
+          <div
+            key={i}
+            className="bg-white rounded-xl border border-gray-100 overflow-hidden transition-all duration-200 hover:border-gray-200"
+          >
+            <button
+              onClick={() => setOpenIndex(isOpen ? null : i)}
+              className="w-full flex items-center justify-between px-6 py-5 text-left"
+            >
+              <span className="text-sm font-medium text-primary pr-4">{item.q}</span>
+              <ChevronDown
+                className={cn(
+                  'w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200',
+                  isOpen && 'rotate-180'
+                )}
+              />
+            </button>
+            <div
+              className={cn(
+                'grid transition-all duration-200',
+                isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+              )}
+            >
+              <div className="overflow-hidden">
+                <p className="px-6 pb-5 text-sm text-gray-500 leading-relaxed">
+                  {item.a}
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -243,6 +460,7 @@ const proModules = [
     title: 'CRM transactionnel',
     desc: 'Centralisez contacts, scoring et pipeline dans un seul outil.',
     tags: ['Scoring IA', 'Kanban', 'Import CSV', 'Dédoublonnage'],
+    href: '/dashboard/contacts',
   },
   {
     letter: 'B',
@@ -252,6 +470,7 @@ const proModules = [
     title: 'Pipeline transaction',
     desc: 'Chaque transaction = un workflow piloté de A à Z.',
     tags: ['Checklist dynamique', 'Alertes blocage', 'ETA closing'],
+    href: '/dashboard/pipeline',
   },
   {
     letter: 'C',
@@ -261,6 +480,7 @@ const proModules = [
     title: 'Onboarding client',
     desc: "Collecte d'infos automatisée avec parcours guidé.",
     tags: ['Portail sécurisé', 'OCR', 'Relances auto'],
+    href: '/register',
   },
   {
     letter: 'D',
@@ -270,6 +490,7 @@ const proModules = [
     title: 'Conformité LAB/KYC',
     desc: 'Dossier auditable, conforme à la législation suisse.',
     tags: ['Classification risque', 'Human-in-the-loop', 'Audit trail'],
+    href: '/register',
   },
   {
     letter: 'E',
@@ -279,6 +500,7 @@ const proModules = [
     title: 'Génération documentaire',
     desc: 'Mandats, bons de visite, offres — générés en 1 clic.',
     tags: ['Templates', 'PDF/DOCX', 'Pré-remplissage'],
+    href: '/register',
   },
   {
     letter: 'F',
@@ -288,6 +510,7 @@ const proModules = [
     title: 'Portail vendeur',
     desc: 'Visibilité premium 24/7 pour vos clients vendeurs.',
     tags: ['Suivi visites', 'Offres', 'Messages', 'Reporting'],
+    href: '/register',
   },
   {
     letter: 'G',
@@ -297,6 +520,7 @@ const proModules = [
     title: 'Publication multicanal',
     desc: 'Diffusez sur MEGGA + ImmoScout24 + Homegate en 1 clic.',
     tags: ['Multi-portails', 'Description IA', 'Photos optimisées'],
+    href: '/register',
   },
   {
     letter: 'H',
@@ -306,6 +530,7 @@ const proModules = [
     title: 'Copilote IA',
     desc: 'IA contextuelle sur vos vrais dossiers — pas un gadget.',
     tags: ['Next action', 'Rédaction', 'Scoring leads'],
+    href: '/register',
   },
   {
     letter: 'I',
@@ -315,6 +540,7 @@ const proModules = [
     title: 'Audit trail',
     desc: 'Traçabilité totale : qui, quand, quoi, pourquoi.',
     tags: ['Journal narratif', 'Export audit', 'Historique complet'],
+    href: '/register',
   },
 ]
 
@@ -330,6 +556,7 @@ const compareRows = [
 
 interface PlanData {
   name: string
+  slug: string
   monthly: number | null
   tagline: string
   features: string[]
@@ -340,6 +567,7 @@ interface PlanData {
 const plans: PlanData[] = [
   {
     name: 'Starter',
+    slug: 'starter',
     monthly: 0,
     tagline: 'Pour démarrer',
     features: [
@@ -353,6 +581,7 @@ const plans: PlanData[] = [
   },
   {
     name: 'Pro',
+    slug: 'pro',
     monthly: 89,
     tagline: 'Pour les agents indépendants',
     features: [
@@ -370,6 +599,7 @@ const plans: PlanData[] = [
   },
   {
     name: 'Agency',
+    slug: 'agency',
     monthly: 249,
     tagline: 'Pour les agences',
     features: [
@@ -386,6 +616,7 @@ const plans: PlanData[] = [
   },
   {
     name: 'Enterprise',
+    slug: 'enterprise',
     monthly: null,
     tagline: 'Pour les groupes',
     features: [
@@ -432,6 +663,7 @@ const testimonials = [
 
 export default function ServicesPage() {
   const [isAnnual, setIsAnnual] = useState(false)
+  const [demoOpen, setDemoOpen] = useState(false)
 
   // Scroll-to anchor
   const scrollTo = useCallback((id: string) => {
@@ -469,6 +701,7 @@ export default function ServicesPage() {
   return (
     <>
       <Navbar />
+      <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
       <main>
         {/* ═══ Section 1 — Hero ═══ */}
         <RevealSection className="bg-gradient-to-b from-gray-50/80 to-white py-24 md:py-32 relative overflow-hidden">
@@ -630,6 +863,14 @@ export default function ServicesPage() {
                         </span>
                       ))}
                     </div>
+
+                    <Link
+                      to={mod.href}
+                      className="text-accent font-medium text-xs mt-4 inline-flex items-center gap-1 hover:gap-2 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      En savoir plus
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
                   </StaggerCard>
                 )
               })}
@@ -648,14 +889,18 @@ export default function ServicesPage() {
             </div>
 
             <div className="max-w-4xl mx-auto mt-14 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-              {/* Header */}
-              <div className="flex">
+              {/* Header — desktop */}
+              <div className="hidden md:flex">
                 <div className="w-1/2 bg-red-50 text-red-700 font-semibold text-sm py-3 px-6">
                   Sans MEGGA
                 </div>
                 <div className="w-1/2 bg-emerald-50 text-emerald-700 font-semibold text-sm py-3 px-6">
                   Avec MEGGA
                 </div>
+              </div>
+              {/* Header — mobile */}
+              <div className="md:hidden bg-gradient-to-r from-red-50 to-emerald-50 py-3 px-5 text-center text-xs font-semibold text-gray-600">
+                Avant → Après MEGGA
               </div>
               {/* Rows */}
               {compareRows.map((row, i) => (
@@ -795,19 +1040,29 @@ export default function ServicesPage() {
                         </p>
                       )}
 
-                      <button
-                        className={cn(
-                          'rounded-full w-full h-11 text-sm font-medium mt-6 transition-all',
-                          plan.buttonVariant === 'accent' &&
-                            'bg-accent text-white hover:bg-accent/90 shadow-sm',
-                          plan.buttonVariant === 'primary' &&
-                            'bg-primary text-white hover:bg-primary/90',
-                          plan.buttonVariant === 'outline' &&
-                            'border border-gray-200 text-primary hover:bg-gray-50'
-                        )}
-                      >
-                        {plan.monthly === null ? 'Nous contacter' : 'Commencer'}
-                      </button>
+                      {plan.monthly === null ? (
+                        <button
+                          onClick={() => setDemoOpen(true)}
+                          className="rounded-full w-full h-11 text-sm font-medium mt-6 transition-all border border-gray-200 text-primary hover:bg-gray-50 cursor-pointer"
+                        >
+                          Nous contacter
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/register?plan=${plan.slug}`}
+                          className={cn(
+                            'rounded-full w-full h-11 text-sm font-medium mt-6 transition-all flex items-center justify-center',
+                            plan.buttonVariant === 'accent' &&
+                              'bg-accent text-white hover:bg-accent/90 shadow-sm',
+                            plan.buttonVariant === 'primary' &&
+                              'bg-primary text-white hover:bg-primary/90',
+                            plan.buttonVariant === 'outline' &&
+                              'border border-gray-200 text-primary hover:bg-gray-50'
+                          )}
+                        >
+                          Commencer
+                        </Link>
+                      )}
                     </div>
                   </StaggerCard>
                 )
@@ -897,7 +1152,23 @@ export default function ServicesPage() {
           </div>
         </RevealSection>
 
-        {/* ═══ Section 8 — CTA final ═══ */}
+        {/* ═══ Section 8 — FAQ ═══ */}
+        <RevealSection className="bg-white py-20 md:py-28">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+            <div className="text-center">
+              <SectionBadge variant="primary">Questions fréquentes</SectionBadge>
+              <h2 className="text-2xl md:text-3xl font-bold text-primary mt-4">
+                Vous avez des questions ?
+              </h2>
+              <p className="text-gray-500 max-w-2xl mx-auto mt-3">
+                Les réponses aux questions les plus courantes sur MEGGA.
+              </p>
+            </div>
+            <FaqAccordion />
+          </div>
+        </RevealSection>
+
+        {/* ═══ Section 9 — CTA final ═══ */}
         <section className="py-20 md:py-24 px-4 lg:px-8 mb-16">
           <div
             className="max-w-7xl mx-auto bg-primary text-white rounded-3xl py-16 md:py-20 px-8 text-center relative overflow-hidden"
@@ -925,7 +1196,10 @@ export default function ServicesPage() {
               >
                 Créer mon compte
               </Link>
-              <button className="border border-white/30 text-white rounded-full px-8 h-12 font-medium hover:bg-white/10 transition-all">
+              <button
+                onClick={() => setDemoOpen(true)}
+                className="border border-white/30 text-white rounded-full px-8 h-12 font-medium hover:bg-white/10 transition-all"
+              >
                 Voir une démo
               </button>
             </div>
