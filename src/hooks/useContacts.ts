@@ -1,7 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { Contact, ContactType } from '@/types/contact'
 import type { ContactScore } from '@/lib/constants'
+
+export interface CreateContactInput {
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  type: ContactType
+  entityType?: 'pp' | 'pm'
+  formData?: Record<string, unknown>
+}
 
 interface ContactFilters {
   type?: ContactType
@@ -10,8 +21,11 @@ interface ContactFilters {
 }
 
 export function useContacts(filters?: ContactFilters) {
-  return useQuery({
-    queryKey: ['contacts', filters],
+  const { user, profile } = useAuth()
+  const queryClient = useQueryClient()
+
+  const contactsQuery = useQuery({
+    queryKey: ['contacts', profile?.agency_id, filters],
     queryFn: async () => {
       let query = supabase.from('contacts').select('*')
 
@@ -25,7 +39,40 @@ export function useContacts(filters?: ContactFilters) {
       if (error) throw error
       return data as Contact[]
     },
+    enabled: !!user,
   })
+
+  const createFromOnboarding = useMutation({
+    mutationFn: async (input: CreateContactInput) => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert({
+          first_name: input.firstName,
+          last_name: input.lastName,
+          email: input.email,
+          phone: input.phone ?? null,
+          type: input.type,
+          source: 'onboarding',
+          user_id: user?.id ?? null,
+          agency_id: profile?.agency_id ?? null,
+          form_data: input.formData ?? null,
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data as Contact
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] })
+    },
+  })
+
+  return {
+    contacts: contactsQuery.data ?? [],
+    isLoading: contactsQuery.isLoading,
+    createFromOnboarding: createFromOnboarding.mutateAsync,
+    isCreating: createFromOnboarding.isPending,
+  }
 }
 
 export function useContact(id: string | undefined) {
@@ -45,26 +92,26 @@ export function useContact(id: string | undefined) {
   })
 }
 
-interface CreateContactInput {
-  agency_id: string
-  first_name: string
-  last_name: string
-  email?: string
-  phone?: string
-  type?: ContactType
-  source?: string
-  score?: ContactScore
-  tags?: string[]
-  notes?: string
-}
-
 export function useCreateContact() {
+  const { user, profile } = useAuth()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: CreateContactInput) => {
+    mutationFn: async (input: Omit<CreateContactInput, 'entityType' | 'formData'> & { agency_id?: string; source?: string; score?: ContactScore; tags?: string[]; notes?: string }) => {
       const { data, error } = await supabase
         .from('contacts')
-        .insert(input)
+        .insert({
+          first_name: input.firstName,
+          last_name: input.lastName,
+          email: input.email,
+          phone: input.phone ?? null,
+          type: input.type,
+          source: input.source ?? 'manual',
+          score: input.score ?? 'cold',
+          tags: input.tags ?? [],
+          notes: input.notes ?? null,
+          agency_id: input.agency_id ?? profile?.agency_id ?? null,
+          user_id: user?.id ?? null,
+        })
         .select()
         .single()
       if (error) throw error
@@ -79,7 +126,7 @@ export function useCreateContact() {
 export function useUpdateContact() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<CreateContactInput>) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<Record<string, unknown>>) => {
       const { data, error } = await supabase
         .from('contacts')
         .update(updates)

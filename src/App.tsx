@@ -13,6 +13,23 @@ import DashboardPage from '@/pages/agent/DashboardPage'
 import ContactsPage from '@/pages/agent/ContactsPage'
 import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 import PipelinePage from '@/pages/agent/PipelinePage'
+import ListingsPage from '@/pages/agent/ListingsPage'
+import ListingFormPage from '@/pages/agent/ListingFormPage'
+import KycListPage from '@/pages/agent/KycListPage'
+import KycDetailPage from '@/pages/agent/KycDetailPage'
+import MessagesPage from '@/pages/agent/MessagesPage'
+import CalendarPage from '@/pages/agent/CalendarPage'
+import SettingsPage from '@/pages/agent/SettingsPage'
+import OnboardingBuyerPP from '@/pages/onboarding/OnboardingBuyerPP'
+import OnboardingBuyerPM from '@/pages/onboarding/OnboardingBuyerPM'
+import OnboardingSellerPP from '@/pages/onboarding/OnboardingSellerPP'
+import OnboardingSellerPM from '@/pages/onboarding/OnboardingSellerPM'
+import SellerLayout from '@/pages/seller/SellerLayout'
+import SellerDashboard from '@/pages/seller/SellerDashboard'
+import SellerVisits from '@/pages/seller/SellerVisits'
+import SellerOffers from '@/pages/seller/SellerOffers'
+import SellerDocuments from '@/pages/seller/SellerDocuments'
+import SellerMessages from '@/pages/seller/SellerMessages'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
@@ -52,6 +69,21 @@ export default function App() {
             <Route path="/publier" element={<PublierPage />} />
             <Route path="/aide" element={<HelpCenterPage />} />
 
+            {/* Onboarding client */}
+            <Route path="/onboarding/buyer/individual" element={<OnboardingBuyerPP />} />
+            <Route path="/onboarding/buyer/company" element={<OnboardingBuyerPM />} />
+            <Route path="/onboarding/seller/individual" element={<OnboardingSellerPP />} />
+            <Route path="/onboarding/seller/company" element={<OnboardingSellerPM />} />
+
+            {/* Seller portal (protected — sellers only) */}
+            <Route path="/seller" element={<ProtectedRoute allowedRoles={['seller', 'admin']}><SellerLayout /></ProtectedRoute>}>
+              <Route index element={<SellerDashboard />} />
+              <Route path="visits" element={<SellerVisits />} />
+              <Route path="offers" element={<SellerOffers />} />
+              <Route path="documents" element={<SellerDocuments />} />
+              <Route path="messages" element={<SellerMessages />} />
+            </Route>
+
             {/* Agent dashboard (protected — agents only) */}
             <Route
               path="/dashboard"
@@ -65,7 +97,14 @@ export default function App() {
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="contacts/:id" element={<ContactDetailPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
-              {/* Future routes: listings, kyc, messages, calendar, settings */}
+              <Route path="listings" element={<ListingsPage />} />
+              <Route path="listings/new" element={<ListingFormPage />} />
+              <Route path="listings/:id/edit" element={<ListingFormPage />} />
+              <Route path="kyc" element={<KycListPage />} />
+              <Route path="kyc/:id" element={<KycDetailPage />} />
+              <Route path="messages" element={<MessagesPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* 404 */}

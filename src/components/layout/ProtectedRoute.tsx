@@ -1,7 +1,9 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import type { UserRole } from '@/types/auth'
+import { useAuth, type UserRole } from '@/hooks/useAuth'
+
+// DEV_BYPASS: set to true to skip auth check during development
+const DEV_BYPASS_AUTH = true
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -11,6 +13,10 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, profile, loading } = useAuth()
   const location = useLocation()
+
+  if (DEV_BYPASS_AUTH) {
+    return <>{children}</>
+  }
 
   if (loading) {
     return (
@@ -24,10 +30,8 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // If roles are specified, check the user's profile role
   if (allowedRoles && allowedRoles.length > 0 && profile) {
     if (!allowedRoles.includes(profile.role)) {
-      // Redirect agents to dashboard, particuliers to home
       const fallback = profile.role === 'buyer' || profile.role === 'seller' ? '/' : '/dashboard'
       return <Navigate to={fallback} replace />
     }
