@@ -74,16 +74,26 @@ export function useDocuments(propertyId?: string) {
   const uploadMutation = useMutation({
     mutationFn: async ({ file, propertyId: pid }: { file: File; propertyId: string }) => {
       if (DEV_BYPASS) {
-        // Simulate upload in dev mode
-        return {
+        const newDoc: Document = {
           id: crypto.randomUUID(),
+          agency_id: null,
+          property_id: pid,
+          transaction_id: null,
+          kyc_case_id: null,
           name: file.name,
           type: file.name.split('.').pop() ?? 'unknown',
           storage_path: `mock/${file.name}`,
           size_bytes: file.size,
-          status: 'pending' as const,
+          status: 'pending',
+          uploaded_by: null,
           created_at: new Date().toISOString(),
         }
+        // Optimistic update — add to list immediately
+        queryClient.setQueryData<Document[]>(['documents', pid], (old) => [
+          newDoc,
+          ...(old ?? []),
+        ])
+        return newDoc
       }
 
       const userId = user?.id ?? 'anonymous'

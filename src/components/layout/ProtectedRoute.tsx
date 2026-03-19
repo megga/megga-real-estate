@@ -15,10 +15,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   const location = useLocation()
 
   if (DEV_BYPASS_AUTH) {
-    // En dev bypass, vérifier quand même les rôles si on a un profil mock
-    if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-      return <Navigate to="/" replace />
-    }
+    // En dev bypass, laisser passer sans vérifier les rôles
     return <>{children}</>
   }
 
