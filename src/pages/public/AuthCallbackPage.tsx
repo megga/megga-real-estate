@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { isAgentRole } from '@/types/auth'
 import type { UserRole } from '@/types/auth'
 
+const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'agent', 'manager', 'admin', 'assistant']
+
 function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role)) return '/dashboard'
   if (role === 'seller') return '/seller'
@@ -16,14 +18,38 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     async function handleRedirect(userId: string) {
-      // Fetch user profile to get role
+      // Check if there's a pending OAuth role from Google sign-in
+      const pendingRole = localStorage.getItem('megga_oauth_role')
+      localStorage.removeItem('megga_oauth_role')
+
+      // Fetch existing profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
         .single()
 
-      const role = (profile?.role as UserRole) || 'buyer'
+      let role: UserRole = (profile?.role as UserRole) || 'buyer'
+
+      // If Google OAuth and the profile was just created with default 'buyer' role,
+      // update it with the role the user selected before OAuth redirect
+      if (pendingRole && VALID_ROLES.includes(pendingRole as UserRole)) {
+        const selectedRole = pendingRole as UserRole
+
+        // Only update if the profile role is still the default 'buyer'
+        // (meaning it was just auto-created by the trigger)
+        if (role === 'buyer' && selectedRole !== 'buyer') {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ role: selectedRole })
+            .eq('id', userId)
+
+          if (!error) {
+            role = selectedRole
+          }
+        }
+      }
+
       navigate(getRedirectPath(role), { replace: true })
     }
 
@@ -35,9 +61,13 @@ export default function AuthCallbackPage() {
           navigate('/', { replace: true })
         }
       }
+      // Handle password recovery redirect
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate('/reset-password', { replace: true })
+      }
     })
 
-    // Fallback
+    // Fallback after 5 seconds
     const timeout = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
