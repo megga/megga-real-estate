@@ -101,31 +101,46 @@ export const PROPERTY_STATUS_LABELS: Record<PropertyStatus, string> = {
 }
 
 export const TRANSACTION_STAGES = [
-  'lead',
-  'qualified',
+  'new_lead',
+  'to_qualify',
+  'active_search',
   'visit_planned',
+  'visit_done',
+  'interest_confirmed',
   'offer',
   'negotiation',
   'reserved',
   'financing',
   'notary',
   'signed',
-  'closed',
+  'lost',
+  'to_recontact',
 ] as const
 
 export type TransactionStage = typeof TRANSACTION_STAGES[number]
 
 export const TRANSACTION_STAGE_LABELS: Record<TransactionStage, string> = {
-  lead: 'Nouveau lead',
-  qualified: 'Qualifié',
+  new_lead: 'Nouveau lead',
+  to_qualify: 'À qualifier',
+  active_search: 'Recherche active',
   visit_planned: 'Visite planifiée',
+  visit_done: 'Visite effectuée',
+  interest_confirmed: 'Intérêt confirmé',
   offer: 'Offre',
   negotiation: 'Négociation',
   reserved: 'Réservé',
   financing: 'Financement',
   notary: 'Notaire',
   signed: 'Signé',
-  closed: 'Clôturé',
+  lost: 'Perdu',
+  to_recontact: 'À relancer',
+}
+
+// Legacy stage mapping for backward compatibility
+export const LEGACY_STAGE_MAP: Record<string, TransactionStage> = {
+  lead: 'new_lead',
+  qualified: 'to_qualify',
+  closed: 'signed',
 }
 
 export const KYC_RISK_LEVELS = ['low', 'medium', 'high', 'unassessed'] as const

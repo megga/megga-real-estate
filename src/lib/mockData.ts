@@ -1267,10 +1267,11 @@ export interface MockDeal {
   property_title: string
   property_address: string
   price: number
-  stage: 'lead' | 'qualified' | 'visit_planned' | 'offer' | 'negotiation' | 'signed'
+  stage: 'new_lead' | 'to_qualify' | 'active_search' | 'visit_planned' | 'visit_done' | 'interest_confirmed' | 'offer' | 'negotiation' | 'reserved' | 'financing' | 'notary' | 'signed' | 'lost' | 'to_recontact'
   agent: string
   agent_avatar_color: string
   updated_at: string
+  has_overdue_reminder?: boolean
 }
 
 export const MOCK_DEALS: MockDeal[] = [
@@ -1281,7 +1282,7 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Appartement Eaux-Vives',
     property_address: 'Rue du Lac 12, Genève',
     price: 720000,
-    stage: 'lead',
+    stage: 'new_lead',
     agent: 'Gregory L.',
     agent_avatar_color: 'bg-accent',
     updated_at: '2026-03-16T09:00:00Z',
@@ -1293,7 +1294,7 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Studio Plainpalais',
     property_address: 'Rue de Carouge 78, Genève',
     price: 385000,
-    stage: 'lead',
+    stage: 'new_lead',
     agent: 'Sophie M.',
     agent_avatar_color: 'bg-danger',
     updated_at: '2026-03-15T14:00:00Z',
@@ -1305,10 +1306,11 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Appartement Carouge',
     property_address: 'Place du Marché 8, Carouge',
     price: 650000,
-    stage: 'lead',
+    stage: 'to_qualify',
     agent: 'Gregory L.',
     agent_avatar_color: 'bg-accent',
     updated_at: '2026-03-14T11:00:00Z',
+    has_overdue_reminder: true,
   },
   {
     id: 'd4',
@@ -1317,7 +1319,7 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Maison de ville rénovée',
     property_address: 'Rue Ancienne 34, Carouge',
     price: 1450000,
-    stage: 'qualified',
+    stage: 'active_search',
     agent: 'Sophie M.',
     agent_avatar_color: 'bg-danger',
     updated_at: '2026-03-11T09:00:00Z',
@@ -1329,7 +1331,7 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Duplex Champel',
     property_address: 'Av. de Champel 45, Genève',
     price: 1250000,
-    stage: 'qualified',
+    stage: 'active_search',
     agent: 'Gregory L.',
     agent_avatar_color: 'bg-accent',
     updated_at: '2026-03-10T10:30:00Z',
@@ -1353,10 +1355,11 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Penthouse Quai du Mont-Blanc',
     property_address: 'Quai du Mont-Blanc 18, Genève',
     price: 3200000,
-    stage: 'visit_planned',
+    stage: 'visit_done',
     agent: 'Gregory L.',
     agent_avatar_color: 'bg-accent',
     updated_at: '2026-03-14T14:00:00Z',
+    has_overdue_reminder: true,
   },
   {
     id: 'd8',
@@ -1365,7 +1368,7 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Duplex moderne Champel',
     property_address: 'Av. de Champel 45, Genève',
     price: 1250000,
-    stage: 'visit_planned',
+    stage: 'interest_confirmed',
     agent: 'Gregory L.',
     agent_avatar_color: 'bg-accent',
     updated_at: '2026-03-15T17:00:00Z',
@@ -1389,7 +1392,7 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Loft industriel Pâquis',
     property_address: 'Rue de Berne 22, Genève',
     price: 890000,
-    stage: 'offer',
+    stage: 'negotiation',
     agent: 'Sophie M.',
     agent_avatar_color: 'bg-danger',
     updated_at: '2026-03-15T10:00:00Z',
@@ -1401,7 +1404,7 @@ export const MOCK_DEALS: MockDeal[] = [
     property_title: 'Studio rénové Plainpalais',
     property_address: 'Rue de Carouge 78, Genève',
     price: 385000,
-    stage: 'negotiation',
+    stage: 'reserved',
     agent: 'Sophie M.',
     agent_avatar_color: 'bg-danger',
     updated_at: '2026-03-14T16:45:00Z',
@@ -1417,6 +1420,55 @@ export const MOCK_DEALS: MockDeal[] = [
     agent: 'Gregory L.',
     agent_avatar_color: 'bg-accent',
     updated_at: '2026-03-10T10:00:00Z',
+  },
+  {
+    id: 'd13',
+    contact_name: 'Pierre Müller',
+    contact_avatar_color: 'bg-purple-500',
+    property_title: 'Villa Cologny',
+    property_address: 'Chemin des Crêts 5, Cologny',
+    price: 3950000,
+    stage: 'financing',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-12T11:00:00Z',
+  },
+  {
+    id: 'd14',
+    contact_name: 'Jean Rossier',
+    contact_avatar_color: 'bg-indigo-500',
+    property_title: 'Attique Florissant',
+    property_address: 'Av. de Florissant 12, Genève',
+    price: 1850000,
+    stage: 'notary',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-03-11T15:00:00Z',
+  },
+  {
+    id: 'd15',
+    contact_name: 'Elena Petrova',
+    contact_avatar_color: 'bg-pink-500',
+    property_title: 'Appartement Jonction',
+    property_address: 'Bd Carl-Vogt 44, Genève',
+    price: 520000,
+    stage: 'lost',
+    agent: 'Sophie M.',
+    agent_avatar_color: 'bg-danger',
+    updated_at: '2026-03-08T09:30:00Z',
+  },
+  {
+    id: 'd16',
+    contact_name: 'Marc Delarue',
+    contact_avatar_color: 'bg-teal-500',
+    property_title: 'Maison Vessy',
+    property_address: 'Rte de Vessy 18, Vessy',
+    price: 1680000,
+    stage: 'to_recontact',
+    agent: 'Gregory L.',
+    agent_avatar_color: 'bg-accent',
+    updated_at: '2026-02-20T14:00:00Z',
+    has_overdue_reminder: true,
   },
 ]
 

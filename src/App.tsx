@@ -9,10 +9,13 @@ import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
 import ListingPage from '@/pages/public/ListingPage'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import AgentLayout from '@/components/layout/AgentLayout'
+import ActionBoardPage from '@/pages/agent/ActionBoardPage'
 import DashboardPage from '@/pages/agent/DashboardPage'
 import ContactsPage from '@/pages/agent/ContactsPage'
 import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 import PipelinePage from '@/pages/agent/PipelinePage'
+import MatchingPage from '@/pages/agent/MatchingPage'
+import AutomationPage from '@/pages/agent/AutomationPage'
 import ListingsPage from '@/pages/agent/ListingsPage'
 import ListingFormPage from '@/pages/agent/ListingFormPage'
 import KycListPage from '@/pages/agent/KycListPage'
@@ -111,10 +114,13 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<DashboardPage />} />
+              <Route index element={<ActionBoardPage />} />
+              <Route path="stats" element={<DashboardPage />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="contacts/:id" element={<ContactDetailPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
+              <Route path="matching" element={<MatchingPage />} />
+              <Route path="automation" element={<AutomationPage />} />
               <Route path="listings" element={<ListingsPage />} />
               <Route path="listings/new" element={<ListingFormPage />} />
               <Route path="listings/:id/edit" element={<ListingFormPage />} />
