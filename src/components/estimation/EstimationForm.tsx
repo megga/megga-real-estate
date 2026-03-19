@@ -19,6 +19,11 @@ import {
   TrendingUp,
   Shield,
   Download,
+  Mail,
+  X,
+  Lock,
+  User,
+  Phone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -104,6 +109,13 @@ export default function EstimationForm() {
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [showResult, setShowResult] = useState(false)
 
+  // Lead capture modal
+  const [showLeadModal, setShowLeadModal] = useState(false)
+  const [leadEmail, setLeadEmail] = useState('')
+  const [leadName, setLeadName] = useState('')
+  const [leadPhone, setLeadPhone] = useState('')
+  const [leadEmailError, setLeadEmailError] = useState('')
+
   const showLandSurface = ['house', 'villa', 'land'].includes(formData.propertyType)
   const isApartment = formData.propertyType === 'apartment'
 
@@ -119,6 +131,25 @@ export default function EstimationForm() {
 
   function handleStep2Submit() {
     if (!formData.surface || !formData.rooms || !formData.bedrooms || !formData.condition) return
+    setShowLeadModal(true)
+  }
+
+  function validateEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
+
+  function handleLeadSubmit() {
+    setLeadEmailError('')
+    if (!leadEmail.trim()) {
+      setLeadEmailError('Veuillez entrer votre adresse email')
+      return
+    }
+    if (!validateEmail(leadEmail)) {
+      setLeadEmailError('Veuillez entrer une adresse email valide')
+      return
+    }
+
+    setShowLeadModal(false)
     setStep(3)
     setLoading(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -153,6 +184,10 @@ export default function EstimationForm() {
     setLoading(false)
     setShowResult(false)
     setLoadingProgress(0)
+    setLeadEmail('')
+    setLeadName('')
+    setLeadPhone('')
+    setLeadEmailError('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -658,6 +693,125 @@ export default function EstimationForm() {
             <Download className="w-3.5 h-3.5" />
             Télécharger le rapport PDF
           </button>
+        </div>
+      )}
+
+      {/* Lead capture modal */}
+      {showLeadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowLeadModal(false)}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-white rounded-2xl shadow-modal w-full max-w-md p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowLeadModal(false)}
+              className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="bg-accent/10 rounded-full p-3 w-fit mx-auto mb-4">
+                <Mail className="w-6 h-6 text-accent" />
+              </div>
+              <h3 className="text-xl font-semibold text-primary">
+                Votre estimation est prête !
+              </h3>
+              <p className="text-sm text-gray-500 mt-1.5">
+                Entrez votre email pour recevoir votre estimation détaillée et accéder à votre résultat.
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="space-y-3">
+              {/* Email — required */}
+              <div>
+                <label htmlFor="lead-email" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  Email <span className="text-danger">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    id="lead-email"
+                    type="email"
+                    value={leadEmail}
+                    onChange={(e) => { setLeadEmail(e.target.value); setLeadEmailError('') }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLeadSubmit() }}
+                    placeholder="votre@email.ch"
+                    autoFocus
+                    className={cn(
+                      'w-full h-12 pl-10 pr-4 rounded-xl border text-base outline-none transition-all',
+                      leadEmailError
+                        ? 'border-danger focus:border-danger focus:ring-2 focus:ring-danger/20'
+                        : 'border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20'
+                    )}
+                  />
+                </div>
+                {leadEmailError && (
+                  <p className="text-xs text-danger mt-1">{leadEmailError}</p>
+                )}
+              </div>
+
+              {/* Name — optional */}
+              <div>
+                <label htmlFor="lead-name" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  Prénom <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    id="lead-name"
+                    type="text"
+                    value={leadName}
+                    onChange={(e) => setLeadName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLeadSubmit() }}
+                    placeholder="Jean"
+                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Phone — optional */}
+              <div>
+                <label htmlFor="lead-phone" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  Téléphone <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    id="lead-phone"
+                    type="tel"
+                    value={leadPhone}
+                    onChange={(e) => setLeadPhone(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleLeadSubmit() }}
+                    placeholder="+41 79 000 00 00"
+                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <Button
+              onClick={handleLeadSubmit}
+              className="w-full h-12 rounded-full text-base font-medium mt-5"
+            >
+              Voir mon estimation &rarr;
+            </Button>
+
+            {/* Trust indicators */}
+            <div className="flex items-center justify-center gap-1.5 mt-4">
+              <Lock className="w-3 h-3 text-gray-400" />
+              <p className="text-xs text-gray-400">
+                Vos données sont protégées et ne seront jamais partagées.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
