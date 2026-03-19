@@ -164,17 +164,17 @@ export default function EstimationForm() {
     setLoadingProgress(0)
 
     const interval = setInterval(() => {
-      setLoadingProgress((prev) => Math.min(prev + 1, 100))
+      setLoadingProgress((prev) => Math.min(prev + 2, 100))
     }, 30)
 
-    setTimeout(() => setLoadingText(texts[1]), 1000)
-    setTimeout(() => setLoadingText(texts[2]), 2000)
+    setTimeout(() => setLoadingText(texts[1]), 500)
+    setTimeout(() => setLoadingText(texts[2]), 1000)
     setTimeout(() => {
       clearInterval(interval)
       setLoadingProgress(100)
       setLoading(false)
       setShowResult(true)
-    }, 3000)
+    }, 1500)
   }
 
   function handleReset() {
