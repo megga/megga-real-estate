@@ -1,6 +1,9 @@
 # CLAUDE.md — MEGGA Real Estate
 
 > Ce fichier est la source de vérité pour Claude Code. Lis-le en entier avant de coder quoi que ce soit.
+> 
+> **Document de référence stratégique :** DOCUMENT_MAITRE_PROJET_SAAS_REAL_ESTATE_SUISSE (v1.0)
+> Ce CLAUDE.md est aligné sur le Document Maître Produit. En cas de doute stratégique (scope, priorité, positionnement), le Document Maître fait autorité.
 
 ---
 
@@ -12,9 +15,25 @@
 **Client :** Gregory Lyonnet, agent immobilier à Genève
 **Développeur :** Julien (frontend, pas de compétences backend — Claude Code gère tout)
 
-**Vision :** Premier portail immobilier suisse "IA-first" — pas un simple CRM avec un chatbot, mais un **système d'exploitation du courtier immobilier** avec une couche IA au centre. Marketplace publique + CRM intégré gratuit + assistante personnelle IA + pipeline transaction LAB/KYC + portail vendeur.
+**Vision :** Le système d'exploitation des transactions immobilières suisses à haute conformité — pas un simple portail d'annonces avec un chatbot, mais une **plateforme SaaS verticale, AI-native, compliance-first**, orientée exécution des transactions immobilières suisses. CRM transactionnel verticalisé + pipeline transaction LAB/KYC + portail vendeur + copilote IA métier + marketplace publique (phase ultérieure).
 
 **En une phrase (Gregory Lyonnet) :** "Le courtier ne doit plus perdre du temps à chercher, relancer, rédiger, organiser et suivre manuellement."
+
+**Document de référence stratégique :** Le **Document Maître Produit** (DOCUMENT_MAITRE_PROJET_SAAS_REAL_ESTATE_SUISSE_AI-NATIVE_COMPLIANCE-FIRST) est la source de vérité stratégique. Toute nouvelle fonctionnalité doit répondre à au moins un de ces 5 objectifs : réduire le temps administratif, réduire le risque LAB/KYC, accélérer le closing, augmenter la transparence client, ou remplacer un outil fragmenté. Si elle n'en sert aucun — elle est hors scope MVP.
+
+**Positionnement stratégique :**
+- Le différenciateur principal n'est PAS "l'IA". C'est l'intégration native de la conformité transactionnelle suisse + l'automatisation opérationnelle + l'IA contextuelle métier.
+- L'IA est une couche d'orchestration, d'assistance et d'accélération — pas le produit.
+- Formule : System of record + workflow engine + rules engine + AI copilot. PAS : LLM + UI + promesses vagues.
+- Le produit est compliance-enabling, PAS compliance-replacing. Validation humaine obligatoire pour décisions sensibles.
+
+**Ordre stratégique d'expansion :**
+1. Transaction résidentielle (MVP — on est ici)
+2. Transaction premium / off-market
+3. Multi-agences / groupes
+4. Deal room / partenaires
+5. Gérance / PPE
+6. Marketplace publique / data network / benchmarks
 
 **Ce projet est SÉPARÉ de MEGGA (clones IA).** Repo différent, Supabase différent, design system différent.
 
@@ -415,7 +434,7 @@ Sidebar width :    w-64 (256px)
 - Position fixe à gauche, bg-sidebar, border-r
 - Logo GG en haut (petit, 28px)
 - Navigation verticale : icônes Lucide + labels
-- Sections : **Aujourd'hui** (action board), Dashboard, Pipeline, Matching, Contacts, Mes biens, KYC, Messages, Documents, Calendrier
+- Sections : **Aujourd'hui** (action board), Dashboard, Pipeline, Matching, Contacts, Mes biens, KYC, Messages, Documents, Automatisation, Calendrier
 - Item actif : bg-accent/10 text-accent font-medium border-l-2 border-accent
 - Item hover : bg-gray-100
 - Profil agent en bas avec avatar + nom + rôle
@@ -983,6 +1002,9 @@ Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymi
 - Audit trail : logger toute action importante dans `activity_events` (y compris actions IA)
 - Toujours afficher les scores IA comme "estimation" avec un indicateur visuel (icône sparkle/ai)
 - Timeline unifiée par contact : TOUT dans une seule timeline chronologique
+- Toujours vérifier qu'une fonctionnalité sert au moins 1 des 5 objectifs du Document Maître (admin, LAB/KYC, closing, transparence client, fragmentation) avant de la coder
+- Toujours positionner l'outil comme compliance-enabling, PAS compliance-replacing (formulation correcte : assistance, standardisation, orchestration, traçabilité, aide à la décision)
+- L'IA doit toujours être contextualisée, traçable, contrôlable, réversible, et non autonome sur les points réglementaires critiques
 
 ### DON'T ❌
 - JAMAIS de `any` en TypeScript
@@ -998,6 +1020,8 @@ Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymi
 - JAMAIS mentionner "Lovable", "Claude", "Dribbble", "ChatGPT" dans l'interface ou le code
 - JAMAIS afficher l'IA comme "automatique" ou "garantie" — c'est une "assistance"
 - JAMAIS présenter les scores IA comme des certitudes — toujours "estimation"
+- JAMAIS formuler "conformité automatique garantie" ou "LAB 100% automatisée" — c'est un risque juridique
+- JAMAIS construire une fonctionnalité qui ne sert aucun des 5 objectifs du Document Maître — c'est du scope creep
 
 ---
 
@@ -1016,42 +1040,114 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ## 12. PRIORITÉ DE DÉVELOPPEMENT
 
-> Stratégie : on construit d'abord les fondations + marketplace (vitrine), puis les outils agent qui changent leur quotidien (la vraie valeur pour embarquer les 10-20 agences pilotes).
+> **Stratégie (alignée Document Maître) :** On construit d'abord le **Compliance-First Transaction OS** — les outils agent qui changent leur quotidien (la vraie valeur pour embarquer les 10-20 agences pilotes). La marketplace publique arrive ensuite, une fois que l'outil CRM est adopté et que les agents ont de la valeur d'usage dès le premier jour, indépendamment du nombre d'acheteurs sur le portail.
 
-### Sprint 1 (Semaine 1-2) — Fondations
+> **Migration CRM enrichi en 6 étapes :** Le CRM agent passe du modèle générique au modèle enrichi spécifié par Gregory Lyonnet. L'ordre des 6 étapes n'est pas négociable — chaque étape débloque la suivante.
+
+### Sprint 1 (Semaine 1-2) — Fondations + Setup
 - Setup projet (Vite + React + TS + Tailwind + shadcn)
-- Supabase : schema complet (toutes les tables section 6), RLS, auth
-- Layout : Navbar, Footer, Sidebar (avec nouvelles entrées : Aujourd'hui, Matching, Documents)
-- HomePage avec hero + barre de recherche (statique d'abord)
+- Supabase : schema de base (tables section 6), RLS, auth
+- Layout : Navbar, Footer, Sidebar (avec entrées : Aujourd'hui, Pipeline, Matching, Contacts, Mes biens, KYC, Messages, Documents, Calendrier)
+- HomePage avec hero + barre de recherche (statique d'abord — marketplace en Sprint 6)
 - LoginPage / RegisterPage (Supabase Auth)
 
-### Sprint 2 (Semaine 3-4) — Marketplace publique
-- ListingCard + ListingGrid
-- SearchPage avec filtres + résultats
-- ListingPage (fiche détaillée)
-- MapView (Mapbox intégration)
-- Favoris
+### Sprint 2 (Semaine 3-4) — Migration CRM Étapes 1-2
 
-### Sprint 3 (Semaine 5-6) — CRM Agent (base)
-- **ActionBoardPage** — "Quoi faire aujourd'hui" (statique d'abord, IA en Sprint 5)
-- ContactsPage + **ContactDetailPage enrichie** (timeline unifiée, résumé, critères, tabs)
-- ListingsPage + ListingForm (wizard)
-- **PipelineKanban** (12 colonnes enrichies Gregory, dnd-kit)
+#### Étape 1 — Migrations DB (2-3 jours)
+- **Migration SQL unique** : créer les 7 nouvelles tables dans l'ordre de dépendances FK :
+  - `message_templates` (aucune FK externe)
+  - `client_searches` (FK → contacts)
+  - `matches` (FK → contacts, properties, client_searches)
+  - `reminders` (FK → contacts, properties, transactions, matches)
+  - `automation_rules` (FK → message_templates)
+  - `visits` (FK → properties, contacts, transactions)
+  - `daily_actions` (aucune FK externe)
+- **ALTER TABLE contacts** : ajouter whatsapp_phone, language, nationality, budget_announced, budget_estimated_ai, search_zones, search_criteria, ai_seriousness_score, ai_purchase_probability, ai_timing, ai_engagement_level, ai_tension_level, ai_price_reduction_probability, last_interaction_at
+- **ALTER TABLE transactions** : enrichir stage pour supporter les 15 étapes pipeline Gregory (new_lead, to_qualify, active_search, visit_planned, visit_done, interest_confirmed, offer, negotiation, reserved, financing, notary, signed, closed, lost, to_recontact)
+- **RLS policies** sur chaque nouvelle table (pattern : agency_id via profiles WHERE id = auth.uid())
+- **Index** : matches(contact_id, status), reminders(agency_id, status, trigger_at), client_searches(contact_id, is_active), daily_actions(agent_id, is_completed, generated_at), visits(property_id, scheduled_at)
+- Fichier unique : `supabase/migrations/YYYYMMDD_001_enriched_crm_tables.sql`
+- Tester avec `supabase db reset` avant production
 
-### Sprint 4 (Semaine 7-8) — Matching + Relances + Documents
-- **MatchingPage** + MatchingPanel + MatchScoreCard (logique de scoring, envoi en un clic)
-- **Système de relances** : reminders, automation_rules, templates de messages
-- client_searches (sauvegardes de recherche acheteur)
+#### Étape 2 — Contact Detail enrichie (4-5 jours)
+- **ContactDetailPage** avec 4 zones verticales :
+  - Zone 1 : En-tête (nom, avatar, type badge, score IA badge, actions rapides appel/WhatsApp/email, last_interaction_at en relatif)
+  - Zone 2 : Résumé IA (encadré bg-accent/5, icône sparkle, 2-3 phrases contextualisées, label "estimation IA", refresh à la demande + cache 24h)
+  - Zone 3 : Next Best Action (encadré bg-success/5, suggestion IA, bouton d'action directe)
+  - Zone 4 : Tabs (Infos · Timeline · Biens envoyés · Matching · Documents · Offres)
+- **ContactTimeline.tsx** — Timeline unifiée agrégeant : messages email, WhatsApp, appels, visites, biens envoyés, notes, documents, offres, changements pipeline, relances, actions IA. Chaque type a icône Lucide + couleur distincte. Source : activity_events filtrés par contact_id (MVP), puis UNION ALL sur tables source (Phase 2)
+- **useContactDetail(contactId)** — Hook React Query chargeant en parallèle : contact complet, activity_events, transactions liées, client_searches actives, matches récents. Expose refreshAiSummary()
+- Section critères de recherche (onglet Infos) : type, zones (badges), budget annoncé vs estimé IA, pièces min/max, surface min/max, features, timing IA
+- **CopilotSummary.tsx** + **NextBestAction.tsx** — Composants pour les zones 2-3 (mode mock d'abord, connecté à Edge Function ai-copilot en Sprint 5)
+
+### Sprint 3 (Semaine 5-6) — Migration CRM Étapes 3-4
+
+#### Étape 3 — Pipeline Kanban 12+ colonnes (3-4 jours)
+- **PipelineKanban.tsx** refactorisé avec dnd-kit — 14 colonnes :
+  1. Nouveau lead (gray-400) → 2. À qualifier (gray-500) → 3. Recherche active (blue-500) → 4. Visite planifiée (cyan-500) → 5. Visite effectuée (teal-500) → 6. Intérêt confirmé (green-500) → 7. Offre (emerald-600) → 8. Négociation (amber-500) → 9. Réservé (orange-500) → 10. Financement (purple-500) → 11. Notaire (indigo-600) → 12. Signé (green-700) | Perdu (red-500) | À relancer (yellow-500)
+- Scroll horizontal obligatoire. Colonnes "Perdu" et "À relancer" visuellement distinctes (opacité réduite, séparateur)
+- **DealCard enrichie** : avatar contact, nom contact, adresse bien (tronquée), prix, date mise à jour en relatif, **badge orange si relance en retard** (reminders WHERE transaction_id = X AND status = 'triggered' AND trigger_at < NOW())
+- Drag-and-drop → 3 actions : UPDATE transactions.stage, INSERT activity_event (stage_change avec ancien/nouveau stage), invalidation cache React Query
+- Dialogue de confirmation obligatoire si drop sur "Perdu" (raison obligatoire → transactions.notes)
+- Barre de résumé en haut : total deals actifs, valeur totale pipeline, deals à risque, taux de conversion
+
+#### Étape 4 — Action Board "Quoi faire aujourd'hui" (3-4 jours)
+- **ActionBoardPage.tsx** — PAGE D'ACCUEIL AGENT (première chose vue à la connexion)
+- En-tête : "Bonjour [Prénom], voici votre journée" + date + compteur global "X actions recommandées"
+- 5 sections par priorité décroissante :
+  1. **Urgences** (bg-red-50, border-l-4 border-red-500) : deals à risque, docs manquants, relances en retard → source : daily_actions priority='urgent' + reminders en retard
+  2. **Relances du jour** (bg-amber-50, border-l-4 border-amber-500) : clients à rappeler, feedbacks → source : reminders du jour
+  3. **Matchs trouvés** (bg-blue-50, border-l-4 border-blue-500) : nouveaux biens compatibles → source : matches status='suggested' récents
+  4. **Visites à confirmer** (bg-white) : agenda du jour → source : visits WHERE scheduled_at = TODAY
+  5. **Suggestions IA** (bg-green-50, border-l-4 border-green-500) : next-best-actions → source : daily_actions category='suggestion'
+- **ActionCard.tsx** : icône Lucide, titre, description courte, bouton action rapide (Appeler/Envoyer/Voir dossier), lien entité. Click → is_completed = true
+- **useActionBoard(agentId)** : daily_actions non complétées + reminders actifs + visites du jour + matches non traités. staleTime 30s
+- **Implémentation en 2 temps** : Phase A statique (requêtes SQL directes, sans IA — déjà utile), Phase B connectée IA (Sprint 5 — daily_actions générées par pg_cron + ai-scoring)
+
+### Sprint 4 (Semaine 7-8) — Migration CRM Étapes 5-6
+
+#### Étape 5 — Matching acheteurs ↔ biens (4-5 jours)
+- **Logique de scoring** (Edge Function ou SQL, sans LLM) — 100 points sur 5 critères :
+  - Budget (30 pts) : prix bien dans fourchette client_search
+  - Zone (25 pts) : ville/canton dans search_zones
+  - Type de bien (15 pts) : type = type recherché
+  - Pièces/Surface (15 pts) : dans fourchettes min/max
+  - Features (15 pts) : features souhaitées présentes
+- **3 déclencheurs** :
+  - Nouveau bien actif → matching contre tous client_searches actifs → INSERT matches score ≥ 60
+  - Nouveau client/critères → matching contre toutes properties actives
+  - Job pg_cron quotidien → surveillance continue pour is_active = true
+- **MatchingPage.tsx** : vue globale matchs non traités, filtrables par contact ou bien
+- **MatchingPanel.tsx** : intégré dans ContactDetailPage onglet Matching
+- **MatchScoreCard.tsx** : photo bien, adresse, prix, score %, barre progression colorée, raisons (badges "Budget ✓", "Zone ✓", "Critères ✓"), boutons "Envoyer au client" + "Planifier visite"
+- Action "Envoyer" : choix canal (email/WhatsApp), template pré-rempli depuis message_templates (property_presentation), variables remplacées, édition avant envoi, confirmation → match.status = 'sent' + activity_event + reminder auto J+3
+
+#### Étape 6 — Système de relances (4-5 jours)
+- **6 types de relances préconfigurées** :
+  - Bien envoyé → J+3 → reminder agent / relance auto (email/WhatsApp)
+  - Visite effectuée → J+1 → demande feedback (email/WhatsApp)
+  - Lead inactif → J+30 → relance douce + nouveau bien (email)
+  - Acheteur chaud non relancé → J+7 → alerte agent (notification)
+  - Vendeur sans suivi récent → J+14 → alerte + suggestion update (notification)
+  - Document manquant KYC → J+3 → relance client (email)
+- **3 couches du moteur** :
+  - Configuration : automation_rules via AutomationPage (trigger + action + delay + template + is_active)
+  - Génération : pg_cron toutes les heures → Edge Function automation-engine → scanne activity_events → crée reminders
+  - Exécution : reminder.trigger_at atteint → status = 'triggered' → apparaît dans Action Board
+- **Principe : l'agent garde le contrôle.** Par défaut = suggestions/tâches, PAS envois silencieux. Option "envoi auto" = opt-in explicite (auto_send = true dans la règle). Même en auto, activity_event créé.
+- **message_templates** : variables {{contact.first_name}}, {{property.address}}, {{property.price}}, {{agent.full_name}}, etc. Catégories : follow_up, visit_confirmation, property_presentation, post_visit, seller_update. Canal : email, whatsapp, both
+- **AutomationPage.tsx** : liste règles actives (toggle on/off), formulaire création, compteur relances générées
+- **ReminderList.tsx** : relances en attente + triggered, actions : marquer fait, reporter (snooze +3j), annuler
 - Génération documentaire (mandat, bon de visite, fiche bien)
 - KYC : liste, détail, checklist, upload documents
 
 ### Sprint 5 (Semaine 9-10) — IA & Intelligence
-- Edge Functions : ai-search (pgvector + Claude API), ai-copilot, ai-matching, ai-scoring
-- **ActionBoardPage connecté à l'IA** (daily_actions générées)
-- **Next-best-action** par client/deal
-- **Buyer intelligence + Seller intelligence** (scores IA)
-- Recherche conversationnelle frontend
-- Copilot Panel global (commandes naturelles)
+- Edge Functions : ai-copilot, ai-matching (enrichissement du scoring), ai-scoring (buyer/seller intelligence)
+- **ActionBoardPage connecté à l'IA** (daily_actions générées par pg_cron + ai-scoring)
+- **Next-best-action** par client/deal (connecte CopilotSummary + NextBestAction à Edge Function ai-copilot)
+- **Buyer intelligence + Seller intelligence** (scores IA enrichis via ai-scoring)
+- Copilot Panel global (commandes naturelles : résumé, relance, matching, mandat, prochaines actions)
+- Edge Function ai-search (pgvector + Claude API) pour recherche conversationnelle (Phase 2 prioritaire)
 
 ### Sprint 6 (Semaine 11-12) — Communication + Portail vendeur
 - **WhatsApp Business API** : envoi, réception, archivage dans timeline
@@ -1059,14 +1155,16 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - **Portail vendeur** : dashboard confiance, visites, offres, documents, analyse positionnement
 - Onboarding client (formulaires PP/PM)
 
-### Sprint 7 (Semaine 13-14) — IA avancée + Polish
+### Sprint 7 (Semaine 13-14) — Marketplace publique + IA avancée
+- **Marketplace publique** (vitrine) : ListingCard, ListingGrid, SearchPage, ListingPage, MapView, Favoris
+- Recherche conversationnelle frontend (ChatSearch.tsx connecté à ai-search)
 - **Copilote de négociation** (aide à la contre-offre)
 - **Génération annonces multi-versions** (standard, premium, luxe, courte, social)
 - **Analyse d'objections** post-visite
-- Responsive mobile
-- Performance (lazy loading, image optimization)
 
 ### Sprint 8 (Semaine 15-16) — Launch
+- Responsive mobile
+- Performance (lazy loading, image optimization)
 - Tests end-to-end
 - Déploiement Cloudflare Pages
 - Onboarding pilote : Gregory + 10-20 agences
@@ -1079,6 +1177,8 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - Analytics avancés (PostHog + dashboards custom)
 - Publication multiportails (export contenu vers portails)
 - Adaptation comportementale relances (email ouvert, lien cliqué)
+- Estimation IA (AVM) basée sur données Registre foncier + transactions publiques
+- Virtual staging IA intégré (API tierce)
 - Dark mode
 - i18n (DE, EN, IT)
 - Signature électronique intégrée
