@@ -146,7 +146,7 @@ export default function ListingsPage() {
     if (typeFilter) list = list.filter((l) => l.type === typeFilter)
 
     return list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-  }, [search, statusFilter, typeFilter])
+  }, [dataSource, search, statusFilter, typeFilter])
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))

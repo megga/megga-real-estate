@@ -139,7 +139,7 @@ export default function KycListPage() {
     })
 
     return list
-  }, [search, statusFilter, riskFilter, typeFilter, sortField, sortDir])
+  }, [dataSource, search, statusFilter, riskFilter, typeFilter, sortField, sortDir])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
   const safePage = Math.min(page, totalPages)
@@ -159,7 +159,7 @@ export default function KycListPage() {
     const c = { pending: 0, in_progress: 0, review: 0, validated: 0, rejected: 0 }
     dataSource.forEach((k) => { c[k.status]++ })
     return c
-  }, [])
+  }, [dataSource])
 
   return (
     <div className="space-y-6">

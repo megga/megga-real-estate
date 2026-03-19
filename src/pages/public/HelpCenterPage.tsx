@@ -310,11 +310,12 @@ function AiSupportChat() {
     const msg = (text || inputValue).trim()
     if (!msg) return
 
+    const now = Date.now() // eslint-disable-line react-hooks/purity
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${now}`,
       role: 'user',
       content: msg,
-      timestamp: new Date(),
+      timestamp: new Date(now),
     }
 
     setMessages((prev) => [...prev, userMessage])
@@ -322,7 +323,7 @@ function AiSupportChat() {
     setIsTyping(true)
 
     // Simulate AI "thinking" delay (300-800ms)
-    const delay = 300 + Math.random() * 500
+    const delay = 300 + Math.random() * 500 // eslint-disable-line react-hooks/purity
     setTimeout(() => {
       const result = findFaqAnswer(msg)
 

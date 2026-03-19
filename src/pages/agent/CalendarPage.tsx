@@ -720,7 +720,7 @@ function MobileListView({ events, onSelectEvent }: {
         const Icon = config.icon
         const dateStr = format(event.date, 'EEEE d MMMM', { locale: fr })
         const showHeader = dateStr !== lastDate
-        lastDate = dateStr
+        lastDate = dateStr // eslint-disable-line react-hooks/immutability
 
         return (
           <div key={event.id}>

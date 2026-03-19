@@ -131,6 +131,7 @@ export function useNotifications() {
 
   useEffect(() => {
     if (DEV_BYPASS) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNotifications(MOCK_NOTIFICATIONS)
       setLoading(false)
       return
