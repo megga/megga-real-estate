@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
-const DEV_BYPASS = true
+const DEV_BYPASS = false
 
 export interface MessageThread {
   id: string

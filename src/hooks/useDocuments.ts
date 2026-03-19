@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { SELLER_DOCUMENTS, type SellerDocument } from '@/pages/seller/sellerMockData'
 
-const DEV_BYPASS = true
+const DEV_BYPASS = false
 
 export interface Document {
   id: string
