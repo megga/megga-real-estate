@@ -18,6 +18,11 @@ import {
   Clock,
   Zap,
   ArrowRight,
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  MessageCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Navbar from '@/components/layout/Navbar'
@@ -202,6 +207,331 @@ function showToast(message: string) {
     el.style.transition = 'opacity 300ms'
     setTimeout(() => el.remove(), 300)
   }, 2500)
+}
+
+/* ──────────────────── AI CHAT SUPPORT AGENT ─────────────────── */
+
+interface ChatMessage {
+  id: string
+  role: 'assistant' | 'user'
+  content: string
+  suggestions?: string[]
+  showContactForm?: boolean
+  timestamp: Date
+}
+
+const WELCOME_SUGGESTIONS = [
+  'Comment créer un compte ?',
+  'MEGGA est-il gratuit ?',
+  'Comment fonctionne la recherche IA ?',
+  'Quels sont les plans disponibles ?',
+]
+
+function findFaqAnswer(query: string): { answer: string; category: string } | null {
+  const q = query.toLowerCase().trim()
+  if (!q) return null
+
+  // Score each FAQ item by keyword overlap
+  let bestMatch: FaqItem | null = null
+  let bestScore = 0
+
+  const queryWords = q
+    .replace(/[?!.,;:'"]/g, '')
+    .split(/\s+/)
+    .filter((w) => w.length > 2)
+
+  for (const faq of FAQ_DATA) {
+    const faqText = (faq.q + ' ' + faq.a).toLowerCase()
+    let score = 0
+
+    // Exact substring match in question = high score
+    if (faq.q.toLowerCase().includes(q)) {
+      score += 10
+    }
+
+    // Word-level matching
+    for (const word of queryWords) {
+      if (faqText.includes(word)) {
+        score += 1
+        // Bonus if word is in the question specifically
+        if (faq.q.toLowerCase().includes(word)) {
+          score += 1.5
+        }
+      }
+    }
+
+    // Bonus for percentage of query words matched
+    const matchedWords = queryWords.filter((w) => faqText.includes(w)).length
+    if (queryWords.length > 0) {
+      score += (matchedWords / queryWords.length) * 3
+    }
+
+    if (score > bestScore && score >= 2) {
+      bestScore = score
+      bestMatch = faq
+    }
+  }
+
+  if (bestMatch) {
+    return { answer: bestMatch.a, category: CATEGORY_LABELS[bestMatch.category] }
+  }
+  return null
+}
+
+function AiSupportChat() {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: "Bonjour ! Je suis l'assistant MEGGA. Posez-moi vos questions sur la plateforme, je vous réponds instantanément.",
+      suggestions: WELCOME_SUGGESTIONS,
+      timestamp: new Date(),
+    },
+  ])
+  const [inputValue, setInputValue] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const chatContainerRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+    }
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, isTyping])
+
+  function handleSend(text?: string) {
+    const msg = (text || inputValue).trim()
+    if (!msg) return
+
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: msg,
+      timestamp: new Date(),
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setInputValue('')
+    setIsTyping(true)
+
+    // Simulate AI "thinking" delay (300-800ms)
+    const delay = 300 + Math.random() * 500
+    setTimeout(() => {
+      const result = findFaqAnswer(msg)
+
+      const botMessage: ChatMessage = {
+        id: `bot-${Date.now()}`,
+        role: 'assistant',
+        content: result
+          ? result.answer
+          : "Je n'ai pas trouvé de réponse exacte à votre question. Vous pouvez reformuler ou contacter notre équipe directement via le formulaire ci-dessous.",
+        suggestions: result
+          ? undefined
+          : undefined,
+        showContactForm: !result,
+        timestamp: new Date(),
+      }
+
+      setMessages((prev) => [...prev, botMessage])
+      setIsTyping(false)
+
+      if (!result) {
+        setShowForm(true)
+      }
+    }, delay)
+  }
+
+  function handleSuggestionClick(suggestion: string) {
+    handleSend(suggestion)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col" style={{ height: '520px' }}>
+      {/* Chat header */}
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3 flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
+          <Sparkles className="w-4.5 h-4.5 text-accent" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-primary">Assistant MEGGA</p>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px] text-gray-400">En ligne · Réponse instantanée</span>
+          </div>
+        </div>
+        <MessageCircle className="w-4 h-4 text-gray-300" />
+      </div>
+
+      {/* Messages area */}
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4 scroll-smooth" style={{ scrollbarWidth: 'thin', scrollbarColor: '#E5E7EB transparent' }}>
+        {messages.map((msg) => (
+          <div key={msg.id}>
+            {/* Message bubble */}
+            <div className={cn('flex gap-2.5', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+              {msg.role === 'assistant' && (
+                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Bot className="w-3.5 h-3.5 text-accent" />
+                </div>
+              )}
+              <div
+                className={cn(
+                  'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+                  msg.role === 'user'
+                    ? 'bg-accent text-white rounded-br-md'
+                    : 'bg-gray-50 text-gray-600 rounded-bl-md border border-gray-100'
+                )}
+              >
+                {msg.content}
+              </div>
+              {msg.role === 'user' && (
+                <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <User className="w-3.5 h-3.5 text-gray-400" />
+                </div>
+              )}
+            </div>
+
+            {/* Suggestions */}
+            {msg.suggestions && msg.suggestions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3 ml-9">
+                {msg.suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleSuggestionClick(s)}
+                    className="text-[12px] text-accent bg-accent/5 border border-accent/15 rounded-full px-3 py-1.5 hover:bg-accent/10 hover:border-accent/30 transition-all cursor-pointer"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Contact form fallback inline */}
+            {msg.showContactForm && (
+              <div className="ml-9 mt-3">
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="text-[12px] text-accent bg-accent/5 border border-accent/15 rounded-full px-3 py-1.5 hover:bg-accent/10 hover:border-accent/30 transition-all cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Mail className="w-3 h-3" />
+                  Contacter le support
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Typing indicator */}
+        {isTyping && (
+          <div className="flex gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+              <Bot className="w-3.5 h-3.5 text-accent" />
+            </div>
+            <div className="bg-gray-50 rounded-2xl rounded-bl-md border border-gray-100 px-4 py-3 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Contact form (slides up when needed) */}
+      {showForm && (
+        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50 space-y-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-gray-500">Formulaire de contact</p>
+            <button onClick={() => setShowForm(false)} className="text-gray-300 hover:text-gray-500">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <select className="w-full h-9 rounded-lg border border-gray-200 text-xs px-3 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none bg-white">
+            <option>Question générale</option>
+            <option>Problème technique</option>
+            <option>Facturation</option>
+            <option>Estimation</option>
+            <option>Conformité</option>
+            <option>Partenariat</option>
+            <option>Autre</option>
+          </select>
+          <input
+            type="email"
+            placeholder="votre@email.ch"
+            className="w-full h-9 rounded-lg border border-gray-200 text-xs px-3 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
+          />
+          <textarea
+            placeholder="Décrivez votre question..."
+            className="w-full min-h-[60px] rounded-lg border border-gray-200 text-xs px-3 py-2 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none resize-none"
+          />
+          <button
+            onClick={() => {
+              setShowForm(false)
+              showToast('Message envoyé ! Réponse sous 24h.')
+              const confirmMsg: ChatMessage = {
+                id: `bot-confirm-${Date.now()}`,
+                role: 'assistant',
+                content: "Votre message a été envoyé à notre équipe. Vous recevrez une réponse sous 24h à l'adresse indiquée. En attendant, n'hésitez pas à me poser d'autres questions !",
+                suggestions: ['Quels sont les plans ?', 'Comment fonctionne le KYC ?'],
+                timestamp: new Date(),
+              }
+              setMessages((prev) => [...prev, confirmMsg])
+            }}
+            className="bg-accent text-white rounded-full w-full h-9 text-xs font-medium hover:bg-accent/90 transition-colors"
+          >
+            Envoyer au support
+          </button>
+        </div>
+      )}
+
+      {/* Input bar */}
+      {!showForm && (
+        <div className="px-4 py-3 border-t border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100 focus-within:border-accent/30 focus-within:bg-white transition-all">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Posez votre question..."
+              className="flex-1 bg-transparent border-0 outline-none text-sm placeholder:text-gray-400 min-w-0"
+              disabled={isTyping}
+            />
+            <button
+              onClick={() => handleSend()}
+              disabled={!inputValue.trim() || isTyping}
+              className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all',
+                inputValue.trim() && !isTyping
+                  ? 'bg-accent text-white hover:bg-accent/90 cursor-pointer'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              )}
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-300 text-center mt-2">
+            Assistance automatisée · Les informations sont fournies à titre indicatif
+          </p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 /* ──────────────────────── MAIN COMPONENT ────────────────────── */
@@ -498,65 +828,36 @@ export default function HelpCenterPage() {
         </div>
       </section>
 
-      {/* ─── Section 5: Contact ─── */}
+      {/* ─── Section 5: AI Support Chat ─── */}
       <section className="bg-gray-50/70 py-14 md:py-[72px]">
         <div className="max-w-4xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-8">
+            <h2 className="text-lg font-semibold text-primary">
+              Vous ne trouvez pas la réponse ?
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Discutez avec notre assistant ou contactez l'équipe.
+            </p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-            {/* Form */}
+            {/* AI Chat */}
             <div className="md:col-span-3">
-              <h2 className="text-lg font-semibold text-primary">
-                Vous ne trouvez pas la réponse ?
-              </h2>
-              <p className="text-sm text-gray-400 mt-1">
-                Écrivez-nous, on répond sous 24h.
-              </p>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6 space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-primary block mb-1.5">
-                    Sujet
-                  </label>
-                  <select className="w-full h-10 rounded-lg border border-gray-200 text-sm px-3 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none bg-white">
-                    <option>Question générale</option>
-                    <option>Problème technique</option>
-                    <option>Facturation</option>
-                    <option>Estimation</option>
-                    <option>Conformité</option>
-                    <option>Partenariat</option>
-                    <option>Autre</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-primary block mb-1.5">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="votre@email.ch"
-                    className="w-full h-10 rounded-lg border border-gray-200 text-sm px-3 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-primary block mb-1.5">
-                    Message
-                  </label>
-                  <textarea
-                    placeholder="Décrivez votre question..."
-                    className="w-full min-h-[100px] rounded-lg border border-gray-200 text-sm px-3 py-2.5 focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none resize-none"
-                  />
-                </div>
-                <button
-                  onClick={() =>
-                    showToast('Message envoyé ! Réponse sous 24h.')
-                  }
-                  className="bg-accent text-white rounded-full w-full h-10 text-sm font-medium hover:bg-accent/90 transition-colors mt-3"
-                >
-                  Envoyer
-                </button>
-              </div>
+              <AiSupportChat />
             </div>
 
             {/* Info cards */}
-            <div className="md:col-span-2 space-y-4 mt-0 md:mt-12">
+            <div className="md:col-span-2 space-y-4 mt-0 md:mt-0">
+              <div className="bg-white rounded-xl p-5 border border-gray-100 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-4 h-4 text-accent" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-primary">
+                    Assistant IA
+                  </p>
+                  <p className="text-xs text-gray-400">Réponse instantanée 24/7</p>
+                </div>
+              </div>
               <div className="bg-white rounded-xl p-5 border border-gray-100 flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
                   <Mail className="w-4 h-4 text-accent" />
