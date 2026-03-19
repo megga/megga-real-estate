@@ -10,6 +10,7 @@ import {
   KYC_STATUSES, KYC_RISK_LEVELS, KYC_TYPES,
 } from '@/lib/constants'
 import { MOCK_KYC_CASES, type MockKycCase } from '@/lib/mockData'
+import { useKycCases } from '@/hooks/useKyc'
 
 type SortField = 'contact' | 'completion' | 'updated'
 type SortDir = 'asc' | 'desc'
@@ -86,8 +87,32 @@ export default function KycListPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
 
+  // Real data from Supabase with mock fallback
+  const { data: realKycCases } = useKycCases()
+  const dataSource: MockKycCase[] = (realKycCases && realKycCases.length > 0)
+    ? realKycCases.map(k => {
+        const kx = k as unknown as Record<string, unknown>
+        const c = kx.contact as Record<string, string> | null
+        return {
+          id: k.id,
+          contact_name: c ? `${c.first_name} ${c.last_name}` : 'Contact',
+          contact_avatar_color: 'bg-accent',
+          type: k.type,
+          status: k.status,
+          risk_level: k.risk_level,
+          completion_pct: k.completion_pct,
+          property_title: 'Bien associé',
+          assigned_to: 'Agent',
+          validated_by: k.validated_by ?? null,
+          validated_at: k.validated_at ?? null,
+          created_at: k.created_at,
+          updated_at: k.created_at,
+        } as MockKycCase
+      })
+    : MOCK_KYC_CASES
+
   const filtered = useMemo(() => {
-    let list = [...MOCK_KYC_CASES]
+    let list = [...dataSource]
 
     if (search) {
       const q = search.toLowerCase()
@@ -132,7 +157,7 @@ export default function KycListPage() {
   // Counts by status for the header
   const counts = useMemo(() => {
     const c = { pending: 0, in_progress: 0, review: 0, validated: 0, rejected: 0 }
-    MOCK_KYC_CASES.forEach((k) => { c[k.status]++ })
+    dataSource.forEach((k) => { c[k.status]++ })
     return c
   }, [])
 
@@ -146,7 +171,7 @@ export default function KycListPage() {
             Dossiers KYC
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {MOCK_KYC_CASES.length} dossiers ·{' '}
+            {dataSource.length} dossiers ·{' '}
             <span className="text-warning font-medium">{counts.review} en revue</span> ·{' '}
             <span className="text-accent font-medium">{counts.in_progress} en cours</span>
           </p>
@@ -162,7 +187,7 @@ export default function KycListPage() {
             !statusFilter ? 'bg-primary-900 text-white' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
           )}
         >
-          Tous ({MOCK_KYC_CASES.length})
+          Tous ({dataSource.length})
         </button>
         {KYC_STATUSES.map((s) => (
           <button
