@@ -497,23 +497,31 @@ export default function EstimationForm() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Balcon / Terrasse</label>
+                <label htmlFor="toggle-balcony" className="text-sm font-medium text-gray-700 mb-1.5 block">Balcon / Terrasse</label>
                 <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => updateField('hasBalcony', !formData.hasBalcony)}
+                  <label
+                    htmlFor="toggle-balcony"
+                    role="switch"
+                    aria-checked={formData.hasBalcony}
                     className={cn(
-                      'relative w-11 h-6 rounded-full transition-colors',
+                      'relative w-11 h-6 rounded-full transition-colors cursor-pointer',
                       formData.hasBalcony ? 'bg-accent' : 'bg-gray-200'
                     )}
                   >
+                    <input
+                      id="toggle-balcony"
+                      type="checkbox"
+                      checked={formData.hasBalcony}
+                      onChange={() => updateField('hasBalcony', !formData.hasBalcony)}
+                      className="sr-only"
+                    />
                     <div
                       className={cn(
                         'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
                         formData.hasBalcony && 'translate-x-5'
                       )}
                     />
-                  </button>
+                  </label>
                   {formData.hasBalcony && (
                     <div className="relative flex-1">
                       <input
@@ -521,6 +529,7 @@ export default function EstimationForm() {
                         value={formData.balconySurface}
                         onChange={(e) => updateField('balconySurface', e.target.value)}
                         placeholder="Surface"
+                        aria-label="Surface du balcon en m²"
                         className="w-full h-10 px-3 pr-10 rounded-lg border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-sm outline-none transition-all"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">m²</span>
@@ -531,22 +540,30 @@ export default function EstimationForm() {
 
               {isApartment && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">Ascenseur</label>
-                  <button
-                    type="button"
-                    onClick={() => updateField('hasElevator', !formData.hasElevator)}
+                  <label htmlFor="toggle-elevator" className="text-sm font-medium text-gray-700 mb-1.5 block">Ascenseur</label>
+                  <label
+                    htmlFor="toggle-elevator"
+                    role="switch"
+                    aria-checked={formData.hasElevator}
                     className={cn(
-                      'relative w-11 h-6 rounded-full transition-colors',
+                      'relative w-11 h-6 rounded-full transition-colors cursor-pointer inline-block',
                       formData.hasElevator ? 'bg-accent' : 'bg-gray-200'
                     )}
                   >
+                    <input
+                      id="toggle-elevator"
+                      type="checkbox"
+                      checked={formData.hasElevator}
+                      onChange={() => updateField('hasElevator', !formData.hasElevator)}
+                      className="sr-only"
+                    />
                     <div
                       className={cn(
                         'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
                         formData.hasElevator && 'translate-x-5'
                       )}
                     />
-                  </button>
+                  </label>
                 </div>
               )}
             </div>
