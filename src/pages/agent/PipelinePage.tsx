@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { MOCK_DEALS, type MockDeal } from '@/lib/mockData'
+import { useTransactions } from '@/hooks/useTransactions'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 
 // Pipeline columns config — subset of stages for Kanban
@@ -173,7 +174,34 @@ function StageBadge({ stage }: { stage: string }) {
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PipelinePage() {
-  const [deals, setDeals] = useState<MockDeal[]>(MOCK_DEALS)
+  const { data: realTransactions } = useTransactions()
+
+  // Use real transactions if available, otherwise mock
+  const initialDeals: MockDeal[] = (realTransactions && realTransactions.length > 0)
+    ? realTransactions.map((t) => {
+        // Joined relations come as nested objects from Supabase
+        const tx = t as unknown as Record<string, unknown>
+        const buyer = tx.buyer as Record<string, string> | null
+        const property = tx.property as Record<string, unknown> | null
+        const agent = tx.agent as Record<string, string> | null
+        const stage = t.stage as MockDeal['stage']
+
+        return {
+          id: t.id,
+          contact_name: buyer ? `${buyer.first_name ?? ''} ${buyer.last_name ?? ''}`.trim() : 'Contact',
+          contact_avatar_color: 'bg-accent',
+          property_title: (property?.title as string) ?? 'Bien',
+          property_address: (property?.address as string) ?? '',
+          price: t.price_offered ?? 0,
+          stage: (['lead', 'qualified', 'visit_planned', 'offer', 'negotiation', 'signed'].includes(stage) ? stage : 'lead') as MockDeal['stage'],
+          agent: agent?.full_name ?? 'Agent',
+          agent_avatar_color: 'bg-success',
+          updated_at: t.updated_at,
+        }
+      })
+    : MOCK_DEALS
+
+  const [deals, setDeals] = useState<MockDeal[]>(initialDeals)
   const [view, setView] = useState<'kanban' | 'list'>('kanban')
   const [search, setSearch] = useState('')
   const [agentFilter, setAgentFilter] = useState('')

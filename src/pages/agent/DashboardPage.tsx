@@ -5,6 +5,11 @@ import {
 } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
+import { useAgencyListings } from '@/hooks/useListings'
+import { useContacts } from '@/hooks/useContacts'
+import { useTransactions } from '@/hooks/useTransactions'
+import { useKycCases } from '@/hooks/useKyc'
 
 /* ─── KPI Data ─── */
 interface KpiCardData {
@@ -165,6 +170,26 @@ const priorityLabels = {
 /* ─── Component ─── */
 export default function DashboardPage() {
   const today = formatDate(new Date())
+  const { profile } = useAuth()
+  const { data: listings } = useAgencyListings()
+  const { contacts } = useContacts()
+  const { data: transactions } = useTransactions()
+  const { data: kycCases } = useKycCases()
+
+  // Dynamic KPIs from real data (fallback to mock if no data)
+  const activeListings = listings?.filter(l => l.published_at)?.length
+  const activeTransactions = transactions?.filter(t => t.status === 'active')?.length
+  const contactCount = contacts?.length
+  const pendingKyc = kycCases?.filter(k => k.status !== 'validated')?.length
+
+  const dynamicKpis = (activeListings !== undefined) ? [
+    { ...kpis[0], value: String(activeListings ?? 0) },
+    { ...kpis[1], value: String(activeTransactions ?? 0) },
+    { ...kpis[2], value: String(contactCount ?? 0) },
+    { ...kpis[3], value: String(pendingKyc ?? 0), label: 'Dossiers KYC en cours' },
+  ] : kpis
+
+  const displayName = profile?.full_name?.split(' ')[0] ?? 'Gregory'
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -172,7 +197,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-primary-900">
-            Bonjour Gregory 👋
+            Bonjour {displayName}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{today}</p>
         </div>
@@ -184,7 +209,7 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi) => {
+        {dynamicKpis.map((kpi) => {
           const Icon = kpi.icon
           return (
             <div key={kpi.label} className="bg-white rounded-card p-5 shadow-card border border-border">
