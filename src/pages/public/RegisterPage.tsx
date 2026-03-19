@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Mail, Lock, User, Loader2, CheckCircle } from 'lucide-react'
+import { Mail, Lock, User, Loader2, CheckCircle, Home, Search, Briefcase } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, type UserRole } from '@/hooks/useAuth'
+import { cn } from '@/lib/utils'
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -15,8 +16,15 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
+const ROLES: { value: UserRole; label: string; description: string; icon: typeof Home }[] = [
+  { value: 'buyer', label: 'Acheteur', description: 'Je cherche un bien', icon: Search },
+  { value: 'seller', label: 'Vendeur', description: 'Je vends mon bien', icon: Home },
+  { value: 'agent', label: 'Agent immobilier', description: 'Je suis professionnel', icon: Briefcase },
+]
+
 export default function RegisterPage() {
   const { user, loading: authLoading, signUp, signInWithGoogle } = useAuth()
+  const [role, setRole] = useState<UserRole>('buyer')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -42,7 +50,7 @@ export default function RegisterPage() {
     setLoading(true)
     setError(null)
     const fullName = `${firstName.trim()} ${lastName.trim()}`
-    const { error: err } = await signUp(email.trim(), password, fullName)
+    const { error: err } = await signUp(email.trim(), password, fullName, role)
     setLoading(false)
     if (err) {
       setError(err)
@@ -64,19 +72,41 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <Link to="/" className="block text-center mb-10">
           <span className="text-3xl font-bold tracking-tight text-primary-900">MEGGA</span>
         </Link>
 
-        {/* Card */}
         <div className="bg-white rounded-xl border border-border p-8">
           <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">
             Créer un compte
           </h1>
-          <p className="text-sm text-muted-foreground text-center mb-8">
+          <p className="text-sm text-muted-foreground text-center mb-6">
             Rejoignez la plateforme immobilière suisse
           </p>
+
+          {/* Role selector */}
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {ROLES.map((r) => {
+              const Icon = r.icon
+              const selected = role === r.value
+              return (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => setRole(r.value)}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 p-3 rounded-lg border text-center transition-all',
+                    selected
+                      ? 'border-accent bg-accent/5 text-accent'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-xs font-medium">{r.label}</span>
+                </button>
+              )
+            })}
+          </div>
 
           {/* Google OAuth */}
           <Button
@@ -94,7 +124,6 @@ export default function RegisterPage() {
             Continuer avec Google
           </Button>
 
-          {/* Separator */}
           <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs text-muted-foreground uppercase tracking-wide">ou</span>
@@ -115,7 +144,6 @@ export default function RegisterPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name fields */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-primary-700 mb-1.5">
@@ -150,7 +178,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-primary-700 mb-1.5">
                   Adresse e-mail
@@ -169,7 +196,6 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Password */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-primary-700 mb-1.5">
                   Mot de passe
@@ -203,7 +229,6 @@ export default function RegisterPage() {
             </form>
           )}
 
-          {/* Error */}
           {error && (
             <div className="mt-4 p-3 bg-danger-light rounded-lg">
               <p className="text-xs text-danger">{error}</p>
@@ -211,7 +236,6 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Login link */}
         <p className="text-sm text-muted-foreground text-center mt-6">
           Déjà un compte ?{' '}
           <Link to="/login" className="text-accent hover:underline font-medium">
