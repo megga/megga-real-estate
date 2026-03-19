@@ -1,30 +1,107 @@
-import { CheckCircle2, XCircle, Clock, AlertTriangle, TrendingDown } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle2, XCircle, Clock, AlertTriangle, TrendingDown, Loader2 } from 'lucide-react'
 import { cn, formatCHF, formatDate } from '@/lib/utils'
-import { SELLER_OFFERS, SELLER_PROPERTY, type SellerOffer } from './sellerMockData'
+import { SELLER_PROPERTY } from './sellerMockData'
+import { useOffers, type Offer } from '@/hooks/useOffers'
+import { Button } from '@/components/ui/button'
 
 const ASKING_PRICE = SELLER_PROPERTY.price
 
-function statusConfig(status: SellerOffer['status']) {
+function statusConfig(status: Offer['status']) {
   switch (status) {
     case 'pending':  return { label: 'En attente', icon: Clock, cls: 'bg-warning/10 text-warning' }
     case 'accepted': return { label: 'Acceptée', icon: CheckCircle2, cls: 'bg-success/10 text-success' }
     case 'refused':  return { label: 'Refusée', icon: XCircle, cls: 'bg-danger/10 text-danger' }
     case 'counter':  return { label: 'Contre-offre', icon: AlertTriangle, cls: 'bg-accent/10 text-accent' }
+    case 'expired':  return { label: 'Expirée', icon: Clock, cls: 'bg-gray-100 text-gray-500' }
   }
 }
 
+interface ConfirmModalProps {
+  action: 'accepted' | 'refused'
+  amount: number
+  onConfirm: () => void
+  onCancel: () => void
+  isLoading: boolean
+}
+
+function ConfirmModal({ action, amount, onConfirm, onCancel, isLoading }: ConfirmModalProps) {
+  const actionLabel = action === 'accepted' ? 'accepter' : 'refuser'
+  const actionColor = action === 'accepted' ? 'bg-success hover:bg-success/90' : 'bg-danger hover:bg-danger/90'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-md mx-4">
+        <h3 className="text-lg font-semibold text-primary-900 mb-2">
+          Confirmer votre réponse
+        </h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          Confirmez-vous vouloir <span className="font-medium">{actionLabel}</span> cette offre de{' '}
+          <span className="font-semibold text-primary-900">{formatCHF(amount)}</span> ?
+        </p>
+        <div className="flex items-center gap-3 justify-end">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="rounded-button"
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={cn('rounded-button text-white', actionColor)}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              action === 'accepted' ? 'Accepter' : 'Refuser'
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SellerOffers() {
+  const { offers, isLoading, respondToOffer, isResponding } = useOffers('mock-property')
+  const [confirmState, setConfirmState] = useState<{
+    offerId: string
+    action: 'accepted' | 'refused'
+    amount: number
+  } | null>(null)
+
+  async function handleConfirm() {
+    if (!confirmState) return
+    try {
+      await respondToOffer({ offerId: confirmState.offerId, status: confirmState.action })
+      setConfirmState(null)
+    } catch {
+      // Error handled by React Query
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-primary-900">Offres reçues</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {SELLER_OFFERS.length} offre{SELLER_OFFERS.length > 1 ? 's' : ''} · Prix demandé : {formatCHF(ASKING_PRICE)}
+          {offers.length} offre{offers.length > 1 ? 's' : ''} · Prix demandé : {formatCHF(ASKING_PRICE)}
         </p>
       </div>
 
       <div className="space-y-4">
-        {SELLER_OFFERS.map((offer) => {
+        {offers.map((offer) => {
           const sc = statusConfig(offer.status)
           const Icon = sc.icon
           const pct = Math.round((offer.amount / ASKING_PRICE) * 100)
@@ -37,7 +114,7 @@ export default function SellerOffers() {
                 <div>
                   <p className="text-lg font-semibold text-primary-900">{formatCHF(offer.amount)}</p>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    par {offer.buyer_name} · {formatDate(offer.date)}
+                    par {offer.buyer_name} · {formatDate(offer.created_at)}
                   </p>
                 </div>
                 <span className={cn('inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-badge', sc.cls)}>
@@ -46,7 +123,7 @@ export default function SellerOffers() {
                 </span>
               </div>
 
-              {/* Progress bar — comparison to asking price */}
+              {/* Progress bar */}
               <div className="mt-5">
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                   <span>{pct}% du prix demandé</span>
@@ -79,15 +156,47 @@ export default function SellerOffers() {
                   <p className="text-xs text-muted-foreground">{offer.conditions}</p>
                 </div>
               )}
+
+              {/* Action buttons for pending offers */}
+              {offer.status === 'pending' && (
+                <div className="flex items-center gap-3 mt-5 pt-4 border-t border-border">
+                  <Button
+                    onClick={() => setConfirmState({ offerId: offer.id, action: 'accepted', amount: offer.amount })}
+                    className="rounded-button bg-success hover:bg-success/90 text-white"
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                    Accepter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setConfirmState({ offerId: offer.id, action: 'refused', amount: offer.amount })}
+                    className="rounded-button border-danger/30 text-danger hover:bg-danger/5"
+                  >
+                    <XCircle className="h-4 w-4 mr-1.5" />
+                    Refuser
+                  </Button>
+                </div>
+              )}
             </div>
           )
         })}
       </div>
 
-      {SELLER_OFFERS.length === 0 && (
+      {offers.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Aucune offre reçue pour le moment.</p>
         </div>
+      )}
+
+      {/* Confirmation modal */}
+      {confirmState && (
+        <ConfirmModal
+          action={confirmState.action}
+          amount={confirmState.amount}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmState(null)}
+          isLoading={isResponding}
+        />
       )}
     </div>
   )

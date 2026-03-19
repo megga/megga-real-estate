@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { Search, Send, Paperclip, ArrowLeft, Building2 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
-import { MESSAGE_THREADS, MESSAGES, type MessageThread } from './messagingMockData'
+import { useMessaging, type MessageThread } from '@/hooks/useMessaging'
+import { useAuth } from '@/hooks/useAuth'
 
 type FilterType = 'all' | 'unread' | 'buyer' | 'seller'
 
@@ -34,31 +35,38 @@ function DateSeparator({ date }: { date: string }) {
 }
 
 export default function MessagesPage() {
-  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(MESSAGE_THREADS[0]?.id ?? null)
+  const { profile } = useAuth()
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
+  const [messageText, setMessageText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const { threads, messages: threadMessages, sendMessage, isSending, markAsRead } = useMessaging(selectedThreadId)
+
+  // Auto-select first thread
+  useEffect(() => {
+    if (!selectedThreadId && threads.length > 0) {
+      setSelectedThreadId(threads[0].id)
+    }
+  }, [threads, selectedThreadId])
+
   const filteredThreads = useMemo(() => {
-    let threads = MESSAGE_THREADS
-    if (filter === 'unread') threads = threads.filter((t) => t.unread_count > 0)
-    if (filter === 'buyer') threads = threads.filter((t) => t.contact_type === 'buyer')
-    if (filter === 'seller') threads = threads.filter((t) => t.contact_type === 'seller')
+    let result = threads
+    if (filter === 'unread') result = result.filter((t) => t.unread_count > 0)
+    if (filter === 'buyer') result = result.filter((t) => t.contact_type === 'buyer')
+    if (filter === 'seller') result = result.filter((t) => t.contact_type === 'seller')
     if (search) {
       const q = search.toLowerCase()
-      threads = threads.filter((t) =>
+      result = result.filter((t) =>
         t.contact_name.toLowerCase().includes(q) ||
         (t.property_title && t.property_title.toLowerCase().includes(q))
       )
     }
-    return threads
-  }, [filter, search])
+    return result
+  }, [threads, filter, search])
 
-  const selectedThread = MESSAGE_THREADS.find((t) => t.id === selectedThreadId) ?? null
-  const threadMessages = useMemo(
-    () => MESSAGES.filter((m) => m.thread_id === selectedThreadId),
-    [selectedThreadId]
-  )
+  const selectedThread = threads.find((t) => t.id === selectedThreadId) ?? null
 
   // Scroll to bottom on thread change
   useEffect(() => {
@@ -70,9 +78,9 @@ export default function MessagesPage() {
     const items: ({ type: 'separator'; date: string } | { type: 'message'; message: typeof threadMessages[0] })[] = []
     let lastDate = ''
     for (const msg of threadMessages) {
-      const d = new Date(msg.timestamp).toDateString()
+      const d = new Date(msg.created_at).toDateString()
       if (d !== lastDate) {
-        items.push({ type: 'separator', date: msg.timestamp })
+        items.push({ type: 'separator', date: msg.created_at })
         lastDate = d
       }
       items.push({ type: 'message', message: msg })
@@ -82,6 +90,21 @@ export default function MessagesPage() {
 
   function handleSelectThread(thread: MessageThread) {
     setSelectedThreadId(thread.id)
+    markAsRead()
+  }
+
+  async function handleSend() {
+    if (!messageText.trim() || !selectedThreadId) return
+    try {
+      await sendMessage({
+        content: messageText.trim(),
+        senderType: 'agent',
+        senderName: profile?.full_name ?? 'Agent',
+      })
+      setMessageText('')
+    } catch {
+      // Error handled by React Query
+    }
   }
 
   // ─── Thread List ───
@@ -205,7 +228,7 @@ export default function MessagesPage() {
             return <DateSeparator key={`sep-${i}`} date={item.date} />
           }
           const msg = item.message
-          const isAgent = msg.sender === 'agent'
+          const isAgent = msg.sender_type === 'agent'
           return (
             <div key={msg.id} className={cn('flex', isAgent ? 'justify-end' : 'justify-start')}>
               <div className="max-w-[75%] space-y-0.5">
@@ -220,7 +243,7 @@ export default function MessagesPage() {
                   {msg.content}
                 </div>
                 <p className={cn('text-[10px] text-muted-foreground', isAgent && 'text-right')}>
-                  {new Date(msg.timestamp).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(msg.created_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </div>
@@ -237,10 +260,20 @@ export default function MessagesPage() {
           </button>
           <input
             type="text"
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             placeholder="Écrire un message..."
             className="flex-1 h-10 px-4 bg-gray-50 rounded-xl border-0 text-sm text-primary-900 placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-accent/20"
           />
-          <button className="h-10 w-10 rounded-button bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors">
+          <button
+            onClick={handleSend}
+            disabled={isSending || !messageText.trim()}
+            className={cn(
+              'h-10 w-10 rounded-button bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors',
+              (!messageText.trim() || isSending) && 'opacity-50 cursor-not-allowed'
+            )}
+          >
             <Send className="h-4 w-4" />
           </button>
         </div>
@@ -258,7 +291,7 @@ export default function MessagesPage() {
       <div className="mb-4 flex-shrink-0">
         <h1 className="text-2xl font-semibold text-primary-900">Messages</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {MESSAGE_THREADS.length} conversations · {MESSAGE_THREADS.filter((t) => t.unread_count > 0).length} non lues
+          {threads.length} conversations · {threads.filter((t) => t.unread_count > 0).length} non lues
         </p>
       </div>
 
