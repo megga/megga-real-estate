@@ -2,26 +2,46 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { isAgentRole } from '@/types/auth'
+import type { UserRole } from '@/types/auth'
+
+function getRedirectPath(role: UserRole): string {
+  if (isAgentRole(role)) return '/dashboard'
+  if (role === 'seller') return '/seller'
+  return '/mon-espace'
+}
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Supabase handles the token exchange automatically from the URL hash
-    // We just need to wait for the session to be set, then redirect
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        navigate('/', { replace: true })
-      } else if (event === 'TOKEN_REFRESHED') {
-        navigate('/', { replace: true })
+    async function handleRedirect(userId: string) {
+      // Fetch user profile to get role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single()
+
+      const role = (profile?.role as UserRole) || 'buyer'
+      navigate(getRedirectPath(role), { replace: true })
+    }
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session?.user) {
+          handleRedirect(session.user.id)
+        } else {
+          navigate('/', { replace: true })
+        }
       }
     })
 
-    // Fallback: if session already exists after a short delay, redirect
+    // Fallback
     const timeout = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        navigate('/', { replace: true })
+      if (session?.user) {
+        handleRedirect(session.user.id)
       } else {
         navigate('/login', { replace: true })
       }

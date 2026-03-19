@@ -30,6 +30,12 @@ import SellerVisits from '@/pages/seller/SellerVisits'
 import SellerOffers from '@/pages/seller/SellerOffers'
 import SellerDocuments from '@/pages/seller/SellerDocuments'
 import SellerMessages from '@/pages/seller/SellerMessages'
+import BuyerLayout from '@/pages/buyer/BuyerLayout'
+import BuyerDashboard from '@/pages/buyer/BuyerDashboard'
+import BuyerFavorites from '@/pages/buyer/BuyerFavorites'
+import BuyerSearches from '@/pages/buyer/BuyerSearches'
+import BuyerAlerts from '@/pages/buyer/BuyerAlerts'
+import BuyerMessages from '@/pages/buyer/BuyerMessages'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
@@ -74,6 +80,15 @@ export default function App() {
             <Route path="/onboarding/buyer/company" element={<OnboardingBuyerPM />} />
             <Route path="/onboarding/seller/individual" element={<OnboardingSellerPP />} />
             <Route path="/onboarding/seller/company" element={<OnboardingSellerPM />} />
+
+            {/* Buyer portal (protected — buyers) */}
+            <Route path="/mon-espace" element={<ProtectedRoute allowedRoles={['buyer', 'seller', 'admin']}><BuyerLayout /></ProtectedRoute>}>
+              <Route index element={<BuyerDashboard />} />
+              <Route path="favoris" element={<BuyerFavorites />} />
+              <Route path="recherches" element={<BuyerSearches />} />
+              <Route path="alertes" element={<BuyerAlerts />} />
+              <Route path="messages" element={<BuyerMessages />} />
+            </Route>
 
             {/* Seller portal (protected — sellers only) */}
             <Route path="/seller" element={<ProtectedRoute allowedRoles={['seller', 'admin']}><SellerLayout /></ProtectedRoute>}>
