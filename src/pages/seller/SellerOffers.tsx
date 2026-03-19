@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2, XCircle, Clock, AlertTriangle, TrendingDown, Loader2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Clock, TrendingDown, Loader2, MessageSquare } from 'lucide-react'
 import { cn, formatCHF, formatDate } from '@/lib/utils'
 import { SELLER_PROPERTY } from './sellerMockData'
 import { useOffers, type Offer } from '@/hooks/useOffers'
@@ -12,7 +12,7 @@ function statusConfig(status: Offer['status']) {
     case 'pending':  return { label: 'En attente', icon: Clock, cls: 'bg-warning/10 text-warning' }
     case 'accepted': return { label: 'Acceptée', icon: CheckCircle2, cls: 'bg-success/10 text-success' }
     case 'refused':  return { label: 'Refusée', icon: XCircle, cls: 'bg-danger/10 text-danger' }
-    case 'counter':  return { label: 'Contre-offre', icon: AlertTriangle, cls: 'bg-accent/10 text-accent' }
+    case 'counter':  return { label: 'Contre-offre', icon: MessageSquare, cls: 'bg-accent/10 text-accent' }
     case 'expired':  return { label: 'Expirée', icon: Clock, cls: 'bg-gray-100 text-gray-500' }
   }
 }
@@ -65,11 +65,97 @@ function ConfirmModal({ action, amount, onConfirm, onCancel, isLoading }: Confir
   )
 }
 
+interface CounterOfferModalProps {
+  originalAmount: number
+  onConfirm: (amount: number, message: string) => void
+  onCancel: () => void
+  isLoading: boolean
+}
+
+function CounterOfferModal({ originalAmount, onConfirm, onCancel, isLoading }: CounterOfferModalProps) {
+  const [counterAmount, setCounterAmount] = useState(originalAmount.toString())
+  const [counterMessage, setCounterMessage] = useState('')
+
+  const parsedAmount = parseInt(counterAmount.replace(/\D/g, ''), 10) || 0
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-2xl shadow-modal p-6 w-full max-w-md mx-4">
+        <h3 className="text-lg font-semibold text-primary-900 mb-1">
+          Faire une contre-offre
+        </h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          Offre initiale : <span className="font-semibold text-primary-900">{formatCHF(originalAmount)}</span>
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              Montant de la contre-offre (CHF)
+            </label>
+            <input
+              type="text"
+              value={counterAmount}
+              onChange={(e) => setCounterAmount(e.target.value.replace(/[^\d]/g, ''))}
+              placeholder="ex: 1320000"
+              className="w-full h-11 px-4 bg-white border border-gray-200 rounded-lg text-sm text-primary-900 placeholder:text-muted-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            />
+            {parsedAmount > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {formatCHF(parsedAmount)}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              Message (optionnel)
+            </label>
+            <textarea
+              value={counterMessage}
+              onChange={(e) => setCounterMessage(e.target.value)}
+              placeholder="Conditions, remarques..."
+              rows={3}
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm text-primary-900 placeholder:text-muted-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 justify-end mt-6">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="rounded-button"
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={() => onConfirm(parsedAmount, counterMessage)}
+            disabled={isLoading || parsedAmount <= 0}
+            className="rounded-button bg-accent hover:bg-accent/90 text-white"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Envoyer la contre-offre'
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SellerOffers() {
-  const { offers, isLoading, respondToOffer, isResponding } = useOffers('mock-property')
+  const { offers, isLoading, respondToOffer, isResponding, counterOffer, isCountering } = useOffers('mock-property')
   const [confirmState, setConfirmState] = useState<{
     offerId: string
     action: 'accepted' | 'refused'
+    amount: number
+  } | null>(null)
+  const [counterState, setCounterState] = useState<{
+    offerId: string
     amount: number
   } | null>(null)
 
@@ -78,6 +164,16 @@ export default function SellerOffers() {
     try {
       await respondToOffer({ offerId: confirmState.offerId, status: confirmState.action })
       setConfirmState(null)
+    } catch {
+      // Error handled by React Query
+    }
+  }
+
+  async function handleCounter(amount: number, message: string) {
+    if (!counterState) return
+    try {
+      await counterOffer({ offerId: counterState.offerId, counterAmount: amount, counterMessage: message })
+      setCounterState(null)
     } catch {
       // Error handled by React Query
     }
@@ -157,6 +253,21 @@ export default function SellerOffers() {
                 </div>
               )}
 
+              {/* Counter-offer details */}
+              {offer.status === 'counter' && offer.counter_amount && (
+                <div className="mt-4 bg-accent/5 border border-accent/20 rounded-lg p-3">
+                  <p className="text-xs font-medium text-accent mb-1">
+                    Contre-offre envoyée : {formatCHF(offer.counter_amount)}
+                  </p>
+                  {offer.counter_message && (
+                    <p className="text-xs text-muted-foreground">{offer.counter_message}</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Envoyée le {formatDate(offer.responded_at ?? '')}
+                  </p>
+                </div>
+              )}
+
               {/* Action buttons for pending offers */}
               {offer.status === 'pending' && (
                 <div className="flex items-center gap-3 mt-5 pt-4 border-t border-border">
@@ -166,6 +277,14 @@ export default function SellerOffers() {
                   >
                     <CheckCircle2 className="h-4 w-4 mr-1.5" />
                     Accepter
+                  </Button>
+                  <Button
+                    onClick={() => setCounterState({ offerId: offer.id, amount: offer.amount })}
+                    variant="outline"
+                    className="rounded-button border-accent/30 text-accent hover:bg-accent/5"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1.5" />
+                    Contre-offre
                   </Button>
                   <Button
                     variant="outline"
@@ -196,6 +315,16 @@ export default function SellerOffers() {
           onConfirm={handleConfirm}
           onCancel={() => setConfirmState(null)}
           isLoading={isResponding}
+        />
+      )}
+
+      {/* Counter-offer modal */}
+      {counterState && (
+        <CounterOfferModal
+          originalAmount={counterState.amount}
+          onConfirm={handleCounter}
+          onCancel={() => setCounterState(null)}
+          isLoading={isCountering}
         />
       )}
     </div>
