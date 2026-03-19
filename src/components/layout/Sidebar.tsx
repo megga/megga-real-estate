@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import NotificationCenter from '@/components/layout/NotificationCenter'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -66,13 +67,16 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           </div>
           <span className="text-lg font-bold text-primary-900">MEGGA</span>
         </Link>
-        {/* Mobile close */}
-        <button
-          onClick={onClose}
-          className="lg:hidden p-1.5 rounded-md hover:bg-section"
-        >
-          <X className="h-5 w-5 text-primary-600" />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationCenter />
+          {/* Mobile close */}
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-md hover:bg-section"
+          >
+            <X className="h-5 w-5 text-primary-600" />
+          </button>
+        </div>
       </div>
 
       {/* Navigation */}

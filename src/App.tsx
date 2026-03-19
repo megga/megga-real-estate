@@ -20,6 +20,8 @@ import KycDetailPage from '@/pages/agent/KycDetailPage'
 import MessagesPage from '@/pages/agent/MessagesPage'
 import CalendarPage from '@/pages/agent/CalendarPage'
 import SettingsPage from '@/pages/agent/SettingsPage'
+import TemplatesPage from '@/pages/agent/TemplatesPage'
+import DocumentGenerator from '@/pages/agent/DocumentGenerator'
 import OnboardingBuyerPP from '@/pages/onboarding/OnboardingBuyerPP'
 import OnboardingBuyerPM from '@/pages/onboarding/OnboardingBuyerPM'
 import OnboardingSellerPP from '@/pages/onboarding/OnboardingSellerPP'
@@ -119,6 +121,8 @@ export default function App() {
               <Route path="kyc/:id" element={<KycDetailPage />} />
               <Route path="messages" element={<MessagesPage />} />
               <Route path="calendar" element={<CalendarPage />} />
+              <Route path="templates" element={<TemplatesPage />} />
+              <Route path="templates/generate" element={<DocumentGenerator />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 
