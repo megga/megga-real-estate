@@ -5,6 +5,7 @@ import { User, Home } from 'lucide-react'
 import OnboardingLayout, { type OnboardingStep } from './OnboardingLayout'
 import { TextField, SelectField } from './formFields'
 import { CANTONS } from '@/lib/constants'
+import { useContacts } from '@/hooks/useContacts'
 
 const STEPS: OnboardingStep[] = [
   { id: 1, label: 'Identité', icon: User },
@@ -46,6 +47,8 @@ const stepSchemas = [step1Schema, step2Schema] as const
 export default function OnboardingSellerPP() {
   const [step, setStep] = useState(1)
   const [isComplete, setIsComplete] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const { createFromOnboarding, isCreating } = useContacts()
 
   const form = useForm<FormData>({
     mode: 'onTouched',
@@ -78,14 +81,29 @@ export default function OnboardingSellerPP() {
     return true
   }
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (!validateStep()) return
     if (step < 2) {
       setStep(step + 1)
     } else {
-      setIsComplete(true)
+      try {
+        setSubmitError(null)
+        const values = form.getValues()
+        await createFromOnboarding({
+          firstName: values.prenom,
+          lastName: values.nom,
+          email: values.email,
+          phone: values.telephone,
+          type: 'seller',
+          entityType: 'pp',
+          formData: values as unknown as Record<string, unknown>,
+        })
+        setIsComplete(true)
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'envoi')
+      }
     }
-  }, [step])
+  }, [step, createFromOnboarding, form])
 
   const handlePrev = useCallback(() => {
     if (step > 1) setStep(step - 1)
@@ -101,6 +119,8 @@ export default function OnboardingSellerPP() {
       onPrev={step > 1 ? handlePrev : undefined}
       onNext={handleNext}
       nextLabel={step === 2 ? 'Envoyer le dossier' : 'Continuer'}
+      isSubmitting={isCreating}
+      submitError={submitError}
     >
       {step === 1 && (
         <div className="space-y-4">

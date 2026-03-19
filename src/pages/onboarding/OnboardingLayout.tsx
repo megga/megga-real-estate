@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Check, CheckCircle } from 'lucide-react'
+import { Check, CheckCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import type { LucideIcon } from 'lucide-react'
@@ -21,6 +21,8 @@ interface OnboardingLayoutProps {
   onNext?: () => void
   nextLabel?: string
   nextDisabled?: boolean
+  isSubmitting?: boolean
+  submitError?: string | null
 }
 
 export default function OnboardingLayout({
@@ -34,6 +36,8 @@ export default function OnboardingLayout({
   onNext,
   nextLabel = 'Continuer',
   nextDisabled = false,
+  isSubmitting = false,
+  submitError = null,
 }: OnboardingLayoutProps) {
   if (isComplete) {
     return (
@@ -132,11 +136,24 @@ export default function OnboardingLayout({
             <div />
           )}
           {onNext && (
-            <Button onClick={onNext} className="rounded-button" disabled={nextDisabled}>
-              {nextLabel}
+            <Button onClick={onNext} className="rounded-button" disabled={nextDisabled || isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Envoi en cours...
+                </>
+              ) : (
+                nextLabel
+              )}
             </Button>
           )}
         </div>
+
+        {submitError && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{submitError}</p>
+          </div>
+        )}
       </div>
     </div>
   )
