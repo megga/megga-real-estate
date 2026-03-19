@@ -52,11 +52,11 @@ export default function App() {
             <Route path="/publier" element={<PublierPage />} />
             <Route path="/aide" element={<HelpCenterPage />} />
 
-            {/* Agent dashboard (protected) */}
+            {/* Agent dashboard (protected — agents only) */}
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['agent', 'admin', 'manager', 'assistant']}>
                   <AgentLayout />
                 </ProtectedRoute>
               }
