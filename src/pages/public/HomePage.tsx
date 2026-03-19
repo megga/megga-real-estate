@@ -4,6 +4,7 @@ import FeaturedCarousel from '@/components/home/FeaturedCarousel'
 import RecentListings from '@/components/home/RecentListings'
 import BentoCards from '@/components/home/BentoCards'
 import ExploreCities from '@/components/home/ExploreCities'
+import PopularAreas from '@/components/home/PopularAreas'
 import WhyMegga from '@/components/home/WhyMegga'
 import Testimonials from '@/components/home/Testimonials'
 import Navbar from '@/components/layout/Navbar'
@@ -39,6 +40,8 @@ export default function HomePage() {
       <BentoCards />
 
       <ExploreCities />
+
+      <PopularAreas />
 
       {/* Feature carousel — Tout ce dont vous avez besoin */}
       <WhyMegga />
