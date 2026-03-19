@@ -36,6 +36,7 @@ import EstimationsPage from '@/pages/public/EstimationsPage'
 import ServicesPage from '@/pages/public/ServicesPage'
 import PublierPage from '@/pages/public/PublierPage'
 import NotFoundPage from '@/pages/public/NotFoundPage'
+import HelpCenterPage from '@/pages/public/HelpCenterPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/estimer" element={<EstimationsPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/publier" element={<PublierPage />} />
+            <Route path="/aide" element={<HelpCenterPage />} />
 
             {/* Onboarding client */}
             <Route path="/onboarding/buyer/individual" element={<OnboardingBuyerPP />} />
