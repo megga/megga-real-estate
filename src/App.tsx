@@ -6,6 +6,7 @@ import SearchPage from '@/pages/public/SearchPage'
 import LoginPage from '@/pages/public/LoginPage'
 import RegisterPage from '@/pages/public/RegisterPage'
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
+import ResetPasswordPage from '@/pages/public/ResetPasswordPage'
 import ListingPage from '@/pages/public/ListingPage'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import AgentLayout from '@/components/layout/AgentLayout'
@@ -72,6 +73,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/acheter" element={<SearchPage />} />
             <Route path="/louer" element={<LouerPage />} />
             <Route path="/vendre" element={<VendrePage />} />
