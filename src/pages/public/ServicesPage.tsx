@@ -21,7 +21,7 @@ const mainServices = [
     icon: Brain,
     title: 'Estimation IA',
     description:
-      'Estimez la valeur de votre bien gratuitement grace a notre algorithme base sur les donnees du marche suisse.',
+      'Estimez la valeur de votre bien gratuitement grâce à notre algorithme basé sur les données du marché suisse.',
     cta: 'Estimer gratuitement',
     href: '/estimations',
   },
@@ -29,15 +29,15 @@ const mainServices = [
     icon: Home,
     title: 'Vendre mon bien',
     description:
-      'Accompagnement complet de la mise en vente jusqu\'a la signature. Visibilite sur tous les portails suisses.',
+      'Accompagnement complet de la mise en vente jusqu\'à la signature. Visibilité sur tous les portails suisses.',
     cta: 'En savoir plus',
     href: '/vendre',
   },
   {
     icon: Search,
-    title: 'Recherche personnalisee',
+    title: 'Recherche personnalisée',
     description:
-      'Notre agent IA vous aide a trouver le bien ideal en Suisse. Decrivez votre recherche en langage naturel.',
+      'Notre agent IA vous aide à trouver le bien idéal en Suisse. Décrivez votre recherche en langage naturel.',
     cta: 'Commencer ma recherche',
     href: '/search',
   },
@@ -46,8 +46,8 @@ const mainServices = [
 const agentServices = [
   {
     icon: Users,
-    title: 'CRM gratuit integre',
-    description: 'Gerez vos contacts, pipeline et transactions en un seul endroit',
+    title: 'CRM gratuit intégré',
+    description: 'Gérez vos contacts, pipeline et transactions en un seul endroit',
   },
   {
     icon: Share2,
@@ -57,22 +57,22 @@ const agentServices = [
   {
     icon: Wand2,
     title: 'Virtual staging IA',
-    description: 'Meublez virtuellement vos biens vides pour augmenter l\'attractivite',
+    description: 'Meublez virtuellement vos biens vides pour augmenter l\'attractivité',
   },
   {
     icon: FileText,
-    title: 'Generation de documents',
-    description: 'Mandats, bons de visite, offres generes automatiquement',
+    title: 'Génération de documents',
+    description: 'Mandats, bons de visite, offres générés automatiquement',
   },
   {
     icon: Layout,
     title: 'Portail vendeur',
-    description: 'Offrez a vos clients un espace de suivi premium 24/7',
+    description: 'Offrez à vos clients un espace de suivi premium 24/7',
   },
   {
     icon: TrendingUp,
-    title: 'Analytics avances',
-    description: 'Taux de conversion, source des leads, benchmark marche',
+    title: 'Analytics avancés',
+    description: 'Taux de conversion, source des leads, benchmark marché',
   },
 ]
 
@@ -90,7 +90,7 @@ const plans = [
     name: 'Pro',
     price: 'CHF 89',
     period: '/mois',
-    features: ['Listings illimites', 'CRM complet', 'Virtual staging', 'Assistance IA'],
+    features: ['Listings illimités', 'CRM complet', 'Virtual staging', 'Assistance IA'],
     cta: 'Essai gratuit 14 jours',
     href: '/register',
     popular: true,
@@ -99,7 +99,7 @@ const plans = [
     name: 'Agency',
     price: 'CHF 249',
     period: '/mois',
-    features: ['Multi-agents', 'Branding agence', 'API', 'Reporting avance'],
+    features: ['Multi-agents', 'Branding agence', 'API', 'Reporting avancé'],
     cta: 'Nous contacter',
     href: '/register',
     popular: false,
@@ -118,7 +118,7 @@ export default function ServicesPage() {
             Nos services immobiliers
           </h1>
           <p className="text-gray-500 mt-4 max-w-2xl mx-auto">
-            Des outils et services premium pour vendre, acheter et gerer votre patrimoine immobilier en Suisse.
+            Des outils et services premium pour vendre, acheter et gérer votre patrimoine immobilier en Suisse.
           </p>
         </div>
       </section>
@@ -237,17 +237,17 @@ export default function ServicesPage() {
       <section className="py-16 md:py-20 px-4 md:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-xl mx-auto text-center">
           <h2 className="text-2xl font-bold text-primary-900">
-            Vous etes agent immobilier ?
+            Vous êtes agent immobilier ?
           </h2>
           <p className="mt-3 text-gray-500">
-            Rejoignez MEGGA et accedez gratuitement a tous nos outils.
+            Rejoignez MEGGA et accédez gratuitement à tous nos outils.
           </p>
           <Link to="/register" className="inline-block mt-6">
             <Button
               size="lg"
               className="rounded-full px-8 h-12 font-medium bg-accent hover:bg-accent/90 text-white"
             >
-              Creer mon compte agent
+              Créer mon compte agent
             </Button>
           </Link>
         </div>

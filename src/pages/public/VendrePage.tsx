@@ -23,54 +23,54 @@ const steps = [
     icon: Home,
     title: 'Estimation gratuite',
     description:
-      'Recevez une estimation precise de votre bien basee sur l\'IA et les donnees du marche suisse en quelques minutes.',
+      'Recevez une estimation précise de votre bien basée sur l\'IA et les données du marché suisse en quelques minutes.',
   },
   {
     number: '02',
     icon: Users,
-    title: 'Un agent dedie',
+    title: 'Un agent dédié',
     description:
-      'Un agent immobilier certifie vous accompagne de la mise en vente jusqu\'a la signature chez le notaire.',
+      'Un agent immobilier certifié vous accompagne de la mise en vente jusqu\'à la signature chez le notaire.',
   },
   {
     number: '03',
     icon: TrendingUp,
     title: 'Vente au meilleur prix',
     description:
-      'Votre bien est diffuse sur MEGGA et tous les portails suisses. Visibilite maximale, meilleur prix garanti.',
+      'Votre bien est diffusé sur MEGGA et tous les portails suisses. Visibilité maximale, meilleur prix garanti.',
   },
 ]
 
 const advantages = [
   {
     icon: Brain,
-    title: 'Estimation IA precise',
-    description: 'Basee sur les transactions recentes et le registre foncier suisse',
+    title: 'Estimation IA précise',
+    description: 'Basée sur les transactions récentes et le registre foncier suisse',
   },
   {
     icon: Eye,
-    title: 'Visibilite maximale',
+    title: 'Visibilité maximale',
     description: 'Votre bien sur MEGGA + ImmoScout24 + Homegate + immobilier.ch',
   },
   {
     icon: BarChart3,
-    title: 'CRM integre',
-    description: 'Suivi en temps reel des visites, offres et interesses',
+    title: 'CRM intégré',
+    description: 'Suivi en temps réel des visites, offres et intéressés',
   },
   {
     icon: Layout,
-    title: 'Portail vendeur dedie',
-    description: 'Accedez a votre espace vendeur 24/7 pour suivre l\'avancement',
+    title: 'Portail vendeur dédié',
+    description: 'Accédez à votre espace vendeur 24/7 pour suivre l\'avancement',
   },
   {
     icon: Shield,
-    title: 'Conformite LAB/KYC',
-    description: 'Dossiers de transaction conformes a la legislation suisse',
+    title: 'Conformité LAB/KYC',
+    description: 'Dossiers de transaction conformes à la législation suisse',
   },
   {
     icon: Wallet,
     title: '30-50% moins cher',
-    description: 'Commission transparente et competitive vs les portails traditionnels',
+    description: 'Commission transparente et compétitive vs les portails traditionnels',
   },
 ]
 
@@ -78,19 +78,19 @@ const testimonials = [
   {
     name: 'Marie R.',
     location: 'Champel',
-    text: 'Mon appartement a ete vendu en 3 semaines, au-dessus du prix demande. L\'estimation IA etait tres precise.',
+    text: 'Mon appartement a été vendu en 3 semaines, au-dessus du prix demandé. L\'estimation IA était très précise.',
     initials: 'MR',
   },
   {
     name: 'Jean-Marc W.',
     location: 'Cologny',
-    text: 'Le portail vendeur m\'a permis de suivre chaque visite en temps reel. Service exceptionnel.',
+    text: 'Le portail vendeur m\'a permis de suivre chaque visite en temps réel. Service exceptionnel.',
     initials: 'JW',
   },
   {
     name: 'Sophie & Pierre D.',
     location: 'Carouge',
-    text: 'Nous avons economise CHF 12\'000 en commission par rapport a notre ancienne agence.',
+    text: 'Nous avons économisé CHF 12\'000 en commission par rapport à notre ancienne agence.',
     initials: 'SD',
   },
 ]
@@ -121,7 +121,7 @@ export default function VendrePage() {
             Vendez votre bien au meilleur prix
           </h1>
           <p className="mt-4 text-lg text-white/80 max-w-2xl mx-auto">
-            Estimation gratuite, accompagnement personnalise, visibilite maximale sur toute la
+            Estimation gratuite, accompagnement personnalisé, visibilité maximale sur toute la
             Suisse
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -139,18 +139,18 @@ export default function VendrePage() {
                 size="lg"
                 className="rounded-full px-6 h-12 border-white/50 text-white hover:bg-white/10 bg-transparent"
               >
-                Parler a un agent
+                Parler à un agent
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Section 2 — Comment ca marche */}
+      {/* Section 2 — Comment ça marche */}
       <section className="py-16 md:py-20 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-semibold text-center text-primary-900 mb-12">
-            Vendez en 3 etapes simples
+            Vendez en 3 étapes simples
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {steps.map((step) => {
@@ -182,7 +182,7 @@ export default function VendrePage() {
             Estimez votre bien gratuitement
           </h2>
           <p className="text-gray-500 text-center mt-2 mb-8">
-            Resultat instantane base sur les donnees du marche suisse
+            Résultat instantané basé sur les données du marché suisse
           </p>
           <EstimationForm />
         </div>
@@ -211,7 +211,7 @@ export default function VendrePage() {
         </div>
       </section>
 
-      {/* Section 4 — Temoignages */}
+      {/* Section 4 — Témoignages */}
       <section className="py-16 md:py-20 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-semibold text-center text-primary-900 mb-12">
@@ -253,7 +253,7 @@ export default function VendrePage() {
       <section className="py-16 md:py-20 px-4 md:px-6 lg:px-8 bg-[#F9FAFB]">
         <div className="max-w-xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-primary-900">
-            Pret a vendre votre bien ?
+            Prêt à vendre votre bien ?
           </h2>
           <p className="mt-3 text-gray-500">
             Recevez votre estimation gratuite en 2 minutes
@@ -266,7 +266,7 @@ export default function VendrePage() {
             Estimer mon bien
           </Button>
           <p className="mt-4 text-xs text-gray-400">
-            Sans engagement · Gratuit · Resultat instantane
+            Sans engagement · Gratuit · Résultat instantané
           </p>
         </div>
       </section>
