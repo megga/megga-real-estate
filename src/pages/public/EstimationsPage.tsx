@@ -8,39 +8,39 @@ import { cn } from '@/lib/utils'
 const howItWorks = [
   {
     icon: Database,
-    title: 'Donnees du marche',
-    description: 'Analyse des prix de vente reels dans votre quartier',
+    title: 'Données du marché',
+    description: 'Analyse des prix de vente réels dans votre quartier',
   },
   {
     icon: BarChart3,
     title: '47\'000+ transactions',
-    description: 'Base de donnees suisse des transactions immobilieres',
+    description: 'Base de données suisse des transactions immobilières',
   },
   {
     icon: Brain,
-    title: 'IA predictive',
-    description: 'Algorithme entraine sur les specificites du marche suisse',
+    title: 'IA prédictive',
+    description: 'Algorithme entraîné sur les spécificités du marché suisse',
   },
   {
     icon: RefreshCw,
-    title: 'Mise a jour mensuelle',
-    description: 'Donnees actualisees chaque mois pour plus de precision',
+    title: 'Mise à jour mensuelle',
+    description: 'Données actualisées chaque mois pour plus de précision',
   },
 ]
 
 const faqs = [
   {
-    question: 'Comment est calculee l\'estimation ?',
+    question: 'Comment est calculée l\'estimation ?',
     answer:
-      'Notre algorithme analyse les transactions recentes dans votre quartier, la surface, le nombre de pieces, l\'annee de construction et l\'etat du bien pour generer une fourchette de prix.',
+      'Notre algorithme analyse les transactions récentes dans votre quartier, la surface, le nombre de pièces, l\'année de construction et l\'état du bien pour générer une fourchette de prix.',
   },
   {
     question: 'L\'estimation est-elle fiable ?',
     answer:
-      'L\'estimation donne une fourchette indicative basee sur les donnees du marche. Pour une evaluation precise, nous recommandons de faire appel a un agent certifie.',
+      'L\'estimation donne une fourchette indicative basée sur les données du marché. Pour une évaluation précise, nous recommandons de faire appel à un agent certifié.',
   },
   {
-    question: 'Combien coute une estimation ?',
+    question: 'Combien coûte une estimation ?',
     answer: 'L\'estimation en ligne est 100% gratuite et sans engagement.',
   },
   {
@@ -49,9 +49,9 @@ const faqs = [
       'Oui, notre outil couvre les appartements, maisons, villas, terrains et locaux commerciaux.',
   },
   {
-    question: 'Comment obtenir une estimation plus precise ?',
+    question: 'Comment obtenir une estimation plus précise ?',
     answer:
-      'Contactez un agent MEGGA pour une analyse approfondie incluant une visite du bien et une etude comparative detaillee.',
+      'Contactez un agent MEGGA pour une analyse approfondie incluant une visite du bien et une étude comparative détaillée.',
   },
 ]
 
@@ -91,7 +91,7 @@ export default function EstimationsPage() {
             Estimez votre bien immobilier
           </h1>
           <p className="text-gray-500 mt-4 max-w-2xl mx-auto">
-            Notre outil d&apos;estimation IA analyse les transactions recentes et les donnees du marche suisse pour vous donner une fourchette de prix precise.
+            Notre outil d&apos;estimation IA analyse les transactions récentes et les données du marché suisse pour vous donner une fourchette de prix précise.
           </p>
         </div>
       </section>
@@ -103,13 +103,13 @@ export default function EstimationsPage() {
             Estimez votre bien gratuitement
           </h2>
           <p className="text-gray-500 text-center mt-2 mb-8">
-            Resultat instantane base sur les donnees du marche suisse
+            Résultat instantané basé sur les données du marché suisse
           </p>
           <EstimationForm />
         </div>
       </section>
 
-      {/* Comment ca marche */}
+      {/* Comment ça marche */}
       <section className="py-16 md:py-20 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-semibold text-center text-primary-900 mb-12">
@@ -139,7 +139,7 @@ export default function EstimationsPage() {
       <section className="py-16 md:py-20 px-4 md:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-semibold text-center text-primary-900 mb-10">
-            Questions frequentes
+            Questions fréquentes
           </h2>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6">
             {faqs.map((faq) => (
