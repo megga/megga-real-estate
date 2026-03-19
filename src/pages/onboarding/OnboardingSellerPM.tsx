@@ -40,8 +40,7 @@ const step2Schema = z.object({
   revenus_locatifs: z.string().optional(),
 })
 
-const fullSchema = step1Schema.merge(step2Schema)
-type FormData = z.infer<typeof fullSchema>
+type FormData = z.infer<typeof step1Schema> & z.infer<typeof step2Schema>
 
 const stepSchemas = [step1Schema, step2Schema] as const
 
@@ -67,7 +66,7 @@ export default function OnboardingSellerPM() {
 
   const { register, formState: { errors }, setError, clearErrors } = form
 
-  function validateStep(): boolean {
+  const handleNext = useCallback(async () => {
     const schema = stepSchemas[step - 1]
     const values = form.getValues()
     const result = schema.safeParse(values)
@@ -76,15 +75,10 @@ export default function OnboardingSellerPM() {
         const path = issue.path[0] as keyof FormData
         setError(path, { message: issue.message })
       }
-      return false
+      return
     }
     const fields = Object.keys(schema.shape) as (keyof FormData)[]
     fields.forEach((f) => clearErrors(f))
-    return true
-  }
-
-  const handleNext = useCallback(async () => {
-    if (!validateStep()) return
     if (step < 2) {
       setStep(step + 1)
     } else {
@@ -105,7 +99,7 @@ export default function OnboardingSellerPM() {
         setSubmitError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'envoi')
       }
     }
-  }, [step, createFromOnboarding, form])
+  }, [step, createFromOnboarding, form, setError, clearErrors])
 
   const handlePrev = useCallback(() => {
     if (step > 1) setStep(step - 1)

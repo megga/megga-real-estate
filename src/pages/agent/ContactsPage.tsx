@@ -145,7 +145,7 @@ export default function ContactsPage() {
     })
 
     return list
-  }, [search, typeFilter, scoreFilter, tagFilter, sortField, sortDir])
+  }, [dataSource, search, typeFilter, scoreFilter, tagFilter, sortField, sortDir])
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))

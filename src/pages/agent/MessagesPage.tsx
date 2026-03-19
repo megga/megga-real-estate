@@ -47,7 +47,7 @@ export default function MessagesPage() {
   // Auto-select first thread
   useEffect(() => {
     if (!selectedThreadId && threads.length > 0) {
-      setSelectedThreadId(threads[0].id)
+      setSelectedThreadId(threads[0].id) // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [threads, selectedThreadId])
 

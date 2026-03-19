@@ -98,6 +98,7 @@ export default function MapView({ listings, hoveredId, onHover, onZoneFilter, cl
 
   // Get clusters for current viewport
   const clusters = useMemo(() => {
+    // eslint-disable-next-line react-hooks/refs
     const bounds = mapRef.current?.getMap().getBounds()
     if (!bounds) {
       return supercluster.getClusters([5.5, 45.5, 7.0, 47.0], Math.floor(viewState.zoom))

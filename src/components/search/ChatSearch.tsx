@@ -210,11 +210,12 @@ export default function ChatSearch({
     const query = (text || input).trim()
     if (!query) return
 
+    const now = Date.now() // eslint-disable-line react-hooks/purity
     const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${now}`,
       role: 'user',
       content: query,
-      timestamp: new Date(),
+      timestamp: new Date(now),
     }
 
     setMessages(prev => [...prev, userMsg])
@@ -223,7 +224,7 @@ export default function ChatSearch({
     setTurnCount(prev => prev + 1)
 
     // Simulate AI processing
-    const delay = 600 + Math.random() * 800
+    const delay = 600 + Math.random() * 800 // eslint-disable-line react-hooks/purity
     setTimeout(() => {
       const parsed = parseUserQuery(query, allListings)
 

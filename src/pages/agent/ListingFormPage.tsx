@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
@@ -401,7 +401,8 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
 
 function Step4({ form }: { form: UseFormReturn<ListingFormData> }) {
   const { watch, setValue } = form
-  const photos = watch('photos') || []
+  const rawPhotos = watch('photos')
+  const photos = useMemo(() => rawPhotos || [], [rawPhotos])
   const [dragOver, setDragOver] = useState(false)
 
   const addPlaceholderPhotos = useCallback(() => {

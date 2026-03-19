@@ -44,8 +44,7 @@ const step3Schema = z.object({
   financement: z.enum(['fonds_propres', 'hypotheque', 'les_deux'], { message: 'Sélectionnez un mode de financement' }),
 })
 
-const fullSchema = step1Schema.merge(step2Schema).merge(step3Schema)
-type FormData = z.infer<typeof fullSchema>
+type FormData = z.infer<typeof step1Schema> & z.infer<typeof step2Schema> & z.infer<typeof step3Schema>
 
 const stepSchemas = [step1Schema, step2Schema, step3Schema] as const
 
@@ -71,7 +70,7 @@ export default function OnboardingBuyerPP() {
 
   const { register, formState: { errors }, setError, clearErrors } = form
 
-  function validateStep(): boolean {
+  const handleNext = useCallback(async () => {
     const schema = stepSchemas[step - 1]
     const values = form.getValues()
     const result = schema.safeParse(values)
@@ -80,15 +79,10 @@ export default function OnboardingBuyerPP() {
         const path = issue.path[0] as keyof FormData
         setError(path, { message: issue.message })
       }
-      return false
+      return
     }
     const fields = Object.keys(schema.shape) as (keyof FormData)[]
     fields.forEach((f) => clearErrors(f))
-    return true
-  }
-
-  const handleNext = useCallback(async () => {
-    if (!validateStep()) return
     if (step < 3) {
       setStep(step + 1)
     } else {
@@ -109,7 +103,7 @@ export default function OnboardingBuyerPP() {
         setSubmitError(err instanceof Error ? err.message : 'Une erreur est survenue lors de l\'envoi')
       }
     }
-  }, [step, createFromOnboarding, form])
+  }, [step, createFromOnboarding, form, setError, clearErrors])
 
   const handlePrev = useCallback(() => {
     if (step > 1) setStep(step - 1)
