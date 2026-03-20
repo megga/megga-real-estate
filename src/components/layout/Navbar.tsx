@@ -124,7 +124,7 @@ export default function Navbar() {
                   {/* Menu items — role-aware */}
                   <div className="py-1">
                     <Link
-                      to={isAgent ? '/dashboard' : '/mon-espace'}
+                      to={isAgent ? '/dashboard' : '/portal'}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
@@ -211,7 +211,7 @@ export default function Navbar() {
                     </div>
                   </div>
                   <Link
-                    to={isAgent ? '/dashboard' : '/mon-espace'}
+                    to={isAgent ? '/dashboard' : '/portal'}
                     className="px-3 py-2 text-sm font-medium text-primary-700 hover:bg-section rounded-md"
                     onClick={() => setMobileOpen(false)}
                   >

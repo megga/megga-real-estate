@@ -9,7 +9,7 @@ const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'man
 
 function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role)) return '/dashboard'
-  return '/mon-espace'
+  return '/portal'
 }
 
 export default function AuthCallbackPage() {
