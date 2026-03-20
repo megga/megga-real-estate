@@ -11,6 +11,7 @@ import { cn, formatCHF } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
 import type { PropertyType } from '@/lib/constants'
+import ListingGenerator from '@/components/ai-copilot/ListingGenerator'
 
 // ─── Zod schemas per step ───
 
@@ -546,6 +547,19 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
           ))}
         </div>
       </div>
+
+      {/* AI Listing Generator */}
+      {title && city && price > 0 && rooms > 0 && surface > 0 && (
+        <ListingGenerator
+          propertyTitle={title}
+          propertyType={type || 'apartment'}
+          rooms={rooms}
+          surface={surface}
+          city={city}
+          price={price}
+          features={form.watch('features') || []}
+        />
+      )}
 
       {/* Preview card */}
       <div>

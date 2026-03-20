@@ -9,6 +9,10 @@ import { TRANSACTION_STAGE_LABELS, LEGACY_STAGE_MAP, type TransactionStage } fro
 import { useContactDetail } from '@/hooks/useContactDetail'
 import CopilotSummary from '@/components/ai-copilot/CopilotSummary'
 import NextBestAction from '@/components/action-board/NextBestAction'
+import BuyerIntelligence from '@/components/ai-copilot/BuyerIntelligence'
+import SellerIntelligence from '@/components/ai-copilot/SellerIntelligence'
+import NegotiationCopilot from '@/components/ai-copilot/NegotiationCopilot'
+import ObjectionAnalysis, { MOCK_OBJECTION_DATA } from '@/components/ai-copilot/ObjectionAnalysis'
 import ContactTimeline from '@/components/crm/ContactTimeline'
 import MatchingPanel from '@/components/matching/MatchingPanel'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -48,13 +52,6 @@ const engagementLabels: Record<string, { label: string; cls: string }> = {
   dormant:   { label: 'Dormant',    cls: 'bg-primary-100 text-primary-500' },
 }
 
-const tensionLabels: Record<string, { label: string; cls: string }> = {
-  calm:     { label: 'Calme',    cls: 'bg-success/10 text-success' },
-  moderate: { label: 'Modéré',   cls: 'bg-warning/10 text-warning' },
-  tense:    { label: 'Tendu',    cls: 'bg-danger/10 text-danger' },
-  critical: { label: 'Critique', cls: 'bg-danger text-white' },
-}
-
 // --- Sub-components ---
 
 function ContactAvatar({ name, size = 'lg' }: { name: string; size?: 'sm' | 'lg' }) {
@@ -79,19 +76,6 @@ function ContactAvatar({ name, size = 'lg' }: { name: string; size?: 'sm' | 'lg'
     )}>
       <span className={cn('font-semibold text-white', size === 'lg' ? 'text-lg' : 'text-xs')}>
         {initials}
-      </span>
-    </div>
-  )
-}
-
-function ScoreBadge({ value, label }: { value: number; label: string }) {
-  const color = value >= 70 ? 'text-success bg-success/10' : value >= 40 ? 'text-warning bg-warning/10' : 'text-danger bg-danger/10'
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={cn('inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded-badge', color)}>
-        <Sparkles className="h-3 w-3" />
-        {value}%
       </span>
     </div>
   )
@@ -157,51 +141,28 @@ function TabInfos({ contact, enriched }: {
         )}
       </div>
 
-      {/* AI Scoring */}
-      {enriched && (
-        <div className="bg-white rounded-card shadow-card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider">Scoring IA</h2>
-            <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge">
-              Estimation IA
-            </span>
-          </div>
-          <div className="space-y-3">
-            {enriched.ai_seriousness_score != null && (
-              <ScoreBadge value={enriched.ai_seriousness_score} label="Sérieux" />
-            )}
-            {enriched.ai_purchase_probability != null && (
-              <ScoreBadge value={enriched.ai_purchase_probability} label="Probabilité d'achat" />
-            )}
-            {enriched.ai_timing && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">Timing</span>
-                <span className="text-xs font-medium text-primary-700 bg-section px-1.5 py-0.5 rounded-badge">
-                  {timingLabels[enriched.ai_timing] || enriched.ai_timing}
-                </span>
-              </div>
-            )}
-            {enriched.ai_engagement_level && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">Engagement</span>
-                <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-badge', engagementLabels[enriched.ai_engagement_level]?.cls)}>
-                  {engagementLabels[enriched.ai_engagement_level]?.label}
-                </span>
-              </div>
-            )}
-            {isSeller && enriched.ai_tension_level && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">Niveau de tension</span>
-                <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-badge', tensionLabels[enriched.ai_tension_level]?.cls)}>
-                  {tensionLabels[enriched.ai_tension_level]?.label}
-                </span>
-              </div>
-            )}
-            {isSeller && enriched.ai_price_reduction_probability != null && (
-              <ScoreBadge value={enriched.ai_price_reduction_probability} label="Probabilité baisse prix" />
-            )}
-          </div>
-        </div>
+      {/* Buyer Intelligence */}
+      {isBuyer && enriched && (
+        <BuyerIntelligence
+          seriousnessScore={enriched.ai_seriousness_score ?? null}
+          purchaseProbability={enriched.ai_purchase_probability ?? null}
+          timing={enriched.ai_timing ?? null}
+          engagementLevel={enriched.ai_engagement_level ?? null}
+          budgetAnnounced={enriched.budget_announced ?? null}
+          budgetEstimatedAi={enriched.budget_estimated_ai ?? null}
+        />
+      )}
+
+      {/* Seller Intelligence */}
+      {isSeller && enriched && (
+        <SellerIntelligence
+          tensionLevel={enriched.ai_tension_level ?? null}
+          priceReductionProbability={enriched.ai_price_reduction_probability ?? null}
+          dissatisfactionRisk={45}
+          urgencyLevel="moderate"
+          daysOnMarket={38}
+          totalVisits={12}
+        />
       )}
 
       {/* Search criteria (buyers) */}
@@ -475,7 +436,20 @@ export default function ContactDetailPage() {
           </TabsContent>
 
           <TabsContent value="offres">
-            <TabPlaceholder icon={Banknote} message="Aucune offre pour ce contact" />
+            {contact.transactions.length > 0 ? (
+              <div className="space-y-4">
+                <NegotiationCopilot
+                  askingPrice={contact.transactions[0].price}
+                  offerPrice={Math.round(contact.transactions[0].price * 0.92)}
+                  daysOnMarket={38}
+                  totalVisits={12}
+                  buyerInterestLevel="high"
+                />
+                <ObjectionAnalysis {...MOCK_OBJECTION_DATA} />
+              </div>
+            ) : (
+              <TabPlaceholder icon={Banknote} message="Aucune offre pour ce contact" />
+            )}
           </TabsContent>
         </Tabs>
       </div>
