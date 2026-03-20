@@ -27,22 +27,11 @@ import SettingsPage from '@/pages/agent/SettingsPage'
 import TemplatesPage from '@/pages/agent/TemplatesPage'
 import DocumentGenerator from '@/pages/agent/DocumentGenerator'
 import DocumentViewer from '@/pages/agent/DocumentViewer'
-import OnboardingBuyerPP from '@/pages/onboarding/OnboardingBuyerPP'
-import OnboardingBuyerPM from '@/pages/onboarding/OnboardingBuyerPM'
-import OnboardingSellerPP from '@/pages/onboarding/OnboardingSellerPP'
-import OnboardingSellerPM from '@/pages/onboarding/OnboardingSellerPM'
-import SellerLayout from '@/pages/seller/SellerLayout'
-import SellerDashboard from '@/pages/seller/SellerDashboard'
-import SellerVisits from '@/pages/seller/SellerVisits'
-import SellerOffers from '@/pages/seller/SellerOffers'
-import SellerDocuments from '@/pages/seller/SellerDocuments'
-import SellerMessages from '@/pages/seller/SellerMessages'
-import BuyerLayout from '@/pages/buyer/BuyerLayout'
-import BuyerDashboard from '@/pages/buyer/BuyerDashboard'
-import BuyerFavorites from '@/pages/buyer/BuyerFavorites'
-import BuyerSearches from '@/pages/buyer/BuyerSearches'
-import BuyerAlerts from '@/pages/buyer/BuyerAlerts'
-import BuyerMessages from '@/pages/buyer/BuyerMessages'
+import ParticulierLayout from '@/pages/particulier/ParticulierLayout'
+import MonDossierPage from '@/pages/particulier/MonDossierPage'
+import MesDocumentsPage from '@/pages/particulier/MesDocumentsPage'
+import MesMessagesPage from '@/pages/particulier/MesMessagesPage'
+import MonProfilPage from '@/pages/particulier/MonProfilPage'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
@@ -83,28 +72,12 @@ export default function App() {
             <Route path="/publier" element={<PublierPage />} />
             <Route path="/aide" element={<HelpCenterPage />} />
 
-            {/* Onboarding client */}
-            <Route path="/onboarding/buyer/individual" element={<OnboardingBuyerPP />} />
-            <Route path="/onboarding/buyer/company" element={<OnboardingBuyerPM />} />
-            <Route path="/onboarding/seller/individual" element={<OnboardingSellerPP />} />
-            <Route path="/onboarding/seller/company" element={<OnboardingSellerPM />} />
-
-            {/* Buyer portal (protected — buyers) */}
-            <Route path="/mon-espace" element={<ProtectedRoute allowedRoles={['buyer', 'seller', 'admin']}><BuyerLayout /></ProtectedRoute>}>
-              <Route index element={<BuyerDashboard />} />
-              <Route path="favoris" element={<BuyerFavorites />} />
-              <Route path="recherches" element={<BuyerSearches />} />
-              <Route path="alertes" element={<BuyerAlerts />} />
-              <Route path="messages" element={<BuyerMessages />} />
-            </Route>
-
-            {/* Seller portal (protected — sellers only) */}
-            <Route path="/seller" element={<ProtectedRoute allowedRoles={['seller', 'admin']}><SellerLayout /></ProtectedRoute>}>
-              <Route index element={<SellerDashboard />} />
-              <Route path="visits" element={<SellerVisits />} />
-              <Route path="offers" element={<SellerOffers />} />
-              <Route path="documents" element={<SellerDocuments />} />
-              <Route path="messages" element={<SellerMessages />} />
+            {/* Particulier portal (protected — buyers/sellers/particuliers) */}
+            <Route path="/mon-espace" element={<ProtectedRoute allowedRoles={['buyer', 'seller', 'particulier']}><ParticulierLayout /></ProtectedRoute>}>
+              <Route index element={<MonDossierPage />} />
+              <Route path="documents" element={<MesDocumentsPage />} />
+              <Route path="messages" element={<MesMessagesPage />} />
+              <Route path="profil" element={<MonProfilPage />} />
             </Route>
 
             {/* Agent dashboard (protected — agents only) */}

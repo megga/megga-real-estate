@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Plus, Menu, X, LogOut, LayoutDashboard, HelpCircle, Heart, Home } from 'lucide-react'
+import { Plus, Menu, X, LogOut, LayoutDashboard, HelpCircle, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
@@ -123,44 +123,18 @@ export default function Navbar() {
 
                   {/* Menu items — role-aware */}
                   <div className="py-1">
-                    {isAgent ? (
-                      <Link
-                        to="/dashboard"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
+                    <Link
+                      to={isAgent ? '/dashboard' : '/mon-espace'}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      {isAgent ? (
                         <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-                        Dashboard
-                      </Link>
-                    ) : profile?.role === 'seller' ? (
-                      <Link
-                        to="/seller"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <Home className="h-4 w-4 text-muted-foreground" />
-                        Portail vendeur
-                      </Link>
-                    ) : (
-                      <>
-                        <Link
-                          to="/mon-espace"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-                          Mon espace
-                        </Link>
-                        <Link
-                          to="/mon-espace/favoris"
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          <Heart className="h-4 w-4 text-muted-foreground" />
-                          Mes favoris
-                        </Link>
-                      </>
-                    )}
+                      ) : (
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      {isAgent ? 'Dashboard' : 'Mon espace'}
+                    </Link>
                     <Link
                       to="/aide"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
@@ -237,11 +211,11 @@ export default function Navbar() {
                     </div>
                   </div>
                   <Link
-                    to={isAgent ? '/dashboard' : profile?.role === 'seller' ? '/seller' : '/mon-espace'}
+                    to={isAgent ? '/dashboard' : '/mon-espace'}
                     className="px-3 py-2 text-sm font-medium text-primary-700 hover:bg-section rounded-md"
                     onClick={() => setMobileOpen(false)}
                   >
-                    {isAgent ? 'Dashboard' : profile?.role === 'seller' ? 'Portail vendeur' : 'Mon espace'}
+                    {isAgent ? 'Dashboard' : 'Mon espace'}
                   </Link>
                   <button
                     onClick={() => {

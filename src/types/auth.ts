@@ -1,4 +1,4 @@
-export type UserRole = 'buyer' | 'seller' | 'agent' | 'manager' | 'admin' | 'assistant'
+export type UserRole = 'buyer' | 'seller' | 'particulier' | 'agent' | 'manager' | 'admin' | 'assistant'
 
 export interface UserProfile {
   id: string
@@ -12,7 +12,7 @@ export interface UserProfile {
 }
 
 export const AGENT_ROLES: UserRole[] = ['agent', 'manager', 'admin', 'assistant']
-export const PARTICULIER_ROLES: UserRole[] = ['buyer', 'seller']
+export const PARTICULIER_ROLES: UserRole[] = ['buyer', 'seller', 'particulier']
 
 export function isAgentRole(role: UserRole): boolean {
   return AGENT_ROLES.includes(role)

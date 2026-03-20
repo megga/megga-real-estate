@@ -47,16 +47,20 @@ const MOCK_PROFILE: UserProfile = {
   created_at: '2026-01-01T00:00:00Z',
 }
 
-async function fetchProfile(userId: string): Promise<UserProfile | null> {
+async function fetchProfile(userId: string, retry = true): Promise<UserProfile | null> {
   try {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single()
-    if (error) {
+    if (error || !data) {
       // Profile may not exist yet (first login, trigger pending)
-      // or RLS may block — don't crash, just return null
+      // Retry once after 500ms to handle race condition
+      if (retry) {
+        await new Promise((r) => setTimeout(r, 500))
+        return fetchProfile(userId, false)
+      }
       return null
     }
     return data as UserProfile
@@ -155,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string, fullName: string, role: UserRole = 'buyer') => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string, role: UserRole = 'particulier') => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -185,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, loadProfile])
 
   const isAgent = profile ? isAgentRole(profile.role) : false
-  const isParticulier = profile ? isParticulierRole(profile.role) : true
+  const isParticulier = profile ? isParticulierRole(profile.role) : false
 
   return (
     <AuthContext.Provider
