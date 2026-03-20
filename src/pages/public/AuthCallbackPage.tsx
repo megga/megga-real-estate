@@ -5,11 +5,10 @@ import { supabase } from '@/lib/supabase'
 import { isAgentRole } from '@/types/auth'
 import type { UserRole } from '@/types/auth'
 
-const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'agent', 'manager', 'admin', 'assistant']
+const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'manager', 'admin', 'assistant']
 
 function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role)) return '/dashboard'
-  if (role === 'seller') return '/seller'
   return '/mon-espace'
 }
 
@@ -29,16 +28,16 @@ export default function AuthCallbackPage() {
         .eq('id', userId)
         .single()
 
-      let role: UserRole = (profile?.role as UserRole) || 'buyer'
+      let role: UserRole = (profile?.role as UserRole) || 'particulier'
 
-      // If Google OAuth and the profile was just created with default 'buyer' role,
+      // If Google OAuth and the profile was just created with default role,
       // update it with the role the user selected before OAuth redirect
       if (pendingRole && VALID_ROLES.includes(pendingRole as UserRole)) {
         const selectedRole = pendingRole as UserRole
 
-        // Only update if the profile role is still the default 'buyer'
+        // Only update if the profile role is still the default
         // (meaning it was just auto-created by the trigger)
-        if (role === 'buyer' && selectedRole !== 'buyer') {
+        if ((role === 'buyer' || role === 'particulier') && selectedRole !== role) {
           const { error } = await supabase
             .from('profiles')
             .update({ role: selectedRole })

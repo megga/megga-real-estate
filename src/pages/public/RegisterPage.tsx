@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Mail, Lock, User, Loader2, CheckCircle, Home, Search, Briefcase, ShieldCheck } from 'lucide-react'
+import { Mail, Lock, User, Loader2, CheckCircle, Home, Briefcase, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth, type UserRole } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
@@ -43,8 +43,7 @@ function getPasswordStrength(password: string): PasswordStrength {
 // ─── ROLES ──────────────────────────────────────────────────────────────
 
 const ROLES: { value: UserRole; label: string; description: string; icon: typeof Home }[] = [
-  { value: 'buyer', label: 'Acheteur', description: 'Je cherche un bien', icon: Search },
-  { value: 'seller', label: 'Vendeur', description: 'Je vends mon bien', icon: Home },
+  { value: 'particulier', label: 'Particulier', description: 'Je cherche ou vends un bien', icon: Home },
   { value: 'agent', label: 'Agent immobilier', description: 'Je suis professionnel', icon: Briefcase },
 ]
 
@@ -52,7 +51,7 @@ const ROLES: { value: UserRole; label: string; description: string; icon: typeof
 
 export default function RegisterPage() {
   const { user, loading: authLoading, signUp, signInWithGoogle } = useAuth()
-  const [role, setRole] = useState<UserRole>('buyer')
+  const [role, setRole] = useState<UserRole>('particulier')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -128,7 +127,7 @@ export default function RegisterPage() {
           </p>
 
           {/* Role selector */}
-          <div className="grid grid-cols-3 gap-2 mb-6">
+          <div className="grid grid-cols-2 gap-2 mb-6">
             {ROLES.map((r) => {
               const Icon = r.icon
               const selected = role === r.value

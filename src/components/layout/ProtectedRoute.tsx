@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useAuth, type UserRole } from '@/hooks/useAuth'
+import { isAgentRole } from '@/types/auth'
 
 // DEV_BYPASS: set to true to skip auth check during development
 const DEV_BYPASS_AUTH = false
@@ -32,7 +33,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   if (allowedRoles && allowedRoles.length > 0 && profile) {
     if (!allowedRoles.includes(profile.role)) {
-      const fallback = profile.role === 'buyer' || profile.role === 'seller' ? '/' : '/dashboard'
+      const fallback = isAgentRole(profile.role) ? '/dashboard' : '/mon-espace'
       return <Navigate to={fallback} replace />
     }
   }
