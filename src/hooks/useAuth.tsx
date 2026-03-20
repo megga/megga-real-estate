@@ -81,19 +81,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(p)
       }
       setLoading(false)
+    }).catch(() => {
+      setLoading(false)
     })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, s) => {
-      setSession(s)
-      if (s?.user) {
-        const p = await fetchProfile(s.user.id)
-        setProfile(p)
-      } else {
-        setProfile(null)
+      try {
+        setSession(s)
+        if (s?.user) {
+          const p = await fetchProfile(s.user.id)
+          setProfile(p)
+        } else {
+          setProfile(null)
+        }
+      } catch {
+        // Ignore AbortError from lock conflicts between tabs
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
