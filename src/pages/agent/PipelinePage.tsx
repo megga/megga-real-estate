@@ -353,7 +353,7 @@ export default function PipelinePage() {
     )
   }
 
-  function handleLostConfirm(_reason: string) {
+  function handleLostConfirm(reason: string) {
     if (!lostDialog) return
     setDeals((prev) =>
       prev.map((d) =>
@@ -362,8 +362,9 @@ export default function PipelinePage() {
           : d
       )
     )
-    // In production: INSERT activity_event with metadata { old_stage, new_stage, reason: _reason }
-    // + UPDATE transactions.notes with _reason
+    // In production: INSERT activity_event with metadata { old_stage, new_stage, reason }
+    // + UPDATE transactions.notes with reason
+    void reason
     setLostDialog(null)
   }
 

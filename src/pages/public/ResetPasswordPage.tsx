@@ -35,7 +35,7 @@ export default function ResetPasswordPage() {
         setSuccess(true)
         setTimeout(() => navigate('/login', { replace: true }), 2000)
       }
-    } catch (err) {
+    } catch {
       setError('Une erreur est survenue. Veuillez demander un nouveau lien de réinitialisation.')
     } finally {
       setLoading(false)
