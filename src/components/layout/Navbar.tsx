@@ -53,8 +53,8 @@ export default function Navbar() {
   const displayEmail = user?.email || ''
 
   async function handleSignOut() {
-    await signOut()
     setDropdownOpen(false)
+    await signOut()
     navigate('/')
   }
 

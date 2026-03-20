@@ -168,9 +168,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    // Clear local state immediately so UI updates even if Supabase hangs
     setSession(null)
     setProfile(null)
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Force clear Supabase auth storage if signOut fails (lock conflict)
+      const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+      keys.forEach((k) => localStorage.removeItem(k))
+    }
   }, [])
 
   const refreshProfile = useCallback(async () => {
