@@ -26,14 +26,19 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true)
-    const { error: updateError } = await supabase.auth.updateUser({ password })
-    setLoading(false)
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password })
 
-    if (updateError) {
-      setError(updateError.message)
-    } else {
-      setSuccess(true)
-      setTimeout(() => navigate('/login', { replace: true }), 2000)
+      if (updateError) {
+        setError(updateError.message)
+      } else {
+        setSuccess(true)
+        setTimeout(() => navigate('/login', { replace: true }), 2000)
+      }
+    } catch (err) {
+      setError('Une erreur est survenue. Veuillez demander un nouveau lien de réinitialisation.')
+    } finally {
+      setLoading(false)
     }
   }
 
