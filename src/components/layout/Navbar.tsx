@@ -49,7 +49,7 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [dropdownOpen])
 
-  const displayName = user?.user_metadata?.full_name || user?.email || ''
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email || ''
   const displayEmail = user?.email || ''
 
   async function handleSignOut() {

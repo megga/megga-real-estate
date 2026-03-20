@@ -48,13 +48,21 @@ const MOCK_PROFILE: UserProfile = {
 }
 
 async function fetchProfile(userId: string): Promise<UserProfile | null> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single()
-  if (error) return null
-  return data as UserProfile
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    if (error) {
+      // Profile may not exist yet (first login, trigger pending)
+      // or RLS may block — don't crash, just return null
+      return null
+    }
+    return data as UserProfile
+  } catch {
+    return null
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -74,7 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (DEV_BYPASS_AUTH) return
 
+    // Safety timeout: if getSession hangs (lock conflicts), force loading to false
+    const safetyTimeout = setTimeout(() => setLoading(false), 3000)
+
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      clearTimeout(safetyTimeout)
       setSession(s)
       if (s?.user) {
         const p = await fetchProfile(s.user.id)
@@ -82,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false)
     }).catch(() => {
+      clearTimeout(safetyTimeout)
       setLoading(false)
     })
 
