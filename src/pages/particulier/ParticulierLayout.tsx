@@ -5,10 +5,10 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
 const tabs = [
-  { label: 'Mon dossier', path: '/mon-espace', icon: FolderOpen, end: true },
-  { label: 'Documents', path: '/mon-espace/documents', icon: FileText },
-  { label: 'Messages', path: '/mon-espace/messages', icon: MessageCircle },
-  { label: 'Profil', path: '/mon-espace/profil', icon: User },
+  { label: 'Mon dossier', path: '/portal', icon: FolderOpen, end: true },
+  { label: 'Documents', path: '/portal/documents', icon: FileText },
+  { label: 'Messages', path: '/portal/messages', icon: MessageCircle },
+  { label: 'Profil', path: '/portal/profil', icon: User },
 ]
 
 export default function ParticulierLayout() {

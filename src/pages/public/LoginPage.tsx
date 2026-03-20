@@ -34,11 +34,10 @@ export default function LoginPage() {
   // Redirect by role if already logged in
   if (!authLoading && user && profile) {
     if (isAgentRole(profile.role)) return <Navigate to="/dashboard" replace />
-    if (profile.role === 'seller') return <Navigate to="/seller" replace />
-    return <Navigate to="/mon-espace" replace />
+    return <Navigate to="/portal" replace />
   }
   if (!authLoading && user && !profile) {
-    return <Navigate to="/mon-espace" replace />
+    return <Navigate to="/portal" replace />
   }
 
   async function handleLogin(e: React.FormEvent) {

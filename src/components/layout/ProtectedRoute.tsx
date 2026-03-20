@@ -33,7 +33,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   if (allowedRoles && allowedRoles.length > 0 && profile) {
     if (!allowedRoles.includes(profile.role)) {
-      const fallback = isAgentRole(profile.role) ? '/dashboard' : '/mon-espace'
+      const fallback = isAgentRole(profile.role) ? '/dashboard' : '/portal'
       return <Navigate to={fallback} replace />
     }
   }

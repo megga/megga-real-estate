@@ -73,7 +73,7 @@ export default function App() {
             <Route path="/aide" element={<HelpCenterPage />} />
 
             {/* Particulier portal (protected — buyers/sellers/particuliers) */}
-            <Route path="/mon-espace" element={<ProtectedRoute allowedRoles={['buyer', 'seller', 'particulier']}><ParticulierLayout /></ProtectedRoute>}>
+            <Route path="/portal" element={<ProtectedRoute allowedRoles={['buyer', 'seller', 'particulier']}><ParticulierLayout /></ProtectedRoute>}>
               <Route index element={<MonDossierPage />} />
               <Route path="documents" element={<MesDocumentsPage />} />
               <Route path="messages" element={<MesMessagesPage />} />
