@@ -37,6 +37,9 @@ export default function LoginPage() {
     return <Navigate to="/portal" replace />
   }
   if (!authLoading && user && !profile) {
+    // Fallback: check user_metadata for role
+    const metaRole = user.user_metadata?.role as string | undefined
+    if (metaRole && isAgentRole(metaRole as UserRole)) return <Navigate to="/dashboard" replace />
     return <Navigate to="/portal" replace />
   }
 

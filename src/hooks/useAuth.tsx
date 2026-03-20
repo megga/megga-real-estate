@@ -47,7 +47,7 @@ const MOCK_PROFILE: UserProfile = {
   created_at: '2026-01-01T00:00:00Z',
 }
 
-async function fetchProfile(userId: string, retry = true): Promise<UserProfile | null> {
+async function fetchProfile(userId: string, user?: User | null, retry = true): Promise<UserProfile | null> {
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -59,7 +59,21 @@ async function fetchProfile(userId: string, retry = true): Promise<UserProfile |
       // Retry once after 500ms to handle race condition
       if (retry) {
         await new Promise((r) => setTimeout(r, 500))
-        return fetchProfile(userId, false)
+        return fetchProfile(userId, user, false)
+      }
+      // Fallback: build a minimal profile from user_metadata so routing works
+      if (user) {
+        const meta = user.user_metadata ?? {}
+        return {
+          id: userId,
+          email: user.email ?? '',
+          full_name: meta.full_name ?? meta.name ?? '',
+          role: (meta.role as UserProfile['role']) ?? 'particulier',
+          avatar_url: meta.avatar_url ?? null,
+          phone: null,
+          agency_id: null,
+          created_at: user.created_at ?? new Date().toISOString(),
+        } as UserProfile
       }
       return null
     }
@@ -79,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null)
       return
     }
-    const p = await fetchProfile(user.id)
+    const p = await fetchProfile(user.id, user)
     setProfile(p)
   }, [])
 
@@ -93,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(safetyTimeout)
       setSession(s)
       if (s?.user) {
-        const p = await fetchProfile(s.user.id)
+        const p = await fetchProfile(s.user.id, s.user)
         setProfile(p)
       }
       setLoading(false)
@@ -108,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         setSession(s)
         if (s?.user) {
-          const p = await fetchProfile(s.user.id)
+          const p = await fetchProfile(s.user.id, s.user)
           setProfile(p)
         } else {
           setProfile(null)
