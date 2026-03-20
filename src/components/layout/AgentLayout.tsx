@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
+import CopilotPanel from '@/components/ai-copilot/CopilotPanel'
 
 export default function AgentLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -32,6 +33,9 @@ export default function AgentLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Copilot IA — bouton flottant accessible depuis toute page agent */}
+      <CopilotPanel />
     </div>
   )
 }
