@@ -16,7 +16,7 @@ export default function AuthCallbackPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    async function handleRedirect(userId: string) {
+    async function handleRedirect(userId: string, user: { user_metadata?: Record<string, string> }) {
       // Check if there's a pending OAuth role from Google sign-in
       const pendingRole = localStorage.getItem('megga_oauth_role')
       localStorage.removeItem('megga_oauth_role')
@@ -30,13 +30,15 @@ export default function AuthCallbackPage() {
 
       let role: UserRole = (profile?.role as UserRole) || 'particulier'
 
-      // If Google OAuth and the profile was just created with default role,
-      // update it with the role the user selected before OAuth redirect
-      if (pendingRole && VALID_ROLES.includes(pendingRole as UserRole)) {
-        const selectedRole = pendingRole as UserRole
+      // Determine the intended role from OAuth localStorage OR user_metadata (email signup)
+      const intendedRole = pendingRole
+        || (user.user_metadata?.role as string)
+        || null
 
-        // Only update if the profile role is still the default
-        // (meaning it was just auto-created by the trigger)
+      // If profile has default role but user signed up with a different role, fix it
+      if (intendedRole && VALID_ROLES.includes(intendedRole as UserRole)) {
+        const selectedRole = intendedRole as UserRole
+
         if ((role === 'buyer' || role === 'particulier') && selectedRole !== role) {
           const { error } = await supabase
             .from('profiles')
@@ -55,7 +57,7 @@ export default function AuthCallbackPage() {
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
-          handleRedirect(session.user.id)
+          handleRedirect(session.user.id, session.user)
         } else {
           navigate('/', { replace: true })
         }
@@ -70,7 +72,7 @@ export default function AuthCallbackPage() {
     const timeout = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
-        handleRedirect(session.user.id)
+        handleRedirect(session.user.id, session.user)
       } else {
         navigate('/login', { replace: true })
       }

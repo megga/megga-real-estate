@@ -124,8 +124,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile])
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) return { error: error.message }
+
+    // Fix role mismatch: if user_metadata has a role but profile still has default
+    const metaRole = data.user?.user_metadata?.role as UserRole | undefined
+    if (data.user && metaRole && ['agent', 'manager', 'admin', 'assistant'].includes(metaRole)) {
+      const { data: prof } = await supabase.from('profiles').select('role').eq('id', data.user.id).single()
+      if (prof && (prof.role === 'buyer' || prof.role === 'particulier') && prof.role !== metaRole) {
+        await supabase.from('profiles').update({ role: metaRole }).eq('id', data.user.id)
+      }
+    }
+
+    return { error: null }
   }, [])
 
   const signInWithEmail = useCallback(async (email: string) => {
