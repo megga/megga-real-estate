@@ -160,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signUp = useCallback(async (email: string, password: string, fullName: string, role: UserRole = 'particulier') => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -168,7 +168,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
-    return { error: error?.message ?? null }
+    if (error) return { error: error.message }
+
+    // Ensure the profile has the correct role (trigger may default to 'particulier')
+    if (data.user) {
+      await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', data.user.id)
+    }
+
+    return { error: null }
   }, [])
 
   const handleSignOut = useCallback(async () => {
