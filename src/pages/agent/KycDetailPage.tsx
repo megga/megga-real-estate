@@ -26,7 +26,7 @@ function progressTextColor(pct: number) {
 
 function statusBadge(status: MockKycCase['status']) {
   const map = {
-    pending:     { cls: 'bg-primary-100 text-primary-600' },
+    pending:     { cls: 'bg-theme-active text-theme-secondary' },
     in_progress: { cls: 'bg-accent/10 text-accent' },
     review:      { cls: 'bg-warning/10 text-warning' },
     validated:   { cls: 'bg-success/10 text-success' },
@@ -45,7 +45,7 @@ function riskBadge(risk: MockKycCase['risk_level']) {
     low:        { dot: 'bg-success',     cls: 'bg-success/10 text-success' },
     medium:     { dot: 'bg-warning',     cls: 'bg-warning/10 text-warning' },
     high:       { dot: 'bg-danger',      cls: 'bg-danger/10 text-danger' },
-    unassessed: { dot: 'bg-primary-300', cls: 'bg-primary-100 text-primary-500' },
+    unassessed: { dot: 'bg-theme-tertiary', cls: 'bg-theme-active text-theme-secondary' },
   }
   const r = map[risk]
   return (
@@ -62,7 +62,7 @@ function docStatusIcon(status: 'validated' | 'pending' | 'missing' | 'rejected' 
     case 'pending': return <Clock className="h-4 w-4 text-warning" />
     case 'missing': return <AlertTriangle className="h-4 w-4 text-danger" />
     case 'rejected': return <X className="h-4 w-4 text-danger" />
-    default: return <Circle className="h-4 w-4 text-primary-300" />
+    default: return <Circle className="h-4 w-4 text-theme-tertiary" />
   }
 }
 
@@ -103,13 +103,13 @@ export default function KycDetailPage() {
   if (!kyc) {
     return (
       <div className="space-y-6">
-        <Link to="/dashboard/kyc" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary-900 transition-colors">
+        <Link to="/dashboard/kyc" className="inline-flex items-center gap-1.5 text-sm text-theme-tertiary hover:text-theme-primary transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Retour aux dossiers
         </Link>
-        <div className="bg-white rounded-card shadow-card p-12 text-center">
-          <ShieldCheck className="h-12 w-12 text-primary-200 mx-auto mb-4" />
-          <p className="text-muted-foreground">Dossier introuvable</p>
+        <div className="bg-transparent rounded-card shadow-none p-12 text-center">
+          <ShieldCheck className="h-12 w-12 text-theme-tertiary mx-auto mb-4" />
+          <p className="text-theme-tertiary">Dossier introuvable</p>
         </div>
       </div>
     )
@@ -122,24 +122,24 @@ export default function KycDetailPage() {
   return (
     <div className="space-y-6">
       {/* Back */}
-      <Link to="/dashboard/kyc" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary-900 transition-colors">
+      <Link to="/dashboard/kyc" className="inline-flex items-center gap-1.5 text-sm text-theme-tertiary hover:text-theme-primary transition-colors">
         <ArrowLeft className="h-4 w-4" />
         Retour aux dossiers
       </Link>
 
       {/* Header */}
-      <div className="bg-white rounded-card shadow-card p-6">
+      <div className="bg-transparent rounded-card shadow-none p-6">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold text-primary-900">{kyc.contact_name}</h1>
+              <h1 className="text-xl font-semibold text-theme-primary">{kyc.contact_name}</h1>
               {statusBadge(kyc.status)}
               {riskBadge(kyc.risk_level)}
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              <span>Type : <span className="font-medium text-primary-700">{KYC_TYPE_LABELS[kyc.type]}</span></span>
-              <span>Bien : <span className="font-medium text-primary-700">{kyc.property_title}</span></span>
-              <span>Agent : <span className="font-medium text-primary-700">{kyc.assigned_to}</span></span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-theme-tertiary">
+              <span>Type : <span className="font-medium text-theme-primary">{KYC_TYPE_LABELS[kyc.type]}</span></span>
+              <span>Bien : <span className="font-medium text-theme-primary">{kyc.property_title}</span></span>
+              <span>Agent : <span className="font-medium text-theme-primary">{kyc.assigned_to}</span></span>
               <span>Créé le {formatDate(kyc.created_at)}</span>
             </div>
             {kyc.validated_by && kyc.validated_at && (
@@ -153,9 +153,8 @@ export default function KycDetailPage() {
           {canValidate && (
             <Button
               onClick={() => setShowValidateModal(true)}
-              className="bg-success hover:bg-success/90 text-white rounded-button gap-2"
+              className="border border-success/30 text-success hover:bg-success/10 rounded-lg gap-2 text-sm"
             >
-              <ShieldCheck className="h-4 w-4" />
               Valider le dossier
             </Button>
           )}
@@ -164,19 +163,19 @@ export default function KycDetailPage() {
         {/* Progress bar */}
         <div className="mt-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-primary-700">Progression</span>
+            <span className="text-sm font-medium text-theme-primary">Progression</span>
             <span className={cn('text-sm font-bold', progressTextColor(kyc.completion_pct))}>
               {kyc.completion_pct}%
             </span>
           </div>
-          <div className="h-3 bg-primary-100 rounded-full overflow-hidden">
+          <div className="h-3 bg-theme-active rounded-full overflow-hidden">
             <div
               className={cn('h-full rounded-full transition-all duration-500', progressColor(kyc.completion_pct))}
               style={{ width: `${kyc.completion_pct}%` }}
             />
           </div>
           {totalItems > 0 && (
-            <p className="text-xs text-muted-foreground mt-1.5">
+            <p className="text-xs text-theme-tertiary mt-1.5">
               {completedItems} sur {totalItems} éléments complétés
             </p>
           )}
@@ -187,14 +186,14 @@ export default function KycDetailPage() {
         {/* Left column: Checklist + Documents */}
         <div className="xl:col-span-2 space-y-6">
           {/* Checklist */}
-          <div className="bg-white rounded-card shadow-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-border">
-              <h2 className="text-base font-semibold text-primary-900">Checklist de vérification</h2>
+          <div className="bg-transparent rounded-card shadow-none overflow-hidden">
+            <div className="px-6 py-4 border-b border-theme-border">
+              <h2 className="text-base font-semibold text-theme-primary">Checklist de vérification</h2>
             </div>
 
             {checklist.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <p className="text-sm text-muted-foreground">Aucun élément de checklist pour ce dossier</p>
+                <p className="text-sm text-theme-tertiary">Aucun élément de checklist pour ce dossier</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
@@ -209,18 +208,18 @@ export default function KycDetailPage() {
                     <div key={cat}>
                       <button
                         onClick={() => toggleCategory(cat)}
-                        className="w-full flex items-center justify-between px-6 py-3 bg-section/50 hover:bg-section transition-colors"
+                        className="w-full flex items-center justify-between px-6 py-3 bg-theme-section/50 hover:bg-theme-section transition-colors"
                       >
                         <div className="flex items-center gap-2">
                           {expanded
-                            ? <ChevronDown className="h-4 w-4 text-primary-400" />
-                            : <ChevronRight className="h-4 w-4 text-primary-400" />
+                            ? <ChevronDown className="h-4 w-4 text-theme-tertiary" />
+                            : <ChevronRight className="h-4 w-4 text-theme-tertiary" />
                           }
-                          <span className="text-sm font-semibold text-primary-800">{cat}</span>
+                          <span className="text-sm font-semibold text-theme-primary">{cat}</span>
                         </div>
                         <span className={cn(
                           'text-xs font-medium',
-                          catCompleted === catTotal ? 'text-success' : 'text-muted-foreground'
+                          catCompleted === catTotal ? 'text-success' : 'text-theme-tertiary'
                         )}>
                           {catCompleted}/{catTotal}
                         </span>
@@ -232,13 +231,13 @@ export default function KycDetailPage() {
                             <div key={item.id} className="flex items-start gap-3 px-6 py-3 pl-12">
                               {item.is_completed
                                 ? <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                                : <Circle className="h-5 w-5 text-primary-300 mt-0.5 flex-shrink-0" />
+                                : <Circle className="h-5 w-5 text-theme-tertiary mt-0.5 flex-shrink-0" />
                               }
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className={cn(
                                     'text-sm',
-                                    item.is_completed ? 'text-primary-600 line-through' : 'text-primary-900 font-medium'
+                                    item.is_completed ? 'text-theme-secondary line-through' : 'text-theme-primary font-medium'
                                   )}>
                                     {item.label}
                                   </span>
@@ -252,10 +251,10 @@ export default function KycDetailPage() {
                                   )}
                                 </div>
                                 {item.notes && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>
+                                  <p className="text-xs text-theme-tertiary mt-0.5">{item.notes}</p>
                                 )}
                                 {item.completed_at && (
-                                  <p className="text-[11px] text-primary-400 mt-0.5">
+                                  <p className="text-[11px] text-theme-tertiary mt-0.5">
                                     Complété {formatRelativeDate(item.completed_at)}
                                   </p>
                                 )}
@@ -272,9 +271,9 @@ export default function KycDetailPage() {
           </div>
 
           {/* Documents */}
-          <div className="bg-white rounded-card shadow-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-              <h2 className="text-base font-semibold text-primary-900">Documents ({documents.length})</h2>
+          <div className="bg-transparent rounded-card shadow-none overflow-hidden">
+            <div className="px-6 py-4 border-b border-theme-border flex items-center justify-between">
+              <h2 className="text-base font-semibold text-theme-primary">Documents ({documents.length})</h2>
               <button className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80 transition-colors">
                 <Upload className="h-3.5 w-3.5" />
                 Téléverser
@@ -283,17 +282,17 @@ export default function KycDetailPage() {
 
             {documents.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <FileText className="h-10 w-10 text-primary-200 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Aucun document téléversé</p>
+                <FileText className="h-10 w-10 text-theme-tertiary mx-auto mb-3" />
+                <p className="text-sm text-theme-tertiary">Aucun document téléversé</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
                 {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center gap-3 px-6 py-3 hover:bg-section/30 transition-colors">
-                    <FileText className="h-5 w-5 text-primary-400 flex-shrink-0" />
+                  <div key={doc.id} className="flex items-center gap-3 px-6 py-3 hover:bg-theme-section/30 transition-colors">
+                    <FileText className="h-5 w-5 text-theme-tertiary flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-primary-900 truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm font-medium text-theme-primary truncate">{doc.name}</p>
+                      <p className="text-xs text-theme-tertiary">
                         {doc.size_display} · Téléversé par {doc.uploaded_by} · {formatRelativeDate(doc.uploaded_at)}
                       </p>
                     </div>
@@ -315,10 +314,10 @@ export default function KycDetailPage() {
         {/* Right column: Notes + Audit */}
         <div className="space-y-6">
           {/* Notes */}
-          <div className="bg-white rounded-card shadow-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-border">
-              <h2 className="text-base font-semibold text-primary-900 flex items-center gap-2">
-                <StickyNote className="h-4 w-4 text-primary-400" />
+          <div className="bg-transparent rounded-card shadow-none overflow-hidden">
+            <div className="px-6 py-4 border-b border-theme-border">
+              <h2 className="text-base font-semibold text-theme-primary flex items-center gap-2">
+                <StickyNote className="h-4 w-4 text-theme-tertiary" />
                 Notes internes
               </h2>
             </div>
@@ -328,7 +327,7 @@ export default function KycDetailPage() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Ajouter une note sur ce dossier..."
                 rows={4}
-                className="w-full text-sm bg-input border border-border rounded-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
+                className="w-full text-sm bg-input border border-theme-border rounded-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
               />
               <Button
                 variant="outline"
@@ -342,17 +341,17 @@ export default function KycDetailPage() {
           </div>
 
           {/* Audit timeline */}
-          <div className="bg-white rounded-card shadow-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-border">
-              <h2 className="text-base font-semibold text-primary-900 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary-400" />
+          <div className="bg-transparent rounded-card shadow-none overflow-hidden">
+            <div className="px-6 py-4 border-b border-theme-border">
+              <h2 className="text-base font-semibold text-theme-primary flex items-center gap-2">
+                <Clock className="h-4 w-4 text-theme-tertiary" />
                 Journal d'audit
               </h2>
             </div>
 
             {audit.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <p className="text-sm text-muted-foreground">Aucun événement enregistré</p>
+                <p className="text-sm text-theme-tertiary">Aucun événement enregistré</p>
               </div>
             ) : (
               <div className="p-4">
@@ -365,11 +364,11 @@ export default function KycDetailPage() {
                       <div key={event.id} className="relative flex gap-3 pl-6">
                         <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full bg-accent/20 border-2 border-accent" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-primary-900">{event.action}</p>
+                          <p className="text-sm font-medium text-theme-primary">{event.action}</p>
                           {event.details && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{event.details}</p>
+                            <p className="text-xs text-theme-tertiary mt-0.5">{event.details}</p>
                           )}
-                          <p className="text-[11px] text-primary-400 mt-1">
+                          <p className="text-[11px] text-theme-tertiary mt-1">
                             {event.actor} · {formatDate(event.timestamp)} à {new Date(event.timestamp).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
@@ -387,14 +386,14 @@ export default function KycDetailPage() {
       {showValidateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowValidateModal(false)} />
-          <div className="relative bg-white rounded-card shadow-modal p-6 w-full max-w-md mx-4">
+          <div className="relative bg-transparent rounded-card shadow-modal p-6 w-full max-w-md mx-4">
             <div className="text-center mb-6">
               <div className="mx-auto w-12 h-12 rounded-full bg-success/10 flex items-center justify-center mb-4">
                 <ShieldCheck className="h-6 w-6 text-success" />
               </div>
-              <h3 className="text-lg font-semibold text-primary-900">Valider ce dossier KYC ?</h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                Êtes-vous sûr de vouloir valider le dossier de <span className="font-medium text-primary-700">{kyc.contact_name}</span> ?
+              <h3 className="text-lg font-semibold text-theme-primary">Valider ce dossier KYC ?</h3>
+              <p className="text-sm text-theme-tertiary mt-2">
+                Êtes-vous sûr de vouloir valider le dossier de <span className="font-medium text-theme-primary">{kyc.contact_name}</span> ?
               </p>
               <p className="text-xs text-warning mt-2 font-medium">
                 Cette action sera tracée dans le journal d'audit.
