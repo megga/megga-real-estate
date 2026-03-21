@@ -35,30 +35,30 @@ function RuleCard({
 
   return (
     <div className={cn(
-      'bg-white rounded-card shadow-card border border-border overflow-hidden transition-opacity',
+      'bg-theme-card rounded-card shadow-card border border-theme-border overflow-hidden transition-opacity',
       !rule.isActive && 'opacity-60'
     )}>
       <div className="flex items-center gap-3 p-4">
         <div className={cn(
           'h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0',
-          rule.isActive ? 'bg-accent/10 text-accent' : 'bg-gray-100 text-gray-400'
+          rule.isActive ? 'bg-accent/10 text-accent' : 'bg-theme-active text-theme-tertiary'
         )}>
           <Icon className="h-4 w-4" />
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-primary-900">{rule.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-sm font-medium text-theme-primary">{rule.name}</p>
+          <p className="text-xs text-theme-muted mt-0.5">
             {rule.triggerLabel} → {rule.actionLabel} (J+{rule.delayDays})
           </p>
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">{rule.generatedCount} relances</span>
+          <span className="text-xs text-theme-muted">{rule.generatedCount} relances</span>
           <Switch checked={rule.isActive} onCheckedChange={onToggle} />
           <button
             onClick={() => setExpanded(!expanded)}
-            className="h-7 w-7 rounded-md flex items-center justify-center text-primary-400 hover:bg-section transition-colors"
+            className="h-7 w-7 rounded-md flex items-center justify-center text-theme-tertiary hover:bg-theme-section transition-colors"
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
@@ -66,34 +66,34 @@ function RuleCard({
       </div>
 
       {expanded && (
-        <div className="px-4 pb-4 pt-0 border-t border-border">
+        <div className="px-4 pb-4 pt-0 border-t border-theme-border">
           <div className="grid grid-cols-2 gap-4 mt-3">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Déclencheur</p>
-              <p className="text-sm text-primary-800">{rule.triggerLabel}</p>
+              <p className="text-xs text-theme-muted mb-1">Déclencheur</p>
+              <p className="text-sm text-theme-primary">{rule.triggerLabel}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Action</p>
-              <p className="text-sm text-primary-800">{rule.actionLabel}</p>
+              <p className="text-xs text-theme-muted mb-1">Action</p>
+              <p className="text-sm text-theme-primary">{rule.actionLabel}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Délai</p>
-              <p className="text-sm text-primary-800">{rule.delayDays} jour{rule.delayDays > 1 ? 's' : ''}</p>
+              <p className="text-xs text-theme-muted mb-1">Délai</p>
+              <p className="text-sm text-theme-primary">{rule.delayDays} jour{rule.delayDays > 1 ? 's' : ''}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Template</p>
-              <p className="text-sm text-primary-800">{rule.templateId || 'Aucun'}</p>
+              <p className="text-xs text-theme-muted mb-1">Template</p>
+              <p className="text-sm text-theme-primary">{rule.templateId || 'Aucun'}</p>
             </div>
           </div>
 
           {/* Auto-send toggle */}
-          <div className="mt-4 p-3 rounded-lg bg-section border border-border">
+          <div className="mt-4 p-3 rounded-lg bg-theme-section border border-theme-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-3.5 w-3.5 text-warning" />
                 <div>
-                  <p className="text-xs font-medium text-primary-900">Envoi automatique</p>
-                  <p className="text-[10px] text-muted-foreground">Si activé, le message sera envoyé sans validation agent</p>
+                  <p className="text-xs font-medium text-theme-primary">Envoi automatique</p>
+                  <p className="text-[10px] text-theme-muted">Si activé, le message sera envoyé sans validation agent</p>
                 </div>
               </div>
               <Switch checked={rule.autoSend} onCheckedChange={onToggleAutoSend} />
@@ -125,15 +125,15 @@ function TemplateCard({ template }: { template: ReturnType<typeof useMessageTemp
   }
 
   return (
-    <div className="bg-white rounded-card shadow-card border border-border overflow-hidden">
+    <div className="bg-theme-card rounded-card shadow-card border border-theme-border overflow-hidden">
       <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-        <div className="h-9 w-9 rounded-lg bg-section flex items-center justify-center flex-shrink-0 text-primary-500">
+        <div className="h-9 w-9 rounded-lg bg-theme-section flex items-center justify-center flex-shrink-0 text-theme-muted">
           <FileText className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-primary-900">{template.name}</p>
+          <p className="text-sm font-medium text-theme-primary">{template.name}</p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] font-medium text-primary-600 bg-section px-1.5 py-0.5 rounded-badge">
+            <span className="text-[10px] font-medium text-theme-secondary bg-theme-section px-1.5 py-0.5 rounded-badge">
               {categoryLabels[template.category] || template.category}
             </span>
             <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge', channelBadge)}>
@@ -141,25 +141,25 @@ function TemplateCard({ template }: { template: ReturnType<typeof useMessageTemp
             </span>
           </div>
         </div>
-        {expanded ? <ChevronUp className="h-4 w-4 text-primary-400" /> : <ChevronDown className="h-4 w-4 text-primary-400" />}
+        {expanded ? <ChevronUp className="h-4 w-4 text-theme-tertiary" /> : <ChevronDown className="h-4 w-4 text-theme-tertiary" />}
       </div>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-border">
+        <div className="px-4 pb-4 border-t border-theme-border">
           {template.subject && (
             <div className="mt-3">
-              <p className="text-xs text-muted-foreground mb-1">Objet</p>
-              <p className="text-sm text-primary-800">{template.subject}</p>
+              <p className="text-xs text-theme-muted mb-1">Objet</p>
+              <p className="text-sm text-theme-primary">{template.subject}</p>
             </div>
           )}
           <div className="mt-3">
-            <p className="text-xs text-muted-foreground mb-1">Corps du message</p>
-            <pre className="text-xs text-primary-700 bg-section rounded-lg p-3 whitespace-pre-wrap font-sans leading-relaxed">
+            <p className="text-xs text-theme-muted mb-1">Corps du message</p>
+            <pre className="text-xs text-theme-secondary bg-theme-section rounded-lg p-3 whitespace-pre-wrap font-sans leading-relaxed">
               {template.body}
             </pre>
           </div>
           <div className="mt-2">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-theme-muted">
               Variables : {'{{contact.first_name}}'}, {'{{property.address}}'}, {'{{property.price}}'}, {'{{agent.full_name}}'}, etc.
             </p>
           </div>
@@ -183,8 +183,8 @@ export default function AutomationPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-primary-900">Automatisation</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <h1 className="text-2xl font-semibold text-theme-primary">Automatisation</h1>
+          <p className="text-sm text-theme-muted mt-0.5">
             {activeRules} règle{activeRules > 1 ? 's' : ''} active{activeRules > 1 ? 's' : ''} · {active.length} relance{active.length > 1 ? 's' : ''} en cours
           </p>
         </div>
@@ -207,13 +207,13 @@ export default function AutomationPage() {
           </TabsTrigger>
           <TabsTrigger value="rules">
             Règles
-            <span className="ml-1.5 text-[10px] font-bold bg-section text-primary-600 px-1.5 py-0.5 rounded-full">
+            <span className="ml-1.5 text-[10px] font-bold bg-theme-section text-theme-secondary px-1.5 py-0.5 rounded-full">
               {rules.length}
             </span>
           </TabsTrigger>
           <TabsTrigger value="templates">
             Templates
-            <span className="ml-1.5 text-[10px] font-bold bg-section text-primary-600 px-1.5 py-0.5 rounded-full">
+            <span className="ml-1.5 text-[10px] font-bold bg-theme-section text-theme-secondary px-1.5 py-0.5 rounded-full">
               {templates.length}
             </span>
           </TabsTrigger>
@@ -225,7 +225,7 @@ export default function AutomationPage() {
             {/* Triggered (urgent) */}
             {triggered.length > 0 && (
               <div>
-                <h2 className="text-sm font-semibold text-primary-900 mb-2 flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-theme-primary mb-2 flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-amber-500" />
                   À traiter ({triggered.length})
                 </h2>
@@ -236,8 +236,8 @@ export default function AutomationPage() {
             {/* Pending */}
             {pending.length > 0 && (
               <div>
-                <h2 className="text-sm font-semibold text-primary-900 mb-2 flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-primary-300" />
+                <h2 className="text-sm font-semibold text-theme-primary mb-2 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-theme-tertiary" />
                   En attente ({pending.length})
                 </h2>
                 <ReminderList reminders={pending} onDone={markAsDone} onSnooze={snooze} onCancel={cancel} />
@@ -245,9 +245,9 @@ export default function AutomationPage() {
             )}
 
             {active.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-card shadow-card">
-                <Clock className="h-8 w-8 text-primary-300 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Aucune relance en attente</p>
+              <div className="text-center py-12 bg-theme-card rounded-card shadow-card">
+                <Clock className="h-8 w-8 text-theme-tertiary mx-auto mb-2" />
+                <p className="text-sm text-theme-muted">Aucune relance en attente</p>
               </div>
             )}
           </div>
@@ -259,7 +259,7 @@ export default function AutomationPage() {
             {/* Control banner */}
             <div className="bg-accent/5 border border-accent/10 rounded-card p-3 flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-primary-700">
+              <p className="text-xs text-theme-secondary">
                 <span className="font-medium">L'agent garde le contrôle.</span> Par défaut, les relances créent des rappels. L'envoi automatique est désactivé et nécessite une activation explicite par règle.
               </p>
             </div>

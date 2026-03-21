@@ -169,20 +169,20 @@ export default function DocumentGenerator() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate('/dashboard/templates')}
-          className="w-9 h-9 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer"
+          className="w-9 h-9 rounded-lg border border-theme-border flex items-center justify-center hover:bg-theme-hover transition-colors cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 text-gray-500" />
+          <ArrowLeft className="w-4 h-4 text-theme-muted" />
         </button>
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Générer un document</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <h1 className="text-2xl font-semibold text-theme-primary">Générer un document</h1>
+          <p className="text-sm text-theme-tertiary mt-0.5">
             {templateConfig ? templateConfig.name : 'Sélectionnez un template'}
           </p>
         </div>
       </div>
 
       {/* Steps */}
-      <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2">
+      <div className="flex items-center gap-2 bg-theme-hover rounded-xl p-2">
         {STEPS.map((s, i) => {
           const Icon = s.icon
           const isActive = i === step
@@ -196,10 +196,10 @@ export default function DocumentGenerator() {
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all flex-1 justify-center',
                 isActive
-                  ? 'bg-white text-gray-900 shadow-sm'
+                  ? 'bg-theme-card text-theme-primary shadow-sm'
                   : isDone
-                    ? 'text-accent cursor-pointer hover:bg-white/50'
-                    : 'text-gray-400 cursor-default'
+                    ? 'text-accent cursor-pointer hover:bg-theme-card/50'
+                    : 'text-theme-tertiary cursor-default'
               )}
             >
               {isDone ? (
@@ -221,17 +221,17 @@ export default function DocumentGenerator() {
               key={t.id}
               onClick={() => handleSelectTemplate(t.id)}
               className={cn(
-                'text-left bg-white rounded-xl border p-5 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group',
-                selectedTemplate === t.id ? 'border-accent ring-1 ring-accent/20' : 'border-gray-100'
+                'text-left bg-theme-card rounded-xl border p-5 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group',
+                selectedTemplate === t.id ? 'border-accent ring-1 ring-accent/20' : 'border-theme-border-subtle'
               )}
             >
               <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
                 <FileText className="w-5 h-5 text-accent" />
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 group-hover:text-accent transition-colors">
+              <h3 className="text-sm font-semibold text-theme-primary group-hover:text-accent transition-colors">
                 {t.name}
               </h3>
-              <p className="text-xs text-gray-400 mt-1">{t.description}</p>
+              <p className="text-xs text-theme-tertiary mt-1">{t.description}</p>
               <div className="flex items-center gap-1 mt-3 text-xs text-accent font-medium">
                 Sélectionner
                 <ChevronRight className="w-3 h-3" />
@@ -248,20 +248,20 @@ export default function DocumentGenerator() {
           <div className="flex items-center gap-3 bg-accent/5 border border-accent/10 rounded-xl px-4 py-3">
             <Sparkles className="w-5 h-5 text-accent flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-gray-900">Remplissage assisté par IA</p>
-              <p className="text-xs text-gray-400">Sélectionnez un contact ou un bien existant pour pré-remplir les champs.</p>
+              <p className="text-sm font-medium text-theme-primary">Remplissage assisté par IA</p>
+              <p className="text-xs text-theme-tertiary">Sélectionnez un contact ou un bien existant pour pré-remplir les champs.</p>
             </div>
           </div>
 
           {Object.entries(sections).map(([sectionName, fields]) => (
-            <div key={sectionName} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-50 bg-gray-50/50">
-                <h3 className="text-sm font-semibold text-gray-900">{sectionName}</h3>
+            <div key={sectionName} className="bg-theme-card rounded-xl border border-theme-border-subtle overflow-hidden">
+              <div className="px-5 py-3 border-b border-theme-border-subtle bg-theme-hover/50">
+                <h3 className="text-sm font-semibold text-theme-primary">{sectionName}</h3>
               </div>
               <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {fields.map(field => (
                   <div key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                    <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                    <label className="block text-xs font-medium text-theme-muted mb-1.5">
                       {field.label}
                       {field.required && <span className="text-danger ml-0.5">*</span>}
                     </label>
@@ -269,7 +269,7 @@ export default function DocumentGenerator() {
                       <select
                         value={formData[field.name] || ''}
                         onChange={e => handleFieldChange(field.name, e.target.value)}
-                        className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
+                        className="w-full h-10 px-3 bg-theme-card border border-theme-border rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
                       >
                         <option value="">Sélectionner...</option>
                         {field.options?.map(opt => (
@@ -282,7 +282,7 @@ export default function DocumentGenerator() {
                         onChange={e => handleFieldChange(field.name, e.target.value)}
                         placeholder={field.placeholder}
                         rows={3}
-                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none resize-none"
+                        className="w-full px-3 py-2 bg-theme-card border border-theme-border rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none resize-none"
                       />
                     ) : (
                       <input
@@ -290,7 +290,7 @@ export default function DocumentGenerator() {
                         value={formData[field.name] || ''}
                         onChange={e => handleFieldChange(field.name, e.target.value)}
                         placeholder={field.placeholder}
-                        className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
+                        className="w-full h-10 px-3 bg-theme-card border border-theme-border rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
                       />
                     )}
                   </div>
@@ -325,25 +325,25 @@ export default function DocumentGenerator() {
       {step === 2 && templateConfig && generated && (
         <div className="space-y-6">
           {/* Preview card */}
-          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">Aperçu du document</h3>
-              <span className="text-[10px] font-medium text-gray-400 bg-gray-200 px-2 py-0.5 rounded">PDF</span>
+          <div className="bg-theme-card rounded-xl border border-theme-border-subtle overflow-hidden">
+            <div className="px-5 py-3 border-b border-theme-border-subtle bg-theme-hover/50 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-theme-primary">Aperçu du document</h3>
+              <span className="text-[10px] font-medium text-theme-tertiary bg-theme-border px-2 py-0.5 rounded">PDF</span>
             </div>
 
             {/* Mock document preview */}
             <div className="p-8 md:p-12 max-w-2xl mx-auto">
               <div className="space-y-6">
                 {/* Header */}
-                <div className="text-center border-b border-gray-200 pb-6">
+                <div className="text-center border-b border-theme-border pb-6">
                   <div className="flex items-center justify-center gap-2 mb-3">
-                    <div className="h-8 w-8 bg-gray-900 rounded-lg flex items-center justify-center">
+                    <div className="h-8 w-8 bg-theme-primary rounded-lg flex items-center justify-center">
                       <span className="text-xs font-bold text-white">GG</span>
                     </div>
-                    <span className="text-lg font-bold text-gray-900">MEGGA</span>
+                    <span className="text-lg font-bold text-theme-primary">MEGGA</span>
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900">{templateConfig.name}</h2>
-                  <p className="text-sm text-gray-400 mt-1">
+                  <h2 className="text-xl font-bold text-theme-primary">{templateConfig.name}</h2>
+                  <p className="text-sm text-theme-tertiary mt-1">
                     {new Date().toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
@@ -351,7 +351,7 @@ export default function DocumentGenerator() {
                 {/* Content sections */}
                 {Object.entries(sections).map(([sectionName, fields]) => (
                   <div key={sectionName}>
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">
+                    <h3 className="text-sm font-semibold text-theme-primary mb-3 uppercase tracking-wider">
                       {sectionName}
                     </h3>
                     <div className="space-y-2">
@@ -370,8 +370,8 @@ export default function DocumentGenerator() {
 
                         return (
                           <div key={field.name} className="flex items-start gap-2">
-                            <span className="text-sm text-gray-500 w-40 flex-shrink-0">{field.label} :</span>
-                            <span className="text-sm font-medium text-gray-900">{displayValue}</span>
+                            <span className="text-sm text-theme-muted w-40 flex-shrink-0">{field.label} :</span>
+                            <span className="text-sm font-medium text-theme-primary">{displayValue}</span>
                           </div>
                         )
                       })}
@@ -380,18 +380,18 @@ export default function DocumentGenerator() {
                 ))}
 
                 {/* Footer */}
-                <div className="border-t border-gray-200 pt-6 mt-8">
+                <div className="border-t border-theme-border pt-6 mt-8">
                   <div className="grid grid-cols-2 gap-8">
                     <div>
-                      <p className="text-xs text-gray-400 mb-8">Signature du mandant</p>
-                      <div className="border-b border-gray-300 w-full" />
+                      <p className="text-xs text-theme-tertiary mb-8">Signature du mandant</p>
+                      <div className="border-b border-theme-border w-full" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 mb-8">Signature de l'agent</p>
-                      <div className="border-b border-gray-300 w-full" />
+                      <p className="text-xs text-theme-tertiary mb-8">Signature de l'agent</p>
+                      <div className="border-b border-theme-border w-full" />
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-300 mt-6 text-center">
+                  <p className="text-[10px] text-theme-tertiary mt-6 text-center">
                     Document généré via MEGGA Real Estate — {new Date().toLocaleDateString('fr-CH')}
                   </p>
                 </div>

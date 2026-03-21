@@ -203,8 +203,8 @@ export default function TemplatesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Templates de documents</h1>
-          <p className="text-sm text-gray-400 mt-1">{TEMPLATES.length} templates disponibles</p>
+          <h1 className="text-2xl font-semibold text-theme-primary">Templates de documents</h1>
+          <p className="text-sm text-theme-tertiary mt-1">{TEMPLATES.length} templates disponibles</p>
         </div>
         <Button className="gap-2">
           <Plus className="w-4 h-4" />
@@ -215,13 +215,13 @@ export default function TemplatesPage() {
       {/* Search + Categories */}
       <div className="space-y-4">
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-tertiary" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher un template..."
-            className="w-full pl-10 pr-4 h-10 bg-white border border-gray-200 rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
+            className="w-full pl-10 pr-4 h-10 bg-theme-card border border-theme-border rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
           />
         </div>
 
@@ -233,8 +233,8 @@ export default function TemplatesPage() {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer',
                 category === cat.value
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  ? 'bg-theme-primary text-white'
+                  : 'bg-theme-active text-theme-muted hover:bg-theme-border'
               )}
             >
               <cat.icon className="w-3 h-3" />
@@ -251,7 +251,7 @@ export default function TemplatesPage() {
           return (
             <div
               key={template.id}
-              className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group"
+              className="bg-theme-card rounded-xl border border-theme-border-subtle p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
@@ -264,21 +264,21 @@ export default function TemplatesPage() {
                       Pro
                     </span>
                   )}
-                  <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-medium text-theme-tertiary bg-theme-active px-1.5 py-0.5 rounded">
                     {template.format}
                   </span>
                 </div>
               </div>
 
-              <h3 className="text-sm font-semibold text-gray-900 group-hover:text-accent transition-colors">
+              <h3 className="text-sm font-semibold text-theme-primary group-hover:text-accent transition-colors">
                 {template.name}
               </h3>
-              <p className="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-2">
+              <p className="text-xs text-theme-tertiary mt-1 leading-relaxed line-clamp-2">
                 {template.description}
               </p>
 
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
-                <div className="flex items-center gap-3 text-[11px] text-gray-300">
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-theme-border-subtle">
+                <div className="flex items-center gap-3 text-[11px] text-theme-tertiary">
                   {template.lastUsed && (
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -288,8 +288,8 @@ export default function TemplatesPage() {
                   <span>{template.usageCount}x utilisé</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer">
-                    <Eye className="w-3.5 h-3.5 text-gray-400" />
+                  <button className="w-7 h-7 rounded-lg hover:bg-theme-active flex items-center justify-center transition-colors cursor-pointer">
+                    <Eye className="w-3.5 h-3.5 text-theme-tertiary" />
                   </button>
                   <button className="w-7 h-7 rounded-lg hover:bg-accent/10 flex items-center justify-center transition-colors cursor-pointer">
                     <Download className="w-3.5 h-3.5 text-accent" />
@@ -303,8 +303,8 @@ export default function TemplatesPage() {
 
       {filtered.length === 0 && (
         <div className="text-center py-12">
-          <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">Aucun template trouvé</p>
+          <FileText className="w-10 h-10 text-theme-tertiary mx-auto mb-3" />
+          <p className="text-sm text-theme-tertiary">Aucun template trouvé</p>
         </div>
       )}
     </div>
