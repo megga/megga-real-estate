@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
   MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
-  Moon, Sun,
+  Moon, Sun, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -65,7 +65,9 @@ const navSections: NavSection[] = [
 
 interface SidebarProps {
   mobileOpen: boolean
+  collapsed?: boolean
   onClose: () => void
+  onToggleCollapse?: () => void
   onOpenCommandPalette?: () => void
 }
 
@@ -95,7 +97,7 @@ function NavIcon({ icon: Icon, isCreateAction }: { icon: React.ElementType; isCr
   return <Icon className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
 }
 
-export default function Sidebar({ mobileOpen, onClose, onOpenCommandPalette }: SidebarProps) {
+export default function Sidebar({ mobileOpen, collapsed = false, onClose, onToggleCollapse, onOpenCommandPalette }: SidebarProps) {
   const location = useLocation()
   const { signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
@@ -121,13 +123,32 @@ export default function Sidebar({ mobileOpen, onClose, onOpenCommandPalette }: S
             <span className="text-sm font-bold tracking-tight text-theme-primary">MEGGA</span>
           )}
         </Link>
-        {/* Mobile close button */}
         {!isCollapsed && (
+          <div className="ml-auto flex items-center gap-0.5">
+            {/* Desktop collapse button */}
+            <button
+              onClick={onToggleCollapse}
+              className="hidden lg:flex p-1.5 rounded-md hover:bg-theme-hover transition-colors"
+              title="Réduire la sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4 text-theme-tertiary" />
+            </button>
+            {/* Mobile close button */}
+            <button
+              onClick={onClose}
+              className="lg:hidden p-1.5 rounded-md hover:bg-theme-hover"
+            >
+              <X className="h-5 w-5 text-theme-muted" />
+            </button>
+          </div>
+        )}
+        {isCollapsed && onToggleCollapse && (
           <button
-            onClick={onClose}
-            className="lg:hidden ml-auto p-1.5 rounded-md hover:bg-theme-hover"
+            onClick={onToggleCollapse}
+            className="hidden lg:flex p-1.5 rounded-md hover:bg-theme-hover transition-colors"
+            title="Ouvrir la sidebar"
           >
-            <X className="h-5 w-5 text-theme-muted" />
+            <PanelLeftOpen className="h-4 w-4 text-theme-tertiary" />
           </button>
         )}
       </div>
@@ -325,14 +346,20 @@ export default function Sidebar({ mobileOpen, onClose, onOpenCommandPalette }: S
     </div>
   )
 
+  // Desktop: collapsed state is controlled by prop. Tablet (md to lg): always collapsed.
+  const isDesktopCollapsed = collapsed
+
   return (
     <>
-      {/* Desktop sidebar — full (lg+) */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 bg-theme-card border-r border-theme-border h-screen sticky top-0 z-40">
-        {sidebarContent(false)}
+      {/* Desktop sidebar — collapsible */}
+      <aside className={cn(
+        'hidden lg:flex flex-shrink-0 bg-theme-card border-r border-theme-border h-screen sticky top-0 z-40 transition-all duration-200',
+        isDesktopCollapsed ? 'w-16' : 'w-64'
+      )}>
+        {sidebarContent(isDesktopCollapsed)}
       </aside>
 
-      {/* Tablet sidebar — collapsed (md to lg) */}
+      {/* Tablet sidebar — always collapsed (md to lg) */}
       <aside className="hidden md:flex lg:hidden w-16 flex-shrink-0 bg-theme-card border-r border-theme-border h-screen sticky top-0 z-40">
         {sidebarContent(true)}
       </aside>

@@ -9,6 +9,7 @@ import CopilotPanel from '@/components/ai-copilot/CopilotPanel'
 
 function AgentLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
 
   const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), [])
@@ -30,7 +31,9 @@ function AgentLayoutInner() {
     <div className="flex h-screen overflow-hidden bg-theme-section">
       <Sidebar
         mobileOpen={mobileOpen}
+        collapsed={sidebarCollapsed}
         onClose={() => setMobileOpen(false)}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
         onOpenCommandPalette={openCommandPalette}
       />
 
