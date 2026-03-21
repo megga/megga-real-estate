@@ -21,9 +21,10 @@ const selectClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg
 interface NewTransactionDialogProps {
   open: boolean
   onClose: () => void
+  title?: string
 }
 
-export default function NewTransactionDialog({ open, onClose }: NewTransactionDialogProps) {
+export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle transaction' }: NewTransactionDialogProps) {
   const { profile } = useAuth()
   const { contacts } = useContacts()
   const { data: listings } = useAgencyListings()
@@ -75,7 +76,7 @@ export default function NewTransactionDialog({ open, onClose }: NewTransactionDi
     <Dialog open={open} onOpenChange={(o) => { if (!o) { resetForm(); onClose() } }}>
       <DialogContent className="max-w-md bg-theme-card border border-theme-border">
         <DialogHeader>
-          <DialogTitle className="text-theme-primary">Nouvelle transaction</DialogTitle>
+          <DialogTitle className="text-theme-primary">{title}</DialogTitle>
           <DialogDescription className="text-theme-tertiary">
             Créez un deal dans votre pipeline.
           </DialogDescription>
