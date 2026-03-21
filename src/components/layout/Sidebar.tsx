@@ -115,12 +115,11 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
         'h-14 flex items-center border-b border-theme-border-subtle shrink-0',
         isCollapsed ? 'justify-center px-2' : 'gap-2.5 px-4'
       )}>
-        <Link to="/" className="flex items-center gap-2.5" onClick={onClose}>
-          <div className="h-7 w-7 bg-theme-primary rounded-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-[10px] font-bold text-theme-inverse">GG</span>
-          </div>
-          {!isCollapsed && (
-            <span className="text-sm font-bold tracking-tight text-theme-primary">MEGGA</span>
+        <Link to="/" className="flex items-center gap-2.5 shrink-0" onClick={onClose}>
+          {isCollapsed ? (
+            <img src="/megga-gg.svg" alt="MEGGA" className="h-6 w-auto text-theme-primary" style={{ filter: 'var(--logo-filter, none)' }} />
+          ) : (
+            <img src="/megga-logo.svg" alt="MEGGA" className="h-5 w-auto" style={{ filter: 'var(--logo-filter, none)' }} />
           )}
         </Link>
         {!isCollapsed && (
