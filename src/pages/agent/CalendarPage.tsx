@@ -356,13 +356,17 @@ function CreateEventModal({ onClose, onCreate }: {
             </select>
           </div>
 
-          {/* Date/}
+          {/* Date */}
           <div>
             <label className="block text-sm font-medium text-theme-primary mb-1.5">Date</label>
             <input
-              type="date"
-              value={form.date}
-              onChange={e => updateField('date', e.target.value)}
+              type="text"
+              value={form.date.split('-').reverse().join('.')}
+              onChange={e => {
+                const parts = e.target.value.split('.')
+                if (parts.length === 3) updateField('date', `${parts[2]}-${parts[1]}-${parts[0]}`)
+              }}
+              placeholder="JJ.MM.AAAA"
               className={inputClasses}
             />
           </div>
@@ -372,18 +376,20 @@ function CreateEventModal({ onClose, onCreate }: {
             <div>
               <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure début</label>
               <input
-                type="time"
+                type="text"
                 value={form.startTime}
                 onChange={e => updateField('startTime', e.target.value)}
+                placeholder="10:00"
                 className={inputClasses}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure fin</label>
               <input
-                type="time"
+                type="text"
                 value={form.endTime}
                 onChange={e => updateField('endTime', e.target.value)}
+                placeholder="11:00"
                 className={inputClasses}
               />
             </div>
