@@ -3,7 +3,7 @@ import { Search, Send, ArrowLeft } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useMessaging, type MessageThread } from '@/hooks/useMessaging'
 import { useAuth } from '@/hooks/useAuth'
-import PageTransition from '@/components/layout/PageTransition'
+// Messages page uses h-full flex layout instead of PageTransition
 
 type FilterType = 'all' | 'unread' | 'buyer' | 'seller'
 
@@ -66,8 +66,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <PageTransition>
-      <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 14rem)' }}>
+    <div className="flex flex-col h-full overflow-hidden">
         {/* Header */}
         <div className="mb-4 flex-shrink-0">
           <h1 className="text-2xl font-semibold text-theme-primary">Messages</h1>
@@ -236,6 +235,5 @@ export default function MessagesPage() {
           </div>
         </div>
       </div>
-    </PageTransition>
   )
 }

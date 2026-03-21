@@ -27,7 +27,7 @@ function AgentLayoutInner() {
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-theme-section">
+    <div className="flex h-screen overflow-hidden bg-theme-section">
       <Sidebar
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
@@ -52,7 +52,7 @@ function AgentLayoutInner() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
           <Breadcrumb />
           <Outlet />
         </main>
