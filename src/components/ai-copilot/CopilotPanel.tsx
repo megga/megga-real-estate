@@ -84,12 +84,13 @@ export default function CopilotPanel() {
     }
   }, [isOpen, messages.length])
 
-  function handleSend(text?: string) {
+  const handleSend = useCallback((text?: string) => {
     const query = (text || input).trim()
     if (!query) return
 
+    const now = Date.now()
     const userMsg: CopilotMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${now}`,
       role: 'user',
       content: query,
       timestamp: new Date(),
@@ -99,7 +100,7 @@ export default function CopilotPanel() {
     setInput('')
     setIsTyping(true)
 
-    const delay = 800 + Math.random() * 600
+    const delay = 800 + (now % 600)
     setTimeout(() => {
       const response = getMockResponse(query)
       const assistantMsg: CopilotMessage = {
@@ -111,7 +112,7 @@ export default function CopilotPanel() {
       setMessages(prev => [...prev, assistantMsg])
       setIsTyping(false)
     }, delay)
-  }
+  }, [input])
 
   function handleReset() {
     setMessages([])

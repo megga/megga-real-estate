@@ -32,6 +32,7 @@ const SEVERITY_CONFIG: Record<string, { cls: string }> = {
 }
 
 // Mock data for when no real data is available
+// eslint-disable-next-line react-refresh/only-export-components
 export const MOCK_OBJECTION_DATA: ObjectionAnalysisProps = {
   totalVisits: 12,
   objections: [
