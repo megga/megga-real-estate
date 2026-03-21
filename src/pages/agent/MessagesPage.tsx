@@ -28,7 +28,7 @@ function DateSeparator({ date }: { date: string }) {
   return (
     <div className="flex items-center gap-3 py-2">
       <div className="flex-1 h-px bg-border" />
-      <span className="text-[10px] text-muted-foreground font-medium">{formatRelativeDate(date)}</span>
+      <span className="text-[10px] text-theme-tertiary font-medium">{formatRelativeDate(date)}</span>
       <div className="flex-1 h-px bg-border" />
     </div>
   )
@@ -111,21 +111,21 @@ export default function MessagesPage() {
   const threadList = (
     <div className="flex flex-col h-full">
       {/* Search */}
-      <div className="p-3 border-b border-border">
+      <div className="p-3 border-b border-theme-border">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
           <input
             type="text"
             placeholder="Rechercher..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 bg-section rounded-input text-sm outline-none focus:ring-2 focus:ring-accent/20"
+            className="w-full h-9 pl-9 pr-3 bg-theme-hover rounded-input text-sm outline-none focus:ring-2 focus:ring-accent/20"
           />
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-1 px-3 py-2 border-b border-border">
+      <div className="flex gap-1 px-3 py-2 border-b border-theme-border">
         {FILTERS.map((f) => (
           <button
             key={f.value}
@@ -134,7 +134,7 @@ export default function MessagesPage() {
               'text-xs font-medium px-2.5 py-1 rounded-badge transition-colors',
               filter === f.value
                 ? 'bg-accent text-white'
-                : 'text-muted-foreground hover:bg-section'
+                : 'text-theme-tertiary hover:bg-theme-hover'
             )}
           >
             {f.label}
@@ -145,7 +145,7 @@ export default function MessagesPage() {
       {/* Thread list */}
       <div className="flex-1 overflow-y-auto divide-y divide-border">
         {filteredThreads.length === 0 && (
-          <div className="p-6 text-center text-sm text-muted-foreground">
+          <div className="p-6 text-center text-sm text-theme-tertiary">
             Aucune conversation trouvée.
           </div>
         )}
@@ -154,17 +154,17 @@ export default function MessagesPage() {
             key={thread.id}
             onClick={() => handleSelectThread(thread)}
             className={cn(
-              'w-full text-left p-3 flex gap-3 transition-colors hover:bg-section/80',
+              'w-full text-left p-3 flex gap-3 transition-colors hover:bg-theme-hover/80',
               selectedThreadId === thread.id && 'bg-accent/5'
             )}
           >
             <ThreadAvatar initials={thread.avatar_initials} type={thread.contact_type} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <span className={cn('text-sm truncate', thread.unread_count > 0 ? 'font-semibold text-primary-900' : 'font-medium text-primary-700')}>
+                <span className={cn('text-sm truncate', thread.unread_count > 0 ? 'font-semibold text-theme-primary' : 'font-medium text-theme-primary')}>
                   {thread.contact_name}
                 </span>
-                <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                <span className="text-[10px] text-theme-tertiary flex-shrink-0">
                   {formatRelativeDate(thread.last_message_at)}
                 </span>
               </div>
@@ -172,7 +172,7 @@ export default function MessagesPage() {
                 <p className="text-[10px] text-accent truncate mt-0.5">{thread.property_title}</p>
               )}
               <div className="flex items-center gap-2 mt-0.5">
-                <p className={cn('text-xs truncate flex-1', thread.unread_count > 0 ? 'text-primary-700' : 'text-muted-foreground')}>
+                <p className={cn('text-xs truncate flex-1', thread.unread_count > 0 ? 'text-theme-primary' : 'text-theme-tertiary')}>
                   {thread.last_message}
                 </p>
                 {thread.unread_count > 0 && (
@@ -192,18 +192,18 @@ export default function MessagesPage() {
   const conversationView = selectedThread ? (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="h-16 border-b border-border flex items-center gap-3 px-4 flex-shrink-0">
+      <div className="h-16 border-b border-theme-border flex items-center gap-3 px-4 flex-shrink-0">
         {/* Mobile back button */}
         <button
           onClick={() => setSelectedThreadId(null)}
-          className="md:hidden p-1.5 -ml-1.5 rounded-md hover:bg-section"
+          className="md:hidden p-1.5 -ml-1.5 rounded-md hover:bg-theme-hover"
         >
-          <ArrowLeft className="h-5 w-5 text-primary-600" />
+          <ArrowLeft className="h-5 w-5 text-theme-secondary" />
         </button>
 
         <ThreadAvatar initials={selectedThread.avatar_initials} type={selectedThread.contact_type} />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-primary-900">{selectedThread.contact_name}</p>
+          <p className="text-sm font-semibold text-theme-primary">{selectedThread.contact_name}</p>
           <div className="flex items-center gap-1.5">
             <span className={cn(
               'text-[10px] font-medium px-1.5 py-0.5 rounded-badge',
@@ -212,7 +212,7 @@ export default function MessagesPage() {
               {selectedThread.contact_type === 'buyer' ? 'Acheteur' : 'Vendeur'}
             </span>
             {selectedThread.property_title && (
-              <span className="text-xs text-muted-foreground truncate flex items-center gap-1">
+              <span className="text-xs text-theme-tertiary truncate flex items-center gap-1">
                 <Building2 className="h-3 w-3" />
                 {selectedThread.property_title}
               </span>
@@ -237,12 +237,12 @@ export default function MessagesPage() {
                     'rounded-2xl px-4 py-2.5 text-sm',
                     isAgent
                       ? 'bg-accent text-white rounded-br-md'
-                      : 'bg-gray-100 text-primary-900 rounded-bl-md'
+                      : 'bg-theme-active text-theme-primary rounded-bl-md'
                   )}
                 >
                   {msg.content}
                 </div>
-                <p className={cn('text-[10px] text-muted-foreground', isAgent && 'text-right')}>
+                <p className={cn('text-[10px] text-theme-tertiary', isAgent && 'text-right')}>
                   {new Date(msg.created_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -253,9 +253,9 @@ export default function MessagesPage() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-3 flex-shrink-0">
+      <div className="border-t border-theme-border p-3 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <button className="p-2 rounded-md hover:bg-section text-muted-foreground hover:text-primary-600 transition-colors">
+          <button className="p-2 rounded-md hover:bg-theme-hover text-theme-tertiary hover:text-theme-secondary transition-colors">
             <Paperclip className="h-5 w-5" />
           </button>
           <input
@@ -264,7 +264,7 @@ export default function MessagesPage() {
             onChange={(e) => setMessageText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             placeholder="Écrire un message..."
-            className="flex-1 h-10 px-4 bg-gray-50 rounded-xl border-0 text-sm text-primary-900 placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-accent/20"
+            className="flex-1 h-10 px-4 bg-theme-input rounded-xl border-0 text-sm text-theme-primary placeholder:text-theme-tertiary outline-none focus:ring-2 focus:ring-accent/20"
           />
           <button
             onClick={handleSend}
@@ -281,7 +281,7 @@ export default function MessagesPage() {
     </div>
   ) : (
     <div className="flex-1 flex items-center justify-center">
-      <p className="text-muted-foreground text-sm">Sélectionnez une conversation</p>
+      <p className="text-theme-tertiary text-sm">Sélectionnez une conversation</p>
     </div>
   )
 
@@ -289,17 +289,17 @@ export default function MessagesPage() {
     <div className="h-[calc(100vh-theme(spacing.16)-theme(spacing.8))] lg:h-[calc(100vh-theme(spacing.16))] flex flex-col">
       {/* Page header */}
       <div className="mb-4 flex-shrink-0">
-        <h1 className="text-2xl font-semibold text-primary-900">Messages</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
+        <h1 className="text-2xl font-semibold text-theme-primary">Messages</h1>
+        <p className="text-sm text-theme-tertiary mt-0.5">
           {threads.length} conversations · {threads.filter((t) => t.unread_count > 0).length} non lues
         </p>
       </div>
 
       {/* Inbox container */}
-      <div className="flex-1 bg-white rounded-card border border-border overflow-hidden flex min-h-0">
+      <div className="flex-1 rounded-xl border border-theme-border overflow-hidden flex min-h-0">
         {/* Thread list — left panel (hidden on mobile when a thread is selected) */}
         <div className={cn(
-          'w-full md:w-80 lg:w-96 border-r border-border flex-shrink-0',
+          'w-full md:w-80 lg:w-96 border-r border-theme-border flex-shrink-0',
           selectedThreadId !== null ? 'hidden md:flex md:flex-col' : 'flex flex-col'
         )}>
           {threadList}

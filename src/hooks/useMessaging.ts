@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
-const DEV_BYPASS = false
+const DEV_BYPASS = import.meta.env.DEV
 
 export interface MessageThread {
   id: string
@@ -73,9 +73,7 @@ async function loadMockData() {
 }
 
 // Pre-load mock data
-if (DEV_BYPASS) {
-  loadMockData()
-}
+const mockReady = DEV_BYPASS ? loadMockData() : Promise.resolve()
 
 export function useMessaging(threadId: string | null) {
   const { user, profile } = useAuth()
@@ -85,7 +83,7 @@ export function useMessaging(threadId: string | null) {
   const threadsQuery = useQuery({
     queryKey: ['threads', profile?.agency_id],
     queryFn: async () => {
-      if (DEV_BYPASS) return MOCK_THREADS
+      if (DEV_BYPASS) { await mockReady; return MOCK_THREADS }
       const { data, error } = await supabase
         .from('message_threads')
         .select('*')
@@ -96,14 +94,14 @@ export function useMessaging(threadId: string | null) {
         avatar_initials: t.contact_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2),
       }))
     },
-    enabled: !!user,
+    enabled: DEV_BYPASS || !!user,
   })
 
   // Fetch messages for selected thread
   const messagesQuery = useQuery({
     queryKey: ['messages', threadId],
     queryFn: async () => {
-      if (DEV_BYPASS) return MOCK_MESSAGES[threadId!] ?? []
+      if (DEV_BYPASS) { await mockReady; return MOCK_MESSAGES[threadId!] ?? [] }
       const { data, error } = await supabase
         .from('messages')
         .select('*')
