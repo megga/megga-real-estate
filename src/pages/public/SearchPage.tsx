@@ -6,7 +6,6 @@ import {
   X,
   MapPin,
   Heart,
-  Bell,
   LayoutGrid,
   List,
   DoorOpen,
@@ -15,12 +14,11 @@ import {
   Map,
   SlidersHorizontal,
   Sparkles,
+  MessageCircle,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import MapView from '@/components/map/MapView'
-import SaveSearchModal from '@/components/search/SaveSearchModal'
-import SavedSearchesPanel from '@/components/search/SavedSearchesPanel'
-import { useSavedSearches } from '@/hooks/useSavedSearches'
+import ChatSearch from '@/components/search/ChatSearch'
 import { MOCK_LISTINGS, toCardData } from '@/lib/mockData'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
@@ -790,10 +788,7 @@ export default function SearchPage() {
   const [aiUnderstood, setAiUnderstood] = useState<string[]>([])
   const [showAiBanner, setShowAiBanner] = useState(false)
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
-  const [showSaveModal, setShowSaveModal] = useState(false)
-  const [showSavedPanel, setShowSavedPanel] = useState(false)
-  const [saveModalAlertDefault, setSaveModalAlertDefault] = useState(false)
-  const { savedSearches } = useSavedSearches()
+  const [showChat, setShowChat] = useState(false)
 
   // Sync filters to URL
   useEffect(() => {
@@ -1263,43 +1258,6 @@ export default function SearchPage() {
                 </button>
               </div>
 
-              {/* Separator */}
-              <div className="hidden sm:block border-l border-gray-200 h-5 mx-3" />
-
-              {/* Save & Alert */}
-              <button
-                onClick={() => {
-                  setSaveModalAlertDefault(false)
-                  setShowSaveModal(true)
-                }}
-                className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary-900 transition-colors cursor-pointer mr-3 relative"
-              >
-                <Heart className="h-4 w-4" />
-                Sauvegarder
-                {savedSearches.length > 0 && (
-                  <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {savedSearches.length}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setSaveModalAlertDefault(true)
-                  setShowSaveModal(true)
-                }}
-                className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary-900 transition-colors cursor-pointer mr-3"
-              >
-                <Bell className="h-4 w-4" />
-                Alerte
-              </button>
-              {savedSearches.length > 0 && (
-                <button
-                  onClick={() => setShowSavedPanel(true)}
-                  className="hidden sm:flex items-center gap-1.5 text-xs text-accent font-medium hover:text-accent/80 transition-colors cursor-pointer"
-                >
-                  Mes recherches
-                </button>
-              )}
             </div>
           </div>
 
@@ -1395,23 +1353,39 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* Save search modal */}
-      <SaveSearchModal
-        isOpen={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
-        filters={filters}
-        resultsCount={filtered.length}
-        defaultAlertEnabled={saveModalAlertDefault}
-      />
 
-      {/* Saved searches panel */}
-      <SavedSearchesPanel
-        isOpen={showSavedPanel}
-        onClose={() => setShowSavedPanel(false)}
-        onApply={(savedFilters) => {
-          const f = savedFilters as unknown as Filters
-          setFilters(f)
-          setSearchInput(f.q || '')
+      {/* ─── Floating AI Chat Button ─── */}
+      {!showChat && (
+        <button
+          onClick={() => setShowChat(true)}
+          className="fixed bottom-6 right-6 z-40 h-14 bg-accent hover:bg-accent/90 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2.5 px-5 cursor-pointer group"
+        >
+          <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-medium hidden sm:inline">Recherche assistée</span>
+          <MessageCircle className="w-5 h-5 sm:hidden" />
+        </button>
+      )}
+
+      {/* AI Chat Panel */}
+      <ChatSearch
+        isOpen={showChat}
+        onClose={() => setShowChat(false)}
+        allListings={ALL_LISTINGS}
+        onHighlightListing={(id) => {
+          setHoveredListing(id)
+          setTimeout(() => setHoveredListing(undefined), 3000)
+        }}
+        onApplyFilters={(chatFilters) => {
+          const patch: Partial<Filters> = {}
+          if (chatFilters.context) patch.context = chatFilters.context as Context
+          if (chatFilters.city) patch.city = chatFilters.city as string
+          if (chatFilters.maxPrice) patch.maxPrice = chatFilters.maxPrice as string
+          if (chatFilters.minPrice) patch.minPrice = chatFilters.minPrice as string
+          if (chatFilters.rooms) patch.rooms = chatFilters.rooms as string
+          if (chatFilters.bedrooms) patch.bedrooms = chatFilters.bedrooms as string
+          if (chatFilters.minSurface) patch.minSurface = chatFilters.minSurface as string
+          if (Array.isArray(chatFilters.types)) patch.types = chatFilters.types as string[]
+          updateFilter(patch)
         }}
       />
     </div>

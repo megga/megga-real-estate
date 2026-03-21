@@ -27,8 +27,8 @@ import PageTransition from '@/components/layout/PageTransition'
 
 // Pipeline columns config — subset of stages for Kanban
 const PIPELINE_COLUMNS: { stage: MockDeal['stage']; color: string; headerBg: string }[] = [
-  { stage: 'lead',          color: 'bg-primary-300', headerBg: 'bg-primary-50' },
-  { stage: 'qualified',     color: 'bg-accent',      headerBg: 'bg-accent/5' },
+  { stage: 'new_lead',      color: 'bg-primary-300', headerBg: 'bg-primary-50' },
+  { stage: 'to_qualify',    color: 'bg-accent',      headerBg: 'bg-accent/5' },
   { stage: 'visit_planned', color: 'bg-warning',     headerBg: 'bg-warning/5' },
   { stage: 'offer',         color: 'bg-purple-500',  headerBg: 'bg-purple-50' },
   { stage: 'negotiation',   color: 'bg-danger',      headerBg: 'bg-danger/5' },

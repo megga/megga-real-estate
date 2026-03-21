@@ -19,6 +19,7 @@ const LINKS_PRO = [
 
 const LINKS_MEGGA = [
   { label: 'À propos', href: '/services' },
+  { label: 'Centre d\'aide', href: '/aide' },
   { label: 'Contact', href: '/services' },
   { label: 'Mentions légales', href: '/services' },
   { label: 'Confidentialité', href: '/services' },

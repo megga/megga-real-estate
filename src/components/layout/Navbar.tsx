@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Plus, Menu, X, LogOut, LayoutDashboard, User } from 'lucide-react'
+import { Plus, Menu, X, LogOut, LayoutDashboard, HelpCircle, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
@@ -33,7 +33,7 @@ function UserAvatar({ name, email }: { name: string; email: string }) {
 export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, loading, signOut } = useAuth()
+  const { user, profile, loading, signOut, isAgent } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -49,12 +49,12 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [dropdownOpen])
 
-  const displayName = user?.user_metadata?.full_name || user?.email || ''
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email || ''
   const displayEmail = user?.email || ''
 
   async function handleSignOut() {
-    await signOut()
     setDropdownOpen(false)
+    await signOut()
     navigate('/')
   }
 
@@ -90,10 +90,12 @@ export default function Navbar() {
 
         {/* Actions desktop */}
         <div className="hidden md:flex items-center gap-3">
-          <Button size="default" className="rounded-full gap-2">
-            <Plus className="h-4 w-4" />
-            Publier une annonce
-          </Button>
+          <Link to="/publier">
+            <Button size="default" className="rounded-full gap-2">
+              <Plus className="h-4 w-4" />
+              Publier une annonce
+            </Button>
+          </Link>
 
           {loading ? (
             <div className="h-9 w-9 rounded-full bg-section animate-pulse" />
@@ -119,23 +121,27 @@ export default function Navbar() {
                     </p>
                   </div>
 
-                  {/* Menu items */}
+                  {/* Menu items — role-aware */}
                   <div className="py-1">
                     <Link
-                      to="/dashboard"
+                      to={isAgent ? '/dashboard' : '/portal'}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-                      Dashboard
+                      {isAgent ? (
+                        <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      {isAgent ? 'Dashboard' : 'Mon espace'}
                     </Link>
                     <Link
-                      to="/settings/profile"
+                      to="/aide"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      Mon profil
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      Aide
                     </Link>
                   </div>
 
@@ -188,10 +194,12 @@ export default function Navbar() {
 
             {/* Mobile auth section */}
             <div className="flex flex-col gap-2 pt-3 border-t border-border mt-2">
-              <Button size="default" className="rounded-full gap-2 w-full">
-                <Plus className="h-4 w-4" />
-                Publier une annonce
-              </Button>
+              <Link to="/publier" onClick={() => setMobileOpen(false)}>
+                <Button size="default" className="rounded-full gap-2 w-full">
+                  <Plus className="h-4 w-4" />
+                  Publier une annonce
+                </Button>
+              </Link>
 
               {user ? (
                 <>
@@ -203,11 +211,11 @@ export default function Navbar() {
                     </div>
                   </div>
                   <Link
-                    to="/dashboard"
+                    to={isAgent ? '/dashboard' : '/portal'}
                     className="px-3 py-2 text-sm font-medium text-primary-700 hover:bg-section rounded-md"
                     onClick={() => setMobileOpen(false)}
                   >
-                    Dashboard
+                    {isAgent ? 'Dashboard' : 'Mon espace'}
                   </Link>
                   <button
                     onClick={() => {

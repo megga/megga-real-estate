@@ -96,6 +96,7 @@ function AnimatedCounter({ target, active }: { target: number; active: boolean }
 
   useEffect(() => {
     if (!active) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setValue(0);
       return;
     }
@@ -251,6 +252,7 @@ export default function ScrollExpandExplorer() {
   useEffect(() => {
     if (reducedMotion) {
       progress.set(1);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCardsVisible(true);
       setIsComplete(true);
     }
