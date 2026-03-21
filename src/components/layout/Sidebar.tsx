@@ -208,7 +208,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                         active
                           ? isCollapsed
                             ? 'bg-accent/8 text-accent'
-                            : 'bg-accent/8 text-accent font-medium border-l-[2.5px] border-accent ml-0 pl-[calc(0.625rem-2.5px)]'
+                            : 'bg-accent/8 text-accent font-medium'
                           : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
                       )}
                     >
