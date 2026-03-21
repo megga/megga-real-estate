@@ -72,11 +72,6 @@ IA :           Anthropic Claude API via Edge Functions
                - Génération d'annonces multi-versions
                - Analyse d'objections post-visite
 
-Communication : WhatsApp Business API (Meta) via Edge Functions
-               - Envoi/réception messages
-               - Templates pré-approuvés
-               - Archivage automatique dans fiche contact
-
 Email :        Resend (transactionnel + relances automatiques)
 Payments :     Stripe (abonnements agents)
 Analytics :    PostHog
@@ -240,134 +235,93 @@ megga-real-estate/
 
 ### 4.1 Direction esthétique
 
-**Épuré, blanc, lumineux, professionnel, premium.**
-Inspiré de la ref Dribbble (plateforme immobilière Miami — voir screenshot).
+**Minimal, transparent, professionnel.** Inspiré de Lovable, Linear et Notion.
+
+Le dashboard agent utilise un système **dark/light mode** avec CSS variables. Les pages publiques restent en mode clair uniquement.
 
 Caractéristiques clés :
-- Fond blanc dominant (#FFFFFF) avec gris très léger pour les sections
-- Cartes de listings avec photos HD plein format, coins arrondis 12px
-- Grande barre de recherche centrale sur la home page
-- Layout aéré, beaucoup d'espace blanc
-- Typographie sobre et lisible
-- Badges de couleur pour les statuts (Hot price, Nouveau, Exclusif...)
-- Header épuré avec logo MEGGA à gauche, navigation centrée, CTA à droite
+- **Bentos transparents** : pas de fond coloré sur les cards, juste `rounded-xl border border-theme-border`
+- **Pas d'ombres** : pas de `shadow-card`, pas de `shadow-sm`. Juste des borders subtils
+- **Boutons ghost** : `border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active`. JAMAIS de `bg-accent text-white` pour les boutons d'action
+- **Badges texte** : couleur texte sans fond (pas de `bg-danger/10 text-danger`). Juste `text-red-500` ou `text-emerald-500`
+- **Pas d'icônes** dans les titres, les boutons d'action, ni les labels de formulaire
+- **Dots colorés** pour les indicateurs (score, risque, statut) : `w-2 h-2 rounded-full bg-red-500`
+- **Actions au hover** : les boutons CTA (Voir, Éditer, Supprimer) sont cachés par défaut, visibles au group-hover
+- **Notifications sidebar** : petit dot rouge `w-2 h-2` au lieu de badges compteurs
 
 **CE QUE CE N'EST PAS :**
-- Pas de dark mode (Phase 2 éventuellement)
 - Pas de gradients flashy
-- Pas de couleurs saturées partout
-- Pas de design "dashboard SaaS gris triste" — c'est premium et lumineux
+- Pas de couleurs saturées (les bg-accent plein sont interdits sauf exceptions)
+- Pas d'ombres (shadow-card, shadow-sm, shadow-lg sont supprimés des bentos)
+- Pas d'icônes décoratives dans les boutons et les headers
 
-### 4.2 Couleurs
+### 4.2 Système de thème (CSS Variables)
 
-```typescript
-// src/lib/constants.ts
+Les couleurs sont définies via CSS variables dans `src/styles/globals.css` avec deux palettes : `:root` (light) et `[data-theme="dark"]`. Le ThemeProvider est scopé au dashboard uniquement (dans AgentLayout).
 
-export const colors = {
-  // Primaires
-  primary: {
-    DEFAULT: '#1A1A1A',     // Noir quasi-pur — texte principal, logo
-    50:  '#F7F7F7',
-    100: '#E8E8E8',
-    200: '#D1D1D1',
-    300: '#B0B0B0',
-    400: '#888888',
-    500: '#6D6D6D',
-    600: '#5D5D5D',
-    700: '#4F4F4F',
-    800: '#3D3D3D',
-    900: '#1A1A1A',
-  },
-
-  // Accent — Bleu MEGGA (boutons CTA, liens actifs, éléments interactifs)
-  accent: {
-    DEFAULT: '#2563EB',     // Bleu vif — CTA principal
-    hover:   '#1D4ED8',     // Bleu hover
-    light:   '#EFF6FF',     // Bleu très léger — badges, backgrounds
-    dark:    '#1E40AF',
-  },
-
-  // Succès / Compliance validée
-  success: {
-    DEFAULT: '#059669',     // Vert
-    light:   '#ECFDF5',
-    dark:    '#047857',
-  },
-
-  // Warning / Attention requise
-  warning: {
-    DEFAULT: '#D97706',     // Orange
-    light:   '#FFFBEB',
-    dark:    '#B45309',
-  },
-
-  // Danger / Bloqué / Hot price
-  danger: {
-    DEFAULT: '#DC2626',     // Rouge
-    light:   '#FEF2F2',
-    dark:    '#B91C1C',
-  },
-
-  // Backgrounds
-  bg: {
-    page:    '#FFFFFF',     // Fond principal
-    section: '#F9FAFB',     // Fond sections alternées
-    card:    '#FFFFFF',     // Fond cards
-    sidebar: '#FAFAFA',     // Fond sidebar agent
-    input:   '#F3F4F6',     // Fond champs de recherche
-    overlay: 'rgba(0,0,0,0.5)',
-  },
-
-  // Borders
-  border: {
-    DEFAULT: '#E5E7EB',     // Bordure principale
-    light:   '#F3F4F6',     // Bordure très subtile
-    focus:   '#2563EB',     // Bordure focus
-  },
-
-  // Texte
-  text: {
-    primary:   '#1A1A1A',
-    secondary: '#6B7280',
-    tertiary:  '#9CA3AF',
-    inverse:   '#FFFFFF',
-    link:      '#2563EB',
-  },
-} as const;
+**Palette Dark Mode (confirmée) :**
+```
+Page       #1C1C1C     --color-bg-page
+Sidebar    #161616     --color-bg-sidebar
+Cards      #2A2A2A     --color-bg-card
+Surfaces   #222222     --color-bg-section
+Borders    #383838     --color-border
+Texte      #ECECEF     --color-text-primary
+Muted      #8E8E96     --color-text-secondary
+Accent     #2563EB     --color-accent
 ```
 
-### Tailwind config :
+**Tokens Tailwind sémantiques (à utiliser PARTOUT au lieu des couleurs hardcodées) :**
+```
+Backgrounds :  bg-theme-page, bg-theme-card, bg-theme-section, bg-theme-sidebar,
+               bg-theme-input, bg-theme-elevated, bg-theme-hover, bg-theme-active
+Textes :       text-theme-primary, text-theme-secondary, text-theme-tertiary,
+               text-theme-muted, text-theme-inverse
+Borders :      border-theme-border, border-theme-border-subtle, border-theme-border-focus
+```
 
-```typescript
-// tailwind.config.ts — étend les couleurs par défaut
-export default {
-  theme: {
-    extend: {
-      colors: {
-        accent:  '#2563EB',
-        success: '#059669',
-        warning: '#D97706',
-        danger:  '#DC2626',
-        border:  '#E5E7EB',
-      },
-      borderRadius: {
-        DEFAULT: '8px',
-        card: '12px',
-        button: '8px',
-        input: '10px',
-        full: '9999px',
-        badge: '6px',
-      },
-      boxShadow: {
-        card: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
-        'card-hover': '0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04)',
-        navbar: '0 1px 3px rgba(0,0,0,0.05)',
-        dropdown: '0 10px 40px rgba(0,0,0,0.12)',
-        modal: '0 20px 60px rgba(0,0,0,0.15)',
-      },
-    },
-  },
-};
+**JAMAIS utiliser :**
+- `bg-white`, `bg-gray-50`, `text-gray-900`, `border-gray-200` — ces classes hardcodées ne fonctionnent pas en dark mode
+- `bg-primary-100`, `text-primary-600` — utiliser `bg-theme-active`, `text-theme-secondary`
+- `shadow-card`, `shadow-sm` sur les bentos — pas d'ombres dans le style Lovable
+
+**Logo SVG :**
+- Sidebar ouverte : `/public/megga-logo.svg` (logo complet)
+- Sidebar repliée : `/public/megga-gg.svg` (icône GG)
+- En dark mode : `style={{ filter: 'var(--logo-filter, none)' }}` pour inverser en blanc
+
+### 4.2b Composants patterns
+
+**Bento (container standard) :**
+```tsx
+<div className="rounded-xl border border-theme-border p-5">
+```
+
+**Bouton ghost (action standard) :**
+```tsx
+<button className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+```
+
+**Input transparent :**
+```tsx
+<input className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent" />
+```
+
+**Badge texte (pas de fond) :**
+```tsx
+<span className="text-xs font-medium text-red-500">Élevé</span>
+```
+
+**Dot indicateur :**
+```tsx
+<span className="w-2 h-2 rounded-full bg-red-500" />
+```
+
+**Actions au hover :**
+```tsx
+<div className="opacity-0 group-hover:opacity-100 transition-opacity">
+  <button>Action</button>
+</div>
 ```
 
 ### 4.3 Typographie
@@ -842,9 +796,9 @@ CRITIQUE : Chaque table DOIT avoir des policies RLS activées.
 
 > Gregory Lyonnet, notre expert terrain, a défini ces modules comme essentiels au quotidien d'un courtier. L'IA n'est JAMAIS un gadget — elle est toujours connectée au contexte réel du CRM.
 
-### 8.1 Assistant IA global (Copilote)
+### 8.1 MEGGA AI (ancien Copilote)
 
-**Accès :** Bouton flottant ou panel latéral, disponible depuis toute page agent.
+**Accès :** Bouton flottant en bas à droite (icône Sparkles, style ghost), disponible depuis toute page agent. Panel slide-in depuis le bas.
 
 **Commandes naturelles supportées :**
 - "Résume-moi ce client" → Résumé structuré (qui, où en est la relation, quoi faire ensuite)
@@ -955,6 +909,27 @@ Après les visites, l'IA regroupe et analyse :
 
 Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymisé).
 
+### 8.10 KYC Tier 1 — Compliance avancée (IMPLÉMENTÉ)
+
+**Screening PEP & Sanctions :**
+- Vérification automatique PEP (Personnes Exposées Politiquement) et listes de sanctions (SECO, UN, EU)
+- Section "Vérification Compliance" dans KycDetailPage avec statut vert/rouge
+- Colonne PEP/S dans KycListPage avec icône AlertTriangle/ShieldCheck
+- Bouton "Relancer la vérification" (human-in-the-loop)
+- Mock data : kyc5 (PEP match), kyc9 (sanctions match Russie)
+
+**Score de risque automatique :**
+- Fonction `calculateRiskScore()` dans `src/lib/kycUtils.ts`
+- 5 facteurs : nationalité GAFI (25pts), PEP (25pts), montant >5M (20pts), PM vs PP (15pts), docs incomplets (15pts)
+- Score 0-100 → low/medium/high avec barre visuelle et facteurs détaillés
+- Listes FATF dans `src/lib/constants.ts` (FATF_HIGH_RISK_COUNTRIES, FATF_INCREASED_MONITORING)
+- Label "estimation IA" obligatoire
+
+**Alertes expiration documents :**
+- Champs `issued_at`, `expires_at`, `document_category` sur MockKycDocument
+- Badges "Expiré" (rouge) / "Expire dans Xj" (orange) dans la liste documents
+- Alertes dans ActionBoard urgences pour documents expirés/expirants
+
 ---
 
 ## 9. RECHERCHE IA CONVERSATIONNELLE
@@ -1013,7 +988,9 @@ Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymi
 - JAMAIS de validation KYC automatique sans action humaine
 - JAMAIS d'envoi automatique au client sans validation agent (sauf relance auto explicitement activée)
 - JAMAIS d'action IA silencieuse — tout est loggé et visible
-- JAMAIS de dark mode pour l'instant (Phase 2)
+- JAMAIS de couleurs hardcodées (bg-white, text-gray-*) — toujours utiliser les tokens thème (text-theme-primary, bg-theme-card, etc.)
+- JAMAIS de bg-accent plein sur les boutons d'action — utiliser le style ghost (border + text)
+- JAMAIS d'ombres (shadow-card, shadow-sm) sur les bentos — juste border border-theme-border
 - JAMAIS de Next.js — c'est React + Vite (pas besoin de SSR, c'est un SaaS)
 - JAMAIS de Vercel — c'est Cloudflare Pages
 - JAMAIS de `console.log` en production
