@@ -9,15 +9,18 @@ import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
 import ListingPage from '@/pages/public/ListingPage'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import AgentLayout from '@/components/layout/AgentLayout'
+import ActionBoardPage from '@/pages/agent/ActionBoardPage'
 import DashboardPage from '@/pages/agent/DashboardPage'
 import ContactsPage from '@/pages/agent/ContactsPage'
 import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 import PipelinePage from '@/pages/agent/PipelinePage'
+import SettingsPage from '@/pages/agent/SettingsPage'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
 import ServicesPage from '@/pages/public/ServicesPage'
 import PublierPage from '@/pages/public/PublierPage'
+import ResetPasswordPage from '@/pages/public/ResetPasswordPage'
 import NotFoundPage from '@/pages/public/NotFoundPage'
 
 const queryClient = new QueryClient({
@@ -49,6 +52,7 @@ export default function App() {
             <Route path="/estimer" element={<EstimationsPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/publier" element={<PublierPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Agent dashboard (protected) */}
             <Route
@@ -59,11 +63,12 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<DashboardPage />} />
+              <Route index element={<ActionBoardPage />} />
+              <Route path="analytics" element={<DashboardPage />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="contacts/:id" element={<ContactDetailPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
-              {/* Future routes: listings, kyc, messages, calendar, settings */}
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* 404 */}

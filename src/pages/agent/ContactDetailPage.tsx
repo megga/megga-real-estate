@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Pencil, MessageSquare, Mail, Phone, MapPin,
+  Pencil, MessageSquare, Mail, Phone, MapPin,
   Calendar, Tag, Building2, Banknote, Ruler, DoorOpen,
   ChevronRight, FileText, PhoneCall, Eye, Send, UserPlus,
   CheckCircle2, Clock,
@@ -8,6 +8,7 @@ import {
 import { cn, formatCHF, formatRelativeDate, formatDate } from '@/lib/utils'
 import { getContactById, type MockContact } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
+import PageTransition from '@/components/layout/PageTransition'
 
 const scoreConfig: Record<MockContact['score'], { label: string; dot: string; bg: string }> = {
   hot:  { label: 'Hot',  dot: 'bg-danger',  bg: 'bg-danger/10 text-danger' },
@@ -65,10 +66,10 @@ function ContactAvatar({ name, size = 'lg' }: { name: string; size?: 'sm' | 'lg'
 function InfoRow({ icon: Icon, label, value }: { icon: typeof Mail; label: string; value: string }) {
   return (
     <div className="flex items-start gap-3 py-2">
-      <Icon className="h-4 w-4 text-primary-400 mt-0.5 flex-shrink-0" />
+      <Icon className="h-4 w-4 text-theme-tertiary mt-0.5 flex-shrink-0" />
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm text-primary-900">{value}</p>
+        <p className="text-sm text-theme-primary">{value}</p>
       </div>
     </div>
   )
@@ -81,7 +82,7 @@ export default function ContactDetailPage() {
   if (!contact) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
-        <p className="text-lg font-medium text-primary-700 mb-1">Contact introuvable</p>
+        <p className="text-lg font-medium text-theme-secondary mb-1">Contact introuvable</p>
         <p className="text-sm text-muted-foreground mb-4">Ce contact n'existe pas ou a été supprimé.</p>
         <Link to="/dashboard/contacts" className="text-sm text-accent hover:text-accent/80 font-medium">
           ← Retour aux contacts
@@ -95,23 +96,15 @@ export default function ContactDetailPage() {
   const tc = typeConfig[contact.type]
 
   return (
+    <PageTransition>
     <div className="space-y-6">
-      {/* Back link */}
-      <Link
-        to="/dashboard/contacts"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary-900 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Contacts
-      </Link>
-
       {/* Header */}
-      <div className="bg-white rounded-card shadow-card p-6">
+      <div className="bg-theme-card rounded-card shadow-card p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <ContactAvatar name={fullName} size="lg" />
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h1 className="text-2xl font-semibold text-primary-900">{fullName}</h1>
+              <h1 className="text-2xl font-semibold text-theme-primary">{fullName}</h1>
               <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge', tc.cls)}>
                 {tc.label}
               </span>
@@ -125,7 +118,7 @@ export default function ContactDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="inline-flex items-center gap-2 border border-border text-sm font-medium px-3 py-2 rounded-button hover:bg-section transition-colors text-primary-700">
+            <button className="inline-flex items-center gap-2 border border-theme-border text-sm font-medium px-3 py-2 rounded-button hover:bg-theme-section transition-colors text-theme-secondary">
               <Pencil className="h-4 w-4" />
               Éditer
             </button>
@@ -141,8 +134,8 @@ export default function ContactDetailPage() {
         {/* Left column: info + criteria */}
         <div className="lg:col-span-1 space-y-6">
           {/* Contact info */}
-          <div className="bg-white rounded-card shadow-card p-5">
-            <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3">Informations</h2>
+          <div className="bg-theme-card rounded-card shadow-card p-5">
+            <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Informations</h2>
             <div className="space-y-0.5">
               <InfoRow icon={Mail} label="Email" value={contact.email} />
               <InfoRow icon={Phone} label="Téléphone" value={contact.phone} />
@@ -150,12 +143,12 @@ export default function ContactDetailPage() {
               <InfoRow icon={Calendar} label="Dernière activité" value={formatRelativeDate(contact.last_activity)} />
               {contact.tags.length > 0 && (
                 <div className="flex items-start gap-3 py-2">
-                  <Tag className="h-4 w-4 text-primary-400 mt-0.5 flex-shrink-0" />
+                  <Tag className="h-4 w-4 text-theme-tertiary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs text-muted-foreground">Tags</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {contact.tags.map((tag) => (
-                        <span key={tag} className="text-xs bg-section text-primary-600 px-2 py-0.5 rounded-full">
+                        <span key={tag} className="text-xs bg-theme-section text-primary-600 px-2 py-0.5 rounded-full">
                           {tag}
                         </span>
                       ))}
@@ -168,8 +161,8 @@ export default function ContactDetailPage() {
 
           {/* Search criteria (buyers only) */}
           {contact.search_criteria && (
-            <div className="bg-white rounded-card shadow-card p-5">
-              <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3">Critères de recherche</h2>
+            <div className="bg-theme-card rounded-card shadow-card p-5">
+              <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Critères de recherche</h2>
               <div className="space-y-0.5">
                 <InfoRow icon={Building2} label="Type de bien" value={contact.search_criteria.property_type} />
                 <InfoRow
@@ -185,12 +178,12 @@ export default function ContactDetailPage() {
           )}
 
           {/* Notes */}
-          <div className="bg-white rounded-card shadow-card p-5">
-            <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3">Notes</h2>
+          <div className="bg-theme-card rounded-card shadow-card p-5">
+            <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Notes</h2>
             <textarea
               defaultValue={contact.notes}
               rows={4}
-              className="w-full text-sm text-primary-700 bg-section border border-border rounded-input p-3 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
+              className="w-full text-sm text-theme-secondary bg-theme-section border border-theme-border rounded-input p-3 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
               placeholder="Ajouter des notes..."
             />
           </div>
@@ -199,8 +192,8 @@ export default function ContactDetailPage() {
         {/* Right column: transactions + activity */}
         <div className="lg:col-span-2 space-y-6">
           {/* Linked transactions */}
-          <div className="bg-white rounded-card shadow-card p-5">
-            <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-3">
+          <div className="bg-theme-card rounded-card shadow-card p-5">
+            <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">
               Transactions liées
               {contact.transactions.length > 0 && (
                 <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -218,13 +211,13 @@ export default function ContactDetailPage() {
                   return (
                     <div
                       key={tx.id}
-                      className="flex items-center gap-4 p-3 rounded-lg bg-section hover:bg-primary-50 transition-colors cursor-pointer"
+                      className="flex items-center gap-4 p-3 rounded-lg bg-theme-section hover:bg-primary-50 transition-colors cursor-pointer"
                     >
                       <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Building2 className="h-5 w-5 text-accent" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-primary-900 truncate">{tx.property_title}</p>
+                        <p className="text-sm font-medium text-theme-primary truncate">{tx.property_title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded">
                             {stageLabel || tx.stage}
@@ -235,9 +228,9 @@ export default function ContactDetailPage() {
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-primary-900">{formatCHF(tx.price)}</p>
+                        <p className="text-sm font-bold text-theme-primary">{formatCHF(tx.price)}</p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-primary-300 flex-shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
                     </div>
                   )
                 })}
@@ -246,14 +239,14 @@ export default function ContactDetailPage() {
           </div>
 
           {/* Activity timeline */}
-          <div className="bg-white rounded-card shadow-card p-5">
-            <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider mb-4">
+          <div className="bg-theme-card rounded-card shadow-card p-5">
+            <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-4">
               Historique d'activité
             </h2>
 
             <div className="relative">
               {/* Timeline line */}
-              <div className="absolute left-[17px] top-2 bottom-2 w-px bg-border" />
+              <div className="absolute left-[17px] top-2 bottom-2 w-px bg-theme-border" />
 
               <div className="space-y-4">
                 {contact.activities.map((activity, i) => {
@@ -263,14 +256,14 @@ export default function ContactDetailPage() {
                     <div key={activity.id} className="relative flex gap-4">
                       <div className={cn(
                         'h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 z-10',
-                        isFirst ? 'bg-accent text-white' : 'bg-white border-2 border-border text-primary-400'
+                        isFirst ? 'bg-accent text-white' : 'bg-theme-card border-2 border-theme-border text-theme-tertiary'
                       )}>
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0 pt-1">
                         <p className={cn(
                           'text-sm',
-                          isFirst ? 'font-medium text-primary-900' : 'text-primary-700'
+                          isFirst ? 'font-medium text-theme-primary' : 'text-theme-secondary'
                         )}>
                           {activity.description}
                         </p>
@@ -287,5 +280,6 @@ export default function ContactDetailPage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   )
 }

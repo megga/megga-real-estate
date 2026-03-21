@@ -10,6 +10,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const location = useLocation()
 
+  // DEV BYPASS: skip auth in development
+  if (import.meta.env.DEV) {
+    return <>{children}</>
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">

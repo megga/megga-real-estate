@@ -5,6 +5,8 @@ import {
 } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import PageHeader from '@/components/layout/PageHeader'
+import PageTransition from '@/components/layout/PageTransition'
 
 /* ─── KPI Data ─── */
 interface KpiCardData {
@@ -89,13 +91,13 @@ const activities: Activity[] = [
     icon: TrendingUp,
     iconColor: 'text-success bg-success/10',
     title: 'Offre reçue',
-    description: 'Villa Cologny — CHF 2\'800\'000 par Famille Rossi',
+    description: "Villa Cologny — CHF 2'800'000 par Famille Rossi",
     time: 'Il y a 4h',
   },
   {
     id: '4',
     icon: FileText,
-    iconColor: 'text-primary-500 bg-primary-100',
+    iconColor: 'text-theme-muted bg-theme-active',
     title: 'Document uploadé',
     description: 'Passeport de Pierre Lefèvre — dossier KYC #12',
     time: 'Hier, 16:30',
@@ -105,7 +107,7 @@ const activities: Activity[] = [
     icon: HandshakeIcon,
     iconColor: 'text-success bg-success/10',
     title: 'Deal signé',
-    description: 'Duplex Champel — CHF 1\'250\'000, acheteur confirmé',
+    description: "Duplex Champel — CHF 1'250'000, acheteur confirmé",
     time: 'Hier, 11:00',
   },
 ]
@@ -130,7 +132,7 @@ const tasks: Task[] = [
   {
     id: '2',
     title: 'Relance client',
-    description: 'Jean-Marc Weber n\'a pas répondu depuis 5 jours — visite à replanifier',
+    description: "Jean-Marc Weber n'a pas répondu depuis 5 jours — visite à replanifier",
     priority: 'high',
     icon: Phone,
   },
@@ -167,154 +169,153 @@ export default function DashboardPage() {
   const today = formatDate(new Date())
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-primary-900">
-            Bonjour Gregory 👋
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{today}</p>
-        </div>
-        <Button className="gap-2 rounded-button self-start">
-          <Plus className="h-4 w-4" />
-          Nouvelle transaction
-        </Button>
-      </div>
+    <PageTransition>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PageHeader
+          title="Bonjour Gregory"
+          subtitle={today}
+          actions={
+            <Button className="gap-2 rounded-button self-start">
+              <Plus className="h-4 w-4" />
+              Nouvelle transaction
+            </Button>
+          }
+        />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi) => {
-          const Icon = kpi.icon
-          return (
-            <div key={kpi.label} className="bg-white rounded-card p-5 shadow-card border border-border">
-              <div className="flex items-start justify-between mb-3">
-                <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', kpi.iconBg)}>
-                  <Icon className="h-5 w-5" />
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {kpis.map((kpi) => {
+            const Icon = kpi.icon
+            return (
+              <div key={kpi.label} className="bg-theme-card rounded-card p-5 shadow-card border border-theme-border">
+                <div className="flex items-start justify-between mb-3">
+                  <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center', kpi.iconBg)}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-theme-primary">{kpi.value}</p>
+                <p className="text-sm text-theme-muted mt-0.5">{kpi.label}</p>
+                <div className="flex items-center gap-1 mt-2">
+                  {kpi.trend.positive ? (
+                    <ArrowUpRight className="h-3.5 w-3.5 text-success" />
+                  ) : (
+                    <ArrowDownRight className="h-3.5 w-3.5 text-danger" />
+                  )}
+                  <span className={cn('text-xs font-medium', kpi.trend.positive ? 'text-success' : 'text-danger')}>
+                    {kpi.trend.value}
+                  </span>
                 </div>
               </div>
-              <p className="text-2xl font-bold text-primary-900">{kpi.value}</p>
-              <p className="text-sm text-muted-foreground mt-0.5">{kpi.label}</p>
-              <div className="flex items-center gap-1 mt-2">
-                {kpi.trend.positive ? (
-                  <ArrowUpRight className="h-3.5 w-3.5 text-success" />
-                ) : (
-                  <ArrowDownRight className="h-3.5 w-3.5 text-danger" />
-                )}
-                <span className={cn('text-xs font-medium', kpi.trend.positive ? 'text-success' : 'text-danger')}>
-                  {kpi.trend.value}
-                </span>
-              </div>
+            )
+          })}
+        </div>
+
+        {/* Pipeline + Tasks row */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          {/* Mini Pipeline */}
+          <div className="lg:col-span-3 bg-theme-card rounded-card p-5 shadow-card border border-theme-border">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-theme-primary">Pipeline</h2>
+              <span className="text-sm text-theme-muted">{totalDeals} deals</span>
             </div>
-          )
-        })}
-      </div>
 
-      {/* Pipeline + Tasks row */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Mini Pipeline */}
-        <div className="lg:col-span-3 bg-white rounded-card p-5 shadow-card border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-primary-900">Pipeline</h2>
-            <span className="text-sm text-muted-foreground">{totalDeals} deals</span>
+            {/* Pipeline bar */}
+            <div className="flex rounded-full overflow-hidden h-8 mb-4">
+              {pipelineStages.map((stage) => (
+                <div
+                  key={stage.label}
+                  className={cn('flex items-center justify-center text-xs font-semibold text-white transition-all', stage.color)}
+                  style={{ width: `${(stage.count / totalDeals) * 100}%` }}
+                >
+                  {stage.count}
+                </div>
+              ))}
+            </div>
+
+            {/* Legend */}
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {pipelineStages.map((stage) => (
+                <div key={stage.label} className="flex items-center gap-1.5">
+                  <div className={cn('h-2.5 w-2.5 rounded-full', stage.color)} />
+                  <span className="text-xs text-theme-muted">{stage.label}</span>
+                  <span className="text-xs font-medium text-theme-secondary">{stage.count}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Pipeline bar */}
-          <div className="flex rounded-full overflow-hidden h-8 mb-4">
-            {pipelineStages.map((stage) => (
-              <div
-                key={stage.label}
-                className={cn('flex items-center justify-center text-xs font-semibold text-white transition-all', stage.color)}
-                style={{ width: `${(stage.count / totalDeals) * 100}%` }}
-              >
-                {stage.count}
-              </div>
-            ))}
-          </div>
-
-          {/* Legend */}
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {pipelineStages.map((stage) => (
-              <div key={stage.label} className="flex items-center gap-1.5">
-                <div className={cn('h-2.5 w-2.5 rounded-full', stage.color)} />
-                <span className="text-xs text-muted-foreground">{stage.label}</span>
-                <span className="text-xs font-medium text-primary-700">{stage.count}</span>
-              </div>
-            ))}
+          {/* Urgent Tasks */}
+          <div className="lg:col-span-2 bg-theme-card rounded-card p-5 shadow-card border border-theme-border">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
+                <AlertTriangle className="h-4.5 w-4.5 text-warning" />
+                Tâches urgentes
+              </h2>
+              <span className="text-xs text-theme-muted">{tasks.length} tâches</span>
+            </div>
+            <div className="space-y-3">
+              {tasks.map((task) => {
+                const Icon = task.icon
+                return (
+                  <div key={task.id} className="flex items-start gap-3 group cursor-pointer">
+                    <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5', priorityStyles[task.priority])}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-theme-primary group-hover:text-accent transition-colors truncate">
+                          {task.title}
+                        </p>
+                        <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge border', priorityStyles[task.priority])}>
+                          {priorityLabels[task.priority]}
+                        </span>
+                      </div>
+                      <p className="text-xs text-theme-muted mt-0.5 truncate">{task.description}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Urgent Tasks */}
-        <div className="lg:col-span-2 bg-white rounded-card p-5 shadow-card border border-border">
+        {/* Recent Activity */}
+        <div className="bg-theme-card rounded-card p-5 shadow-card border border-theme-border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-primary-900 flex items-center gap-2">
-              <AlertTriangle className="h-4.5 w-4.5 text-warning" />
-              Tâches urgentes
-            </h2>
-            <span className="text-xs text-muted-foreground">{tasks.length} tâches</span>
+            <h2 className="text-lg font-semibold text-theme-primary">Activité récente</h2>
+            <button className="text-sm text-accent hover:text-accent/80 font-medium transition-colors">
+              Voir tout
+            </button>
           </div>
-          <div className="space-y-3">
-            {tasks.map((task) => {
-              const Icon = task.icon
+          <div className="space-y-0">
+            {activities.map((activity, i) => {
+              const Icon = activity.icon
               return (
-                <div key={task.id} className="flex items-start gap-3 group cursor-pointer">
-                  <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5', priorityStyles[task.priority])}>
-                    <Icon className="h-4 w-4" />
+                <div
+                  key={activity.id}
+                  className={cn(
+                    'flex items-start gap-4 py-3.5 group cursor-pointer',
+                    i < activities.length - 1 && 'border-b border-theme-border/50'
+                  )}
+                >
+                  <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0', activity.iconColor)}>
+                    <Icon className="h-4.5 w-4.5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-primary-900 group-hover:text-accent transition-colors truncate">
-                        {task.title}
-                      </p>
-                      <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge border', priorityStyles[task.priority])}>
-                        {priorityLabels[task.priority]}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
+                    <p className="text-sm font-medium text-theme-primary group-hover:text-accent transition-colors">
+                      {activity.title}
+                    </p>
+                    <p className="text-xs text-theme-muted mt-0.5">{activity.description}</p>
                   </div>
+                  <span className="text-xs text-theme-muted whitespace-nowrap flex-shrink-0 mt-0.5">
+                    {activity.time}
+                  </span>
                 </div>
               )
             })}
           </div>
         </div>
       </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-card p-5 shadow-card border border-border">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-primary-900">Activité récente</h2>
-          <button className="text-sm text-accent hover:text-accent-hover font-medium transition-colors">
-            Voir tout →
-          </button>
-        </div>
-        <div className="space-y-0">
-          {activities.map((activity, i) => {
-            const Icon = activity.icon
-            return (
-              <div
-                key={activity.id}
-                className={cn(
-                  'flex items-start gap-4 py-3.5 group cursor-pointer',
-                  i < activities.length - 1 && 'border-b border-border-light'
-                )}
-              >
-                <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0', activity.iconColor)}>
-                  <Icon className="h-4.5 w-4.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-primary-900 group-hover:text-accent transition-colors">
-                    {activity.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{activity.description}</p>
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0 mt-0.5">
-                  {activity.time}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
+    </PageTransition>
   )
 }

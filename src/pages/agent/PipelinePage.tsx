@@ -22,6 +22,8 @@ import {
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { MOCK_DEALS, type MockDeal } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
+import PageHeader from '@/components/layout/PageHeader'
+import PageTransition from '@/components/layout/PageTransition'
 
 // Pipeline columns config — subset of stages for Kanban
 const PIPELINE_COLUMNS: { stage: MockDeal['stage']; color: string; headerBg: string }[] = [
@@ -53,22 +55,22 @@ function DealCardContent({ deal }: { deal: MockDeal }) {
     .slice(0, 2)
 
   return (
-    <div className="bg-white rounded-lg shadow-card border border-border p-3 cursor-grab active:cursor-grabbing hover:shadow-card-hover transition-shadow">
+    <div className="bg-theme-card rounded-lg shadow-card border border-theme-border p-3 cursor-grab active:cursor-grabbing hover:shadow-card-hover transition-shadow">
       <div className="flex items-start gap-2 mb-2">
         <div className={cn('h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0', deal.contact_avatar_color)}>
           <span className="text-[10px] font-semibold text-white">{initials}</span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-primary-900 truncate">{deal.contact_name}</p>
+          <p className="text-sm font-medium text-theme-primary truncate">{deal.contact_name}</p>
           <p className="text-xs text-muted-foreground truncate">{deal.property_title}</p>
         </div>
-        <GripVertical className="h-4 w-4 text-primary-200 flex-shrink-0 mt-0.5" />
+        <GripVertical className="h-4 w-4 text-theme-tertiary flex-shrink-0 mt-0.5" />
       </div>
 
       <p className="text-xs text-muted-foreground truncate mb-2">{deal.property_address}</p>
 
       <div className="flex items-center justify-between">
-        <span className="text-sm font-bold text-primary-900">{formatCHF(deal.price)}</span>
+        <span className="text-sm font-bold text-theme-primary">{formatCHF(deal.price)}</span>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground">{formatRelativeDate(deal.updated_at)}</span>
           <div className={cn('h-5 w-5 rounded-full flex items-center justify-center', deal.agent_avatar_color)} title={deal.agent}>
@@ -126,7 +128,7 @@ function KanbanColumn({
       <div className={cn('rounded-t-lg px-3 py-2.5 border border-b-0 border-border', headerBg)}>
         <div className="flex items-center gap-2">
           <div className={cn('h-2 w-2 rounded-full', color)} />
-          <span className="text-sm font-semibold text-primary-900">{label}</span>
+          <span className="text-sm font-semibold text-theme-primary">{label}</span>
           <span className="ml-auto text-xs font-medium text-muted-foreground bg-white px-1.5 py-0.5 rounded">
             {deals.length}
           </span>
@@ -134,7 +136,7 @@ function KanbanColumn({
       </div>
 
       {/* Column body */}
-      <div className="flex-1 bg-section/50 border border-t-0 border-border rounded-b-lg p-2 space-y-2 overflow-y-auto min-h-[120px]">
+      <div className="flex-1 bg-theme-section/50 border border-t-0 border-border rounded-b-lg p-2 space-y-2 overflow-y-auto min-h-[120px]">
         <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
             <SortableDealCard key={deal.id} deal={deal} />
@@ -155,7 +157,7 @@ function KanbanColumn({
 
 function StageBadge({ stage }: { stage: string }) {
   const colorMap: Record<string, string> = {
-    lead: 'bg-primary-100 text-primary-600',
+    lead: 'bg-primary-100 text-theme-secondary',
     qualified: 'bg-accent/10 text-accent',
     visit_planned: 'bg-warning/10 text-warning',
     offer: 'bg-purple-100 text-purple-700',
@@ -164,7 +166,7 @@ function StageBadge({ stage }: { stage: string }) {
   }
   const label = TRANSACTION_STAGE_LABELS[stage as TransactionStage]
   return (
-    <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge', colorMap[stage] || 'bg-primary-100 text-primary-600')}>
+    <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge', colorMap[stage] || 'bg-primary-100 text-theme-secondary')}>
       {label || stage}
     </span>
   )
@@ -256,62 +258,62 @@ export default function PipelinePage() {
   }
 
   return (
+    <PageTransition>
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-primary-900">Pipeline</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{deals.length} deals au total</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* View toggle */}
-          <div className="flex items-center bg-section border border-border rounded-button p-0.5">
-            <button
-              onClick={() => setView('kanban')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
-                view === 'kanban' ? 'bg-white shadow-sm text-primary-900' : 'text-primary-400 hover:text-primary-600'
-              )}
-            >
-              <Kanban className="h-4 w-4" />
-              Kanban
-            </button>
-            <button
-              onClick={() => setView('list')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
-                view === 'list' ? 'bg-white shadow-sm text-primary-900' : 'text-primary-400 hover:text-primary-600'
-              )}
-            >
-              <List className="h-4 w-4" />
-              Liste
+      <PageHeader
+        title="Pipeline"
+        subtitle={`${deals.length} deals au total`}
+        actions={
+          <div className="flex items-center gap-3">
+            {/* View toggle */}
+            <div className="flex items-center bg-theme-input border border-theme-border rounded-button p-0.5">
+              <button
+                onClick={() => setView('kanban')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                  view === 'kanban' ? 'bg-theme-card shadow-sm text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
+                )}
+              >
+                <Kanban className="h-4 w-4" />
+                Kanban
+              </button>
+              <button
+                onClick={() => setView('list')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                  view === 'list' ? 'bg-theme-card shadow-sm text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
+                )}
+              >
+                <List className="h-4 w-4" />
+                Liste
+              </button>
+            </div>
+
+            <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
+              <Plus className="h-4 w-4" />
+              Nouveau deal
             </button>
           </div>
-
-          <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
-            <Plus className="h-4 w-4" />
-            Nouveau deal
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
           <input
             type="text"
             placeholder="Rechercher contact ou bien..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 pl-9 pr-3 text-sm bg-theme-card border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
 
         <select
           value={agentFilter}
           onChange={(e) => setAgentFilter(e.target.value)}
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-theme-card border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les agents</option>
           {AGENTS.map((a) => (
@@ -322,7 +324,7 @@ export default function PipelinePage() {
         <select
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value)}
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-theme-card border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Toutes les étapes</option>
           {PIPELINE_COLUMNS.map((col) => (
@@ -375,31 +377,31 @@ export default function PipelinePage() {
 
       {/* List View */}
       {view === 'list' && (
-        <div className="bg-white rounded-card shadow-card overflow-hidden">
+        <div className="bg-theme-card rounded-card shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-section">
+                <tr className="border-b border-border bg-theme-section">
                   <th className="text-left px-4 py-3">
-                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Contact</span>
+                    <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Contact</span>
                   </th>
                   <th className="text-left px-4 py-3 hidden md:table-cell">
-                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Bien</span>
+                    <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Bien</span>
                   </th>
                   <th className="text-left px-4 py-3">
-                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Prix</span>
+                    <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Prix</span>
                   </th>
                   <th className="text-left px-4 py-3">
-                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Étape</span>
+                    <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Étape</span>
                   </th>
                   <th className="text-left px-4 py-3 hidden lg:table-cell">
-                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Agent</span>
+                    <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Agent</span>
                   </th>
                   <th className="text-left px-4 py-3 hidden sm:table-cell">
-                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Mise à jour</span>
+                    <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Mise à jour</span>
                   </th>
                   <th className="text-right px-4 py-3">
-                    <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Actions</span>
+                    <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Actions</span>
                   </th>
                 </tr>
               </thead>
@@ -420,38 +422,38 @@ export default function PipelinePage() {
                       .slice(0, 2)
 
                     return (
-                      <tr key={deal.id} className="hover:bg-section/50 transition-colors group">
+                      <tr key={deal.id} className="hover:bg-theme-section/50 transition-colors group">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className={cn('h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0', deal.contact_avatar_color)}>
                               <span className="text-[10px] font-semibold text-white">{initials}</span>
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-primary-900 truncate">{deal.contact_name}</p>
+                              <p className="text-sm font-medium text-theme-primary truncate">{deal.contact_name}</p>
                               <p className="text-xs text-muted-foreground truncate md:hidden">{deal.property_title}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
                           <div className="min-w-0">
-                            <p className="text-sm text-primary-900 truncate">{deal.property_title}</p>
+                            <p className="text-sm text-theme-primary truncate">{deal.property_title}</p>
                             <p className="text-xs text-muted-foreground truncate">{deal.property_address}</p>
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-sm font-bold text-primary-900">{formatCHF(deal.price)}</span>
+                          <span className="text-sm font-bold text-theme-primary">{formatCHF(deal.price)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <StageBadge stage={deal.stage} />
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell">
-                          <span className="text-sm text-primary-600">{deal.agent}</span>
+                          <span className="text-sm text-theme-secondary">{deal.agent}</span>
                         </td>
                         <td className="px-4 py-3 hidden sm:table-cell">
                           <span className="text-xs text-muted-foreground">{formatRelativeDate(deal.updated_at)}</span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button className="p-1.5 rounded-md text-primary-400 hover:text-accent hover:bg-accent/10 transition-colors">
+                          <button className="p-1.5 rounded-md text-theme-tertiary hover:text-accent hover:bg-accent/10 transition-colors">
                             <ChevronRight className="h-4 w-4" />
                           </button>
                         </td>
@@ -465,5 +467,6 @@ export default function PipelinePage() {
         </div>
       )}
     </div>
+    </PageTransition>
   )
 }

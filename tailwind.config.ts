@@ -1,6 +1,11 @@
 import type { Config } from 'tailwindcss'
 import tailwindcssAnimate from 'tailwindcss-animate'
 
+/** Helper: reference a CSS variable as an RGB color with alpha support */
+function themeColor(variable: string) {
+  return `rgb(var(${variable}) / <alpha-value>)`
+}
+
 export default {
   content: [
     './index.html',
@@ -13,69 +18,97 @@ export default {
         display: ['"Plus Jakarta Sans"', 'sans-serif'],
       },
       colors: {
+        /* ─── Theme-aware semantic tokens ─── */
+        'theme-page': themeColor('--color-bg-page'),
+        'theme-card': themeColor('--color-bg-card'),
+        'theme-section': themeColor('--color-bg-section'),
+        'theme-sidebar': themeColor('--color-bg-sidebar'),
+        'theme-input': themeColor('--color-bg-input'),
+        'theme-elevated': themeColor('--color-bg-elevated'),
+        'theme-hover': themeColor('--color-bg-hover'),
+        'theme-active': themeColor('--color-bg-active'),
+        'theme-overlay': themeColor('--color-bg-overlay'),
+
+        'theme-primary': themeColor('--color-text-primary'),
+        'theme-secondary': themeColor('--color-text-secondary'),
+        'theme-tertiary': themeColor('--color-text-tertiary'),
+        'theme-inverse': themeColor('--color-text-inverse'),
+        'theme-muted': themeColor('--color-text-muted'),
+
+        'theme-border': themeColor('--color-border'),
+        'theme-border-subtle': themeColor('--color-border-subtle'),
+        'theme-border-focus': themeColor('--color-border-focus'),
+
+        /* ─── Accent (theme-aware) ─── */
         accent: {
-          DEFAULT: '#2563EB',
-          hover: '#1D4ED8',
-          light: '#EFF6FF',
-          dark: '#1E40AF',
+          DEFAULT: themeColor('--color-accent'),
+          hover: themeColor('--color-accent-hover'),
+          light: themeColor('--color-accent-light'),
+          dark: themeColor('--color-accent-dark'),
+          foreground: themeColor('--color-accent-fg'),
         },
+
+        /* ─── Semantic status colors (theme-aware) ─── */
         success: {
-          DEFAULT: '#059669',
-          light: '#ECFDF5',
-          dark: '#047857',
+          DEFAULT: themeColor('--color-success'),
+          light: themeColor('--color-success-light'),
+          dark: themeColor('--color-success-dark'),
         },
         warning: {
-          DEFAULT: '#D97706',
-          light: '#FFFBEB',
-          dark: '#B45309',
+          DEFAULT: themeColor('--color-warning'),
+          light: themeColor('--color-warning-light'),
+          dark: themeColor('--color-warning-dark'),
         },
         danger: {
-          DEFAULT: '#DC2626',
-          light: '#FEF2F2',
-          dark: '#B91C1C',
+          DEFAULT: themeColor('--color-danger'),
+          light: themeColor('--color-danger-light'),
+          dark: themeColor('--color-danger-dark'),
         },
-        border: '#E5E7EB',
-        input: '#F3F4F6',
-        ring: '#2563EB',
-        background: '#FFFFFF',
-        foreground: '#1A1A1A',
-        sidebar: '#FAFAFA',
-        section: '#F9FAFB',
+
+        /* ─── Legacy aliases (for shadcn/ui compat) ─── */
+        border: themeColor('--color-border'),
+        input: themeColor('--color-bg-input'),
+        ring: themeColor('--color-ring'),
+        background: themeColor('--color-bg-page'),
+        foreground: themeColor('--color-text-primary'),
+        sidebar: themeColor('--color-bg-sidebar'),
+        section: themeColor('--color-bg-section'),
+
         muted: {
-          DEFAULT: '#F9FAFB',
-          foreground: '#6B7280',
+          DEFAULT: themeColor('--color-bg-section'),
+          foreground: themeColor('--color-text-muted'),
         },
         popover: {
-          DEFAULT: '#FFFFFF',
-          foreground: '#1A1A1A',
+          DEFAULT: themeColor('--color-bg-elevated'),
+          foreground: themeColor('--color-text-primary'),
         },
         card: {
-          DEFAULT: '#FFFFFF',
-          foreground: '#1A1A1A',
+          DEFAULT: themeColor('--color-bg-card'),
+          foreground: themeColor('--color-text-primary'),
         },
         primary: {
-          DEFAULT: '#1A1A1A',
-          foreground: '#FFFFFF',
-          50: '#F7F7F7',
-          100: '#E8E8E8',
-          200: '#D1D1D1',
-          300: '#B0B0B0',
-          400: '#888888',
-          500: '#6D6D6D',
-          600: '#5D5D5D',
-          700: '#4F4F4F',
-          800: '#3D3D3D',
-          900: '#1A1A1A',
+          DEFAULT: themeColor('--color-text-primary'),
+          foreground: themeColor('--color-text-inverse'),
+          50: themeColor('--color-bg-hover'),
+          100: themeColor('--color-bg-active'),
+          200: themeColor('--color-border'),
+          300: themeColor('--color-text-tertiary'),
+          400: themeColor('--color-text-tertiary'),
+          500: themeColor('--color-text-muted'),
+          600: themeColor('--color-text-secondary'),
+          700: themeColor('--color-text-secondary'),
+          800: themeColor('--color-text-primary'),
+          900: themeColor('--color-text-primary'),
         },
         secondary: {
-          DEFAULT: '#F9FAFB',
-          foreground: '#1A1A1A',
+          DEFAULT: themeColor('--color-bg-section'),
+          foreground: themeColor('--color-text-primary'),
         },
         destructive: {
-          DEFAULT: '#DC2626',
-          foreground: '#FFFFFF',
+          DEFAULT: themeColor('--color-danger'),
+          foreground: themeColor('--color-accent-fg'),
         },
-        'accent-foreground': '#FFFFFF',
+        'accent-foreground': themeColor('--color-accent-fg'),
       },
       borderRadius: {
         DEFAULT: '8px',
@@ -89,11 +122,11 @@ export default {
         sm: '4px',
       },
       boxShadow: {
-        card: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
-        'card-hover': '0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04)',
-        navbar: '0 1px 3px rgba(0,0,0,0.05)',
-        dropdown: '0 10px 40px rgba(0,0,0,0.12)',
-        modal: '0 20px 60px rgba(0,0,0,0.15)',
+        card: 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
+        navbar: 'var(--shadow-navbar)',
+        dropdown: 'var(--shadow-dropdown)',
+        modal: 'var(--shadow-modal)',
       },
     },
   },
