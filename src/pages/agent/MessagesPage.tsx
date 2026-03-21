@@ -67,7 +67,7 @@ export default function MessagesPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col" style={{ height: 'calc(100vh - 7rem)' }}>
+      <div className="flex flex-col" style={{ height: 'calc(100vh - 11rem)' }}>
         {/* Header */}
         <div className="mb-4 flex-shrink-0">
           <h1 className="text-2xl font-semibold text-theme-primary">Messages</h1>
