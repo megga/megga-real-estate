@@ -741,6 +741,18 @@ function SubscriptionTab() {
           })}
         </div>
       </div>
+
+      {/* Custom plan CTA */}
+      <div className="rounded-xl border border-theme-border p-6 text-center">
+        <p className="text-sm text-theme-primary font-medium">{t('subscription.custom.title')}</p>
+        <p className="text-xs text-theme-tertiary mt-1">{t('subscription.custom.description')}</p>
+        <a
+          href="mailto:contact@megga.ch?subject=Plan sur mesure MEGGA"
+          className="inline-flex items-center gap-1.5 h-9 px-4 mt-3 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+        >
+          {t('subscription.custom.cta')}
+        </a>
+      </div>
     </div>
   )
 }

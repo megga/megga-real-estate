@@ -178,6 +178,11 @@
       "customBranding": "Branding personalizzato",
       "dataExport": "Esportazione dati",
       "support247": "Supporto prioritario 24/7"
+    },
+    "custom": {
+      "title": "Ha bisogno di un piano su misura?",
+      "description": "Per grandi agenzie o esigenze specifiche, offriamo soluzioni personalizzate.",
+      "cta": "Ci contatti"
     }
   }
 }

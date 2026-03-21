@@ -178,6 +178,11 @@
       "customBranding": "Custom branding",
       "dataExport": "Data export",
       "support247": "Priority support 24/7"
+    },
+    "custom": {
+      "title": "Need a custom plan?",
+      "description": "For large agencies or specific requirements, we offer tailored solutions.",
+      "cta": "Contact us"
     }
   }
 }

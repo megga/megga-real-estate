@@ -178,6 +178,11 @@
       "customBranding": "Individuelles Branding",
       "dataExport": "Datenexport",
       "support247": "Prioritätssupport 24/7"
+    },
+    "custom": {
+      "title": "Benötigen Sie einen massgeschneiderten Plan?",
+      "description": "Für grosse Agenturen oder spezifische Anforderungen bieten wir individuelle Lösungen an.",
+      "cta": "Kontaktieren Sie uns"
     }
   }
 }
