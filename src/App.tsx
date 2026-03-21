@@ -15,6 +15,17 @@ import ContactsPage from '@/pages/agent/ContactsPage'
 import ContactDetailPage from '@/pages/agent/ContactDetailPage'
 import PipelinePage from '@/pages/agent/PipelinePage'
 import SettingsPage from '@/pages/agent/SettingsPage'
+import MatchingPage from '@/pages/agent/MatchingPage'
+import ListingsPage from '@/pages/agent/ListingsPage'
+import ListingFormPage from '@/pages/agent/ListingFormPage'
+import KycListPage from '@/pages/agent/KycListPage'
+import KycDetailPage from '@/pages/agent/KycDetailPage'
+import MessagesPage from '@/pages/agent/MessagesPage'
+import CalendarPage from '@/pages/agent/CalendarPage'
+import AutomationPage from '@/pages/agent/AutomationPage'
+import TemplatesPage from '@/pages/agent/TemplatesPage'
+import DocumentGenerator from '@/pages/agent/DocumentGenerator'
+import DocumentViewer from '@/pages/agent/DocumentViewer'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
@@ -68,6 +79,18 @@ export default function App() {
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="contacts/:id" element={<ContactDetailPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
+              <Route path="matching" element={<MatchingPage />} />
+              <Route path="listings" element={<ListingsPage />} />
+              <Route path="listings/new" element={<ListingFormPage />} />
+              <Route path="listings/:id/edit" element={<ListingFormPage />} />
+              <Route path="kyc" element={<KycListPage />} />
+              <Route path="kyc/:id" element={<KycDetailPage />} />
+              <Route path="messages" element={<MessagesPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="automation" element={<AutomationPage />} />
+              <Route path="documents" element={<TemplatesPage />} />
+              <Route path="documents/generate" element={<DocumentGenerator />} />
+              <Route path="documents/view" element={<DocumentViewer />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 
