@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
   MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
@@ -10,12 +11,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 
 interface NavSection {
-  label: string
+  labelKey: string
   items: NavItem[]
 }
 
 interface NavItem {
-  label: string
+  labelKey: string
   href: string
   icon: React.ElementType
   badge?: number
@@ -23,42 +24,42 @@ interface NavItem {
   isCreateAction?: boolean
 }
 
-const navSections: NavSection[] = [
+const NAV_SECTIONS: NavSection[] = [
   {
-    label: 'Principal',
+    labelKey: 'sections.main',
     items: [
-      { label: "Aujourd'hui", href: '/dashboard', icon: Sparkles, badge: 5, badgeColor: 'bg-accent text-accent-foreground' },
-      { label: 'Dashboard', href: '/dashboard/analytics', icon: LayoutDashboard },
+      { labelKey: 'nav.today', href: '/dashboard', icon: Sparkles, badge: 5, badgeColor: 'bg-accent text-accent-foreground' },
+      { labelKey: 'nav.dashboard', href: '/dashboard/analytics', icon: LayoutDashboard },
     ],
   },
   {
-    label: 'CRM',
+    labelKey: 'sections.crm',
     items: [
-      { label: 'Contacts', href: '/dashboard/contacts', icon: Users },
-      { label: 'Pipeline', href: '/dashboard/pipeline', icon: GitBranch, badge: 12, badgeColor: 'bg-theme-active text-theme-secondary' },
-      { label: 'Matching', href: '/dashboard/matching', icon: Shuffle, badge: 3, badgeColor: 'bg-accent-light text-accent' },
+      { labelKey: 'nav.contacts', href: '/dashboard/contacts', icon: Users },
+      { labelKey: 'nav.pipeline', href: '/dashboard/pipeline', icon: GitBranch, badge: 12, badgeColor: 'bg-theme-active text-theme-secondary' },
+      { labelKey: 'nav.matching', href: '/dashboard/matching', icon: Shuffle, badge: 3, badgeColor: 'bg-accent-light text-accent' },
     ],
   },
   {
-    label: 'Biens',
+    labelKey: 'sections.properties',
     items: [
-      { label: 'Mes biens', href: '/dashboard/listings', icon: Building2, badge: 8, badgeColor: 'bg-theme-active text-theme-secondary' },
-      { label: 'Créer un bien', href: '/dashboard/listings/new', icon: Plus, isCreateAction: true },
+      { labelKey: 'nav.listings', href: '/dashboard/listings', icon: Building2, badge: 8, badgeColor: 'bg-theme-active text-theme-secondary' },
+      { labelKey: 'nav.createListing', href: '/dashboard/listings/new', icon: Plus, isCreateAction: true },
     ],
   },
   {
-    label: 'Communication',
+    labelKey: 'sections.communication',
     items: [
-      { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, badge: 4, badgeColor: 'bg-accent text-accent-foreground' },
-      { label: 'Calendrier', href: '/dashboard/calendar', icon: Calendar },
+      { labelKey: 'nav.messages', href: '/dashboard/messages', icon: MessageSquare, badge: 4, badgeColor: 'bg-accent text-accent-foreground' },
+      { labelKey: 'nav.calendar', href: '/dashboard/calendar', icon: Calendar },
     ],
   },
   {
-    label: 'Conformité',
+    labelKey: 'sections.compliance',
     items: [
-      { label: 'KYC', href: '/dashboard/kyc', icon: ShieldCheck, badge: 2, badgeColor: 'bg-warning-light text-warning-dark' },
-      { label: 'Documents', href: '/dashboard/documents', icon: FileText },
-      { label: 'Automatisation', href: '/dashboard/automation', icon: Zap },
+      { labelKey: 'nav.kyc', href: '/dashboard/kyc', icon: ShieldCheck, badge: 2, badgeColor: 'bg-warning-light text-warning-dark' },
+      { labelKey: 'nav.documents', href: '/dashboard/documents', icon: FileText },
+      { labelKey: 'nav.automation', href: '/dashboard/automation', icon: Zap },
     ],
   },
 ]
@@ -101,6 +102,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const location = useLocation()
   const { signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
+  const { t } = useTranslation('common')
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
   function isActive(href: string) {
@@ -128,7 +130,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             <button
               onClick={onToggleCollapse}
               className="hidden lg:flex p-1.5 rounded-md hover:bg-theme-hover transition-colors"
-              title="Réduire la sidebar"
+              title={t('nav.collapseSidebar')}
             >
               <PanelLeftClose className="h-4 w-4 text-theme-tertiary" />
             </button>
@@ -145,7 +147,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           <button
             onClick={onToggleCollapse}
             className="hidden lg:flex p-1.5 rounded-md hover:bg-theme-hover transition-colors"
-            title="Ouvrir la sidebar"
+            title={t('nav.expandSidebar')}
           >
             <PanelLeftOpen className="h-4 w-4 text-theme-tertiary" />
           </button>
@@ -160,7 +162,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             className="w-full h-8 bg-theme-input rounded-lg px-3 flex items-center gap-2 text-xs text-theme-muted hover:bg-theme-hover transition-colors"
           >
             <Search className="w-3.5 h-3.5 text-theme-tertiary" />
-            <span className="flex-1 text-left">Rechercher...</span>
+            <span className="flex-1 text-left">{t('nav.search')}</span>
             <kbd className="text-[10px] bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">
               ⌘K
             </kbd>
@@ -179,12 +181,12 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1">
-        {navSections.map((section) => (
-          <div key={section.label}>
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.labelKey}>
             {/* Section label */}
             {!isCollapsed && (
               <div className="text-[10px] uppercase tracking-[0.08em] text-theme-tertiary font-medium mt-6 mb-1 px-3 select-none">
-                {section.label}
+                {t(section.labelKey)}
               </div>
             )}
             {isCollapsed && <div className="mt-4" />}
@@ -193,6 +195,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const active = isActive(item.href)
+                const label = t(item.labelKey)
                 return (
                   <div key={item.href} className="relative">
                     <Link
@@ -222,7 +225,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
 
                       {!isCollapsed && (
                         <>
-                          <span className="flex-1 truncate">{item.label}</span>
+                          <span className="flex-1 truncate">{label}</span>
                           {item.badge && item.badge > 0 && (
                             <span className="ml-auto w-2 h-2 rounded-full bg-red-500 shrink-0" />
                           )}
@@ -233,7 +236,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                     {/* Collapsed tooltip */}
                     {isCollapsed && hoveredItem === item.href && (
                       <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 bg-theme-primary text-theme-inverse text-xs px-2 py-1 rounded-md shadow-lg whitespace-nowrap pointer-events-none">
-                        {item.label}
+                        {label}
                         {item.badge && item.badge > 0 && (
                           <span className="ml-1.5 text-theme-tertiary">({item.badge})</span>
                         )}
@@ -271,13 +274,13 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
               <Sun className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
             )}
             {!isCollapsed && (
-              <span>{theme === 'light' ? 'Mode sombre' : 'Mode clair'}</span>
+              <span>{theme === 'light' ? t('nav.darkMode') : t('nav.lightMode')}</span>
             )}
           </button>
 
           {isCollapsed && hoveredItem === 'theme' && (
             <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 bg-theme-primary text-theme-inverse text-xs px-2 py-1 rounded-md shadow-lg whitespace-nowrap pointer-events-none">
-              {theme === 'light' ? 'Mode sombre' : 'Mode clair'}
+              {theme === 'light' ? t('nav.darkMode') : t('nav.lightMode')}
             </div>
           )}
         </div>
@@ -300,12 +303,12 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             )}
           >
             <Settings className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
-            {!isCollapsed && <span>Paramètres</span>}
+            {!isCollapsed && <span>{t('nav.settings')}</span>}
           </Link>
 
           {isCollapsed && hoveredItem === 'settings' && (
             <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 bg-theme-primary text-theme-inverse text-xs px-2 py-1 rounded-md shadow-lg whitespace-nowrap pointer-events-none">
-              Paramètres
+              {t('nav.settings')}
             </div>
           )}
         </div>
@@ -323,14 +326,14 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           {!isCollapsed && (
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-theme-primary leading-tight truncate">Gregory Lyonnet</p>
-              <p className="text-[11px] text-theme-tertiary leading-tight truncate">Agent principal</p>
+              <p className="text-[11px] text-theme-tertiary leading-tight truncate">{t('nav.mainAgent')}</p>
             </div>
           )}
           {!isCollapsed && (
             <button
               onClick={async (e) => { e.preventDefault(); e.stopPropagation(); await signOut() }}
               className="p-1.5 rounded-md hover:bg-theme-card text-theme-tertiary hover:text-danger transition-colors"
-              title="Déconnexion"
+              title={t('nav.logout')}
             >
               <LogOut className="h-4 w-4" />
             </button>

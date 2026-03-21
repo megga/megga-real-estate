@@ -1,0 +1,76 @@
+{
+  "greeting": "Bonjour {{name}}",
+  "newTransaction": "Nouvelle transaction",
+  "kpi": {
+    "activeProperties": "Biens actifs",
+    "activeTransactions": "Transactions en cours",
+    "contacts": "Contacts",
+    "visitsThisMonth": "Visites ce mois"
+  },
+  "pipeline": {
+    "title": "Pipeline",
+    "viewPipeline": "Voir le pipeline →",
+    "deals": "deal",
+    "dealsPlural": "deals",
+    "stages": {
+      "lead": "Lead",
+      "qualified": "Qualifié",
+      "visit": "Visite",
+      "offer": "Offre",
+      "signed": "Signé"
+    }
+  },
+  "activity": {
+    "title": "Activité récente",
+    "viewAll": "Voir tout"
+  },
+  "actionBoard": {
+    "sections": {
+      "urgencies": "Urgences",
+      "followUps": "Relances du jour",
+      "matches": "Matchs trouvés",
+      "visits": "Visites à confirmer",
+      "suggestions": "Suggestions IA"
+    },
+    "empty": {
+      "urgencies": "Aucune urgence aujourd'hui",
+      "followUps": "Aucune relance prévue",
+      "matches": "Aucun nouveau match",
+      "visits": "Aucune visite aujourd'hui",
+      "suggestions": "Aucune suggestion pour le moment"
+    },
+    "summary": {
+      "urgency": "{{count}} urgence",
+      "urgency_plural": "{{count}} urgences",
+      "followUp": "{{count}} relance à faire",
+      "followUp_plural": "{{count}} relances à faire",
+      "visit": "{{count}} visite",
+      "visit_plural": "{{count}} visites",
+      "match": "{{count}} match",
+      "match_plural": "{{count}} matchs"
+    },
+    "days": {
+      "0": "Dimanche",
+      "1": "Lundi",
+      "2": "Mardi",
+      "3": "Mercredi",
+      "4": "Jeudi",
+      "5": "Vendredi",
+      "6": "Samedi"
+    },
+    "months": {
+      "0": "janvier",
+      "1": "février",
+      "2": "mars",
+      "3": "avril",
+      "4": "mai",
+      "5": "juin",
+      "6": "juillet",
+      "7": "août",
+      "8": "septembre",
+      "9": "octobre",
+      "10": "novembre",
+      "11": "décembre"
+    }
+  }
+}

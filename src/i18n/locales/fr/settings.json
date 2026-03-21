@@ -1,0 +1,183 @@
+{
+  "title": "Paramètres",
+  "subtitle": "Configurez votre profil, votre agence et vos préférences.",
+  "tabs": {
+    "profile": "Profil",
+    "agency": "Agence",
+    "team": "Équipe",
+    "notifications": "Notifications",
+    "security": "Sécurité",
+    "subscription": "Abonnement"
+  },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Gérez vos informations personnelles et votre profil public.",
+    "photo": "Photo de profil",
+    "photoHint": "JPG, PNG ou GIF. Max 2 Mo.",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "emailHint": "Identifiant de connexion",
+    "phone": "Téléphone",
+    "role": "Rôle",
+    "bio": "Bio",
+    "bioHint": "Visible sur votre profil public.",
+    "language": "Langue",
+    "languageHint": "Langue de l'interface MEGGA.",
+    "save": "Sauvegarder",
+    "logout": "Déconnexion"
+  },
+  "agency": {
+    "title": "Informations de l'agence",
+    "subtitle": "Configurez le profil public de votre agence.",
+    "logo": "Logo de l'agence",
+    "logoHint": "SVG, PNG ou JPG. Format carré recommandé.",
+    "name": "Nom de l'agence",
+    "address": "Adresse",
+    "phone": "Téléphone",
+    "email": "Email",
+    "website": "Site web",
+    "ideNumber": "Numéro IDE / RC",
+    "description": "Description",
+    "save": "Sauvegarder"
+  },
+  "team": {
+    "title": "Équipe",
+    "subtitle": "Gérez les membres de votre agence et leurs rôles.",
+    "invite": "Inviter un membre",
+    "inviteShort": "Inviter",
+    "inviteModal": {
+      "title": "Inviter un membre",
+      "email": "Adresse email",
+      "role": "Rôle",
+      "cancel": "Annuler",
+      "send": "Envoyer l'invitation"
+    },
+    "table": {
+      "member": "Membre",
+      "role": "Rôle",
+      "status": "Statut",
+      "addedAt": "Ajouté le"
+    },
+    "roles": {
+      "admin": "Admin",
+      "manager": "Manager",
+      "agent": "Agent",
+      "assistant": "Assistant"
+    },
+    "status": {
+      "active": "Actif",
+      "invited": "Invité"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Choisissez comment et quand vous souhaitez être notifié.",
+    "email": "Email",
+    "push": "Push",
+    "categories": {
+      "leads": {
+        "label": "Nouveaux leads",
+        "description": "Quand un nouveau contact est assigné"
+      },
+      "messages": {
+        "label": "Messages reçus",
+        "description": "Quand un message est reçu dans la messagerie"
+      },
+      "visits": {
+        "label": "Visites planifiées",
+        "description": "Rappels avant les visites programmées"
+      },
+      "offers": {
+        "label": "Offres reçues",
+        "description": "Quand une offre est soumise sur un bien"
+      },
+      "kyc": {
+        "label": "Dossiers KYC à compléter",
+        "description": "Quand un dossier KYC nécessite une action"
+      },
+      "calendar": {
+        "label": "Rappels calendrier",
+        "description": "Rappels pour les événements à venir"
+      }
+    }
+  },
+  "security": {
+    "password": {
+      "title": "Mot de passe",
+      "lastModified": "Dernière modification : {{date}}",
+      "current": "Mot de passe actuel",
+      "new": "Nouveau mot de passe",
+      "newHint": "6 caractères minimum",
+      "confirm": "Confirmer le nouveau mot de passe",
+      "confirmHint": "Retapez le mot de passe",
+      "minLength": "Le mot de passe doit contenir au moins 6 caractères.",
+      "mismatch": "Les mots de passe ne correspondent pas.",
+      "update": "Mettre à jour"
+    },
+    "twoFactor": {
+      "title": "Authentification à deux facteurs",
+      "enabled": "Activé — votre compte est protégé",
+      "disabled": "Désactivé — recommandé pour plus de sécurité",
+      "recommendation": "Nous recommandons d'activer la 2FA pour protéger votre compte, surtout pour un outil de conformité LAB/KYC."
+    },
+    "sessions": {
+      "title": "Sessions actives",
+      "devicesConnected": "{{count}} appareils connectés",
+      "disconnectAll": "Tout déconnecter",
+      "current": "Actuel",
+      "revoke": "Révoquer"
+    },
+    "log": {
+      "title": "Journal de sécurité",
+      "subtitle": "Dernières activités sur votre compte"
+    }
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "subtitle": "Gérez votre plan et votre facturation.",
+    "currentBadge": "Actuel",
+    "manage": "Gérer l'abonnement",
+    "comparePlans": "Comparer les plans",
+    "popular": "Populaire",
+    "currentPlan": "Plan actuel",
+    "choose": "Choisir",
+    "free": "Gratuit",
+    "perMonth": "/mois",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Pour les agents indépendants qui démarrent."
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "Pour les agents qui veulent aller plus loin."
+      },
+      "agency": {
+        "name": "Agency",
+        "description": "Pour les agences avec une équipe."
+      }
+    },
+    "features": {
+      "activeProperties10": "10 biens actifs",
+      "contacts50": "50 contacts",
+      "basicSearch": "Recherche basique",
+      "aiAssistance": "Assistance IA",
+      "kycPipeline": "Pipeline KYC",
+      "sellerPortal": "Portail vendeur",
+      "prioritySupport": "Support prioritaire",
+      "unlimitedProperties": "Biens illimités",
+      "unlimitedContacts": "Contacts illimités",
+      "aiSearch": "Recherche IA conversationnelle",
+      "aiCopilot": "Assistance IA copilote",
+      "fullKyc": "Pipeline KYC complet",
+      "allPro": "Tout du plan Pro",
+      "upTo10Agents": "Jusqu'à 10 agents",
+      "agencyDashboard": "Tableau de bord agence",
+      "apiIntegrations": "API & intégrations",
+      "customBranding": "Branding personnalisé",
+      "dataExport": "Export données",
+      "support247": "Support prioritaire 24/7"
+    }
+  }
+}

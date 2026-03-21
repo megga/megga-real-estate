@@ -1,0 +1,183 @@
+{
+  "title": "Settings",
+  "subtitle": "Configure your profile, agency and preferences.",
+  "tabs": {
+    "profile": "Profile",
+    "agency": "Agency",
+    "team": "Team",
+    "notifications": "Notifications",
+    "security": "Security",
+    "subscription": "Subscription"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your personal information and public profile.",
+    "photo": "Profile photo",
+    "photoHint": "JPG, PNG or GIF. Max 2 MB.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "emailHint": "Login identifier",
+    "phone": "Phone",
+    "role": "Role",
+    "bio": "Bio",
+    "bioHint": "Visible on your public profile.",
+    "language": "Language",
+    "languageHint": "MEGGA interface language.",
+    "save": "Save",
+    "logout": "Sign out"
+  },
+  "agency": {
+    "title": "Agency information",
+    "subtitle": "Configure your agency's public profile.",
+    "logo": "Agency logo",
+    "logoHint": "SVG, PNG or JPG. Square format recommended.",
+    "name": "Agency name",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "website": "Website",
+    "ideNumber": "UID / Company No.",
+    "description": "Description",
+    "save": "Save"
+  },
+  "team": {
+    "title": "Team",
+    "subtitle": "Manage your agency members and their roles.",
+    "invite": "Invite member",
+    "inviteShort": "Invite",
+    "inviteModal": {
+      "title": "Invite a member",
+      "email": "Email address",
+      "role": "Role",
+      "cancel": "Cancel",
+      "send": "Send invitation"
+    },
+    "table": {
+      "member": "Member",
+      "role": "Role",
+      "status": "Status",
+      "addedAt": "Added on"
+    },
+    "roles": {
+      "admin": "Admin",
+      "manager": "Manager",
+      "agent": "Agent",
+      "assistant": "Assistant"
+    },
+    "status": {
+      "active": "Active",
+      "invited": "Invited"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Choose how and when you want to be notified.",
+    "email": "Email",
+    "push": "Push",
+    "categories": {
+      "leads": {
+        "label": "New leads",
+        "description": "When a new contact is assigned"
+      },
+      "messages": {
+        "label": "Messages received",
+        "description": "When a message is received in the inbox"
+      },
+      "visits": {
+        "label": "Scheduled visits",
+        "description": "Reminders before scheduled visits"
+      },
+      "offers": {
+        "label": "Offers received",
+        "description": "When an offer is submitted on a property"
+      },
+      "kyc": {
+        "label": "KYC files to complete",
+        "description": "When a KYC file requires action"
+      },
+      "calendar": {
+        "label": "Calendar reminders",
+        "description": "Reminders for upcoming events"
+      }
+    }
+  },
+  "security": {
+    "password": {
+      "title": "Password",
+      "lastModified": "Last modified: {{date}}",
+      "current": "Current password",
+      "new": "New password",
+      "newHint": "6 characters minimum",
+      "confirm": "Confirm new password",
+      "confirmHint": "Re-enter password",
+      "minLength": "Password must be at least 6 characters.",
+      "mismatch": "Passwords do not match.",
+      "update": "Update"
+    },
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "enabled": "Enabled — your account is protected",
+      "disabled": "Disabled — recommended for more security",
+      "recommendation": "We recommend enabling 2FA to protect your account, especially for an AML/KYC compliance tool."
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "devicesConnected": "{{count}} connected devices",
+      "disconnectAll": "Disconnect all",
+      "current": "Current",
+      "revoke": "Revoke"
+    },
+    "log": {
+      "title": "Security log",
+      "subtitle": "Recent activity on your account"
+    }
+  },
+  "subscription": {
+    "title": "Subscription",
+    "subtitle": "Manage your plan and billing.",
+    "currentBadge": "Current",
+    "manage": "Manage subscription",
+    "comparePlans": "Compare plans",
+    "popular": "Popular",
+    "currentPlan": "Current plan",
+    "choose": "Choose",
+    "free": "Free",
+    "perMonth": "/month",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "For independent agents just starting out."
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "For agents who want to go further."
+      },
+      "agency": {
+        "name": "Agency",
+        "description": "For agencies with a team."
+      }
+    },
+    "features": {
+      "activeProperties10": "10 active properties",
+      "contacts50": "50 contacts",
+      "basicSearch": "Basic search",
+      "aiAssistance": "AI assistance",
+      "kycPipeline": "KYC pipeline",
+      "sellerPortal": "Seller portal",
+      "prioritySupport": "Priority support",
+      "unlimitedProperties": "Unlimited properties",
+      "unlimitedContacts": "Unlimited contacts",
+      "aiSearch": "AI conversational search",
+      "aiCopilot": "AI copilot assistance",
+      "fullKyc": "Full KYC pipeline",
+      "allPro": "Everything in Pro plan",
+      "upTo10Agents": "Up to 10 agents",
+      "agencyDashboard": "Agency dashboard",
+      "apiIntegrations": "API & integrations",
+      "customBranding": "Custom branding",
+      "dataExport": "Data export",
+      "support247": "Priority support 24/7"
+    }
+  }
+}

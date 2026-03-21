@@ -1,4 +1,5 @@
 import { CheckCircle2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { AnimatePresence } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { useActionBoard, type ActionItem } from '@/hooks/useActionBoard'
@@ -9,59 +10,49 @@ import PageTransition from '@/components/layout/PageTransition'
 
 interface SectionConfig {
   key: string
-  title: string
+  titleKey: string
   borderColor: string
   iconColor: string
-  emptyMessage: string
+  emptyKey: string
   hideWhenEmpty?: boolean
 }
 
 const SECTIONS: SectionConfig[] = [
   {
     key: 'urgencies',
-    title: 'Urgences',
-
+    titleKey: 'actionBoard.sections.urgencies',
     borderColor: 'border-red-500/40',
-
     iconColor: 'text-red-400',
-    emptyMessage: 'Aucune urgence aujourd\'hui',
+    emptyKey: 'actionBoard.empty.urgencies',
     hideWhenEmpty: true,
   },
   {
     key: 'followUps',
-    title: 'Relances du jour',
-
+    titleKey: 'actionBoard.sections.followUps',
     borderColor: 'border-amber-500/40',
-
     iconColor: 'text-amber-400',
-    emptyMessage: 'Aucune relance prévue',
+    emptyKey: 'actionBoard.empty.followUps',
   },
   {
     key: 'matches',
-    title: 'Matchs trouvés',
-
+    titleKey: 'actionBoard.sections.matches',
     borderColor: 'border-blue-500/40',
-
     iconColor: 'text-blue-400',
-    emptyMessage: 'Aucun nouveau match',
+    emptyKey: 'actionBoard.empty.matches',
   },
   {
     key: 'visits',
-    title: 'Visites à confirmer',
-
+    titleKey: 'actionBoard.sections.visits',
     borderColor: 'border-cyan-500/40',
-
     iconColor: 'text-cyan-400',
-    emptyMessage: 'Aucune visite aujourd\'hui',
+    emptyKey: 'actionBoard.empty.visits',
   },
   {
     key: 'suggestions',
-    title: 'Suggestions IA',
-
+    titleKey: 'actionBoard.sections.suggestions',
     borderColor: 'border-emerald-500/40',
-
     iconColor: 'text-emerald-400',
-    emptyMessage: 'Aucune suggestion pour le moment',
+    emptyKey: 'actionBoard.empty.suggestions',
   },
 ]
 
@@ -75,16 +66,6 @@ const BADGE_COLORS: Record<string, string> = {
   suggestions: 'bg-emerald-500/15 text-emerald-400',
 }
 
-// ── Format date in French ────────────────────────────────────────────────────
-
-function formatFrenchDate(date: Date): string {
-  const months = [
-    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
-  ]
-  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`
-}
-
 // ── Action Section ───────────────────────────────────────────────────────────
 
 function ActionSection({
@@ -96,6 +77,7 @@ function ActionSection({
   actions: ActionItem[]
   onComplete: (id: string) => void
 }) {
+  const { t } = useTranslation('dashboard')
   const isEmpty = actions.length === 0
 
   if (isEmpty && config.hideWhenEmpty) return null
@@ -109,7 +91,7 @@ function ActionSection({
       {/* Section header */}
       <div className="flex items-center gap-2.5 mb-3">
         <h2 className={cn('text-[11px] uppercase tracking-[0.08em] font-semibold', config.iconColor)}>
-          {config.title}
+          {t(config.titleKey)}
         </h2>
         {!isEmpty && (
           <span className={cn(
@@ -124,7 +106,7 @@ function ActionSection({
       {isEmpty ? (
         <div className="flex items-center gap-2 text-xs text-theme-tertiary py-1">
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500/50" />
-          {config.emptyMessage}
+          {t(config.emptyKey)}
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">
@@ -155,13 +137,15 @@ function ActionSection({
 
 export default function ActionBoardPage() {
   const { byCategory, markAsCompleted, isLoading } = useActionBoard()
+  const { t } = useTranslation('dashboard')
 
   const firstName = 'Gregory' // In production: from auth profile
 
-  // Build contextual subtitle
-  const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+  // Build contextual subtitle using translated day/month names
   const now = new Date()
-  const todayFormatted = `${days[now.getDay()]} ${formatFrenchDate(now)}`
+  const dayName = t(`actionBoard.days.${now.getDay()}`)
+  const monthName = t(`actionBoard.months.${now.getMonth()}`)
+  const todayFormatted = `${dayName} ${now.getDate()} ${monthName} ${now.getFullYear()}`
 
   const urgCount = byCategory.urgencies?.length ?? 0
   const followCount = byCategory.followUps?.length ?? 0
@@ -169,10 +153,10 @@ export default function ActionBoardPage() {
   const matchCount = byCategory.matches?.length ?? 0
 
   const summaryParts: string[] = []
-  if (urgCount > 0) summaryParts.push(`${urgCount} urgence${urgCount > 1 ? 's' : ''}`)
-  if (followCount > 0) summaryParts.push(`${followCount} relance${followCount > 1 ? 's' : ''} à faire`)
-  if (visitCount > 0) summaryParts.push(`${visitCount} visite${visitCount > 1 ? 's' : ''}`)
-  if (matchCount > 0) summaryParts.push(`${matchCount} match${matchCount > 1 ? 's' : ''}`)
+  if (urgCount > 0) summaryParts.push(t(urgCount > 1 ? 'actionBoard.summary.urgency_plural' : 'actionBoard.summary.urgency', { count: urgCount }))
+  if (followCount > 0) summaryParts.push(t(followCount > 1 ? 'actionBoard.summary.followUp_plural' : 'actionBoard.summary.followUp', { count: followCount }))
+  if (visitCount > 0) summaryParts.push(t(visitCount > 1 ? 'actionBoard.summary.visit_plural' : 'actionBoard.summary.visit', { count: visitCount }))
+  if (matchCount > 0) summaryParts.push(t(matchCount > 1 ? 'actionBoard.summary.match_plural' : 'actionBoard.summary.match', { count: matchCount }))
 
   if (isLoading) {
     return (
@@ -188,7 +172,7 @@ export default function ActionBoardPage() {
         {/* ── Header — minimal ── */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-theme-primary">
-            Bonjour {firstName}
+            {t('greeting', { name: firstName })}
           </h1>
           <p className="text-sm text-theme-tertiary mt-1">
             {todayFormatted}

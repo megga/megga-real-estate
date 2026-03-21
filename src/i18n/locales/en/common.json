@@ -1,0 +1,73 @@
+{
+  "nav": {
+    "today": "Today",
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "pipeline": "Pipeline",
+    "matching": "Matching",
+    "listings": "My properties",
+    "createListing": "Create property",
+    "messages": "Messages",
+    "calendar": "Calendar",
+    "kyc": "KYC",
+    "documents": "Documents",
+    "automation": "Automation",
+    "settings": "Settings",
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode",
+    "logout": "Sign out",
+    "search": "Search...",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "mainAgent": "Lead agent"
+  },
+  "sections": {
+    "main": "Main",
+    "crm": "CRM",
+    "properties": "Properties",
+    "communication": "Communication",
+    "compliance": "Compliance"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "view": "View",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "add": "Add",
+    "remove": "Remove",
+    "send": "Send",
+    "call": "Call",
+    "loading": "Loading...",
+    "noResults": "No results",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "viewAll": "View all"
+  },
+  "time": {
+    "ago": "ago",
+    "minutes": "min",
+    "hours": "h",
+    "days": "d",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This week",
+    "thisMonth": "This month"
+  },
+  "language": {
+    "fr": "Français",
+    "de": "Deutsch",
+    "en": "English",
+    "it": "Italiano"
+  }
+}
