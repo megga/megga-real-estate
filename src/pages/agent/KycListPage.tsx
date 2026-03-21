@@ -25,7 +25,7 @@ function progressColor(pct: number) {
 
 function statusBadge(status: MockKycCase['status']) {
   const map = {
-    pending:     { cls: 'bg-primary-100 text-primary-600' },
+    pending:     { cls: 'bg-theme-active text-theme-secondary' },
     in_progress: { cls: 'bg-accent/10 text-accent' },
     review:      { cls: 'bg-warning/10 text-warning' },
     validated:   { cls: 'bg-success/10 text-success' },
@@ -44,7 +44,7 @@ function riskBadge(risk: MockKycCase['risk_level']) {
     low:        { dot: 'bg-success',     cls: 'bg-success/10 text-success' },
     medium:     { dot: 'bg-warning',     cls: 'bg-warning/10 text-warning' },
     high:       { dot: 'bg-danger',      cls: 'bg-danger/10 text-danger' },
-    unassessed: { dot: 'bg-primary-300', cls: 'bg-primary-100 text-primary-500' },
+    unassessed: { dot: 'bg-theme-tertiary', cls: 'bg-theme-active text-theme-secondary' },
   }
   const r = map[risk]
   return (
@@ -72,7 +72,7 @@ function ContactAvatar({ name, color }: { name: string; color: string }) {
 }
 
 function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
-  if (field !== sortField) return <ChevronUp className="h-3.5 w-3.5 text-primary-300" />
+  if (field !== sortField) return <ChevronUp className="h-3.5 w-3.5 text-theme-tertiary" />
   return sortDir === 'asc'
     ? <ChevronUp className="h-3.5 w-3.5 text-accent" />
     : <ChevronDown className="h-3.5 w-3.5 text-accent" />
@@ -166,14 +166,11 @@ export default function KycListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-primary-900 flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-accent" />
+          <h1 className="text-2xl font-semibold text-theme-primary">
             Dossiers KYC
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {dataSource.length} dossiers ·{' '}
-            <span className="text-warning font-medium">{counts.review} en revue</span> ·{' '}
-            <span className="text-accent font-medium">{counts.in_progress} en cours</span>
+          <p className="text-sm text-theme-tertiary mt-0.5">
+            {dataSource.length} dossiers · {counts.review} en revue · {counts.in_progress} en cours
           </p>
         </div>
       </div>
@@ -184,7 +181,7 @@ export default function KycListPage() {
           onClick={() => { setStatusFilter(''); setPage(1) }}
           className={cn(
             'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-            !statusFilter ? 'bg-primary-900 text-white' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
+            !statusFilter ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
           )}
         >
           Tous ({dataSource.length})
@@ -195,7 +192,7 @@ export default function KycListPage() {
             onClick={() => { setStatusFilter(statusFilter === s ? '' : s); setPage(1) }}
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-              statusFilter === s ? 'bg-primary-900 text-white' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
+              statusFilter === s ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
             )}
           >
             {KYC_STATUS_LABELS[s]} ({counts[s]})
@@ -206,20 +203,20 @@ export default function KycListPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
           <input
             type="text"
             placeholder="Rechercher par nom ou bien..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
 
         <select
           value={riskFilter}
           onChange={(e) => { setRiskFilter(e.target.value); setPage(1) }}
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-transparent border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les risques</option>
           {KYC_RISK_LEVELS.map((r) => (
@@ -230,7 +227,7 @@ export default function KycListPage() {
         <select
           value={typeFilter}
           onChange={(e) => { setTypeFilter(e.target.value); setPage(1) }}
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-transparent border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les types</option>
           {KYC_TYPES.map((t) => (
@@ -249,55 +246,55 @@ export default function KycListPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-card shadow-card overflow-hidden">
+      <div className="bg-transparent rounded-card shadow-none overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-section">
+              <tr className="border-b border-theme-border bg-theme-section">
                 <th className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('contact')}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
                   >
                     Contact
                     <SortIcon field="contact" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Bien lié</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Bien lié</span>
                 </th>
                 <th className="text-left px-4 py-3">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Type</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Type</span>
                 </th>
                 <th className="text-left px-4 py-3">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Risque</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Risque</span>
                 </th>
                 <th className="text-left px-4 py-3">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Statut</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Statut</span>
                 </th>
                 <th className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('completion')}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
                   >
                     Progression
                     <SortIcon field="completion" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="text-left px-4 py-3 hidden sm:table-cell">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Agent</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Agent</span>
                 </th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">
                   <button
                     onClick={() => toggleSort('updated')}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
                   >
                     Mis à jour
                     <SortIcon field="updated" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="text-right px-4 py-3">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Actions</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Actions</span>
                 </th>
               </tr>
             </thead>
@@ -305,33 +302,33 @@ export default function KycListPage() {
               {paginated.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-12 text-center">
-                    <ShieldCheck className="h-10 w-10 text-primary-200 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">Aucun dossier trouvé</p>
+                    <ShieldCheck className="h-10 w-10 text-theme-tertiary mx-auto mb-3" />
+                    <p className="text-sm text-theme-tertiary">Aucun dossier trouvé</p>
                   </td>
                 </tr>
               ) : (
                 paginated.map((kyc) => (
-                  <tr key={kyc.id} className="hover:bg-section/50 transition-colors group">
+                  <tr key={kyc.id} className="hover:bg-theme-section/50 transition-colors group">
                     <td className="px-4 py-3">
                       <Link to={`/dashboard/kyc/${kyc.id}`} className="flex items-center gap-3">
                         <ContactAvatar name={kyc.contact_name} color={kyc.contact_avatar_color} />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-primary-900 truncate group-hover:text-accent transition-colors">
+                          <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
                             {kyc.contact_name}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate md:hidden">
+                          <p className="text-xs text-theme-tertiary truncate md:hidden">
                             {kyc.property_title}
                           </p>
                         </div>
                       </Link>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-sm text-primary-600 truncate block max-w-[200px]">
+                      <span className="text-sm text-theme-secondary truncate block max-w-[200px]">
                         {kyc.property_title}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-primary-50 text-primary-600">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-theme-hover text-theme-secondary">
                         {KYC_TYPE_LABELS[kyc.type]}
                       </span>
                     </td>
@@ -339,22 +336,22 @@ export default function KycListPage() {
                     <td className="px-4 py-3">{statusBadge(kyc.status)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 min-w-[100px]">
-                        <div className="flex-1 h-2 bg-primary-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-theme-active rounded-full overflow-hidden">
                           <div
                             className={cn('h-full rounded-full transition-all', progressColor(kyc.completion_pct))}
                             style={{ width: `${kyc.completion_pct}%` }}
                           />
                         </div>
-                        <span className="text-xs font-medium text-primary-600 w-8 text-right">
+                        <span className="text-xs font-medium text-theme-secondary w-8 text-right">
                           {kyc.completion_pct}%
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className="text-sm text-muted-foreground">{kyc.assigned_to}</span>
+                      <span className="text-sm text-theme-tertiary">{kyc.assigned_to}</span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-theme-tertiary">
                         {formatRelativeDate(kyc.updated_at)}
                       </span>
                     </td>
@@ -362,7 +359,7 @@ export default function KycListPage() {
                       <div className="flex items-center justify-end">
                         <Link
                           to={`/dashboard/kyc/${kyc.id}`}
-                          className="p-1.5 rounded-md text-primary-400 hover:text-accent hover:bg-accent/10 transition-colors"
+                          className="p-1.5 rounded-md text-theme-tertiary hover:text-accent hover:bg-accent/10 transition-colors"
                           title="Voir le dossier"
                         >
                           <Eye className="h-4 w-4" />
@@ -378,15 +375,15 @@ export default function KycListPage() {
 
         {/* Pagination */}
         {filtered.length > ITEMS_PER_PAGE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-section/50">
-            <p className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-theme-border bg-theme-section/50">
+            <p className="text-xs text-theme-tertiary">
               {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} sur {filtered.length} dossiers
             </p>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={safePage <= 1}
-                className="p-1.5 rounded-md text-primary-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-md text-theme-secondary hover:bg-transparent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -396,7 +393,7 @@ export default function KycListPage() {
                   onClick={() => setPage(p)}
                   className={cn(
                     'h-8 min-w-[32px] px-2 rounded-md text-sm font-medium transition-colors',
-                    p === safePage ? 'bg-accent text-white' : 'text-primary-600 hover:bg-white'
+                    p === safePage ? 'bg-accent text-white' : 'text-theme-secondary hover:bg-transparent'
                   )}
                 >
                   {p}
@@ -405,7 +402,7 @@ export default function KycListPage() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={safePage >= totalPages}
-                className="p-1.5 rounded-md text-primary-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-md text-theme-secondary hover:bg-transparent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
