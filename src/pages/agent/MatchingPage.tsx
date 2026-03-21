@@ -114,6 +114,15 @@ export default function MatchingPage() {
                         i < group.matches.length - 1 && 'border-b border-theme-border'
                       )}
                     >
+                      {/* Thumbnail */}
+                      {match.listing.photos?.[0] && (
+                        <img
+                          src={match.listing.photos[0]}
+                          alt={match.listing.title}
+                          className="h-10 w-10 rounded-lg object-cover shrink-0"
+                        />
+                      )}
+
                       {/* Bien info */}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
