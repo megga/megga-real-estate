@@ -106,7 +106,7 @@ export default function KycDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Retour aux dossiers
         </Link>
-        <div className="bg-transparent rounded-card shadow-none p-12 text-center">
+        <div className="rounded-xl border border-theme-border p-12 text-center">
           <ShieldCheck className="h-12 w-12 text-theme-tertiary mx-auto mb-4" />
           <p className="text-theme-tertiary">Dossier introuvable</p>
         </div>
@@ -127,7 +127,7 @@ export default function KycDetailPage() {
       </Link>
 
       {/* Header */}
-      <div className="bg-transparent rounded-card shadow-none p-6">
+      <div className="rounded-xl border border-theme-border p-6">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
@@ -185,7 +185,7 @@ export default function KycDetailPage() {
         {/* Left column: Checklist + Documents */}
         <div className="xl:col-span-2 space-y-6">
           {/* Checklist */}
-          <div className="bg-transparent rounded-card shadow-none overflow-hidden">
+          <div className="rounded-xl border border-theme-border overflow-hidden">
             <div className="px-6 py-4 border-b border-theme-border">
               <h2 className="text-base font-semibold text-theme-primary">Checklist de vérification</h2>
             </div>
@@ -195,7 +195,7 @@ export default function KycDetailPage() {
                 <p className="text-sm text-theme-tertiary">Aucun élément de checklist pour ce dossier</p>
               </div>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-theme-border">
                 {CATEGORIES.map((cat) => {
                   const items = checklistByCategory.get(cat) || []
                   if (items.length === 0) return null
@@ -225,7 +225,7 @@ export default function KycDetailPage() {
                       </button>
 
                       {expanded && (
-                        <div className="divide-y divide-border/50">
+                        <div className="divide-y divide-theme-border/50">
                           {items.map((item) => (
                             <div key={item.id} className="flex items-start gap-3 px-6 py-3 pl-12">
                               {item.is_completed
@@ -270,7 +270,7 @@ export default function KycDetailPage() {
           </div>
 
           {/* Documents */}
-          <div className="bg-transparent rounded-card shadow-none overflow-hidden">
+          <div className="rounded-xl border border-theme-border overflow-hidden">
             <div className="px-6 py-4 border-b border-theme-border flex items-center justify-between">
               <h2 className="text-base font-semibold text-theme-primary">Documents ({documents.length})</h2>
               <button className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80 transition-colors">
@@ -285,7 +285,7 @@ export default function KycDetailPage() {
                 <p className="text-sm text-theme-tertiary">Aucun document téléversé</p>
               </div>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-theme-border">
                 {documents.map((doc) => (
                   <div key={doc.id} className="flex items-center gap-3 px-6 py-3 hover:bg-theme-section/30 transition-colors">
                     <FileText className="h-5 w-5 text-theme-tertiary flex-shrink-0" />
@@ -313,7 +313,7 @@ export default function KycDetailPage() {
         {/* Right column: Notes + Audit */}
         <div className="space-y-6">
           {/* Notes */}
-          <div className="bg-transparent rounded-card shadow-none overflow-hidden">
+          <div className="rounded-xl border border-theme-border overflow-hidden">
             <div className="px-6 py-4 border-b border-theme-border">
               <h2 className="text-base font-semibold text-theme-primary flex items-center gap-2">
                 <StickyNote className="h-4 w-4 text-theme-tertiary" />

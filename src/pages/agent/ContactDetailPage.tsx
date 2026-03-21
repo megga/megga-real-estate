@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import {
-  Pencil, MessageSquare, Mail, Phone, MapPin,
+  Mail, Phone, MapPin,
   Calendar, Tag, Building2, Banknote, Ruler, DoorOpen,
   ChevronRight, FileText, PhoneCall, Eye, Send, UserPlus,
   CheckCircle2, Clock,
@@ -10,17 +10,17 @@ import { getContactById, type MockContact } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 import PageTransition from '@/components/layout/PageTransition'
 
-const scoreConfig: Record<MockContact['score'], { label: string; dot: string; bg: string }> = {
-  hot:  { label: 'Hot',  dot: 'bg-danger',  bg: 'bg-danger/10 text-danger' },
-  warm: { label: 'Warm', dot: 'bg-warning', bg: 'bg-warning/10 text-warning' },
-  cold: { label: 'Cold', dot: 'bg-accent',  bg: 'bg-accent/10 text-accent' },
+const scoreConfig: Record<MockContact['score'], { label: string; dot: string; text: string }> = {
+  hot:  { label: 'Hot',  dot: 'bg-red-400',    text: 'text-red-400' },
+  warm: { label: 'Warm', dot: 'bg-amber-400',  text: 'text-amber-400' },
+  cold: { label: 'Cold', dot: 'bg-blue-400',   text: 'text-blue-400' },
 }
 
-const typeConfig: Record<MockContact['type'], { label: string; cls: string }> = {
-  buyer:  { label: 'Acheteur', cls: 'bg-accent/10 text-accent' },
-  seller: { label: 'Vendeur',  cls: 'bg-success/10 text-success' },
-  both:   { label: 'Acheteur/Vendeur', cls: 'bg-warning/10 text-warning' },
-  lead:   { label: 'Lead',     cls: 'bg-primary-100 text-primary-600' },
+const typeConfig: Record<MockContact['type'], { label: string; text: string }> = {
+  buyer:  { label: 'Acheteur',          text: 'text-theme-secondary' },
+  seller: { label: 'Vendeur',           text: 'text-theme-secondary' },
+  both:   { label: 'Acheteur/Vendeur',  text: 'text-theme-secondary' },
+  lead:   { label: 'Lead',              text: 'text-theme-tertiary' },
 }
 
 const activityIcon: Record<string, typeof Mail> = {
@@ -68,7 +68,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: typeof Mail; label: strin
     <div className="flex items-start gap-3 py-2">
       <Icon className="h-4 w-4 text-theme-tertiary mt-0.5 flex-shrink-0" />
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-xs text-theme-muted">{label}</p>
         <p className="text-sm text-theme-primary">{value}</p>
       </div>
     </div>
@@ -83,7 +83,7 @@ export default function ContactDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <p className="text-lg font-medium text-theme-secondary mb-1">Contact introuvable</p>
-        <p className="text-sm text-muted-foreground mb-4">Ce contact n'existe pas ou a été supprimé.</p>
+        <p className="text-sm text-theme-muted mb-4">Ce contact n'existe pas ou a été supprimé.</p>
         <Link to="/dashboard/contacts" className="text-sm text-accent hover:text-accent/80 font-medium">
           ← Retour aux contacts
         </Link>
@@ -99,31 +99,29 @@ export default function ContactDetailPage() {
     <PageTransition>
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-theme-card rounded-card shadow-card p-6">
+      <div className="rounded-xl border border-theme-border p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <ContactAvatar name={fullName} size="lg" />
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <h1 className="text-2xl font-semibold text-theme-primary">{fullName}</h1>
-              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge', tc.cls)}>
+              <span className={cn('text-xs font-medium', tc.text)}>
                 {tc.label}
               </span>
-              <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-badge', sc.bg)}>
+              <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', sc.text)}>
                 <span className={cn('h-1.5 w-1.5 rounded-full', sc.dot)} />
                 {sc.label}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-theme-muted">
               Contact créé le {formatDate(contact.created_at)} · {contact.source}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="inline-flex items-center gap-2 border border-theme-border text-sm font-medium px-3 py-2 rounded-button hover:bg-theme-section transition-colors text-theme-secondary">
-              <Pencil className="h-4 w-4" />
+            <button className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
               Éditer
             </button>
-            <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-3 py-2 rounded-button transition-colors">
-              <MessageSquare className="h-4 w-4" />
+            <button className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
               Envoyer un message
             </button>
           </div>
@@ -134,7 +132,7 @@ export default function ContactDetailPage() {
         {/* Left column: info + criteria */}
         <div className="lg:col-span-1 space-y-6">
           {/* Contact info */}
-          <div className="bg-theme-card rounded-card shadow-card p-5">
+          <div className="rounded-xl border border-theme-border p-5">
             <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Informations</h2>
             <div className="space-y-0.5">
               <InfoRow icon={Mail} label="Email" value={contact.email} />
@@ -145,10 +143,10 @@ export default function ContactDetailPage() {
                 <div className="flex items-start gap-3 py-2">
                   <Tag className="h-4 w-4 text-theme-tertiary mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Tags</p>
+                    <p className="text-xs text-theme-muted">Tags</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {contact.tags.map((tag) => (
-                        <span key={tag} className="text-xs bg-theme-section text-primary-600 px-2 py-0.5 rounded-full">
+                        <span key={tag} className="text-xs bg-theme-section text-theme-secondary px-2 py-0.5 rounded-full">
                           {tag}
                         </span>
                       ))}
@@ -161,7 +159,7 @@ export default function ContactDetailPage() {
 
           {/* Search criteria (buyers only) */}
           {contact.search_criteria && (
-            <div className="bg-theme-card rounded-card shadow-card p-5">
+            <div className="rounded-xl border border-theme-border p-5">
               <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Critères de recherche</h2>
               <div className="space-y-0.5">
                 <InfoRow icon={Building2} label="Type de bien" value={contact.search_criteria.property_type} />
@@ -178,7 +176,7 @@ export default function ContactDetailPage() {
           )}
 
           {/* Notes */}
-          <div className="bg-theme-card rounded-card shadow-card p-5">
+          <div className="rounded-xl border border-theme-border p-5">
             <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Notes</h2>
             <textarea
               defaultValue={contact.notes}
@@ -192,18 +190,18 @@ export default function ContactDetailPage() {
         {/* Right column: transactions + activity */}
         <div className="lg:col-span-2 space-y-6">
           {/* Linked transactions */}
-          <div className="bg-theme-card rounded-card shadow-card p-5">
+          <div className="rounded-xl border border-theme-border p-5">
             <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">
               Transactions liées
               {contact.transactions.length > 0 && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                <span className="ml-2 text-xs font-normal text-theme-muted">
                   ({contact.transactions.length})
                 </span>
               )}
             </h2>
 
             {contact.transactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">Aucune transaction en cours</p>
+              <p className="text-sm text-theme-muted py-4 text-center">Aucune transaction en cours</p>
             ) : (
               <div className="space-y-3">
                 {contact.transactions.map((tx) => {
@@ -211,7 +209,7 @@ export default function ContactDetailPage() {
                   return (
                     <div
                       key={tx.id}
-                      className="flex items-center gap-4 p-3 rounded-lg bg-theme-section hover:bg-primary-50 transition-colors cursor-pointer"
+                      className="flex items-center gap-4 p-3 rounded-lg bg-theme-section hover:bg-theme-hover transition-colors cursor-pointer"
                     >
                       <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Building2 className="h-5 w-5 text-accent" />
@@ -222,7 +220,7 @@ export default function ContactDetailPage() {
                           <span className="text-xs font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded">
                             {stageLabel || tx.stage}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-theme-muted">
                             {formatRelativeDate(tx.updated_at)}
                           </span>
                         </div>
@@ -239,7 +237,7 @@ export default function ContactDetailPage() {
           </div>
 
           {/* Activity timeline */}
-          <div className="bg-theme-card rounded-card shadow-card p-5">
+          <div className="rounded-xl border border-theme-border p-5">
             <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-4">
               Historique d'activité
             </h2>
@@ -267,7 +265,7 @@ export default function ContactDetailPage() {
                         )}>
                           {activity.description}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-xs text-theme-muted mt-0.5">
                           {formatDate(activity.date)} · {formatRelativeDate(activity.date)}
                         </p>
                       </div>
