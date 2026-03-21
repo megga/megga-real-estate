@@ -110,7 +110,7 @@ export default function MatchingPage() {
                     <div
                       key={match.id}
                       className={cn(
-                        'flex items-center px-4 py-3 group hover:bg-theme-hover transition-colors cursor-pointer',
+                        'flex items-center gap-3 px-4 py-3 group hover:bg-theme-hover transition-colors cursor-pointer',
                         i < group.matches.length - 1 && 'border-b border-theme-border'
                       )}
                     >
