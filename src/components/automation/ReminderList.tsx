@@ -1,5 +1,5 @@
 import {
-  Check, Clock, X, RotateCcw,
+  Check, X, RotateCcw,
 } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate } from '@/lib/utils'
 import type { Reminder, ReminderChannel } from '@/hooks/useReminders'
