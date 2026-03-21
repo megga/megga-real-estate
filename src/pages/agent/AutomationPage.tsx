@@ -35,7 +35,7 @@ function RuleCard({
 
   return (
     <div className={cn(
-      'bg-theme-card rounded-card shadow-card border border-theme-border overflow-hidden transition-opacity',
+      'rounded-xl border border-theme-border overflow-hidden transition-opacity',
       !rule.isActive && 'opacity-60'
     )}>
       <div className="flex items-center gap-3 p-4">
@@ -110,11 +110,7 @@ function RuleCard({
 function TemplateCard({ template }: { template: ReturnType<typeof useMessageTemplates>['templates'][0] }) {
   const [expanded, setExpanded] = useState(false)
 
-  const channelBadge = template.channel === 'email'
-    ? 'bg-blue-100 text-blue-600'
-    : template.channel === 'whatsapp'
-      ? 'bg-green-100 text-green-600'
-      : 'bg-purple-100 text-purple-600'
+  const channelLabel = template.channel === 'both' ? 'Email' : template.channel === 'email' ? 'Email' : 'Notification'
 
   const categoryLabels: Record<string, string> = {
     follow_up: 'Relance',
@@ -125,7 +121,7 @@ function TemplateCard({ template }: { template: ReturnType<typeof useMessageTemp
   }
 
   return (
-    <div className="bg-theme-card rounded-card shadow-card border border-theme-border overflow-hidden">
+    <div className="rounded-xl border border-theme-border overflow-hidden">
       <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="h-9 w-9 rounded-lg bg-theme-section flex items-center justify-center flex-shrink-0 text-theme-muted">
           <FileText className="h-4 w-4" />
@@ -136,8 +132,8 @@ function TemplateCard({ template }: { template: ReturnType<typeof useMessageTemp
             <span className="text-[10px] font-medium text-theme-secondary bg-theme-section px-1.5 py-0.5 rounded-badge">
               {categoryLabels[template.category] || template.category}
             </span>
-            <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge', channelBadge)}>
-              {template.channel === 'both' ? 'Email + WhatsApp' : template.channel === 'email' ? 'Email' : 'WhatsApp'}
+            <span className="text-[10px] text-theme-tertiary">
+              {channelLabel}
             </span>
           </div>
         </div>
@@ -188,8 +184,8 @@ export default function AutomationPage() {
             {activeRules} règle{activeRules > 1 ? 's' : ''} active{activeRules > 1 ? 's' : ''} · {active.length} relance{active.length > 1 ? 's' : ''} en cours
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
-          <Plus className="h-4 w-4" />
+        <button className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors">
+          <Plus className="h-3.5 w-3.5" />
           Nouvelle règle
         </button>
       </div>
@@ -199,23 +195,13 @@ export default function AutomationPage() {
         <TabsList>
           <TabsTrigger value="reminders">
             Relances
-            {active.length > 0 && (
-              <span className="ml-1.5 text-[10px] font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded-full">
-                {active.length}
-              </span>
-            )}
+            {active.length > 0 && <span className="ml-1.5 w-2 h-2 rounded-full bg-red-500" />}
           </TabsTrigger>
           <TabsTrigger value="rules">
             Règles
-            <span className="ml-1.5 text-[10px] font-bold bg-theme-section text-theme-secondary px-1.5 py-0.5 rounded-full">
-              {rules.length}
-            </span>
           </TabsTrigger>
           <TabsTrigger value="templates">
             Templates
-            <span className="ml-1.5 text-[10px] font-bold bg-theme-section text-theme-secondary px-1.5 py-0.5 rounded-full">
-              {templates.length}
-            </span>
           </TabsTrigger>
         </TabsList>
 
@@ -245,7 +231,7 @@ export default function AutomationPage() {
             )}
 
             {active.length === 0 && (
-              <div className="text-center py-12 bg-theme-card rounded-card shadow-card">
+              <div className="text-center py-12 rounded-xl border border-theme-border">
                 <Clock className="h-8 w-8 text-theme-tertiary mx-auto mb-2" />
                 <p className="text-sm text-theme-muted">Aucune relance en attente</p>
               </div>
