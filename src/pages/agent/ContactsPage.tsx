@@ -6,6 +6,7 @@ import {
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { MOCK_CONTACTS, type MockContact } from '@/lib/mockData'
 import PageTransition from '@/components/layout/PageTransition'
+import NewContactDialog from '@/components/contacts/NewContactDialog'
 
 type SortField = 'name' | 'last_activity' | 'score'
 type SortDir = 'asc' | 'desc'
@@ -86,6 +87,7 @@ export default function ContactsPage() {
   }
 
   const hasFilters = search || typeFilter || scoreFilter
+  const [showNewContact, setShowNewContact] = useState(false)
 
   return (
     <PageTransition>
@@ -96,11 +98,16 @@ export default function ContactsPage() {
             <h1 className="text-2xl font-semibold text-theme-primary">Contacts</h1>
             <p className="text-sm text-theme-tertiary mt-0.5">{MOCK_CONTACTS.length} contacts</p>
           </div>
-          <button className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors">
+          <button
+            onClick={() => setShowNewContact(true)}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
+          >
             <Plus className="h-3.5 w-3.5" />
             Ajouter un contact
           </button>
         </div>
+
+        <NewContactDialog open={showNewContact} onClose={() => setShowNewContact(false)} />
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
