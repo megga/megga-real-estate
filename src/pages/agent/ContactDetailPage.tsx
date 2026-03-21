@@ -1,9 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import {
   Mail, Phone, MapPin,
-  Calendar, Tag, Building2, Banknote, Ruler, DoorOpen,
-  ChevronRight, FileText, PhoneCall, Eye, Send, UserPlus,
-  CheckCircle2, Clock,
+  Calendar, Building2, Banknote, Ruler, DoorOpen,
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate, formatDate } from '@/lib/utils'
 import { getContactById, type MockContact } from '@/lib/mockData'
@@ -23,18 +21,6 @@ const typeConfig: Record<MockContact['type'], { label: string; text: string }> =
   lead:   { label: 'Lead',              text: 'text-theme-tertiary' },
 }
 
-const activityIcon: Record<string, typeof Mail> = {
-  contact_created: UserPlus,
-  call: PhoneCall,
-  email: Send,
-  visit: Eye,
-  visit_planned: Calendar,
-  offer_sent: FileText,
-  offer_received: FileText,
-  negotiation: Banknote,
-  document: FileText,
-  reserved: CheckCircle2,
-}
 
 function ContactAvatar({ name, size = 'lg' }: { name: string; size?: 'sm' | 'lg' }) {
   const initials = name
@@ -44,33 +30,23 @@ function ContactAvatar({ name, size = 'lg' }: { name: string; size?: 'sm' | 'lg'
     .toUpperCase()
     .slice(0, 2)
 
-  const colors = [
-    'bg-accent', 'bg-success', 'bg-warning', 'bg-danger',
-    'bg-primary-600', 'bg-primary-400',
-  ]
-  const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length
-
   return (
     <div className={cn(
-      'rounded-full flex items-center justify-center flex-shrink-0',
-      colors[idx],
-      size === 'lg' ? 'h-16 w-16' : 'h-9 w-9'
+      'rounded-full flex items-center justify-center flex-shrink-0 bg-theme-active',
+      size === 'lg' ? 'h-14 w-14' : 'h-9 w-9'
     )}>
-      <span className={cn('font-semibold text-white', size === 'lg' ? 'text-xl' : 'text-xs')}>
+      <span className={cn('font-semibold text-theme-primary', size === 'lg' ? 'text-lg' : 'text-xs')}>
         {initials}
       </span>
     </div>
   )
 }
 
-function InfoRow({ icon: Icon, label, value }: { icon: typeof Mail; label: string; value: string }) {
+function InfoRow({ label, value }: { icon?: typeof Mail; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-3 py-2">
-      <Icon className="h-4 w-4 text-theme-tertiary mt-0.5 flex-shrink-0" />
-      <div className="min-w-0">
-        <p className="text-xs text-theme-muted">{label}</p>
-        <p className="text-sm text-theme-primary">{value}</p>
-      </div>
+    <div className="flex items-baseline justify-between py-2 border-b border-theme-border-subtle last:border-0">
+      <span className="text-xs text-theme-tertiary">{label}</span>
+      <span className="text-sm text-theme-primary text-right">{value}</span>
     </div>
   )
 }
@@ -140,17 +116,14 @@ export default function ContactDetailPage() {
               <InfoRow icon={MapPin} label="Adresse" value={`${contact.address}, ${contact.city} (${contact.canton})`} />
               <InfoRow icon={Calendar} label="Dernière activité" value={formatRelativeDate(contact.last_activity)} />
               {contact.tags.length > 0 && (
-                <div className="flex items-start gap-3 py-2">
-                  <Tag className="h-4 w-4 text-theme-tertiary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-theme-muted">Tags</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {contact.tags.map((tag) => (
-                        <span key={tag} className="text-xs bg-theme-section text-theme-secondary px-2 py-0.5 rounded-full">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
+                <div className="flex items-baseline justify-between py-2 border-b border-theme-border-subtle last:border-0">
+                  <span className="text-xs text-theme-tertiary">Tags</span>
+                  <div className="flex flex-wrap gap-1 justify-end">
+                    {contact.tags.map((tag) => (
+                      <span key={tag} className="text-[10px] text-theme-secondary border border-theme-border px-1.5 py-0.5 rounded">
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 </div>
               )}
@@ -181,7 +154,7 @@ export default function ContactDetailPage() {
             <textarea
               defaultValue={contact.notes}
               rows={4}
-              className="w-full text-sm text-theme-secondary bg-theme-section border border-theme-border rounded-input p-3 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
+              className="w-full text-sm text-theme-primary bg-transparent border border-theme-border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
               placeholder="Ajouter des notes..."
             />
           </div>
@@ -204,31 +177,23 @@ export default function ContactDetailPage() {
               <p className="text-sm text-theme-muted py-4 text-center">Aucune transaction en cours</p>
             ) : (
               <div className="space-y-3">
-                {contact.transactions.map((tx) => {
+                {contact.transactions.map((tx, i) => {
                   const stageLabel = TRANSACTION_STAGE_LABELS[tx.stage as TransactionStage]
                   return (
                     <div
                       key={tx.id}
-                      className="flex items-center gap-4 p-3 rounded-lg bg-theme-section hover:bg-theme-hover transition-colors cursor-pointer"
+                      className={cn(
+                        'flex items-center gap-3 py-3 hover:bg-theme-hover transition-colors cursor-pointer group',
+                        i < contact.transactions.length - 1 && 'border-b border-theme-border'
+                      )}
                     >
-                      <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Building2 className="h-5 w-5 text-accent" />
-                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-theme-primary truncate">{tx.property_title}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded">
-                            {stageLabel || tx.stage}
-                          </span>
-                          <span className="text-xs text-theme-muted">
-                            {formatRelativeDate(tx.updated_at)}
-                          </span>
-                        </div>
+                        <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">{tx.property_title}</p>
+                        <p className="text-xs text-theme-tertiary mt-0.5">
+                          {stageLabel || tx.stage} · {formatRelativeDate(tx.updated_at)}
+                        </p>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-theme-primary">{formatCHF(tx.price)}</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
+                      <span className="text-sm font-semibold text-theme-primary shrink-0">{formatCHF(tx.price)}</span>
                     </div>
                   )
                 })}
@@ -242,37 +207,24 @@ export default function ContactDetailPage() {
               Historique d'activité
             </h2>
 
-            <div className="relative">
-              {/* Timeline line */}
-              <div className="absolute left-[17px] top-2 bottom-2 w-px bg-theme-border" />
-
-              <div className="space-y-4">
-                {contact.activities.map((activity, i) => {
-                  const Icon = activityIcon[activity.action] || Clock
-                  const isFirst = i === 0
-                  return (
-                    <div key={activity.id} className="relative flex gap-4">
-                      <div className={cn(
-                        'h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 z-10',
-                        isFirst ? 'bg-accent text-white' : 'bg-theme-card border-2 border-theme-border text-theme-tertiary'
-                      )}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0 pt-1">
-                        <p className={cn(
-                          'text-sm',
-                          isFirst ? 'font-medium text-theme-primary' : 'text-theme-secondary'
-                        )}>
-                          {activity.description}
-                        </p>
-                        <p className="text-xs text-theme-muted mt-0.5">
-                          {formatDate(activity.date)} · {formatRelativeDate(activity.date)}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+            <div className="space-y-0">
+              {contact.activities.map((activity, i) => (
+                <div
+                  key={activity.id}
+                  className={cn(
+                    'flex items-start gap-3 py-3',
+                    i < contact.activities.length - 1 && 'border-b border-theme-border'
+                  )}
+                >
+                  <div className="w-2 h-2 rounded-full bg-theme-tertiary shrink-0 mt-1.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-theme-primary">{activity.description}</p>
+                    <p className="text-xs text-theme-tertiary mt-0.5">
+                      {formatDate(activity.date)} · {formatRelativeDate(activity.date)}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
