@@ -326,7 +326,7 @@ export default function PipelinePage() {
           </div>
         )}
 
-        <NewTransactionDialog open={showNewTransaction} onClose={() => setShowNewTransaction(false)} title="Nouveau deal" />
+        <NewTransactionDialog open={showNewTransaction} onClose={() => setShowNewTransaction(false)} />
       </div>
     </PageTransition>
   )

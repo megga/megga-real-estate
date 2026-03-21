@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import {
   User, Building2, Users, Bell, CreditCard, Camera,
-  Plus, X, Check, Mail, FileText,
+  Plus, X, Check, FileText,
   Shield, Calendar, MessageSquare, Eye,
   Star, ChevronRight, Zap, Smartphone,
   Monitor, KeyRound,
   ShieldCheck, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+
 import { useAuth } from '@/hooks/useAuth'
 import PageTransition from '@/components/layout/PageTransition'
 
@@ -28,7 +28,7 @@ const TAB_CONFIG: Record<SettingsTab, { label: string; icon: React.ElementType }
 
 /* ─── Shared Styles ─── */
 
-const inputClasses = 'w-full h-11 px-3 rounded-lg border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
+const inputClasses = 'w-full h-11 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors'
 const labelClasses = 'block text-sm font-medium text-theme-primary mb-1.5'
 const readonlyClasses = 'w-full h-11 px-3 rounded-lg border border-theme-border bg-theme-input text-sm text-theme-muted cursor-not-allowed'
 const cardClasses = 'rounded-xl border border-theme-border'
@@ -121,9 +121,9 @@ function ProfileTab() {
 
       {/* Actions */}
       <div className="flex items-center justify-between pt-6">
-        <Button className="bg-accent hover:bg-accent/90 text-white rounded-lg text-sm px-5">
+        <button className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
           Sauvegarder
-        </Button>
+        </button>
         <button
           onClick={async () => { await signOut() }}
           className="text-sm font-medium text-theme-tertiary hover:text-danger transition-colors"
@@ -163,7 +163,7 @@ function AgencyTab() {
           <div className="w-20 h-20 rounded-card bg-theme-primary flex items-center justify-center">
             <span className="text-lg font-bold text-theme-inverse">GG</span>
           </div>
-          <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-theme-card border border-theme-border shadow-card flex items-center justify-center hover:bg-theme-hover transition-colors">
+          <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-theme-card border border-theme-border flex items-center justify-center hover:bg-theme-hover transition-colors">
             <Camera className="w-4 h-4 text-theme-muted" />
           </button>
         </div>
@@ -207,15 +207,14 @@ function AgencyTab() {
           value={form.description}
           onChange={e => update('description', e.target.value)}
           rows={3}
-          className="w-full px-3 py-2.5 rounded-input border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
+          className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
         />
       </div>
 
       <div className="flex justify-end">
-        <Button className="gap-2 bg-accent hover:bg-accent/90 text-white rounded-button">
-          <Check className="w-4 h-4" />
+        <button className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
           Sauvegarder
-        </Button>
+        </button>
       </div>
     </div>
   )
@@ -255,7 +254,7 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-theme-overlay/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className={cn(cardClasses, 'shadow-modal w-full max-w-md')} onClick={e => e.stopPropagation()}>
+      <div className="rounded-xl border border-theme-border bg-theme-elevated w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-theme-border">
           <h3 className="text-lg font-semibold text-theme-primary">Inviter un membre</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
@@ -278,11 +277,10 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div className="flex items-center gap-3 p-5 border-t border-theme-border">
-          <Button variant="outline" onClick={onClose} className="flex-1">Annuler</Button>
-          <Button disabled={!email.includes('@')} className={cn('flex-1 gap-2 bg-accent text-white rounded-button', email.includes('@') ? 'hover:bg-accent/90' : 'opacity-50 cursor-not-allowed')}>
-            <Mail className="w-4 h-4" />
+          <button onClick={onClose} className="flex-1 h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">Annuler</button>
+          <button disabled={!email.includes('@')} className={cn('flex-1 h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors', !email.includes('@') && 'opacity-50 cursor-not-allowed')}>
             Envoyer l&apos;invitation
-          </Button>
+          </button>
         </div>
       </div>
     </div>
@@ -299,17 +297,17 @@ function TeamTab() {
           <h2 className="text-lg font-semibold text-theme-primary">Équipe</h2>
           <p className="text-sm text-theme-muted mt-1">Gérez les membres de votre agence et leurs rôles.</p>
         </div>
-        <Button onClick={() => setShowInvite(true)} className="gap-2 bg-accent hover:bg-accent/90 text-white rounded-button">
+        <button onClick={() => setShowInvite(true)} className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2">
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Inviter un membre</span>
           <span className="sm:hidden">Inviter</span>
-        </Button>
+        </button>
       </div>
 
       <div className={cn(cardClasses, 'overflow-hidden')}>
         <table className="w-full">
           <thead>
-            <tr className="border-b border-theme-border bg-theme-section">
+            <tr className="border-b border-theme-border bg-theme-section/30">
               <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3">Membre</th>
               <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3 hidden md:table-cell">Rôle</th>
               <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3 hidden sm:table-cell">Statut</th>
@@ -376,7 +374,7 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean
       onClick={() => onChange(!enabled)}
       className={cn('relative w-10 h-6 rounded-full transition-colors shrink-0', enabled ? 'bg-accent' : 'bg-theme-border')}
     >
-      <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform', enabled ? 'translate-x-[18px]' : 'translate-x-0.5')} />
+      <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-theme-card shadow-sm transition-transform', enabled ? 'translate-x-[18px]' : 'translate-x-0.5')} />
     </button>
   )
 }
@@ -495,12 +493,12 @@ function SecurityTab() {
             )}
           </div>
 
-          <Button
+          <button
             disabled={!currentPassword || !passwordValid || !passwordMatch}
-            className="bg-accent hover:bg-accent/90 text-white rounded-lg text-sm px-5 disabled:opacity-50"
+            className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Mettre à jour
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -639,15 +637,15 @@ function SubscriptionTab() {
             </div>
             <p className="text-sm text-theme-muted">CHF 89/mois — renouvelé le 01.04.2026</p>
           </div>
-          <Button variant="outline" className="gap-2 hidden sm:flex">
+          <button className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors gap-2 hidden sm:flex items-center">
             <CreditCard className="w-4 h-4" />
             Gérer l&apos;abonnement
-          </Button>
+          </button>
         </div>
-        <Button variant="outline" className="w-full gap-2 sm:hidden mt-3">
+        <button className="w-full h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2 sm:hidden mt-3">
           <CreditCard className="w-4 h-4" />
           Gérer l&apos;abonnement
-        </Button>
+        </button>
       </div>
 
       {/* Plan comparison */}
@@ -658,8 +656,8 @@ function SubscriptionTab() {
             <div
               key={plan.name}
               className={cn(
-                cardClasses, 'p-6 relative transition-shadow duration-200 hover:shadow-lg border-2',
-                plan.isCurrent ? 'border-accent shadow-card-hover' : 'border-theme-border shadow-sm',
+                'rounded-xl border p-6 relative transition-colors duration-200 border-2',
+                plan.isCurrent ? 'border-accent' : 'border-theme-border',
               )}
             >
               {plan.isPopular && (
@@ -686,11 +684,11 @@ function SubscriptionTab() {
                 ))}
               </div>
               {plan.isCurrent ? (
-                <Button variant="outline" className="w-full" disabled>Plan actuel</Button>
+                <button disabled className="w-full h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-tertiary cursor-not-allowed opacity-50">Plan actuel</button>
               ) : (
-                <Button variant="outline" className="w-full gap-1 hover:bg-accent hover:text-white hover:border-accent transition-all">
+                <button className="w-full h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1">
                   Choisir <ChevronRight className="w-4 h-4" />
-                </Button>
+                </button>
               )}
             </div>
           ))}
@@ -709,7 +707,10 @@ export default function SettingsPage() {
     <PageTransition>
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
-        <h1 className="text-2xl font-semibold text-theme-primary">Paramètres</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-theme-primary">Paramètres</h1>
+          <p className="text-sm text-theme-tertiary mt-1">Configurez votre profil, votre agence et vos préférences.</p>
+        </div>
 
         {/* Tabs — no icons, text only */}
         <div className="border-b border-theme-border overflow-x-auto">
