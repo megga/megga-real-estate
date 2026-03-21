@@ -2,6 +2,7 @@ import {
   ArrowUpRight, ArrowDownRight, Plus,
 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import PageTransition from '@/components/layout/PageTransition'
 
 /* ─── KPI Data ─── */
@@ -32,11 +33,11 @@ const totalValue = pipelineStages.reduce((sum, s) => sum + s.value, 0)
 
 /* ─── Activity Data ─── */
 const activities = [
-  { id: '1', title: 'Nouveau contact ajouté', description: 'Marie Dubois — acheteuse, recherche 4 pièces à Champel', time: 'Il y a 25 min' },
-  { id: '2', title: 'Visite planifiée', description: 'Appartement Eaux-Vives — Jean-Marc Weber, demain 14h', time: 'Il y a 2h' },
-  { id: '3', title: 'Offre reçue', description: "Villa Cologny — CHF 2'800'000 par Famille Rossi", time: 'Il y a 4h' },
-  { id: '4', title: 'Document uploadé', description: 'Passeport de Pierre Lefèvre — dossier KYC #12', time: 'Hier, 16:30' },
-  { id: '5', title: 'Deal signé', description: "Duplex Champel — CHF 1'250'000, acheteur confirmé", time: 'Hier, 11:00' },
+  { id: '1', title: 'Nouveau contact ajouté', description: 'Marie Dubois — acheteuse, 4p Champel', time: 'il y a 25 min', dot: 'bg-blue-400' },
+  { id: '2', title: 'Visite planifiée', description: 'Appt Eaux-Vives — J-M Weber, demain 14h', time: 'il y a 2h', dot: 'bg-amber-400' },
+  { id: '3', title: 'Offre reçue', description: "Villa Cologny — CHF 2'800'000", time: 'il y a 4h', dot: 'bg-emerald-400' },
+  { id: '4', title: 'Document uploadé', description: 'Passeport Pierre Lefèvre — KYC #12', time: 'hier 16:30', dot: 'bg-gray-400' },
+  { id: '5', title: 'Deal signé', description: "Duplex Champel — CHF 1'250'000", time: 'hier 11:00', dot: 'bg-emerald-400' },
 ]
 
 /* ─── Component ─── */
@@ -135,19 +136,19 @@ export default function DashboardPage() {
             <div
               key={activity.id}
               className={cn(
-                'flex items-center gap-4 py-3.5 cursor-pointer group',
+                'flex items-start gap-3 py-3 cursor-pointer group',
                 i < activities.length - 1 && 'border-b border-theme-border'
               )}
             >
+              <div className={cn('h-2 w-2 rounded-full shrink-0 mt-1.5', activity.dot)} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-theme-primary group-hover:text-accent transition-colors">
                   {activity.title}
                 </p>
-                <p className="text-xs text-theme-tertiary mt-0.5">{activity.description}</p>
+                <p className="text-xs text-theme-tertiary mt-0.5">
+                  {activity.description} · <span className="text-theme-tertiary">{activity.time}</span>
+                </p>
               </div>
-              <span className="text-xs text-theme-tertiary whitespace-nowrap shrink-0">
-                {activity.time}
-              </span>
             </div>
           ))}
         </div>
