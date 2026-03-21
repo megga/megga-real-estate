@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { ThemeProvider } from '@/hooks/useTheme'
+import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import Sidebar from '@/components/layout/Sidebar'
 import CommandPalette from '@/components/layout/CommandPalette'
 import Breadcrumb from '@/components/layout/Breadcrumb'
@@ -74,7 +75,9 @@ function AgentLayoutInner() {
 export default function AgentLayout() {
   return (
     <ThemeProvider>
-      <AgentLayoutInner />
+      <CopilotContextProvider>
+        <AgentLayoutInner />
+      </CopilotContextProvider>
     </ThemeProvider>
   )
 }

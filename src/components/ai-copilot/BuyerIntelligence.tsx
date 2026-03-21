@@ -55,7 +55,7 @@ export default function BuyerIntelligence({
   if (!hasData) return null
 
   return (
-    <div className={cn('bg-white rounded-card shadow-card p-5', className)}>
+    <div className={cn('rounded-xl border border-theme-border p-5', className)}>
       <div className="flex items-center gap-2 mb-4">
         <div className="h-7 w-7 rounded-lg bg-accent/10 flex items-center justify-center">
           <TrendingUp className="h-4 w-4 text-accent" />

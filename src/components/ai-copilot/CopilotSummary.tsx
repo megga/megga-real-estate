@@ -31,7 +31,7 @@ export default function CopilotSummary({ summary, isRefreshing, onRefresh, class
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="flex-shrink-0 h-8 w-8 rounded-lg border border-border hover:bg-white flex items-center justify-center transition-colors disabled:opacity-50"
+          className="flex-shrink-0 h-8 w-8 rounded-lg border border-border hover:bg-theme-hover flex items-center justify-center transition-colors disabled:opacity-50"
           title="Rafraîchir l'analyse"
         >
           <RefreshCw className={cn('h-3.5 w-3.5 text-primary-500', isRefreshing && 'animate-spin')} />

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-  Mail, Phone, MapPin,
+  Mail, Phone, MapPin, Zap,
   Calendar, Building2, Banknote, Ruler, DoorOpen,
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate, formatDate } from '@/lib/utils'
@@ -9,6 +9,11 @@ import { getContactById, type MockContact } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 import PageTransition from '@/components/layout/PageTransition'
 import EditContactDialog from '@/components/contacts/EditContactDialog'
+import CopilotSummary from '@/components/ai-copilot/CopilotSummary'
+import BuyerIntelligence from '@/components/ai-copilot/BuyerIntelligence'
+import SellerIntelligence from '@/components/ai-copilot/SellerIntelligence'
+import { useContactDetail } from '@/hooks/useContactDetail'
+import { useCopilotContext } from '@/hooks/useCopilotContext'
 
 const scoreConfig: Record<MockContact['score'], { label: string; dot: string; text: string }> = {
   hot:  { label: 'Hot',  dot: 'bg-red-400',    text: 'text-red-400' },
@@ -53,9 +58,56 @@ function InfoRow({ label, value }: { icon?: typeof Mail; label: string; value: s
   )
 }
 
+/* ─── Next Best Action inline component ─── */
+
+function NextBestAction({ title, description, actionLabel, score }: {
+  title: string
+  description: string
+  actionLabel: string
+  score?: number
+}) {
+  return (
+    <div className="rounded-xl border border-success/20 bg-success/5 p-4">
+      <div className="flex items-start gap-3">
+        <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+          <Zap className="h-4 w-4 text-success" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-theme-primary">{title}</h3>
+            {score && (
+              <span className="text-xs font-medium text-success">{score}%</span>
+            )}
+          </div>
+          <p className="text-xs text-theme-secondary mt-0.5">{description}</p>
+        </div>
+        <button className="h-8 px-3 rounded-lg text-xs font-medium border border-success/30 text-success hover:bg-success/10 transition-colors shrink-0">
+          {actionLabel}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>()
   const contact = getContactById(id || '')
+  const { setActiveContact } = useCopilotContext()
+
+  // Set copilot context when viewing a contact
+  useEffect(() => {
+    if (contact) {
+      setActiveContact({
+        id: contact.id,
+        firstName: contact.first_name,
+        lastName: contact.last_name,
+        type: contact.type,
+        email: contact.email,
+        phone: contact.phone,
+      })
+    }
+    return () => setActiveContact(null)
+  }, [contact, setActiveContact])
 
   if (!contact) {
     return (
@@ -70,13 +122,17 @@ export default function ContactDetailPage() {
   }
 
   const [showEdit, setShowEdit] = useState(false)
+  const { aiSummary, nextAction, enrichedData, isRefreshingAi, refreshAiSummary } = useContactDetail(id || '')
   const fullName = `${contact.first_name} ${contact.last_name}`
   const sc = scoreConfig[contact.score]
   const tc = typeConfig[contact.type]
 
+  const showBuyer = ['buyer', 'investor', 'lead', 'both'].includes(contact.type)
+  const showSeller = ['seller', 'both'].includes(contact.type)
+
   return (
     <PageTransition>
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="rounded-xl border border-theme-border p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -110,9 +166,46 @@ export default function ContactDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Zone 2 — AI Summary */}
+      <CopilotSummary
+        summary={aiSummary}
+        isRefreshing={isRefreshingAi}
+        onRefresh={refreshAiSummary}
+      />
+
+      {/* Zone 3 — Next Best Action */}
+      <NextBestAction
+        title={nextAction.title}
+        description={nextAction.description}
+        actionLabel={nextAction.actionLabel}
+        score={nextAction.score}
+      />
+
+      {/* Intelligence cards */}
+      {enrichedData && (showBuyer || showSeller) && (
+        <div className={cn('grid gap-4', showBuyer && showSeller ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1')}>
+          {showBuyer && enrichedData.ai_seriousness_score != null && (
+            <BuyerIntelligence
+              seriousnessScore={enrichedData.ai_seriousness_score ?? null}
+              purchaseProbability={enrichedData.ai_purchase_probability ?? null}
+              timing={enrichedData.ai_timing ?? null}
+              engagementLevel={enrichedData.ai_engagement_level ?? null}
+              budgetAnnounced={enrichedData.budget_announced ?? null}
+              budgetEstimatedAi={enrichedData.budget_estimated_ai ?? null}
+            />
+          )}
+          {showSeller && enrichedData.ai_tension_level != null && (
+            <SellerIntelligence
+              tensionLevel={enrichedData.ai_tension_level ?? null}
+              priceReductionProbability={enrichedData.ai_price_reduction_probability ?? null}
+            />
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left column: info + criteria */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-4">
           {/* Contact info */}
           <div className="rounded-xl border border-theme-border p-5">
             <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Informations</h2>
@@ -167,7 +260,7 @@ export default function ContactDetailPage() {
         </div>
 
         {/* Right column: transactions + activity */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           {/* Linked transactions */}
           <div className="rounded-xl border border-theme-border p-5">
             <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">

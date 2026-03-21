@@ -59,7 +59,7 @@ export default function NegotiationCopilot({
   const interest = INTEREST_CONFIG[buyerInterestLevel]
 
   return (
-    <div className={cn('bg-white rounded-card shadow-card p-5', className)}>
+    <div className={cn('rounded-xl border border-theme-border p-5', className)}>
       <div className="flex items-center gap-2 mb-4">
         <div className="h-7 w-7 rounded-lg bg-purple-100 flex items-center justify-center">
           <Scale className="h-4 w-4 text-purple-600" />

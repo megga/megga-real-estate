@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Sparkles, X, Send, Loader2, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useCopilot } from '@/hooks/useCopilot'
+import { useCopilotContext } from '@/hooks/useCopilotContext'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -10,41 +12,6 @@ interface CopilotMessage {
   content: string
   timestamp: Date
 }
-
-// ─── MOCK RESPONSES ─────────────────────────────────────────────────────────
-
-const MOCK_RESPONSES: Record<string, string> = {
-  résumé: `**Résumé du portefeuille actif :**\n\n• **12 contacts actifs** dont 5 acheteurs chauds\n• **8 transactions en cours** — valeur totale CHF 9.2M\n• **3 relances en retard** à traiter aujourd'hui\n• **2 nouveaux matchs** détectés ce matin\n\nPriorité : relancer M. Dupont (intérêt confirmé, visite il y a 5 jours sans feedback).`,
-
-  relance: `**Suggestion de relance pour votre client :**\n\n*Objet : Nouvelles opportunités correspondant à vos critères*\n\nBonjour [Prénom],\n\nJ'espère que vous allez bien. Suite à notre dernier échange, j'ai identifié 2 nouveaux biens qui pourraient vous intéresser :\n\n1. Appartement 4p à Champel — CHF 980'000\n2. 3p rénové Eaux-Vives — CHF 750'000\n\nSouhaitez-vous organiser une visite cette semaine ?\n\nCordialement,\n[Votre nom]`,
-
-  matching: `**Shortlist de matching pour vos clients actifs :**\n\n🏠 **M. Dupont** (budget CHF 1.2M, 4p Eaux-Vives)\n→ 3 pièces rue du Rhône — **92% compatible**\n→ 4 pièces bd des Tranchées — **85% compatible**\n\n🏠 **Mme Favre** (budget CHF 800K, 3p Champel)\n→ 3 pièces av. de Champel — **88% compatible**\n\n🏠 **M. Weber** (budget CHF 650K, studio/2p centre)\n→ 2 pièces Plainpalais — **78% compatible**`,
-
-  actions: `**Prochaines actions prioritaires :**\n\n1. 🔴 **Urgent** — Relancer M. Müller (offre en attente depuis 5 jours)\n2. 🟠 **Important** — Demander feedback visite Mme Favre (visite hier)\n3. 🔵 **Normal** — Envoyer 2 nouveaux biens à M. Dupont (matchs détectés)\n4. 🟢 **Suggestion** — Mettre à jour le prix du bien rue de la Terrassière (stagnation 45 jours)`,
-
-  objections: `**Analyse des objections récentes :**\n\n📊 **Top 3 objections (15 dernières visites) :**\n\n1. **Prix trop élevé** — mentionné 6 fois (40%)\n   → Suggestion : revoir le positionnement prix sur 2 biens\n\n2. **Bruit / environnement** — mentionné 4 fois (27%)\n   → Suggestion : programmer les visites le week-end\n\n3. **Surface trop petite** — mentionné 3 fois (20%)\n   → Suggestion : proposer des biens avec surface supérieure`,
-}
-
-function getMockResponse(query: string): string {
-  const q = query.toLowerCase()
-
-  if (/résumé|résume|resume|portfolio|portefeuille/i.test(q)) return MOCK_RESPONSES.résumé
-  if (/relance|relancer|rédige|redige|email|message|écrire|ecrire/i.test(q)) return MOCK_RESPONSES.relance
-  if (/matching|match|quels?\s*biens?|proposer|compatible|shortlist/i.test(q)) return MOCK_RESPONSES.matching
-  if (/action|prochaine|next|priorité|priorite|quoi\s*faire|agenda/i.test(q)) return MOCK_RESPONSES.actions
-  if (/objection|feedback|retour|visite|analyse/i.test(q)) return MOCK_RESPONSES.objections
-
-  return `Je comprends votre demande. Voici ce que je peux faire pour vous :\n\n• **"résume"** — Résumé de votre portefeuille\n• **"relance [client]"** — Rédiger une relance\n• **"matching"** — Voir les biens compatibles\n• **"prochaines actions"** — Actions prioritaires\n• **"objections"** — Analyse des retours de visite\n\nEssayez une de ces commandes pour commencer.`
-}
-
-// ─── SUGGESTIONS ────────────────────────────────────────────────────────────
-
-const SUGGESTIONS = [
-  'Résume-moi mon portefeuille',
-  'Quelles sont les prochaines actions ?',
-  'Rédige une relance pour mon client',
-  'Quels biens proposer à mes acheteurs ?',
-]
 
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
 
@@ -62,6 +29,27 @@ export default function CopilotPanel() {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { sendMessage } = useCopilot()
+  const { activeContact } = useCopilotContext()
+
+  // Contextual suggestions based on active contact
+  const suggestions = useMemo(() => {
+    if (activeContact) {
+      const name = activeContact.firstName
+      return [
+        `Résume-moi ${name}`,
+        `Rédige une relance pour ${name}`,
+        `Quels biens proposer à ${name} ?`,
+        'Quelles sont les prochaines actions ?',
+      ]
+    }
+    return [
+      'Résume-moi mon portefeuille',
+      'Quelles sont les prochaines actions ?',
+      'Rédige une relance pour mon client',
+      'Quels biens proposer à mes acheteurs ?',
+    ]
+  }, [activeContact])
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -77,7 +65,7 @@ export default function CopilotPanel() {
     }
   }, [isOpen])
 
-  const handleSend = useCallback((text?: string) => {
+  const handleSend = useCallback(async (text?: string) => {
     const query = (text || input).trim()
     if (!query) return
 
@@ -93,9 +81,20 @@ export default function CopilotPanel() {
     setInput('')
     setIsTyping(true)
 
-    const delay = 800 + (now % 600)
-    setTimeout(() => {
-      const response = getMockResponse(query)
+    try {
+      // Build context from active contact
+      const context: Record<string, unknown> = {}
+      if (activeContact) {
+        context.contact = {
+          name: `${activeContact.firstName} ${activeContact.lastName}`,
+          type: activeContact.type,
+          email: activeContact.email,
+          phone: activeContact.phone,
+        }
+      }
+
+      const response = await sendMessage(query, context)
+
       const assistantMsg: CopilotMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
@@ -103,12 +102,26 @@ export default function CopilotPanel() {
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, assistantMsg])
+    } catch {
+      const errorMsg: CopilotMessage = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: 'Désolé, une erreur est survenue. Veuillez réessayer.',
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, errorMsg])
+    } finally {
       setIsTyping(false)
-    }, delay)
-  }, [input])
+    }
+  }, [input, sendMessage, activeContact])
 
   function handleReset() {
-    setMessages([])
+    setMessages([{
+      id: 'welcome',
+      role: 'assistant',
+      content: 'Bonjour Gregory ! Comment puis-je vous aider ?',
+      timestamp: new Date(),
+    }])
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -156,7 +169,13 @@ export default function CopilotPanel() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-theme-primary">MEGGA AI</h3>
-                  <p className="text-[11px] text-theme-tertiary">Votre assistant intelligent</p>
+                  {activeContact ? (
+                    <p className="text-[11px] text-accent">
+                      Contexte : {activeContact.firstName} {activeContact.lastName}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-theme-tertiary">Votre assistant intelligent</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -242,7 +261,7 @@ export default function CopilotPanel() {
                   <p className="text-[11px] text-theme-tertiary uppercase tracking-wider font-medium px-1">
                     Suggestions
                   </p>
-                  {SUGGESTIONS.map((s, i) => (
+                  {suggestions.map((s, i) => (
                     <button
                       key={i}
                       onClick={() => handleSend(s)}
@@ -273,7 +292,7 @@ export default function CopilotPanel() {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Demandez-moi quelque chose..."
+                  placeholder={activeContact ? `Demandez à propos de ${activeContact.firstName}...` : 'Demandez-moi quelque chose...'}
                   className="flex-1 text-sm bg-transparent border-0 outline-none text-theme-primary placeholder:text-theme-tertiary"
                   disabled={isTyping}
                 />
