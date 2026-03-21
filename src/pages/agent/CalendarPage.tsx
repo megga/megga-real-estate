@@ -262,69 +262,114 @@ interface CreateEventForm {
   type: EventType
   date: string
   startTime: string
+  duration: '30' | '60' | '90' | '120' | 'custom'
   endTime: string
+  recurrence: 'none' | 'daily' | 'weekly' | 'monthly'
   contact: string
   property: string
   notes: string
 }
 
-const INITIAL_FORM: CreateEventForm = {
-  title: '',
-  type: 'visit',
-  date: '2026-03-17',
-  startTime: '10:00',
-  endTime: '11:00',
-  contact: '',
-  property: '',
-  notes: '',
+const DURATION_OPTIONS = [
+  { value: '30', label: '30 min' },
+  { value: '60', label: '1h' },
+  { value: '90', label: '1h30' },
+  { value: '120', label: '2h' },
+  { value: 'custom', label: 'Autre' },
+] as const
+
+const RECURRENCE_OPTIONS = [
+  { value: 'none', label: 'Aucune' },
+  { value: 'daily', label: 'Tous les jours' },
+  { value: 'weekly', label: 'Toutes les semaines' },
+  { value: 'monthly', label: 'Tous les mois' },
+] as const
+
+function addMinutesToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number)
+  const total = h * 60 + m + minutes
+  const newH = Math.floor(total / 60) % 24
+  const newM = total % 60
+  return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`
 }
 
-function CreateEventModal({ onClose, onCreate }: {
+function CreateEventModal({ onClose, onCreate, initialDate, initialContact, initialProperty }: {
   onClose: () => void
-  onCreate: (event: CalendarEvent) => void
+  onCreate: (events: CalendarEvent[]) => void
+  initialDate?: Date
+  initialContact?: string
+  initialProperty?: string
 }) {
-  const [form, setForm] = useState<CreateEventForm>(INITIAL_FORM)
+  const defaultDate = initialDate
+    ? `${initialDate.getFullYear()}-${(initialDate.getMonth() + 1).toString().padStart(2, '0')}-${initialDate.getDate().toString().padStart(2, '0')}`
+    : '2026-03-17'
+  const defaultStart = initialDate
+    ? `${initialDate.getHours().toString().padStart(2, '0')}:${initialDate.getMinutes().toString().padStart(2, '0')}`
+    : '10:00'
+
+  const [form, setForm] = useState<CreateEventForm>({
+    title: '', type: 'visit', date: defaultDate, startTime: defaultStart,
+    duration: '60', endTime: addMinutesToTime(defaultStart, 60),
+    recurrence: 'none', contact: initialContact || '', property: initialProperty || '', notes: '',
+  })
 
   const updateField = <K extends keyof CreateEventForm>(key: K, value: CreateEventForm[K]) => {
-    setForm(prev => ({ ...prev, [key]: value }))
+    setForm(prev => {
+      const next = { ...prev, [key]: value }
+      // Auto-calc endTime when startTime or duration changes
+      if ((key === 'startTime' || key === 'duration') && next.duration !== 'custom') {
+        next.endTime = addMinutesToTime(next.startTime, Number(next.duration))
+      }
+      return next
+    })
   }
 
-  const isValid = form.title.trim().length > 0 && form.date && form.startTime && form.endTime
+  const isValid = form.title.trim().length > 0 && form.date && form.startTime
 
   const handleSubmit = () => {
     if (!isValid) return
-    const [y, m, d] = form.date.split('-').map(Number)
+    const [y, mo, d] = form.date.split('-').map(Number)
     const [sh, sm] = form.startTime.split(':').map(Number)
     const [eh, em] = form.endTime.split(':').map(Number)
 
-    const event: CalendarEvent = {
-      id: crypto.randomUUID(),
-      type: form.type,
-      title: form.title.trim(),
-      date: new Date(y, m - 1, d, sh, sm),
-      endDate: new Date(y, m - 1, d, eh, em),
-      contact: form.contact || undefined,
-      property: form.property || undefined,
-      notes: form.notes.trim() || undefined,
+    const events: CalendarEvent[] = []
+    const recurrenceCount = form.recurrence === 'none' ? 1 : form.recurrence === 'daily' ? 14 : 4
+
+    for (let i = 0; i < recurrenceCount; i++) {
+      const dayOffset = form.recurrence === 'daily' ? i : form.recurrence === 'weekly' ? i * 7 : 0
+      const monthOffset = form.recurrence === 'monthly' ? i : 0
+      const startDate = new Date(y, mo - 1 + monthOffset, d + dayOffset, sh, sm)
+      const endDate = new Date(y, mo - 1 + monthOffset, d + dayOffset, eh, em)
+
+      events.push({
+        id: crypto.randomUUID(),
+        type: form.type,
+        title: form.title.trim(),
+        date: startDate,
+        endDate,
+        contact: form.contact || undefined,
+        property: form.property || undefined,
+        notes: form.notes.trim() || undefined,
+      })
     }
-    onCreate(event)
+    onCreate(events)
     onClose()
   }
 
-  const selectClasses = 'w-full h-11 px-3 rounded-input border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none'
-  const inputClasses = 'w-full h-11 px-3 rounded-input border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
+  const selectClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none'
+  const inputClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="bg-theme-card rounded-card shadow-modal w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-theme-card rounded-xl border border-theme-border shadow-modal w-full max-w-md max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <h3 className="text-lg font-semibold text-theme-primary">Nouveau rendez-vous</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-active transition-colors">
-            <X className="w-5 h-5 text-theme-tertiary" />
+          <h3 className="text-base font-semibold text-theme-primary">Nouveau rendez-vous</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
+            <X className="w-4 h-4 text-theme-tertiary" />
           </button>
         </div>
 
@@ -333,107 +378,103 @@ function CreateEventModal({ onClose, onCreate }: {
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-theme-primary mb-1.5">Titre</label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={e => updateField('title', e.target.value)}
-              placeholder="Ex: Visite Appartement Eaux-Vives"
-              className={inputClasses}
-            />
+            <input type="text" value={form.title} onChange={e => updateField('title', e.target.value)} placeholder="Ex: Visite Appartement Eaux-Vives" className={inputClasses} />
           </div>
 
-          {/* Type */}
+          {/* Type — inline radio */}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Type d&apos;événement</label>
-            <select
-              value={form.type}
-              onChange={e => updateField('type', e.target.value as EventType)}
-              className={selectClasses}
-            >
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Type</label>
+            <div className="flex flex-wrap gap-1.5">
               {EVENT_TYPES.map(type => (
-                <option key={type} value={type}>{EVENT_CONFIG[type].label}</option>
+                <button key={type} type="button" onClick={() => updateField('type', type)}
+                  className={cn('px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                    form.type === type ? 'border-accent bg-accent/10 text-accent' : 'border-theme-border text-theme-secondary hover:text-theme-primary'
+                  )}
+                >
+                  {EVENT_CONFIG[type].label}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
           {/* Date */}
           <div>
             <label className="block text-sm font-medium text-theme-primary mb-1.5">Date</label>
-            <input
-              type="text"
-              value={form.date.split('-').reverse().join('.')}
-              onChange={e => {
-                const parts = e.target.value.split('.')
-                if (parts.length === 3) updateField('date', `${parts[2]}-${parts[1]}-${parts[0]}`)
-              }}
-              placeholder="JJ.MM.AAAA"
-              className={inputClasses}
+            <input type="text" value={form.date.split('-').reverse().join('.')}
+              onChange={e => { const parts = e.target.value.split('.'); if (parts.length === 3) updateField('date', `${parts[2]}-${parts[1]}-${parts[0]}`) }}
+              placeholder="JJ.MM.AAAA" className={inputClasses}
             />
           </div>
 
-          {/* Time row */}
+          {/* Start time + Duration */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure début</label>
-              <input
-                type="text"
-                value={form.startTime}
-                onChange={e => updateField('startTime', e.target.value)}
-                placeholder="10:00"
-                className={inputClasses}
-              />
+              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure</label>
+              <input type="text" value={form.startTime} onChange={e => updateField('startTime', e.target.value)} placeholder="10:00" className={inputClasses} />
             </div>
             <div>
+              <label className="block text-sm font-medium text-theme-primary mb-1.5">Durée</label>
+              <div className="flex gap-1">
+                {DURATION_OPTIONS.map(opt => (
+                  <button key={opt.value} type="button" onClick={() => updateField('duration', opt.value as CreateEventForm['duration'])}
+                    className={cn('flex-1 h-10 rounded-lg text-[11px] font-medium border transition-colors',
+                      form.duration === opt.value ? 'border-accent bg-accent/10 text-accent' : 'border-theme-border text-theme-tertiary hover:text-theme-secondary'
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Custom end time (only if duration = custom) */}
+          {form.duration === 'custom' && (
+            <div>
               <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure fin</label>
-              <input
-                type="text"
-                value={form.endTime}
-                onChange={e => updateField('endTime', e.target.value)}
-                placeholder="11:00"
-                className={inputClasses}
-              />
+              <input type="text" value={form.endTime} onChange={e => updateField('endTime', e.target.value)} placeholder="11:00" className={inputClasses} />
+            </div>
+          )}
+
+          {/* Récurrence */}
+          <div>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Récurrence</label>
+            <div className="flex gap-1.5">
+              {RECURRENCE_OPTIONS.map(opt => (
+                <button key={opt.value} type="button" onClick={() => updateField('recurrence', opt.value as CreateEventForm['recurrence'])}
+                  className={cn('flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium border transition-colors',
+                    form.recurrence === opt.value ? 'border-accent bg-accent/10 text-accent' : 'border-theme-border text-theme-tertiary hover:text-theme-secondary'
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Contact */}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Contact lié</label>
-            <select
-              value={form.contact}
-              onChange={e => updateField('contact', e.target.value)}
-              className={selectClasses}
-            >
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Contact</label>
+            <select value={form.contact} onChange={e => updateField('contact', e.target.value)} className={selectClasses}>
               <option value="">— Aucun —</option>
-              {MOCK_CONTACTS.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+              {MOCK_CONTACTS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
           {/* Property */}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Bien lié</label>
-            <select
-              value={form.property}
-              onChange={e => updateField('property', e.target.value)}
-              className={selectClasses}
-            >
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Bien</label>
+            <select value={form.property} onChange={e => updateField('property', e.target.value)} className={selectClasses}>
               <option value="">— Aucun —</option>
-              {MOCK_PROPERTIES.map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
+              {MOCK_PROPERTIES.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
 
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-theme-primary mb-1.5">Notes</label>
-            <textarea
-              value={form.notes}
-              onChange={e => updateField('notes', e.target.value)}
-              placeholder="Informations complémentaires..."
-              rows={3}
-              className="w-full px-3 py-2.5 rounded-input border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
+            <textarea value={form.notes} onChange={e => updateField('notes', e.target.value)} placeholder="Informations complémentaires..." rows={2}
+              className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none placeholder:text-theme-tertiary"
             />
           </div>
         </div>
@@ -443,11 +484,7 @@ function CreateEventModal({ onClose, onCreate }: {
           <button onClick={onClose} className="flex-1 h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
             Annuler
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!isValid}
-            className="flex-1 h-9 rounded-lg text-sm font-medium bg-accent hover:bg-accent/90 text-white transition-colors disabled:opacity-50"
-          >
+          <button onClick={handleSubmit} disabled={!isValid} className="flex-1 h-9 rounded-lg text-sm font-medium bg-accent hover:bg-accent/90 text-white transition-colors disabled:opacity-50">
             Créer
           </button>
         </div>
@@ -458,10 +495,11 @@ function CreateEventModal({ onClose, onCreate }: {
 
 /* ─── Month View ─── */
 
-function MonthView({ currentDate, events, onSelectEvent }: {
+function MonthView({ currentDate, events, onSelectEvent, onClickSlot }: {
   currentDate: Date
   events: CalendarEvent[]
   onSelectEvent: (event: CalendarEvent) => void
+  onClickSlot?: (date: Date) => void
 }) {
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -492,8 +530,9 @@ function MonthView({ currentDate, events, onSelectEvent }: {
           return (
             <div
               key={idx}
+              onClick={() => onClickSlot?.(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 10, 0))}
               className={cn(
-                'min-h-[100px] lg:min-h-[120px] border-b border-r border-theme-border/50 p-1.5 transition-colors',
+                'min-h-[100px] lg:min-h-[120px] border-b border-r border-theme-border/50 p-1.5 transition-colors cursor-pointer hover:bg-theme-hover/30',
                 !inMonth && 'bg-theme-hover/50',
                 today && 'bg-accent/10 rounded-lg',
               )}
@@ -537,10 +576,11 @@ function MonthView({ currentDate, events, onSelectEvent }: {
 
 /* ─── Week View ─── */
 
-function WeekView({ currentDate, events, onSelectEvent }: {
+function WeekView({ currentDate, events, onSelectEvent, onClickSlot }: {
   currentDate: Date
   events: CalendarEvent[]
   onSelectEvent: (event: CalendarEvent) => void
+  onClickSlot?: (date: Date) => void
 }) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -579,8 +619,10 @@ function WeekView({ currentDate, events, onSelectEvent }: {
               const hourEvents = dayEvents.filter(e => getHours(e.date) === hour)
 
               return (
-                <div key={di} className={cn(
-                  'h-16 border-r border-b border-theme-border/50 relative',
+                <div key={di}
+                  onClick={() => onClickSlot?.(new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, 0))}
+                  className={cn(
+                  'h-16 border-r border-b border-theme-border/50 relative cursor-pointer hover:bg-theme-hover/50',
                   isToday(day) && 'bg-accent/[0.02]',
                 )}>
                   {hourEvents.map(event => {
@@ -617,10 +659,11 @@ function WeekView({ currentDate, events, onSelectEvent }: {
 
 /* ─── Day View ─── */
 
-function DayView({ currentDate, events, onSelectEvent }: {
+function DayView({ currentDate, events, onSelectEvent, onClickSlot }: {
   currentDate: Date
   events: CalendarEvent[]
   onSelectEvent: (event: CalendarEvent) => void
+  onClickSlot?: (date: Date) => void
 }) {
   const dayEvents = getEventsForDay(events, currentDate)
 
@@ -653,7 +696,10 @@ function DayView({ currentDate, events, onSelectEvent }: {
               <div className="w-16 shrink-0 py-3 pr-3 text-right">
                 <span className="text-xs text-theme-tertiary">{hour}:00</span>
               </div>
-              <div className="flex-1 py-1.5 pr-4 min-h-[64px] border-l border-theme-border/50 pl-3 space-y-1.5">
+              <div
+                onClick={() => onClickSlot?.(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, 0))}
+                className="flex-1 py-1.5 pr-4 min-h-[64px] border-l border-theme-border/50 pl-3 space-y-1.5 cursor-pointer hover:bg-theme-hover/30"
+              >
                 {hourEvents.map(event => {
                   const config = EVENT_CONFIG[event.type]
                   const Icon = config.icon
@@ -761,13 +807,19 @@ function MobileListView({ events, onSelectEvent }: {
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 17)) // 17 mars 2026
-  const [viewMode, setViewMode] = useState<ViewMode>('month')
+  const [viewMode, setViewMode] = useState<ViewMode>('week')
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createInitialDate, setCreateInitialDate] = useState<Date | undefined>(undefined)
   const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS)
 
-  const handleCreateEvent = useCallback((event: CalendarEvent) => {
-    setEvents(prev => [...prev, event])
+  const handleCreateEvent = useCallback((newEvents: CalendarEvent[]) => {
+    setEvents(prev => [...prev, ...newEvents])
+  }, [])
+
+  const handleClickSlot = useCallback((date: Date) => {
+    setCreateInitialDate(date)
+    setShowCreateModal(true)
   }, [])
 
   const navigatePrev = () => {
@@ -887,13 +939,13 @@ export default function CalendarPage() {
       {/* Desktop/tablet: grid views */}
       <div className="hidden md:block">
         {viewMode === 'month' && (
-          <MonthView currentDate={currentDate} events={events} onSelectEvent={setSelectedEvent} />
+          <MonthView currentDate={currentDate} events={events} onSelectEvent={setSelectedEvent} onClickSlot={handleClickSlot} />
         )}
         {viewMode === 'week' && (
-          <WeekView currentDate={currentDate} events={events} onSelectEvent={setSelectedEvent} />
+          <WeekView currentDate={currentDate} events={events} onSelectEvent={setSelectedEvent} onClickSlot={handleClickSlot} />
         )}
         {viewMode === 'day' && (
-          <DayView currentDate={currentDate} events={events} onSelectEvent={setSelectedEvent} />
+          <DayView currentDate={currentDate} events={events} onSelectEvent={setSelectedEvent} onClickSlot={handleClickSlot} />
         )}
       </div>
 
@@ -909,7 +961,11 @@ export default function CalendarPage() {
 
       {/* Create event modal */}
       {showCreateModal && (
-        <CreateEventModal onClose={() => setShowCreateModal(false)} onCreate={handleCreateEvent} />
+        <CreateEventModal
+          onClose={() => { setShowCreateModal(false); setCreateInitialDate(undefined) }}
+          onCreate={handleCreateEvent}
+          initialDate={createInitialDate}
+        />
       )}
     </div>
   )
