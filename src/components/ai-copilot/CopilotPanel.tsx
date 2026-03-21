@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Sparkles, X, Send, Loader2, RotateCcw, Copy, Check } from 'lucide-react'
+import { Sparkles, X, Send, Loader2, RotateCcw, Copy, Check, Mic } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useCopilot } from '@/hooks/useCopilot'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -122,8 +123,27 @@ export default function CopilotPanel() {
   const [streamingContent, setStreamingContent] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const handleSendRef = useRef<(text?: string) => void>(null)
   const { sendMessageStream } = useCopilot()
   const { activeContact } = useCopilotContext()
+
+  // Speech recognition — auto-sends when agent stops speaking
+  const handleVoiceTranscript = useCallback((transcript: string) => {
+    if (transcript.trim()) {
+      handleSendRef.current?.(transcript)
+    }
+  }, [])
+  const { isListening, transcript: voiceTranscript, isSupported: voiceSupported, startListening, stopListening } = useSpeechRecognition({
+    lang: 'fr-CH',
+    onFinalTranscript: handleVoiceTranscript,
+  })
+
+  // Show voice transcript in real-time in input
+  useEffect(() => {
+    if (isListening && voiceTranscript) {
+      setInput(voiceTranscript)
+    }
+  }, [isListening, voiceTranscript])
 
   // Persist messages
   useEffect(() => {
@@ -215,6 +235,17 @@ export default function CopilotPanel() {
       setStreamingContent(null)
     }
   }, [input, isTyping, sendMessageStream, activeContact])
+
+  // Keep ref in sync for voice callback
+  handleSendRef.current = handleSend
+
+  const toggleVoice = useCallback(() => {
+    if (isListening) {
+      stopListening()
+    } else {
+      startListening()
+    }
+  }, [isListening, startListening, stopListening])
 
   function handleReset() {
     const welcome: CopilotMessage = {
@@ -357,14 +388,36 @@ export default function CopilotPanel() {
 
             {/* Input */}
             <div className="px-4 pb-4 pt-2">
-              <div className="flex items-center gap-2 bg-transparent rounded-xl border border-theme-border px-4 py-2.5 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 transition-all">
+              <div className={cn(
+                'flex items-center gap-2 bg-transparent rounded-xl border px-4 py-2.5 transition-all',
+                isListening
+                  ? 'border-red-500/50 ring-2 ring-red-500/20'
+                  : 'border-theme-border focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20'
+              )}>
+                {/* Voice button */}
+                {voiceSupported && (
+                  <button
+                    onClick={toggleVoice}
+                    disabled={isTyping}
+                    className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center transition-all flex-shrink-0',
+                      isListening
+                        ? 'text-red-500 animate-pulse'
+                        : 'text-theme-tertiary hover:text-theme-primary',
+                      isTyping && 'opacity-50 cursor-not-allowed'
+                    )}
+                    title={isListening ? 'Arrêter la dictée' : 'Dicter un message'}
+                  >
+                    <Mic className="w-4 h-4" />
+                  </button>
+                )}
                 <input
                   ref={inputRef}
                   type="text"
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={activeContact ? `Demandez à propos de ${activeContact.firstName}...` : 'Demandez-moi quelque chose...'}
+                  placeholder={isListening ? 'Parlez maintenant...' : activeContact ? `Demandez à propos de ${activeContact.firstName}...` : 'Demandez-moi quelque chose...'}
                   className="flex-1 text-sm bg-transparent border-0 outline-none text-theme-primary placeholder:text-theme-tertiary"
                   disabled={isTyping}
                 />
