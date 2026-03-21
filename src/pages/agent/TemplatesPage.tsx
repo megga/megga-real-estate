@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   FileText, Search, Plus, Eye, Download, Star,
 } from 'lucide-react'
@@ -51,6 +52,7 @@ const TEMPLATES: Template[] = [
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
 
 export default function TemplatesPage() {
+  const navigate = useNavigate()
   const [category, setCategory] = useState<TemplateCategory | 'all'>('all')
   const [search, setSearch] = useState('')
 
@@ -128,6 +130,7 @@ export default function TemplatesPage() {
             filtered.map((template, i) => (
               <div
                 key={template.id}
+                onClick={() => navigate(`/dashboard/documents/generate?template=${template.id}`)}
                 className={cn(
                   'flex items-center px-4 py-3.5 group hover:bg-theme-hover transition-colors cursor-pointer',
                   i < filtered.length - 1 && 'border-b border-theme-border'

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   FileText, ChevronRight, User,
   ArrowLeft, Sparkles, Loader2, Eye, Download, Check,
@@ -116,8 +116,13 @@ const STEPS = [
 
 export default function DocumentGenerator() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(0)
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
+  const [searchParams] = useSearchParams()
+  const preselected = searchParams.get('template')
+
+  const [step, setStep] = useState(preselected && TEMPLATE_CONFIGS[preselected] ? 1 : 0)
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
+    preselected && TEMPLATE_CONFIGS[preselected] ? preselected : null
+  )
   const [formData, setFormData] = useState<Record<string, string>>({})
   const [generating, setGenerating] = useState(false)
   const [generated, setGenerated] = useState(false)
@@ -196,7 +201,7 @@ export default function DocumentGenerator() {
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all flex-1 justify-center',
                 isActive
-                  ? 'bg-theme-card text-theme-primary shadow-sm'
+                  ? 'bg-theme-card text-theme-primary shadow-none'
                   : isDone
                     ? 'text-accent cursor-pointer hover:bg-theme-card/50'
                     : 'text-theme-tertiary cursor-default'
