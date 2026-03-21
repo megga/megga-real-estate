@@ -54,7 +54,7 @@ function riskBadge(risk: MockKycCase['risk_level']) {
   )
 }
 
-function ContactAvatar({ name, color }: { name: string; color: string }) {
+function ContactAvatar({ name }: { name: string; color?: string }) {
   const initials = name
     .split(' ')
     .map((n) => n[0])

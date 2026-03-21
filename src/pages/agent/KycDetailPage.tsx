@@ -26,15 +26,14 @@ function progressTextColor(pct: number) {
 
 function statusBadge(status: MockKycCase['status']) {
   const map = {
-    pending:     { cls: 'bg-theme-active text-theme-secondary' },
-    in_progress: { cls: 'bg-accent/10 text-accent' },
-    review:      { cls: 'bg-warning/10 text-warning' },
-    validated:   { cls: 'bg-success/10 text-success' },
-    rejected:    { cls: 'bg-danger/10 text-danger' },
+    pending:     'text-theme-tertiary',
+    in_progress: 'text-accent',
+    review:      'text-warning',
+    validated:   'text-success',
+    rejected:    'text-danger',
   }
-  const s = map[status]
   return (
-    <span className={cn('text-xs font-medium px-2.5 py-1 rounded-badge', s.cls)}>
+    <span className={cn('text-xs font-medium', map[status])}>
       {KYC_STATUS_LABELS[status]}
     </span>
   )
@@ -42,14 +41,14 @@ function statusBadge(status: MockKycCase['status']) {
 
 function riskBadge(risk: MockKycCase['risk_level']) {
   const map = {
-    low:        { dot: 'bg-success',     cls: 'bg-success/10 text-success' },
-    medium:     { dot: 'bg-warning',     cls: 'bg-warning/10 text-warning' },
-    high:       { dot: 'bg-danger',      cls: 'bg-danger/10 text-danger' },
-    unassessed: { dot: 'bg-theme-tertiary', cls: 'bg-theme-active text-theme-secondary' },
+    low:        { dot: 'bg-success',        text: 'text-success' },
+    medium:     { dot: 'bg-warning',        text: 'text-warning' },
+    high:       { dot: 'bg-danger',         text: 'text-danger' },
+    unassessed: { dot: 'bg-theme-tertiary', text: 'text-theme-tertiary' },
   }
   const r = map[risk]
   return (
-    <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-badge', r.cls)}>
+    <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', r.text)}>
       <span className={cn('h-1.5 w-1.5 rounded-full', r.dot)} />
       {KYC_RISK_LABELS[risk]}
     </span>
@@ -242,7 +241,7 @@ export default function KycDetailPage() {
                                     {item.label}
                                   </span>
                                   {item.is_required && (
-                                    <span className="text-[10px] font-medium text-danger uppercase">Requis</span>
+                                    <span className="text-[10px] font-medium text-theme-tertiary uppercase">Requis</span>
                                   )}
                                   {item.document_status && (
                                     <span className="ml-auto flex-shrink-0">
@@ -297,10 +296,10 @@ export default function KycDetailPage() {
                       </p>
                     </div>
                     <span className={cn(
-                      'text-xs font-medium px-2 py-0.5 rounded-badge flex-shrink-0',
-                      doc.status === 'validated' && 'bg-success/10 text-success',
-                      doc.status === 'pending' && 'bg-warning/10 text-warning',
-                      doc.status === 'rejected' && 'bg-danger/10 text-danger',
+                      'text-xs font-medium flex-shrink-0',
+                      doc.status === 'validated' && 'text-success',
+                      doc.status === 'pending' && 'text-warning',
+                      doc.status === 'rejected' && 'text-danger',
                     )}>
                       {doc.status === 'validated' ? 'Validé' : doc.status === 'pending' ? 'En attente' : 'Rejeté'}
                     </span>
