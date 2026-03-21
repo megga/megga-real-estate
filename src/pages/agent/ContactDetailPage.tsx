@@ -183,7 +183,7 @@ export default function ContactDetailPage() {
                     <div
                       key={tx.id}
                       className={cn(
-                        'flex items-center gap-3 py-3 hover:bg-theme-hover transition-colors cursor-pointer group',
+                        'flex items-center gap-3 py-3 cursor-pointer group',
                         i < contact.transactions.length - 1 && 'border-b border-theme-border'
                       )}
                     >
