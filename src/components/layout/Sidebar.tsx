@@ -260,13 +260,13 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
         <div className="relative">
           <button
             onClick={toggleTheme}
-            onMouseEnter={() => isCollapsed ? setHoveredItem('theme') : undefined}
+            onMouseEnter={() => { if (isCollapsed) setHoveredItem('theme') }}
             onMouseLeave={() => setHoveredItem(null)}
             className={cn(
-              'flex items-center transition-all duration-150 ease-out cursor-pointer select-none w-full',
+              'flex items-center transition-all duration-150 ease-out cursor-pointer select-none',
               isCollapsed
-                ? 'mx-2 justify-center h-9 rounded-lg'
-                : 'mx-2 px-2.5 h-9 rounded-lg gap-2.5 text-sm font-normal',
+                ? 'mx-2 justify-center w-9 h-9 rounded-lg'
+                : 'mx-2 px-2.5 h-9 rounded-lg gap-2.5 text-sm font-normal w-[calc(100%-16px)]',
               'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
             )}
           >
