@@ -23,6 +23,7 @@ import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { MOCK_DEALS, type MockDeal } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 import PageTransition from '@/components/layout/PageTransition'
+import DealDetailModal from '@/components/transactions/DealDetailModal'
 
 // Column config — dot colors only, no backgrounds
 const PIPELINE_COLUMNS: { stage: MockDeal['stage']; dotColor: string }[] = [
@@ -40,9 +41,12 @@ const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-
 
 // ── Deal Card — minimal Lovable style ─────────────────────────────────────
 
-function DealCardContent({ deal }: { deal: MockDeal }) {
+function DealCardContent({ deal, onSelect }: { deal: MockDeal; onSelect?: (deal: MockDeal) => void }) {
   return (
-    <div className="rounded-lg border border-theme-border p-3 cursor-grab active:cursor-grabbing hover:border-theme-active hover:bg-theme-hover transition-all group">
+    <div
+      className="rounded-lg border border-theme-border p-3 cursor-grab active:cursor-grabbing hover:border-theme-active hover:bg-theme-hover transition-all group"
+      onDoubleClick={() => onSelect?.(deal)}
+    >
       <p className="text-sm font-medium text-theme-primary truncate">{deal.contact_name}</p>
       <p className="text-xs text-theme-tertiary truncate mt-0.5">{deal.property_title}</p>
       <div className="flex items-center justify-between mt-2">
@@ -129,6 +133,7 @@ export default function PipelinePage() {
   const [stageFilter, setStageFilter] = useState('')
   const [activeDeal, setActiveDeal] = useState<MockDeal | null>(null)
   const [showNewTransaction, setShowNewTransaction] = useState(false)
+  const [selectedDeal, setSelectedDeal] = useState<MockDeal | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -303,6 +308,7 @@ export default function PipelinePage() {
               filtered.map((deal, i) => (
                 <div
                   key={deal.id}
+                  onClick={() => setSelectedDeal(deal)}
                   className={cn(
                     'flex items-center px-4 py-3 hover:bg-theme-hover transition-colors cursor-pointer group',
                     i < filtered.length - 1 && 'border-b border-theme-border'
@@ -327,6 +333,10 @@ export default function PipelinePage() {
         )}
 
         <NewTransactionDialog open={showNewTransaction} onClose={() => setShowNewTransaction(false)} />
+
+        {selectedDeal && (
+          <DealDetailModal deal={selectedDeal} onClose={() => setSelectedDeal(null)} />
+        )}
       </div>
     </PageTransition>
   )

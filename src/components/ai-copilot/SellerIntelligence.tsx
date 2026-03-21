@@ -59,7 +59,7 @@ export default function SellerIntelligence({
           <Gauge className="h-4 w-4 text-warning" />
         </div>
         <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider">Seller Intelligence</h2>
-        <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1">
+        <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1 cursor-help" title="Confiance IA : 72% — basé sur la durée de mise en vente, feedbacks et interactions">
           <Sparkles className="h-2.5 w-2.5" />
           Estimation IA
         </span>

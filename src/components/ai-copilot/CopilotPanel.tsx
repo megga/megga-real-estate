@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Sparkles, X, Send, Loader2, RotateCcw } from 'lucide-react'
+import { Sparkles, X, Send, Loader2, RotateCcw, Copy, Check } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useCopilot } from '@/hooks/useCopilot'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
@@ -13,26 +14,122 @@ interface CopilotMessage {
   timestamp: Date
 }
 
+const STORAGE_KEY = 'megga-copilot-history'
+const MAX_MESSAGES = 50
+
+function loadHistory(): CopilotMessage[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved) as CopilotMessage[]
+      return parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) })).slice(-MAX_MESSAGES)
+    }
+  } catch { /* ignore */ }
+  return [{
+    id: 'welcome',
+    role: 'assistant',
+    content: 'Bonjour Gregory ! Je suis MEGGA AI, votre assistant intelligent. Demandez-moi un résumé, une relance, des suggestions de matching, ou les prochaines actions.',
+    timestamp: new Date(),
+  }]
+}
+
+function saveHistory(messages: CopilotMessage[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)))
+  } catch { /* ignore */ }
+}
+
+// ─── MESSAGE RENDERING ──────────────────────────────────────────────────────
+
+function isEmailResponse(content: string): boolean {
+  return content.includes('**Objet :**') || content.includes('**Objet:**')
+}
+
+function EmailBlock({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    // Strip markdown formatting for clipboard
+    const plain = content
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+    await navigator.clipboard.writeText(plain)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="bg-theme-section rounded-lg border border-theme-border p-3 text-sm text-theme-secondary leading-relaxed">
+        <MessageContent content={content} />
+      </div>
+      <button
+        onClick={handleCopy}
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-theme-tertiary hover:text-accent transition-colors"
+      >
+        {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+        {copied ? 'Copié' : 'Copier l\'email'}
+      </button>
+    </div>
+  )
+}
+
+function MessageContent({ content }: { content: string }) {
+  return (
+    <>
+      {content.split('\n').map((line, i) => {
+        if (line === '') return <br key={i} />
+        // Parse markdown links [text](url)
+        const parts = line.split(/(\[([^\]]+)\]\(([^)]+)\)|\*\*[^*]+\*\*|\*[^*]+\*)/)
+        return (
+          <p key={i} className={cn(i > 0 && 'mt-1')}>
+            {parts.map((part, j) => {
+              if (!part) return null
+              // Markdown link
+              const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+              if (linkMatch) {
+                const [, text, url] = linkMatch
+                if (url.startsWith('/dashboard')) {
+                  return <Link key={j} to={url} className="text-accent hover:underline font-medium">{text}</Link>
+                }
+                return <span key={j} className="text-accent font-medium">{text}</span>
+              }
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={j} className="font-semibold text-theme-primary">{part.slice(2, -2)}</strong>
+              }
+              if (part.startsWith('*') && part.endsWith('*')) {
+                return <em key={j} className="text-theme-muted">{part.slice(1, -1)}</em>
+              }
+              if (part.startsWith('• ') || part.startsWith('- ')) {
+                return <span key={j} className="block ml-2">{'•'} {part.slice(2)}</span>
+              }
+              return <span key={j}>{part}</span>
+            })}
+          </p>
+        )
+      })}
+    </>
+  )
+}
+
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
 
 export default function CopilotPanel() {
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<CopilotMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: 'Bonjour Gregory ! Je suis MEGGA AI, votre assistant intelligent. Demandez-moi un résumé, une relance, des suggestions de matching, ou les prochaines actions.',
-      timestamp: new Date(),
-    },
-  ])
+  const [messages, setMessages] = useState<CopilotMessage[]>(loadHistory)
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [streamingContent, setStreamingContent] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const { sendMessage } = useCopilot()
+  const { sendMessageStream } = useCopilot()
   const { activeContact } = useCopilotContext()
 
-  // Contextual suggestions based on active contact
+  // Persist messages
+  useEffect(() => {
+    if (messages.length > 0) saveHistory(messages)
+  }, [messages])
+
   const suggestions = useMemo(() => {
     if (activeContact) {
       const name = activeContact.firstName
@@ -57,7 +154,7 @@ export default function CopilotPanel() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, scrollToBottom])
+  }, [messages, streamingContent, scrollToBottom])
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -67,11 +164,10 @@ export default function CopilotPanel() {
 
   const handleSend = useCallback(async (text?: string) => {
     const query = (text || input).trim()
-    if (!query) return
+    if (!query || isTyping) return
 
-    const now = Date.now()
     const userMsg: CopilotMessage = {
-      id: `user-${now}`,
+      id: `user-${Date.now()}`,
       role: 'user',
       content: query,
       timestamp: new Date(),
@@ -80,9 +176,9 @@ export default function CopilotPanel() {
     setMessages(prev => [...prev, userMsg])
     setInput('')
     setIsTyping(true)
+    setStreamingContent('')
 
     try {
-      // Build context from active contact
       const context: Record<string, unknown> = {}
       if (activeContact) {
         context.contact = {
@@ -93,12 +189,16 @@ export default function CopilotPanel() {
         }
       }
 
-      const response = await sendMessage(query, context)
+      let fullContent = ''
+      await sendMessageStream(query, context, (chunk) => {
+        fullContent += chunk
+        setStreamingContent(fullContent)
+      })
 
       const assistantMsg: CopilotMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: response,
+        content: fullContent,
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, assistantMsg])
@@ -112,16 +212,19 @@ export default function CopilotPanel() {
       setMessages(prev => [...prev, errorMsg])
     } finally {
       setIsTyping(false)
+      setStreamingContent(null)
     }
-  }, [input, sendMessage, activeContact])
+  }, [input, isTyping, sendMessageStream, activeContact])
 
   function handleReset() {
-    setMessages([{
+    const welcome: CopilotMessage = {
       id: 'welcome',
       role: 'assistant',
       content: 'Bonjour Gregory ! Comment puis-je vous aider ?',
       timestamp: new Date(),
-    }])
+    }
+    setMessages([welcome])
+    localStorage.removeItem(STORAGE_KEY)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -133,7 +236,6 @@ export default function CopilotPanel() {
 
   return (
     <>
-      {/* Floating button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -144,14 +246,9 @@ export default function CopilotPanel() {
         </button>
       )}
 
-      {/* Panel */}
       {isOpen && (
         <>
-          {/* Backdrop on mobile */}
-          <div
-            className="fixed inset-0 bg-theme-overlay/30 z-40 sm:hidden"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 bg-theme-overlay/30 z-40 sm:hidden" onClick={() => setIsOpen(false)} />
 
           <div className={cn(
             'fixed z-50',
@@ -170,9 +267,7 @@ export default function CopilotPanel() {
                 <div>
                   <h3 className="text-sm font-semibold text-theme-primary">MEGGA AI</h3>
                   {activeContact ? (
-                    <p className="text-[11px] text-accent">
-                      Contexte : {activeContact.firstName} {activeContact.lastName}
-                    </p>
+                    <p className="text-[11px] text-accent">Contexte : {activeContact.firstName} {activeContact.lastName}</p>
                   ) : (
                     <p className="text-[11px] text-theme-tertiary">Votre assistant intelligent</p>
                   )}
@@ -180,18 +275,11 @@ export default function CopilotPanel() {
               </div>
               <div className="flex items-center gap-1">
                 {messages.length > 1 && (
-                  <button
-                    onClick={handleReset}
-                    className="w-8 h-8 rounded-lg hover:bg-theme-hover flex items-center justify-center transition-colors"
-                    title="Nouvelle conversation"
-                  >
+                  <button onClick={handleReset} className="w-8 h-8 rounded-lg hover:bg-theme-hover flex items-center justify-center transition-colors" title="Nouvelle conversation">
                     <RotateCcw className="w-3.5 h-3.5 text-theme-tertiary" />
                   </button>
                 )}
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="w-8 h-8 rounded-lg hover:bg-theme-hover flex items-center justify-center transition-colors"
-                >
+                <button onClick={() => setIsOpen(false)} className="w-8 h-8 rounded-lg hover:bg-theme-hover flex items-center justify-center transition-colors">
                   <X className="w-4 h-4 text-theme-tertiary" />
                 </button>
               </div>
@@ -208,26 +296,11 @@ export default function CopilotPanel() {
                       </div>
                       <div className="flex-1">
                         <div className="bg-theme-hover rounded-2xl rounded-tl-md px-4 py-3 text-sm text-theme-secondary leading-relaxed">
-                          {msg.content.split('\n').map((line, i) => {
-                            if (line === '') return <br key={i} />
-                            const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
-                            return (
-                              <p key={i} className={cn(i > 0 && 'mt-1')}>
-                                {parts.map((part, j) => {
-                                  if (part.startsWith('**') && part.endsWith('**')) {
-                                    return <strong key={j} className="font-semibold text-theme-primary">{part.slice(2, -2)}</strong>
-                                  }
-                                  if (part.startsWith('*') && part.endsWith('*')) {
-                                    return <em key={j} className="text-theme-muted">{part.slice(1, -1)}</em>
-                                  }
-                                  if (part.startsWith('• ') || part.startsWith('- ')) {
-                                    return <span key={j} className="block ml-2">{'•'} {part.slice(2)}</span>
-                                  }
-                                  return <span key={j}>{part}</span>
-                                })}
-                              </p>
-                            )
-                          })}
+                          {isEmailResponse(msg.content) ? (
+                            <EmailBlock content={msg.content} />
+                          ) : (
+                            <MessageContent content={msg.content} />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -241,32 +314,33 @@ export default function CopilotPanel() {
                 </div>
               ))}
 
-              {isTyping && (
+              {/* Streaming message */}
+              {isTyping && streamingContent !== null && (
                 <div className="flex gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Sparkles className="w-3 h-3 text-accent" />
                   </div>
-                  <div className="bg-theme-hover rounded-2xl rounded-tl-md px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
-                      <span className="text-xs text-theme-tertiary">Analyse en cours...</span>
+                  <div className="flex-1">
+                    <div className="bg-theme-hover rounded-2xl rounded-tl-md px-4 py-3 text-sm text-theme-secondary leading-relaxed">
+                      {streamingContent ? (
+                        <MessageContent content={streamingContent} />
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
+                          <span className="text-xs text-theme-tertiary">Analyse en cours...</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Suggestions on first open */}
+              {/* Suggestions */}
               {messages.length === 1 && !isTyping && (
                 <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] text-theme-tertiary uppercase tracking-wider font-medium px-1">
-                    Suggestions
-                  </p>
+                  <p className="text-[11px] text-theme-tertiary uppercase tracking-wider font-medium px-1">Suggestions</p>
                   {suggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSend(s)}
-                      className="w-full text-left px-3.5 py-2.5 bg-transparent rounded-xl border border-theme-border-subtle hover:border-accent/30 hover:bg-accent/5 text-sm text-theme-secondary hover:text-accent transition-all cursor-pointer"
-                    >
+                    <button key={i} onClick={() => handleSend(s)} className="w-full text-left px-3.5 py-2.5 bg-transparent rounded-xl border border-theme-border-subtle hover:border-accent/30 hover:bg-accent/5 text-sm text-theme-secondary hover:text-accent transition-all cursor-pointer">
                       {s}
                     </button>
                   ))}
@@ -278,9 +352,7 @@ export default function CopilotPanel() {
 
             {/* Disclaimer */}
             <div className="px-4 py-1">
-              <p className="text-[10px] text-theme-tertiary text-center">
-                Assistance IA — les suggestions sont indicatives et doivent être validées.
-              </p>
+              <p className="text-[10px] text-theme-tertiary text-center">Assistance IA — les suggestions sont indicatives et doivent être validées.</p>
             </div>
 
             {/* Input */}

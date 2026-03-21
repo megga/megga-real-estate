@@ -71,12 +71,34 @@ Situé à proximité immédiate des commerces, transports publics et du lac, ce 
 • Demande active de documentation complémentaire
 
 *Estimation IA — à confirmer par l'agent.*`,
+
+  summarize_visit: `**Résumé de la visite :**
+
+📍 **Bien :** 4 pièces Eaux-Vives — CHF 920'000
+👤 **Client :** Marie Dupont
+
+**Points positifs :**
+• Luminosité exceptionnelle — double exposition sud-ouest
+• Surface conforme aux attentes (78 m²)
+• Quartier apprécié — proximité lac et commerces
+
+**Objections relevées :**
+• Prix jugé légèrement élevé par rapport au marché
+• Cuisine à rénover (estimé CHF 25'000)
+• Bruit ponctuel côté rue
+
+**Score d'intérêt estimé :** 72/100 — *Intéressée mais hésitante sur le prix*
+
+**Action recommandée :** Proposer une contre-visite avec focus sur le potentiel de la cuisine et les comparables du quartier.
+
+*Estimation IA — à valider par l'agent.*`,
 }
 
 /* ─── Action detection from natural language ─── */
 
-function detectAction(message: string): CopilotAction {
+function detectAction(message: string): CopilotAction | 'summarize_visit' {
   const lower = message.toLowerCase()
+  if (/visite.*résumé|résumé.*visite|retour.*visite|feedback.*visite|après.*visite/.test(lower)) return 'summarize_visit'
   if (/résumé|résume|profil|qui est/.test(lower)) return 'summarize_contact'
   if (/relance|rédige|email|message|écrire/.test(lower)) return 'draft_email'
   if (/matching|biens|proposer|envoyer|compatible/.test(lower)) return 'suggest_next_action'
@@ -85,6 +107,20 @@ function detectAction(message: string): CopilotAction {
   if (/score|qualif|lead|chaud|froid/.test(lower)) return 'score_lead'
   if (/annonce|description|listing/.test(lower)) return 'draft_description'
   return 'suggest_next_action'
+}
+
+/* ─── Streaming mock (simulates word-by-word output) ─── */
+
+async function streamMockResponse(
+  text: string,
+  onChunk: (chunk: string) => void
+): Promise<void> {
+  const words = text.split(' ')
+  for (let i = 0; i < words.length; i++) {
+    const word = (i === 0 ? '' : ' ') + words[i]
+    onChunk(word)
+    await new Promise(resolve => setTimeout(resolve, 25 + Math.random() * 15))
+  }
 }
 
 export function useCopilot() {
@@ -98,33 +134,40 @@ export function useCopilot() {
 
     setIsLoading(true)
     try {
-      // Try Edge Function first
       const { data: { session } } = await supabase.auth.getSession()
-      if (session?.access_token) {
+      if (session?.access_token && action !== 'summarize_visit') {
         const res = await supabase.functions.invoke<CopilotResponse>('ai-copilot', {
           body: {
             action,
-            context: {
-              message,
-              ...context,
-            },
+            context: { message, ...context },
           },
         })
-
-        if (res.data?.result) {
-          return res.data.result
-        }
+        if (res.data?.result) return res.data.result
       }
-
-      // Fallback to mock responses
       return MOCK_RESPONSES[action] || MOCK_RESPONSES.suggest_next_action
     } catch {
-      // Fallback to mock responses on any error
       return MOCK_RESPONSES[action] || MOCK_RESPONSES.suggest_next_action
     } finally {
       setIsLoading(false)
     }
   }, [])
 
-  return { sendMessage, isLoading, detectAction }
+  const sendMessageStream = useCallback(async (
+    message: string,
+    _context: Record<string, unknown> | undefined,
+    onChunk: (chunk: string) => void
+  ): Promise<void> => {
+    const action = detectAction(message)
+
+    setIsLoading(true)
+    try {
+      // For now, use mock streaming (real streaming requires Edge Function SSE support)
+      const fullResponse = MOCK_RESPONSES[action] || MOCK_RESPONSES.suggest_next_action
+      await streamMockResponse(fullResponse, onChunk)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  return { sendMessage, sendMessageStream, isLoading, detectAction }
 }

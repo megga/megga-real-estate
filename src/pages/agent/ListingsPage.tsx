@@ -9,6 +9,7 @@ import type { PropertyStatus } from '@/lib/constants'
 import { MOCK_AGENT_LISTINGS, type MockAgentListing } from '@/lib/mockData'
 import { useAgencyListings } from '@/hooks/useListings'
 import PageTransition from '@/components/layout/PageTransition'
+import ListingDetailModal from '@/components/listings/ListingDetailModal'
 
 const ITEMS_PER_PAGE = 9
 
@@ -28,6 +29,7 @@ export default function ListingsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [page, setPage] = useState(1)
+  const [selectedListing, setSelectedListing] = useState<MockAgentListing | null>(null)
 
   const { data: realListings } = useAgencyListings()
   const dataSource: MockAgentListing[] = (realListings && realListings.length > 0)
@@ -172,7 +174,7 @@ export default function ListingsPage() {
         {filtered.length > 0 && viewMode === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginated.map((listing) => (
-              <div key={listing.id} className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors">
+              <div key={listing.id} onClick={() => setSelectedListing(listing)} className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors cursor-pointer">
                 {/* Photo */}
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img src={listing.photo} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -218,6 +220,7 @@ export default function ListingsPage() {
             {paginated.map((listing, i) => (
               <div
                 key={listing.id}
+                onClick={() => setSelectedListing(listing)}
                 className={cn(
                   'flex items-center gap-3 px-4 py-3 hover:bg-theme-hover transition-colors cursor-pointer group',
                   i < paginated.length - 1 && 'border-b border-theme-border'
@@ -260,6 +263,24 @@ export default function ListingsPage() {
               </button>
             </div>
           </div>
+        )}
+        {selectedListing && (
+          <ListingDetailModal
+            listing={{
+              id: selectedListing.id,
+              title: selectedListing.title,
+              price: selectedListing.price,
+              address: selectedListing.address,
+              city: selectedListing.city,
+              canton: selectedListing.canton,
+              rooms: selectedListing.rooms,
+              surface: selectedListing.surface_m2,
+              type: selectedListing.type,
+              status: selectedListing.status,
+              created_at: selectedListing.created_at,
+            }}
+            onClose={() => setSelectedListing(null)}
+          />
         )}
       </div>
     </PageTransition>

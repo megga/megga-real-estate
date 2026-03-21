@@ -19,7 +19,7 @@ export default function CopilotSummary({ summary, isRefreshing, onRefresh, class
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-sm font-semibold text-primary-900">Résumé IA</h3>
-              <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge">
+              <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge cursor-help" title="Confiance IA : 85% — basé sur les données CRM disponibles">
                 Estimation IA
               </span>
             </div>
