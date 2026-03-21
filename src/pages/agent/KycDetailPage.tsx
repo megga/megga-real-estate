@@ -150,12 +150,12 @@ export default function KycDetailPage() {
 
           {/* Validate button */}
           {canValidate && (
-            <Button
+            <button
               onClick={() => setShowValidateModal(true)}
-              className="border border-success/30 text-success hover:bg-success/10 rounded-lg gap-2 text-sm"
+              className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-success hover:border-success/30 transition-colors"
             >
               Valider le dossier
-            </Button>
+            </button>
           )}
         </div>
 
