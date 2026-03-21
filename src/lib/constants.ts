@@ -119,3 +119,29 @@ export const KYC_TYPE_LABELS: Record<KycType, string> = {
 
 export const CONTACT_SCORES = ['hot', 'warm', 'cold'] as const
 export type ContactScore = typeof CONTACT_SCORES[number]
+
+// ─── KYC Compliance ─────────────────────────────────────────────────────────
+
+/** GAFI/FATF high-risk jurisdictions — call for enhanced due diligence */
+export const FATF_HIGH_RISK_COUNTRIES = [
+  'AF', 'KP', 'IR', 'MM', 'SY', 'YE', 'RU', 'BY',
+] as const
+
+/** GAFI/FATF jurisdictions under increased monitoring */
+export const FATF_INCREASED_MONITORING = [
+  'BF', 'CM', 'CD', 'HT', 'KE', 'ML', 'MZ', 'NG',
+  'PH', 'SN', 'ZA', 'SS', 'TZ', 'VN',
+] as const
+
+export type PepStatus = 'clear' | 'match_found'
+export type SanctionsStatus = 'clear' | 'match_found'
+
+export const PEP_STATUS_LABELS: Record<PepStatus, string> = {
+  clear: 'Aucune correspondance',
+  match_found: 'Correspondance trouvée',
+}
+
+export const SANCTIONS_STATUS_LABELS: Record<SanctionsStatus, string> = {
+  clear: 'Aucune correspondance',
+  match_found: 'Correspondance trouvée',
+}

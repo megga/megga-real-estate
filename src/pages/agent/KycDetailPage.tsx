@@ -3,9 +3,11 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, Circle, Clock, FileText,
   Upload, AlertTriangle, X, StickyNote, ChevronDown, ChevronRight,
+  Sparkles,
 } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate } from '@/lib/utils'
-import { KYC_STATUS_LABELS, KYC_RISK_LABELS, KYC_TYPE_LABELS } from '@/lib/constants'
+import { KYC_STATUS_LABELS, KYC_RISK_LABELS, KYC_TYPE_LABELS, PEP_STATUS_LABELS, SANCTIONS_STATUS_LABELS } from '@/lib/constants'
+import { calculateRiskScore } from '@/lib/kycUtils'
 import { Button } from '@/components/ui/button'
 import {
   MOCK_KYC_CASES, MOCK_KYC_CHECKLIST, MOCK_KYC_DOCUMENTS,
@@ -118,6 +120,14 @@ export default function KycDetailPage() {
   const totalItems = checklist.length
   const canValidate = kyc.status !== 'validated' && kyc.status !== 'rejected'
 
+  const riskResult = calculateRiskScore({
+    contactNationality: kyc.contact_nationality,
+    pepStatus: kyc.pep_status,
+    transactionAmount: kyc.transaction_amount,
+    kycType: kyc.type,
+    completionPct: kyc.completion_pct,
+  })
+
   return (
     <div className="space-y-6">
       {/* Back */}
@@ -178,6 +188,106 @@ export default function KycDetailPage() {
               {completedItems} sur {totalItems} éléments complétés
             </p>
           )}
+        </div>
+      </div>
+
+      {/* Compliance Screening */}
+      <div className="rounded-xl border border-theme-border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-theme-primary">Vérification Compliance</h2>
+          <button className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-accent hover:border-accent/30 transition-colors">
+            Relancer la vérification
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* PEP */}
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-theme-hover/50">
+            <div className={cn(
+              'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+              kyc.pep_status === 'clear' ? 'bg-emerald-500/10' : 'bg-red-500/10'
+            )}>
+              {kyc.pep_status === 'clear'
+                ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                : <AlertTriangle className="w-4 h-4 text-red-500" />
+              }
+            </div>
+            <div>
+              <p className="text-xs text-theme-tertiary">PEP (Personnes Exposées Politiquement)</p>
+              <p className={cn('text-sm font-medium', kyc.pep_status === 'clear' ? 'text-emerald-500' : 'text-red-500')}>
+                {PEP_STATUS_LABELS[kyc.pep_status]}
+              </p>
+              {kyc.pep_details && <p className="text-xs text-theme-tertiary mt-1">{kyc.pep_details}</p>}
+            </div>
+          </div>
+
+          {/* Sanctions */}
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-theme-hover/50">
+            <div className={cn(
+              'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+              kyc.sanctions_status === 'clear' ? 'bg-emerald-500/10' : 'bg-red-500/10'
+            )}>
+              {kyc.sanctions_status === 'clear'
+                ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                : <AlertTriangle className="w-4 h-4 text-red-500" />
+              }
+            </div>
+            <div>
+              <p className="text-xs text-theme-tertiary">Sanctions (SECO, UN, EU)</p>
+              <p className={cn('text-sm font-medium', kyc.sanctions_status === 'clear' ? 'text-emerald-500' : 'text-red-500')}>
+                {SANCTIONS_STATUS_LABELS[kyc.sanctions_status]}
+              </p>
+              {kyc.sanctions_details && <p className="text-xs text-theme-tertiary mt-1">{kyc.sanctions_details}</p>}
+            </div>
+          </div>
+        </div>
+
+        {kyc.last_screening_at && (
+          <p className="text-[10px] text-theme-tertiary mt-3 flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            Dernière vérification : {formatDate(kyc.last_screening_at)} · estimation IA
+          </p>
+        )}
+      </div>
+
+      {/* Risk Score Breakdown */}
+      <div className="rounded-xl border border-theme-border p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-base font-semibold text-theme-primary">Score de risque</h2>
+          <span className={cn(
+            'text-xs font-medium',
+            riskResult.level === 'high' ? 'text-red-500' : riskResult.level === 'medium' ? 'text-amber-500' : 'text-emerald-500'
+          )}>
+            {riskResult.score}/100
+          </span>
+          <span className="text-[10px] text-theme-tertiary flex items-center gap-1 ml-auto">
+            <Sparkles className="w-3 h-3" /> estimation IA
+          </span>
+        </div>
+
+        {/* Score bar */}
+        <div className="h-2 bg-theme-active rounded-full overflow-hidden mb-4">
+          <div
+            className={cn(
+              'h-full rounded-full transition-all duration-500',
+              riskResult.level === 'high' ? 'bg-red-500' : riskResult.level === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
+            )}
+            style={{ width: `${riskResult.score}%` }}
+          />
+        </div>
+
+        {/* Factors */}
+        <div className="space-y-2">
+          {riskResult.factors.map((factor) => (
+            <div key={factor.id} className="flex items-center gap-2.5">
+              <div className={cn(
+                'w-2 h-2 rounded-full shrink-0',
+                factor.level === 'high' ? 'bg-red-500' : factor.level === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'
+              )} />
+              <span className="text-sm text-theme-primary w-36 shrink-0">{factor.label}</span>
+              <span className="text-xs text-theme-tertiary">{factor.detail}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -303,6 +413,17 @@ export default function KycDetailPage() {
                     )}>
                       {doc.status === 'validated' ? 'Validé' : doc.status === 'pending' ? 'En attente' : 'Rejeté'}
                     </span>
+                    {doc.expires_at && (() => {
+                      const now = new Date()
+                      const exp = new Date(doc.expires_at)
+                      const isExpired = exp < now
+                      const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                      const isExpiringSoon = !isExpired && daysUntil <= 30
+
+                      if (isExpired) return <span className="text-[10px] font-medium text-red-500 ml-2">Expiré</span>
+                      if (isExpiringSoon) return <span className="text-[10px] font-medium text-amber-500 ml-2">Expire dans {daysUntil}j</span>
+                      return null
+                    })()}
                   </div>
                 ))}
               </div>

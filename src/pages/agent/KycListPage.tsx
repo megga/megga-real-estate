@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Search, ShieldCheck, Eye, ChevronLeft, ChevronRight,
-  ChevronUp, ChevronDown,
+  Search, Eye, ChevronLeft, ChevronRight,
+  ChevronUp, ChevronDown, AlertTriangle, ShieldCheck,
 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
+import { calculateRiskScore } from '@/lib/kycUtils'
 import {
   KYC_STATUS_LABELS, KYC_RISK_LABELS, KYC_TYPE_LABELS,
   KYC_STATUSES, KYC_RISK_LEVELS, KYC_TYPES,
@@ -38,21 +39,6 @@ function statusBadge(status: MockKycCase['status']) {
   )
 }
 
-function riskBadge(risk: MockKycCase['risk_level']) {
-  const map = {
-    low:        { dot: 'bg-success',        text: 'text-success' },
-    medium:     { dot: 'bg-warning',        text: 'text-warning' },
-    high:       { dot: 'bg-danger',         text: 'text-danger' },
-    unassessed: { dot: 'bg-theme-tertiary', text: 'text-theme-tertiary' },
-  }
-  const r = map[risk]
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', r.text)}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', r.dot)} />
-      {KYC_RISK_LABELS[risk]}
-    </span>
-  )
-}
 
 function ContactAvatar({ name }: { name: string; color?: string }) {
   const initials = name
@@ -265,6 +251,9 @@ export default function KycListPage() {
                 <th className="text-left px-4 py-3">
                   <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Type</span>
                 </th>
+                <th className="text-left px-4 py-3 hidden lg:table-cell">
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">PEP/S</span>
+                </th>
                 <th className="text-left px-4 py-3">
                   <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Risque</span>
                 </th>
@@ -331,7 +320,31 @@ export default function KycListPage() {
                         {KYC_TYPE_LABELS[kyc.type]}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{riskBadge(kyc.risk_level)}</td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {(kyc.pep_status === 'match_found' || kyc.sanctions_status === 'match_found')
+                        ? <AlertTriangle className="w-4 h-4 text-red-500" />
+                        : <ShieldCheck className="w-4 h-4 text-emerald-500/60" />
+                      }
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const rs = calculateRiskScore({
+                          contactNationality: kyc.contact_nationality,
+                          pepStatus: kyc.pep_status,
+                          transactionAmount: kyc.transaction_amount,
+                          kycType: kyc.type,
+                          completionPct: kyc.completion_pct,
+                        })
+                        return (
+                          <span className={cn(
+                            'text-xs font-bold tabular-nums',
+                            rs.level === 'high' ? 'text-red-500' : rs.level === 'medium' ? 'text-amber-500' : 'text-emerald-500'
+                          )}>
+                            {rs.score}
+                          </span>
+                        )
+                      })()}
+                    </td>
                     <td className="px-4 py-3">{statusBadge(kyc.status)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 min-w-[100px]">

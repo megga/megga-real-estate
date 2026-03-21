@@ -1488,6 +1488,14 @@ export interface MockKycCase {
   validated_at: string | null
   created_at: string
   updated_at: string
+  // Compliance screening (Tier 1)
+  pep_status: 'clear' | 'match_found'
+  pep_details: string | null
+  sanctions_status: 'clear' | 'match_found'
+  sanctions_details: string | null
+  last_screening_at: string | null
+  contact_nationality: string
+  transaction_amount: number
 }
 
 export interface MockKycChecklistItem {
@@ -1511,6 +1519,10 @@ export interface MockKycDocument {
   status: 'validated' | 'pending' | 'rejected'
   uploaded_at: string
   uploaded_by: string
+  // Expiration (Tier 1)
+  issued_at: string | null
+  expires_at: string | null
+  document_category: 'identity' | 'domicile' | 'financial' | 'compliance' | 'other'
 }
 
 export interface MockKycAuditEvent {
@@ -1537,6 +1549,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: '2026-03-12T14:30:00Z',
     created_at: '2026-02-15T09:00:00Z',
     updated_at: '2026-03-12T14:30:00Z',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null, last_screening_at: '2026-02-16T08:00:00Z', contact_nationality: 'CH', transaction_amount: 1200000,
   },
   {
     id: 'kyc2',
@@ -1552,6 +1565,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: null,
     created_at: '2026-02-20T11:00:00Z',
     updated_at: '2026-03-16T10:00:00Z',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null, last_screening_at: '2026-02-21T09:00:00Z', contact_nationality: 'CH', transaction_amount: 3500000,
   },
   {
     id: 'kyc3',
@@ -1567,6 +1581,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: null,
     created_at: '2026-03-01T08:30:00Z',
     updated_at: '2026-03-15T16:45:00Z',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null, last_screening_at: '2026-03-02T10:00:00Z', contact_nationality: 'CH', transaction_amount: 650000,
   },
   {
     id: 'kyc4',
@@ -1582,6 +1597,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: null,
     created_at: '2026-03-05T14:00:00Z',
     updated_at: '2026-03-16T09:20:00Z',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null, last_screening_at: '2026-03-06T08:00:00Z', contact_nationality: 'FR', transaction_amount: 1800000,
   },
   {
     id: 'kyc5',
@@ -1597,6 +1613,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: '2026-03-14T11:00:00Z',
     created_at: '2026-02-10T10:00:00Z',
     updated_at: '2026-03-14T11:00:00Z',
+    pep_status: 'match_found', pep_details: 'Correspondance partielle : dirigeant lié à un ancien conseiller national. Vérification manuelle recommandée.', sanctions_status: 'clear', sanctions_details: null, last_screening_at: '2026-02-11T09:00:00Z', contact_nationality: 'CH', transaction_amount: 800000,
   },
   {
     id: 'kyc6',
@@ -1612,6 +1629,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: null,
     created_at: '2026-03-14T16:00:00Z',
     updated_at: '2026-03-14T16:00:00Z',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null, last_screening_at: null, contact_nationality: 'CH', transaction_amount: 950000,
   },
   {
     id: 'kyc7',
@@ -1627,6 +1645,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: '2026-03-10T15:00:00Z',
     created_at: '2026-01-20T09:30:00Z',
     updated_at: '2026-03-10T15:00:00Z',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null, last_screening_at: '2026-01-21T09:00:00Z', contact_nationality: 'CH', transaction_amount: 750000,
   },
   {
     id: 'kyc8',
@@ -1642,6 +1661,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: null,
     created_at: '2026-02-25T13:00:00Z',
     updated_at: '2026-03-16T08:00:00Z',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null, last_screening_at: '2026-02-26T09:00:00Z', contact_nationality: 'MA', transaction_amount: 890000,
   },
   {
     id: 'kyc9',
@@ -1657,6 +1677,7 @@ export const MOCK_KYC_CASES: MockKycCase[] = [
     validated_at: null,
     created_at: '2026-03-08T10:00:00Z',
     updated_at: '2026-03-15T14:30:00Z',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'match_found', sanctions_details: 'Correspondance trouvée sur liste SECO : juridiction sous sanctions (Russie). Vérification approfondie obligatoire.', last_screening_at: '2026-03-09T08:00:00Z', contact_nationality: 'RU', transaction_amount: 6000000,
   },
 ]
 
@@ -1676,13 +1697,18 @@ export const MOCK_KYC_CHECKLIST: MockKycChecklistItem[] = [
 ]
 
 export const MOCK_KYC_DOCUMENTS: MockKycDocument[] = [
-  { id: 'doc1', kyc_case_id: 'kyc2', name: 'Extrait_RC_Leman_SA.pdf', type: 'pdf', size_display: '245 Ko', status: 'validated', uploaded_at: '2026-03-01T10:00:00Z', uploaded_by: 'Gregory L.' },
-  { id: 'doc2', kyc_case_id: 'kyc2', name: 'Statuts_2024.pdf', type: 'pdf', size_display: '1.2 Mo', status: 'validated', uploaded_at: '2026-03-01T10:30:00Z', uploaded_by: 'Gregory L.' },
-  { id: 'doc3', kyc_case_id: 'kyc2', name: 'Attestation_siege_social.pdf', type: 'pdf', size_display: '120 Ko', status: 'validated', uploaded_at: '2026-03-02T14:00:00Z', uploaded_by: 'Gregory L.' },
-  { id: 'doc4', kyc_case_id: 'kyc2', name: 'Bilan_2023_2024_2025.xlsx', type: 'xlsx', size_display: '3.8 Mo', status: 'validated', uploaded_at: '2026-03-05T11:00:00Z', uploaded_by: 'Sophie M.' },
-  { id: 'doc5', kyc_case_id: 'kyc2', name: 'Rapport_revision_2025.pdf', type: 'pdf', size_display: '890 Ko', status: 'validated', uploaded_at: '2026-03-05T11:30:00Z', uploaded_by: 'Sophie M.' },
-  { id: 'doc6', kyc_case_id: 'kyc2', name: 'PEP_screening_result.pdf', type: 'pdf', size_display: '56 Ko', status: 'validated', uploaded_at: '2026-03-03T09:00:00Z', uploaded_by: 'Gregory L.' },
-  { id: 'doc7', kyc_case_id: 'kyc2', name: 'Formulaire_A_signe.pdf', type: 'pdf', size_display: '340 Ko', status: 'pending', uploaded_at: '2026-03-14T10:00:00Z', uploaded_by: 'Gregory L.' },
+  // kyc2 documents
+  { id: 'doc1', kyc_case_id: 'kyc2', name: 'Extrait_RC_Leman_SA.pdf', type: 'pdf', size_display: '245 Ko', status: 'validated', uploaded_at: '2026-03-01T10:00:00Z', uploaded_by: 'Gregory L.', issued_at: '2026-02-28', expires_at: null, document_category: 'identity' },
+  { id: 'doc2', kyc_case_id: 'kyc2', name: 'Statuts_2024.pdf', type: 'pdf', size_display: '1.2 Mo', status: 'validated', uploaded_at: '2026-03-01T10:30:00Z', uploaded_by: 'Gregory L.', issued_at: '2024-06-15', expires_at: null, document_category: 'identity' },
+  { id: 'doc3', kyc_case_id: 'kyc2', name: 'Attestation_siege_social.pdf', type: 'pdf', size_display: '120 Ko', status: 'validated', uploaded_at: '2026-03-02T14:00:00Z', uploaded_by: 'Gregory L.', issued_at: '2026-03-01', expires_at: '2026-06-01', document_category: 'domicile' },
+  { id: 'doc4', kyc_case_id: 'kyc2', name: 'Bilan_2023_2024_2025.xlsx', type: 'xlsx', size_display: '3.8 Mo', status: 'validated', uploaded_at: '2026-03-05T11:00:00Z', uploaded_by: 'Sophie M.', issued_at: '2026-02-20', expires_at: null, document_category: 'financial' },
+  { id: 'doc5', kyc_case_id: 'kyc2', name: 'Rapport_revision_2025.pdf', type: 'pdf', size_display: '890 Ko', status: 'validated', uploaded_at: '2026-03-05T11:30:00Z', uploaded_by: 'Sophie M.', issued_at: '2026-02-15', expires_at: null, document_category: 'financial' },
+  { id: 'doc6', kyc_case_id: 'kyc2', name: 'PEP_screening_result.pdf', type: 'pdf', size_display: '56 Ko', status: 'validated', uploaded_at: '2026-03-03T09:00:00Z', uploaded_by: 'Gregory L.', issued_at: '2026-03-03', expires_at: null, document_category: 'compliance' },
+  { id: 'doc7', kyc_case_id: 'kyc2', name: 'Formulaire_A_signe.pdf', type: 'pdf', size_display: '340 Ko', status: 'pending', uploaded_at: '2026-03-14T10:00:00Z', uploaded_by: 'Gregory L.', issued_at: '2026-03-14', expires_at: null, document_category: 'compliance' },
+  // kyc3 — Sophie Favre (document expiré pour test)
+  { id: 'doc8', kyc_case_id: 'kyc3', name: 'Attestation_domicile_Favre.pdf', type: 'pdf', size_display: '95 Ko', status: 'validated', uploaded_at: '2025-12-10T09:00:00Z', uploaded_by: 'Sophie M.', issued_at: '2025-12-10', expires_at: '2026-03-10', document_category: 'domicile' },
+  // kyc4 — Keller (passeport expire bientôt)
+  { id: 'doc9', kyc_case_id: 'kyc4', name: 'Passeport_P_Keller.pdf', type: 'pdf', size_display: '2.1 Mo', status: 'validated', uploaded_at: '2026-03-06T10:00:00Z', uploaded_by: 'Gregory L.', issued_at: '2016-04-15', expires_at: '2026-04-15', document_category: 'identity' },
 ]
 
 export const MOCK_KYC_AUDIT: MockKycAuditEvent[] = [
