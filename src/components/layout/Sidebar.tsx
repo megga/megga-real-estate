@@ -216,7 +216,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                         <NavIcon icon={item.icon} isCreateAction={item.isCreateAction} />
                         {/* Collapsed badge dot */}
                         {isCollapsed && item.badge && item.badge > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent" />
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
                         )}
                       </div>
 
@@ -224,12 +224,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                         <>
                           <span className="flex-1 truncate">{item.label}</span>
                           {item.badge && item.badge > 0 && (
-                            <span className={cn(
-                              'ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold flex items-center justify-center tabular-nums',
-                              item.badgeColor || 'bg-theme-active text-theme-secondary'
-                            )}>
-                              {item.badge}
-                            </span>
+                            <span className="ml-auto w-2 h-2 rounded-full bg-red-500 shrink-0" />
                           )}
                         </>
                       )}
