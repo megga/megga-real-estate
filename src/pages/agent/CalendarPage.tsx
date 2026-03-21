@@ -166,11 +166,11 @@ function EventDetailPanel({ event, onClose }: { event: CalendarEvent; onClose: (
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-card shadow-modal w-full max-w-md"
+        className="bg-theme-card rounded-card shadow-modal w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={cn('flex items-center gap-3 p-5 border-b border-border', config.bg, 'rounded-t-card')}>
+        <div className={cn('flex items-center gap-3 p-5 border-b border-theme-border', config.bg, 'rounded-t-card')}>
           <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', config.bg)}>
             <Icon className={cn('w-5 h-5', config.color)} />
           </div>
@@ -178,61 +178,61 @@ function EventDetailPanel({ event, onClose }: { event: CalendarEvent; onClose: (
             <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge', config.bg, config.color)}>
               {config.label}
             </span>
-            <h3 className="text-lg font-semibold text-primary-900 mt-1 truncate">{event.title}</h3>
+            <h3 className="text-lg font-semibold text-theme-primary mt-1 truncate">{event.title}</h3>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-active transition-colors">
+            <X className="w-5 h-5 text-theme-tertiary" />
           </button>
         </div>
 
         {/* Body */}
         <div className="p-5 space-y-4">
           <div className="flex items-center gap-3 text-sm">
-            <CalendarDays className="w-4 h-4 text-gray-400 shrink-0" />
-            <span className="text-primary-900 font-medium">
+            <CalendarDays className="w-4 h-4 text-theme-tertiary shrink-0" />
+            <span className="text-theme-primary font-medium">
               {format(event.date, 'EEEE d MMMM yyyy', { locale: fr })}
             </span>
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-            <span className="text-primary-900">
+            <Clock className="w-4 h-4 text-theme-tertiary shrink-0" />
+            <span className="text-theme-primary">
               {formatTime(event.date)} — {formatTime(event.endDate)}
-              <span className="text-gray-400 ml-2">({formatDuration(event.date, event.endDate)})</span>
+              <span className="text-theme-tertiary ml-2">({formatDuration(event.date, event.endDate)})</span>
             </span>
           </div>
 
           {event.contact && (
             <div className="flex items-center gap-3 text-sm">
-              <User className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="text-primary-900">{event.contact}</span>
+              <User className="w-4 h-4 text-theme-tertiary shrink-0" />
+              <span className="text-theme-primary">{event.contact}</span>
             </div>
           )}
 
           {event.property && (
             <div className="flex items-center gap-3 text-sm">
-              <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="text-primary-900">{event.property}</span>
+              <Building2 className="w-4 h-4 text-theme-tertiary shrink-0" />
+              <span className="text-theme-primary">{event.property}</span>
             </div>
           )}
 
           {event.address && (
             <div className="flex items-center gap-3 text-sm">
-              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="text-gray-600">{event.address}</span>
+              <MapPin className="w-4 h-4 text-theme-tertiary shrink-0" />
+              <span className="text-theme-secondary">{event.address}</span>
             </div>
           )}
 
           {event.notes && (
             <div className="flex gap-3 text-sm">
-              <FileText className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-              <p className="text-gray-600 leading-relaxed">{event.notes}</p>
+              <FileText className="w-4 h-4 text-theme-tertiary shrink-0 mt-0.5" />
+              <p className="text-theme-secondary leading-relaxed">{event.notes}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-3 p-5 border-t border-border">
+        <div className="flex items-center gap-3 p-5 border-t border-theme-border">
           <Button variant="outline" className="flex-1 gap-2">
             <Pencil className="w-4 h-4" />
             Modifier
@@ -317,20 +317,20 @@ function CreateEventModal({ onClose, onCreate }: {
     onClose()
   }
 
-  const selectClasses = 'w-full h-11 px-3 rounded-input border border-border bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none'
-  const inputClasses = 'w-full h-11 px-3 rounded-input border border-border bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
+  const selectClasses = 'w-full h-11 px-3 rounded-input border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none'
+  const inputClasses = 'w-full h-11 px-3 rounded-input border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-card shadow-modal w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-theme-card rounded-card shadow-modal w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <h3 className="text-lg font-semibold text-primary-900">Nouveau rendez-vous</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+        <div className="flex items-center justify-between p-5 border-b border-theme-border">
+          <h3 className="text-lg font-semibold text-theme-primary">Nouveau rendez-vous</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-active transition-colors">
+            <X className="w-5 h-5 text-theme-tertiary" />
           </button>
         </div>
 
@@ -338,7 +338,7 @@ function CreateEventModal({ onClose, onCreate }: {
         <div className="p-5 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1.5">Titre *</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Titre *</label>
             <input
               type="text"
               value={form.title}
@@ -350,7 +350,7 @@ function CreateEventModal({ onClose, onCreate }: {
 
           {/* Type */}
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1.5">Type d&apos;événement</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Type d&apos;événement</label>
             <select
               value={form.type}
               onChange={e => updateField('type', e.target.value as EventType)}
@@ -364,7 +364,7 @@ function CreateEventModal({ onClose, onCreate }: {
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1.5">Date *</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Date *</label>
             <input
               type="date"
               value={form.date}
@@ -376,7 +376,7 @@ function CreateEventModal({ onClose, onCreate }: {
           {/* Time row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-primary-900 mb-1.5">Heure début *</label>
+              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure début *</label>
               <input
                 type="time"
                 value={form.startTime}
@@ -385,7 +385,7 @@ function CreateEventModal({ onClose, onCreate }: {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-primary-900 mb-1.5">Heure fin *</label>
+              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure fin *</label>
               <input
                 type="time"
                 value={form.endTime}
@@ -397,7 +397,7 @@ function CreateEventModal({ onClose, onCreate }: {
 
           {/* Contact */}
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1.5">Contact lié</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Contact lié</label>
             <select
               value={form.contact}
               onChange={e => updateField('contact', e.target.value)}
@@ -412,7 +412,7 @@ function CreateEventModal({ onClose, onCreate }: {
 
           {/* Property */}
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1.5">Bien lié</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Bien lié</label>
             <select
               value={form.property}
               onChange={e => updateField('property', e.target.value)}
@@ -427,19 +427,19 @@ function CreateEventModal({ onClose, onCreate }: {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-1.5">Notes</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Notes</label>
             <textarea
               value={form.notes}
               onChange={e => updateField('notes', e.target.value)}
               placeholder="Informations complémentaires..."
               rows={3}
-              className="w-full px-3 py-2.5 rounded-input border border-border bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
+              className="w-full px-3 py-2.5 rounded-input border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-3 p-5 border-t border-border">
+        <div className="flex items-center gap-3 p-5 border-t border-theme-border">
           <Button variant="outline" onClick={onClose} className="flex-1">
             Annuler
           </Button>
@@ -476,11 +476,11 @@ function MonthView({ currentDate, events, onSelectEvent }: {
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-theme-card rounded-xl shadow-card border border-theme-border overflow-hidden">
       {/* Week day headers */}
-      <div className="grid grid-cols-7 border-b border-gray-100">
+      <div className="grid grid-cols-7 border-b border-theme-border">
         {weekDays.map(day => (
-          <div key={day} className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <div key={day} className="px-2 py-3 text-center text-xs font-medium text-theme-tertiary uppercase tracking-wider">
             {day}
           </div>
         ))}
@@ -497,16 +497,16 @@ function MonthView({ currentDate, events, onSelectEvent }: {
             <div
               key={idx}
               className={cn(
-                'min-h-[100px] lg:min-h-[120px] border-b border-r border-gray-100/50 p-1.5 transition-colors',
-                !inMonth && 'bg-gray-50/50',
+                'min-h-[100px] lg:min-h-[120px] border-b border-r border-theme-border/50 p-1.5 transition-colors',
+                !inMonth && 'bg-theme-hover/50',
                 today && 'bg-accent/10 rounded-lg',
               )}
             >
               <div className={cn(
                 'text-sm font-medium mb-1 w-7 h-7 flex items-center justify-center rounded-full',
                 today && 'bg-accent text-white',
-                !today && inMonth && 'text-primary-900',
-                !today && !inMonth && 'text-gray-300',
+                !today && inMonth && 'text-theme-primary',
+                !today && !inMonth && 'text-theme-tertiary',
               )}>
                 {format(day, 'd')}
               </div>
@@ -519,7 +519,7 @@ function MonthView({ currentDate, events, onSelectEvent }: {
                       key={event.id}
                       onClick={() => onSelectEvent(event)}
                       className={cn(
-                        'w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-lg truncate border transition-all hover:shadow-sm',
+                        'w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-lg truncate border transition-all hover:shadow-card',
                         config.bg, config.color,
                       )}
                     >
@@ -528,7 +528,7 @@ function MonthView({ currentDate, events, onSelectEvent }: {
                   )
                 })}
                 {dayEvents.length > 3 && (
-                  <span className="text-[10px] text-gray-400 px-1.5">+{dayEvents.length - 3} de plus</span>
+                  <span className="text-[10px] text-theme-tertiary px-1.5">+{dayEvents.length - 3} de plus</span>
                 )}
               </div>
             </div>
@@ -550,20 +550,20 @@ function WeekView({ currentDate, events, onSelectEvent }: {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-theme-card rounded-xl shadow-card border border-theme-border overflow-hidden">
       {/* Header row */}
-      <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-100">
-        <div className="border-r border-border" />
+      <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-theme-border">
+        <div className="border-r border-theme-border" />
         {weekDays.map((day, i) => (
           <div key={i} className={cn(
-            'px-2 py-3 text-center border-r border-border/50',
+            'px-2 py-3 text-center border-r border-theme-border/50',
             isToday(day) && 'bg-accent/5',
           )}>
-            <div className="text-xs text-gray-500 uppercase">{format(day, 'EEE', { locale: fr })}</div>
+            <div className="text-xs text-theme-tertiary uppercase">{format(day, 'EEE', { locale: fr })}</div>
             <div className={cn(
               'text-lg font-semibold mt-0.5 w-9 h-9 mx-auto flex items-center justify-center rounded-full',
               isToday(day) && 'bg-accent text-white',
-              !isToday(day) && 'text-primary-900',
+              !isToday(day) && 'text-theme-primary',
             )}>
               {format(day, 'd')}
             </div>
@@ -575,8 +575,8 @@ function WeekView({ currentDate, events, onSelectEvent }: {
       <div className="grid grid-cols-[60px_repeat(7,1fr)] overflow-y-auto max-h-[600px]">
         {HOURS.map(hour => (
           <div key={hour} className="contents">
-            <div className="h-16 border-r border-b border-border/50 flex items-start justify-end pr-2 pt-0.5">
-              <span className="text-xs text-gray-400">{hour}:00</span>
+            <div className="h-16 border-r border-b border-theme-border/50 flex items-start justify-end pr-2 pt-0.5">
+              <span className="text-xs text-theme-tertiary">{hour}:00</span>
             </div>
             {weekDays.map((day, di) => {
               const dayEvents = getEventsForDay(events, day)
@@ -584,7 +584,7 @@ function WeekView({ currentDate, events, onSelectEvent }: {
 
               return (
                 <div key={di} className={cn(
-                  'h-16 border-r border-b border-border/50 relative',
+                  'h-16 border-r border-b border-theme-border/50 relative',
                   isToday(day) && 'bg-accent/[0.02]',
                 )}>
                   {hourEvents.map(event => {
@@ -629,20 +629,20 @@ function DayView({ currentDate, events, onSelectEvent }: {
   const dayEvents = getEventsForDay(events, currentDate)
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-theme-card rounded-xl shadow-card border border-theme-border overflow-hidden">
       {/* Header */}
       <div className={cn(
-        'px-5 py-4 border-b border-gray-100',
+        'px-5 py-4 border-b border-theme-border',
         isToday(currentDate) && 'bg-accent/5',
       )}>
-        <div className="text-sm text-gray-500 capitalize">{format(currentDate, 'EEEE', { locale: fr })}</div>
+        <div className="text-sm text-theme-tertiary capitalize">{format(currentDate, 'EEEE', { locale: fr })}</div>
         <div className={cn(
           'text-2xl font-bold',
-          isToday(currentDate) ? 'text-accent' : 'text-primary-900',
+          isToday(currentDate) ? 'text-accent' : 'text-theme-primary',
         )}>
           {format(currentDate, 'd MMMM yyyy', { locale: fr })}
         </div>
-        <div className="text-sm text-gray-500 mt-1">
+        <div className="text-sm text-theme-tertiary mt-1">
           {dayEvents.length === 0 ? 'Aucun événement' : `${dayEvents.length} événement${dayEvents.length > 1 ? 's' : ''}`}
         </div>
       </div>
@@ -653,11 +653,11 @@ function DayView({ currentDate, events, onSelectEvent }: {
           const hourEvents = dayEvents.filter(e => getHours(e.date) === hour)
 
           return (
-            <div key={hour} className="flex border-b border-border/30">
+            <div key={hour} className="flex border-b border-theme-border/30">
               <div className="w-16 shrink-0 py-3 pr-3 text-right">
-                <span className="text-xs text-gray-400">{hour}:00</span>
+                <span className="text-xs text-theme-tertiary">{hour}:00</span>
               </div>
-              <div className="flex-1 py-1.5 pr-4 min-h-[64px] border-l border-border/50 pl-3 space-y-1.5">
+              <div className="flex-1 py-1.5 pr-4 min-h-[64px] border-l border-theme-border/50 pl-3 space-y-1.5">
                 {hourEvents.map(event => {
                   const config = EVENT_CONFIG[event.type]
                   const Icon = config.icon
@@ -674,18 +674,18 @@ function DayView({ currentDate, events, onSelectEvent }: {
                       <div className="flex items-center gap-2">
                         <Icon className={cn('w-4 h-4 shrink-0', config.color)} />
                         <span className={cn('text-xs font-medium', config.color)}>{config.label}</span>
-                        <span className="text-xs text-gray-400 ml-auto">
+                        <span className="text-xs text-theme-tertiary ml-auto">
                           {formatTime(event.date)} — {formatTime(event.endDate)}
                         </span>
                       </div>
-                      <div className="font-medium text-sm text-primary-900 mt-1">{event.title}</div>
+                      <div className="font-medium text-sm text-theme-primary mt-1">{event.title}</div>
                       {event.contact && (
-                        <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                        <div className="text-xs text-theme-tertiary mt-0.5 flex items-center gap-1">
                           <User className="w-3 h-3" /> {event.contact}
                         </div>
                       )}
                       {event.address && (
-                        <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                        <div className="text-xs text-theme-tertiary mt-0.5 flex items-center gap-1">
                           <MapPin className="w-3 h-3" /> {event.address}
                         </div>
                       )}
@@ -727,14 +727,14 @@ function MobileListView({ events, onSelectEvent }: {
             {showHeader && (
               <div className={cn(
                 'text-sm font-semibold capitalize px-1 pt-3 pb-1',
-                isToday(event.date) ? 'text-accent' : 'text-primary-900',
+                isToday(event.date) ? 'text-accent' : 'text-theme-primary',
               )}>
                 {isToday(event.date) ? "Aujourd'hui" : dateStr}
               </div>
             )}
             <button
               onClick={() => onSelectEvent(event)}
-              className="w-full text-left bg-white rounded-card shadow-card p-3 flex items-start gap-3 hover:shadow-card-hover transition-shadow"
+              className="w-full text-left bg-theme-card rounded-card shadow-card p-3 flex items-start gap-3 hover:shadow-card-hover transition-shadow"
             >
               <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', config.bg)}>
                 <Icon className={cn('w-5 h-5', config.color)} />
@@ -744,13 +744,13 @@ function MobileListView({ events, onSelectEvent }: {
                   <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge', config.bg, config.color)}>
                     {config.label}
                   </span>
-                  <span className="text-xs text-gray-400 ml-auto shrink-0">
+                  <span className="text-xs text-theme-tertiary ml-auto shrink-0">
                     {formatTime(event.date)} — {formatTime(event.endDate)}
                   </span>
                 </div>
-                <div className="font-medium text-sm text-primary-900 mt-1 truncate">{event.title}</div>
+                <div className="font-medium text-sm text-theme-primary mt-1 truncate">{event.title}</div>
                 {event.contact && (
-                  <div className="text-xs text-gray-500 mt-0.5 truncate">{event.contact}</div>
+                  <div className="text-xs text-theme-tertiary mt-0.5 truncate">{event.contact}</div>
                 )}
               </div>
             </button>
@@ -800,7 +800,7 @@ export default function CalendarPage() {
 
   /* Event type legend */
   const legend = (
-    <div className="hidden lg:flex items-center gap-4 text-xs text-gray-500">
+    <div className="hidden lg:flex items-center gap-4 text-xs text-theme-tertiary">
       {EVENT_TYPES.map(type => {
         const config = EVENT_CONFIG[type]
         return (
@@ -816,48 +816,45 @@ export default function CalendarPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-            <CalendarDays className="w-5 h-5 text-accent" />
-          </div>
-          <h1 className="text-2xl md:text-3xl font-semibold text-primary-900">Calendrier</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-theme-primary">Calendrier</h1>
         </div>
-        <div className="flex items-center gap-2 sm:ml-auto">
-          <Button onClick={() => setShowCreateModal(true)} className="gap-2 bg-accent hover:bg-accent/90 text-white rounded-button">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nouveau RDV</span>
-            <span className="sm:hidden">RDV</span>
-          </Button>
-        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Nouveau RDV
+        </button>
       </div>
 
       {/* Controls bar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Month navigation */}
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={navigateToday} className="text-xs">
+          <button onClick={navigateToday} className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
             Aujourd&apos;hui
-          </Button>
+          </button>
           <button
             onClick={navigatePrev}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-theme-active transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-5 h-5 text-theme-secondary" />
           </button>
-          <h2 className="text-lg font-semibold text-primary-900 capitalize min-w-[180px] text-center">
+          <h2 className="text-lg font-semibold text-theme-primary capitalize min-w-[180px] text-center">
             {headerLabel}
           </h2>
           <button
             onClick={navigateNext}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-theme-active transition-colors"
           >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <ChevronRight className="w-5 h-5 text-theme-secondary" />
           </button>
         </div>
 
         {/* View toggle — hidden on mobile, show list view instead */}
-        <div className="hidden md:flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 sm:ml-auto">
+        <div className="hidden md:flex items-center border border-theme-border rounded-lg p-0.5 sm:ml-auto">
           {(['month', 'week', 'day'] as ViewMode[]).map(mode => (
             <button
               key={mode}
@@ -865,8 +862,8 @@ export default function CalendarPage() {
               className={cn(
                 'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
                 viewMode === mode
-                  ? 'bg-white text-primary-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700',
+                  ? 'bg-theme-active text-theme-primary'
+                  : 'text-theme-tertiary hover:text-theme-secondary',
               )}
             >
               {VIEW_LABELS[mode]}
@@ -878,7 +875,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Legend on mobile */}
-      <div className="flex lg:hidden flex-wrap items-center gap-3 text-xs text-gray-500">
+      <div className="flex lg:hidden flex-wrap items-center gap-3 text-xs text-theme-tertiary">
         {EVENT_TYPES.map(type => {
           const config = EVENT_CONFIG[type]
           return (
