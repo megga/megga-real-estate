@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/hooks/useTheme'
 import Sidebar from '@/components/layout/Sidebar'
 import CommandPalette from '@/components/layout/CommandPalette'
 import Breadcrumb from '@/components/layout/Breadcrumb'
+import CopilotPanel from '@/components/ai-copilot/CopilotPanel'
 
 function AgentLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -59,6 +60,9 @@ function AgentLayoutInner() {
 
       {/* Command Palette */}
       <CommandPalette isOpen={commandPaletteOpen} onClose={closeCommandPalette} />
+
+      {/* Copilot IA — bouton flottant accessible depuis toute page agent */}
+      <CopilotPanel />
     </div>
   )
 }
