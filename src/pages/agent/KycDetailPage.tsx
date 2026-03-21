@@ -340,41 +340,32 @@ export default function KycDetailPage() {
           </div>
 
           {/* Audit timeline */}
-          <div className="bg-transparent rounded-card shadow-none overflow-hidden">
-            <div className="px-6 py-4 border-b border-theme-border">
-              <h2 className="text-base font-semibold text-theme-primary flex items-center gap-2">
-                <Clock className="h-4 w-4 text-theme-tertiary" />
-                Journal d'audit
-              </h2>
-            </div>
+          <div className="rounded-xl border border-theme-border p-5">
+            <h2 className="text-base font-semibold text-theme-primary mb-4">
+              Journal d'audit
+            </h2>
 
             {audit.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <p className="text-sm text-theme-tertiary">Aucun événement enregistré</p>
-              </div>
+              <p className="text-sm text-theme-tertiary text-center py-4">Aucun événement enregistré</p>
             ) : (
-              <div className="p-4">
-                <div className="relative">
-                  {/* Timeline line */}
-                  <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
-
-                  <div className="space-y-4">
-                    {audit.map((event) => (
-                      <div key={event.id} className="relative flex gap-3 pl-6">
-                        <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full bg-accent/20 border-2 border-accent" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-theme-primary">{event.action}</p>
-                          {event.details && (
-                            <p className="text-xs text-theme-tertiary mt-0.5">{event.details}</p>
-                          )}
-                          <p className="text-[11px] text-theme-tertiary mt-1">
-                            {event.actor} · {formatDate(event.timestamp)} à {new Date(event.timestamp).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+              <div className="space-y-0">
+                {audit.map((event, i) => (
+                  <div key={event.id} className={cn(
+                    'flex items-start gap-3 py-3',
+                    i < audit.length - 1 && 'border-b border-theme-border'
+                  )}>
+                    <div className="h-2 w-2 rounded-full bg-theme-border shrink-0 mt-1.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-theme-primary">{event.action}</p>
+                      {event.details && (
+                        <p className="text-xs text-theme-tertiary mt-0.5">{event.details}</p>
+                      )}
+                      <p className="text-[11px] text-theme-tertiary mt-1">
+                        {event.actor} · {formatDate(event.timestamp)} à {new Date(event.timestamp).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
