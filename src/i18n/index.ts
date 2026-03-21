@@ -68,8 +68,8 @@ i18n
       en: { common: enCommon, dashboard: enDashboard, settings: enSettings, contacts: enContacts, pipeline: enPipeline, listings: enListings, kyc: enKyc, messages: enMessages, calendar: enCalendar, matching: enMatching, automation: enAutomation, documents: enDocuments },
       it: { common: itCommon, dashboard: itDashboard, settings: itSettings, contacts: itContacts, pipeline: itPipeline, listings: itListings, kyc: itKyc, messages: itMessages, calendar: itCalendar, matching: itMatching, automation: itAutomation, documents: itDocuments },
     },
-    lng: 'fr',
     fallbackLng: 'fr',
+    supportedLngs: ['fr', 'de', 'en', 'it'],
     defaultNS: 'common',
     interpolation: { escapeValue: false },
     detection: {
