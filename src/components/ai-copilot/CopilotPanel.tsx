@@ -50,7 +50,14 @@ const SUGGESTIONS = [
 
 export default function CopilotPanel() {
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<CopilotMessage[]>([])
+  const [messages, setMessages] = useState<CopilotMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: 'Bonjour ! Je suis votre copilote IA. Demandez-moi un résumé, une relance, des suggestions de matching, ou les prochaines actions à effectuer.',
+      timestamp: new Date(),
+    },
+  ])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -70,19 +77,7 @@ export default function CopilotPanel() {
     }
   }, [isOpen])
 
-  // Welcome message on first open
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      setMessages([
-        {
-          id: 'welcome',
-          role: 'assistant',
-          content: 'Bonjour ! Je suis votre copilote IA. Demandez-moi un résumé, une relance, des suggestions de matching, ou les prochaines actions à effectuer.',
-          timestamp: new Date(),
-        },
-      ])
-    }
-  }, [isOpen, messages.length])
+
 
   const handleSend = useCallback((text?: string) => {
     const query = (text || input).trim()
