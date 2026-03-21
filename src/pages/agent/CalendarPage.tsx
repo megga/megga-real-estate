@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   CalendarDays, Plus, ChevronLeft, ChevronRight, X,
-  MapPin, Clock, User, Building2, FileText, Pencil, Trash2,
+  MapPin, Clock, User, Building2, FileText,
   Eye, Phone, Star, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+// Button replaced by inline ghost buttons
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameMonth, isSameDay, isToday,
@@ -161,7 +161,6 @@ function formatDuration(start: Date, end: Date): string {
 
 function EventDetailPanel({ event, onClose }: { event: CalendarEvent; onClose: () => void }) {
   const config = EVENT_CONFIG[event.type]
-  const Icon = config.icon
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
@@ -170,18 +169,15 @@ function EventDetailPanel({ event, onClose }: { event: CalendarEvent; onClose: (
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={cn('flex items-center gap-3 p-5 border-b border-theme-border', config.bg, 'rounded-t-card')}>
-          <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', config.bg)}>
-            <Icon className={cn('w-5 h-5', config.color)} />
-          </div>
+        <div className="flex items-center gap-3 p-5 border-b border-theme-border">
           <div className="flex-1 min-w-0">
-            <span className={cn('text-xs font-medium px-2 py-0.5 rounded-badge', config.bg, config.color)}>
+            <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-md', config.color)}>
               {config.label}
             </span>
-            <h3 className="text-lg font-semibold text-theme-primary mt-1 truncate">{event.title}</h3>
+            <h3 className="text-base font-semibold text-theme-primary mt-1.5 truncate">{event.title}</h3>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-active transition-colors">
-            <X className="w-5 h-5 text-theme-tertiary" />
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
+            <X className="w-4 h-4 text-theme-tertiary" />
           </button>
         </div>
 
@@ -233,14 +229,12 @@ function EventDetailPanel({ event, onClose }: { event: CalendarEvent; onClose: (
 
         {/* Footer */}
         <div className="flex items-center gap-3 p-5 border-t border-theme-border">
-          <Button variant="outline" className="flex-1 gap-2">
-            <Pencil className="w-4 h-4" />
+          <button className="flex-1 h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
             Modifier
-          </Button>
-          <Button variant="outline" className="flex-1 gap-2 text-danger hover:text-danger hover:border-danger/30 hover:bg-danger/5">
-            <Trash2 className="w-4 h-4" />
+          </button>
+          <button className="flex-1 h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-tertiary hover:text-danger hover:border-danger/30 transition-colors">
             Supprimer
-          </Button>
+          </button>
         </div>
       </div>
     </div>
@@ -440,20 +434,16 @@ function CreateEventModal({ onClose, onCreate }: {
 
         {/* Footer */}
         <div className="flex items-center gap-3 p-5 border-t border-theme-border">
-          <Button variant="outline" onClick={onClose} className="flex-1">
+          <button onClick={onClose} className="flex-1 h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
             Annuler
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleSubmit}
             disabled={!isValid}
-            className={cn(
-              'flex-1 gap-2 bg-accent text-white rounded-button',
-              isValid ? 'hover:bg-accent/90' : 'opacity-50 cursor-not-allowed',
-            )}
+            className="flex-1 h-9 rounded-lg text-sm font-medium bg-accent hover:bg-accent/90 text-white transition-colors disabled:opacity-50"
           >
-            <Plus className="w-4 h-4" />
             Créer
-          </Button>
+          </button>
         </div>
       </div>
     </div>
