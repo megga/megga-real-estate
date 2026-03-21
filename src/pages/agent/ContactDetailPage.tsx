@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   Mail, Phone, MapPin,
@@ -7,6 +8,7 @@ import { cn, formatCHF, formatRelativeDate, formatDate } from '@/lib/utils'
 import { getContactById, type MockContact } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 import PageTransition from '@/components/layout/PageTransition'
+import EditContactDialog from '@/components/contacts/EditContactDialog'
 
 const scoreConfig: Record<MockContact['score'], { label: string; dot: string; text: string }> = {
   hot:  { label: 'Hot',  dot: 'bg-red-400',    text: 'text-red-400' },
@@ -67,6 +69,7 @@ export default function ContactDetailPage() {
     )
   }
 
+  const [showEdit, setShowEdit] = useState(false)
   const fullName = `${contact.first_name} ${contact.last_name}`
   const sc = scoreConfig[contact.score]
   const tc = typeConfig[contact.type]
@@ -94,7 +97,10 @@ export default function ContactDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+            <button
+              onClick={() => setShowEdit(true)}
+              className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+            >
               Éditer
             </button>
             <button className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
@@ -230,6 +236,8 @@ export default function ContactDetailPage() {
         </div>
       </div>
     </div>
+
+    <EditContactDialog open={showEdit} onClose={() => setShowEdit(false)} contact={contact} />
     </PageTransition>
   )
 }
