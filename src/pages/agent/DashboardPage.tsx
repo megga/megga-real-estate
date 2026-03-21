@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import {
   ArrowUpRight, ArrowDownRight, Plus,
 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import PageTransition from '@/components/layout/PageTransition'
+import NewTransactionDialog from '@/components/transactions/NewTransactionDialog'
 
 /* ─── KPI Data ─── */
 interface KpiCardData {
@@ -42,16 +43,23 @@ const activities = [
 
 /* ─── Component ─── */
 export default function DashboardPage() {
+  const [showNewTransaction, setShowNewTransaction] = useState(false)
+
   return (
     <PageTransition>
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-end">
-          <button className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors">
+          <button
+            onClick={() => setShowNewTransaction(true)}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
+          >
             <Plus className="h-3.5 w-3.5" />
             Nouvelle transaction
           </button>
         </div>
+
+        <NewTransactionDialog open={showNewTransaction} onClose={() => setShowNewTransaction(false)} />
 
         {/* KPIs — inline row with dividers */}
         <div className="flex items-stretch rounded-xl border border-theme-border divide-x divide-theme-border">

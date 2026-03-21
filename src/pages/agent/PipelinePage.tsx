@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import NewTransactionDialog from '@/components/transactions/NewTransactionDialog'
 import {
   DndContext,
   DragOverlay,
@@ -181,6 +182,7 @@ export default function PipelinePage() {
   const [agentFilter, setAgentFilter] = useState('')
   const [stageFilter, setStageFilter] = useState('')
   const [activeDeal, setActiveDeal] = useState<MockDeal | null>(null)
+  const [showNewTransaction, setShowNewTransaction] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -289,7 +291,10 @@ export default function PipelinePage() {
               </button>
             </div>
 
-            <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
+            <button
+              onClick={() => setShowNewTransaction(true)}
+              className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors"
+            >
               <Plus className="h-4 w-4" />
               Nouveau deal
             </button>
@@ -466,6 +471,7 @@ export default function PipelinePage() {
           </div>
         </div>
       )}
+      <NewTransactionDialog open={showNewTransaction} onClose={() => setShowNewTransaction(false)} />
     </div>
     </PageTransition>
   )
