@@ -1,9 +1,9 @@
 import {
   Building2, TrendingUp, Users, CalendarDays, Plus,
-  UserPlus, Eye, FileText, HandshakeIcon, AlertTriangle,
-  ShieldAlert, Phone, Clock, ArrowUpRight, ArrowDownRight,
+  UserPlus, Eye, FileText, HandshakeIcon,
+  ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
-import { cn, formatDate } from '@/lib/utils'
+import { cn, formatDate, formatCHF } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import PageHeader from '@/components/layout/PageHeader'
 import PageTransition from '@/components/layout/PageTransition'
@@ -50,14 +50,15 @@ const kpis: KpiCardData[] = [
 
 /* ─── Pipeline Data ─── */
 const pipelineStages = [
-  { label: 'Lead', count: 5, color: 'bg-primary-300' },
-  { label: 'Qualifié', count: 3, color: 'bg-accent' },
-  { label: 'Visite', count: 4, color: 'bg-warning' },
-  { label: 'Offre', count: 2, color: 'bg-orange-500' },
-  { label: 'Signé', count: 1, color: 'bg-success' },
+  { label: 'Lead', count: 5, color: 'bg-gray-400', dotColor: 'bg-gray-400', value: 3200000 },
+  { label: 'Qualifié', count: 3, color: 'bg-accent', dotColor: 'bg-accent', value: 2800000 },
+  { label: 'Visite', count: 4, color: 'bg-warning', dotColor: 'bg-warning', value: 4100000 },
+  { label: 'Offre', count: 2, color: 'bg-orange-500', dotColor: 'bg-orange-500', value: 1500000 },
+  { label: 'Signé', count: 1, color: 'bg-success', dotColor: 'bg-success', value: 800000 },
 ]
 
 const totalDeals = pipelineStages.reduce((sum, s) => sum + s.count, 0)
+const totalValue = pipelineStages.reduce((sum, s) => sum + s.value, 0)
 
 /* ─── Activity Data ─── */
 interface Activity {
@@ -112,58 +113,6 @@ const activities: Activity[] = [
   },
 ]
 
-/* ─── Tasks Data ─── */
-interface Task {
-  id: string
-  title: string
-  description: string
-  priority: 'high' | 'medium' | 'low'
-  icon: React.ElementType
-}
-
-const tasks: Task[] = [
-  {
-    id: '1',
-    title: 'Dossier KYC incomplet',
-    description: 'Pierre Lefèvre — documents manquants : justificatif de domicile',
-    priority: 'high',
-    icon: ShieldAlert,
-  },
-  {
-    id: '2',
-    title: 'Relance client',
-    description: "Jean-Marc Weber n'a pas répondu depuis 5 jours — visite à replanifier",
-    priority: 'high',
-    icon: Phone,
-  },
-  {
-    id: '3',
-    title: 'Visite à confirmer',
-    description: 'Appartement Plainpalais — Sophie Muller, vendredi 14h',
-    priority: 'medium',
-    icon: CalendarDays,
-  },
-  {
-    id: '4',
-    title: 'Mandat à renouveler',
-    description: 'Villa Cologny — mandat expire dans 10 jours',
-    priority: 'medium',
-    icon: Clock,
-  },
-]
-
-const priorityStyles = {
-  high: 'bg-danger/10 text-danger border-danger/20',
-  medium: 'bg-warning/10 text-warning border-warning/20',
-  low: 'bg-accent/10 text-accent border-accent/20',
-}
-
-const priorityLabels = {
-  high: 'Urgent',
-  medium: 'Important',
-  low: 'Normal',
-}
-
 /* ─── Component ─── */
 export default function DashboardPage() {
   const today = formatDate(new Date())
@@ -210,72 +159,53 @@ export default function DashboardPage() {
           })}
         </div>
 
-        {/* Pipeline + Tasks row */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Mini Pipeline */}
-          <div className="lg:col-span-3 bg-theme-card rounded-card p-5 shadow-card border border-theme-border">
-            <div className="flex items-center justify-between mb-4">
+        {/* Pipeline — full width */}
+        <div className="bg-theme-card rounded-card p-5 shadow-card border border-theme-border">
+          <div className="flex items-center justify-between mb-5">
+            <div>
               <h2 className="text-lg font-semibold text-theme-primary">Pipeline</h2>
-              <span className="text-sm text-theme-muted">{totalDeals} deals</span>
+              <p className="text-sm text-theme-muted mt-0.5">
+                {totalDeals} deals · {formatCHF(totalValue)}
+              </p>
             </div>
-
-            {/* Pipeline bar */}
-            <div className="flex rounded-full overflow-hidden h-8 mb-4">
-              {pipelineStages.map((stage) => (
-                <div
-                  key={stage.label}
-                  className={cn('flex items-center justify-center text-xs font-semibold text-white transition-all', stage.color)}
-                  style={{ width: `${(stage.count / totalDeals) * 100}%` }}
-                >
-                  {stage.count}
-                </div>
-              ))}
-            </div>
-
-            {/* Legend */}
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {pipelineStages.map((stage) => (
-                <div key={stage.label} className="flex items-center gap-1.5">
-                  <div className={cn('h-2.5 w-2.5 rounded-full', stage.color)} />
-                  <span className="text-xs text-theme-muted">{stage.label}</span>
-                  <span className="text-xs font-medium text-theme-secondary">{stage.count}</span>
-                </div>
-              ))}
-            </div>
+            <a href="/dashboard/pipeline" className="text-sm text-accent hover:text-accent/80 font-medium transition-colors">
+              Voir le pipeline →
+            </a>
           </div>
 
-          {/* Urgent Tasks */}
-          <div className="lg:col-span-2 bg-theme-card rounded-card p-5 shadow-card border border-theme-border">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-theme-primary flex items-center gap-2">
-                <AlertTriangle className="h-4.5 w-4.5 text-warning" />
-                Tâches urgentes
-              </h2>
-              <span className="text-xs text-theme-muted">{tasks.length} tâches</span>
-            </div>
-            <div className="space-y-3">
-              {tasks.map((task) => {
-                const Icon = task.icon
-                return (
-                  <div key={task.id} className="flex items-start gap-3 group cursor-pointer">
-                    <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5', priorityStyles[task.priority])}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-theme-primary group-hover:text-accent transition-colors truncate">
-                          {task.title}
-                        </p>
-                        <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge border', priorityStyles[task.priority])}>
-                          {priorityLabels[task.priority]}
-                        </span>
-                      </div>
-                      <p className="text-xs text-theme-muted mt-0.5 truncate">{task.description}</p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+          {/* Pipeline bar */}
+          <div className="flex rounded-lg overflow-hidden h-7 mb-5">
+            {pipelineStages.map((stage) => (
+              <div
+                key={stage.label}
+                className={cn('flex items-center justify-center text-[11px] font-semibold text-white transition-all', stage.color)}
+                style={{ width: `${(stage.count / totalDeals) * 100}%` }}
+              >
+                {stage.count}
+              </div>
+            ))}
+          </div>
+
+          {/* Detailed legend — stages as rows */}
+          <div className="space-y-0">
+            {pipelineStages.map((stage, i) => (
+              <div
+                key={stage.label}
+                className={cn(
+                  'flex items-center gap-3 py-2.5 px-1',
+                  i < pipelineStages.length - 1 && 'border-b border-theme-border/50'
+                )}
+              >
+                <div className={cn('h-2 w-2 rounded-full shrink-0', stage.dotColor)} />
+                <span className="text-sm text-theme-primary flex-1">{stage.label}</span>
+                <span className="text-sm font-medium text-theme-primary tabular-nums w-16 text-right">
+                  {stage.count} deal{stage.count > 1 ? 's' : ''}
+                </span>
+                <span className="text-sm text-theme-secondary tabular-nums w-28 text-right">
+                  {formatCHF(stage.value)}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
