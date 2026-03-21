@@ -87,26 +87,19 @@ function Stepper({ current, completed }: { current: number; completed: number[] 
       {STEPS.map((step, idx) => {
         const isCompleted = completed.includes(step.id)
         const isCurrent = current === step.id
-        const Icon = step.icon
         return (
           <div key={step.id} className="flex items-center flex-1 last:flex-initial">
             <div className="flex flex-col items-center gap-1.5">
               <div
                 className={cn(
-                  'h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors',
-                  isCompleted
-                    ? 'bg-success text-white'
-                    : isCurrent
-                      ? 'bg-accent text-white'
-                      : 'bg-section text-primary-400 border border-border'
+                  'h-3 w-3 rounded-full transition-colors',
+                  isCompleted ? 'bg-emerald-400' : isCurrent ? 'bg-accent' : 'bg-theme-border'
                 )}
-              >
-                {isCompleted ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-              </div>
+              />
               <span
                 className={cn(
                   'text-[11px] font-medium text-center whitespace-nowrap hidden sm:block',
-                  isCurrent ? 'text-accent' : isCompleted ? 'text-success' : 'text-primary-400'
+                  isCurrent ? 'text-theme-primary' : isCompleted ? 'text-theme-secondary' : 'text-theme-tertiary'
                 )}
               >
                 {step.label}
@@ -115,8 +108,8 @@ function Stepper({ current, completed }: { current: number; completed: number[] 
             {idx < STEPS.length - 1 && (
               <div
                 className={cn(
-                  'flex-1 h-0.5 mx-2 mt-[-18px] sm:mt-0',
-                  isCompleted ? 'bg-success' : 'bg-border'
+                  'flex-1 h-px mx-3',
+                  isCompleted ? 'bg-emerald-400' : 'bg-theme-border'
                 )}
               />
             )}
@@ -131,7 +124,7 @@ function Stepper({ current, completed }: { current: number; completed: number[] 
 
 function FieldLabel({ htmlFor, children, required }: { htmlFor: string; children: React.ReactNode; required?: boolean }) {
   return (
-    <label htmlFor={htmlFor} className="block text-sm font-medium text-primary-700 mb-1.5">
+    <label htmlFor={htmlFor} className="block text-sm font-medium text-theme-primary mb-1.5">
       {children}
       {required && <span className="text-danger ml-0.5">*</span>}
     </label>
@@ -143,8 +136,8 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs text-danger mt-1">{message}</p>
 }
 
-const inputClass = 'w-full h-11 px-4 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors'
-const selectClass = 'w-full h-11 px-4 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent'
+const inputClass = 'w-full h-11 px-4 text-sm bg-transparent border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors'
+const selectClass = 'w-full h-11 px-4 text-sm bg-transparent border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent'
 
 // ─── Step 1: Infos générales ───
 
@@ -153,8 +146,8 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-primary-900">Informations générales</h2>
-      <p className="text-sm text-muted-foreground">Décrivez votre bien immobilier.</p>
+      <h2 className="text-xl font-semibold text-theme-primary">Informations générales</h2>
+      <p className="text-sm text-theme-tertiary">Décrivez votre bien immobilier.</p>
 
       <div>
         <FieldLabel htmlFor="title" required>Titre de l'annonce</FieldLabel>
@@ -177,7 +170,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
                 'flex items-center justify-center h-11 rounded-input border text-sm font-medium cursor-pointer transition-colors',
                 form.watch('type') === value
                   ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border text-primary-600 hover:bg-section'
+                  : 'border-theme-border text-theme-secondary hover:bg-theme-section'
               )}
             >
               <input
@@ -241,8 +234,8 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-primary-900">Localisation</h2>
-      <p className="text-sm text-muted-foreground">Où se situe le bien ?</p>
+      <h2 className="text-xl font-semibold text-theme-primary">Localisation</h2>
+      <p className="text-sm text-theme-tertiary">Où se situe le bien ?</p>
 
       <div>
         <FieldLabel htmlFor="address" required>Adresse</FieldLabel>
@@ -274,10 +267,10 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
       </div>
 
       {/* Map placeholder */}
-      <div className="rounded-card border border-dashed border-border bg-section h-48 flex items-center justify-center">
+      <div className="rounded-card border border-dashed border-theme-border bg-theme-section h-48 flex items-center justify-center">
         <div className="text-center">
           <MapPin className="h-8 w-8 text-primary-300 mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Carte de localisation (Phase 2)</p>
+          <p className="text-sm text-theme-tertiary">Carte de localisation (Phase 2)</p>
         </div>
       </div>
     </div>
@@ -302,14 +295,14 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-primary-900">Prix & détails</h2>
-      <p className="text-sm text-muted-foreground">Définissez le prix et les caractéristiques du bien.</p>
+      <h2 className="text-xl font-semibold text-theme-primary">Prix & détails</h2>
+      <p className="text-sm text-theme-tertiary">Définissez le prix et les caractéristiques du bien.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <FieldLabel htmlFor="price" required>Prix de vente</FieldLabel>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">CHF</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-theme-tertiary font-medium">CHF</span>
             <input
               id="price"
               type="number"
@@ -319,14 +312,14 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
             />
           </div>
           {price > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">{formatCHF(price)}</p>
+            <p className="text-xs text-theme-tertiary mt-1">{formatCHF(price)}</p>
           )}
           <FieldError message={errors.price?.message} />
         </div>
         <div>
           <FieldLabel htmlFor="charges_monthly">Charges mensuelles</FieldLabel>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">CHF</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-theme-tertiary font-medium">CHF</span>
             <input
               id="charges_monthly"
               type="number"
@@ -352,12 +345,12 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
                 'flex flex-col items-center justify-center p-3 rounded-input border text-center cursor-pointer transition-colors',
                 form.watch('mandate_type') === opt.value
                   ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border text-primary-600 hover:bg-section'
+                  : 'border-theme-border text-theme-secondary hover:bg-theme-section'
               )}
             >
               <input type="radio" value={opt.value} {...register('mandate_type')} className="sr-only" />
               <span className="text-sm font-medium">{opt.label}</span>
-              <span className="text-[11px] text-muted-foreground mt-0.5">{opt.desc}</span>
+              <span className="text-[11px] text-theme-tertiary mt-0.5">{opt.desc}</span>
             </label>
           ))}
         </div>
@@ -374,7 +367,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
                 'flex items-center gap-2 px-3 py-2 rounded-input border text-sm cursor-pointer transition-colors',
                 features.includes(feature)
                   ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border text-primary-600 hover:bg-section'
+                  : 'border-theme-border text-theme-secondary hover:bg-theme-section'
               )}
             >
               <div
@@ -425,8 +418,8 @@ function Step4({ form }: { form: UseFormReturn<ListingFormData> }) {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-primary-900">Photos</h2>
-      <p className="text-sm text-muted-foreground">
+      <h2 className="text-xl font-semibold text-theme-primary">Photos</h2>
+      <p className="text-sm text-theme-tertiary">
         Ajoutez des photos de qualité. La première sera la photo principale.
       </p>
 
@@ -440,14 +433,14 @@ function Step4({ form }: { form: UseFormReturn<ListingFormData> }) {
           'border-2 border-dashed rounded-card p-8 text-center cursor-pointer transition-colors',
           dragOver
             ? 'border-accent bg-accent/5'
-            : 'border-border hover:border-primary-300 hover:bg-section/50'
+            : 'border-theme-border hover:border-primary-300 hover:bg-theme-section/50'
         )}
       >
         <Upload className={cn('h-10 w-10 mx-auto mb-3', dragOver ? 'text-accent' : 'text-primary-300')} />
-        <p className="text-sm font-medium text-primary-700">
+        <p className="text-sm font-medium text-theme-primary">
           Glissez vos photos ici ou cliquez pour parcourir
         </p>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-theme-tertiary mt-1">
           JPG, PNG ou WebP · Max 10 Mo par photo · Jusqu'à 20 photos
         </p>
       </div>
@@ -456,7 +449,7 @@ function Step4({ form }: { form: UseFormReturn<ListingFormData> }) {
       {photos.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {photos.map((url, idx) => (
-            <div key={url} className="relative group aspect-[4/3] rounded-card overflow-hidden border border-border">
+            <div key={url} className="relative group aspect-[4/3] rounded-card overflow-hidden border border-theme-border">
               <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
               {/* Overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
@@ -482,7 +475,7 @@ function Step4({ form }: { form: UseFormReturn<ListingFormData> }) {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-theme-tertiary">
         {photos.length}/20 photos · L'upload sera connecté à Supabase Storage (Phase 2)
       </p>
     </div>
@@ -512,8 +505,8 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-xl font-semibold text-primary-900">Description & publication</h2>
-      <p className="text-sm text-muted-foreground">Rédigez une description attrayante et choisissez vos tags.</p>
+      <h2 className="text-xl font-semibold text-theme-primary">Description & publication</h2>
+      <p className="text-sm text-theme-tertiary">Rédigez une description attrayante et choisissez vos tags.</p>
 
       <div>
         <FieldLabel htmlFor="description" required>Description du bien</FieldLabel>
@@ -522,7 +515,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
           {...register('description')}
           rows={6}
           placeholder="Décrivez les points forts du bien, son environnement, ses atouts..."
-          className="w-full px-4 py-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-y"
+          className="w-full px-4 py-3 text-sm bg-transparent border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-y"
         />
         <FieldError message={errors.description?.message} />
       </div>
@@ -539,7 +532,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
                 'px-3 py-1.5 text-xs font-medium rounded-full border transition-colors',
                 tags.includes(tag)
                   ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border text-primary-500 hover:bg-section'
+                  : 'border-theme-border text-theme-secondary hover:bg-theme-section'
               )}
             >
               {tag}
@@ -563,28 +556,28 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
 
       {/* Preview card */}
       <div>
-        <p className="text-sm font-medium text-primary-700 mb-3">Aperçu de l'annonce</p>
-        <div className="bg-section rounded-card border border-border p-5">
+        <p className="text-sm font-medium text-theme-primary mb-3">Aperçu de l'annonce</p>
+        <div className="bg-theme-section rounded-card border border-theme-border p-5">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
-              <p className="text-lg font-bold text-primary-900">
+              <p className="text-lg font-bold text-theme-primary">
                 {price > 0 ? formatCHF(price) : 'CHF —'}
               </p>
-              <h3 className="text-sm font-semibold text-primary-900 mt-0.5">
+              <h3 className="text-sm font-semibold text-theme-primary mt-0.5">
                 {title || 'Titre de l\'annonce'}
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-theme-tertiary mt-0.5">
                 {city || 'Ville'}{canton ? ` (${canton})` : ''}
               </p>
             </div>
             {type && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-white text-primary-600 border border-border">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-theme-card text-theme-secondary border border-theme-border">
                 {PROPERTY_TYPE_LABELS[type]}
               </span>
             )}
           </div>
           {(rooms > 0 || surface > 0) && (
-            <p className="text-xs text-primary-500 mb-3">
+            <p className="text-xs text-theme-secondary mb-3">
               {rooms > 0 && `${rooms} pièces`}
               {rooms > 0 && surface > 0 && ' · '}
               {surface > 0 && `${surface} m²`}
@@ -599,7 +592,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
               ))}
             </div>
           )}
-          <p className="text-xs text-primary-500 line-clamp-3">
+          <p className="text-xs text-theme-secondary line-clamp-3">
             {watch('description') || 'La description apparaîtra ici...'}
           </p>
         </div>
@@ -710,13 +703,13 @@ export default function ListingFormPage() {
       <div className="flex items-center gap-4">
         <Link
           to="/dashboard/listings"
-          className="p-2 rounded-md text-primary-500 hover:text-primary-900 hover:bg-section transition-colors"
+          className="p-2 rounded-md text-theme-secondary hover:text-theme-primary hover:bg-theme-section transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold text-primary-900">Nouveau bien</h1>
-          <p className="text-sm text-muted-foreground">Étape {currentStep} sur 5</p>
+          <h1 className="text-2xl font-semibold text-theme-primary">Nouveau bien</h1>
+          <p className="text-sm text-theme-tertiary">Étape {currentStep} sur 5</p>
         </div>
       </div>
 
@@ -724,7 +717,7 @@ export default function ListingFormPage() {
       <Stepper current={currentStep} completed={completedSteps} />
 
       {/* Form card */}
-      <div className="bg-white rounded-card shadow-card p-6 md:p-8">
+      <div className="rounded-xl border border-theme-border p-6 md:p-8">
         <form onSubmit={(e) => e.preventDefault()}>
           {currentStep === 1 && <Step1 form={form} />}
           {currentStep === 2 && <Step2 form={form} />}
@@ -755,7 +748,7 @@ export default function ListingFormPage() {
             type="button"
             variant="ghost"
             onClick={handleSaveDraft}
-            className="gap-2 text-primary-600"
+            className="gap-2 text-theme-secondary"
           >
             <Save className="h-4 w-4" />
             Enregistrer en brouillon
