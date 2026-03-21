@@ -3,15 +3,18 @@ import {
   User, Building2, Users, Bell, CreditCard, Camera,
   Plus, X, Check, Mail, FileText,
   Shield, Calendar, MessageSquare, Eye,
-  Star, ChevronRight, Zap,
+  Star, ChevronRight, Zap, Smartphone,
+  Monitor, KeyRound,
+  ShieldCheck, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
+import PageTransition from '@/components/layout/PageTransition'
 
 /* ─── Tab Types ─── */
 
-const TABS = ['profile', 'agency', 'team', 'notifications', 'subscription'] as const
+const TABS = ['profile', 'agency', 'team', 'notifications', 'security', 'subscription'] as const
 type SettingsTab = typeof TABS[number]
 
 const TAB_CONFIG: Record<SettingsTab, { label: string; icon: React.ElementType }> = {
@@ -19,94 +22,114 @@ const TAB_CONFIG: Record<SettingsTab, { label: string; icon: React.ElementType }
   agency:        { label: 'Agence',        icon: Building2 },
   team:          { label: 'Équipe',        icon: Users },
   notifications: { label: 'Notifications', icon: Bell },
+  security:      { label: 'Sécurité',      icon: Shield },
   subscription:  { label: 'Abonnement',    icon: CreditCard },
 }
 
 /* ─── Shared Styles ─── */
 
-const inputClasses = 'w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
-const labelClasses = 'block text-sm font-medium text-primary-900 mb-1.5'
-const readonlyClasses = 'w-full h-11 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-500 cursor-not-allowed'
+const inputClasses = 'w-full h-11 px-3 rounded-lg border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors'
+const labelClasses = 'block text-sm font-medium text-theme-primary mb-1.5'
+const readonlyClasses = 'w-full h-11 px-3 rounded-lg border border-theme-border bg-theme-input text-sm text-theme-muted cursor-not-allowed'
+const cardClasses = 'rounded-xl border border-theme-border'
 
 /* ─── Profile Tab ─── */
 
 function ProfileTab() {
-  const { profile } = useAuth()
-  const nameParts = (profile?.full_name ?? 'Gregory Lyonnet').split(' ')
+  const { user, signOut } = useAuth()
 
   const [form, setForm] = useState({
-    firstName: nameParts[0] ?? 'Gregory',
-    lastName: nameParts.slice(1).join(' ') || 'Lyonnet',
-    email: profile?.email ?? 'gregory.lyonnet@megga.ch',
-    phone: profile?.phone ?? '+41 22 310 45 67',
-    role: profile?.role ?? 'agent',
+    firstName: 'Gregory',
+    lastName: 'Lyonnet',
+    email: user?.email ?? 'gregory.lyonnet@megga.ch',
+    phone: '+41 22 310 45 67',
+    role: 'Agent immobilier',
     bio: 'Agent immobilier spécialisé dans le marché genevois depuis 12 ans. Expertise en biens de prestige et transactions internationales.',
   })
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }))
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-primary-900">Profil personnel</h2>
-        <p className="text-sm text-gray-500 mt-1">Gérez vos informations personnelles et votre profil public.</p>
-      </div>
+    <div className="space-y-0">
+      {/* Profile section — bento transparent */}
+      <div className={cn(cardClasses, 'p-6')}>
+        <h2 className="text-base font-semibold text-theme-primary">Profil</h2>
+        <p className="text-sm text-theme-tertiary mt-0.5">Gérez vos informations personnelles et votre profil public.</p>
 
-      {/* Avatar */}
-      <div className="flex items-center gap-5">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-accent flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">GL</span>
+        {/* Avatar row */}
+        <div className="flex items-center gap-5 mt-5 pb-5 border-b border-theme-border">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center">
+              <span className="text-xl font-bold text-white">GL</span>
+            </div>
           </div>
-          <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border border-border shadow-card flex items-center justify-center hover:bg-gray-50 transition-colors">
-            <Camera className="w-4 h-4 text-gray-500" />
-          </button>
+          <div>
+            <p className="text-sm font-medium text-theme-primary">Photo de profil</p>
+            <p className="text-xs text-theme-tertiary mt-0.5">JPG, PNG ou GIF. Max 2 Mo.</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-medium text-primary-900">Photo de profil</p>
-          <p className="text-xs text-gray-500 mt-0.5">JPG, PNG ou GIF. Max 2 Mo.</p>
-        </div>
-      </div>
 
-      {/* Form */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={labelClasses}>Prénom</label>
+        {/* Username-style row */}
+        <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
+          <div className="sm:w-40 shrink-0">
+            <p className="text-sm font-medium text-theme-primary">Prénom</p>
+          </div>
           <input type="text" value={form.firstName} onChange={e => update('firstName', e.target.value)} className={inputClasses} />
         </div>
-        <div>
-          <label className={labelClasses}>Nom</label>
+
+        <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
+          <div className="sm:w-40 shrink-0">
+            <p className="text-sm font-medium text-theme-primary">Nom</p>
+          </div>
           <input type="text" value={form.lastName} onChange={e => update('lastName', e.target.value)} className={inputClasses} />
         </div>
-        <div>
-          <label className={labelClasses}>Email</label>
+
+        <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
+          <div className="sm:w-40 shrink-0">
+            <p className="text-sm font-medium text-theme-primary">Email</p>
+            <p className="text-xs text-theme-tertiary">Identifiant de connexion</p>
+          </div>
           <input type="email" value={form.email} readOnly className={readonlyClasses} />
         </div>
-        <div>
-          <label className={labelClasses}>Téléphone</label>
+
+        <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
+          <div className="sm:w-40 shrink-0">
+            <p className="text-sm font-medium text-theme-primary">Téléphone</p>
+          </div>
           <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className={inputClasses} />
         </div>
-        <div>
-          <label className={labelClasses}>Titre / Rôle</label>
+
+        <div className="py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
+          <div className="sm:w-40 shrink-0">
+            <p className="text-sm font-medium text-theme-primary">Rôle</p>
+          </div>
           <input type="text" value={form.role} onChange={e => update('role', e.target.value)} className={inputClasses} />
         </div>
       </div>
 
-      <div>
-        <label className={labelClasses}>Bio</label>
+      {/* Bio section */}
+      <div className={cn(cardClasses, 'p-6 mt-4')}>
+        <h2 className="text-base font-semibold text-theme-primary">Bio</h2>
+        <p className="text-sm text-theme-tertiary mt-0.5 mb-4">Visible sur votre profil public.</p>
         <textarea
           value={form.bio}
           onChange={e => update('bio', e.target.value)}
           rows={3}
-          className="w-full px-3 py-2.5 rounded-input border border-border bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
+          className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none placeholder:text-theme-tertiary"
         />
       </div>
 
-      <div className="flex justify-end">
-        <Button className="gap-2 bg-accent hover:bg-accent/90 text-white rounded-button">
-          <Check className="w-4 h-4" />
+      {/* Actions */}
+      <div className="flex items-center justify-between pt-6">
+        <Button className="bg-accent hover:bg-accent/90 text-white rounded-lg text-sm px-5">
           Sauvegarder
         </Button>
+        <button
+          onClick={async () => { await signOut() }}
+          className="text-sm font-medium text-theme-tertiary hover:text-danger transition-colors"
+        >
+          Déconnexion
+        </button>
       </div>
     </div>
   )
@@ -121,7 +144,7 @@ function AgencyTab() {
     phone: '+41 22 310 00 00',
     email: 'contact@megga.ch',
     website: 'www.megga.ch',
-    description: 'Agence immobilière premium à Genève, spécialisée dans les biens de prestige et les transactions internationales. Service personnalisé et accompagnement complet.',
+    description: 'Agence immobilière premium à Genève, spécialisée dans les biens de prestige et les transactions internationales.',
     ideNumber: 'CHE-123.456.789',
   })
 
@@ -130,23 +153,23 @@ function AgencyTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-primary-900">Informations de l&apos;agence</h2>
-        <p className="text-sm text-gray-500 mt-1">Configurez le profil public de votre agence.</p>
+        <h2 className="text-lg font-semibold text-theme-primary">Informations de l&apos;agence</h2>
+        <p className="text-sm text-theme-muted mt-1">Configurez le profil public de votre agence.</p>
       </div>
 
       {/* Logo */}
       <div className="flex items-center gap-5">
         <div className="relative">
-          <div className="w-20 h-20 rounded-card bg-primary-900 flex items-center justify-center">
-            <span className="text-lg font-bold text-white">GG</span>
+          <div className="w-20 h-20 rounded-card bg-theme-primary flex items-center justify-center">
+            <span className="text-lg font-bold text-theme-inverse">GG</span>
           </div>
-          <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border border-border shadow-card flex items-center justify-center hover:bg-gray-50 transition-colors">
-            <Camera className="w-4 h-4 text-gray-500" />
+          <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-theme-card border border-theme-border shadow-card flex items-center justify-center hover:bg-theme-hover transition-colors">
+            <Camera className="w-4 h-4 text-theme-muted" />
           </button>
         </div>
         <div>
-          <p className="text-sm font-medium text-primary-900">Logo de l&apos;agence</p>
-          <p className="text-xs text-gray-500 mt-0.5">SVG, PNG ou JPG. Format carré recommandé.</p>
+          <p className="text-sm font-medium text-theme-primary">Logo de l&apos;agence</p>
+          <p className="text-xs text-theme-muted mt-0.5">SVG, PNG ou JPG. Format carré recommandé.</p>
         </div>
       </div>
 
@@ -184,7 +207,7 @@ function AgencyTab() {
           value={form.description}
           onChange={e => update('description', e.target.value)}
           rows={3}
-          className="w-full px-3 py-2.5 rounded-input border border-border bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
+          className="w-full px-3 py-2.5 rounded-input border border-theme-border bg-theme-card text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none"
         />
       </div>
 
@@ -211,10 +234,7 @@ interface TeamMember {
 }
 
 const ROLE_LABELS: Record<TeamMember['role'], string> = {
-  admin: 'Admin',
-  manager: 'Manager',
-  agent: 'Agent',
-  assistant: 'Assistant',
+  admin: 'Admin', manager: 'Manager', agent: 'Agent', assistant: 'Assistant',
 }
 
 const STATUS_STYLES: Record<TeamMember['status'], { label: string; classes: string }> = {
@@ -232,31 +252,24 @@ const MOCK_TEAM: TeamMember[] = [
 function InviteMemberModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<TeamMember['role']>('agent')
-  const selectClasses = 'w-full h-11 px-3 rounded-input border border-border bg-white text-sm text-primary-900 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-white rounded-card shadow-modal w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <h3 className="text-lg font-semibold text-primary-900">Inviter un membre</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-theme-overlay/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className={cn(cardClasses, 'shadow-modal w-full max-w-md')} onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-theme-border">
+          <h3 className="text-lg font-semibold text-theme-primary">Inviter un membre</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
+            <X className="w-5 h-5 text-theme-muted" />
           </button>
         </div>
         <div className="p-5 space-y-4">
           <div>
             <label className={labelClasses}>Adresse email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="nom@agence.ch"
-              className={inputClasses}
-            />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="nom@agence.ch" className={inputClasses} />
           </div>
           <div>
             <label className={labelClasses}>Rôle</label>
-            <select value={role} onChange={e => setRole(e.target.value as TeamMember['role'])} className={selectClasses}>
+            <select value={role} onChange={e => setRole(e.target.value as TeamMember['role'])} className={inputClasses}>
               <option value="admin">Admin</option>
               <option value="manager">Manager</option>
               <option value="agent">Agent</option>
@@ -264,12 +277,9 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
             </select>
           </div>
         </div>
-        <div className="flex items-center gap-3 p-5 border-t border-border">
+        <div className="flex items-center gap-3 p-5 border-t border-theme-border">
           <Button variant="outline" onClick={onClose} className="flex-1">Annuler</Button>
-          <Button
-            disabled={!email.includes('@')}
-            className={cn('flex-1 gap-2 bg-accent text-white rounded-button', email.includes('@') ? 'hover:bg-accent/90' : 'opacity-50 cursor-not-allowed')}
-          >
+          <Button disabled={!email.includes('@')} className={cn('flex-1 gap-2 bg-accent text-white rounded-button', email.includes('@') ? 'hover:bg-accent/90' : 'opacity-50 cursor-not-allowed')}>
             <Mail className="w-4 h-4" />
             Envoyer l&apos;invitation
           </Button>
@@ -286,8 +296,8 @@ function TeamTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-primary-900">Équipe</h2>
-          <p className="text-sm text-gray-500 mt-1">Gérez les membres de votre agence et leurs rôles.</p>
+          <h2 className="text-lg font-semibold text-theme-primary">Équipe</h2>
+          <p className="text-sm text-theme-muted mt-1">Gérez les membres de votre agence et leurs rôles.</p>
         </div>
         <Button onClick={() => setShowInvite(true)} className="gap-2 bg-accent hover:bg-accent/90 text-white rounded-button">
           <Plus className="w-4 h-4" />
@@ -296,77 +306,43 @@ function TeamTab() {
         </Button>
       </div>
 
-      {/* Desktop table */}
-      <div className="hidden md:block bg-white rounded-card shadow-card border border-border overflow-hidden">
+      <div className={cn(cardClasses, 'overflow-hidden')}>
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border bg-gray-50/50">
-              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Membre</th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Rôle</th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Statut</th>
-              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">Ajouté le</th>
+            <tr className="border-b border-theme-border bg-theme-section">
+              <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3">Membre</th>
+              <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3 hidden md:table-cell">Rôle</th>
+              <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3 hidden sm:table-cell">Statut</th>
+              <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3 hidden lg:table-cell">Ajouté le</th>
             </tr>
           </thead>
           <tbody>
             {MOCK_TEAM.map((member, i) => (
-              <tr key={member.id} className={cn('hover:bg-gray-50/50 transition-colors', i < MOCK_TEAM.length - 1 && 'border-b border-border/50')}>
+              <tr key={member.id} className={cn('hover:bg-theme-hover transition-colors', i < MOCK_TEAM.length - 1 && 'border-b border-theme-border/50')}>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
                       <span className="text-xs font-semibold text-accent">{member.initials}</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-primary-900 truncate">{member.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                      <p className="text-sm font-medium text-theme-primary truncate">{member.name}</p>
+                      <p className="text-xs text-theme-muted truncate">{member.email}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4">
-                  <select
-                    defaultValue={member.role}
-                    className="text-sm border border-border rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-accent/30"
-                  >
-                    {Object.entries(ROLE_LABELS).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
+                <td className="px-5 py-4 hidden md:table-cell">
+                  <span className="text-sm text-theme-secondary">{ROLE_LABELS[member.role]}</span>
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-5 py-4 hidden sm:table-cell">
                   <span className={cn('text-xs font-medium px-2 py-1 rounded-badge', STATUS_STYLES[member.status].classes)}>
                     {STATUS_STYLES[member.status].label}
                   </span>
                 </td>
-                <td className="px-5 py-4 text-sm text-gray-500">{member.addedAt}</td>
+                <td className="px-5 py-4 text-sm text-theme-muted hidden lg:table-cell">{member.addedAt}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-3">
-        {MOCK_TEAM.map(member => (
-          <div key={member.id} className="bg-white rounded-card shadow-card border border-border p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                <span className="text-sm font-semibold text-accent">{member.initials}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-primary-900 truncate">{member.name}</p>
-                  <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge', STATUS_STYLES[member.status].classes)}>
-                    {STATUS_STYLES[member.status].label}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 truncate">{member.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-              <span className="text-xs text-gray-500">{ROLE_LABELS[member.role]}</span>
-              <span className="text-xs text-gray-400">Ajouté le {member.addedAt}</span>
-            </div>
-          </div>
-        ))}
       </div>
 
       {showInvite && <InviteMemberModal onClose={() => setShowInvite(false)} />}
@@ -386,27 +362,21 @@ interface NotifCategory {
 }
 
 const NOTIF_CATEGORIES: NotifCategory[] = [
-  { id: 'leads',        label: 'Nouveaux leads',             description: 'Quand un nouveau contact est assigné',       icon: Users,          emailDefault: true,  pushDefault: true },
-  { id: 'messages',     label: 'Messages reçus',             description: 'Quand un message est reçu dans la messagerie', icon: MessageSquare,  emailDefault: true,  pushDefault: true },
-  { id: 'visits',       label: 'Visites planifiées',         description: 'Rappels avant les visites programmées',       icon: Eye,            emailDefault: true,  pushDefault: true },
-  { id: 'offers',       label: 'Offres reçues',              description: 'Quand une offre est soumise sur un bien',     icon: FileText,       emailDefault: true,  pushDefault: true },
-  { id: 'kyc',          label: 'Dossiers KYC à compléter',   description: 'Quand un dossier KYC nécessite une action',   icon: Shield,         emailDefault: true,  pushDefault: true },
-  { id: 'calendar',     label: 'Rappels calendrier',         description: 'Rappels pour les événements à venir',         icon: Calendar,       emailDefault: true,  pushDefault: true },
+  { id: 'leads',    label: 'Nouveaux leads',           description: 'Quand un nouveau contact est assigné',         icon: Users,          emailDefault: true,  pushDefault: true },
+  { id: 'messages', label: 'Messages reçus',           description: 'Quand un message est reçu dans la messagerie', icon: MessageSquare,  emailDefault: true,  pushDefault: true },
+  { id: 'visits',   label: 'Visites planifiées',       description: 'Rappels avant les visites programmées',         icon: Eye,            emailDefault: true,  pushDefault: true },
+  { id: 'offers',   label: 'Offres reçues',            description: 'Quand une offre est soumise sur un bien',       icon: FileText,       emailDefault: true,  pushDefault: true },
+  { id: 'kyc',      label: 'Dossiers KYC à compléter', description: 'Quand un dossier KYC nécessite une action',     icon: Shield,         emailDefault: true,  pushDefault: true },
+  { id: 'calendar', label: 'Rappels calendrier',       description: 'Rappels pour les événements à venir',           icon: Calendar,       emailDefault: true,  pushDefault: true },
 ]
 
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       onClick={() => onChange(!enabled)}
-      className={cn(
-        'relative w-10 h-6 rounded-full transition-colors shrink-0',
-        enabled ? 'bg-accent' : 'bg-gray-200',
-      )}
+      className={cn('relative w-10 h-6 rounded-full transition-colors shrink-0', enabled ? 'bg-accent' : 'bg-theme-border')}
     >
-      <div className={cn(
-        'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform',
-        enabled ? 'translate-x-[18px]' : 'translate-x-0.5',
-      )} />
+      <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform', enabled ? 'translate-x-[18px]' : 'translate-x-0.5')} />
     </button>
   )
 }
@@ -421,42 +391,31 @@ function NotificationsTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-primary-900">Préférences de notifications</h2>
-        <p className="text-sm text-gray-500 mt-1">Choisissez comment et quand vous souhaitez être notifié.</p>
-      </div>
+    <div className="space-y-0">
+      <div className={cn(cardClasses, 'p-6')}>
+        <h2 className="text-base font-semibold text-theme-primary">Notifications</h2>
+        <p className="text-sm text-theme-tertiary mt-0.5 mb-1">Choisissez comment et quand vous souhaitez être notifié.</p>
 
-      {/* Header */}
-      <div className="hidden sm:grid grid-cols-[1fr_80px_80px] gap-4 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
-        <span>Catégorie</span>
-        <span className="text-center">Email</span>
-        <span className="text-center">Push</span>
-      </div>
-
-      {/* Categories */}
-      <div className="space-y-1">
-        {NOTIF_CATEGORIES.map(cat => {
-          const Icon = cat.icon
+        {NOTIF_CATEGORIES.map((cat, i) => {
           const s = settings[cat.id]
           return (
-            <div key={cat.id} className="bg-white rounded-card border border-border/50 p-4 sm:grid sm:grid-cols-[1fr_80px_80px] sm:gap-4 sm:items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-gray-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-primary-900">{cat.label}</p>
-                  <p className="text-xs text-gray-500">{cat.description}</p>
-                </div>
+            <div key={cat.id} className={cn(
+              'py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6',
+              i < NOTIF_CATEGORIES.length - 1 && 'border-b border-theme-border'
+            )}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-theme-primary">{cat.label}</p>
+                <p className="text-xs text-theme-tertiary mt-0.5">{cat.description}</p>
               </div>
-              <div className="flex items-center gap-4 mt-3 sm:mt-0 sm:justify-center">
-                <span className="text-xs text-gray-500 sm:hidden">Email</span>
-                <Toggle enabled={s.email} onChange={v => updateSetting(cat.id, 'email', v)} />
-              </div>
-              <div className="flex items-center gap-4 mt-2 sm:mt-0 sm:justify-center">
-                <span className="text-xs text-gray-500 sm:hidden">Push</span>
-                <Toggle enabled={s.push} onChange={v => updateSetting(cat.id, 'push', v)} />
+              <div className="flex items-center gap-6 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-theme-tertiary">Email</span>
+                  <Toggle enabled={s.email} onChange={v => updateSetting(cat.id, 'email', v)} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-theme-tertiary">Push</span>
+                  <Toggle enabled={s.push} onChange={v => updateSetting(cat.id, 'push', v)} />
+                </div>
               </div>
             </div>
           )
@@ -466,68 +425,194 @@ function NotificationsTab() {
   )
 }
 
-/* ─── Subscription Tab ─── */
+/* ─── Security Tab ─── */
 
-interface PlanFeature {
-  text: string
-  included: boolean
+interface SessionDevice {
+  id: string
+  device: string
+  icon: React.ElementType
+  location: string
+  lastActive: string
+  isCurrent: boolean
 }
 
+const MOCK_SESSIONS: SessionDevice[] = [
+  { id: 's1', device: 'MacBook Pro — Chrome', icon: Monitor, location: 'Genève, Suisse', lastActive: 'Actif maintenant', isCurrent: true },
+  { id: 's2', device: 'iPhone 15 Pro — Safari', icon: Smartphone, location: 'Genève, Suisse', lastActive: 'Il y a 2 heures', isCurrent: false },
+  { id: 's3', device: 'iPad Air — Safari', icon: Monitor, location: 'Lausanne, Suisse', lastActive: 'Il y a 3 jours', isCurrent: false },
+]
+
+interface SecurityEvent {
+  id: string
+  action: string
+  detail: string
+  date: string
+  icon: React.ElementType
+  iconColor: string
+}
+
+const MOCK_SECURITY_LOG: SecurityEvent[] = [
+  { id: 'e1', action: 'Connexion réussie', detail: 'Chrome — MacBook Pro, Genève', date: "Aujourd'hui, 09:12", icon: ShieldCheck, iconColor: 'text-success bg-success/10' },
+  { id: 'e2', action: 'Mot de passe modifié', detail: 'Via les paramètres du compte', date: '15.03.2026, 14:30', icon: KeyRound, iconColor: 'text-accent bg-accent/10' },
+  { id: 'e3', action: 'Nouvelle session', detail: 'iPhone 15 Pro — Safari, Genève', date: '14.03.2026, 08:45', icon: Smartphone, iconColor: 'text-warning bg-warning/10' },
+  { id: 'e4', action: 'Tentative de connexion échouée', detail: 'Mot de passe incorrect — 2 tentatives', date: '12.03.2026, 22:10', icon: AlertTriangle, iconColor: 'text-danger bg-danger/10' },
+  { id: 'e5', action: 'Connexion réussie', detail: 'Safari — iPad Air, Lausanne', date: '10.03.2026, 11:00', icon: ShieldCheck, iconColor: 'text-success bg-success/10' },
+]
+
+function SecurityTab() {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+
+  const passwordMatch = newPassword === confirmPassword
+  const passwordValid = newPassword.length >= 6
+
+  return (
+    <div className="space-y-4">
+      {/* ── Change Password ── */}
+      <div className={cn(cardClasses, 'p-6')}>
+        <h2 className="text-base font-semibold text-theme-primary">Mot de passe</h2>
+        <p className="text-sm text-theme-tertiary mt-0.5 mb-5">Dernière modification : 15.03.2026</p>
+
+        <div className="space-y-4 max-w-md">
+          <div>
+            <label className={labelClasses}>Mot de passe actuel</label>
+            <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" className={inputClasses} />
+          </div>
+          <div>
+            <label className={labelClasses}>Nouveau mot de passe</label>
+            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="6 caractères minimum" className={inputClasses} />
+            {newPassword && !passwordValid && (
+              <p className="text-xs text-danger mt-1">Le mot de passe doit contenir au moins 6 caractères.</p>
+            )}
+          </div>
+          <div>
+            <label className={labelClasses}>Confirmer le nouveau mot de passe</label>
+            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Retapez le mot de passe" className={inputClasses} />
+            {confirmPassword && !passwordMatch && (
+              <p className="text-xs text-danger mt-1">Les mots de passe ne correspondent pas.</p>
+            )}
+          </div>
+
+          <Button
+            disabled={!currentPassword || !passwordValid || !passwordMatch}
+            className="bg-accent hover:bg-accent/90 text-white rounded-lg text-sm px-5 disabled:opacity-50"
+          >
+            Mettre à jour
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Two-Factor Authentication ── */}
+      <div className={cn(cardClasses, 'p-6')}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-theme-primary">Authentification à deux facteurs</h2>
+            <p className="text-sm text-theme-tertiary mt-0.5">
+              {twoFactorEnabled ? 'Activé — votre compte est protégé' : 'Désactivé — recommandé pour plus de sécurité'}
+            </p>
+          </div>
+          <Toggle enabled={twoFactorEnabled} onChange={setTwoFactorEnabled} />
+        </div>
+        {!twoFactorEnabled && (
+          <p className="text-xs text-theme-tertiary mt-3 border-t border-theme-border pt-3">
+            Nous recommandons d&apos;activer la 2FA pour protéger votre compte, surtout pour un outil de conformité LAB/KYC.
+          </p>
+        )}
+      </div>
+
+      {/* ── Active Sessions ── */}
+      <div className={cn(cardClasses, 'p-6')}>
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <h2 className="text-base font-semibold text-theme-primary">Sessions actives</h2>
+            <p className="text-sm text-theme-tertiary mt-0.5">{MOCK_SESSIONS.length} appareils connectés</p>
+          </div>
+          <button className="text-xs font-medium text-theme-tertiary hover:text-danger transition-colors">
+            Tout déconnecter
+          </button>
+        </div>
+
+        {MOCK_SESSIONS.map((session, i) => (
+          <div key={session.id} className={cn(
+            'py-4 flex items-center gap-4',
+            i < MOCK_SESSIONS.length - 1 && 'border-b border-theme-border'
+          )}>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-theme-primary truncate">{session.device}</p>
+                {session.isCurrent && (
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">Actuel</span>
+                )}
+              </div>
+              <p className="text-xs text-theme-tertiary mt-0.5">{session.location} · {session.lastActive}</p>
+            </div>
+            {!session.isCurrent && (
+              <button className="text-xs font-medium text-theme-tertiary hover:text-danger transition-colors">
+                Révoquer
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Security Log ── */}
+      <div className={cn(cardClasses, 'p-6')}>
+        <h2 className="text-base font-semibold text-theme-primary">Journal de sécurité</h2>
+        <p className="text-sm text-theme-tertiary mt-0.5 mb-1">Dernières activités sur votre compte</p>
+
+        {MOCK_SECURITY_LOG.map((event, i) => (
+          <div key={event.id} className={cn(
+            'py-3.5 flex items-center gap-3',
+            i < MOCK_SECURITY_LOG.length - 1 && 'border-b border-theme-border'
+          )}>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-theme-primary">{event.action}</p>
+              <p className="text-xs text-theme-tertiary mt-0.5">{event.detail}</p>
+            </div>
+            <span className="text-xs text-theme-tertiary whitespace-nowrap shrink-0">{event.date}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ─── Subscription Tab ─── */
+
+interface PlanFeature { text: string; included: boolean }
 interface Plan {
-  name: string
-  price: string
-  period: string
-  description: string
-  features: PlanFeature[]
-  isCurrent?: boolean
-  isPopular?: boolean
+  name: string; price: string; period: string; description: string
+  features: PlanFeature[]; isCurrent?: boolean; isPopular?: boolean
 }
 
 const PLANS: Plan[] = [
   {
-    name: 'Starter',
-    price: 'Gratuit',
-    period: '',
-    description: 'Pour les agents indépendants qui démarrent.',
+    name: 'Starter', price: 'Gratuit', period: '', description: 'Pour les agents indépendants qui démarrent.',
     features: [
-      { text: '10 biens actifs', included: true },
-      { text: '50 contacts', included: true },
-      { text: 'Recherche basique', included: true },
-      { text: 'Assistance IA', included: false },
-      { text: 'Pipeline KYC', included: false },
-      { text: 'Portail vendeur', included: false },
+      { text: '10 biens actifs', included: true }, { text: '50 contacts', included: true },
+      { text: 'Recherche basique', included: true }, { text: 'Assistance IA', included: false },
+      { text: 'Pipeline KYC', included: false }, { text: 'Portail vendeur', included: false },
       { text: 'Support prioritaire', included: false },
     ],
   },
   {
-    name: 'Pro',
-    price: "CHF 89",
-    period: '/mois',
-    description: 'Pour les agents qui veulent aller plus loin.',
-    isCurrent: true,
-    isPopular: true,
+    name: 'Pro', price: "CHF 89", period: '/mois', description: 'Pour les agents qui veulent aller plus loin.',
+    isCurrent: true, isPopular: true,
     features: [
-      { text: 'Biens illimités', included: true },
-      { text: 'Contacts illimités', included: true },
-      { text: 'Recherche IA conversationnelle', included: true },
-      { text: 'Assistance IA copilote', included: true },
-      { text: 'Pipeline KYC complet', included: true },
-      { text: 'Portail vendeur', included: true },
+      { text: 'Biens illimités', included: true }, { text: 'Contacts illimités', included: true },
+      { text: 'Recherche IA conversationnelle', included: true }, { text: 'Assistance IA copilote', included: true },
+      { text: 'Pipeline KYC complet', included: true }, { text: 'Portail vendeur', included: true },
       { text: 'Support prioritaire', included: false },
     ],
   },
   {
-    name: 'Agency',
-    price: "CHF 249",
-    period: '/mois',
-    description: 'Pour les agences avec une équipe.',
+    name: 'Agency', price: "CHF 249", period: '/mois', description: 'Pour les agences avec une équipe.',
     features: [
-      { text: 'Tout du plan Pro', included: true },
-      { text: 'Jusqu\'à 10 agents', included: true },
-      { text: 'Tableau de bord agence', included: true },
-      { text: 'API & intégrations', included: true },
-      { text: 'Branding personnalisé', included: true },
-      { text: 'Export données', included: true },
+      { text: 'Tout du plan Pro', included: true }, { text: "Jusqu'à 10 agents", included: true },
+      { text: 'Tableau de bord agence', included: true }, { text: 'API & intégrations', included: true },
+      { text: 'Branding personnalisé', included: true }, { text: 'Export données', included: true },
       { text: 'Support prioritaire 24/7', included: true },
     ],
   },
@@ -537,24 +622,24 @@ function SubscriptionTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-primary-900">Abonnement</h2>
-        <p className="text-sm text-gray-500 mt-1">Gérez votre plan et votre facturation.</p>
+        <h2 className="text-lg font-semibold text-theme-primary">Abonnement</h2>
+        <p className="text-sm text-theme-muted mt-1">Gérez votre plan et votre facturation.</p>
       </div>
 
-      {/* Current plan card */}
-      <div className="bg-white rounded-xl border-2 border-accent p-6">
+      {/* Current plan */}
+      <div className={cn(cardClasses, 'border-2 border-accent p-6')}>
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
             <Zap className="w-5 h-5 text-accent" />
           </div>
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-primary-900">Plan Pro</h3>
+              <h3 className="text-lg font-semibold text-theme-primary">Plan Pro</h3>
               <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-accent/10 text-accent">Actuel</span>
             </div>
-            <p className="text-sm text-gray-500">CHF 89/mois — renouvelé le 01.04.2026</p>
+            <p className="text-sm text-theme-muted">CHF 89/mois — renouvelé le 01.04.2026</p>
           </div>
-          <Button variant="outline" className="ml-auto gap-2 hidden sm:flex">
+          <Button variant="outline" className="gap-2 hidden sm:flex">
             <CreditCard className="w-4 h-4" />
             Gérer l&apos;abonnement
           </Button>
@@ -567,14 +652,14 @@ function SubscriptionTab() {
 
       {/* Plan comparison */}
       <div>
-        <h3 className="text-base font-semibold text-primary-900 mb-4">Comparer les plans</h3>
+        <h3 className="text-base font-semibold text-theme-primary mb-4">Comparer les plans</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map(plan => (
             <div
               key={plan.name}
               className={cn(
-                'bg-white rounded-xl border-2 p-6 relative transition-shadow duration-200 hover:shadow-lg',
-                plan.isCurrent ? 'border-accent shadow-card-hover' : 'border-gray-200 shadow-sm',
+                cardClasses, 'p-6 relative transition-shadow duration-200 hover:shadow-lg border-2',
+                plan.isCurrent ? 'border-accent shadow-card-hover' : 'border-theme-border shadow-sm',
               )}
             >
               {plan.isPopular && (
@@ -584,33 +669,24 @@ function SubscriptionTab() {
                   </span>
                 </div>
               )}
-
               <div className="text-center mb-4 pt-1">
-                <h4 className="text-lg font-semibold text-primary-900">{plan.name}</h4>
+                <h4 className="text-lg font-semibold text-theme-primary">{plan.name}</h4>
                 <div className="mt-2">
-                  <span className="text-2xl font-bold text-primary-900">{plan.price}</span>
-                  {plan.period && <span className="text-sm text-gray-500">{plan.period}</span>}
+                  <span className="text-2xl font-bold text-theme-primary">{plan.price}</span>
+                  {plan.period && <span className="text-sm text-theme-muted">{plan.period}</span>}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">{plan.description}</p>
+                <p className="text-xs text-theme-muted mt-2">{plan.description}</p>
               </div>
-
               <div className="space-y-2.5 mb-5">
                 {plan.features.map((feat, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
-                    {feat.included ? (
-                      <Check className="w-4 h-4 text-success shrink-0" />
-                    ) : (
-                      <X className="w-4 h-4 text-gray-300 shrink-0" />
-                    )}
-                    <span className={feat.included ? 'text-primary-900' : 'text-gray-400'}>{feat.text}</span>
+                    {feat.included ? <Check className="w-4 h-4 text-success shrink-0" /> : <X className="w-4 h-4 text-theme-tertiary shrink-0" />}
+                    <span className={feat.included ? 'text-theme-primary' : 'text-theme-tertiary'}>{feat.text}</span>
                   </div>
                 ))}
               </div>
-
               {plan.isCurrent ? (
-                <Button variant="outline" className="w-full" disabled>
-                  Plan actuel
-                </Button>
+                <Button variant="outline" className="w-full" disabled>Plan actuel</Button>
               ) : (
                 <Button variant="outline" className="w-full gap-1 hover:bg-accent hover:text-white hover:border-accent transition-all">
                   Choisir <ChevronRight className="w-4 h-4" />
@@ -630,49 +706,45 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-          <User className="w-5 h-5 text-accent" />
-        </div>
-        <h1 className="text-2xl md:text-3xl font-semibold text-primary-900">Paramètres</h1>
-      </div>
+    <PageTransition>
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Header */}
+        <h1 className="text-2xl font-semibold text-theme-primary">Paramètres</h1>
 
-      {/* Tabs */}
-      <div className="border-b border-border overflow-x-auto">
-        <div className="flex gap-0 min-w-max">
-          {TABS.map(tab => {
-            const config = TAB_CONFIG[tab]
-            const Icon = config.icon
-            const isActive = activeTab === tab
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
-                  isActive
-                    ? 'border-accent text-accent'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {config.label}
-              </button>
-            )
-          })}
+        {/* Tabs — no icons, text only */}
+        <div className="border-b border-theme-border overflow-x-auto">
+          <div className="flex gap-0 min-w-max">
+            {TABS.map(tab => {
+              const config = TAB_CONFIG[tab]
+              const isActive = activeTab === tab
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    'px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+                    isActive
+                      ? 'border-accent text-accent'
+                      : 'border-transparent text-theme-tertiary hover:text-theme-primary hover:border-theme-active',
+                  )}
+                >
+                  {config.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Tab content */}
+        <div>
+          {activeTab === 'profile' && <ProfileTab />}
+          {activeTab === 'agency' && <AgencyTab />}
+          {activeTab === 'team' && <TeamTab />}
+          {activeTab === 'notifications' && <NotificationsTab />}
+          {activeTab === 'security' && <SecurityTab />}
+          {activeTab === 'subscription' && <SubscriptionTab />}
         </div>
       </div>
-
-      {/* Tab content */}
-      <div>
-        {activeTab === 'profile' && <ProfileTab />}
-        {activeTab === 'agency' && <AgencyTab />}
-        {activeTab === 'team' && <TeamTab />}
-        {activeTab === 'notifications' && <NotificationsTab />}
-        {activeTab === 'subscription' && <SubscriptionTab />}
-      </div>
-    </div>
+    </PageTransition>
   )
 }

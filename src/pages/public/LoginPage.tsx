@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { Mail, Lock, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
-import { isAgentRole } from '@/types/auth'
+import { isAgentRole, type UserRole } from '@/types/auth'
 
 function GoogleIcon({ className }: { className?: string }) {
   return (

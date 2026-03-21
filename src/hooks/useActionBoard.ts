@@ -2,7 +2,16 @@ import { useState, useCallback, useMemo } from 'react'
 
 export type ActionPriority = 'urgent' | 'high' | 'medium' | 'low'
 export type ActionCategory = 'urgency' | 'follow_up' | 'match_found' | 'visit_confirm' | 'suggestion'
-export type ActionType = 'call' | 'email' | 'whatsapp' | 'send_property' | 'plan_visit' | 'review_document' | 'view_deal'
+export type ActionType =
+  | 'call'
+  | 'email'
+  | 'send_property'
+  | 'plan_visit'
+  | 'review_document'
+  | 'view_deal'
+  | 'view_list'
+  | 'view_analysis'
+  | 'relancer'
 
 export interface ActionItem {
   id: string
@@ -15,6 +24,8 @@ export interface ActionItem {
   entityType?: 'contact' | 'deal' | 'property' | 'visit'
   entityId?: string
   isCompleted: boolean
+  timestamp: string // relative or absolute time label
+  isOverdue?: boolean // > 3 days late
 }
 
 // Mock action data — Phase A (static, no AI)
@@ -24,25 +35,29 @@ const MOCK_ACTIONS: ActionItem[] = [
     id: 'a1',
     category: 'urgency',
     priority: 'urgent',
-    title: 'Document manquant — Dossier KYC Schmid',
-    description: 'La pièce d\'identité est requise pour finaliser le dossier. Demande envoyée il y a 5 jours sans réponse.',
-    actionLabel: 'Relancer',
-    actionType: 'email',
+    title: 'Dossier KYC incomplet — Famille Müller',
+    description: 'Document manquant depuis 5 jours. KYC bloqué.',
+    actionLabel: 'Voir le dossier',
+    actionType: 'review_document',
     entityType: 'contact',
     entityId: 'c2',
     isCompleted: false,
+    timestamp: 'il y a 5 jours',
+    isOverdue: true,
   },
   {
     id: 'a2',
     category: 'urgency',
     priority: 'urgent',
-    title: 'Deal à risque — Négociation Khoury',
-    description: 'Aucune réponse à la contre-offre depuis 10 jours. Risque de perdre le deal.',
-    actionLabel: 'Appeler',
-    actionType: 'call',
+    title: 'Deal à risque — Villa Champel',
+    description: 'Aucune activité depuis 12 jours. Le vendeur s\'impatiente.',
+    actionLabel: 'Relancer',
+    actionType: 'relancer',
     entityType: 'deal',
     entityId: 'd10',
     isCompleted: false,
+    timestamp: 'il y a 12 jours',
+    isOverdue: true,
   },
   // Relances du jour
   {
@@ -56,6 +71,8 @@ const MOCK_ACTIONS: ActionItem[] = [
     entityType: 'contact',
     entityId: 'c1',
     isCompleted: false,
+    timestamp: 'il y a 3 jours',
+    isOverdue: true,
   },
   {
     id: 'a4',
@@ -63,11 +80,12 @@ const MOCK_ACTIONS: ActionItem[] = [
     priority: 'high',
     title: 'Feedback visite — Thomas Wenger',
     description: 'Visite effectuée le 14.03 (Penthouse Quai du Mont-Blanc). Feedback non recueilli.',
-    actionLabel: 'Envoyer WhatsApp',
-    actionType: 'whatsapp',
+    actionLabel: 'Envoyer un email',
+    actionType: 'email',
     entityType: 'contact',
     entityId: 'c3',
     isCompleted: false,
+    timestamp: 'il y a 2 jours',
   },
   {
     id: 'a5',
@@ -80,6 +98,8 @@ const MOCK_ACTIONS: ActionItem[] = [
     entityType: 'contact',
     entityId: 'c4',
     isCompleted: false,
+    timestamp: 'il y a 27 jours',
+    isOverdue: true,
   },
   // Matchs trouvés
   {
@@ -93,6 +113,7 @@ const MOCK_ACTIONS: ActionItem[] = [
     entityType: 'contact',
     entityId: 'c1',
     isCompleted: false,
+    timestamp: 'hier 09:15',
   },
   {
     id: 'a7',
@@ -105,6 +126,7 @@ const MOCK_ACTIONS: ActionItem[] = [
     entityType: 'contact',
     entityId: 'c3',
     isCompleted: false,
+    timestamp: 'hier 14:20',
   },
   // Visites à confirmer
   {
@@ -118,6 +140,7 @@ const MOCK_ACTIONS: ActionItem[] = [
     entityType: 'visit',
     entityId: 'v1',
     isCompleted: false,
+    timestamp: "aujourd'hui 14h30",
   },
   {
     id: 'a9',
@@ -126,10 +149,11 @@ const MOCK_ACTIONS: ActionItem[] = [
     title: 'Préparer visite — Laurent Berset',
     description: 'Appartement Eaux-Vives, demain à 10h00. Dossier du bien à imprimer.',
     actionLabel: 'Voir le dossier',
-    actionType: 'view_deal',
+    actionType: 'review_document',
     entityType: 'deal',
     entityId: 'd1',
     isCompleted: false,
+    timestamp: 'demain 10h00',
   },
   // Suggestions IA
   {
@@ -139,10 +163,11 @@ const MOCK_ACTIONS: ActionItem[] = [
     title: 'Proposer une baisse de prix — Villa Cologny',
     description: 'Le bien est en vente depuis 45 jours sans offre. Le marché comparable suggère un ajustement de -5%.',
     actionLabel: 'Voir l\'analyse',
-    actionType: 'view_deal',
+    actionType: 'view_analysis',
     entityType: 'property',
     entityId: 'p3',
     isCompleted: false,
+    timestamp: 'généré ce matin',
   },
   {
     id: 'a11',
@@ -151,9 +176,10 @@ const MOCK_ACTIONS: ActionItem[] = [
     title: 'Contacter les leads dormants',
     description: '4 leads inactifs depuis plus de 30 jours. Une relance ciblée pourrait réactiver 1-2 prospects.',
     actionLabel: 'Voir la liste',
-    actionType: 'view_deal',
+    actionType: 'view_list',
     entityType: 'contact',
     isCompleted: false,
+    timestamp: 'généré ce matin',
   },
 ]
 

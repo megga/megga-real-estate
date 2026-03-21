@@ -3,12 +3,132 @@
 @tailwind utilities;
 
 @layer base {
+  /* ─── Light theme (default) ─── */
+  :root {
+    /* Backgrounds */
+    --color-bg-page: 255 255 255;         /* #FFFFFF */
+    --color-bg-card: 255 255 255;         /* #FFFFFF */
+    --color-bg-section: 249 250 251;      /* #F9FAFB */
+    --color-bg-sidebar: 250 250 250;      /* #FAFAFA */
+    --color-bg-input: 243 244 246;        /* #F3F4F6 */
+    --color-bg-overlay: 0 0 0;            /* For overlay with opacity */
+    --color-bg-elevated: 255 255 255;     /* Cards, modals, dropdowns */
+    --color-bg-hover: 249 250 251;        /* Hover state */
+    --color-bg-active: 243 244 246;       /* Active/pressed state */
+
+    /* Text */
+    --color-text-primary: 28 28 28;       /* #1C1C1C */
+    --color-text-secondary: 107 114 128;  /* #6B7280 */
+    --color-text-tertiary: 130 135 145;   /* #828791 — stronger for light */
+    --color-text-inverse: 255 255 255;    /* #FFFFFF */
+    --color-text-muted: 107 114 128;      /* #6B7280 */
+
+    /* Borders */
+    --color-border: 215 218 224;          /* #D7DAE0 — stronger for light */
+    --color-border-subtle: 229 231 235;   /* #E5E7EB */
+    --color-border-focus: 37 99 235;      /* accent blue */
+
+    /* Accent (brand) */
+    --color-accent: 37 99 235;            /* #2563EB */
+    --color-accent-hover: 29 78 216;      /* #1D4ED8 */
+    --color-accent-light: 239 246 255;    /* #EFF6FF */
+    --color-accent-dark: 30 64 175;       /* #1E40AF */
+    --color-accent-fg: 255 255 255;       /* text on accent bg */
+
+    /* Semantic */
+    --color-success: 5 150 105;           /* #059669 */
+    --color-success-light: 236 253 245;   /* #ECFDF5 */
+    --color-success-dark: 4 120 87;       /* #047857 */
+    --color-warning: 217 119 6;           /* #D97706 */
+    --color-warning-light: 255 251 235;   /* #FFFBEB */
+    --color-warning-dark: 180 83 9;       /* #B45309 */
+    --color-danger: 220 38 38;            /* #DC2626 */
+    --color-danger-light: 254 242 242;    /* #FEF2F2 */
+    --color-danger-dark: 185 28 28;       /* #B91C1C */
+
+    /* Shadows — light mode uses subtle shadows */
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-card-hover: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+    --shadow-navbar: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-dropdown: 0 10px 40px rgba(0,0,0,0.12);
+    --shadow-modal: 0 20px 60px rgba(0,0,0,0.15);
+
+    /* Ring */
+    --color-ring: 37 99 235;
+  }
+
+  /* ─── Dark theme (confirmed palette) ─── */
+  [data-theme="dark"] {
+    /* Backgrounds */
+    --color-bg-page: 28 28 28;            /* #1C1C1C */
+    --color-bg-card: 42 42 42;            /* #2A2A2A */
+    --color-bg-section: 34 34 34;         /* #222222 */
+    --color-bg-sidebar: 22 22 22;         /* #161616 */
+    --color-bg-input: 50 50 50;           /* #323232 */
+    --color-bg-overlay: 0 0 0;
+    --color-bg-elevated: 42 42 42;        /* #2A2A2A */
+    --color-bg-hover: 50 50 50;           /* #323232 */
+    --color-bg-active: 56 56 56;          /* #383838 */
+
+    /* Text */
+    --color-text-primary: 236 236 239;    /* #ECECEF */
+    --color-text-secondary: 142 142 150;  /* #8E8E96 */
+    --color-text-tertiary: 107 107 107;   /* #6B6B6B */
+    --color-text-inverse: 28 28 28;       /* #1C1C1C */
+    --color-text-muted: 142 142 150;      /* #8E8E96 */
+
+    /* Borders */
+    --color-border: 56 56 56;             /* #383838 */
+    --color-border-subtle: 42 42 42;      /* #2A2A2A */
+    --color-border-focus: 59 130 246;
+
+    /* Accent — slightly brighter in dark for better contrast */
+    --color-accent: 59 130 246;           /* #3B82F6 */
+    --color-accent-hover: 96 165 250;     /* #60A5FA */
+    --color-accent-light: 23 37 84;       /* dark blue bg for badges */
+    --color-accent-dark: 37 99 235;       /* #2563EB */
+    --color-accent-fg: 255 255 255;
+
+    /* Semantic — adjusted for dark bg readability */
+    --color-success: 16 185 129;          /* #10B981 */
+    --color-success-light: 6 45 35;       /* dark green bg */
+    --color-success-dark: 52 211 153;     /* #34D399 */
+    --color-warning: 245 158 11;          /* #F59E0B */
+    --color-warning-light: 50 35 7;       /* dark amber bg */
+    --color-warning-dark: 251 191 36;     /* #FBBF24 */
+    --color-danger: 239 68 68;            /* #EF4444 */
+    --color-danger-light: 55 15 15;       /* dark red bg */
+    --color-danger-dark: 248 113 113;     /* #F87171 */
+
+    /* Shadows — dark mode uses glow-style shadows */
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-card-hover: 0 10px 25px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3);
+    --shadow-navbar: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-dropdown: 0 10px 40px rgba(0,0,0,0.5);
+    --shadow-modal: 0 20px 60px rgba(0,0,0,0.6);
+
+    /* Ring */
+    --color-ring: 59 130 246;
+  }
+
   * {
-    @apply border-border;
+    border-color: rgb(var(--color-border));
+  }
+
+  /* Smooth theme transition on all elements */
+  [data-theme-transitioning] *,
+  [data-theme-transitioning] *::before,
+  [data-theme-transitioning] *::after {
+    transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease !important;
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    background-color: rgb(var(--color-bg-page));
+    color: rgb(var(--color-text-primary));
+    font-family: "DM Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.35s ease, color 0.35s ease;
   }
 }
 
@@ -41,10 +161,10 @@
 
 /* ─── Mapbox control overrides ─── */
 .mapboxgl-ctrl-group {
-  background: white !important;
-  border: 1px solid #e5e7eb !important;
+  background: rgb(var(--color-bg-card)) !important;
+  border: 1px solid rgb(var(--color-border)) !important;
   border-radius: 12px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  box-shadow: var(--shadow-card) !important;
   overflow: hidden !important;
 }
 
@@ -52,7 +172,7 @@
   width: 36px !important;
   height: 36px !important;
   border: none !important;
-  border-bottom: 1px solid #f3f4f6 !important;
+  border-bottom: 1px solid rgb(var(--color-border-subtle)) !important;
 }
 
 .mapboxgl-ctrl-group button:last-child {
@@ -60,7 +180,7 @@
 }
 
 .mapboxgl-ctrl-group button:hover {
-  background-color: #f9fafb !important;
+  background-color: rgb(var(--color-bg-hover)) !important;
 }
 
 .mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {

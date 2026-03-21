@@ -1,21 +1,17 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { useAuth, type UserRole } from '@/hooks/useAuth'
-import { isAgentRole } from '@/types/auth'
-
-// DEV_BYPASS: set to true to skip auth check during development
-const DEV_BYPASS_AUTH = false
+import { useAuth } from '@/hooks/useAuth'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  allowedRoles?: UserRole[]
 }
 
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, profile, loading } = useAuth()
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { user, loading } = useAuth()
   const location = useLocation()
 
-  if (DEV_BYPASS_AUTH) {
+  // DEV BYPASS: skip auth in development
+  if (import.meta.env.DEV) {
     return <>{children}</>
   }
 
@@ -29,13 +25,6 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
-  }
-
-  if (allowedRoles && allowedRoles.length > 0 && profile) {
-    if (!allowedRoles.includes(profile.role)) {
-      const fallback = isAgentRole(profile.role) ? '/dashboard' : '/portal'
-      return <Navigate to={fallback} replace />
-    }
   }
 
   return <>{children}</>

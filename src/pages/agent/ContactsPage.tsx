@@ -6,7 +6,8 @@ import {
 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { MOCK_CONTACTS, type MockContact } from '@/lib/mockData'
-import { useContacts } from '@/hooks/useContacts'
+import PageHeader from '@/components/layout/PageHeader'
+import PageTransition from '@/components/layout/PageTransition'
 
 type SortField = 'name' | 'last_activity' | 'score'
 type SortDir = 'asc' | 'desc'
@@ -34,7 +35,7 @@ const typeBadge = (type: MockContact['type']) => {
     buyer:  { label: 'Acheteur', cls: 'bg-accent/10 text-accent' },
     seller: { label: 'Vendeur',  cls: 'bg-success/10 text-success' },
     both:   { label: 'Acheteur/Vendeur', cls: 'bg-warning/10 text-warning' },
-    lead:   { label: 'Lead',     cls: 'bg-primary-100 text-primary-600' },
+    lead:   { label: 'Lead',     cls: 'bg-primary-100 text-theme-secondary' },
   }
   const t = map[type]
   return (
@@ -68,7 +69,7 @@ function ContactAvatar({ name }: { name: string }) {
 
 function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
   if (field !== sortField) {
-    return <ChevronUp className="h-3.5 w-3.5 text-primary-300" />
+    return <ChevronUp className="h-3.5 w-3.5 text-theme-tertiary" />
   }
   return sortDir === 'asc'
     ? <ChevronUp className="h-3.5 w-3.5 text-accent" />
@@ -84,40 +85,16 @@ export default function ContactsPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
 
-  // Real data from Supabase (falls back to mock if empty)
-  const { contacts: realContacts } = useContacts()
-  const dataSource: MockContact[] = realContacts.length > 0
-    ? realContacts.map(c => ({
-        id: c.id,
-        first_name: c.first_name,
-        last_name: c.last_name,
-        email: c.email ?? '',
-        phone: c.phone ?? '',
-        type: c.type as MockContact['type'],
-        score: (c.score ?? 'cold') as MockContact['score'],
-        source: (c.source ?? 'manual'),
-        tags: c.tags ?? [],
-        notes: c.notes ?? '',
-        address: '',
-        city: '',
-        canton: '',
-        created_at: c.created_at,
-        last_activity: c.created_at,
-        transactions: [] as MockContact['transactions'],
-        activities: [] as MockContact['activities'],
-      } as MockContact))
-    : MOCK_CONTACTS
-
   // All unique tags
   const allTags = useMemo(() => {
     const tags = new Set<string>()
-    dataSource.forEach((c) => c.tags.forEach((t) => tags.add(t)))
+    MOCK_CONTACTS.forEach((c) => c.tags.forEach((t) => tags.add(t)))
     return Array.from(tags).sort()
-  }, [dataSource])
+  }, [])
 
   // Filter
   const filtered = useMemo(() => {
-    let list = [...dataSource]
+    let list = [...MOCK_CONTACTS]
 
     if (search) {
       const q = search.toLowerCase()
@@ -145,7 +122,7 @@ export default function ContactsPage() {
     })
 
     return list
-  }, [dataSource, search, typeFilter, scoreFilter, tagFilter, sortField, sortDir])
+  }, [search, typeFilter, scoreFilter, tagFilter, sortField, sortDir])
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
@@ -162,30 +139,30 @@ export default function ContactsPage() {
   }
 
   return (
+    <PageTransition>
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-primary-900">Contacts</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{dataSource.length} contacts au total</p>
-        </div>
-        <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
-          <Plus className="h-4 w-4" />
-          Ajouter un contact
-        </button>
-      </div>
+      <PageHeader
+        title="Contacts"
+        subtitle={`${MOCK_CONTACTS.length} contacts au total`}
+        actions={
+          <button className="inline-flex items-center gap-2 bg-accent hover:bg-accent/90 text-white text-sm font-medium px-4 py-2.5 rounded-button transition-colors">
+            <Plus className="h-4 w-4" />
+            Ajouter un contact
+          </button>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
           <input
             type="text"
             placeholder="Rechercher par nom ou email..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            className="w-full h-10 pl-9 pr-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+            className="w-full h-10 pl-9 pr-3 text-sm bg-theme-card border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
           />
         </div>
 
@@ -193,7 +170,7 @@ export default function ContactsPage() {
         <select
           value={typeFilter}
           onChange={(e) => { setTypeFilter(e.target.value); setPage(1) }}
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-theme-card border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les types</option>
           <option value="buyer">Acheteur</option>
@@ -206,7 +183,7 @@ export default function ContactsPage() {
         <select
           value={scoreFilter}
           onChange={(e) => { setScoreFilter(e.target.value); setPage(1) }}
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-theme-card border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les scores</option>
           <option value="hot">🔴 Hot</option>
@@ -218,7 +195,7 @@ export default function ContactsPage() {
         <select
           value={tagFilter}
           onChange={(e) => { setTagFilter(e.target.value); setPage(1) }}
-          className="h-10 px-3 text-sm bg-white border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="h-10 px-3 text-sm bg-theme-card border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">Tous les tags</option>
           {allTags.map((tag) => (
@@ -238,52 +215,52 @@ export default function ContactsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-card shadow-card overflow-hidden">
+      <div className="bg-theme-card rounded-card shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-section">
+              <tr className="border-b border-border bg-theme-section">
                 <th className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('name')}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
                   >
                     Contact
                     <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Email</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Email</span>
                 </th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Téléphone</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Téléphone</span>
                 </th>
                 <th className="text-left px-4 py-3">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Type</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Type</span>
                 </th>
                 <th className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('score')}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
                   >
                     Score
                     <SortIcon field="score" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="text-left px-4 py-3 hidden xl:table-cell">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Source</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Source</span>
                 </th>
                 <th className="text-left px-4 py-3 hidden sm:table-cell">
                   <button
                     onClick={() => toggleSort('last_activity')}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary-600 uppercase tracking-wider hover:text-primary-900"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
                   >
                     Activité
                     <SortIcon field="last_activity" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="text-right px-4 py-3">
-                  <span className="text-xs font-semibold text-primary-600 uppercase tracking-wider">Actions</span>
+                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Actions</span>
                 </th>
               </tr>
             </thead>
@@ -298,7 +275,7 @@ export default function ContactsPage() {
                 paginated.map((contact) => (
                   <tr
                     key={contact.id}
-                    className="hover:bg-section/50 transition-colors group"
+                    className="hover:bg-theme-section/50 transition-colors group"
                   >
                     <td className="px-4 py-3">
                       <Link
@@ -307,7 +284,7 @@ export default function ContactsPage() {
                       >
                         <ContactAvatar name={`${contact.first_name} ${contact.last_name}`} />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-primary-900 truncate group-hover:text-accent transition-colors">
+                          <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
                             {contact.first_name} {contact.last_name}
                           </p>
                           <p className="text-xs text-muted-foreground truncate md:hidden">
@@ -317,10 +294,10 @@ export default function ContactsPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-sm text-primary-600">{contact.email}</span>
+                      <span className="text-sm text-theme-secondary">{contact.email}</span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-sm text-primary-600">{contact.phone}</span>
+                      <span className="text-sm text-theme-secondary">{contact.phone}</span>
                     </td>
                     <td className="px-4 py-3">
                       {typeBadge(contact.type)}
@@ -340,19 +317,19 @@ export default function ContactsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           to={`/dashboard/contacts/${contact.id}`}
-                          className="p-1.5 rounded-md text-primary-400 hover:text-accent hover:bg-accent/10 transition-colors"
+                          className="p-1.5 rounded-md text-theme-tertiary hover:text-accent hover:bg-accent/10 transition-colors"
                           title="Voir"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
                         <button
-                          className="p-1.5 rounded-md text-primary-400 hover:text-warning hover:bg-warning/10 transition-colors"
+                          className="p-1.5 rounded-md text-theme-tertiary hover:text-warning hover:bg-warning/10 transition-colors"
                           title="Éditer"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
-                          className="p-1.5 rounded-md text-primary-400 hover:text-danger hover:bg-danger/10 transition-colors"
+                          className="p-1.5 rounded-md text-theme-tertiary hover:text-danger hover:bg-danger/10 transition-colors"
                           title="Supprimer"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -368,7 +345,7 @@ export default function ContactsPage() {
 
         {/* Pagination */}
         {filtered.length > ITEMS_PER_PAGE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-section/50">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-theme-section/50">
             <p className="text-xs text-muted-foreground">
               {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} sur {filtered.length} contacts
             </p>
@@ -376,7 +353,7 @@ export default function ContactsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={safePage <= 1}
-                className="p-1.5 rounded-md text-primary-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-md text-theme-secondary hover:bg-theme-card disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -388,7 +365,7 @@ export default function ContactsPage() {
                     'h-8 min-w-[32px] px-2 rounded-md text-sm font-medium transition-colors',
                     p === safePage
                       ? 'bg-accent text-white'
-                      : 'text-primary-600 hover:bg-white'
+                      : 'text-theme-secondary hover:bg-theme-card'
                   )}
                 >
                   {p}
@@ -397,7 +374,7 @@ export default function ContactsPage() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={safePage >= totalPages}
-                className="p-1.5 rounded-md text-primary-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-md text-theme-secondary hover:bg-theme-card disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -406,5 +383,6 @@ export default function ContactsPage() {
         )}
       </div>
     </div>
+    </PageTransition>
   )
 }
