@@ -65,8 +65,8 @@ function ContactAvatar({ name, color }: { name: string; color: string }) {
     .slice(0, 2)
 
   return (
-    <div className={cn('h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0', color)}>
-      <span className="text-xs font-semibold text-white">{initials}</span>
+    <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 bg-theme-active">
+      <span className="text-xs font-semibold text-theme-primary">{initials}</span>
     </div>
   )
 }
