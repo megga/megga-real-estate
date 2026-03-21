@@ -122,11 +122,11 @@ function Stepper({ current, completed }: { current: number; completed: number[] 
 
 // ─── Field helpers ───
 
-function FieldLabel({ htmlFor, children, required }: { htmlFor: string; children: React.ReactNode; required?: boolean }) {
+function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode; required?: boolean }) {
   return (
     <label htmlFor={htmlFor} className="block text-sm font-medium text-theme-primary mb-1.5">
       {children}
-      {required && <span className="text-danger ml-0.5">*</span>}
+      {/* required indicator removed for cleaner Lovable style */}
     </label>
   )
 }

@@ -332,7 +332,7 @@ function CreateEventModal({ onClose, onCreate }: {
         <div className="p-5 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Titre *</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Titre</label>
             <input
               type="text"
               value={form.title}
@@ -356,9 +356,9 @@ function CreateEventModal({ onClose, onCreate }: {
             </select>
           </div>
 
-          {/* Date */}
+          {/* Date/}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Date *</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">Date</label>
             <input
               type="date"
               value={form.date}
@@ -370,7 +370,7 @@ function CreateEventModal({ onClose, onCreate }: {
           {/* Time row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure début *</label>
+              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure début</label>
               <input
                 type="time"
                 value={form.startTime}
@@ -379,7 +379,7 @@ function CreateEventModal({ onClose, onCreate }: {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure fin *</label>
+              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure fin</label>
               <input
                 type="time"
                 value={form.endTime}
