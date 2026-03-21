@@ -77,8 +77,6 @@ export default function CopilotPanel() {
     }
   }, [isOpen])
 
-
-
   const handleSend = useCallback((text?: string) => {
     const query = (text || input).trim()
     if (!query) return
@@ -126,10 +124,10 @@ export default function CopilotPanel() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 h-14 w-14 bg-accent hover:bg-accent/90 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all group"
+          className="fixed bottom-5 right-5 z-50 h-10 w-10 rounded-xl border border-theme-border bg-theme-card hover:bg-theme-hover text-theme-tertiary hover:text-theme-primary shadow-sm hover:shadow-md flex items-center justify-center transition-all duration-200"
           title="Copilote IA"
         >
-          <Sparkles className="h-6 w-6 group-hover:scale-110 transition-transform" />
+          <Sparkles className="h-4 w-4" />
         </button>
       )}
 
