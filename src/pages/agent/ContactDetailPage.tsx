@@ -93,6 +93,8 @@ export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>()
   const contact = getContactById(id || '')
   const { setActiveContact } = useCopilotContext()
+  const [showEdit, setShowEdit] = useState(false)
+  const { aiSummary, nextAction, enrichedData, isRefreshingAi, refreshAiSummary } = useContactDetail(id || '')
 
   // Set copilot context when viewing a contact
   useEffect(() => {
@@ -120,9 +122,6 @@ export default function ContactDetailPage() {
       </div>
     )
   }
-
-  const [showEdit, setShowEdit] = useState(false)
-  const { aiSummary, nextAction, enrichedData, isRefreshingAi, refreshAiSummary } = useContactDetail(id || '')
   const fullName = `${contact.first_name} ${contact.last_name}`
   const sc = scoreConfig[contact.score]
   const tc = typeConfig[contact.type]
