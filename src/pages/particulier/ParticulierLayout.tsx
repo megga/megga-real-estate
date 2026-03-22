@@ -1,23 +1,24 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { FileText, MessageCircle, User, FolderOpen } from 'lucide-react'
+import { Home, Eye, HandCoins, FileText, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
 const tabs = [
-  { label: 'Mon dossier', path: '/portal', icon: FolderOpen, end: true },
-  { label: 'Documents', path: '/portal/documents', icon: FileText },
-  { label: 'Messages', path: '/portal/messages', icon: MessageCircle },
-  { label: 'Profil', path: '/portal/profil', icon: User },
+  { label: 'Mon bien', path: '/portail', icon: Home, end: true },
+  { label: 'Visites', path: '/portail/visites', icon: Eye },
+  { label: 'Offres', path: '/portail/offres', icon: HandCoins },
+  { label: 'Documents', path: '/portail/documents', icon: FileText },
+  { label: 'Messages', path: '/portail/messages', icon: MessageCircle },
 ]
 
 export default function ParticulierLayout() {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
       <Navbar />
 
       {/* Tab navigation */}
-      <div className="border-b border-border bg-white sticky top-16 z-40">
+      <div className="border-b border-gray-200 bg-white sticky top-16 z-40">
         <div className="max-w-4xl mx-auto px-4 md:px-6 lg:px-8">
           <nav className="flex gap-1 overflow-x-auto scrollbar-hide -mb-px">
             {tabs.map((tab) => {
@@ -31,8 +32,8 @@ export default function ParticulierLayout() {
                     cn(
                       'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
                       isActive
-                        ? 'border-accent text-accent'
-                        : 'border-transparent text-gray-500 hover:text-primary-900 hover:border-gray-300'
+                        ? 'border-[#1A1A1A] text-[#1A1A1A]'
+                        : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300'
                     )
                   }
                 >

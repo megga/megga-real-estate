@@ -1,58 +1,142 @@
-import { useAuth } from '@/hooks/useAuth'
-import { FileText, Phone, Mail } from 'lucide-react'
+import {
+  Eye, CalendarDays, HandCoins, Clock,
+  Phone, Mail, Check,
+} from 'lucide-react'
+import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
+import { MOCK_SELLER_DATA, MANDATE_STEPS, getStepIndex } from '@/lib/mockSellerData'
+
+const ACTIVITY_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
+  visit_planned: { icon: CalendarDays, color: 'text-blue-500' },
+  visit_done: { icon: Eye, color: 'text-emerald-500' },
+  offer_received: { icon: HandCoins, color: 'text-amber-500' },
+  document_added: { icon: Check, color: 'text-theme-tertiary' },
+  publication: { icon: Check, color: 'text-blue-500' },
+  mandate_signed: { icon: Check, color: 'text-emerald-500' },
+  message: { icon: Mail, color: 'text-theme-tertiary' },
+  price_update: { icon: Clock, color: 'text-orange-500' },
+}
 
 export default function MonDossierPage() {
-  const { profile } = useAuth()
-  const firstName = profile?.full_name?.split(' ')[0] || 'là'
+  const { property, kpis, activities, agent } = MOCK_SELLER_DATA
+  const currentStepIdx = getStepIndex(kpis.current_step)
 
   return (
-    <div className="space-y-6">
-      {/* Greeting */}
-      <div>
-        <h1 className="text-2xl font-semibold text-primary-900">
-          Bienvenue, {firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Suivez l'avancement de votre dossier immobilier
-        </p>
-      </div>
-
-      {/* Transaction status — empty state for now */}
-      <div className="bg-white rounded-card border border-border shadow-card p-8 text-center">
-        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-          <FileText className="h-6 w-6 text-gray-400" />
+    <div className="max-w-4xl mx-auto space-y-5">
+      {/* Property header */}
+      <div className="rounded-xl overflow-hidden border border-theme-border">
+        <div className="relative h-48 md:h-56">
+          <img src={property.photo} alt={property.title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-5">
+            <p className="text-white/80 text-xs font-medium uppercase tracking-wider mb-1">
+              {property.mandate_type === 'exclusive' ? 'Mandat exclusif' : 'Mandat simple'}
+            </p>
+            <h1 className="text-xl md:text-2xl font-semibold text-white">{property.title}</h1>
+            <p className="text-white/70 text-sm mt-1">{property.address}, {property.postal_code} {property.city}</p>
+          </div>
         </div>
-        <h2 className="text-lg font-medium text-primary-900 mb-2">
-          Aucun dossier en cours
-        </h2>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Vous n'avez pas encore de transaction en cours. Contactez votre agent immobilier pour démarrer votre projet.
+        <div className="flex items-center justify-between px-5 py-3 border-t border-theme-border-subtle">
+          <p className="text-lg font-semibold text-theme-primary">{formatCHF(property.price)}</p>
+          <p className="text-xs text-theme-tertiary">
+            {property.rooms} pièces · {property.surface_m2} m² · {property.city} ({property.canton})
+          </p>
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Visites', value: String(kpis.visits_total), sub: `${kpis.visits_this_month} ce mois`, icon: Eye, color: 'text-blue-500' },
+          { label: 'Offres', value: String(kpis.offers_total), sub: kpis.offers_total > 0 ? 'reçues' : 'en attente', icon: HandCoins, color: 'text-amber-500' },
+          { label: 'Vues en ligne', value: String(kpis.online_views), sub: 'sur les portails', icon: Eye, color: 'text-emerald-500' },
+          { label: 'Jours en vente', value: String(kpis.days_on_market), sub: 'depuis publication', icon: Clock, color: 'text-theme-tertiary' },
+        ].map((kpi) => {
+          const Icon = kpi.icon
+          return (
+            <div key={kpi.label} className="rounded-xl border border-theme-border p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className={cn('w-4 h-4', kpi.color)} />
+                <span className="text-[10px] text-theme-tertiary uppercase tracking-wider">{kpi.label}</span>
+              </div>
+              <p className="text-2xl font-semibold text-theme-primary">{kpi.value}</p>
+              <p className="text-xs text-theme-muted mt-0.5">{kpi.sub}</p>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Mandate progress */}
+      <div className="rounded-xl border border-theme-border p-5">
+        <h2 className="text-xs text-theme-tertiary uppercase tracking-wider mb-4">Avancement de la vente</h2>
+        <div className="flex items-center gap-1">
+          {MANDATE_STEPS.map((step, i) => {
+            const isCompleted = i <= currentStepIdx
+            const isCurrent = i === currentStepIdx
+            return (
+              <div key={step.key} className="flex-1 flex flex-col items-center">
+                <div className={cn('h-1.5 w-full rounded-full transition-colors', isCompleted ? 'bg-theme-primary' : 'bg-theme-border')} />
+                <p className={cn(
+                  'text-[10px] mt-2 text-center leading-tight',
+                  isCurrent ? 'text-theme-primary font-semibold' : isCompleted ? 'text-theme-secondary' : 'text-theme-muted'
+                )}>
+                  {step.label}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Reassurance */}
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+        <p className="text-sm text-emerald-500 font-medium">Votre bien est entre de bonnes mains</p>
+        <p className="text-xs text-emerald-500/70 mt-1">
+          {kpis.visits_total} visites effectuées et {kpis.offers_total} offre{kpis.offers_total > 1 ? 's' : ''} reçue{kpis.offers_total > 1 ? 's' : ''} en {kpis.days_on_market} jours.
+          Votre agent travaille activement sur la vente de votre bien.
         </p>
       </div>
 
-      {/* Contact agent card */}
-      <div className="bg-section rounded-card border border-border p-6">
-        <h3 className="text-sm font-semibold text-primary-900 mb-3">
-          Besoin d'aide ?
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Notre équipe est disponible pour vous accompagner dans votre projet immobilier.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <a
-            href="tel:+41227001234"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-900 bg-white rounded-button border border-border hover:bg-gray-50 transition-colors"
-          >
-            <Phone className="h-4 w-4" />
-            Appeler
-          </a>
-          <a
-            href="mailto:contact@megga.ch"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent rounded-button hover:bg-accent/90 transition-colors"
-          >
-            <Mail className="h-4 w-4" />
-            Envoyer un e-mail
-          </a>
+      {/* Recent activity */}
+      <div className="rounded-xl border border-theme-border p-5">
+        <h2 className="text-xs text-theme-tertiary uppercase tracking-wider mb-4">Activité récente</h2>
+        <div className="space-y-0">
+          {activities.slice(0, 7).map((activity, i) => {
+            const config = ACTIVITY_ICONS[activity.type] || { icon: Check, color: 'text-theme-muted' }
+            const Icon = config.icon
+            return (
+              <div key={activity.id} className={cn('flex items-start gap-3 py-3', i < 6 && 'border-b border-theme-border-subtle')}>
+                <div className={cn('mt-0.5 shrink-0', config.color)}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-theme-primary">{activity.description}</p>
+                  <p className="text-xs text-theme-muted mt-0.5">{formatRelativeDate(activity.date)}</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Agent contact */}
+      <div className="rounded-xl border border-theme-border p-5">
+        <h2 className="text-xs text-theme-tertiary uppercase tracking-wider mb-3">Votre agent</h2>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-accent text-white flex items-center justify-center text-sm font-semibold shrink-0">
+            {agent.name.split(' ').map(n => n[0]).join('')}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-theme-primary">{agent.name}</p>
+            <p className="text-xs text-theme-tertiary">MEGGA Immobilier</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <a href={`tel:${agent.phone}`} className="h-9 w-9 rounded-lg border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+              <Phone className="w-4 h-4" />
+            </a>
+            <a href={`mailto:${agent.email}`} className="h-9 w-9 rounded-lg border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+              <Mail className="w-4 h-4" />
+            </a>
+          </div>
         </div>
       </div>
     </div>

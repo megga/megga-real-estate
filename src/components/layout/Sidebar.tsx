@@ -51,6 +51,7 @@ interface SidebarProps {
   onClose: () => void
   onToggleCollapse?: () => void
   onOpenCommandPalette?: () => void
+  onQuickContact?: () => void
 }
 
 // ─── HELPER: fade label (always rendered, hidden via opacity + overflow) ────
@@ -87,7 +88,7 @@ function CollapsedTooltip({ show, children }: { show: boolean; children: React.R
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 
-export default function Sidebar({ mobileOpen, collapsed = false, onClose, onToggleCollapse, onOpenCommandPalette }: SidebarProps) {
+export default function Sidebar({ mobileOpen, collapsed = false, onClose, onToggleCollapse, onOpenCommandPalette, onQuickContact }: SidebarProps) {
   const location = useLocation()
   const { signOut, profile } = useAuth()
   const { theme, toggleTheme } = useTheme()
@@ -160,6 +161,33 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             <Search className="w-3.5 h-3.5 text-theme-tertiary" />
             <span className="flex-1 text-left">{t('nav.search')}</span>
             <kbd className="text-[10px] bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+          </button>
+        </div>
+      )}
+
+      {/* ── Quick Contact ── */}
+      {isCol ? (
+        <div className="flex justify-center mb-1 relative"
+          onMouseEnter={() => setHoveredItem('quick-contact')}
+          onMouseLeave={() => setHoveredItem(null)}
+        >
+          <button
+            onClick={() => onQuickContact?.()}
+            className="w-10 h-8 rounded-lg flex items-center justify-center hover:bg-theme-hover transition-colors text-theme-tertiary hover:text-theme-primary"
+          >
+            <Plus className="w-[18px] h-[18px] stroke-[1.8]" />
+          </button>
+          <CollapsedTooltip show={hoveredItem === 'quick-contact'}>Nouveau contact ⌘⇧C</CollapsedTooltip>
+        </div>
+      ) : (
+        <div className="mx-3 mb-1">
+          <button
+            onClick={() => onQuickContact?.()}
+            className="w-full h-8 rounded-lg px-3 flex items-center gap-2 text-xs text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="flex-1 text-left">Nouveau contact</span>
+            <kbd className="text-[10px] bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">⌘⇧C</kbd>
           </button>
         </div>
       )}

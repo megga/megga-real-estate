@@ -41,6 +41,18 @@ const TemplatesPage = lazy(() => import('@/pages/agent/TemplatesPage'))
 const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
 const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
 const CustomTemplatePage = lazy(() => import('@/pages/agent/CustomTemplatePage'))
+const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
+
+// Lazy-loaded seller portal pages
+const SellerLayout = lazy(() => import('@/pages/particulier/SellerLayout'))
+const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
+const MonDossierPage = lazy(() => import('@/pages/particulier/MonDossierPage'))
+const MesVisitesPage = lazy(() => import('@/pages/particulier/MesVisitesPage'))
+const MesOffresPage = lazy(() => import('@/pages/particulier/MesOffresPage'))
+const MesDocumentsPage = lazy(() => import('@/pages/particulier/MesDocumentsPage'))
+const MesMessagesPage = lazy(() => import('@/pages/particulier/MesMessagesPage'))
+const AnalysePage = lazy(() => import('@/pages/particulier/AnalysePage'))
+const MonProfilPage = lazy(() => import('@/pages/particulier/MonProfilPage'))
 
 function PageLoader() {
   return (
@@ -82,6 +94,27 @@ export default function App() {
               <Route path="/publier" element={<PublierPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
 
+              {/* Portail vendeur — accès direct (dev/test) */}
+              <Route path="/portail" element={<SellerLayout />}>
+                <Route index element={<MonDossierPage />} />
+                <Route path="visites" element={<MesVisitesPage />} />
+                <Route path="offres" element={<MesOffresPage />} />
+                <Route path="documents" element={<MesDocumentsPage />} />
+                <Route path="messages" element={<MesMessagesPage />} />
+                <Route path="analyse" element={<AnalysePage />} />
+                <Route path="profil" element={<MonProfilPage />} />
+              </Route>
+
+              {/* Portail vendeur — accès tokénisé (production) */}
+              <Route path="/portail/:token" element={<PortalGateway />}>
+                <Route index element={<MonDossierPage />} />
+                <Route path="visites" element={<MesVisitesPage />} />
+                <Route path="offres" element={<MesOffresPage />} />
+                <Route path="documents" element={<MesDocumentsPage />} />
+                <Route path="messages" element={<MesMessagesPage />} />
+                <Route path="analyse" element={<AnalysePage />} />
+              </Route>
+
               {/* Agent dashboard (protected) */}
               <Route
                 path="/dashboard"
@@ -97,6 +130,7 @@ export default function App() {
                 <Route path="contacts/:id" element={<ContactDetailPage />} />
                 <Route path="pipeline" element={<PipelinePage />} />
                 <Route path="matching" element={<MatchingPage />} />
+                <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="listings" element={<ListingsPage />} />
                 <Route path="listings/new" element={<ListingFormPage />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
