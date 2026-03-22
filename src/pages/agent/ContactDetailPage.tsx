@@ -16,6 +16,8 @@ import { useContactDetail } from '@/hooks/useContactDetail'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
 import { useExternalMatching, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
 import MatchingPanel from '@/components/matching/MatchingPanel'
+import { useSellerPortals } from '@/hooks/useSellerPortal'
+import { useSendPropertyEmail } from '@/hooks/useSendEmail'
 
 const scoreConfig: Record<MockContact['score'], { label: string; dot: string; text: string }> = {
   hot:  { label: 'Hot',  dot: 'bg-red-400',    text: 'text-red-400' },
@@ -99,6 +101,11 @@ export default function ContactDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const { aiSummary, nextAction, enrichedData, isRefreshingAi, refreshAiSummary } = useContactDetail(id || '')
   const [matchingTab, setMatchingTab] = useState<'internal' | 'external'>('internal')
+  const { createPortal, getPortalForContact, getPortalUrl, markInviteSent } = useSellerPortals()
+  const sendEmail = useSendPropertyEmail()
+  const [portalCopied, setPortalCopied] = useState(false)
+  const [inviteSending, setInviteSending] = useState(false)
+  const [inviteSent, setInviteSent] = useState(false)
 
   // Derive external search criteria from contact
   const externalCriteria: ExternalSearchCriteria | null = useMemo(() => {
@@ -231,6 +238,126 @@ export default function ContactDetailPage() {
           )}
         </div>
       )}
+
+      {/* ── Portail vendeur (sellers only) ───────────────────────────── */}
+      {showSeller && contact && (() => {
+        const existingPortal = getPortalForContact(contact.id)
+        const propertyTitle = contact.transactions?.[0]?.property_title || 'Bien en vente'
+        const propertyAddress = `${contact.city || ''}, ${contact.canton || ''}`
+
+        const handleCreatePortal = () => {
+          createPortal({
+            contactId: contact.id,
+            contactName: fullName,
+            contactEmail: contact.email,
+            propertyTitle,
+            propertyAddress,
+          })
+        }
+
+        const handleCopyLink = () => {
+          if (!existingPortal) return
+          navigator.clipboard.writeText(getPortalUrl(existingPortal.token))
+          setPortalCopied(true)
+          setTimeout(() => setPortalCopied(false), 2000)
+        }
+
+        const handleSendInvite = async () => {
+          if (!existingPortal || !contact.email) return
+          setInviteSending(true)
+          try {
+            const portalUrl = getPortalUrl(existingPortal.token)
+            await sendEmail.mutateAsync({
+              to: contact.email,
+              contactFirstName: contact.first_name,
+              property: {
+                title: propertyTitle,
+                price: contact.transactions?.[0]?.price || 0,
+                address: propertyAddress,
+                city: contact.city || '',
+                rooms: null,
+                surface_m2: null,
+                type: '',
+                photo_url: null,
+                source_url: portalUrl,
+                source_agency: null,
+                source_portal: 'MEGGA',
+              },
+              message: `Votre portail vendeur est prêt. Suivez la vente de votre bien en temps réel :\n\n${portalUrl}\n\nCe lien est personnel et valable 6 mois.`,
+            })
+            markInviteSent(existingPortal.id)
+            setInviteSent(true)
+            setTimeout(() => setInviteSent(false), 4000)
+          } catch {
+            // error handled by mutation
+          } finally {
+            setInviteSending(false)
+          }
+        }
+
+        return (
+          <div className="rounded-xl border border-theme-border p-5">
+            <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">
+              Portail vendeur
+            </h2>
+
+            {!existingPortal ? (
+              <div className="text-center py-4">
+                <p className="text-xs text-theme-tertiary mb-3">
+                  Créez un portail pour que {contact.first_name} puisse suivre la vente de son bien en temps réel.
+                </p>
+                <button
+                  onClick={handleCreatePortal}
+                  className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+                >
+                  Créer le portail vendeur
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Portal link */}
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-theme-hover/50">
+                  <code className="flex-1 text-xs text-theme-secondary font-mono truncate">
+                    {getPortalUrl(existingPortal.token)}
+                  </code>
+                  <button
+                    onClick={handleCopyLink}
+                    className="shrink-0 h-7 px-2.5 rounded-md text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+                  >
+                    {portalCopied ? '✓ Copié' : 'Copier'}
+                  </button>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSendInvite}
+                    disabled={inviteSending}
+                    className="flex-1 h-8 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-30"
+                  >
+                    {inviteSending ? 'Envoi...' : inviteSent ? '✓ Invitation envoyée' : existingPortal.inviteSentAt ? 'Renvoyer l\'invitation' : 'Envoyer par email'}
+                  </button>
+                  <a
+                    href={getPortalUrl(existingPortal.token)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center"
+                  >
+                    Prévisualiser
+                  </a>
+                </div>
+
+                {/* Stats */}
+                <div className="flex items-center gap-4 text-[10px] text-theme-muted pt-1">
+                  <span>Créé {formatRelativeDate(existingPortal.createdAt)}</span>
+                  {existingPortal.inviteSentAt && <span>· Invitation envoyée {formatRelativeDate(existingPortal.inviteSentAt)}</span>}
+                  {existingPortal.viewCount > 0 && <span>· {existingPortal.viewCount} vue{existingPortal.viewCount > 1 ? 's' : ''}</span>}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left column: info + criteria */}

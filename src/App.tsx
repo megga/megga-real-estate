@@ -29,6 +29,7 @@ import DocumentViewer from '@/pages/agent/DocumentViewer'
 import CustomTemplatePage from '@/pages/agent/CustomTemplatePage'
 import ExternalListingDetailPage from '@/pages/agent/ExternalListingDetailPage'
 import SellerLayout from '@/pages/particulier/SellerLayout'
+import PortalGateway from '@/pages/particulier/PortalGateway'
 import MonDossierPage from '@/pages/particulier/MonDossierPage'
 import MesVisitesPage from '@/pages/particulier/MesVisitesPage'
 import MesDocumentsPage from '@/pages/particulier/MesDocumentsPage'
@@ -74,12 +75,21 @@ export default function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Portail vendeur / particulier */}
+            {/* Portail vendeur — accès direct (dev/test) */}
             <Route path="/portail" element={<SellerLayout />}>
               <Route index element={<MonDossierPage />} />
               <Route path="visites" element={<MesVisitesPage />} />
               <Route path="documents" element={<MesDocumentsPage />} />
               <Route path="messages" element={<MesMessagesPage />} />
               <Route path="profil" element={<MonProfilPage />} />
+            </Route>
+
+            {/* Portail vendeur — accès tokénisé (production) */}
+            <Route path="/portail/:token" element={<PortalGateway />}>
+              <Route index element={<MonDossierPage />} />
+              <Route path="visites" element={<MesVisitesPage />} />
+              <Route path="documents" element={<MesDocumentsPage />} />
+              <Route path="messages" element={<MesMessagesPage />} />
             </Route>
 
             {/* Agent dashboard (protected) */}
