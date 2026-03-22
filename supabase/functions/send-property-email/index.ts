@@ -181,7 +181,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_KEY}`,
       },
       body: JSON.stringify({
-        from: `MEGGA Immobilier <onboarding@resend.dev>`,
+        from: `MEGGA Immobilier <noreply@megga.ch>`,
         to: [body.to],
         subject: `${priceDisplay} — ${body.property.title || locationDisplay}`,
         html,

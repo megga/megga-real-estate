@@ -28,7 +28,7 @@ import DocumentGenerator from '@/pages/agent/DocumentGenerator'
 import DocumentViewer from '@/pages/agent/DocumentViewer'
 import CustomTemplatePage from '@/pages/agent/CustomTemplatePage'
 import ExternalListingDetailPage from '@/pages/agent/ExternalListingDetailPage'
-import ParticulierLayout from '@/pages/particulier/ParticulierLayout'
+import SellerLayout from '@/pages/particulier/SellerLayout'
 import MonDossierPage from '@/pages/particulier/MonDossierPage'
 import MesVisitesPage from '@/pages/particulier/MesVisitesPage'
 import MesDocumentsPage from '@/pages/particulier/MesDocumentsPage'
@@ -74,7 +74,7 @@ export default function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Portail vendeur / particulier */}
-            <Route path="/portail" element={<ParticulierLayout />}>
+            <Route path="/portail" element={<SellerLayout />}>
               <Route index element={<MonDossierPage />} />
               <Route path="visites" element={<MesVisitesPage />} />
               <Route path="documents" element={<MesDocumentsPage />} />

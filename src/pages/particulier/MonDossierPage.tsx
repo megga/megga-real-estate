@@ -9,10 +9,10 @@ const ACTIVITY_ICONS: Record<string, { icon: React.ElementType; color: string }>
   visit_planned: { icon: CalendarDays, color: 'text-blue-500' },
   visit_done: { icon: Eye, color: 'text-emerald-500' },
   offer_received: { icon: HandCoins, color: 'text-amber-500' },
-  document_added: { icon: Check, color: 'text-gray-500' },
+  document_added: { icon: Check, color: 'text-theme-tertiary' },
   publication: { icon: Check, color: 'text-blue-500' },
   mandate_signed: { icon: Check, color: 'text-emerald-500' },
-  message: { icon: Mail, color: 'text-gray-500' },
+  message: { icon: Mail, color: 'text-theme-tertiary' },
   price_update: { icon: Clock, color: 'text-orange-500' },
 }
 
@@ -21,15 +21,11 @@ export default function MonDossierPage() {
   const currentStepIdx = getStepIndex(kpis.current_step)
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-5">
       {/* Property header */}
-      <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white">
+      <div className="rounded-xl overflow-hidden border border-theme-border">
         <div className="relative h-48 md:h-56">
-          <img
-            src={property.photo}
-            alt={property.title}
-            className="w-full h-full object-cover"
-          />
+          <img src={property.photo} alt={property.title} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5">
             <p className="text-white/80 text-xs font-medium uppercase tracking-wider mb-1">
@@ -39,11 +35,9 @@ export default function MonDossierPage() {
             <p className="text-white/70 text-sm mt-1">{property.address}, {property.postal_code} {property.city}</p>
           </div>
         </div>
-
-        {/* Price bar */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
-          <p className="text-lg font-semibold text-[#1A1A1A]">{formatCHF(property.price)}</p>
-          <p className="text-xs text-gray-400">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-theme-border-subtle">
+          <p className="text-lg font-semibold text-theme-primary">{formatCHF(property.price)}</p>
+          <p className="text-xs text-theme-tertiary">
             {property.rooms} pièces · {property.surface_m2} m² · {property.city} ({property.canton})
           </p>
         </div>
@@ -55,44 +49,35 @@ export default function MonDossierPage() {
           { label: 'Visites', value: String(kpis.visits_total), sub: `${kpis.visits_this_month} ce mois`, icon: Eye, color: 'text-blue-500' },
           { label: 'Offres', value: String(kpis.offers_total), sub: kpis.offers_total > 0 ? 'reçues' : 'en attente', icon: HandCoins, color: 'text-amber-500' },
           { label: 'Vues en ligne', value: String(kpis.online_views), sub: 'sur les portails', icon: Eye, color: 'text-emerald-500' },
-          { label: 'Jours en vente', value: String(kpis.days_on_market), sub: 'depuis publication', icon: Clock, color: 'text-gray-500' },
+          { label: 'Jours en vente', value: String(kpis.days_on_market), sub: 'depuis publication', icon: Clock, color: 'text-theme-tertiary' },
         ].map((kpi) => {
           const Icon = kpi.icon
           return (
-            <div key={kpi.label} className="rounded-xl border border-gray-200 bg-white p-4">
+            <div key={kpi.label} className="rounded-xl border border-theme-border p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={cn('w-4 h-4', kpi.color)} />
-                <span className="text-xs text-gray-400 uppercase tracking-wider">{kpi.label}</span>
+                <span className="text-[10px] text-theme-tertiary uppercase tracking-wider">{kpi.label}</span>
               </div>
-              <p className="text-2xl font-semibold text-[#1A1A1A]">{kpi.value}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{kpi.sub}</p>
+              <p className="text-2xl font-semibold text-theme-primary">{kpi.value}</p>
+              <p className="text-xs text-theme-muted mt-0.5">{kpi.sub}</p>
             </div>
           )
         })}
       </div>
 
       {/* Mandate progress */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="text-xs text-gray-400 uppercase tracking-wider mb-4">Avancement de la vente</h2>
+      <div className="rounded-xl border border-theme-border p-5">
+        <h2 className="text-xs text-theme-tertiary uppercase tracking-wider mb-4">Avancement de la vente</h2>
         <div className="flex items-center gap-1">
           {MANDATE_STEPS.map((step, i) => {
             const isCompleted = i <= currentStepIdx
             const isCurrent = i === currentStepIdx
             return (
               <div key={step.key} className="flex-1 flex flex-col items-center">
-                {/* Bar */}
-                <div className="w-full flex items-center">
-                  <div
-                    className={cn(
-                      'h-1.5 w-full rounded-full transition-colors',
-                      isCompleted ? 'bg-[#1A1A1A]' : 'bg-gray-200'
-                    )}
-                  />
-                </div>
-                {/* Label */}
+                <div className={cn('h-1.5 w-full rounded-full transition-colors', isCompleted ? 'bg-theme-primary' : 'bg-theme-border')} />
                 <p className={cn(
                   'text-[10px] mt-2 text-center leading-tight',
-                  isCurrent ? 'text-[#1A1A1A] font-semibold' : isCompleted ? 'text-gray-600' : 'text-gray-300'
+                  isCurrent ? 'text-theme-primary font-semibold' : isCompleted ? 'text-theme-secondary' : 'text-theme-muted'
                 )}>
                   {step.label}
                 </p>
@@ -102,38 +87,30 @@ export default function MonDossierPage() {
         </div>
       </div>
 
-      {/* Reassurance message */}
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-        <p className="text-sm text-emerald-800 font-medium">
-          Votre bien est entre de bonnes mains
-        </p>
-        <p className="text-xs text-emerald-600 mt-1">
+      {/* Reassurance */}
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+        <p className="text-sm text-emerald-500 font-medium">Votre bien est entre de bonnes mains</p>
+        <p className="text-xs text-emerald-500/70 mt-1">
           {kpis.visits_total} visites effectuées et {kpis.offers_total} offre{kpis.offers_total > 1 ? 's' : ''} reçue{kpis.offers_total > 1 ? 's' : ''} en {kpis.days_on_market} jours.
           Votre agent travaille activement sur la vente de votre bien.
         </p>
       </div>
 
       {/* Recent activity */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="text-xs text-gray-400 uppercase tracking-wider mb-4">Activité récente</h2>
+      <div className="rounded-xl border border-theme-border p-5">
+        <h2 className="text-xs text-theme-tertiary uppercase tracking-wider mb-4">Activité récente</h2>
         <div className="space-y-0">
           {activities.slice(0, 7).map((activity, i) => {
-            const config = ACTIVITY_ICONS[activity.type] || { icon: Check, color: 'text-gray-400' }
+            const config = ACTIVITY_ICONS[activity.type] || { icon: Check, color: 'text-theme-muted' }
             const Icon = config.icon
             return (
-              <div
-                key={activity.id}
-                className={cn(
-                  'flex items-start gap-3 py-3',
-                  i < activities.length - 1 && 'border-b border-gray-100'
-                )}
-              >
+              <div key={activity.id} className={cn('flex items-start gap-3 py-3', i < 6 && 'border-b border-theme-border-subtle')}>
                 <div className={cn('mt-0.5 shrink-0', config.color)}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#1A1A1A]">{activity.description}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{formatRelativeDate(activity.date)}</p>
+                  <p className="text-sm text-theme-primary">{activity.description}</p>
+                  <p className="text-xs text-theme-muted mt-0.5">{formatRelativeDate(activity.date)}</p>
                 </div>
               </div>
             )
@@ -142,27 +119,21 @@ export default function MonDossierPage() {
       </div>
 
       {/* Agent contact */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="text-xs text-gray-400 uppercase tracking-wider mb-3">Votre agent</h2>
+      <div className="rounded-xl border border-theme-border p-5">
+        <h2 className="text-xs text-theme-tertiary uppercase tracking-wider mb-3">Votre agent</h2>
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-[#1A1A1A] flex items-center justify-center text-white text-sm font-semibold shrink-0">
+          <div className="h-10 w-10 rounded-full bg-accent text-white flex items-center justify-center text-sm font-semibold shrink-0">
             {agent.name.split(' ').map(n => n[0]).join('')}
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-[#1A1A1A]">{agent.name}</p>
-            <p className="text-xs text-gray-400">MEGGA Immobilier</p>
+            <p className="text-sm font-medium text-theme-primary">{agent.name}</p>
+            <p className="text-xs text-theme-tertiary">MEGGA Immobilier</p>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href={`tel:${agent.phone}`}
-              className="h-9 w-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#1A1A1A] hover:border-gray-400 transition-colors"
-            >
+            <a href={`tel:${agent.phone}`} className="h-9 w-9 rounded-lg border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
               <Phone className="w-4 h-4" />
             </a>
-            <a
-              href={`mailto:${agent.email}`}
-              className="h-9 w-9 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#1A1A1A] hover:border-gray-400 transition-colors"
-            >
+            <a href={`mailto:${agent.email}`} className="h-9 w-9 rounded-lg border border-theme-border flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
               <Mail className="w-4 h-4" />
             </a>
           </div>
