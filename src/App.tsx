@@ -26,6 +26,7 @@ import AutomationPage from '@/pages/agent/AutomationPage'
 import TemplatesPage from '@/pages/agent/TemplatesPage'
 import DocumentGenerator from '@/pages/agent/DocumentGenerator'
 import DocumentViewer from '@/pages/agent/DocumentViewer'
+import CustomTemplatePage from '@/pages/agent/CustomTemplatePage'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
@@ -90,6 +91,7 @@ export default function App() {
               <Route path="automation" element={<AutomationPage />} />
               <Route path="documents" element={<TemplatesPage />} />
               <Route path="documents/generate" element={<DocumentGenerator />} />
+              <Route path="documents/templates/new" element={<CustomTemplatePage />} />
               <Route path="documents/view" element={<DocumentViewer />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>

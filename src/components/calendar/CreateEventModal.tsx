@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EVENT_CONFIG, EVENT_TYPES, type CalendarEvent, type EventType } from './calendar.types'
@@ -34,7 +35,7 @@ interface CreateEventForm {
 }
 
 const DURATION_OPTIONS = [
-  { value: '30', label: '30 min' },
+  { value: '30', label: '30min' },
   { value: '60', label: '1h' },
   { value: '90', label: '1h30' },
   { value: '120', label: '2h' },
@@ -43,9 +44,9 @@ const DURATION_OPTIONS = [
 
 const RECURRENCE_OPTIONS = [
   { value: 'none', label: 'Aucune' },
-  { value: 'daily', label: 'Tous les jours' },
-  { value: 'weekly', label: 'Toutes les semaines' },
-  { value: 'monthly', label: 'Tous les mois' },
+  { value: 'daily', label: 'Quotidien' },
+  { value: 'weekly', label: 'Hebdomadaire' },
+  { value: 'monthly', label: 'Mensuel' },
 ] as const
 
 /* ─── Helpers ─── */
@@ -79,6 +80,28 @@ interface CreateEventModalProps {
   initialProperty?: string
 }
 
+/* ─── Pill button ─── */
+
+function PillButton({ selected, onClick, children, className }: {
+  selected: boolean; onClick: () => void; children: React.ReactNode; className?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+        selected
+          ? 'bg-theme-active text-theme-primary border-theme-active'
+          : 'border-theme-border text-theme-tertiary hover:text-theme-secondary hover:border-theme-border',
+        className
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 /* ─── Component ─── */
 
 export default function CreateEventModal({
@@ -92,7 +115,6 @@ export default function CreateEventModal({
 }: CreateEventModalProps) {
   const isEditMode = !!editEvent
 
-  // Determine initial form values
   const getInitialForm = (): CreateEventForm => {
     if (editEvent) {
       const startTimeStr = formatTimeToInput(editEvent.date)
@@ -114,10 +136,7 @@ export default function CreateEventModal({
 
     const defaultDate = initialDate
       ? formatDateToInput(initialDate)
-      : (() => {
-          const now = new Date()
-          return formatDateToInput(now)
-        })()
+      : formatDateToInput(new Date())
     const defaultStart = initialDate
       ? formatTimeToInput(initialDate)
       : '10:00'
@@ -141,7 +160,6 @@ export default function CreateEventModal({
   const updateField = <K extends keyof CreateEventForm>(key: K, value: CreateEventForm[K]) => {
     setForm(prev => {
       const next = { ...prev, [key]: value }
-      // Auto-calc endTime when startTime or duration changes
       if ((key === 'startTime' || key === 'duration') && next.duration !== 'custom') {
         next.endTime = addMinutesToTime(next.startTime, Number(next.duration))
       }
@@ -173,7 +191,6 @@ export default function CreateEventModal({
       return
     }
 
-    // Create mode — with optional recurrence
     const events: CalendarEvent[] = []
     const recurrenceCount = form.recurrence === 'none' ? 1 : form.recurrence === 'daily' ? 14 : 4
 
@@ -198,13 +215,14 @@ export default function CreateEventModal({
     onClose()
   }
 
-  const selectClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none'
-  const inputClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors placeholder:text-theme-tertiary'
+  const labelClasses = 'block text-sm font-medium text-theme-primary mb-1.5'
+  const selectClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
+  const inputClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors placeholder:text-theme-tertiary'
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="bg-theme-card rounded-xl border border-theme-border w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-theme-card rounded-xl border border-theme-border w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -218,10 +236,10 @@ export default function CreateEventModal({
         </div>
 
         {/* Form */}
-        <div className="p-5 space-y-4">
-          {/* Title */}
+        <div className="p-5 space-y-5">
+          {/* ── Section 1: Quoi ── */}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Titre</label>
+            <label className={labelClasses}>Titre</label>
             <input
               type="text"
               value={form.title}
@@ -231,47 +249,40 @@ export default function CreateEventModal({
             />
           </div>
 
-          {/* Type — inline radio */}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Type</label>
+            <label className={labelClasses}>Type</label>
             <div className="flex flex-wrap gap-1.5">
               {EVENT_TYPES.map(type => (
-                <button
+                <PillButton
                   key={type}
-                  type="button"
+                  selected={form.type === type}
                   onClick={() => updateField('type', type)}
-                  className={cn(
-                    'px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-                    form.type === type
-                      ? 'border-accent bg-accent/10 text-accent'
-                      : 'border-theme-border text-theme-secondary hover:text-theme-primary',
-                  )}
                 >
                   {EVENT_CONFIG[type].label}
-                </button>
+                </PillButton>
               ))}
             </div>
           </div>
 
-          {/* Date */}
-          <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Date</label>
-            <input
-              type="text"
-              value={form.date.split('-').reverse().join('.')}
-              onChange={e => {
-                const parts = e.target.value.split('.')
-                if (parts.length === 3) updateField('date', `${parts[2]}-${parts[1]}-${parts[0]}`)
-              }}
-              placeholder="JJ.MM.AAAA"
-              className={inputClasses}
-            />
-          </div>
+          <div className="border-t border-theme-border-subtle" />
 
-          {/* Start time + Duration */}
+          {/* ── Section 2: Quand ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure</label>
+              <label className={labelClasses}>Date</label>
+              <input
+                type="text"
+                value={form.date.split('-').reverse().join('.')}
+                onChange={e => {
+                  const parts = e.target.value.split('.')
+                  if (parts.length === 3) updateField('date', `${parts[2]}-${parts[1]}-${parts[0]}`)
+                }}
+                placeholder="JJ.MM.AAAA"
+                className={inputClasses}
+              />
+            </div>
+            <div>
+              <label className={labelClasses}>Heure</label>
               <input
                 type="text"
                 value={form.startTime}
@@ -280,32 +291,26 @@ export default function CreateEventModal({
                 className={inputClasses}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-theme-primary mb-1.5">Durée</label>
-              <div className="flex gap-1">
-                {DURATION_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => updateField('duration', opt.value as CreateEventForm['duration'])}
-                    className={cn(
-                      'flex-1 h-10 rounded-lg text-[11px] font-medium border transition-colors',
-                      form.duration === opt.value
-                        ? 'border-accent bg-accent/10 text-accent'
-                        : 'border-theme-border text-theme-tertiary hover:text-theme-secondary',
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+          </div>
+
+          <div>
+            <label className={labelClasses}>Durée</label>
+            <div className="flex flex-wrap gap-1.5">
+              {DURATION_OPTIONS.map(opt => (
+                <PillButton
+                  key={opt.value}
+                  selected={form.duration === opt.value}
+                  onClick={() => updateField('duration', opt.value as CreateEventForm['duration'])}
+                >
+                  {opt.label}
+                </PillButton>
+              ))}
             </div>
           </div>
 
-          {/* Custom end time (only if duration = custom) */}
           {form.duration === 'custom' && (
-            <div>
-              <label className="block text-sm font-medium text-theme-primary mb-1.5">Heure fin</label>
+            <div className="max-w-[200px]">
+              <label className={labelClasses}>Heure de fin</label>
               <input
                 type="text"
                 value={form.endTime}
@@ -316,86 +321,85 @@ export default function CreateEventModal({
             </div>
           )}
 
-          {/* Récurrence (only in create mode) */}
           {!isEditMode && (
             <div>
-              <label className="block text-sm font-medium text-theme-primary mb-1.5">Récurrence</label>
+              <label className={labelClasses}>Récurrence</label>
               <div className="flex gap-1.5">
                 {RECURRENCE_OPTIONS.map(opt => (
-                  <button
+                  <PillButton
                     key={opt.value}
-                    type="button"
+                    selected={form.recurrence === opt.value}
                     onClick={() => updateField('recurrence', opt.value as CreateEventForm['recurrence'])}
-                    className={cn(
-                      'flex-1 px-2 py-1.5 rounded-lg text-[11px] font-medium border transition-colors',
-                      form.recurrence === opt.value
-                        ? 'border-accent bg-accent/10 text-accent'
-                        : 'border-theme-border text-theme-tertiary hover:text-theme-secondary',
-                    )}
                   >
                     {opt.label}
-                  </button>
+                  </PillButton>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Contact */}
-          <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Contact</label>
-            <select
-              value={form.contact}
-              onChange={e => updateField('contact', e.target.value)}
-              className={selectClasses}
-            >
-              <option value="">— Aucun —</option>
-              {MOCK_CONTACTS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+          <div className="border-t border-theme-border-subtle" />
+
+          {/* ── Section 3: Qui / Où ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClasses}>Contact</label>
+              <select
+                value={form.contact}
+                onChange={e => updateField('contact', e.target.value)}
+                className={selectClasses}
+              >
+                <option value="">Sélectionner...</option>
+                {MOCK_CONTACTS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelClasses}>Bien</label>
+              <select
+                value={form.property}
+                onChange={e => updateField('property', e.target.value)}
+                className={selectClasses}
+              >
+                <option value="">Sélectionner...</option>
+                {MOCK_PROPERTIES.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
           </div>
 
-          {/* Property */}
+          {/* ── Section 4: Notes ── */}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Bien</label>
-            <select
-              value={form.property}
-              onChange={e => updateField('property', e.target.value)}
-              className={selectClasses}
-            >
-              <option value="">— Aucun —</option>
-              {MOCK_PROPERTIES.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Notes</label>
+            <label className={labelClasses}>Notes</label>
             <textarea
               value={form.notes}
               onChange={e => updateField('notes', e.target.value)}
               placeholder="Informations complémentaires..."
               rows={2}
-              className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none placeholder:text-theme-tertiary"
+              className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none placeholder:text-theme-tertiary"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-3 p-5 border-t border-theme-border">
+        <div className="flex items-center justify-end gap-3 p-5 border-t border-theme-border">
           <button
             onClick={onClose}
-            className="flex-1 h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+            className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
           >
             Annuler
           </button>
           <button
             onClick={handleSubmit}
             disabled={!isValid}
-            className="flex-1 h-9 rounded-lg text-sm font-medium bg-accent hover:bg-accent/90 text-white transition-colors disabled:opacity-50"
+            className={cn(
+              'h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors',
+              !isValid && 'opacity-50 cursor-not-allowed'
+            )}
           >
             {isEditMode ? 'Enregistrer' : 'Créer'}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

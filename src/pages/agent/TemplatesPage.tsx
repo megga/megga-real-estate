@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  FileText, Search, Plus, Eye, Download, Star,
+  FileText, Search, Plus, ChevronRight, Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import PageTransition from '@/components/layout/PageTransition'
+import { useCustomTemplates } from '@/hooks/useCustomTemplates'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -17,13 +18,25 @@ interface Template {
   lastUsed?: string
   usageCount: number
   isPremium: boolean
+  isCustom?: boolean
 }
 
 type TemplateCategory = 'mandat' | 'visite' | 'offre' | 'kyc' | 'communication' | 'autre'
 
 // ─── DATA ───────────────────────────────────────────────────────────────────
 
-const CATEGORIES: { value: TemplateCategory | 'all'; label: string }[] = [
+const CATEGORY_META: Record<TemplateCategory, { label: string; description: string }> = {
+  mandat: { label: 'Mandats', description: 'Contrats de mandat de vente et de recherche' },
+  visite: { label: 'Visites', description: 'Bons de visite, rapports et fiches bien' },
+  offre: { label: 'Offres', description: 'Offres d\'achat, contre-offres et acceptations' },
+  kyc: { label: 'KYC / LAB', description: 'Formulaires de conformité et rapports d\'audit' },
+  communication: { label: 'Communication', description: 'Templates d\'emails et de suivi' },
+  autre: { label: 'Autre', description: 'Templates divers' },
+}
+
+const CATEGORY_ORDER: TemplateCategory[] = ['mandat', 'visite', 'offre', 'kyc', 'communication']
+
+const FILTER_TABS: { value: TemplateCategory | 'all'; label: string }[] = [
   { value: 'all', label: 'Tous' },
   { value: 'mandat', label: 'Mandats' },
   { value: 'visite', label: 'Visites' },
@@ -55,26 +68,68 @@ export default function TemplatesPage() {
   const navigate = useNavigate()
   const [category, setCategory] = useState<TemplateCategory | 'all'>('all')
   const [search, setSearch] = useState('')
+  const { templates: customTemplates, removeTemplate } = useCustomTemplates()
 
-  const filtered = TEMPLATES.filter(t => {
-    if (category !== 'all' && t.category !== category) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+  // Merge built-in + custom templates
+  const allTemplates: Template[] = useMemo(() => {
+    const customs: Template[] = customTemplates.map(ct => ({
+      id: ct.id,
+      name: ct.name,
+      description: ct.description,
+      category: (ct.category as TemplateCategory) || 'autre',
+      format: 'PDF' as const,
+      lastUsed: ct.createdAt.slice(0, 10),
+      usageCount: ct.usageCount,
+      isPremium: false,
+      isCustom: true,
+    }))
+    return [...TEMPLATES, ...customs]
+  }, [customTemplates])
+
+  const filtered = useMemo(() => {
+    return allTemplates.filter(t => {
+      if (category !== 'all' && t.category !== category) return false
+      if (search) {
+        const q = search.toLowerCase()
+        return t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+      }
+      return true
+    })
+  }, [category, search, allTemplates])
+
+  // Group by category
+  const grouped = useMemo(() => {
+    const groups: Partial<Record<TemplateCategory, Template[]>> = {}
+    for (const t of filtered) {
+      if (!groups[t.category]) groups[t.category] = []
+      groups[t.category]!.push(t)
     }
-    return true
-  })
+    return groups
+  }, [filtered])
+
+  // Include 'autre' for custom templates
+  const visibleCategories = useMemo(() => {
+    const base = CATEGORY_ORDER.filter(c => grouped[c]?.length)
+    // Add 'autre' at the end if it has templates but isn't already in the order
+    if (grouped['autre']?.length && !base.includes('autre')) {
+      base.push('autre')
+    }
+    return base
+  }, [grouped])
 
   return (
     <PageTransition>
-      <div className="max-w-5xl mx-auto space-y-5">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-theme-primary">Templates de documents</h1>
-            <p className="text-sm text-theme-tertiary mt-0.5">{TEMPLATES.length} templates disponibles</p>
+            <p className="text-sm text-theme-tertiary mt-0.5">{allTemplates.length} templates disponibles</p>
           </div>
-          <button className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors">
+          <button
+            onClick={() => navigate('/dashboard/documents/templates/new')}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
+          >
             <Plus className="h-3.5 w-3.5" />
             Template personnalisé
           </button>
@@ -94,7 +149,7 @@ export default function TemplatesPage() {
           </div>
 
           <div className="flex items-center border border-theme-border rounded-lg p-0.5">
-            {CATEGORIES.map(cat => (
+            {FILTER_TABS.map(cat => (
               <button
                 key={cat.value}
                 onClick={() => setCategory(cat.value)}
@@ -111,71 +166,90 @@ export default function TemplatesPage() {
           </div>
         </div>
 
-        {/* Templates list — Lovable style */}
-        <div className="rounded-xl border border-theme-border">
-          {/* Header row */}
-          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-            <span className="flex-1">Template</span>
-            <span className="w-16 text-center">Format</span>
-            <span className="w-16 text-center hidden sm:block">Utilisé</span>
-            <span className="w-20 text-right">Actions</span>
+        {/* Templates grouped by category */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-16 rounded-xl border border-theme-border">
+            <FileText className="w-8 h-8 text-theme-tertiary mx-auto mb-2" />
+            <p className="text-sm text-theme-muted">Aucun template trouvé</p>
           </div>
+        ) : (
+          <div className="space-y-8">
+            {visibleCategories.map(cat => {
+              const meta = CATEGORY_META[cat]
+              const templates = grouped[cat] ?? []
 
-          {filtered.length === 0 ? (
-            <div className="px-4 py-12 text-center">
-              <FileText className="w-8 h-8 text-theme-tertiary mx-auto mb-2" />
-              <p className="text-sm text-theme-tertiary">Aucun template trouvé</p>
-            </div>
-          ) : (
-            filtered.map((template, i) => (
-              <div
-                key={template.id}
-                onClick={() => navigate(`/dashboard/documents/generate?template=${template.id}`)}
-                className={cn(
-                  'flex items-center px-4 py-3.5 group hover:bg-theme-hover transition-colors cursor-pointer',
-                  i < filtered.length - 1 && 'border-b border-theme-border'
-                )}
-              >
-                {/* Name + description */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-theme-primary group-hover:text-accent transition-colors truncate">
-                      {template.name}
-                    </p>
-                    {template.isPremium && (
-                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-500 shrink-0">
-                        <Star className="w-2.5 h-2.5" />
-                        Pro
-                      </span>
-                    )}
+              return (
+                <div key={cat}>
+                  {/* Category header */}
+                  <div className="mb-3">
+                    <h2 className="text-sm font-semibold text-theme-primary">{meta.label}</h2>
+                    <p className="text-xs text-theme-tertiary mt-0.5">{meta.description}</p>
                   </div>
-                  <p className="text-xs text-theme-tertiary mt-0.5 truncate">{template.description}</p>
+
+                  {/* Cards grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {templates.map(template => (
+                      <div
+                        key={template.id}
+                        onClick={() => navigate(`/dashboard/documents/generate?template=${template.id}`)}
+                        className="rounded-xl border border-theme-border p-4 group hover:border-theme-active cursor-pointer transition-all"
+                      >
+                        {/* Row 1: title + badges */}
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium text-theme-primary group-hover:text-accent transition-colors leading-snug">
+                            {template.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {template.isCustom && (
+                              <span className="text-[10px] font-semibold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                Perso
+                              </span>
+                            )}
+                            {template.isPremium && (
+                              <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                Pro
+                              </span>
+                            )}
+                            <span className="text-[10px] font-medium text-theme-tertiary bg-theme-section px-1.5 py-0.5 rounded">
+                              {template.format}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Description — full, not truncated */}
+                        <p className="text-xs text-theme-tertiary mt-2 leading-relaxed">
+                          {template.description}
+                        </p>
+
+                        {/* Bottom: usage + CTA */}
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-theme-border">
+                          <span className="text-[10px] text-theme-muted">
+                            Utilisé {template.usageCount} fois
+                          </span>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {template.isCustom && (
+                              <button
+                                onClick={e => { e.stopPropagation(); removeTemplate(template.id) }}
+                                className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                              </button>
+                            )}
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-accent">
+                              Générer <ChevronRight className="w-3 h-3" />
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-                {/* Format badge */}
-                <span className="w-16 text-center text-[10px] font-medium text-theme-tertiary">
-                  {template.format}
-                </span>
-
-                {/* Usage count */}
-                <span className="w-16 text-center text-xs text-theme-tertiary hidden sm:block">
-                  {template.usageCount}x
-                </span>
-
-                {/* Actions — visible on hover */}
-                <div className="w-20 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="w-7 h-7 rounded-lg hover:bg-theme-active flex items-center justify-center transition-colors">
-                    <Eye className="w-3.5 h-3.5 text-theme-tertiary" />
-                  </button>
-                  <button className="w-7 h-7 rounded-lg hover:bg-theme-active flex items-center justify-center transition-colors">
-                    <Download className="w-3.5 h-3.5 text-theme-tertiary" />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
+
     </PageTransition>
   )
 }

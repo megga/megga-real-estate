@@ -7,7 +7,8 @@
     "team": "Team",
     "notifications": "Notifiche",
     "security": "Sicurezza",
-    "subscription": "Abbonamento"
+    "subscription": "Abbonamento",
+    "integrations": "Integrazioni"
   },
   "profile": {
     "title": "Profilo",
@@ -131,6 +132,20 @@
     "log": {
       "title": "Registro di sicurezza",
       "subtitle": "Ultime attività sul Suo account"
+    },
+    "connectedAccounts": {
+      "title": "Account collegati",
+      "subtitle": "Colleghi i Suoi account per un accesso più rapido.",
+      "google": "Google",
+      "googleLinked": "Collegato",
+      "googleNotLinked": "Non collegato",
+      "link": "Collegare",
+      "unlink": "Scollegare",
+      "linking": "Connessione...",
+      "linkedAs": "Collegato come {{email}}",
+      "linkHint": "Acceda con un clic tramite il Suo account Google.",
+      "unlinkConfirm": "Non potrà più accedere con Google. Continuare?",
+      "cannotUnlink": "Deve impostare una password prima di scollegare Google."
     }
   },
   "subscription": {
@@ -142,8 +157,16 @@
     "popular": "Popolare",
     "currentPlan": "Piano attuale",
     "choose": "Scegliere",
+    "redirecting": "Reindirizzamento...",
     "free": "Gratuito",
     "perMonth": "/mese",
+    "perYear": "/anno",
+    "monthly": "Mensile",
+    "annual": "Annuale",
+    "annualDiscount": "-20%",
+    "annualSaving": "Risparmia {{amount}}/anno",
+    "billedAnnually": "Fatturato annualmente",
+    "renewalDate": "Rinnovato il {{date}}",
     "plans": {
       "starter": {
         "name": "Starter",
@@ -183,6 +206,82 @@
       "title": "Ha bisogno di un piano su misura?",
       "description": "Per grandi agenzie o esigenze specifiche, offriamo soluzioni personalizzate.",
       "cta": "Ci contatti"
+    }
+  },
+  "integrations": {
+    "title": "Integrazioni",
+    "subtitle": "Colleghi i Suoi strumenti esterni per automatizzare il Suo lavoro quotidiano.",
+    "status": {
+      "connected": "Connesso",
+      "notConnected": "Non connesso",
+      "configure": "Configurare",
+      "disconnect": "Disconnettere",
+      "comingSoon": "Prossimamente"
+    },
+    "categories": {
+      "essential": "Essenziale",
+      "recommended": "Consigliato",
+      "upcoming": "In arrivo"
+    },
+    "googleCalendar": {
+      "name": "Google Calendar",
+      "description": "Sincronizzi le Sue visite e appuntamenti con il Suo calendario Google.",
+      "features": {
+        "syncVisits": "Sincronizzazione automatica delle visite",
+        "twoWaySync": "Sincronizzazione bidirezionale",
+        "reminders": "Promemoria prima delle visite"
+      },
+      "connectHint": "Colleghi il Suo account Google per la sincronizzazione automatica."
+    },
+    "email": {
+      "name": "Email (SMTP / Resend)",
+      "description": "Invii solleciti, conferme e presentazioni di immobili via email.",
+      "features": {
+        "autoFollowUp": "Solleciti automatici",
+        "visitConfirmation": "Conferme di visita",
+        "propertyPresentation": "Presentazioni di immobili"
+      },
+      "connectHint": "Configuri il Suo servizio email per inviare direttamente da MEGGA."
+    },
+    "portals": {
+      "name": "Portali immobiliari",
+      "description": "Pubblichi i Suoi annunci su Immoscout24, Homegate e immobilier.ch.",
+      "features": {
+        "autoPublish": "Pubblicazione automatica",
+        "multiPortal": "Multi-portale in un clic",
+        "syncStatus": "Sincronizzazione degli stati"
+      },
+      "connectHint": "Colleghi i Suoi account portale per pubblicare con un clic."
+    },
+    "crmImport": {
+      "name": "Import / Export CRM",
+      "description": "Importi i Suoi contatti da un altro CRM o da un file CSV. Esporti i Suoi dati in qualsiasi momento.",
+      "features": {
+        "csvImport": "Import CSV / Excel",
+        "crmMigration": "Migrazione da Pipedrive, HubSpot",
+        "dataExport": "Esportazione dati completa"
+      },
+      "connectHint": "Importi i Suoi contatti esistenti per iniziare rapidamente."
+    },
+    "posthog": {
+      "name": "PostHog Analytics",
+      "description": "Analizzi l'utilizzo di MEGGA da parte del Suo team: pagine visitate, funzionalità utilizzate, adozione.",
+      "features": {
+        "pageViews": "Monitoraggio pagine visitate",
+        "featureAdoption": "Adozione delle funzionalità",
+        "teamInsights": "Informazioni per agente"
+      },
+      "connectHint": "Configuri la Sua chiave PostHog per attivare le analytics."
+    },
+    "cloudStorage": {
+      "name": "Google Drive / OneDrive",
+      "description": "Sincronizzi i Suoi documenti KYC e mandati con il drive esistente della Sua agenzia.",
+      "features": {
+        "docSync": "Sincronizzazione documenti",
+        "autoOrganize": "Organizzazione automatica",
+        "teamAccess": "Accesso condiviso del team"
+      },
+      "connectHint": "Colleghi il drive della Sua agenzia per centralizzare i Suoi documenti."
     }
   }
 }

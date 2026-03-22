@@ -1,20 +1,25 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  CreditCard, Camera,
-  Plus, X, Check,
-  Star, ChevronRight, Zap, Smartphone,
+  Camera,
+  Plus, X,
+  Smartphone,
   Monitor, KeyRound,
   ShieldCheck, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useStripe } from '@/hooks/useStripe'
+import { useAvatar } from '@/hooks/useAvatar'
+import AvatarCropModal from '@/components/profile/AvatarCropModal'
 import PageTransition from '@/components/layout/PageTransition'
 
 /* ─── Tab Types ─── */
 
-const TABS = ['profile', 'agency', 'team', 'notifications', 'security', 'subscription'] as const
+const TABS = ['profile', 'agency', 'team', 'notifications', 'security', 'subscription', 'integrations'] as const
 type SettingsTab = typeof TABS[number]
 
 /* ─── Shared Styles ─── */
@@ -38,37 +43,30 @@ function LanguageSelector() {
   const currentLang = i18n.language
 
   return (
-    <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-8">
+    <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
       <div className="sm:w-40 shrink-0">
         <p className="text-sm font-medium text-theme-primary">{t('profile.language')}</p>
         <p className="text-xs text-theme-tertiary mt-0.5">{t('profile.languageHint')}</p>
       </div>
-      <div className="flex-1">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {LANGUAGES.map((lang) => {
-            const isSelected = currentLang === lang.code
-            return (
-              <button
-                key={lang.code}
-                onClick={() => i18n.changeLanguage(lang.code)}
-                className={cn(
-                  'rounded-xl border p-3 text-center cursor-pointer transition-all',
-                  isSelected
-                    ? 'border-accent bg-accent/5 text-accent'
-                    : 'border-theme-border text-theme-secondary hover:border-theme-active hover:text-theme-primary'
-                )}
-              >
-                <div className="text-sm font-semibold">{lang.label}</div>
-                <div className={cn(
-                  'text-xs mt-0.5',
-                  isSelected ? 'text-accent/70' : 'text-theme-tertiary'
-                )}>
-                  {lang.name}
-                </div>
-              </button>
-            )
-          })}
-        </div>
+      <div className="flex items-center gap-2">
+        {LANGUAGES.map((lang) => {
+          const isSelected = currentLang === lang.code
+          return (
+            <button
+              key={lang.code}
+              onClick={() => i18n.changeLanguage(lang.code)}
+              title={lang.name}
+              className={cn(
+                'h-9 px-4 rounded-lg text-sm font-medium transition-colors',
+                isSelected
+                  ? 'bg-theme-primary text-theme-inverse'
+                  : 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
+              )}
+            >
+              {lang.label}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -79,6 +77,32 @@ function LanguageSelector() {
 function ProfileTab() {
   const { user, signOut } = useAuth()
   const { t } = useTranslation('settings')
+  const { avatarUrl, saveDataUrl, removeAvatar, validateFile } = useAvatar()
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [cropModalOpen, setCropModalOpen] = useState(false)
+  const [pendingImage, setPendingImage] = useState<string | null>(null)
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarError(null)
+    // Validate first
+    const error = validateFile(file)
+    if (error) { setAvatarError(error.message); e.target.value = ''; return }
+    // Read as data URL and open crop modal
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPendingImage(reader.result as string)
+      setCropModalOpen(true)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  function handleEditExisting() {
+    setPendingImage(null) // editing existing, not a new file
+    setCropModalOpen(true)
+  }
 
   const [form, setForm] = useState({
     firstName: 'Gregory',
@@ -92,7 +116,7 @@ function ProfileTab() {
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }))
 
   return (
-    <div className="space-y-0">
+    <div className="space-y-4">
       {/* Profile section — bento transparent */}
       <div className={cn(cardClasses, 'p-6')}>
         <h2 className="text-base font-semibold text-theme-primary">{t('profile.title')}</h2>
@@ -100,16 +124,76 @@ function ProfileTab() {
 
         {/* Avatar row */}
         <div className="flex items-center gap-5 mt-5 pb-5 border-b border-theme-border">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center">
-              <span className="text-xl font-bold text-white">GL</span>
-            </div>
+          <div className="relative group">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={`${form.firstName} ${form.lastName}`}
+                className="w-16 h-16 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center">
+                <span className="text-xl font-bold text-white">
+                  {(form.firstName?.[0] ?? '').toUpperCase()}{(form.lastName?.[0] ?? '').toUpperCase()}
+                </span>
+              </div>
+            )}
+            {avatarUrl ? (
+              <button
+                onClick={handleEditExisting}
+                className="absolute inset-0 rounded-full cursor-pointer flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors"
+              >
+                <Camera className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            ) : (
+              <label className="absolute inset-0 rounded-full cursor-pointer flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                <Camera className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleAvatarChange}
+                  className="sr-only"
+                />
+              </label>
+            )}
           </div>
-          <div>
+          <div className="flex-1">
             <p className="text-sm font-medium text-theme-primary">{t('profile.photo')}</p>
             <p className="text-xs text-theme-tertiary mt-0.5">{t('profile.photoHint')}</p>
+            {avatarError && (
+              <p className="text-xs text-red-500 mt-1">{avatarError}</p>
+            )}
+            <div className="flex items-center gap-3 mt-1.5">
+              <label className="text-xs font-medium text-accent hover:text-accent/80 cursor-pointer transition-colors">
+                {avatarUrl ? 'Changer la photo' : 'Ajouter une photo'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleAvatarChange}
+                  className="sr-only"
+                />
+              </label>
+              {avatarUrl && (
+                <button
+                  onClick={() => { removeAvatar(); setCropModalOpen(false) }}
+                  className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                >
+                  Supprimer
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Avatar crop modal */}
+        <AvatarCropModal
+          open={cropModalOpen}
+          imageSrc={pendingImage}
+          existingAvatar={avatarUrl}
+          onSave={(dataUrl) => { saveDataUrl(dataUrl); setCropModalOpen(false); setPendingImage(null) }}
+          onDelete={() => { removeAvatar(); setCropModalOpen(false); setPendingImage(null) }}
+          onClose={() => { setCropModalOpen(false); setPendingImage(null) }}
+        />
 
         {/* Username-style row */}
         <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
@@ -153,7 +237,7 @@ function ProfileTab() {
       </div>
 
       {/* Bio section */}
-      <div className={cn(cardClasses, 'p-6 mt-4')}>
+      <div className={cn(cardClasses, 'p-6')}>
         <h2 className="text-base font-semibold text-theme-primary">{t('profile.bio')}</h2>
         <p className="text-sm text-theme-tertiary mt-0.5 mb-4">{t('profile.bioHint')}</p>
         <textarea
@@ -291,9 +375,9 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<TeamMember['role']>('agent')
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-theme-overlay/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="rounded-xl border border-theme-border bg-theme-elevated w-full max-w-md" onClick={e => e.stopPropagation()}>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="rounded-xl border border-theme-border bg-theme-page w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-theme-border">
           <h3 className="text-lg font-semibold text-theme-primary">{t('team.inviteModal.title')}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
@@ -322,7 +406,8 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -401,9 +486,15 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean
   return (
     <button
       onClick={() => onChange(!enabled)}
-      className={cn('relative w-10 h-6 rounded-full transition-colors shrink-0', enabled ? 'bg-accent' : 'bg-theme-border')}
+      className={cn(
+        'relative w-10 h-6 rounded-full transition-colors shrink-0',
+        enabled ? 'bg-emerald-500' : 'bg-theme-border'
+      )}
     >
-      <div className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-theme-card shadow-sm transition-transform', enabled ? 'translate-x-[18px]' : 'translate-x-0.5')} />
+      <div className={cn(
+        'absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform',
+        enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+      )} />
     </button>
   )
 }
@@ -490,10 +581,41 @@ const MOCK_SECURITY_LOG: SecurityEvent[] = [
 
 function SecurityTab() {
   const { t } = useTranslation('settings')
+  const { user } = useAuth()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [googleLinking, setGoogleLinking] = useState(false)
+
+  // Check if Google is linked by looking at user identities
+  const googleIdentity = user?.identities?.find(id => id.provider === 'google')
+  const isGoogleLinked = !!googleIdentity
+  const googleEmail = googleIdentity?.identity_data?.email as string | undefined
+  const hasPassword = user?.identities?.some(id => id.provider === 'email')
+
+  async function handleLinkGoogle() {
+    setGoogleLinking(true)
+    try {
+      await supabase.auth.linkIdentity({
+        provider: 'google',
+        options: { redirectTo: window.location.href },
+      })
+    } catch {
+      setGoogleLinking(false)
+    }
+  }
+
+  async function handleUnlinkGoogle() {
+    if (!googleIdentity) return
+    if (!hasPassword) {
+      alert(t('security.connectedAccounts.cannotUnlink'))
+      return
+    }
+    if (!confirm(t('security.connectedAccounts.unlinkConfirm'))) return
+    await supabase.auth.unlinkIdentity(googleIdentity)
+    window.location.reload()
+  }
 
   const passwordMatch = newPassword === confirmPassword
   const passwordValid = newPassword.length >= 6
@@ -550,6 +672,53 @@ function SecurityTab() {
             {t('security.twoFactor.recommendation')}
           </p>
         )}
+      </div>
+
+      {/* ── Connected Accounts ── */}
+      <div className={cn(cardClasses, 'p-6')}>
+        <h2 className="text-base font-semibold text-theme-primary">{t('security.connectedAccounts.title')}</h2>
+        <p className="text-sm text-theme-tertiary mt-0.5 mb-5">{t('security.connectedAccounts.subtitle')}</p>
+
+        <div className="flex items-center justify-between py-3 border-t border-theme-border">
+          <div className="flex items-center gap-3">
+            {/* Google icon */}
+            <div className="w-10 h-10 rounded-lg border border-theme-border flex items-center justify-center">
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-theme-primary">{t('security.connectedAccounts.google')}</p>
+              {isGoogleLinked ? (
+                <p className="text-xs text-emerald-500 mt-0.5">
+                  {googleEmail ? t('security.connectedAccounts.linkedAs', { email: googleEmail }) : t('security.connectedAccounts.googleLinked')}
+                </p>
+              ) : (
+                <p className="text-xs text-theme-tertiary mt-0.5">{t('security.connectedAccounts.linkHint')}</p>
+              )}
+            </div>
+          </div>
+
+          {isGoogleLinked ? (
+            <button
+              onClick={handleUnlinkGoogle}
+              className="h-8 px-3 rounded-lg text-xs font-medium text-red-500 hover:bg-red-500/10 border border-theme-border hover:border-red-500/30 transition-colors"
+            >
+              {t('security.connectedAccounts.unlink')}
+            </button>
+          ) : (
+            <button
+              onClick={handleLinkGoogle}
+              disabled={googleLinking}
+              className="h-8 px-3 rounded-lg text-xs font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors disabled:opacity-50"
+            >
+              {googleLinking ? t('security.connectedAccounts.linking') : t('security.connectedAccounts.link')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Active Sessions ── */}
@@ -612,14 +781,21 @@ function SecurityTab() {
 /* ─── Subscription Tab ─── */
 
 interface PlanFeature { textKey: string; included: boolean }
-interface Plan {
-  nameKey: string; priceKey: string; period: string; descriptionKey: string
-  features: PlanFeature[]; isCurrent?: boolean; isPopular?: boolean
+interface PlanConfig {
+  planId: 'starter' | 'pro' | 'agency'
+  nameKey: string
+  descriptionKey: string
+  monthlyPrice: number // 0 = free
+  annualPrice: number  // 0 = free
+  features: PlanFeature[]
+  isCurrent?: boolean
+  isPopular?: boolean
 }
 
-const PLANS: Plan[] = [
+const PLANS: PlanConfig[] = [
   {
-    nameKey: 'subscription.plans.starter.name', priceKey: 'subscription.free', period: '', descriptionKey: 'subscription.plans.starter.description',
+    planId: 'starter', nameKey: 'subscription.plans.starter.name', descriptionKey: 'subscription.plans.starter.description',
+    monthlyPrice: 0, annualPrice: 0,
     features: [
       { textKey: 'subscription.features.activeProperties10', included: true },
       { textKey: 'subscription.features.contacts50', included: true },
@@ -631,8 +807,8 @@ const PLANS: Plan[] = [
     ],
   },
   {
-    nameKey: 'subscription.plans.pro.name', priceKey: 'CHF 89', period: 'subscription.perMonth', descriptionKey: 'subscription.plans.pro.description',
-    isCurrent: true, isPopular: true,
+    planId: 'pro', nameKey: 'subscription.plans.pro.name', descriptionKey: 'subscription.plans.pro.description',
+    monthlyPrice: 89, annualPrice: 71, isCurrent: true, isPopular: true,
     features: [
       { textKey: 'subscription.features.unlimitedProperties', included: true },
       { textKey: 'subscription.features.unlimitedContacts', included: true },
@@ -644,7 +820,8 @@ const PLANS: Plan[] = [
     ],
   },
   {
-    nameKey: 'subscription.plans.agency.name', priceKey: 'CHF 249', period: 'subscription.perMonth', descriptionKey: 'subscription.plans.agency.description',
+    planId: 'agency', nameKey: 'subscription.plans.agency.name', descriptionKey: 'subscription.plans.agency.description',
+    monthlyPrice: 249, annualPrice: 199,
     features: [
       { textKey: 'subscription.features.allPro', included: true },
       { textKey: 'subscription.features.upTo10Agents', included: true },
@@ -659,6 +836,8 @@ const PLANS: Plan[] = [
 
 function SubscriptionTab() {
   const { t } = useTranslation('settings')
+  const { checkout, manageSubscription, isLoading: stripeLoading, error: stripeError } = useStripe()
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
 
   return (
     <div className="space-y-6">
@@ -667,73 +846,130 @@ function SubscriptionTab() {
         <p className="text-sm text-theme-muted mt-1">{t('subscription.subtitle')}</p>
       </div>
 
-      {/* Current plan */}
-      <div className={cn(cardClasses, 'border-2 border-accent p-6')}>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-accent" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-theme-primary">Plan Pro</h3>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-accent/10 text-accent">{t('subscription.currentBadge')}</span>
+      {/* Current plan — clean, no accent border */}
+      <div className={cn(cardClasses, 'p-5')}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-theme-primary">Plan Pro</h3>
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">{t('subscription.currentBadge')}</span>
+              </div>
+              <p className="text-xs text-theme-muted mt-0.5">CHF 89{t('subscription.perMonth')} — {t('subscription.renewalDate', { date: '01.04.2026' })}</p>
             </div>
-            <p className="text-sm text-theme-muted">CHF 89/mois — renouvelé le 01.04.2026</p>
           </div>
-          <button className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors gap-2 hidden sm:flex items-center">
-            <CreditCard className="w-4 h-4" />
-            {t('subscription.manage')}
+          <button
+            onClick={() => manageSubscription()}
+            disabled={stripeLoading}
+            className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+          >
+            {stripeLoading ? t('subscription.redirecting') : t('subscription.manage')}
           </button>
         </div>
-        <button className="w-full h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2 sm:hidden mt-3">
-          <CreditCard className="w-4 h-4" />
-          {t('subscription.manage')}
-        </button>
+        {stripeError && <p className="text-xs text-danger mt-2">{stripeError}</p>}
       </div>
 
-      {/* Plan comparison */}
+      {/* Billing toggle + Plans */}
       <div>
-        <h3 className="text-base font-semibold text-theme-primary mb-4">{t('subscription.comparePlans')}</h3>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-base font-semibold text-theme-primary">{t('subscription.comparePlans')}</h3>
+
+          {/* Monthly / Annual toggle */}
+          <div className="flex items-center rounded-lg border border-theme-border p-0.5">
+            <button
+              onClick={() => setBilling('monthly')}
+              className={cn(
+                'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                billing === 'monthly' ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
+              )}
+            >
+              {t('subscription.monthly')}
+            </button>
+            <button
+              onClick={() => setBilling('annual')}
+              className={cn(
+                'px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5',
+                billing === 'annual' ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
+              )}
+            >
+              {t('subscription.annual')}
+              <span className="text-[10px] font-semibold text-emerald-500">{t('subscription.annualDiscount')}</span>
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map(plan => {
-            const isFreePlan = plan.priceKey.startsWith('subscription.')
-            const price = isFreePlan ? t(plan.priceKey) : plan.priceKey
+            const isFree = plan.monthlyPrice === 0
+            const price = isFree ? t('subscription.free') : `CHF ${billing === 'monthly' ? plan.monthlyPrice : plan.annualPrice}`
+            const monthlyOriginal = plan.monthlyPrice
+            const annualSaving = isFree ? 0 : (plan.monthlyPrice - plan.annualPrice) * 12
+
             return (
               <div
-                key={plan.nameKey}
+                key={plan.planId}
                 className={cn(
-                  'rounded-xl border p-6 relative transition-colors duration-200 border-2',
-                  plan.isCurrent ? 'border-accent' : 'border-theme-border',
+                  'rounded-xl border p-6 relative transition-colors',
+                  plan.isPopular ? 'border-theme-primary' : 'border-theme-border',
                 )}
               >
+                {/* Popular badge — text only, no bg */}
                 {plan.isPopular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="text-xs font-medium px-3 py-1 rounded-full bg-accent text-white flex items-center gap-1">
-                      <Star className="w-3 h-3" /> {t('subscription.popular')}
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                    <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-theme-page border border-theme-primary text-theme-primary">
+                      {t('subscription.popular')}
                     </span>
                   </div>
                 )}
-                <div className="text-center mb-4 pt-1">
-                  <h4 className="text-lg font-semibold text-theme-primary">{t(plan.nameKey)}</h4>
-                  <div className="mt-2">
-                    <span className="text-2xl font-bold text-theme-primary">{price}</span>
-                    {plan.period && <span className="text-sm text-theme-muted">{t(plan.period)}</span>}
+
+                <div className="text-center mb-5 pt-1">
+                  <h4 className="text-base font-semibold text-theme-primary">{t(plan.nameKey)}</h4>
+
+                  {/* Price */}
+                  <div className="mt-3">
+                    <span className="text-3xl font-bold text-theme-primary">{price}</span>
+                    {!isFree && <span className="text-sm text-theme-muted">{t('subscription.perMonth')}</span>}
                   </div>
-                  <p className="text-xs text-theme-muted mt-2">{t(plan.descriptionKey)}</p>
-                </div>
-                <div className="space-y-2.5 mb-5">
-                  {plan.features.map((feat, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      {feat.included ? <Check className="w-4 h-4 text-success shrink-0" /> : <X className="w-4 h-4 text-theme-tertiary shrink-0" />}
-                      <span className={feat.included ? 'text-theme-primary' : 'text-theme-tertiary'}>{t(feat.textKey)}</span>
+
+                  {/* Annual savings */}
+                  {!isFree && billing === 'annual' && (
+                    <div className="mt-1.5 space-y-0.5">
+                      <p className="text-xs text-theme-muted line-through">CHF {monthlyOriginal}{t('subscription.perMonth')}</p>
+                      <p className="text-xs font-medium text-emerald-500">{t('subscription.annualSaving', { amount: `CHF ${annualSaving}` })}</p>
                     </div>
+                  )}
+                  {!isFree && billing === 'monthly' && (
+                    <p className="text-xs text-theme-muted mt-1.5">{t(plan.descriptionKey)}</p>
+                  )}
+                  {isFree && (
+                    <p className="text-xs text-theme-muted mt-1.5">{t(plan.descriptionKey)}</p>
+                  )}
+                </div>
+
+                {/* Features — text with opacity, no icons */}
+                <div className="space-y-2 mb-6">
+                  {plan.features.map((feat, i) => (
+                    <p key={i} className={cn(
+                      'text-sm',
+                      feat.included ? 'text-theme-primary' : 'text-theme-muted line-through'
+                    )}>
+                      {t(feat.textKey)}
+                    </p>
                   ))}
                 </div>
+
+                {/* CTA */}
                 {plan.isCurrent ? (
-                  <button disabled className="w-full h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-tertiary cursor-not-allowed opacity-50">{t('subscription.currentPlan')}</button>
+                  <button disabled className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-tertiary cursor-not-allowed opacity-50">
+                    {t('subscription.currentPlan')}
+                  </button>
                 ) : (
-                  <button className="w-full h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1">
-                    {t('subscription.choose')} <ChevronRight className="w-4 h-4" />
+                  <button
+                    onClick={() => checkout(plan.planId)}
+                    disabled={stripeLoading}
+                    className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+                  >
+                    {stripeLoading ? t('subscription.redirecting') : t('subscription.choose')}
                   </button>
                 )}
               </div>
@@ -748,10 +984,188 @@ function SubscriptionTab() {
         <p className="text-xs text-theme-tertiary mt-1">{t('subscription.custom.description')}</p>
         <a
           href="mailto:contact@megga.ch?subject=Plan sur mesure MEGGA"
-          className="inline-flex items-center gap-1.5 h-9 px-4 mt-3 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+          className="inline-flex items-center h-9 px-4 mt-3 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
         >
           {t('subscription.custom.cta')}
         </a>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Integrations Tab ─── */
+
+interface Integration {
+  id: string
+  nameKey: string
+  descriptionKey: string
+  featuresKeys: string[]
+  connectHintKey: string
+  isConnected: boolean
+  category: 'essential' | 'recommended' | 'upcoming'
+}
+
+const INTEGRATIONS: Integration[] = [
+  {
+    id: 'google-calendar',
+    nameKey: 'integrations.googleCalendar.name',
+    descriptionKey: 'integrations.googleCalendar.description',
+    featuresKeys: [
+      'integrations.googleCalendar.features.syncVisits',
+      'integrations.googleCalendar.features.twoWaySync',
+      'integrations.googleCalendar.features.reminders',
+    ],
+    connectHintKey: 'integrations.googleCalendar.connectHint',
+    isConnected: false,
+    category: 'essential',
+  },
+  {
+    id: 'email',
+    nameKey: 'integrations.email.name',
+    descriptionKey: 'integrations.email.description',
+    featuresKeys: [
+      'integrations.email.features.autoFollowUp',
+      'integrations.email.features.visitConfirmation',
+      'integrations.email.features.propertyPresentation',
+    ],
+    connectHintKey: 'integrations.email.connectHint',
+    isConnected: false,
+    category: 'essential',
+  },
+  {
+    id: 'portals',
+    nameKey: 'integrations.portals.name',
+    descriptionKey: 'integrations.portals.description',
+    featuresKeys: [
+      'integrations.portals.features.autoPublish',
+      'integrations.portals.features.multiPortal',
+      'integrations.portals.features.syncStatus',
+    ],
+    connectHintKey: 'integrations.portals.connectHint',
+    isConnected: false,
+    category: 'essential',
+  },
+  {
+    id: 'crm-import',
+    nameKey: 'integrations.crmImport.name',
+    descriptionKey: 'integrations.crmImport.description',
+    featuresKeys: [
+      'integrations.crmImport.features.csvImport',
+      'integrations.crmImport.features.crmMigration',
+      'integrations.crmImport.features.dataExport',
+    ],
+    connectHintKey: 'integrations.crmImport.connectHint',
+    isConnected: false,
+    category: 'recommended',
+  },
+  {
+    id: 'posthog',
+    nameKey: 'integrations.posthog.name',
+    descriptionKey: 'integrations.posthog.description',
+    featuresKeys: [
+      'integrations.posthog.features.pageViews',
+      'integrations.posthog.features.featureAdoption',
+      'integrations.posthog.features.teamInsights',
+    ],
+    connectHintKey: 'integrations.posthog.connectHint',
+    isConnected: false,
+    category: 'recommended',
+  },
+  {
+    id: 'cloud-storage',
+    nameKey: 'integrations.cloudStorage.name',
+    descriptionKey: 'integrations.cloudStorage.description',
+    featuresKeys: [
+      'integrations.cloudStorage.features.docSync',
+      'integrations.cloudStorage.features.autoOrganize',
+      'integrations.cloudStorage.features.teamAccess',
+    ],
+    connectHintKey: 'integrations.cloudStorage.connectHint',
+    isConnected: false,
+    category: 'recommended',
+  },
+]
+
+function IntegrationCard({ integration }: { integration: Integration }) {
+  const { t } = useTranslation('settings')
+  const [connected, setConnected] = useState(integration.isConnected)
+
+  return (
+    <div className={cn(cardClasses, 'p-5 group')}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-sm font-semibold text-theme-primary">{t(integration.nameKey)}</h3>
+            <span className={cn(
+              'w-2 h-2 rounded-full shrink-0',
+              connected ? 'bg-emerald-500' : 'bg-theme-tertiary'
+            )} />
+            <span className={cn(
+              'text-xs font-medium',
+              connected ? 'text-emerald-500' : 'text-theme-tertiary'
+            )}>
+              {connected ? t('integrations.status.connected') : t('integrations.status.notConnected')}
+            </span>
+          </div>
+          <p className="text-xs text-theme-tertiary mt-1">{t(integration.descriptionKey)}</p>
+        </div>
+        <button
+          onClick={() => setConnected(!connected)}
+          className={cn(
+            'h-8 px-3 rounded-lg text-xs font-medium border transition-colors shrink-0',
+            connected
+              ? 'border-theme-border text-theme-tertiary hover:text-danger hover:border-danger/30'
+              : 'border-accent/30 text-accent hover:bg-accent/5'
+          )}
+        >
+          {connected ? t('integrations.status.disconnect') : t('integrations.status.configure')}
+        </button>
+      </div>
+
+      {/* Features */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {integration.featuresKeys.map((fk) => (
+          <span key={fk} className="text-xs text-theme-secondary px-2.5 py-1 rounded-lg border border-theme-border">
+            {t(fk)}
+          </span>
+        ))}
+      </div>
+
+      {/* Hint */}
+      <p className="text-xs text-theme-tertiary mt-3">{t(integration.connectHintKey)}</p>
+
+    </div>
+  )
+}
+
+function IntegrationsTab() {
+  const { t } = useTranslation('settings')
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-theme-primary">{t('integrations.title')}</h2>
+        <p className="text-sm text-theme-muted mt-1">{t('integrations.subtitle')}</p>
+      </div>
+
+      {/* Essential integrations */}
+      <div>
+        <p className="text-xs font-medium text-theme-tertiary uppercase tracking-wider mb-3">{t('integrations.categories.essential')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {INTEGRATIONS.filter(i => i.category === 'essential').map(integration => (
+            <IntegrationCard key={integration.id} integration={integration} />
+          ))}
+        </div>
+      </div>
+
+      {/* Recommended integrations */}
+      <div>
+        <p className="text-xs font-medium text-theme-tertiary uppercase tracking-wider mb-3">{t('integrations.categories.recommended')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {INTEGRATIONS.filter(i => i.category === 'recommended').map(integration => (
+            <IntegrationCard key={integration.id} integration={integration} />
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -782,9 +1196,9 @@ export default function SettingsPage() {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    'px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+                    'px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap focus:outline-none focus-visible:outline-none',
                     isActive
-                      ? 'border-accent text-accent'
+                      ? 'border-theme-primary text-theme-primary'
                       : 'border-transparent text-theme-tertiary hover:text-theme-primary hover:border-theme-active',
                   )}
                 >
@@ -803,6 +1217,7 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && <NotificationsTab />}
           {activeTab === 'security' && <SecurityTab />}
           {activeTab === 'subscription' && <SubscriptionTab />}
+          {activeTab === 'integrations' && <IntegrationsTab />}
         </div>
       </div>
     </PageTransition>

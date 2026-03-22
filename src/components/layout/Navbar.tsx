@@ -4,6 +4,7 @@ import { Plus, Menu, X, LogOut, LayoutDashboard, HelpCircle, User } from 'lucide
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
+import { useAvatar } from '@/hooks/useAvatar'
 
 const navLinks = [
   { label: 'Acheter', href: '/acheter' },
@@ -13,7 +14,7 @@ const navLinks = [
   { label: 'Services', href: '/services' },
 ]
 
-function UserAvatar({ name, email }: { name: string; email: string }) {
+function UserAvatar({ name, email, avatarUrl }: { name: string; email: string; avatarUrl?: string | null }) {
   const initials = name
     ? name
         .split(' ')
@@ -22,6 +23,16 @@ function UserAvatar({ name, email }: { name: string; email: string }) {
         .toUpperCase()
         .slice(0, 2)
     : email[0].toUpperCase()
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name || email}
+        className="h-9 w-9 rounded-full object-cover"
+      />
+    )
+  }
 
   return (
     <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center">
@@ -34,6 +45,7 @@ export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, profile, loading, signOut, isAgent } = useAuth()
+  const { avatarUrl } = useAvatar()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -106,7 +118,7 @@ export default function Navbar() {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="rounded-full focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               >
-                <UserAvatar name={displayName} email={displayEmail} />
+                <UserAvatar name={displayName} email={displayEmail} avatarUrl={avatarUrl} />
               </button>
 
               {dropdownOpen && (
@@ -204,7 +216,7 @@ export default function Navbar() {
               {user ? (
                 <>
                   <div className="flex items-center gap-3 px-3 py-2">
-                    <UserAvatar name={displayName} email={displayEmail} />
+                    <UserAvatar name={displayName} email={displayEmail} avatarUrl={avatarUrl} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-primary-900 truncate">{displayName}</p>
                       <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>

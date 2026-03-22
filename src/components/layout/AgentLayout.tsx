@@ -29,7 +29,7 @@ function AgentLayoutInner() {
   }, [])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-theme-section">
+    <div className="flex h-screen overflow-hidden bg-theme-section isolate">
       <Sidebar
         mobileOpen={mobileOpen}
         collapsed={sidebarCollapsed}

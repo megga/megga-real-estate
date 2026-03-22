@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { ChevronDown, Loader2 } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { X, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useContacts } from '@/hooks/useContacts'
 import { useAgencyListings } from '@/hooks/useListings'
 import { useCreateTransaction } from '@/hooks/useTransactions'
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from '@/components/ui/dialog'
 
 const MANDATE_OPTIONS = [
   { value: '', label: 'Aucun' },
@@ -16,7 +14,8 @@ const MANDATE_OPTIONS = [
   { value: 'semi_exclusive', label: 'Semi-exclusif' },
 ] as const
 
-const selectClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors appearance-none'
+const labelClasses = 'block text-sm font-medium text-theme-primary mb-1.5'
+const selectClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
 
 interface NewTransactionDialogProps {
   open: boolean
@@ -48,8 +47,12 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
     setShowDetails(false)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  function handleClose() {
+    resetForm()
+    onClose()
+  }
+
+  async function handleSubmit() {
     if (!isValid || !profile) return
 
     try {
@@ -72,62 +75,85 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
     }
   }
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { resetForm(); onClose() } }}>
-      <DialogContent className="max-w-md bg-theme-card border border-theme-border">
-        <DialogHeader>
-          <DialogTitle className="text-theme-primary">{title}</DialogTitle>
-          <DialogDescription className="text-theme-tertiary">
-            Créez un deal dans votre pipeline.
-          </DialogDescription>
-        </DialogHeader>
+  if (!open) return null
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-          {/* Contact */}
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={handleClose}>
+      <div
+        className="bg-theme-card rounded-xl border border-theme-border w-full max-w-md max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-theme-border">
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Contact</label>
-            <div className="relative">
-              <select
-                value={contactId}
-                onChange={(e) => setContactId(e.target.value)}
-                className={selectClasses}
-                required
-              >
-                <option value="">Sélectionner un contact...</option>
-                {(contacts ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.first_name} {c.last_name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary pointer-events-none" />
+            <h3 className="text-base font-semibold text-theme-primary">{title}</h3>
+            <p className="text-xs text-theme-tertiary mt-0.5">Créez un deal dans votre pipeline.</p>
+          </div>
+          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
+            <X className="w-4 h-4 text-theme-tertiary" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="p-5 space-y-4">
+          {/* Contact + Bien */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClasses}>Contact</label>
+              <div className="relative">
+                <select
+                  value={contactId}
+                  onChange={(e) => setContactId(e.target.value)}
+                  className={selectClasses}
+                >
+                  <option value="">Sélectionner...</option>
+                  {(contacts ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.first_name} {c.last_name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className={labelClasses}>Bien <span className="text-theme-muted font-normal">(optionnel)</span></label>
+              <div className="relative">
+                <select
+                  value={propertyId}
+                  onChange={(e) => setPropertyId(e.target.value)}
+                  className={selectClasses}
+                >
+                  <option value="">Sélectionner...</option>
+                  {(listings ?? []).map((l) => (
+                    <option key={l.id} value={l.property_id || l.id}>
+                      {l.title}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary pointer-events-none" />
+              </div>
             </div>
           </div>
 
-          {/* Rôle — inline radio */}
+          {/* Rôle — pill buttons */}
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Rôle</label>
-            <div className="flex items-center gap-4">
+            <label className={labelClasses}>Rôle</label>
+            <div className="flex gap-1.5">
               {(['buyer', 'seller'] as const).map((role) => (
-                <label
+                <button
                   key={role}
-                  className="flex items-center gap-2 cursor-pointer"
+                  type="button"
+                  onClick={() => setContactRole(role)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                    contactRole === role
+                      ? 'bg-theme-active text-theme-primary border-theme-active'
+                      : 'border-theme-border text-theme-tertiary hover:text-theme-secondary'
+                  )}
                 >
-                  <div className={cn(
-                    'h-4 w-4 rounded-full border-2 flex items-center justify-center transition-colors',
-                    contactRole === role ? 'border-accent' : 'border-theme-border'
-                  )}>
-                    {contactRole === role && (
-                      <div className="h-2 w-2 rounded-full bg-accent" />
-                    )}
-                  </div>
-                  <span
-                    className={cn('text-sm', contactRole === role ? 'text-theme-primary' : 'text-theme-secondary')}
-                    onClick={() => setContactRole(role)}
-                  >
-                    {role === 'buyer' ? 'Acheteur' : 'Vendeur'}
-                  </span>
-                </label>
+                  {role === 'buyer' ? 'Acheteur' : 'Vendeur'}
+                </button>
               ))}
             </div>
           </div>
@@ -137,38 +163,17 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
             <button
               type="button"
               onClick={() => setShowDetails(true)}
-              className="text-sm text-theme-tertiary hover:text-theme-primary transition-colors"
+              className="flex items-center gap-1 text-sm text-theme-tertiary hover:text-theme-primary transition-colors"
             >
               + Ajouter des détails
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           ) : (
-            <div className="space-y-4 pt-1 border-t border-theme-border">
-              {/* Bien */}
-              <div className="pt-4">
-                <label className="block text-sm font-medium text-theme-primary mb-1.5">
-                  Bien immobilier <span className="text-theme-tertiary font-normal">(optionnel)</span>
-                </label>
-                <div className="relative">
-                  <select
-                    value={propertyId}
-                    onChange={(e) => setPropertyId(e.target.value)}
-                    className={selectClasses}
-                  >
-                    <option value="">Aucun bien lié</option>
-                    {(listings ?? []).map((l) => (
-                      <option key={l.id} value={l.property_id || l.id}>
-                        {l.title}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary pointer-events-none" />
-                </div>
-              </div>
-
+            <div className="space-y-4 pt-3 border-t border-theme-border-subtle">
               {/* Mandat */}
               <div>
-                <label className="block text-sm font-medium text-theme-primary mb-1.5">
-                  Type de mandat <span className="text-theme-tertiary font-normal">(optionnel)</span>
+                <label className={labelClasses}>
+                  Type de mandat <span className="text-theme-muted font-normal">(optionnel)</span>
                 </label>
                 <div className="relative">
                   <select
@@ -186,40 +191,45 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-theme-primary mb-1.5">
-                  Notes <span className="text-theme-tertiary font-normal">(optionnel)</span>
+                <label className={labelClasses}>
+                  Notes <span className="text-theme-muted font-normal">(optionnel)</span>
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   placeholder="Contexte, détails importants..."
-                  className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-colors resize-none placeholder:text-theme-tertiary"
+                  className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none placeholder:text-theme-tertiary"
                 />
               </div>
             </div>
           )}
+        </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => { resetForm(); onClose() }}
-              className="flex-1 h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={!isValid || createTransaction.isPending}
-              className="flex-1 h-9 rounded-lg text-sm font-medium bg-accent hover:bg-accent/90 text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {createTransaction.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Créer
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 p-5 border-t border-theme-border">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!isValid || createTransaction.isPending}
+            className={cn(
+              'h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2',
+              (!isValid || createTransaction.isPending) && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            {createTransaction.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Créer
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }

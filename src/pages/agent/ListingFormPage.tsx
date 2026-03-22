@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 import {
@@ -79,41 +79,213 @@ const TAG_OPTIONS = [
 
 const stepSchemas = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema] as const
 
+// ─── Mock editable data (Phase A) ───
+
+const MOCK_EDITABLE_LISTINGS: Record<string, ListingFormData> = {
+  al1: {
+    title: 'Appartement lumineux aux Eaux-Vives',
+    type: 'apartment',
+    rooms: 4,
+    bedrooms: 2,
+    bathrooms: 1,
+    surface_m2: 95,
+    floor: 3,
+    total_floors: 5,
+    year_built: 2018,
+    address: 'Rue du Lac 12',
+    city: 'Genève',
+    canton: 'GE',
+    postal_code: '1207',
+    price: 720000,
+    charges_monthly: 350,
+    mandate_type: 'exclusive',
+    features: ['Balcon', 'Vue lac', 'Ascenseur', 'Parking'],
+    photos: [
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=300&fit=crop',
+    ],
+    description: 'Magnifique appartement de 4 pièces entièrement rénové, situé au cœur du quartier des Eaux-Vives à Genève. Luminosité exceptionnelle grâce à ses grandes baies vitrées orientées sud-ouest, offrant une vue dégagée sur le lac Léman.',
+    tags: ['Exclusif', 'Coup de cœur'],
+  },
+  al2: {
+    title: 'Villa contemporaine Cologny',
+    type: 'villa',
+    rooms: 8,
+    bedrooms: 5,
+    bathrooms: 3,
+    surface_m2: 320,
+    floor: undefined,
+    total_floors: 2,
+    year_built: 2021,
+    address: 'Chemin des Crêts 28',
+    city: 'Cologny',
+    canton: 'GE',
+    postal_code: '1223',
+    price: 4500000,
+    charges_monthly: 800,
+    mandate_type: 'exclusive',
+    features: ['Piscine', 'Jardin', 'Garage', 'Vue lac', 'Climatisation', 'Minergie'],
+    photos: [
+      'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop',
+    ],
+    description: 'Exceptionnelle villa contemporaine de 8 pièces à Cologny, avec vue panoramique sur le lac Léman et les Alpes. Architecture moderne signée, finitions haut de gamme. Jardin paysager de 1200 m² avec piscine à débordement.',
+    tags: ['Exclusif', 'Hot price'],
+  },
+  al3: {
+    title: 'Loft industriel Carouge',
+    type: 'apartment',
+    rooms: 3,
+    bedrooms: 1,
+    bathrooms: 1,
+    surface_m2: 78,
+    floor: 2,
+    total_floors: 3,
+    year_built: 1920,
+    address: 'Rue Ancienne 34',
+    city: 'Carouge',
+    canton: 'GE',
+    postal_code: '1227',
+    price: 580000,
+    charges_monthly: 280,
+    mandate_type: 'simple',
+    features: ['Cheminée', 'Cave'],
+    photos: [
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop',
+    ],
+    description: 'Superbe loft au cachet industriel dans le quartier historique de Carouge. Poutres apparentes, grandes hauteurs sous plafond, sol en béton ciré. Un espace atypique et plein de caractère.',
+    tags: ['Nouveau'],
+  },
+  al4: {
+    title: 'Maison de charme Vandoeuvres',
+    type: 'house',
+    rooms: 6,
+    bedrooms: 4,
+    bathrooms: 2,
+    surface_m2: 210,
+    floor: undefined,
+    total_floors: 2,
+    year_built: 1965,
+    address: 'Route de Vandoeuvres 56',
+    city: 'Vandoeuvres',
+    canton: 'GE',
+    postal_code: '1253',
+    price: 2100000,
+    charges_monthly: 500,
+    mandate_type: 'exclusive',
+    features: ['Jardin', 'Garage', 'Cheminée', 'Cave'],
+    photos: [
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&h=300&fit=crop',
+    ],
+    description: 'Charmante maison de village rénovée avec goût, située dans le paisible village de Vandoeuvres. Grand jardin arboré de 600 m², double garage, cave voûtée. Calme absolu à 10 minutes du centre de Genève.',
+    tags: [],
+  },
+  al5: {
+    title: 'Penthouse vue lac Montreux', type: 'apartment', rooms: 5, bedrooms: 3, bathrooms: 2, surface_m2: 145,
+    floor: 6, total_floors: 6, year_built: 2015, address: 'Avenue du Casino 15', city: 'Montreux', canton: 'VD',
+    postal_code: '1820', price: 1950000, charges_monthly: 600, mandate_type: 'exclusive',
+    features: ['Terrasse', 'Vue lac', 'Ascenseur', 'Climatisation', 'Parking'],
+    photos: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&h=300&fit=crop'],
+    description: 'Penthouse exceptionnel avec terrasse panoramique et vue imprenable sur le lac Léman et les Alpes. Finitions luxueuses, domotique intégrée.', tags: ['Exclusif'],
+  },
+  al6: {
+    title: 'Studio rénové Plainpalais', type: 'apartment', rooms: 1.5, bedrooms: 1, bathrooms: 1, surface_m2: 32,
+    floor: 2, total_floors: 4, year_built: 1960, address: 'Rue de Carouge 78', city: 'Genève', canton: 'GE',
+    postal_code: '1205', price: 385000, charges_monthly: 180, mandate_type: 'simple',
+    features: ['Cave'], photos: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop'],
+    description: 'Studio entièrement rénové au cœur de Plainpalais. Idéal premier achat ou investissement locatif. Rendement attractif.', tags: ['Investissement', 'Première acquisition'],
+  },
+  al7: {
+    title: 'Terrain constructible Meyrin', type: 'land', rooms: 0 as unknown as number, bedrooms: 0 as unknown as number, bathrooms: 0 as unknown as number, surface_m2: 850,
+    floor: undefined, total_floors: undefined, year_built: undefined, address: 'Chemin de la Golette', city: 'Meyrin', canton: 'GE',
+    postal_code: '1217', price: 1200000, charges_monthly: undefined, mandate_type: 'exclusive',
+    features: [], photos: ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&h=300&fit=crop'],
+    description: 'Terrain constructible de 850 m² en zone villas à Meyrin. Permis de construire en cours. Orientation sud, vue dégagée.', tags: [],
+  },
+  al8: {
+    title: 'Appartement familial Champel', type: 'apartment', rooms: 5, bedrooms: 3, bathrooms: 2, surface_m2: 120,
+    floor: 4, total_floors: 6, year_built: 2005, address: 'Avenue de Champel 42', city: 'Genève', canton: 'GE',
+    postal_code: '1206', price: 890000, charges_monthly: 420, mandate_type: 'exclusive',
+    features: ['Balcon', 'Ascenseur', 'Parking', 'Cave', 'Buanderie'],
+    photos: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=300&fit=crop'],
+    description: 'Bel appartement familial de 5 pièces à Champel, quartier résidentiel prisé. Proximité écoles internationales et parc Bertrand.', tags: ['Idéal famille'],
+  },
+  al9: {
+    title: 'Local commercial Rive', type: 'commercial', rooms: 0 as unknown as number, bedrooms: 0 as unknown as number, bathrooms: 1, surface_m2: 95,
+    floor: 0, total_floors: 5, year_built: 1990, address: 'Rue du Rhône 88', city: 'Genève', canton: 'GE',
+    postal_code: '1204', price: 750000, charges_monthly: 350, mandate_type: 'simple',
+    features: ['Climatisation'], photos: ['https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop'],
+    description: 'Local commercial en rez-de-chaussée sur la prestigieuse Rue du Rhône. Idéal boutique, galerie ou bureau de prestige.', tags: [],
+  },
+  al10: {
+    title: 'Duplex avec terrasse Nyon', type: 'apartment', rooms: 5.5, bedrooms: 3, bathrooms: 2, surface_m2: 140,
+    floor: 3, total_floors: 4, year_built: 2022, address: 'Route de Saint-Cergue 12', city: 'Nyon', canton: 'VD',
+    postal_code: '1260', price: 1100000, charges_monthly: 450, mandate_type: 'exclusive',
+    features: ['Terrasse', 'Parking', 'Ascenseur', 'Minergie'],
+    photos: ['https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=400&h=300&fit=crop'],
+    description: 'Magnifique duplex neuf avec terrasse de 25 m² dans résidence Minergie à Nyon. Vue sur le lac et le Mont-Blanc.', tags: ['Nouveau'],
+  },
+  al11: {
+    title: 'Chalet alpin Verbier', type: 'house', rooms: 7, bedrooms: 4, bathrooms: 3, surface_m2: 250,
+    floor: undefined, total_floors: 3, year_built: 2010, address: 'Route de Médran 45', city: 'Verbier', canton: 'VS',
+    postal_code: '1936', price: 3200000, charges_monthly: 700, mandate_type: 'exclusive',
+    features: ['Cheminée', 'Garage', 'Jardin', 'Vue montagne', 'Balcon'],
+    photos: ['https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=400&h=300&fit=crop'],
+    description: 'Superbe chalet alpin à Verbier, au pied des pistes. Construction traditionnelle avec finitions modernes. Wellness avec sauna et jacuzzi.', tags: ['Exclusif'],
+  },
+  al12: {
+    title: 'Attique moderne Lausanne', type: 'apartment', rooms: 4.5, bedrooms: 2, bathrooms: 1, surface_m2: 110,
+    floor: 5, total_floors: 5, year_built: 2019, address: 'Avenue de la Gare 20', city: 'Lausanne', canton: 'VD',
+    postal_code: '1003', price: 1350000, charges_monthly: 520, mandate_type: 'simple',
+    features: ['Terrasse', 'Ascenseur', 'Vue lac', 'Parking'],
+    photos: ['https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=400&h=300&fit=crop'],
+    description: 'Attique moderne au dernier étage avec terrasse de 30 m² et vue lac. Quartier central de Lausanne, proche gare et commerces.', tags: ['Coup de cœur'],
+  },
+}
+
 // ─── Stepper ───
 
-function Stepper({ current, completed }: { current: number; completed: number[] }) {
+function Stepper({ current, completed, onStepClick }: { current: number; completed: number[]; onStepClick?: (step: number) => void }) {
   return (
-    <div className="flex items-center justify-between mb-8">
-      {STEPS.map((step, idx) => {
+    <div className="flex items-center gap-6 sm:gap-8 mb-8">
+      {STEPS.map((step) => {
         const isCompleted = completed.includes(step.id)
         const isCurrent = current === step.id
         return (
-          <div key={step.id} className="flex items-center flex-1 last:flex-initial">
-            <div className="flex flex-col items-center gap-1.5">
-              <div
-                className={cn(
-                  'h-3 w-3 rounded-full transition-colors',
-                  isCompleted ? 'bg-emerald-400' : isCurrent ? 'bg-accent' : 'bg-theme-border'
-                )}
-              />
-              <span
-                className={cn(
-                  'text-[11px] font-medium text-center whitespace-nowrap hidden sm:block',
-                  isCurrent ? 'text-theme-primary' : isCompleted ? 'text-theme-secondary' : 'text-theme-tertiary'
-                )}
-              >
+          <button
+            key={step.id}
+            type="button"
+            onClick={() => onStepClick?.(step.id)}
+            className={cn(
+              'flex flex-col items-center gap-1.5 pb-0',
+              onStepClick ? 'cursor-pointer' : 'cursor-default'
+            )}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className={cn(
+                'text-sm tabular-nums',
+                isCurrent ? 'text-theme-primary font-semibold' :
+                isCompleted ? 'text-theme-primary font-medium' :
+                'text-theme-muted'
+              )}>
+                {step.id}.
+              </span>
+              <span className={cn(
+                'text-sm whitespace-nowrap hidden sm:block',
+                isCurrent ? 'text-theme-primary font-semibold' :
+                isCompleted ? 'text-theme-primary font-medium' :
+                'text-theme-muted'
+              )}>
                 {step.label}
               </span>
             </div>
-            {idx < STEPS.length - 1 && (
-              <div
-                className={cn(
-                  'flex-1 h-px mx-3',
-                  isCompleted ? 'bg-emerald-400' : 'bg-theme-border'
-                )}
-              />
-            )}
-          </div>
+            <div className={cn(
+              'h-0.5 w-full rounded-full transition-colors',
+              isCurrent || isCompleted ? 'bg-theme-primary' : 'bg-transparent'
+            )} />
+          </button>
         )
       })}
     </div>
@@ -605,11 +777,17 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
 
 export default function ListingFormPage() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const isEditMode = Boolean(id)
+  const existingData = id ? MOCK_EDITABLE_LISTINGS[id] : undefined
+
   const [currentStep, setCurrentStep] = useState(1)
-  const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  const [completedSteps, setCompletedSteps] = useState<number[]>(
+    isEditMode ? [1, 2, 3, 4, 5] : []
+  )
 
   const form = useForm<ListingFormData>({
-    defaultValues: {
+    defaultValues: existingData ?? {
       title: '',
       type: undefined,
       rooms: undefined as unknown as number,
@@ -633,6 +811,13 @@ export default function ListingFormPage() {
     },
     mode: 'onTouched',
   })
+
+  // Redirect if edit mode but listing not found
+  useEffect(() => {
+    if (isEditMode && !existingData) {
+      navigate('/dashboard/listings')
+    }
+  }, [isEditMode, existingData, navigate])
 
   async function validateCurrentStep(): Promise<boolean> {
     const schema = stepSchemas[currentStep - 1]
@@ -708,13 +893,21 @@ export default function ListingFormPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold text-theme-primary">Nouveau bien</h1>
-          <p className="text-sm text-theme-tertiary">Étape {currentStep} sur 5</p>
+          <h1 className="text-2xl font-semibold text-theme-primary">
+            {isEditMode ? 'Modifier le bien' : 'Nouveau bien'}
+          </h1>
+          <p className="text-sm text-theme-tertiary">
+            {isEditMode ? existingData?.title ?? '' : `Étape ${currentStep} sur 5`}
+          </p>
         </div>
       </div>
 
       {/* Stepper */}
-      <Stepper current={currentStep} completed={completedSteps} />
+      <Stepper
+        current={currentStep}
+        completed={completedSteps}
+        onStepClick={isEditMode ? (step) => setCurrentStep(step) : undefined}
+      />
 
       {/* Form card */}
       <div className="rounded-xl border border-theme-border p-6 md:p-8">
@@ -770,7 +963,7 @@ export default function ListingFormPage() {
               className="gap-2"
             >
               <Send className="h-4 w-4" />
-              Publier l'annonce
+              {isEditMode ? 'Enregistrer les modifications' : 'Publier l\'annonce'}
             </Button>
           )}
         </div>
