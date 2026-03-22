@@ -34,6 +34,15 @@ import ServicesPage from '@/pages/public/ServicesPage'
 import PublierPage from '@/pages/public/PublierPage'
 import ResetPasswordPage from '@/pages/public/ResetPasswordPage'
 import NotFoundPage from '@/pages/public/NotFoundPage'
+import SellerLayout from '@/pages/particulier/SellerLayout'
+import MonDossierPage from '@/pages/particulier/MonDossierPage'
+import MesVisitesPage from '@/pages/particulier/MesVisitesPage'
+import MesOffresPage from '@/pages/particulier/MesOffresPage'
+import MesDocumentsPage from '@/pages/particulier/MesDocumentsPage'
+import MesMessagesPage from '@/pages/particulier/MesMessagesPage'
+import AnalysePage from '@/pages/particulier/AnalysePage'
+import MonProfilPage from '@/pages/particulier/MonProfilPage'
+import PortalGateway from '@/pages/particulier/PortalGateway'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +103,27 @@ export default function App() {
               <Route path="documents/templates/new" element={<CustomTemplatePage />} />
               <Route path="documents/view" element={<DocumentViewer />} />
               <Route path="settings" element={<SettingsPage />} />
+            </Route>
+
+            {/* Portail vendeur — accès direct (dev/test) */}
+            <Route path="/portail" element={<SellerLayout />}>
+              <Route index element={<MonDossierPage />} />
+              <Route path="visites" element={<MesVisitesPage />} />
+              <Route path="offres" element={<MesOffresPage />} />
+              <Route path="documents" element={<MesDocumentsPage />} />
+              <Route path="messages" element={<MesMessagesPage />} />
+              <Route path="analyse" element={<AnalysePage />} />
+              <Route path="profil" element={<MonProfilPage />} />
+            </Route>
+
+            {/* Portail vendeur — accès tokénisé (production) */}
+            <Route path="/portail/:token" element={<PortalGateway />}>
+              <Route index element={<MonDossierPage />} />
+              <Route path="visites" element={<MesVisitesPage />} />
+              <Route path="offres" element={<MesOffresPage />} />
+              <Route path="documents" element={<MesDocumentsPage />} />
+              <Route path="messages" element={<MesMessagesPage />} />
+              <Route path="analyse" element={<AnalysePage />} />
             </Route>
 
             {/* 404 */}
