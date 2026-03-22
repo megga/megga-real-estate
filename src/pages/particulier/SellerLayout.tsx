@@ -3,10 +3,10 @@ import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
   Home, Eye, HandCoins, FileText, MessageCircle,
   Menu, X, PanelLeftClose, PanelLeftOpen,
-  Phone, Mail, LogOut,
+  Phone, Mail, LogOut, Moon, Sun,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ThemeProvider } from '@/hooks/useTheme'
+import { ThemeProvider, useTheme } from '@/hooks/useTheme'
 import { MOCK_SELLER_DATA } from '@/lib/mockSellerData'
 
 // ── Nav items ────────────────────────────────────────────────────────────
@@ -49,6 +49,7 @@ function CollapsedTooltip({ show, children }: { show: boolean; children: React.R
 
 function SellerLayoutInner() {
   const location = useLocation()
+  const { theme, toggleTheme } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
@@ -191,6 +192,29 @@ function SellerLayoutInner() {
             </div>
           </div>
         )}
+
+        {/* Theme toggle */}
+        <div className="relative"
+          onMouseEnter={() => isCol ? setHoveredItem('theme') : undefined}
+          onMouseLeave={() => setHoveredItem(null)}
+        >
+          <button
+            onClick={toggleTheme}
+            className={cn(navRow(isCol, false), 'w-full')}
+          >
+            {theme === 'light' ? (
+              <Moon className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
+            ) : (
+              <Sun className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
+            )}
+            <span className={fadeLabel(isCol)}>
+              {theme === 'light' ? 'Mode sombre' : 'Mode clair'}
+            </span>
+          </button>
+          <CollapsedTooltip show={isCol && hoveredItem === 'theme'}>
+            {theme === 'light' ? 'Mode sombre' : 'Mode clair'}
+          </CollapsedTooltip>
+        </div>
 
         {/* Logout placeholder */}
         <div className="relative"
