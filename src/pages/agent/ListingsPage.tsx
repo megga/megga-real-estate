@@ -177,7 +177,7 @@ export default function ListingsPage() {
               <div key={listing.id} onClick={() => setSelectedListing(listing)} className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors cursor-pointer">
                 {/* Photo */}
                 <div className="relative aspect-[4/3] overflow-hidden">
-                  <img src={listing.photo} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <img src={listing.photo} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
                   <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white text-[11px] font-medium px-2 py-1 rounded-md">
                     <div className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[listing.status])} />
                     {PROPERTY_STATUS_LABELS[listing.status]}
@@ -226,7 +226,7 @@ export default function ListingsPage() {
                   i < paginated.length - 1 && 'border-b border-theme-border'
                 )}
               >
-                <img src={listing.photo} alt={listing.title} className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                <img src={listing.photo} alt={listing.title} className="h-10 w-10 rounded-lg object-cover shrink-0" loading="lazy" decoding="async" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">{listing.title}</p>
                   <p className="text-xs text-theme-tertiary truncate">{listing.address}, {listing.city}</p>
