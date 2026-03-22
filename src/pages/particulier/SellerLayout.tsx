@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeProvider, useTheme } from '@/hooks/useTheme'
+import { CopilotContextProvider } from '@/hooks/useCopilotContext'
+import CopilotPanel from '@/components/ai-copilot/CopilotPanel'
 import { MOCK_SELLER_DATA } from '@/lib/mockSellerData'
 
 // ── Nav items ────────────────────────────────────────────────────────────
@@ -65,7 +67,7 @@ function SellerLayoutInner() {
     'flex items-center h-9 rounded-lg cursor-pointer select-none transition-colors duration-150',
     isCol ? 'mx-auto justify-center w-10' : 'mx-2 px-2.5 gap-2.5 text-sm',
     active
-      ? 'bg-accent/8 text-accent font-medium'
+      ? 'bg-theme-hover text-accent font-medium'
       : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
   )
 
@@ -282,6 +284,9 @@ function SellerLayoutInner() {
           <Outlet />
         </main>
       </div>
+
+      {/* MEGGA AI */}
+      <CopilotPanel />
     </div>
   )
 }
@@ -291,7 +296,9 @@ function SellerLayoutInner() {
 export default function SellerLayout() {
   return (
     <ThemeProvider>
-      <SellerLayoutInner />
+      <CopilotContextProvider>
+        <SellerLayoutInner />
+      </CopilotContextProvider>
     </ThemeProvider>
   )
 }

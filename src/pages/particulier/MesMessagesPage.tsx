@@ -81,7 +81,7 @@ export default function MesMessagesPage() {
   const agentInitials = agent.name.split(' ').map(n => n[0]).join('')
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)] md:h-[calc(100vh-5rem)]">
+    <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-7rem)] md:h-[calc(100vh-5rem)]">
       {/* Header */}
       <div className="shrink-0 mb-4">
         <h1 className="text-2xl font-semibold text-theme-primary">Messages</h1>
@@ -99,10 +99,6 @@ export default function MesMessagesPage() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-theme-primary">{agent.name}</p>
             <p className="text-[10px] text-theme-tertiary">MEGGA Immobilier · Votre agent</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[10px] text-theme-tertiary">En ligne</span>
           </div>
         </div>
 
@@ -145,7 +141,7 @@ export default function MesMessagesPage() {
                           'max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed',
                           isAgent
                             ? 'border border-theme-border text-theme-primary rounded-bl-md'
-                            : 'bg-accent/15 text-theme-primary border border-accent/20 rounded-br-md'
+                            : 'bg-theme-hover text-theme-primary border border-theme-border rounded-br-md'
                         )}
                       >
                         <p className="whitespace-pre-wrap">{msg.content}</p>

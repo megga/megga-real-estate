@@ -205,3 +205,36 @@
 .mapboxgl-ctrl-group button:hover .mapboxgl-ctrl-icon {
   opacity: 0.8;
 }
+
+/* ── Print styles (Analyse marché export) ─────────────────────────────── */
+
+@media print {
+  /* Hide sidebar, mobile header, MEGGA AI button */
+  aside, header, [class*="fixed"][class*="bottom"], [class*="z-50"] {
+    display: none !important;
+  }
+
+  /* Full width content */
+  .flex-1 {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove borders/backgrounds for clean print */
+  body, [data-theme] {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Force light colors for print */
+  * {
+    color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Page breaks */
+  .rounded-xl {
+    break-inside: avoid;
+  }
+}
