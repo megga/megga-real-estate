@@ -1,7 +1,12 @@
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
+import { MessageSquare, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MOCK_SELLER_DATA, type SellerOffer } from '@/lib/mockSellerData'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
+
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
 
 function formatCHF(amount: number): string {
   return `CHF ${amount.toLocaleString('fr-CH').replace(/,/g, "'")}`
@@ -33,11 +38,12 @@ const STATUS_CONFIG: Record<SellerOffer['status'], { label: string; color: strin
 
 // ── Offer card ───────────────────────────────────────────────────────────
 
-function OfferCard({ offer, askingPrice }: { offer: SellerOffer; askingPrice: number }) {
+function OfferCard({ offer, askingPrice, onReply }: { offer: SellerOffer; askingPrice: number; onReply: (offer: SellerOffer) => void }) {
   const status = STATUS_CONFIG[offer.status]
   const diffPercent = ((offer.amount - askingPrice) / askingPrice * 100).toFixed(1)
   const diffAmount = offer.amount - askingPrice
   const isBelow = diffAmount < 0
+  const isActive = offer.status === 'pending' || offer.status === 'counter_offer'
 
   return (
     <div className="rounded-xl border border-theme-border p-5 hover:border-theme-active transition-colors">
@@ -86,7 +92,109 @@ function OfferCard({ offer, askingPrice }: { offer: SellerOffer; askingPrice: nu
           <p className="text-sm text-theme-secondary leading-relaxed">{offer.conditions}</p>
         </div>
       )}
+
+      {/* Action — Répondre à mon agent (only on active offers) */}
+      {isActive && (
+        <div className="mt-4 pt-3 border-t border-theme-border-subtle">
+          <button
+            onClick={() => onReply(offer)}
+            className={cn('h-8 px-3.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-1.5', FOCUS_RING)}
+          >
+            <MessageSquare className="w-3 h-3" />
+            Répondre à mon agent
+          </button>
+        </div>
+      )}
     </div>
+  )
+}
+
+// ── Reply modal ──────────────────────────────────────────────────────────
+
+function ReplyModal({ offer, onClose, onSend }: { offer: SellerOffer; onClose: () => void; onSend: (message: string) => void }) {
+  const [message, setMessage] = useState(
+    `Concernant l'offre de ${formatCHF(offer.amount)}, je souhaite `
+  )
+  const [sent, setSent] = useState(false)
+
+  function handleSend() {
+    if (!message.trim()) return
+    onSend(message)
+    setSent(true)
+    setTimeout(() => {
+      onClose()
+    }, 2000)
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+    >
+      <div className="absolute inset-0 bg-black/50 animate-in fade-in-0 duration-150" />
+      <div
+        className="relative bg-theme-elevated rounded-xl border border-theme-border ring-1 ring-white/5 w-full max-w-md mx-4 p-6 animate-in fade-in-0 zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-theme-primary">Répondre à votre agent</h3>
+            <p className="text-xs text-theme-muted mt-0.5">
+              Offre de {formatCHF(offer.amount)}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className={cn('h-7 w-7 flex items-center justify-center rounded-lg text-theme-muted hover:text-theme-primary hover:bg-theme-hover transition-colors', FOCUS_RING)}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {sent ? (
+          <div className="py-6 text-center">
+            <p className="text-sm text-theme-primary font-medium">Message envoyé</p>
+            <p className="text-xs text-theme-muted mt-1">Votre agent vous répondra dans les meilleurs délais.</p>
+          </div>
+        ) : (
+          <>
+            <textarea
+              autoFocus
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+              className={cn(
+                'w-full px-3 py-2.5 text-sm bg-transparent border border-theme-border rounded-lg resize-none text-theme-primary placeholder:text-theme-muted',
+                'focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent'
+              )}
+              placeholder="Votre message..."
+            />
+            <p className="text-[10px] text-theme-muted mt-1.5">
+              Ce message sera envoyé à Gregory Lyonnet via la messagerie du portail.
+            </p>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={handleSend}
+                disabled={!message.trim()}
+                className={cn(
+                  'h-8 px-4 rounded-lg text-xs font-medium border border-theme-border transition-colors',
+                  FOCUS_RING,
+                  message.trim()
+                    ? 'text-theme-secondary hover:text-theme-primary hover:border-theme-active'
+                    : 'text-theme-muted cursor-not-allowed'
+                )}
+              >
+                Envoyer
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body
   )
 }
 
@@ -94,6 +202,7 @@ function OfferCard({ offer, askingPrice }: { offer: SellerOffer; askingPrice: nu
 
 export default function MesOffresPage() {
   const { property, offers } = MOCK_SELLER_DATA
+  const [replyOffer, setReplyOffer] = useState<SellerOffer | null>(null)
 
   // Tri : pending et counter_offer d'abord, puis par date décroissante
   const sortedOffers = [...offers].sort((a, b) => {
@@ -149,7 +258,7 @@ export default function MesOffresPage() {
       {/* Liste des offres */}
       <div className="space-y-3">
         {sortedOffers.map((offer) => (
-          <OfferCard key={offer.id} offer={offer} askingPrice={property.price} />
+          <OfferCard key={offer.id} offer={offer} askingPrice={property.price} onReply={setReplyOffer} />
         ))}
       </div>
 
@@ -157,6 +266,15 @@ export default function MesOffresPage() {
       <p className="text-[10px] text-theme-muted text-center pt-2">
         Les informations sur les acquéreurs sont anonymisées pour protéger la confidentialité des parties.
       </p>
+
+      {/* Reply modal */}
+      {replyOffer && (
+        <ReplyModal
+          offer={replyOffer}
+          onClose={() => setReplyOffer(null)}
+          onSend={() => { /* mock — in production, sends to messages */ }}
+        />
+      )}
     </div>
   )
 }

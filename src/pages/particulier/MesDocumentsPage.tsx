@@ -101,10 +101,16 @@ export default function MesDocumentsPage() {
   const [helpDocId, setHelpDocId] = useState<string | null>(null)
   const [validatedCollapsed, setValidatedCollapsed] = useState(true)
   const [animatedPct, setAnimatedPct] = useState(0)
+  const [uploadedIds, setUploadedIds] = useState<Set<string>>(new Set())
+  const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const generalFileRef = useRef<HTMLInputElement | null>(null)
 
-  const docs = MOCK_DOCUMENTS
+  // Apply uploads — change missing → pending
+  const docs = MOCK_DOCUMENTS.map(d =>
+    uploadedIds.has(d.id) ? { ...d, status: 'pending' as const, uploaded_at: new Date().toISOString(), size_kb: 850 } : d
+  )
   const validated = docs.filter(d => d.status === 'validated').length
   const pending = docs.filter(d => d.status === 'pending').length
   const missing = docs.filter(d => d.status === 'missing').length
@@ -135,16 +141,30 @@ export default function MesDocumentsPage() {
     }
   })()
 
+  // Upload simulation
+  const simulateUpload = useCallback((docId: string, docName: string) => {
+    setUploadingId(docId)
+    setTimeout(() => {
+      setUploadingId(null)
+      setUploadedIds(prev => new Set(prev).add(docId))
+      setToast(`${docName} déposé — en attente de vérification`)
+      setTimeout(() => setToast(null), 3500)
+    }, 1500)
+  }, [])
+
   const handleGeneralDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setDragOverGeneral(false)
+    setToast('Document déposé — en attente de vérification')
+    setTimeout(() => setToast(null), 3500)
   }, [])
 
-  const handleDropOnDocument = useCallback((e: React.DragEvent, _docId: string) => {
+  const handleDropOnDocument = useCallback((e: React.DragEvent, docId: string) => {
     e.preventDefault()
     setDragTarget(null)
-    void _docId
-  }, [])
+    const doc = MOCK_DOCUMENTS.find(d => d.id === docId)
+    if (doc) simulateUpload(docId, doc.name)
+  }, [simulateUpload])
 
   const helpDoc = helpDocId ? docs.find(d => d.id === helpDocId) : null
   const helpInfo = helpDoc ? DOCUMENT_HELP[helpDoc.slug] : null
@@ -276,9 +296,17 @@ export default function MesDocumentsPage() {
         )}
 
         {/* CTA for missing */}
-        {doc.status === 'missing' && (
+        {/* Loading state */}
+        {uploadingId === doc.id && (
           <div className="flex items-center gap-2 shrink-0">
-            <input ref={el => { fileInputRefs.current[doc.id] = el }} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
+            <div className="h-4 w-4 border-2 border-theme-border border-t-theme-primary rounded-full animate-spin" />
+            <span className="text-xs text-theme-muted">Envoi...</span>
+          </div>
+        )}
+
+        {doc.status === 'missing' && uploadingId !== doc.id && (
+          <div className="flex items-center gap-2 shrink-0">
+            <input ref={el => { fileInputRefs.current[doc.id] = el }} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={() => simulateUpload(doc.id, doc.name)} />
             <button
               onClick={() => fileInputRefs.current[doc.id]?.click()}
               className={cn('h-8 px-4 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors', FOCUS_RING)}
@@ -456,6 +484,16 @@ export default function MesDocumentsPage() {
       )}
 
       {/* Modal */}
+      {/* Toast notification */}
+      {toast && createPortal(
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] animate-in fade-in-0 slide-in-from-bottom-4 duration-200">
+          <div className="bg-theme-primary text-theme-inverse text-sm px-4 py-2.5 rounded-lg border border-theme-border-subtle">
+            {toast}
+          </div>
+        </div>,
+        document.body
+      )}
+
       {helpDocId && helpDoc && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"

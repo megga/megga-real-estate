@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import {
   Eye, CalendarDays, HandCoins, Clock,
-  Mail, Check, ChevronRight,
+  Mail, Check, ChevronDown,
+  FileText, ArrowRight,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { MOCK_SELLER_DATA, MANDATE_STEPS, getStepIndex } from '@/lib/mockSellerData'
 
@@ -18,9 +21,82 @@ const ACTIVITY_ICONS: Record<string, React.ElementType> = {
   price_update: Clock,
 }
 
+// ── Notifications data (derived from mock) ───────────────────────────────
+
+interface Notification {
+  id: string
+  label: string
+  description: string
+  link: string
+  linkLabel: string
+  isNew: boolean
+}
+
+function getNotifications(): Notification[] {
+  const { visits, offers } = MOCK_SELLER_DATA
+  const notifs: Notification[] = []
+
+  // Upcoming visits to confirm
+  const upcoming = visits.filter(v => v.status === 'planned' || v.status === 'confirmed')
+  if (upcoming.length > 0) {
+    const nextVisit = upcoming[0]
+    const d = new Date(nextVisit.date)
+    notifs.push({
+      id: 'visit-upcoming',
+      label: 'Visite à venir',
+      description: `Le ${d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' })} à ${d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}`,
+      link: '/portail/visites',
+      linkLabel: 'Voir les visites',
+      isNew: true,
+    })
+  }
+
+  // Active offers
+  const activeOffers = offers.filter(o => o.status === 'pending' || o.status === 'counter_offer')
+  if (activeOffers.length > 0) {
+    notifs.push({
+      id: 'offers-active',
+      label: `${activeOffers.length} offre${activeOffers.length > 1 ? 's' : ''} en cours`,
+      description: `Meilleure offre : CHF ${Math.max(...activeOffers.map(o => o.amount)).toLocaleString('fr-CH').replace(/,/g, "'")}`,
+      link: '/portail/offres',
+      linkLabel: 'Voir les offres',
+      isNew: true,
+    })
+  }
+
+  // Missing documents
+  notifs.push({
+    id: 'docs-missing',
+    label: '2 documents manquants',
+    description: 'Diagnostic amiante et certificat CECB à fournir',
+    link: '/portail/documents',
+    linkLabel: 'Voir les documents',
+    isNew: false,
+  })
+
+  return notifs
+}
+
+// ── Next action for seller ───────────────────────────────────────────────
+
+function getNextAction(): { label: string; description: string; link: string; linkLabel: string } {
+  // Priority: missing docs > confirm visit > respond to offer
+  return {
+    label: 'Fournir le diagnostic amiante',
+    description: 'Ce document est nécessaire avant la signature chez le notaire.',
+    link: '/portail/documents',
+    linkLabel: 'Déposer le document',
+  }
+}
+
 export default function MonDossierPage() {
   const { property, kpis, activities } = MOCK_SELLER_DATA
   const currentStepIdx = getStepIndex(kpis.current_step)
+  const nextStepLabel = currentStepIdx < MANDATE_STEPS.length - 1 ? MANDATE_STEPS[currentStepIdx + 1].label : null
+  const notifications = getNotifications()
+  const nextAction = getNextAction()
+  const [showAllActivity, setShowAllActivity] = useState(false)
+  const displayedActivities = showAllActivity ? activities : activities.slice(0, 5)
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -42,6 +118,50 @@ export default function MonDossierPage() {
           <p className="text-xs text-theme-muted">
             {property.rooms} pièces · {property.surface_m2} m² · {property.city} ({property.canton})
           </p>
+        </div>
+      </div>
+
+      {/* Notifications — what's new */}
+      {notifications.length > 0 && (
+        <div className="rounded-xl border border-theme-border p-5">
+          <h2 className="text-[10px] text-theme-muted uppercase tracking-wider mb-3">Nouveautés</h2>
+          <div className="space-y-0">
+            {notifications.map((notif, i) => (
+              <div key={notif.id} className={cn('flex items-center gap-3 py-2.5', i < notifications.length - 1 && 'border-b border-theme-border-subtle')}>
+                {notif.isNew && <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />}
+                {!notif.isNew && <span className="w-1.5 h-1.5 rounded-full bg-theme-border shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-theme-primary">{notif.label}</p>
+                  <p className="text-xs text-theme-muted mt-0.5">{notif.description}</p>
+                </div>
+                <Link
+                  to={notif.link}
+                  className={cn('text-xs text-theme-muted hover:text-theme-secondary transition-colors flex items-center gap-0.5 shrink-0', FOCUS_RING, 'rounded')}
+                >
+                  {notif.linkLabel}
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Next action — what the seller should do */}
+      <div className="rounded-xl border border-theme-border p-4">
+        <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-2">Prochaine action recommandée</p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-theme-primary">{nextAction.label}</p>
+            <p className="text-xs text-theme-muted mt-0.5">{nextAction.description}</p>
+          </div>
+          <Link
+            to={nextAction.link}
+            className={cn('h-8 px-3.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors shrink-0 flex items-center gap-1.5', FOCUS_RING)}
+          >
+            <FileText className="w-3 h-3" />
+            {nextAction.linkLabel}
+          </Link>
         </div>
       </div>
 
@@ -81,31 +201,23 @@ export default function MonDossierPage() {
             )
           })}
         </div>
+        {nextStepLabel && (
+          <p className="text-xs text-theme-muted mt-3">
+            Prochaine étape : <span className="text-theme-secondary font-medium">{nextStepLabel}</span>
+          </p>
+        )}
       </div>
 
-      {/* Reassurance — subtil, monochrome */}
-      <div className="rounded-xl border border-theme-border p-4">
-        <p className="text-sm text-theme-secondary">Votre bien est entre de bonnes mains</p>
-        <p className="text-xs text-theme-muted mt-1">
-          {kpis.visits_total} visites effectuées et {kpis.offers_total} offre{kpis.offers_total > 1 ? 's' : ''} reçue{kpis.offers_total > 1 ? 's' : ''} en {kpis.days_on_market} jours.
-          Votre agent travaille activement sur la vente de votre bien.
-        </p>
-      </div>
-
-      {/* Recent activity — monochrome icons */}
+      {/* Recent activity */}
       <div className="rounded-xl border border-theme-border p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[10px] text-theme-muted uppercase tracking-wider">Activité récente</h2>
-          <button className={cn('text-xs text-theme-muted hover:text-theme-secondary transition-colors flex items-center gap-0.5', FOCUS_RING, 'rounded')}>
-            Tout voir
-            <ChevronRight className="w-3 h-3" />
-          </button>
         </div>
         <div className="space-y-0">
-          {activities.slice(0, 7).map((activity, i) => {
+          {displayedActivities.map((activity, i) => {
             const Icon = ACTIVITY_ICONS[activity.type] || Check
             return (
-              <div key={activity.id} className={cn('flex items-start gap-3 py-3', i < 6 && 'border-b border-theme-border-subtle')}>
+              <div key={activity.id} className={cn('flex items-start gap-3 py-3', i < displayedActivities.length - 1 && 'border-b border-theme-border-subtle')}>
                 <div className="mt-0.5 shrink-0">
                   <Icon className="w-4 h-4 text-theme-muted" />
                 </div>
@@ -117,6 +229,15 @@ export default function MonDossierPage() {
             )
           })}
         </div>
+        {activities.length > 5 && (
+          <button
+            onClick={() => setShowAllActivity(!showAllActivity)}
+            className={cn('mt-3 text-xs text-theme-muted hover:text-theme-secondary transition-colors flex items-center gap-1', FOCUS_RING, 'rounded')}
+          >
+            {showAllActivity ? 'Réduire' : `Voir les ${activities.length} activités`}
+            <ChevronDown className={cn('w-3 h-3 transition-transform', showAllActivity && 'rotate-180')} />
+          </button>
+        )}
       </div>
     </div>
   )
