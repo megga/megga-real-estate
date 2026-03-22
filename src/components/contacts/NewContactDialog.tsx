@@ -34,9 +34,10 @@ const labelClasses = 'block text-sm font-medium text-theme-primary mb-1.5'
 interface NewContactDialogProps {
   open: boolean
   onClose: () => void
+  onCreated?: () => void
 }
 
-export default function NewContactDialog({ open, onClose }: NewContactDialogProps) {
+export default function NewContactDialog({ open, onClose, onCreated }: NewContactDialogProps) {
   const createContact = useCreateContact()
 
   const [firstName, setFirstName] = useState('')
@@ -85,6 +86,7 @@ export default function NewContactDialog({ open, onClose }: NewContactDialogProp
       })
       resetForm()
       onClose()
+      onCreated?.()
     } catch {
       // Error handled by React Query
     }

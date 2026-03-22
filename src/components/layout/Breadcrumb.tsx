@@ -64,7 +64,7 @@ export default function Breadcrumb() {
   if (segments.length === 0) return null
 
   return (
-    <nav className="flex items-center gap-1.5 text-sm text-theme-tertiary mb-4">
+    <nav className="hidden md:flex items-center gap-1.5 text-sm text-theme-tertiary mb-4">
       {segments.map((segment, i) => {
         const isLast = i === segments.length - 1
         return (
