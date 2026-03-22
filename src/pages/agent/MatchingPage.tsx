@@ -8,41 +8,7 @@ import type { MatchResult } from '@/lib/matching'
 import PageTransition from '@/components/layout/PageTransition'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
 
-// ── Score bar color ─────────────────────────────────────────────────────────
-
-function scoreColor(score: number) {
-  if (score >= 90) return 'bg-emerald-500'
-  if (score >= 70) return 'bg-blue-500'
-  if (score >= 50) return 'bg-amber-500'
-  return 'bg-gray-400'
-}
-
-// ── Score breakdown tooltip ─────────────────────────────────────────────────
-
-function ScoreBreakdown({ match }: { match: MatchResult }) {
-  const criteria = [
-    { label: 'Budget', score: match.reasons.budget.score, max: 30, ok: match.reasons.budget.match },
-    { label: 'Zone', score: match.reasons.zone.score, max: 25, ok: match.reasons.zone.match },
-    { label: 'Type', score: match.reasons.type.score, max: 15, ok: match.reasons.type.match },
-    { label: 'Surface', score: match.reasons.rooms.score, max: 15, ok: match.reasons.rooms.match },
-    { label: 'Extras', score: match.reasons.features.score, max: 15, ok: match.reasons.features.match },
-  ]
-
-  return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 bg-theme-card border border-theme-border rounded-lg shadow-lg p-3 w-48 pointer-events-none">
-      <p className="text-xs font-semibold text-theme-primary mb-2">Score : {match.score}%</p>
-      <div className="space-y-1.5">
-        {criteria.map((c) => (
-          <div key={c.label} className="flex items-center gap-2">
-            <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', c.ok ? 'bg-emerald-500' : 'bg-gray-400')} />
-            <span className="text-[10px] text-theme-secondary flex-1">{c.label}</span>
-            <span className="text-[10px] font-medium text-theme-primary tabular-nums">{c.score}/{c.max}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+// ── (Score utilities removed — breakdown now in preview modal) ───────────────
 
 // ── Match Preview Modal ─────────────────────────────────────────────────────
 
@@ -332,13 +298,6 @@ const SORT_LABELS: Record<SortBy, string> = {
 }
 
 const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
-
-// Check if match was created in the last 24h
-function isNewMatch(match: MatchResult) {
-  const created = new Date(match.createdAt).getTime()
-  const now = Date.now()
-  return now - created < 24 * 60 * 60 * 1000
-}
 
 export default function MatchingPage() {
   const { suggested, sent, sendMatch } = useMatching()

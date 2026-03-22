@@ -314,7 +314,7 @@ export default function PipelinePage() {
     }
   }
 
-  function confirmLost(reason: string) {
+  function confirmLost(_reason: string) {
     if (!lostConfirm) return
     setDeals((prev) => prev.map((d) =>
       d.id === lostConfirm.dealId
