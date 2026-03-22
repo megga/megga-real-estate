@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
-  Home, Eye, HandCoins, FileText, MessageCircle,
+  Home, Eye, HandCoins, FileText, MessageCircle, BarChart3,
   Menu, X, PanelLeftClose, PanelLeftOpen,
   Phone, Mail, LogOut, Moon, Sun,
 } from 'lucide-react'
@@ -24,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Offres', href: '/portail/offres', icon: HandCoins, badge: 2 },
   { label: 'Documents', href: '/portail/documents', icon: FileText },
   { label: 'Messages', href: '/portail/messages', icon: MessageCircle },
+  { label: 'Analyse', href: '/portail/analyse', icon: BarChart3 },
 ]
 
 // ── Fade label helper ────────────────────────────────────────────────────
