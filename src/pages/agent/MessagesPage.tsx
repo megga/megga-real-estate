@@ -533,7 +533,7 @@ export default function MessagesPage() {
       {showCompose && (
         <ComposeModal
           onClose={() => setShowCompose(false)}
-          onSend={(contactName, message) => {
+          onSend={() => {
             // Future: create thread + send first message
           }}
         />
