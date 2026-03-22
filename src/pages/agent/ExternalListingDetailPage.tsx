@@ -28,6 +28,7 @@ import {
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import type { ExternalListing } from '@/hooks/useExternalMatching'
 import { useExternalListingActions } from '@/hooks/useExternalListingActions'
+import { useSendPropertyEmail } from '@/hooks/useSendEmail'
 import PageTransition from '@/components/layout/PageTransition'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -53,13 +54,18 @@ export default function ExternalListingDetailPage() {
   const [photoIdx, setPhotoIdx] = useState(0)
   const [copied, setCopied] = useState(false)
   const [noteText, setNoteText] = useState('')
-  const [showSendConfirm, setShowSendConfirm] = useState(false)
+  const [showSendForm, setShowSendForm] = useState(false)
+  const [sendEmail, setSendEmail] = useState('')
+  const [sendMessage, setSendMessage] = useState('')
+  const [emailSentSuccess, setEmailSentSuccess] = useState(false)
 
   const {
     notes, sends, imported, importedAt,
     addNote, deleteNote, recordSend, markImported,
     priceComparison,
   } = useExternalListingActions(listing)
+
+  const sendPropertyEmail = useSendPropertyEmail()
 
   if (!listing) {
     return (
@@ -92,9 +98,36 @@ export default function ExternalListingDetailPage() {
     setNoteText('')
   }
 
-  const handleSend = (channel: 'email' | 'internal') => {
-    recordSend(contactName || 'Client', channel)
-    setShowSendConfirm(false)
+  const handleSendEmail = async () => {
+    if (!sendEmail.trim() || !listing) return
+    try {
+      await sendPropertyEmail.mutateAsync({
+        to: sendEmail.trim(),
+        contactFirstName: contactName?.split(' ')[0] || 'Client',
+        property: {
+          title: listing.title,
+          price: listing.price,
+          address: listing.address,
+          city: listing.city,
+          rooms: listing.rooms,
+          surface_m2: listing.surface_m2,
+          type: listing.type,
+          photo_url: listing.photo_url,
+          source_url: listing.source_url,
+          source_agency: listing.source_agency,
+          source_portal: listing.source_portal,
+        },
+        message: sendMessage.trim() || undefined,
+      })
+      recordSend(contactName || sendEmail, 'email')
+      setShowSendForm(false)
+      setSendEmail('')
+      setSendMessage('')
+      setEmailSentSuccess(true)
+      setTimeout(() => setEmailSentSuccess(false), 4000)
+    } catch {
+      // Error shown via mutation state
+    }
   }
 
   const statsRaw = [
@@ -398,33 +431,56 @@ export default function ExternalListingDetailPage() {
             <div className="rounded-xl border border-theme-border p-4 space-y-2.5">
               <p className="text-[10px] text-theme-tertiary uppercase tracking-wider mb-1">Actions</p>
 
-              {/* Send to client */}
-              <button
-                onClick={() => setShowSendConfirm(true)}
-                className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Send className="w-3.5 h-3.5" />
-                Envoyer au client
-              </button>
+              {/* Email sent success toast */}
+              {emailSentSuccess && (
+                <div className="rounded-lg border border-emerald-500/30 p-3 flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <p className="text-xs text-emerald-500">Email envoyé avec succès</p>
+                </div>
+              )}
 
-              {/* Send confirmation */}
-              {showSendConfirm && (
-                <div className="rounded-lg border border-theme-border p-3 space-y-2">
+              {/* Send to client */}
+              {!showSendForm ? (
+                <button
+                  onClick={() => setShowSendForm(true)}
+                  className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Envoyer par email
+                </button>
+              ) : (
+                <div className="rounded-lg border border-theme-border p-3 space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-theme-secondary">Envoyer via :</p>
-                    <button onClick={() => setShowSendConfirm(false)}><X className="w-3.5 h-3.5 text-theme-muted" /></button>
+                    <p className="text-xs font-medium text-theme-primary">Envoyer par email</p>
+                    <button onClick={() => setShowSendForm(false)}><X className="w-3.5 h-3.5 text-theme-muted" /></button>
                   </div>
+                  <input
+                    type="email"
+                    value={sendEmail}
+                    onChange={(e) => setSendEmail(e.target.value)}
+                    placeholder="Email du client"
+                    className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors text-theme-primary placeholder:text-theme-muted"
+                  />
+                  <textarea
+                    value={sendMessage}
+                    onChange={(e) => setSendMessage(e.target.value)}
+                    placeholder="Message personnalisé (optionnel)"
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors text-theme-primary placeholder:text-theme-muted resize-none"
+                  />
+                  {sendPropertyEmail.error && (
+                    <p className="text-xs text-red-500">{sendPropertyEmail.error.message}</p>
+                  )}
                   <button
-                    onClick={() => handleSend('email')}
-                    className="w-full h-8 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+                    onClick={handleSendEmail}
+                    disabled={!sendEmail.trim() || sendPropertyEmail.isPending}
+                    className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1.5"
                   >
-                    Email
-                  </button>
-                  <button
-                    onClick={() => handleSend('internal')}
-                    className="w-full h-8 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
-                  >
-                    Messagerie interne
+                    {sendPropertyEmail.isPending ? (
+                      <><div className="h-3.5 w-3.5 border-2 border-theme-border border-t-accent rounded-full animate-spin" /> Envoi...</>
+                    ) : (
+                      <><Send className="w-3.5 h-3.5" /> Envoyer</>
+                    )}
                   </button>
                 </div>
               )}
