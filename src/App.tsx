@@ -28,6 +28,12 @@ import DocumentGenerator from '@/pages/agent/DocumentGenerator'
 import DocumentViewer from '@/pages/agent/DocumentViewer'
 import CustomTemplatePage from '@/pages/agent/CustomTemplatePage'
 import ExternalListingDetailPage from '@/pages/agent/ExternalListingDetailPage'
+import ParticulierLayout from '@/pages/particulier/ParticulierLayout'
+import MonDossierPage from '@/pages/particulier/MonDossierPage'
+import MesVisitesPage from '@/pages/particulier/MesVisitesPage'
+import MesDocumentsPage from '@/pages/particulier/MesDocumentsPage'
+import MesMessagesPage from '@/pages/particulier/MesMessagesPage'
+import MonProfilPage from '@/pages/particulier/MonProfilPage'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
@@ -66,6 +72,15 @@ export default function App() {
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/publier" element={<PublierPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+            {/* Portail vendeur / particulier */}
+            <Route path="/portail" element={<ParticulierLayout />}>
+              <Route index element={<MonDossierPage />} />
+              <Route path="visites" element={<MesVisitesPage />} />
+              <Route path="documents" element={<MesDocumentsPage />} />
+              <Route path="messages" element={<MesMessagesPage />} />
+              <Route path="profil" element={<MonProfilPage />} />
+            </Route>
 
             {/* Agent dashboard (protected) */}
             <Route
