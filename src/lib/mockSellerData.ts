@@ -169,7 +169,7 @@ export const MOCK_SELLER_DATA: SellerPortalData = {
       amount: 1780000,
       status: 'pending',
       received_at: '2026-03-19T14:00:00Z',
-      conditions: 'Sous réserve de financement',
+      conditions: 'Sous réserve de financement bancaire. Délai de réponse souhaité : 10 jours.',
     },
     {
       id: 'o2',
@@ -177,6 +177,13 @@ export const MOCK_SELLER_DATA: SellerPortalData = {
       status: 'rejected',
       received_at: '2026-03-05T10:00:00Z',
       conditions: null,
+    },
+    {
+      id: 'o3',
+      amount: 1820000,
+      status: 'counter_offer',
+      received_at: '2026-03-21T09:00:00Z',
+      conditions: 'Contre-proposition à CHF 1\'810\'000 envoyée. En attente de réponse de l\'acquéreur.',
     },
   ],
 

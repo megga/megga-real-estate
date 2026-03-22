@@ -34,6 +34,7 @@ import MonDossierPage from '@/pages/particulier/MonDossierPage'
 import MesVisitesPage from '@/pages/particulier/MesVisitesPage'
 import MesDocumentsPage from '@/pages/particulier/MesDocumentsPage'
 import MesMessagesPage from '@/pages/particulier/MesMessagesPage'
+import MesOffresPage from '@/pages/particulier/MesOffresPage'
 import MonProfilPage from '@/pages/particulier/MonProfilPage'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/portail" element={<SellerLayout />}>
               <Route index element={<MonDossierPage />} />
               <Route path="visites" element={<MesVisitesPage />} />
+              <Route path="offres" element={<MesOffresPage />} />
               <Route path="documents" element={<MesDocumentsPage />} />
               <Route path="messages" element={<MesMessagesPage />} />
               <Route path="profil" element={<MonProfilPage />} />
@@ -88,6 +90,7 @@ export default function App() {
             <Route path="/portail/:token" element={<PortalGateway />}>
               <Route index element={<MonDossierPage />} />
               <Route path="visites" element={<MesVisitesPage />} />
+              <Route path="offres" element={<MesOffresPage />} />
               <Route path="documents" element={<MesDocumentsPage />} />
               <Route path="messages" element={<MesMessagesPage />} />
             </Route>

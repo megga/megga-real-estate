@@ -21,7 +21,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Mon bien', href: '/portail', icon: Home },
   { label: 'Visites', href: '/portail/visites', icon: Eye, badge: 1 },
-  { label: 'Offres', href: '/portail/offres', icon: HandCoins, badge: 1 },
+  { label: 'Offres', href: '/portail/offres', icon: HandCoins, badge: 2 },
   { label: 'Documents', href: '/portail/documents', icon: FileText },
   { label: 'Messages', href: '/portail/messages', icon: MessageCircle },
 ]
