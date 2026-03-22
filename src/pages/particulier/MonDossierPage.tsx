@@ -1,12 +1,42 @@
 import { useState } from 'react'
 import {
   Eye, CalendarDays, HandCoins, Clock,
-  Mail, Check, ChevronDown,
+  Mail, Check, ChevronDown, HelpCircle,
   FileText, ArrowRight,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { MOCK_SELLER_DATA, MANDATE_STEPS, getStepIndex } from '@/lib/mockSellerData'
+
+// ── Pipeline step explanations ───────────────────────────────────────────
+
+const STEP_HELP: Record<string, string> = {
+  mandate_signed: 'Le mandat de vente est signé entre vous et votre agent. Il définit les conditions de mise en vente.',
+  published: 'Votre bien est publié sur les portails immobiliers et visible par les acheteurs potentiels.',
+  visits: 'Les visites sont organisées par votre agent. Vous recevez les retours des acquéreurs.',
+  offers: 'Des offres d\'achat sont en cours de réception ou d\'analyse par votre agent.',
+  negotiation: 'Votre agent négocie les conditions de vente avec l\'acquéreur retenu.',
+  notary: 'Le dossier est transmis au notaire pour la préparation de l\'acte de vente.',
+  sold: 'La vente est finalisée. L\'acte est signé chez le notaire.',
+}
+
+// ── Activity filter types ────────────────────────────────────────────────
+
+type ActivityFilter = 'all' | 'visits' | 'offers' | 'documents'
+
+const ACTIVITY_FILTERS: { key: ActivityFilter; label: string }[] = [
+  { key: 'all', label: 'Tout' },
+  { key: 'visits', label: 'Visites' },
+  { key: 'offers', label: 'Offres' },
+  { key: 'documents', label: 'Documents' },
+]
+
+const FILTER_TYPES: Record<ActivityFilter, string[]> = {
+  all: [],
+  visits: ['visit_planned', 'visit_done'],
+  offers: ['offer_received'],
+  documents: ['document_added', 'publication', 'mandate_signed'],
+}
 
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
 
@@ -96,7 +126,13 @@ export default function MonDossierPage() {
   const notifications = getNotifications()
   const nextAction = getNextAction()
   const [showAllActivity, setShowAllActivity] = useState(false)
-  const displayedActivities = showAllActivity ? activities : activities.slice(0, 5)
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all')
+  const [hoveredStep, setHoveredStep] = useState<string | null>(null)
+
+  const filteredActivities = activityFilter === 'all'
+    ? activities
+    : activities.filter(a => FILTER_TYPES[activityFilter].includes(a.type))
+  const displayedActivities = showAllActivity ? filteredActivities : filteredActivities.slice(0, 5)
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -181,15 +217,26 @@ export default function MonDossierPage() {
         ))}
       </div>
 
-      {/* Mandate progress */}
+      {/* Mandate progress with tooltips */}
       <div className="rounded-xl border border-theme-border p-5">
-        <h2 className="text-[10px] text-theme-muted uppercase tracking-wider mb-4">Avancement de la vente</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[10px] text-theme-muted uppercase tracking-wider">Avancement de la vente</h2>
+          <div className="flex items-center gap-1 text-[10px] text-theme-muted">
+            <HelpCircle className="w-3 h-3" />
+            <span>Survolez une étape</span>
+          </div>
+        </div>
         <div className="flex items-center gap-1">
           {MANDATE_STEPS.map((step, i) => {
             const isCompleted = i <= currentStepIdx
             const isCurrent = i === currentStepIdx
             return (
-              <div key={step.key} className="flex-1 flex flex-col items-center">
+              <div
+                key={step.key}
+                className="flex-1 flex flex-col items-center relative cursor-default"
+                onMouseEnter={() => setHoveredStep(step.key)}
+                onMouseLeave={() => setHoveredStep(null)}
+              >
                 <div className={cn('h-1.5 w-full rounded-full transition-colors', isCompleted ? 'bg-theme-primary' : 'bg-theme-border')} />
                 <p className={cn(
                   'text-[10px] mt-2 text-center leading-tight',
@@ -197,6 +244,12 @@ export default function MonDossierPage() {
                 )}>
                   {step.label}
                 </p>
+                {/* Tooltip */}
+                {hoveredStep === step.key && STEP_HELP[step.key] && (
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-30 w-56 bg-theme-primary text-theme-inverse text-[11px] leading-relaxed px-3 py-2 rounded-lg pointer-events-none animate-in fade-in-0 duration-100">
+                    {STEP_HELP[step.key]}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -208,10 +261,27 @@ export default function MonDossierPage() {
         )}
       </div>
 
-      {/* Recent activity */}
+      {/* Recent activity with filters */}
       <div className="rounded-xl border border-theme-border p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[10px] text-theme-muted uppercase tracking-wider">Activité récente</h2>
+          <div className="flex items-center gap-1">
+            {ACTIVITY_FILTERS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => { setActivityFilter(f.key); setShowAllActivity(false) }}
+                className={cn(
+                  'h-6 px-2 rounded text-[10px] transition-colors',
+                  FOCUS_RING,
+                  activityFilter === f.key
+                    ? 'bg-theme-active text-theme-primary font-medium'
+                    : 'text-theme-muted hover:text-theme-secondary'
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="space-y-0">
           {displayedActivities.map((activity, i) => {
@@ -229,12 +299,15 @@ export default function MonDossierPage() {
             )
           })}
         </div>
-        {activities.length > 5 && (
+        {filteredActivities.length === 0 && (
+          <p className="text-xs text-theme-muted text-center py-4">Aucune activité dans cette catégorie</p>
+        )}
+        {filteredActivities.length > 5 && (
           <button
             onClick={() => setShowAllActivity(!showAllActivity)}
             className={cn('mt-3 text-xs text-theme-muted hover:text-theme-secondary transition-colors flex items-center gap-1', FOCUS_RING, 'rounded')}
           >
-            {showAllActivity ? 'Réduire' : `Voir les ${activities.length} activités`}
+            {showAllActivity ? 'Réduire' : `Voir les ${filteredActivities.length} activités`}
             <ChevronDown className={cn('w-3 h-3 transition-transform', showAllActivity && 'rotate-180')} />
           </button>
         )}

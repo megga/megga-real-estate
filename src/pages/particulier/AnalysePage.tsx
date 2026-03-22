@@ -1,6 +1,8 @@
 import { cn } from '@/lib/utils'
 import { MOCK_SELLER_DATA } from '@/lib/mockSellerData'
-import { TrendingUp, TrendingDown, Minus, ArrowRight } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, ArrowRight, Printer } from 'lucide-react'
+
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -161,11 +163,20 @@ export default function AnalysePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-theme-primary">Analyse du marché</h1>
-        <p className="text-sm text-theme-secondary mt-1">
-          Positionnement de votre bien sur le marché genevois
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-theme-primary">Analyse du marché</h1>
+          <p className="text-sm text-theme-secondary mt-1">
+            Positionnement de votre bien sur le marché genevois
+          </p>
+        </div>
+        <button
+          onClick={() => window.print()}
+          className={cn('h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-1.5 shrink-0 print:hidden', FOCUS_RING)}
+        >
+          <Printer className="w-3 h-3" />
+          Imprimer / PDF
+        </button>
       </div>
 
       {/* KPIs row */}
