@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { FileText, Upload, Download, Eye, Shield, Home, FileCheck, HelpCircle, X, MessageSquare, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -73,6 +73,8 @@ const STATUS_CONFIG: Record<DocStatus, { label: string; color: string; dotColor:
   expired: { label: 'Expiré', color: 'text-red-500', dotColor: 'bg-red-500' },
 }
 
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
+
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short', year: 'numeric' })
 }
@@ -96,6 +98,7 @@ export default function MesDocumentsPage() {
   const [dragOverGeneral, setDragOverGeneral] = useState(false)
   const [helpDocId, setHelpDocId] = useState<string | null>(null)
   const [validatedCollapsed, setValidatedCollapsed] = useState(true)
+  const [animatedPct, setAnimatedPct] = useState(0)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const generalFileRef = useRef<HTMLInputElement | null>(null)
 
@@ -107,27 +110,31 @@ export default function MesDocumentsPage() {
   const requiredDone = docs.filter(d => d.required && d.status === 'validated').length
   const completionPct = Math.round((requiredDone / required) * 100)
 
+  // Progress bar mount animation
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimatedPct(completionPct), 50)
+    return () => clearTimeout(timer)
+  }, [completionPct])
+
   const expiringDocs = docs.filter(d => d.expires_at && daysUntilExpiry(d.expires_at) <= 60 && daysUntilExpiry(d.expires_at) > 0 && d.status === 'validated')
 
-  // Progress bar color
   const progressColor = completionPct >= 100
     ? 'bg-emerald-500'
     : completionPct >= 60
       ? 'bg-amber-500'
       : 'bg-red-500'
 
-  // Grouped docs for section headers
+  // Grouped docs
   const missingDocs = docs.filter(d => d.status === 'missing')
   const pendingDocs = docs.filter(d => d.status === 'pending')
   const validatedDocs = docs.filter(d => d.status === 'validated' || d.status === 'expired')
 
-  // Filtered docs (individual filters)
   const filteredDocs = (() => {
     switch (filter) {
       case 'validated': return validatedDocs
       case 'pending': return pendingDocs
       case 'missing': return missingDocs
-      default: return null // null = use grouped view
+      default: return null
     }
   })()
 
@@ -153,13 +160,15 @@ export default function MesDocumentsPage() {
     { key: 'missing', label: 'Manquants', count: missing },
   ]
 
-  // ── Render helpers ──
+  // ── Render doc card ──
 
   function renderDocCard(doc: SellerDocument, compact: boolean = false) {
     const cat = CATEGORY_CONFIG[doc.category]
     const status = STATUS_CONFIG[doc.status]
     const CatIcon = cat.icon
     const docHelp = DOCUMENT_HELP[doc.slug]
+    const isExpiring = doc.expires_at && daysUntilExpiry(doc.expires_at) <= 60 && daysUntilExpiry(doc.expires_at) > 0
+    const isExpired = doc.expires_at && daysUntilExpiry(doc.expires_at) <= 0
 
     return (
       <div
@@ -168,9 +177,11 @@ export default function MesDocumentsPage() {
         onDragLeave={doc.status === 'missing' ? () => setDragTarget(null) : undefined}
         onDrop={doc.status === 'missing' ? (e) => handleDropOnDocument(e, doc.id) : undefined}
         className={cn(
-          'rounded-xl border border-theme-border flex items-start gap-3 hover:border-theme-active transition-colors group',
+          'rounded-xl border flex items-start gap-3 hover:border-theme-active transition-all group',
           compact ? 'p-3' : 'p-4',
-          dragTarget === doc.id && 'border-accent bg-accent/5'
+          doc.status === 'missing' && dragTarget !== doc.id && 'border-dashed border-theme-border',
+          doc.status !== 'missing' && 'border-theme-border',
+          dragTarget === doc.id && 'border-accent bg-accent/5 border-solid ring-2 ring-accent/20'
         )}
       >
         {/* Icon */}
@@ -192,10 +203,10 @@ export default function MesDocumentsPage() {
           <div className="flex items-center gap-2">
             <p className={cn('font-medium text-theme-primary truncate', compact ? 'text-xs' : 'text-sm')}>{doc.name}</p>
             {doc.required && (
-              <span className="text-[9px] text-theme-muted border border-theme-border-subtle rounded px-1 shrink-0">obligatoire</span>
+              <span className="text-[10px] text-theme-tertiary border border-theme-border rounded px-1 py-px shrink-0">obligatoire</span>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-[10px] text-theme-muted">{cat.label}</span>
             {doc.uploaded_at && (
               <>
@@ -209,7 +220,6 @@ export default function MesDocumentsPage() {
                 <span className="text-[10px] text-theme-muted">{formatSize(doc.size_kb)}</span>
               </>
             )}
-            {/* Compact: show validation inline */}
             {compact && doc.status === 'validated' && doc.validated_at && (
               <>
                 <span className="text-[10px] text-theme-muted">·</span>
@@ -218,7 +228,17 @@ export default function MesDocumentsPage() {
             )}
           </div>
 
-          {/* Non-compact: pending status line */}
+          {/* Expiry warning on individual cards */}
+          {isExpiring && (
+            <p className="text-[10px] text-amber-500 mt-0.5">
+              Expire dans {daysUntilExpiry(doc.expires_at!)} jour{daysUntilExpiry(doc.expires_at!) > 1 ? 's' : ''}
+            </p>
+          )}
+          {isExpired && (
+            <p className="text-[10px] text-red-500 mt-0.5">Expiré</p>
+          )}
+
+          {/* Pending status line */}
           {!compact && doc.status === 'pending' && doc.uploaded_at && (
             <p className="text-[11px] text-theme-muted mt-1">
               Déposé le {formatDate(doc.uploaded_at)} — en cours de vérification
@@ -249,19 +269,19 @@ export default function MesDocumentsPage() {
           <span className={cn('text-xs font-medium', status.color)}>{status.label}</span>
         </div>
 
-        {/* Actions — hover for validated/pending */}
+        {/* Actions — always visible on mobile, hover on desktop */}
         {doc.status !== 'missing' && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            <button className="p-1.5 rounded-md hover:bg-theme-hover transition-colors" title="Voir">
-              <Eye className="w-3.5 h-3.5 text-theme-tertiary" />
+          <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+            <button className={cn('p-2.5 md:p-1.5 rounded-md hover:bg-theme-hover transition-colors', FOCUS_RING)} title="Voir" aria-label="Voir le document">
+              <Eye className="w-4 h-4 md:w-3.5 md:h-3.5 text-theme-tertiary" />
             </button>
-            <button className="p-1.5 rounded-md hover:bg-theme-hover transition-colors" title="Télécharger">
-              <Download className="w-3.5 h-3.5 text-theme-tertiary" />
+            <button className={cn('p-2.5 md:p-1.5 rounded-md hover:bg-theme-hover transition-colors', FOCUS_RING)} title="Télécharger" aria-label="Télécharger le document">
+              <Download className="w-4 h-4 md:w-3.5 md:h-3.5 text-theme-tertiary" />
             </button>
           </div>
         )}
 
-        {/* CTA for missing docs — bigger buttons */}
+        {/* CTA for missing docs */}
         {doc.status === 'missing' && (
           <div className="flex items-center gap-2 shrink-0">
             <input
@@ -272,13 +292,13 @@ export default function MesDocumentsPage() {
             />
             <button
               onClick={() => fileInputRefs.current[doc.id]?.click()}
-              className="h-8 px-4 rounded-lg text-xs font-medium border border-accent text-accent hover:bg-accent/10 transition-colors"
+              className={cn('h-8 px-4 rounded-lg text-xs font-medium border border-accent text-accent hover:bg-accent/10 transition-colors', FOCUS_RING)}
             >
               Déposer
             </button>
             <button
               onClick={() => setHelpDocId(doc.id)}
-              className="h-8 px-3 rounded-lg text-xs text-theme-muted hover:text-theme-secondary transition-colors"
+              className={cn('h-8 px-3 rounded-lg text-xs text-theme-muted hover:text-theme-secondary transition-colors', FOCUS_RING)}
             >
               Aide
             </button>
@@ -289,26 +309,32 @@ export default function MesDocumentsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
-      {/* Header */}
+    <div className="max-w-4xl mx-auto space-y-5">
+      {/* Header — normalized with sibling pages */}
       <div>
-        <h1 className="text-2xl font-semibold text-theme-primary">Mes documents</h1>
-        <p className="text-sm text-theme-secondary mt-1">Documents liés à votre mandat de vente</p>
+        <h1 className="text-xl font-semibold text-theme-primary">Mes documents</h1>
+        <p className="text-sm text-theme-tertiary mt-1">Documents liés à votre mandat de vente</p>
       </div>
 
-      {/* Progression + alertes fusionnés */}
+      {/* Progress + inline alerts */}
       <div className="rounded-xl border border-theme-border p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-theme-primary">Complétude du dossier</p>
           <p className="text-sm font-bold text-theme-primary">{completionPct}%</p>
         </div>
-        <div className="h-2 rounded-full bg-theme-hover overflow-hidden">
+        <div
+          className="h-2 rounded-full bg-theme-hover overflow-hidden"
+          role="progressbar"
+          aria-valuenow={completionPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Complétude du dossier : ${completionPct}%`}
+        >
           <div
-            className={cn('h-full rounded-full transition-all duration-700', progressColor)}
-            style={{ width: `${completionPct}%` }}
+            className={cn('h-full rounded-full transition-all duration-700 ease-out', progressColor)}
+            style={{ width: `${animatedPct}%` }}
           />
         </div>
-        {/* Inline alert badges */}
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-xs text-theme-tertiary">
             {requiredDone} / {required} obligatoires fournis
@@ -316,7 +342,7 @@ export default function MesDocumentsPage() {
           {missing > 0 && (
             <button
               onClick={() => setFilter('missing')}
-              className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-400 transition-colors"
+              className={cn('flex items-center gap-1.5 text-xs text-red-500 hover:text-red-400 transition-colors', FOCUS_RING, 'rounded')}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
               {missing} manquant{missing > 1 ? 's' : ''}
@@ -331,21 +357,25 @@ export default function MesDocumentsPage() {
         </div>
       </div>
 
-      {/* Upload zone — compact inline */}
+      {/* Upload zone — compact inline with keyboard + drag feedback */}
       <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); generalFileRef.current?.click() } }}
         onDragOver={(e) => { e.preventDefault(); setDragOverGeneral(true) }}
         onDragLeave={() => setDragOverGeneral(false)}
         onDrop={handleGeneralDrop}
         onClick={() => generalFileRef.current?.click()}
         className={cn(
-          'border-2 border-dashed rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors',
+          'border-2 border-dashed rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-all',
+          FOCUS_RING,
           dragOverGeneral
-            ? 'border-accent bg-accent/5'
+            ? 'border-accent bg-accent/5 border-solid scale-[1.01]'
             : 'border-theme-border hover:border-accent/50'
         )}
       >
         <input ref={generalFileRef} type="file" multiple className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
-        <Upload className="h-4 w-4 text-accent shrink-0" />
+        <Upload className={cn('h-4 w-4 text-accent shrink-0 transition-transform', dragOverGeneral && 'scale-110 -translate-y-0.5')} />
         <p className="text-sm text-theme-primary">Déposer un document</p>
         <p className="text-xs text-theme-muted">PDF, JPG, PNG — max 10 Mo</p>
       </div>
@@ -358,9 +388,10 @@ export default function MesDocumentsPage() {
             onClick={() => setFilter(tab.key)}
             className={cn(
               'h-8 px-3 rounded-lg text-xs transition-colors',
+              FOCUS_RING,
               filter === tab.key
-                ? 'bg-theme-active text-theme-primary font-medium'
-                : 'text-theme-secondary hover:text-theme-primary'
+                ? 'bg-theme-active text-theme-primary font-medium border border-theme-border'
+                : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
             )}
           >
             {tab.label}
@@ -369,10 +400,9 @@ export default function MesDocumentsPage() {
         ))}
       </div>
 
-      {/* Document list — grouped view (filter "all") */}
+      {/* Document list — grouped view */}
       {filter === 'all' ? (
-        <div className="space-y-4">
-          {/* Section: À fournir */}
+        <div className="space-y-6">
           {missingDocs.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-1">
@@ -383,7 +413,6 @@ export default function MesDocumentsPage() {
             </div>
           )}
 
-          {/* Section: En cours de vérification */}
           {pendingDocs.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-1">
@@ -394,36 +423,50 @@ export default function MesDocumentsPage() {
             </div>
           )}
 
-          {/* Section: Validés — collapsible */}
           {validatedDocs.length > 0 && (
             <div className="space-y-2">
               <button
                 onClick={() => setValidatedCollapsed(!validatedCollapsed)}
-                className="flex items-center gap-2 px-1 group/section"
+                className={cn('flex items-center gap-2 px-1', FOCUS_RING, 'rounded')}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 <p className="text-xs font-medium text-emerald-500">Validés ({validatedDocs.length})</p>
                 <ChevronDown className={cn(
-                  'w-3 h-3 text-theme-muted transition-transform',
+                  'w-3 h-3 text-theme-muted transition-transform duration-200',
                   validatedCollapsed && '-rotate-90'
                 )} />
               </button>
-              {!validatedCollapsed && validatedDocs.map(doc => renderDocCard(doc, true))}
+              {!validatedCollapsed && (
+                <div className="space-y-1.5">
+                  {validatedDocs.map(doc => renderDocCard(doc, true))}
+                </div>
+              )}
               {validatedCollapsed && (
-                <p className="text-[11px] text-theme-muted px-1">
+                <button
+                  onClick={() => setValidatedCollapsed(false)}
+                  className={cn('text-[11px] text-theme-muted px-1 hover:text-theme-secondary transition-colors', FOCUS_RING, 'rounded')}
+                >
                   {validatedDocs.length} document{validatedDocs.length > 1 ? 's' : ''} validé{validatedDocs.length > 1 ? 's' : ''} — cliquer pour afficher
-                </p>
+                </button>
               )}
             </div>
           )}
         </div>
       ) : (
-        /* Filtered view (single status) */
         <div className="space-y-2">
           {filteredDocs && filteredDocs.length === 0 ? (
-            <div className="rounded-xl border border-theme-border p-8 text-center">
-              <FileText className="h-5 w-5 text-theme-muted mx-auto mb-2" />
-              <p className="text-sm text-theme-muted">Aucun document dans cette catégorie</p>
+            <div className="rounded-xl border border-dashed border-theme-border p-10 text-center">
+              <FileText className="h-6 w-6 text-theme-muted mx-auto mb-3 opacity-50" />
+              <p className="text-sm text-theme-secondary">
+                {filter === 'missing' && 'Tous les documents obligatoires sont fournis'}
+                {filter === 'pending' && 'Aucun document en attente de vérification'}
+                {filter === 'validated' && 'Aucun document validé pour le moment'}
+              </p>
+              <p className="text-xs text-theme-muted mt-1">
+                {filter === 'missing' && 'Votre dossier est complet.'}
+                {filter === 'pending' && 'Les documents déposés seront vérifiés sous 24h.'}
+                {filter === 'validated' && 'Déposez vos premiers documents via la zone ci-dessus.'}
+              </p>
             </div>
           ) : (
             filteredDocs?.map(doc => renderDocCard(doc, filter === 'validated'))
@@ -431,25 +474,30 @@ export default function MesDocumentsPage() {
         </div>
       )}
 
-      {/* Modal "Besoin d'aide" via createPortal */}
+      {/* Modal — accessible with aria, ESC, autoFocus, animations */}
       {helpDocId && helpDoc && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="help-modal-title"
           onClick={() => setHelpDocId(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setHelpDocId(null) }}
         >
-          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-black/50 animate-in fade-in-0 duration-150" />
           <div
-            className="relative bg-theme-elevated rounded-xl border border-theme-border ring-1 ring-white/5 w-full max-w-md mx-4 p-6"
+            className="relative bg-theme-elevated rounded-xl border border-theme-border ring-1 ring-white/5 w-full max-w-md mx-4 p-6 animate-in fade-in-0 zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2">
                 <HelpCircle className="h-4 w-4 text-theme-secondary" />
-                <h3 className="text-sm font-semibold text-theme-primary">{helpDoc.name}</h3>
+                <h3 id="help-modal-title" className="text-sm font-semibold text-theme-primary">{helpDoc.name}</h3>
               </div>
               <button
+                autoFocus
                 onClick={() => setHelpDocId(null)}
-                className="h-7 w-7 flex items-center justify-center rounded-lg text-theme-muted hover:text-theme-primary hover:bg-theme-hover transition-colors"
+                className={cn('h-7 w-7 flex items-center justify-center rounded-lg text-theme-muted hover:text-theme-primary hover:bg-theme-hover transition-colors', FOCUS_RING)}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -478,7 +526,7 @@ export default function MesDocumentsPage() {
               <div className="pt-3 border-t border-theme-border">
                 <button
                   onClick={() => setHelpDocId(null)}
-                  className="flex items-center gap-2 h-8 px-3.5 text-xs font-medium border border-theme-border rounded-lg text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+                  className={cn('flex items-center gap-2 h-8 px-3.5 text-xs font-medium border border-theme-border rounded-lg text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors', FOCUS_RING)}
                 >
                   <MessageSquare className="h-3.5 w-3.5" />
                   Contacter mon agent
