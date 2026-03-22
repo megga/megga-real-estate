@@ -1,9 +1,7 @@
 // supabase/functions/ai-copilot/index.ts
-// Edge Function pour le copilote IA agent
-// Résumés, suggestions, rédaction, next-best-action
+// Copilote IA agent — chat libre + actions structurées
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +9,7 @@ const corsHeaders = {
 }
 
 type CopilotAction =
+  | 'chat'
   | 'summarize_contact'
   | 'suggest_next_action'
   | 'draft_email'
@@ -18,39 +17,63 @@ type CopilotAction =
   | 'analyze_kyc'
   | 'score_lead'
 
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 interface CopilotRequest {
   action: CopilotAction
-  context: Record<string, unknown>
+  message: string
+  context?: Record<string, unknown>
+  history?: ChatMessage[]
   language?: 'fr' | 'de' | 'en' | 'it'
 }
 
-const SYSTEM_PROMPTS: Record<CopilotAction, string> = {
-  summarize_contact: `Tu es un assistant CRM immobilier. Résume le profil et l'historique d'un contact en 3-5 points clés.
-Mentionne : intérêt principal, budget estimé, dernière interaction, niveau d'engagement, points d'attention.
-Sois concis et actionnable. Langue : français.`,
+const MEGGA_SYSTEM = `Tu es MEGGA AI, le copilote intelligent de la plateforme MEGGA Real Estate — un CRM immobilier suisse.
 
-  suggest_next_action: `Tu es un copilote CRM immobilier. Analyse le contexte d'un deal et suggère la prochaine action optimale.
-Considère : étape du pipeline, dernière interaction, niveau d'intérêt, documents manquants, timing.
-Donne 1 action prioritaire + 2 alternatives. Langue : français.`,
+TON RÔLE :
+Tu assistes les agents immobiliers (courtiers) suisses dans leur quotidien. Tu es expert en :
+- Transactions immobilières suisses (résidentiel, prestige, commercial)
+- Conformité LAB/KYC (Loi sur le blanchiment d'argent)
+- Rédaction immobilière professionnelle (annonces, emails, relances)
+- Analyse de marché (prix au m², comparables, positionnement)
+- Gestion de pipeline (qualification leads, next-best-action, relances)
+- Négociation immobilière (stratégie de contre-offre, timing)
 
-  draft_email: `Tu es un rédacteur immobilier professionnel suisse. Rédige un email professionnel et chaleureux.
-Ton : courtois, professionnel mais pas froid. Vouvoiement. Formules de politesse suisses.
-Adapte au contexte fourni. Langue : français.`,
+TON STYLE :
+- Concis et actionnable — pas de blabla, des réponses utiles
+- Professionnel mais chaleureux — comme un collègue senior
+- Toujours en français sauf si on te demande autrement
+- Utilise le format Markdown : **gras**, listes à puces, émojis sparingly
+- Monnaie : CHF avec apostrophe suisse (CHF 720'000)
+- Dates : format suisse (16.03.2026)
 
-  draft_description: `Tu es un rédacteur d'annonces immobilières suisses. Rédige une description attractive et honnête.
-Mets en avant les points forts sans exagérer. Mentionne la localisation, les caractéristiques clés, les atouts du quartier.
-Format : 2-3 paragraphes, 150-250 mots. Langue : français.`,
+RÈGLES :
+- Tu es une ASSISTANCE, pas une décision. L'agent décide toujours.
+- Tu ne valides JAMAIS un dossier KYC — tu analyses et recommandes, l'humain valide.
+- Tu ne contactes JAMAIS un client directement — tu prépares, l'agent envoie.
+- Tes scores et estimations sont indicatifs — toujours mentionner "estimation IA".
+- Si on te demande quelque chose hors immobilier suisse, tu restes poli mais tu recentres.`
 
-  analyze_kyc: `Tu es un assistant compliance LAB/KYC suisse. Analyse un dossier KYC et identifie :
-- Documents manquants ou incomplets
-- Éléments nécessitant une vérification approfondie
-- Niveau de risque préliminaire (bas/moyen/élevé)
-IMPORTANT : Tu assistes l'agent, tu ne valides PAS le dossier. La validation finale est humaine.
-Langue : français.`,
+const ACTION_PROMPTS: Record<string, string> = {
+  summarize_contact: `Résume le profil et l'historique de ce contact en 3-5 points clés.
+Mentionne : intérêt principal, budget estimé, dernière interaction, niveau d'engagement, action recommandée.`,
 
-  score_lead: `Tu es un analyste CRM immobilier. Évalue la qualité d'un lead sur une échelle Chaud/Tiède/Froid.
-Critères : budget confirmé, timeline d'achat, engagement (visites, messages), correspondance offre/demande.
-Donne un score + justification en 2 phrases. Langue : français.`,
+  suggest_next_action: `Analyse le contexte et suggère la prochaine action optimale.
+Donne 1 action prioritaire + 2 alternatives. Considère : pipeline, timing, intérêt, documents.`,
+
+  draft_email: `Rédige un email professionnel immobilier suisse.
+Ton : courtois, vouvoiement, formules suisses. Adapte au contexte fourni.`,
+
+  draft_description: `Rédige une description d'annonce immobilière attractive et honnête.
+2-3 paragraphes, 150-250 mots. Mets en avant les points forts sans exagérer.`,
+
+  analyze_kyc: `Analyse ce dossier KYC et identifie : documents manquants, vérifications nécessaires, niveau de risque préliminaire.
+IMPORTANT : Tu assistes l'agent, tu ne valides PAS. La validation finale est humaine.`,
+
+  score_lead: `Évalue la qualité de ce lead : Chaud/Tiède/Froid avec score 0-100.
+Critères : budget, timeline, engagement, correspondance offre/demande. Justifie en 2-3 phrases.`,
 }
 
 serve(async (req: Request) => {
@@ -59,11 +82,12 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { action, context, language = 'fr' }: CopilotRequest = await req.json()
+    const body: CopilotRequest = await req.json()
+    const { action = 'chat', message, context, history = [], language = 'fr' } = body
 
-    if (!action || !SYSTEM_PROMPTS[action]) {
+    if (!message && action === 'chat') {
       return new Response(
-        JSON.stringify({ error: `Action invalide : ${action}` }),
+        JSON.stringify({ error: 'message is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -76,33 +100,41 @@ serve(async (req: Request) => {
       )
     }
 
-    // Verify auth
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const authHeader = req.headers.get('Authorization')
-
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentification requise' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Build system prompt
+    let systemPrompt = MEGGA_SYSTEM
+    if (language !== 'fr') {
+      systemPrompt += `\n\nLangue de réponse : ${language}`
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    })
+    // Build messages array
+    const messages: { role: 'user' | 'assistant'; content: string }[] = []
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Session invalide' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Add conversation history (last 10 messages max)
+    const recentHistory = history.slice(-10)
+    for (const msg of recentHistory) {
+      messages.push({ role: msg.role, content: msg.content })
     }
 
-    // Build prompt
-    const systemPrompt = SYSTEM_PROMPTS[action] + (language !== 'fr' ? `\nLangue de réponse : ${language}` : '')
-    const contextStr = JSON.stringify(context, null, 2)
+    // Build the current user message
+    let userContent = message || ''
+
+    // Add action-specific instruction if not free chat
+    if (action !== 'chat' && ACTION_PROMPTS[action]) {
+      userContent = `**Instruction :** ${ACTION_PROMPTS[action]}\n\n**Message :** ${message || 'Exécute cette action.'}`
+    }
+
+    // Add context if available
+    if (context && Object.keys(context).length > 0) {
+      const contextStr = Object.entries(context)
+        .filter(([, v]) => v != null && v !== '')
+        .map(([k, v]) => `- ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+        .join('\n')
+      if (contextStr) {
+        userContent += `\n\n**Contexte CRM actuel :**\n${contextStr}`
+      }
+    }
+
+    messages.push({ role: 'user', content: userContent })
 
     // Call Claude API
     const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -114,37 +146,19 @@ serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 1500,
         system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: `Contexte :\n${contextStr}`,
-          },
-        ],
+        messages,
       }),
     })
 
     if (!claudeResponse.ok) {
       const errText = await claudeResponse.text()
-      throw new Error(`Erreur Claude API : ${claudeResponse.status} — ${errText}`)
+      throw new Error(`Claude API ${claudeResponse.status}: ${errText}`)
     }
 
     const claudeData = await claudeResponse.json()
     const result = claudeData.content?.[0]?.text || ''
-
-    // Log activity
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
-    await supabaseAdmin.from('activity_events').insert({
-      actor_id: user.id,
-      action: `ai_copilot_${action}`,
-      entity_type: 'ai_copilot',
-      metadata: { action, language },
-    })
 
     return new Response(
       JSON.stringify({
@@ -155,18 +169,13 @@ serve(async (req: Request) => {
           output_tokens: claudeData.usage?.output_tokens,
         },
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur interne'
     return new Response(
       JSON.stringify({ error: message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
