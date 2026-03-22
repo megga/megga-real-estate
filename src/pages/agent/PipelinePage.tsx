@@ -314,14 +314,15 @@ export default function PipelinePage() {
     }
   }
 
-  function confirmLost(_reason: string) {
+  function confirmLost(reason: string) {
     if (!lostConfirm) return
+    // Future: save reason to transactions.notes + activity_event
+    void reason
     setDeals((prev) => prev.map((d) =>
       d.id === lostConfirm.dealId
         ? { ...d, stage: 'lost' as MockDeal['stage'], updated_at: new Date().toISOString() }
         : d
     ))
-    // Future: save reason to transactions.notes + activity_event
     setLostConfirm(null)
   }
 
