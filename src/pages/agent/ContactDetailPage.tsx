@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   Mail, Phone, MapPin, Zap,
-  Calendar, Building2, Banknote, Ruler, DoorOpen,
+  Calendar, Building2, Banknote, Ruler, DoorOpen, ExternalLink,
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate, formatDate } from '@/lib/utils'
 import { getContactById, type MockContact } from '@/lib/mockData'
@@ -14,6 +14,8 @@ import BuyerIntelligence from '@/components/ai-copilot/BuyerIntelligence'
 import SellerIntelligence from '@/components/ai-copilot/SellerIntelligence'
 import { useContactDetail } from '@/hooks/useContactDetail'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
+import { useExternalMatching, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
+import MatchingPanel from '@/components/matching/MatchingPanel'
 
 const scoreConfig: Record<MockContact['score'], { label: string; dot: string; text: string }> = {
   hot:  { label: 'Hot',  dot: 'bg-red-400',    text: 'text-red-400' },
@@ -95,6 +97,33 @@ export default function ContactDetailPage() {
   const { setActiveContact } = useCopilotContext()
   const [showEdit, setShowEdit] = useState(false)
   const { aiSummary, nextAction, enrichedData, isRefreshingAi, refreshAiSummary } = useContactDetail(id || '')
+  const [matchingTab, setMatchingTab] = useState<'internal' | 'external'>('internal')
+
+  // Derive external search criteria from contact
+  const externalCriteria: ExternalSearchCriteria | null = useMemo(() => {
+    if (!contact?.search_criteria) return null
+    const sc = contact.search_criteria
+    const typeMap: Record<string, string> = {
+      'Appartement': 'APARTMENT',
+      'Maison': 'HOUSE',
+      'Villa': 'VILLA',
+    }
+    const zone = sc.location.split(',')[0].trim() || 'geneve'
+    return {
+      zone,
+      type: typeMap[sc.property_type] || 'APARTMENT',
+      budget_max: sc.budget_max,
+      budget_min: sc.budget_min,
+      rooms_min: sc.rooms_min,
+    }
+  }, [contact?.search_criteria])
+
+  const {
+    data: externalListings,
+    isLoading: isLoadingExternal,
+    error: externalError,
+    refetch: refetchExternal,
+  } = useExternalMatching(externalCriteria)
 
   // Set copilot context when viewing a contact
   useEffect(() => {
@@ -298,6 +327,99 @@ export default function ContactDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Matching section (buyers only) */}
+          {showBuyer && contact.search_criteria && (
+            <div className="rounded-xl border border-theme-border p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider">
+                  Matching
+                </h2>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setMatchingTab('internal')}
+                    className={cn(
+                      'h-7 px-3 rounded-md text-xs transition-colors',
+                      matchingTab === 'internal'
+                        ? 'bg-theme-active text-theme-primary font-medium'
+                        : 'text-theme-tertiary hover:text-theme-secondary'
+                    )}
+                  >
+                    Portefeuille
+                  </button>
+                  <button
+                    onClick={() => setMatchingTab('external')}
+                    className={cn(
+                      'h-7 px-3 rounded-md text-xs transition-colors',
+                      matchingTab === 'external'
+                        ? 'bg-theme-active text-theme-primary font-medium'
+                        : 'text-theme-tertiary hover:text-theme-secondary'
+                    )}
+                  >
+                    Marché
+                    {externalListings && externalListings.length > 0 && (
+                      <span className="ml-1 text-[10px] text-theme-muted">{externalListings.length}</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {matchingTab === 'internal' && (
+                <MatchingPanel contactId={contact.id} contactName={fullName} />
+              )}
+
+              {matchingTab === 'external' && (
+                <div>
+                  {isLoadingExternal && (
+                    <div className="flex items-center justify-center h-24">
+                      <div className="h-4 w-4 border-2 border-theme-border border-t-accent rounded-full animate-spin" />
+                    </div>
+                  )}
+                  {externalError && !isLoadingExternal && (
+                    <div className="text-center py-8">
+                      <p className="text-xs text-theme-tertiary">Impossible de charger les données du marché</p>
+                      <button onClick={() => refetchExternal()} className="mt-1 text-xs text-accent hover:text-accent/80 transition-colors">Réessayer</button>
+                    </div>
+                  )}
+                  {!isLoadingExternal && !externalError && externalListings && externalListings.length === 0 && (
+                    <p className="text-xs text-theme-muted text-center py-8">Aucun bien trouvé sur le marché</p>
+                  )}
+                  {externalListings && externalListings.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] text-theme-muted mb-2">{externalListings.length} résultat{externalListings.length > 1 ? 's' : ''} · RealAdvisor</p>
+                      {externalListings.slice(0, 6).map(listing => (
+                        <div key={listing.external_id} className="flex items-center gap-3 py-2 border-b border-theme-border-subtle last:border-0 group">
+                          {listing.photo_url ? (
+                            <img src={listing.photo_url} alt="" className="h-12 w-16 rounded-lg object-cover shrink-0" loading="lazy" />
+                          ) : (
+                            <div className="h-12 w-16 rounded-lg bg-theme-section shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-theme-primary truncate">{formatCHF(listing.price)}</p>
+                            <p className="text-xs text-theme-tertiary truncate">{listing.address || listing.city}{listing.rooms ? ` · ${listing.rooms}p.` : ''}{listing.surface_m2 ? ` · ${listing.surface_m2} m²` : ''}</p>
+                            {listing.source_agency && <p className="text-[10px] text-theme-muted truncate">via {listing.source_agency}</p>}
+                          </div>
+                          <a
+                            href={listing.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-theme-tertiary hover:text-theme-primary" />
+                          </a>
+                        </div>
+                      ))}
+                      {externalListings.length > 6 && (
+                        <Link to="/dashboard/matching" className="block text-xs text-accent hover:text-accent/80 text-center pt-2 transition-colors">
+                          Voir les {externalListings.length} résultats →
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Activity timeline */}
           <div className="rounded-xl border border-theme-border p-5">
