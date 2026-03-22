@@ -159,7 +159,7 @@ export default function AnalysePage() {
   const stagnationRisk = kpis.days_on_market > 60 ? 'high' : kpis.days_on_market > 40 ? 'moderate' : 'low'
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-theme-primary">Analyse du marché</h1>
