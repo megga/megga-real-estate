@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { FileText, Upload, Download, Eye, Shield, Home, FileCheck, HelpCircle, X, MessageSquare, ChevronDown } from 'lucide-react'
+import { FileText, Upload, Download, Eye, Shield, Home, FileCheck, X, MessageSquare, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -66,13 +66,6 @@ const CATEGORY_CONFIG: Record<DocCategory, { label: string; icon: React.ElementT
   other: { label: 'Autre', icon: FileText },
 }
 
-const STATUS_CONFIG: Record<DocStatus, { label: string; color: string; dotColor: string }> = {
-  validated: { label: 'Validé', color: 'text-emerald-500', dotColor: 'bg-emerald-500' },
-  pending: { label: 'En attente', color: 'text-amber-500', dotColor: 'bg-amber-500' },
-  missing: { label: 'Manquant', color: 'text-red-500', dotColor: 'bg-red-500' },
-  expired: { label: 'Expiré', color: 'text-red-500', dotColor: 'bg-red-500' },
-}
-
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
 
 function formatDate(dateStr: string): string {
@@ -86,6 +79,15 @@ function formatSize(kb: number): string {
 
 function daysUntilExpiry(dateStr: string): number {
   return Math.floor((new Date(dateStr).getTime() - Date.now()) / 86400000)
+}
+
+function statusLabel(status: DocStatus): string {
+  switch (status) {
+    case 'validated': return 'Validé'
+    case 'pending': return 'En attente'
+    case 'missing': return 'Manquant'
+    case 'expired': return 'Expiré'
+  }
 }
 
 type FilterTab = 'all' | 'validated' | 'pending' | 'missing'
@@ -110,7 +112,6 @@ export default function MesDocumentsPage() {
   const requiredDone = docs.filter(d => d.required && d.status === 'validated').length
   const completionPct = Math.round((requiredDone / required) * 100)
 
-  // Progress bar mount animation
   useEffect(() => {
     const timer = setTimeout(() => setAnimatedPct(completionPct), 50)
     return () => clearTimeout(timer)
@@ -118,13 +119,9 @@ export default function MesDocumentsPage() {
 
   const expiringDocs = docs.filter(d => d.expires_at && daysUntilExpiry(d.expires_at) <= 60 && daysUntilExpiry(d.expires_at) > 0 && d.status === 'validated')
 
-  const progressColor = completionPct >= 100
-    ? 'bg-emerald-500'
-    : completionPct >= 60
-      ? 'bg-amber-500'
-      : 'bg-red-500'
+  // Monochrome progress bar — only red when incomplete
+  const progressColor = completionPct >= 100 ? 'bg-theme-primary' : 'bg-theme-primary'
 
-  // Grouped docs
   const missingDocs = docs.filter(d => d.status === 'missing')
   const pendingDocs = docs.filter(d => d.status === 'pending')
   const validatedDocs = docs.filter(d => d.status === 'validated' || d.status === 'expired')
@@ -138,7 +135,6 @@ export default function MesDocumentsPage() {
     }
   })()
 
-  // Drop handlers
   const handleGeneralDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setDragOverGeneral(false)
@@ -160,11 +156,10 @@ export default function MesDocumentsPage() {
     { key: 'missing', label: 'Manquants', count: missing },
   ]
 
-  // ── Render doc card ──
+  // ── Render doc card — monochrome, only red dot for missing ──
 
   function renderDocCard(doc: SellerDocument, compact: boolean = false) {
     const cat = CATEGORY_CONFIG[doc.category]
-    const status = STATUS_CONFIG[doc.status]
     const CatIcon = cat.icon
     const docHelp = DOCUMENT_HELP[doc.slug]
     const isExpiring = doc.expires_at && daysUntilExpiry(doc.expires_at) <= 60 && daysUntilExpiry(doc.expires_at) > 0
@@ -184,17 +179,14 @@ export default function MesDocumentsPage() {
           dragTarget === doc.id && 'border-accent bg-accent/5 border-solid ring-2 ring-accent/20'
         )}
       >
-        {/* Icon */}
+        {/* Icon — monochrome, only missing gets red */}
         <div className={cn(
-          'rounded-lg flex items-center justify-center shrink-0',
+          'rounded-lg flex items-center justify-center shrink-0 bg-theme-hover',
           compact ? 'h-7 w-7 mt-0' : 'h-9 w-9 mt-0.5',
-          doc.status === 'validated' ? 'bg-emerald-500/10' :
-          doc.status === 'missing' ? 'bg-red-500/10' : 'bg-amber-500/10'
         )}>
           <CatIcon className={cn(
             compact ? 'w-3.5 h-3.5' : 'w-4 h-4',
-            doc.status === 'validated' ? 'text-emerald-500' :
-            doc.status === 'missing' ? 'text-red-500' : 'text-amber-500'
+            'text-theme-secondary'
           )} />
         </div>
 
@@ -228,7 +220,7 @@ export default function MesDocumentsPage() {
             )}
           </div>
 
-          {/* Expiry warning on individual cards */}
+          {/* Expiry — only signal that uses color (amber) */}
           {isExpiring && (
             <p className="text-[10px] text-amber-500 mt-0.5">
               Expire dans {daysUntilExpiry(doc.expires_at!)} jour{daysUntilExpiry(doc.expires_at!) > 1 ? 's' : ''}
@@ -238,14 +230,12 @@ export default function MesDocumentsPage() {
             <p className="text-[10px] text-red-500 mt-0.5">Expiré</p>
           )}
 
-          {/* Pending status line */}
           {!compact && doc.status === 'pending' && doc.uploaded_at && (
             <p className="text-[11px] text-theme-muted mt-1">
               Déposé le {formatDate(doc.uploaded_at)} — en cours de vérification
             </p>
           )}
 
-          {/* Help text for missing docs */}
           {doc.status === 'missing' && docHelp && (
             <div className="mt-1.5 space-y-0.5">
               <p className="text-xs text-theme-tertiary">{docHelp.help}</p>
@@ -255,44 +245,43 @@ export default function MesDocumentsPage() {
             </div>
           )}
 
-          {/* Pipeline step blocker */}
           {doc.status === 'missing' && doc.required_for && (
-            <p className="text-[11px] text-amber-500 mt-1">
+            <p className="text-[11px] text-theme-tertiary mt-1">
               Nécessaire avant : {doc.required_for}
             </p>
           )}
         </div>
 
-        {/* Status dot */}
+        {/* Status — monochrome text, only red dot for missing */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className={cn('w-2 h-2 rounded-full', status.dotColor)} />
-          <span className={cn('text-xs font-medium', status.color)}>{status.label}</span>
+          {doc.status === 'missing' && <span className="w-2 h-2 rounded-full bg-red-500" />}
+          <span className={cn(
+            'text-xs',
+            doc.status === 'missing' ? 'font-medium text-red-500' : 'text-theme-muted'
+          )}>
+            {statusLabel(doc.status)}
+          </span>
         </div>
 
-        {/* Actions — always visible on mobile, hover on desktop */}
+        {/* Actions — hover on desktop, always on mobile */}
         {doc.status !== 'missing' && (
           <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
-            <button className={cn('p-2.5 md:p-1.5 rounded-md hover:bg-theme-hover transition-colors', FOCUS_RING)} title="Voir" aria-label="Voir le document">
+            <button className={cn('p-2.5 md:p-1.5 rounded-md hover:bg-theme-hover transition-colors', FOCUS_RING)} aria-label="Voir le document">
               <Eye className="w-4 h-4 md:w-3.5 md:h-3.5 text-theme-tertiary" />
             </button>
-            <button className={cn('p-2.5 md:p-1.5 rounded-md hover:bg-theme-hover transition-colors', FOCUS_RING)} title="Télécharger" aria-label="Télécharger le document">
+            <button className={cn('p-2.5 md:p-1.5 rounded-md hover:bg-theme-hover transition-colors', FOCUS_RING)} aria-label="Télécharger le document">
               <Download className="w-4 h-4 md:w-3.5 md:h-3.5 text-theme-tertiary" />
             </button>
           </div>
         )}
 
-        {/* CTA for missing docs */}
+        {/* CTA for missing */}
         {doc.status === 'missing' && (
           <div className="flex items-center gap-2 shrink-0">
-            <input
-              ref={el => { fileInputRefs.current[doc.id] = el }}
-              type="file"
-              className="hidden"
-              accept=".pdf,.jpg,.jpeg,.png"
-            />
+            <input ref={el => { fileInputRefs.current[doc.id] = el }} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
             <button
               onClick={() => fileInputRefs.current[doc.id]?.click()}
-              className={cn('h-8 px-4 rounded-lg text-xs font-medium border border-accent text-accent hover:bg-accent/10 transition-colors', FOCUS_RING)}
+              className={cn('h-8 px-4 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors', FOCUS_RING)}
             >
               Déposer
             </button>
@@ -310,13 +299,13 @@ export default function MesDocumentsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
-      {/* Header — normalized with sibling pages */}
+      {/* Header */}
       <div>
         <h1 className="text-xl font-semibold text-theme-primary">Mes documents</h1>
         <p className="text-sm text-theme-tertiary mt-1">Documents liés à votre mandat de vente</p>
       </div>
 
-      {/* Progress + inline alerts */}
+      {/* Progress — monochrome bar */}
       <div className="rounded-xl border border-theme-border p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-theme-primary">Complétude du dossier</p>
@@ -349,15 +338,14 @@ export default function MesDocumentsPage() {
             </button>
           )}
           {expiringDocs.length > 0 && (
-            <span className="flex items-center gap-1.5 text-xs text-amber-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span className="flex items-center gap-1.5 text-xs text-theme-muted">
               {expiringDocs.length} expire{expiringDocs.length > 1 ? 'nt' : ''} bientôt
             </span>
           )}
         </div>
       </div>
 
-      {/* Upload zone — compact inline with keyboard + drag feedback */}
+      {/* Upload zone */}
       <div
         role="button"
         tabIndex={0}
@@ -370,12 +358,12 @@ export default function MesDocumentsPage() {
           'border-2 border-dashed rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer transition-all',
           FOCUS_RING,
           dragOverGeneral
-            ? 'border-accent bg-accent/5 border-solid scale-[1.01]'
-            : 'border-theme-border hover:border-accent/50'
+            ? 'border-theme-active bg-theme-hover border-solid scale-[1.01]'
+            : 'border-theme-border hover:border-theme-active'
         )}
       >
         <input ref={generalFileRef} type="file" multiple className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
-        <Upload className={cn('h-4 w-4 text-accent shrink-0 transition-transform', dragOverGeneral && 'scale-110 -translate-y-0.5')} />
+        <Upload className={cn('h-4 w-4 text-theme-secondary shrink-0 transition-transform', dragOverGeneral && 'scale-110 -translate-y-0.5')} />
         <p className="text-sm text-theme-primary">Déposer un document</p>
         <p className="text-xs text-theme-muted">PDF, JPG, PNG — max 10 Mo</p>
       </div>
@@ -400,25 +388,19 @@ export default function MesDocumentsPage() {
         ))}
       </div>
 
-      {/* Document list — grouped view */}
+      {/* Document list */}
       {filter === 'all' ? (
         <div className="space-y-6">
           {missingDocs.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 px-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                <p className="text-xs font-medium text-red-500">À fournir ({missingDocs.length})</p>
-              </div>
+              <p className="text-xs font-medium text-theme-secondary px-1">À fournir ({missingDocs.length})</p>
               {missingDocs.map(doc => renderDocCard(doc, false))}
             </div>
           )}
 
           {pendingDocs.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 px-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <p className="text-xs font-medium text-amber-500">En cours de vérification ({pendingDocs.length})</p>
-              </div>
+              <p className="text-xs font-medium text-theme-secondary px-1">En cours de vérification ({pendingDocs.length})</p>
               {pendingDocs.map(doc => renderDocCard(doc, false))}
             </div>
           )}
@@ -429,8 +411,7 @@ export default function MesDocumentsPage() {
                 onClick={() => setValidatedCollapsed(!validatedCollapsed)}
                 className={cn('flex items-center gap-2 px-1', FOCUS_RING, 'rounded')}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <p className="text-xs font-medium text-emerald-500">Validés ({validatedDocs.length})</p>
+                <p className="text-xs font-medium text-theme-secondary">Validés ({validatedDocs.length})</p>
                 <ChevronDown className={cn(
                   'w-3 h-3 text-theme-muted transition-transform duration-200',
                   validatedCollapsed && '-rotate-90'
@@ -474,7 +455,7 @@ export default function MesDocumentsPage() {
         </div>
       )}
 
-      {/* Modal — accessible with aria, ESC, autoFocus, animations */}
+      {/* Modal */}
       {helpDocId && helpDoc && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"
@@ -490,10 +471,7 @@ export default function MesDocumentsPage() {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 text-theme-secondary" />
-                <h3 id="help-modal-title" className="text-sm font-semibold text-theme-primary">{helpDoc.name}</h3>
-              </div>
+              <h3 id="help-modal-title" className="text-sm font-semibold text-theme-primary">{helpDoc.name}</h3>
               <button
                 autoFocus
                 onClick={() => setHelpDocId(null)}
@@ -518,7 +496,7 @@ export default function MesDocumentsPage() {
               )}
 
               {helpDoc.required_for && (
-                <p className="text-xs text-amber-500">
+                <p className="text-xs text-theme-tertiary">
                   Nécessaire avant : {helpDoc.required_for}
                 </p>
               )}
