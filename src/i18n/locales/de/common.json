@@ -1,0 +1,73 @@
+{
+  "nav": {
+    "today": "Heute",
+    "dashboard": "Dashboard",
+    "contacts": "Kontakte",
+    "pipeline": "Pipeline",
+    "matching": "Matching",
+    "listings": "Meine Objekte",
+    "createListing": "Objekt erstellen",
+    "messages": "Nachrichten",
+    "calendar": "Kalender",
+    "kyc": "KYC",
+    "documents": "Dokumente",
+    "automation": "Automatisierung",
+    "settings": "Einstellungen",
+    "darkMode": "Dunkelmodus",
+    "lightMode": "Hellmodus",
+    "logout": "Abmelden",
+    "search": "Suchen...",
+    "collapseSidebar": "Seitenleiste einklappen",
+    "expandSidebar": "Seitenleiste öffnen",
+    "mainAgent": "Hauptmakler"
+  },
+  "sections": {
+    "main": "Hauptmenü",
+    "crm": "CRM",
+    "properties": "Objekte",
+    "communication": "Kommunikation",
+    "compliance": "Compliance"
+  },
+  "actions": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "create": "Erstellen",
+    "view": "Ansehen",
+    "close": "Schliessen",
+    "confirm": "Bestätigen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "send": "Senden",
+    "call": "Anrufen",
+    "loading": "Laden...",
+    "noResults": "Keine Ergebnisse",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen",
+    "viewAll": "Alle anzeigen"
+  },
+  "time": {
+    "ago": "vor",
+    "minutes": "Min.",
+    "hours": "Std.",
+    "days": "T.",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "thisWeek": "Diese Woche",
+    "thisMonth": "Diesen Monat"
+  },
+  "language": {
+    "fr": "Français",
+    "de": "Deutsch",
+    "en": "English",
+    "it": "Italiano"
+  }
+}

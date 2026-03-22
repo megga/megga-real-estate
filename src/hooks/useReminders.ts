@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react'
 
 export type ReminderType = 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom'
 export type ReminderStatus = 'pending' | 'triggered' | 'done' | 'cancelled' | 'snoozed'
-export type ReminderChannel = 'email' | 'whatsapp' | 'task' | 'notification'
+export type ReminderChannel = 'email' | 'task' | 'notification'
 
 export interface Reminder {
   id: string
@@ -31,13 +31,15 @@ export interface AutomationRule {
   isActive: boolean
   autoSend: boolean
   generatedCount: number
+  activeCount: number
+  lastTriggeredAt: string | null
 }
 
 export interface MessageTemplate {
   id: string
   name: string
   category: string
-  channel: 'email' | 'whatsapp' | 'both'
+  channel: 'email' | 'notification'
   subject: string | null
   body: string
 }
@@ -65,7 +67,7 @@ const MOCK_TEMPLATES: MessageTemplate[] = [
     id: 'tpl3',
     name: 'Présentation de bien',
     category: 'property_presentation',
-    channel: 'both',
+    channel: 'email',
     subject: 'Un bien qui pourrait vous intéresser',
     body: 'Bonjour {{contact.first_name}},\n\nJ\'ai le plaisir de vous présenter un bien correspondant à vos critères :\n\n{{property.address}}\nPrix : {{property.price}}\n{{property.rooms}} pièces · {{property.surface_m2}} m²\n\nSouhaitez-vous planifier une visite ?\n\n{{agent.full_name}}\n{{agent.phone}}',
   },
@@ -102,6 +104,8 @@ const INITIAL_RULES: AutomationRule[] = [
     isActive: true,
     autoSend: false,
     generatedCount: 12,
+    activeCount: 3,
+    lastTriggeredAt: '2026-03-19T14:30:00Z',
   },
   {
     id: 'rule2',
@@ -115,6 +119,8 @@ const INITIAL_RULES: AutomationRule[] = [
     isActive: true,
     autoSend: false,
     generatedCount: 8,
+    activeCount: 1,
+    lastTriggeredAt: '2026-03-18T09:00:00Z',
   },
   {
     id: 'rule3',
@@ -128,6 +134,8 @@ const INITIAL_RULES: AutomationRule[] = [
     isActive: true,
     autoSend: false,
     generatedCount: 5,
+    activeCount: 2,
+    lastTriggeredAt: '2026-03-17T09:00:00Z',
   },
   {
     id: 'rule4',
@@ -141,6 +149,8 @@ const INITIAL_RULES: AutomationRule[] = [
     isActive: true,
     autoSend: false,
     generatedCount: 3,
+    activeCount: 1,
+    lastTriggeredAt: '2026-03-15T11:00:00Z',
   },
   {
     id: 'rule5',
@@ -154,6 +164,8 @@ const INITIAL_RULES: AutomationRule[] = [
     isActive: true,
     autoSend: false,
     generatedCount: 2,
+    activeCount: 0,
+    lastTriggeredAt: '2026-03-10T09:00:00Z',
   },
   {
     id: 'rule6',
@@ -167,6 +179,8 @@ const INITIAL_RULES: AutomationRule[] = [
     isActive: false,
     autoSend: false,
     generatedCount: 1,
+    activeCount: 0,
+    lastTriggeredAt: null,
   },
 ]
 
@@ -195,7 +209,7 @@ const INITIAL_REMINDERS: Reminder[] = [
     status: 'triggered',
     title: 'Demander feedback visite — Thomas Wenger',
     description: 'Visite effectuée le 14.03 (Penthouse Quai du Mont-Blanc). Feedback non recueilli.',
-    channel: 'whatsapp',
+    channel: 'email',
     triggerAt: '2026-03-15T09:00:00Z',
     createdAt: '2026-03-14T14:00:00Z',
     completedAt: null,
@@ -306,14 +320,41 @@ export function useAutomationRules() {
     )
   }, [])
 
-  const addRule = useCallback((rule: Omit<AutomationRule, 'id' | 'generatedCount'>) => {
-    setRules((prev) => [...prev, { ...rule, id: `rule-${Date.now()}`, generatedCount: 0 }])
+  const addRule = useCallback((rule: Omit<AutomationRule, 'id' | 'generatedCount' | 'activeCount' | 'lastTriggeredAt'>) => {
+    setRules((prev) => [...prev, { ...rule, id: `rule-${Date.now()}`, generatedCount: 0, activeCount: 0, lastTriggeredAt: null }])
   }, [])
 
-  return { rules, toggleRule, toggleAutoSend, addRule }
+  const deleteRule = useCallback((id: string) => {
+    setRules((prev) => prev.filter((r) => r.id !== id))
+  }, [])
+
+  const duplicateRule = useCallback((id: string) => {
+    setRules((prev) => {
+      const source = prev.find((r) => r.id === id)
+      if (!source) return prev
+      return [...prev, { ...source, id: `rule-${Date.now()}`, name: `${source.name} (copie)`, generatedCount: 0, activeCount: 0, lastTriggeredAt: null }]
+    })
+  }, [])
+
+  return { rules, toggleRule, toggleAutoSend, addRule, deleteRule, duplicateRule }
 }
 
 export function useMessageTemplates() {
-  const [templates] = useState<MessageTemplate[]>(MOCK_TEMPLATES)
-  return { templates }
+  const [templates, setTemplates] = useState<MessageTemplate[]>(MOCK_TEMPLATES)
+
+  const addTemplate = useCallback((template: Omit<MessageTemplate, 'id'>) => {
+    setTemplates((prev) => [...prev, { ...template, id: `tpl-${Date.now()}` }])
+  }, [])
+
+  const updateTemplate = useCallback((id: string, updates: Partial<Omit<MessageTemplate, 'id'>>) => {
+    setTemplates((prev) =>
+      prev.map((t) => t.id === id ? { ...t, ...updates } : t)
+    )
+  }, [])
+
+  const deleteTemplate = useCallback((id: string) => {
+    setTemplates((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
+  return { templates, addTemplate, updateTemplate, deleteTemplate }
 }

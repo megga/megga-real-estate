@@ -6,7 +6,6 @@ import type { Reminder, ReminderChannel } from '@/hooks/useReminders'
 
 const CHANNEL_LABEL: Record<ReminderChannel, string> = {
   email: 'Email',
-  whatsapp: 'WhatsApp',
   notification: 'Notification',
   task: 'Tâche',
 }

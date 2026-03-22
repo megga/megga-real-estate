@@ -1,4 +1,4 @@
-import { Send, Calendar, X, Check } from 'lucide-react'
+import { Send, Calendar } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import type { MatchResult } from '@/lib/matching'
 
@@ -10,31 +10,13 @@ interface MatchScoreCardProps {
 }
 
 function ScoreBar({ score }: { score: number }) {
-  const color = score >= 80 ? 'bg-success' : score >= 60 ? 'bg-accent' : 'bg-warning'
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${score}%` }} />
+      <div className="flex-1 h-1.5 bg-theme-border rounded-full overflow-hidden">
+        <div className="h-full rounded-full bg-theme-primary transition-all" style={{ width: `${score}%` }} />
       </div>
-      <span className={cn(
-        'text-xs font-bold',
-        score >= 80 ? 'text-success' : score >= 60 ? 'text-accent' : 'text-warning'
-      )}>
-        {score}%
-      </span>
+      <span className="text-xs font-semibold text-theme-primary tabular-nums">{score}%</span>
     </div>
-  )
-}
-
-function ReasonBadge({ label, match }: { label: string; match: boolean }) {
-  return (
-    <span className={cn(
-      'inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-badge',
-      match ? 'bg-success/10 text-success' : 'bg-gray-100 text-gray-400'
-    )}>
-      {match ? <Check className="h-2.5 w-2.5" /> : <X className="h-2.5 w-2.5" />}
-      {label}
-    </span>
   )
 }
 
@@ -44,7 +26,7 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
 
   return (
     <div className={cn(
-      'bg-white rounded-card shadow-card border border-border overflow-hidden transition-shadow hover:shadow-card-hover',
+      'rounded-xl border border-theme-border overflow-hidden transition-colors hover:border-theme-active',
       isSent && 'opacity-60',
       className
     )}>
@@ -62,10 +44,10 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
         <div className="flex-1 p-3 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-primary-900 truncate">{listing.title}</p>
-              <p className="text-xs text-muted-foreground truncate">{listing.address}, {listing.city}</p>
+              <p className="text-sm font-medium text-theme-primary truncate">{listing.title}</p>
+              <p className="text-xs text-theme-tertiary truncate">{listing.address}, {listing.city}</p>
             </div>
-            <span className="text-sm font-bold text-primary-900 flex-shrink-0">{formatCHF(listing.price)}</span>
+            <span className="text-sm font-semibold text-theme-primary flex-shrink-0">{formatCHF(listing.price)}</span>
           </div>
 
           {/* Score bar */}
@@ -74,35 +56,32 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
           </div>
 
           {/* Reason badges */}
-          <div className="flex flex-wrap gap-1 mb-2">
-            <ReasonBadge label="Budget" match={match.reasons.budget.match} />
-            <ReasonBadge label="Zone" match={match.reasons.zone.match} />
-            <ReasonBadge label="Type" match={match.reasons.type.match} />
-            <ReasonBadge label="Surface" match={match.reasons.rooms.match} />
-            <ReasonBadge label="Extras" match={match.reasons.features.match} />
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {match.reasons.budget.match && <span className="text-[10px] text-emerald-500">Budget</span>}
+            {match.reasons.zone.match && <span className="text-[10px] text-emerald-500">Zone</span>}
+            {match.reasons.type.match && <span className="text-[10px] text-emerald-500">Type</span>}
+            {match.reasons.rooms.match && <span className="text-[10px] text-emerald-500">Surface</span>}
+            {match.reasons.features.match && <span className="text-[10px] text-emerald-500">Extras</span>}
           </div>
 
           {/* Actions */}
           {isSent ? (
-            <div className="flex items-center gap-1 text-xs text-success">
-              <Check className="h-3.5 w-3.5" />
-              Envoyé via {match.sentVia}
-            </div>
+            <p className="text-[11px] text-theme-muted">Envoyé · {match.sentVia}</p>
           ) : (
             <div className="flex items-center gap-2">
               <button
                 onClick={onSend}
-                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-button bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+                className="inline-flex items-center gap-1 text-xs font-medium h-7 px-2.5 rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
               >
                 <Send className="h-3 w-3" />
-                Envoyer au client
+                Envoyer
               </button>
               <button
                 onClick={onIgnore}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary-600 px-2 py-1.5 rounded-button hover:bg-section transition-colors"
+                className="inline-flex items-center gap-1 text-xs text-theme-tertiary hover:text-theme-primary h-7 px-2 rounded-lg hover:bg-theme-hover transition-colors"
               >
                 <Calendar className="h-3 w-3" />
-                Planifier visite
+                Visite
               </button>
             </div>
           )}

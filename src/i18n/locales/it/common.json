@@ -1,0 +1,73 @@
+{
+  "nav": {
+    "today": "Oggi",
+    "dashboard": "Dashboard",
+    "contacts": "Contatti",
+    "pipeline": "Pipeline",
+    "matching": "Matching",
+    "listings": "I miei immobili",
+    "createListing": "Crea immobile",
+    "messages": "Messaggi",
+    "calendar": "Calendario",
+    "kyc": "KYC",
+    "documents": "Documenti",
+    "automation": "Automazione",
+    "settings": "Impostazioni",
+    "darkMode": "Modalità scura",
+    "lightMode": "Modalità chiara",
+    "logout": "Disconnettersi",
+    "search": "Cerca...",
+    "collapseSidebar": "Comprimi barra laterale",
+    "expandSidebar": "Espandi barra laterale",
+    "mainAgent": "Agente principale"
+  },
+  "sections": {
+    "main": "Principale",
+    "crm": "CRM",
+    "properties": "Immobili",
+    "communication": "Comunicazione",
+    "compliance": "Conformità"
+  },
+  "actions": {
+    "save": "Salvare",
+    "cancel": "Annullare",
+    "delete": "Eliminare",
+    "edit": "Modificare",
+    "create": "Creare",
+    "view": "Visualizzare",
+    "close": "Chiudere",
+    "confirm": "Confermare",
+    "back": "Indietro",
+    "next": "Avanti",
+    "previous": "Precedente",
+    "search": "Cercare",
+    "filter": "Filtrare",
+    "export": "Esportare",
+    "import": "Importare",
+    "add": "Aggiungere",
+    "remove": "Rimuovere",
+    "send": "Inviare",
+    "call": "Chiamare",
+    "loading": "Caricamento...",
+    "noResults": "Nessun risultato",
+    "showMore": "Mostra di più",
+    "showLess": "Mostra di meno",
+    "viewAll": "Vedi tutto"
+  },
+  "time": {
+    "ago": "fa",
+    "minutes": "min",
+    "hours": "h",
+    "days": "g",
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "thisWeek": "Questa settimana",
+    "thisMonth": "Questo mese"
+  },
+  "language": {
+    "fr": "Français",
+    "de": "Deutsch",
+    "en": "English",
+    "it": "Italiano"
+  }
+}

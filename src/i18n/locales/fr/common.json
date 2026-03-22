@@ -1,0 +1,73 @@
+{
+  "nav": {
+    "today": "Aujourd'hui",
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "pipeline": "Pipeline",
+    "matching": "Matching",
+    "listings": "Mes biens",
+    "createListing": "Créer un bien",
+    "messages": "Messages",
+    "calendar": "Calendrier",
+    "kyc": "KYC",
+    "documents": "Documents",
+    "automation": "Automatisation",
+    "settings": "Paramètres",
+    "darkMode": "Mode sombre",
+    "lightMode": "Mode clair",
+    "logout": "Se déconnecter",
+    "search": "Rechercher...",
+    "collapseSidebar": "Réduire la sidebar",
+    "expandSidebar": "Ouvrir la sidebar",
+    "mainAgent": "Agent principal"
+  },
+  "sections": {
+    "main": "Principal",
+    "crm": "CRM",
+    "properties": "Biens",
+    "communication": "Communication",
+    "compliance": "Conformité"
+  },
+  "actions": {
+    "save": "Sauvegarder",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "view": "Voir",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "export": "Exporter",
+    "import": "Importer",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "send": "Envoyer",
+    "call": "Appeler",
+    "loading": "Chargement...",
+    "noResults": "Aucun résultat",
+    "showMore": "Voir plus",
+    "showLess": "Voir moins",
+    "viewAll": "Voir tout"
+  },
+  "time": {
+    "ago": "il y a",
+    "minutes": "min",
+    "hours": "h",
+    "days": "j",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "thisWeek": "Cette semaine",
+    "thisMonth": "Ce mois"
+  },
+  "language": {
+    "fr": "Français",
+    "de": "Deutsch",
+    "en": "English",
+    "it": "Italiano"
+  }
+}

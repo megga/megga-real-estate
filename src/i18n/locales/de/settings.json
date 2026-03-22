@@ -1,0 +1,287 @@
+{
+  "title": "Einstellungen",
+  "subtitle": "Verwalten Sie Ihr Profil, Ihre Agentur und Ihre Einstellungen.",
+  "tabs": {
+    "profile": "Profil",
+    "agency": "Agentur",
+    "team": "Team",
+    "notifications": "Benachrichtigungen",
+    "security": "Sicherheit",
+    "subscription": "Abonnement",
+    "integrations": "Integrationen"
+  },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Verwalten Sie Ihre persönlichen Informationen und Ihr öffentliches Profil.",
+    "photo": "Profilbild",
+    "photoHint": "JPG, PNG oder GIF. Max. 2 MB.",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "email": "E-Mail",
+    "emailHint": "Anmeldedaten",
+    "phone": "Telefon",
+    "role": "Rolle",
+    "bio": "Bio",
+    "bioHint": "Sichtbar auf Ihrem öffentlichen Profil.",
+    "language": "Sprache",
+    "languageHint": "Sprache der MEGGA-Oberfläche.",
+    "save": "Speichern",
+    "logout": "Abmelden"
+  },
+  "agency": {
+    "title": "Agenturinformationen",
+    "subtitle": "Konfigurieren Sie das öffentliche Profil Ihrer Agentur.",
+    "logo": "Agenturlogo",
+    "logoHint": "SVG, PNG oder JPG. Quadratisches Format empfohlen.",
+    "name": "Agenturname",
+    "address": "Adresse",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "website": "Webseite",
+    "ideNumber": "UID / HR-Nummer",
+    "description": "Beschreibung",
+    "save": "Speichern"
+  },
+  "team": {
+    "title": "Team",
+    "subtitle": "Verwalten Sie die Mitglieder Ihrer Agentur und deren Rollen.",
+    "invite": "Mitglied einladen",
+    "inviteShort": "Einladen",
+    "inviteModal": {
+      "title": "Mitglied einladen",
+      "email": "E-Mail-Adresse",
+      "role": "Rolle",
+      "cancel": "Abbrechen",
+      "send": "Einladung senden"
+    },
+    "table": {
+      "member": "Mitglied",
+      "role": "Rolle",
+      "status": "Status",
+      "addedAt": "Hinzugefügt am"
+    },
+    "roles": {
+      "admin": "Admin",
+      "manager": "Manager",
+      "agent": "Makler",
+      "assistant": "Assistent"
+    },
+    "status": {
+      "active": "Aktiv",
+      "invited": "Eingeladen"
+    }
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "subtitle": "Wählen Sie, wie und wann Sie benachrichtigt werden möchten.",
+    "email": "E-Mail",
+    "push": "Push",
+    "categories": {
+      "leads": {
+        "label": "Neue Leads",
+        "description": "Wenn ein neuer Kontakt zugewiesen wird"
+      },
+      "messages": {
+        "label": "Eingegangene Nachrichten",
+        "description": "Wenn eine Nachricht im Postfach eingeht"
+      },
+      "visits": {
+        "label": "Geplante Besichtigungen",
+        "description": "Erinnerungen vor geplanten Besichtigungen"
+      },
+      "offers": {
+        "label": "Eingegangene Angebote",
+        "description": "Wenn ein Angebot für ein Objekt eingereicht wird"
+      },
+      "kyc": {
+        "label": "KYC-Dossiers zu vervollständigen",
+        "description": "Wenn ein KYC-Dossier eine Aktion erfordert"
+      },
+      "calendar": {
+        "label": "Kalendererinnerungen",
+        "description": "Erinnerungen für bevorstehende Termine"
+      }
+    }
+  },
+  "security": {
+    "password": {
+      "title": "Passwort",
+      "lastModified": "Letzte Änderung: {{date}}",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "newHint": "Mindestens 6 Zeichen",
+      "confirm": "Neues Passwort bestätigen",
+      "confirmHint": "Passwort erneut eingeben",
+      "minLength": "Das Passwort muss mindestens 6 Zeichen enthalten.",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
+      "update": "Aktualisieren"
+    },
+    "twoFactor": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "enabled": "Aktiviert — Ihr Konto ist geschützt",
+      "disabled": "Deaktiviert — für mehr Sicherheit empfohlen",
+      "recommendation": "Wir empfehlen die Aktivierung der 2FA zum Schutz Ihres Kontos, insbesondere für ein GwG/KYC-Compliance-Tool."
+    },
+    "sessions": {
+      "title": "Aktive Sitzungen",
+      "devicesConnected": "{{count}} verbundene Geräte",
+      "disconnectAll": "Alle abmelden",
+      "current": "Aktuell",
+      "revoke": "Widerrufen"
+    },
+    "log": {
+      "title": "Sicherheitsprotokoll",
+      "subtitle": "Letzte Aktivitäten auf Ihrem Konto"
+    },
+    "connectedAccounts": {
+      "title": "Verknüpfte Konten",
+      "subtitle": "Verknüpfen Sie Ihre Konten für eine schnellere Anmeldung.",
+      "google": "Google",
+      "googleLinked": "Verbunden",
+      "googleNotLinked": "Nicht verbunden",
+      "link": "Verknüpfen",
+      "unlink": "Trennen",
+      "linking": "Verbindung...",
+      "linkedAs": "Verbunden als {{email}}",
+      "linkHint": "Melden Sie sich mit einem Klick über Ihr Google-Konto an.",
+      "unlinkConfirm": "Sie können sich nicht mehr mit Google anmelden. Fortfahren?",
+      "cannotUnlink": "Sie müssen ein Passwort festlegen, bevor Sie Google trennen können."
+    }
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "subtitle": "Verwalten Sie Ihren Plan und Ihre Abrechnung.",
+    "currentBadge": "Aktuell",
+    "manage": "Abonnement verwalten",
+    "comparePlans": "Pläne vergleichen",
+    "popular": "Beliebt",
+    "currentPlan": "Aktueller Plan",
+    "choose": "Wählen",
+    "redirecting": "Weiterleitung...",
+    "free": "Kostenlos",
+    "perMonth": "/Monat",
+    "perYear": "/Jahr",
+    "monthly": "Monatlich",
+    "annual": "Jährlich",
+    "annualDiscount": "-20%",
+    "annualSaving": "Sparen Sie {{amount}}/Jahr",
+    "billedAnnually": "Jährlich abgerechnet",
+    "renewalDate": "Erneuert am {{date}}",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "Für selbstständige Makler am Anfang."
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "Für Makler, die weiterkommen möchten."
+      },
+      "agency": {
+        "name": "Agency",
+        "description": "Für Agenturen mit einem Team."
+      }
+    },
+    "features": {
+      "activeProperties10": "10 aktive Objekte",
+      "contacts50": "50 Kontakte",
+      "basicSearch": "Einfache Suche",
+      "aiAssistance": "KI-Unterstützung",
+      "kycPipeline": "KYC-Pipeline",
+      "sellerPortal": "Verkäuferportal",
+      "prioritySupport": "Prioritätssupport",
+      "unlimitedProperties": "Unbegrenzte Objekte",
+      "unlimitedContacts": "Unbegrenzte Kontakte",
+      "aiSearch": "KI-gestützte Konversationssuche",
+      "aiCopilot": "KI-Copilot-Unterstützung",
+      "fullKyc": "Vollständige KYC-Pipeline",
+      "allPro": "Alles aus dem Pro-Plan",
+      "upTo10Agents": "Bis zu 10 Makler",
+      "agencyDashboard": "Agentur-Dashboard",
+      "apiIntegrations": "API & Integrationen",
+      "customBranding": "Individuelles Branding",
+      "dataExport": "Datenexport",
+      "support247": "Prioritätssupport 24/7"
+    },
+    "custom": {
+      "title": "Benötigen Sie einen massgeschneiderten Plan?",
+      "description": "Für grosse Agenturen oder spezifische Anforderungen bieten wir individuelle Lösungen an.",
+      "cta": "Kontaktieren Sie uns"
+    }
+  },
+  "integrations": {
+    "title": "Integrationen",
+    "subtitle": "Verbinden Sie Ihre externen Tools, um Ihren Alltag zu automatisieren.",
+    "status": {
+      "connected": "Verbunden",
+      "notConnected": "Nicht verbunden",
+      "configure": "Konfigurieren",
+      "disconnect": "Trennen",
+      "comingSoon": "Demnächst verfügbar"
+    },
+    "categories": {
+      "essential": "Wesentlich",
+      "recommended": "Empfohlen",
+      "upcoming": "Demnächst"
+    },
+    "googleCalendar": {
+      "name": "Google Calendar",
+      "description": "Synchronisieren Sie Ihre Besichtigungen und Termine mit Ihrem Google-Kalender.",
+      "features": {
+        "syncVisits": "Automatische Besichtigungs-Synchronisation",
+        "twoWaySync": "Bidirektionale Synchronisation",
+        "reminders": "Erinnerungen vor Besichtigungen"
+      },
+      "connectHint": "Verbinden Sie Ihr Google-Konto für automatische Synchronisation."
+    },
+    "email": {
+      "name": "E-Mail (SMTP / Resend)",
+      "description": "Senden Sie Nachfassungen, Bestätigungen und Objektpräsentationen per E-Mail.",
+      "features": {
+        "autoFollowUp": "Automatische Nachfassungen",
+        "visitConfirmation": "Besichtigungsbestätigungen",
+        "propertyPresentation": "Objektpräsentationen"
+      },
+      "connectHint": "Konfigurieren Sie Ihren E-Mail-Dienst, um direkt aus MEGGA zu senden."
+    },
+    "portals": {
+      "name": "Immobilienportale",
+      "description": "Veröffentlichen Sie Ihre Inserate auf Immoscout24, Homegate und immobilier.ch.",
+      "features": {
+        "autoPublish": "Automatische Veröffentlichung",
+        "multiPortal": "Multi-Portal mit einem Klick",
+        "syncStatus": "Statussynchronisation"
+      },
+      "connectHint": "Verbinden Sie Ihre Portalkonten für die Veröffentlichung mit einem Klick."
+    },
+    "crmImport": {
+      "name": "CRM Import / Export",
+      "description": "Importieren Sie Ihre Kontakte aus einem anderen CRM oder einer CSV-Datei. Exportieren Sie Ihre Daten jederzeit.",
+      "features": {
+        "csvImport": "CSV / Excel Import",
+        "crmMigration": "Migration von Pipedrive, HubSpot",
+        "dataExport": "Vollständiger Datenexport"
+      },
+      "connectHint": "Importieren Sie Ihre bestehenden Kontakte für einen schnellen Start."
+    },
+    "posthog": {
+      "name": "PostHog Analytics",
+      "description": "Analysieren Sie die Nutzung von MEGGA durch Ihr Team: besuchte Seiten, genutzte Funktionen, Adoption.",
+      "features": {
+        "pageViews": "Seitenaufrufe verfolgen",
+        "featureAdoption": "Funktionsadoption",
+        "teamInsights": "Einblicke pro Makler"
+      },
+      "connectHint": "Konfigurieren Sie Ihren PostHog-Schlüssel, um Analytics zu aktivieren."
+    },
+    "cloudStorage": {
+      "name": "Google Drive / OneDrive",
+      "description": "Synchronisieren Sie Ihre KYC-Dokumente und Mandate mit dem bestehenden Drive Ihrer Agentur.",
+      "features": {
+        "docSync": "Dokumentensynchronisation",
+        "autoOrganize": "Automatische Organisation",
+        "teamAccess": "Gemeinsamer Teamzugriff"
+      },
+      "connectHint": "Verbinden Sie den Drive Ihrer Agentur, um Ihre Dokumente zu zentralisieren."
+    }
+  }
+}

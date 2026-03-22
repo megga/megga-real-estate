@@ -1,0 +1,76 @@
+{
+  "greeting": "Guten Tag {{name}}",
+  "newTransaction": "Neue Transaktion",
+  "kpi": {
+    "activeProperties": "Aktive Objekte",
+    "activeTransactions": "Laufende Transaktionen",
+    "contacts": "Kontakte",
+    "visitsThisMonth": "Besichtigungen diesen Monat"
+  },
+  "pipeline": {
+    "title": "Pipeline",
+    "viewPipeline": "Pipeline ansehen →",
+    "deals": "Deal",
+    "dealsPlural": "Deals",
+    "stages": {
+      "lead": "Lead",
+      "qualified": "Qualifiziert",
+      "visit": "Besichtigung",
+      "offer": "Angebot",
+      "signed": "Unterzeichnet"
+    }
+  },
+  "activity": {
+    "title": "Letzte Aktivitäten",
+    "viewAll": "Alle anzeigen"
+  },
+  "actionBoard": {
+    "sections": {
+      "urgencies": "Dringend",
+      "followUps": "Nachfassaktionen heute",
+      "matches": "Gefundene Matches",
+      "visits": "Besichtigungen bestätigen",
+      "suggestions": "KI-Vorschläge"
+    },
+    "empty": {
+      "urgencies": "Keine Dringlichkeiten heute",
+      "followUps": "Keine Nachfassaktionen geplant",
+      "matches": "Keine neuen Matches",
+      "visits": "Keine Besichtigungen heute",
+      "suggestions": "Keine Vorschläge im Moment"
+    },
+    "summary": {
+      "urgency": "{{count}} Dringlichkeit",
+      "urgency_plural": "{{count}} Dringlichkeiten",
+      "followUp": "{{count}} Nachfassaktion",
+      "followUp_plural": "{{count}} Nachfassaktionen",
+      "visit": "{{count}} Besichtigung",
+      "visit_plural": "{{count}} Besichtigungen",
+      "match": "{{count}} Match",
+      "match_plural": "{{count}} Matches"
+    },
+    "days": {
+      "0": "Sonntag",
+      "1": "Montag",
+      "2": "Dienstag",
+      "3": "Mittwoch",
+      "4": "Donnerstag",
+      "5": "Freitag",
+      "6": "Samstag"
+    },
+    "months": {
+      "0": "Januar",
+      "1": "Februar",
+      "2": "März",
+      "3": "April",
+      "4": "Mai",
+      "5": "Juni",
+      "6": "Juli",
+      "7": "August",
+      "8": "September",
+      "9": "Oktober",
+      "10": "November",
+      "11": "Dezember"
+    }
+  }
+}

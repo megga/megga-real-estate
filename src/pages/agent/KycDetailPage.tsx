@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, Circle, Clock, FileText,
-  Upload, AlertTriangle, X, StickyNote, ChevronDown, ChevronRight,
+  Upload, AlertTriangle, X, ChevronDown, ChevronRight,
   Sparkles,
 } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate } from '@/lib/utils'
@@ -193,59 +194,67 @@ export default function KycDetailPage() {
 
       {/* Compliance Screening */}
       <div className="rounded-xl border border-theme-border p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-theme-primary">Vérification Compliance</h2>
-          <button className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-accent hover:border-accent/30 transition-colors">
+          <button className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
             Relancer la vérification
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* PEP */}
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-theme-hover/50">
-            <div className={cn(
-              'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
-              kyc.pep_status === 'clear' ? 'bg-emerald-500/10' : 'bg-red-500/10'
+        <div className="space-y-0">
+          {/* PEP row */}
+          <div className={cn(
+            'flex items-center gap-3 py-3 border-b border-theme-border-subtle',
+            kyc.pep_status !== 'clear' && 'bg-red-500/5 -mx-3 px-3 rounded-lg border-none'
+          )}>
+            <span className={cn(
+              'w-2 h-2 rounded-full shrink-0',
+              kyc.pep_status === 'clear' ? 'bg-emerald-500' : 'bg-red-500'
+            )} />
+            <span className="text-sm text-theme-primary flex-1">PEP (Personnes Exposées Politiquement)</span>
+            <span className={cn(
+              'text-sm',
+              kyc.pep_status === 'clear' ? 'text-theme-secondary' : 'text-red-500 font-medium'
             )}>
-              {kyc.pep_status === 'clear'
-                ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                : <AlertTriangle className="w-4 h-4 text-red-500" />
-              }
-            </div>
-            <div>
-              <p className="text-xs text-theme-tertiary">PEP (Personnes Exposées Politiquement)</p>
-              <p className={cn('text-sm font-medium', kyc.pep_status === 'clear' ? 'text-emerald-500' : 'text-red-500')}>
-                {PEP_STATUS_LABELS[kyc.pep_status]}
-              </p>
-              {kyc.pep_details && <p className="text-xs text-theme-tertiary mt-1">{kyc.pep_details}</p>}
-            </div>
+              {PEP_STATUS_LABELS[kyc.pep_status]}
+            </span>
+            {kyc.last_screening_at && (
+              <span className="text-xs text-theme-muted hidden sm:block">{formatDate(kyc.last_screening_at)}</span>
+            )}
           </div>
+          {kyc.pep_details && (
+            <p className="text-xs text-red-400 pl-5 py-1.5">{kyc.pep_details}</p>
+          )}
 
-          {/* Sanctions */}
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-theme-hover/50">
-            <div className={cn(
-              'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
-              kyc.sanctions_status === 'clear' ? 'bg-emerald-500/10' : 'bg-red-500/10'
+          {/* Sanctions row */}
+          <div className={cn(
+            'flex items-center gap-3 py-3',
+            kyc.sanctions_status !== 'clear' && 'bg-red-500/5 -mx-3 px-3 rounded-lg'
+          )}>
+            <span className={cn(
+              'w-2 h-2 rounded-full shrink-0',
+              kyc.sanctions_status === 'clear' ? 'bg-emerald-500' : 'bg-red-500'
+            )} />
+            <span className="text-sm text-theme-primary flex-1">Sanctions (SECO, UN, EU)</span>
+            <span className={cn(
+              'text-sm',
+              kyc.sanctions_status === 'clear' ? 'text-theme-secondary' : 'text-red-500 font-medium'
             )}>
-              {kyc.sanctions_status === 'clear'
-                ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                : <AlertTriangle className="w-4 h-4 text-red-500" />
-              }
-            </div>
-            <div>
-              <p className="text-xs text-theme-tertiary">Sanctions (SECO, UN, EU)</p>
-              <p className={cn('text-sm font-medium', kyc.sanctions_status === 'clear' ? 'text-emerald-500' : 'text-red-500')}>
-                {SANCTIONS_STATUS_LABELS[kyc.sanctions_status]}
-              </p>
-              {kyc.sanctions_details && <p className="text-xs text-theme-tertiary mt-1">{kyc.sanctions_details}</p>}
-            </div>
+              {SANCTIONS_STATUS_LABELS[kyc.sanctions_status]}
+            </span>
+            {kyc.last_screening_at && (
+              <span className="text-xs text-theme-muted hidden sm:block">{formatDate(kyc.last_screening_at)}</span>
+            )}
           </div>
+          {kyc.sanctions_details && (
+            <p className="text-xs text-red-400 pl-5 py-1.5">{kyc.sanctions_details}</p>
+          )}
         </div>
 
         {kyc.last_screening_at && (
-          <p className="text-[10px] text-theme-tertiary mt-3 flex items-center gap-1">
+          <p className="text-[10px] text-theme-muted mt-4 flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
-            Dernière vérification : {formatDate(kyc.last_screening_at)} · estimation IA
+            estimation IA
           </p>
         )}
       </div>
@@ -436,8 +445,7 @@ export default function KycDetailPage() {
           {/* Notes */}
           <div className="rounded-xl border border-theme-border overflow-hidden">
             <div className="px-6 py-4 border-b border-theme-border">
-              <h2 className="text-base font-semibold text-theme-primary flex items-center gap-2">
-                <StickyNote className="h-4 w-4 text-theme-tertiary" />
+              <h2 className="text-base font-semibold text-theme-primary">
                 Notes internes
               </h2>
             </div>
@@ -494,40 +502,34 @@ export default function KycDetailPage() {
       </div>
 
       {/* Validation modal */}
-      {showValidateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowValidateModal(false)} />
-          <div className="relative bg-transparent rounded-card shadow-modal p-6 w-full max-w-md mx-4">
-            <div className="text-center mb-6">
-              <div className="mx-auto w-12 h-12 rounded-full bg-success/10 flex items-center justify-center mb-4">
-                <ShieldCheck className="h-6 w-6 text-success" />
-              </div>
-              <h3 className="text-lg font-semibold text-theme-primary">Valider ce dossier KYC ?</h3>
-              <p className="text-sm text-theme-tertiary mt-2">
-                Êtes-vous sûr de vouloir valider le dossier de <span className="font-medium text-theme-primary">{kyc.contact_name}</span> ?
-              </p>
-              <p className="text-xs text-warning mt-2 font-medium">
-                Cette action sera tracée dans le journal d'audit.
-              </p>
-            </div>
+      {showValidateModal && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowValidateModal(false)}>
+          <div className="bg-theme-card border border-theme-border rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-theme-primary">Valider ce dossier KYC ?</h3>
+            <p className="text-sm text-theme-secondary mt-2">
+              Êtes-vous sûr de vouloir valider le dossier de <span className="font-medium text-theme-primary">{kyc.contact_name}</span> ?
+            </p>
+            <p className="text-xs text-theme-muted mt-2">
+              Cette action sera tracée dans le journal d'audit.
+            </p>
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 rounded-button"
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
                 onClick={() => setShowValidateModal(false)}
               >
                 Annuler
-              </Button>
-              <Button
-                className="flex-1 bg-success hover:bg-success/90 text-white rounded-button"
+              </button>
+              <button
+                className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors"
                 onClick={() => setShowValidateModal(false)}
               >
                 Confirmer la validation
-              </Button>
+              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

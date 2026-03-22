@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  FileText, ChevronRight, User,
-  ArrowLeft, Sparkles, Loader2, Eye, Download, Check,
+  ChevronRight,
+  ArrowLeft, Sparkles, Loader2, Eye, Download, Check, Save,
 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useCustomTemplates } from '@/hooks/useCustomTemplates'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -14,6 +15,7 @@ interface FieldConfig {
   label: string
   type: 'text' | 'number' | 'date' | 'select' | 'textarea'
   placeholder?: string
+  hint?: string
   required?: boolean
   options?: { value: string; label: string }[]
   section: string
@@ -25,6 +27,20 @@ interface TemplateConfig {
   description: string
   fields: FieldConfig[]
 }
+
+// ─── MOCK CONTACTS / PROPERTIES (for AI pre-fill) ──────────────────────────
+
+const MOCK_CONTACTS = [
+  { id: 'c1', name: 'Marie Dupont', email: 'marie.dupont@gmail.com', phone: '+41 79 123 45 67', address: 'Rue de Lausanne 12, 1201 Genève' },
+  { id: 'c2', name: 'Pierre Müller', email: 'p.muller@bluewin.ch', phone: '+41 78 234 56 78', address: 'Chemin des Crêts 8, 1227 Carouge' },
+  { id: 'c3', name: 'Sophie Bertrand', email: 'sophie.b@outlook.com', phone: '+41 76 345 67 89', address: 'Rue de la Servette 12, 1202 Genève' },
+]
+
+const MOCK_PROPERTIES = [
+  { id: 'p1', address: 'Rue du Rhône 42', city: 'Genève', type: 'apartment', rooms: 4, surface: 120, price: 1250000 },
+  { id: 'p2', address: 'Chemin des Crêts 8', city: 'Carouge', type: 'house', rooms: 6, surface: 180, price: 980000 },
+  { id: 'p3', address: 'Rue de la Servette 12', city: 'Genève', type: 'apartment', rooms: 3, surface: 85, price: 750000 },
+]
 
 // ─── TEMPLATE CONFIGS ───────────────────────────────────────────────────────
 
@@ -67,7 +83,7 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { name: 'property_city', label: 'Ville', type: 'text', required: true, section: 'Bien' },
       { name: 'asking_price', label: 'Prix demandé (CHF)', type: 'number', required: true, section: 'Offre' },
       { name: 'offer_price', label: 'Prix offert (CHF)', type: 'number', required: true, section: 'Offre' },
-      { name: 'validity_days', label: 'Validité (jours)', type: 'number', placeholder: '10', section: 'Offre' },
+      { name: 'validity_days', label: 'Validité (jours)', type: 'number', placeholder: '10', hint: 'Durée standard : 10 jours ouvrables', section: 'Offre' },
       { name: 'conditions', label: 'Conditions suspensives', type: 'textarea', placeholder: 'Obtention du financement, résultats des expertises...', section: 'Offre' },
       { name: 'financing', label: 'Mode de financement', type: 'select', options: [
         { value: 'cash', label: 'Fonds propres' },
@@ -96,21 +112,29 @@ const TEMPLATE_CONFIGS: Record<string, TemplateConfig> = {
       { name: 'property_rooms', label: 'Pièces', type: 'number', section: 'Bien' },
       { name: 'property_surface', label: 'Surface (m²)', type: 'number', section: 'Bien' },
       { name: 'asking_price', label: 'Prix de vente (CHF)', type: 'number', required: true, section: 'Conditions' },
-      { name: 'commission_pct', label: 'Commission (%)', type: 'number', placeholder: '3', section: 'Conditions' },
-      { name: 'duration_months', label: 'Durée du mandat (mois)', type: 'number', placeholder: '6', section: 'Conditions' },
+      { name: 'commission_pct', label: 'Commission (%)', type: 'number', placeholder: '3', hint: 'Standard suisse : 3 à 5%', section: 'Conditions' },
+      { name: 'duration_months', label: 'Durée du mandat (mois)', type: 'number', placeholder: '6', hint: 'Durée habituelle : 6 à 12 mois', section: 'Conditions' },
       { name: 'start_date', label: 'Date de début', type: 'date', required: true, section: 'Conditions' },
       { name: 'special_conditions', label: 'Conditions particulières', type: 'textarea', section: 'Conditions' },
     ],
   },
 }
 
-// ─── STEPS ──────────────────────────────────────────────────────────────────
+// ─── SECTION DOT COLORS ────────────────────────────────────────────────────
 
-const STEPS = [
-  { label: 'Template', icon: FileText },
-  { label: 'Informations', icon: User },
-  { label: 'Prévisualisation', icon: Eye },
-]
+const SECTION_DOTS: Record<string, string> = {
+  'Vendeur': 'bg-blue-500',
+  'Acquéreur': 'bg-blue-500',
+  'Visiteur': 'bg-blue-500',
+  'Bien': 'bg-teal-500',
+  'Conditions': 'bg-amber-500',
+  'Offre': 'bg-amber-500',
+  'Visite': 'bg-purple-500',
+}
+
+// ─── INPUT STYLES ──────────────────────────────────────────────────────────
+
+const inputClasses = 'w-full h-10 px-3 bg-transparent border border-theme-border rounded-lg text-sm text-theme-primary focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none transition-colors'
 
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
 
@@ -118,16 +142,45 @@ export default function DocumentGenerator() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const preselected = searchParams.get('template')
+  const { templates: customTemplates, incrementUsage } = useCustomTemplates()
 
-  const [step, setStep] = useState(preselected && TEMPLATE_CONFIGS[preselected] ? 1 : 0)
+  // Build configs for custom templates dynamically
+  const allConfigs = useMemo(() => {
+    const configs: Record<string, TemplateConfig> = { ...TEMPLATE_CONFIGS }
+    for (const ct of customTemplates) {
+      const fields: FieldConfig[] = []
+      for (const section of ct.sections) {
+        for (const field of section.fields) {
+          fields.push({
+            name: `${section.name.toLowerCase().replace(/\s+/g, '_')}_${field.label.toLowerCase().replace(/\s+/g, '_')}`,
+            label: field.label,
+            type: field.type,
+            required: field.required,
+            placeholder: field.placeholder || undefined,
+            hint: field.hint || undefined,
+            options: field.options,
+            section: section.name,
+          })
+        }
+      }
+      configs[ct.id] = { id: ct.id, name: ct.name, description: ct.description, fields }
+    }
+    return configs
+  }, [customTemplates])
+
+  const hasPreselected = !!(preselected && allConfigs[preselected])
+
+  const [step, setStep] = useState(hasPreselected ? 1 : 0)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
-    preselected && TEMPLATE_CONFIGS[preselected] ? preselected : null
+    hasPreselected ? preselected : null
   )
   const [formData, setFormData] = useState<Record<string, string>>({})
   const [generating, setGenerating] = useState(false)
   const [generated, setGenerated] = useState(false)
+  const [selectedContact, setSelectedContact] = useState('')
+  const [selectedProperty, setSelectedProperty] = useState('')
 
-  const templateConfig = selectedTemplate ? TEMPLATE_CONFIGS[selectedTemplate] : null
+  const templateConfig = selectedTemplate ? allConfigs[selectedTemplate] ?? null : null
 
   function handleFieldChange(name: string, value: string) {
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -139,8 +192,56 @@ export default function DocumentGenerator() {
     setStep(1)
   }
 
+  function handlePrefillContact(contactId: string) {
+    setSelectedContact(contactId)
+    const contact = MOCK_CONTACTS.find(c => c.id === contactId)
+    if (!contact) return
+    // Auto-fill contact fields
+    const mapping: Record<string, string> = {
+      visitor_name: contact.name,
+      visitor_email: contact.email,
+      visitor_phone: contact.phone,
+      buyer_name: contact.name,
+      buyer_email: contact.email,
+      buyer_phone: contact.phone,
+      buyer_address: contact.address,
+      seller_name: contact.name,
+      seller_email: contact.email,
+      seller_phone: contact.phone,
+      seller_address: contact.address,
+    }
+    setFormData(prev => {
+      const updated = { ...prev }
+      for (const [key, val] of Object.entries(mapping)) {
+        if (templateConfig?.fields.some(f => f.name === key)) {
+          updated[key] = val
+        }
+      }
+      return updated
+    })
+  }
+
+  function handlePrefillProperty(propertyId: string) {
+    setSelectedProperty(propertyId)
+    const prop = MOCK_PROPERTIES.find(p => p.id === propertyId)
+    if (!prop) return
+    setFormData(prev => ({
+      ...prev,
+      property_address: prop.address,
+      property_city: prop.city,
+      property_type: prop.type,
+      property_rooms: String(prop.rooms),
+      property_surface: String(prop.surface),
+      property_price: String(prop.price),
+      asking_price: String(prop.price),
+    }))
+  }
+
   function handleGenerate() {
     setGenerating(true)
+    if (selectedTemplate?.startsWith('custom-')) {
+      incrementUsage(selectedTemplate)
+    }
     setTimeout(() => {
       setGenerating(false)
       setGenerated(true)
@@ -149,7 +250,6 @@ export default function DocumentGenerator() {
   }
 
   function handleDownload() {
-    // TODO: Generate actual PDF via Edge Function
     const blob = new Blob(['Document preview'], { type: 'application/pdf' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -160,59 +260,91 @@ export default function DocumentGenerator() {
   }
 
   // Group fields by section
-  const sections = templateConfig
-    ? templateConfig.fields.reduce<Record<string, FieldConfig[]>>((acc, field) => {
-        if (!acc[field.section]) acc[field.section] = []
-        acc[field.section].push(field)
-        return acc
-      }, {})
-    : {}
+  const sections = useMemo(() => {
+    if (!templateConfig) return {}
+    return templateConfig.fields.reduce<Record<string, FieldConfig[]>>((acc, field) => {
+      if (!acc[field.section]) acc[field.section] = []
+      acc[field.section].push(field)
+      return acc
+    }, {})
+  }, [templateConfig])
+
+  const sectionEntries = Object.entries(sections)
+
+  // Step labels
+  const stepLabels = ['Template', 'Informations', 'Aperçu']
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate('/dashboard/templates')}
-          className="w-9 h-9 rounded-lg border border-theme-border flex items-center justify-center hover:bg-theme-hover transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4 text-theme-muted" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-semibold text-theme-primary">Générer un document</h1>
-          <p className="text-sm text-theme-tertiary mt-0.5">
-            {templateConfig ? templateConfig.name : 'Sélectionnez un template'}
-          </p>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Header with breadcrumb */}
+      <div>
+        <div className="flex items-center gap-1.5 text-xs text-theme-tertiary mb-3">
+          <button onClick={() => navigate('/dashboard/documents')} className="hover:text-theme-primary transition-colors">Documents</button>
+          <ChevronRight className="w-3 h-3" />
+          {templateConfig ? (
+            <>
+              <span className="text-theme-secondary">{templateConfig.name}</span>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-theme-primary">{stepLabels[step]}</span>
+            </>
+          ) : (
+            <span className="text-theme-primary">Nouveau document</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => step > 0 ? setStep(step - 1) : navigate('/dashboard/documents')}
+            className="w-9 h-9 rounded-lg border border-theme-border flex items-center justify-center hover:bg-theme-hover transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 text-theme-muted" />
+          </button>
+          <div>
+            <h1 className="text-xl font-semibold text-theme-primary">
+              {templateConfig ? templateConfig.name : 'Générer un document'}
+            </h1>
+            <p className="text-sm text-theme-tertiary mt-0.5">
+              {templateConfig ? templateConfig.description : 'Sélectionnez un template pour commencer'}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Steps */}
-      <div className="flex items-center gap-2 bg-theme-hover rounded-xl p-2">
-        {STEPS.map((s, i) => {
-          const Icon = s.icon
+      {/* Stepper — minimal monochrome */}
+      <div className="flex items-center gap-8">
+        {stepLabels.map((label, i) => {
           const isActive = i === step
           const isDone = i < step
           return (
             <button
               key={i}
-              onClick={() => {
-                if (isDone) setStep(i)
-              }}
+              onClick={() => { if (isDone) setStep(i) }}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all flex-1 justify-center',
-                isActive
-                  ? 'bg-theme-card text-theme-primary shadow-none'
-                  : isDone
-                    ? 'text-accent cursor-pointer hover:bg-theme-card/50'
-                    : 'text-theme-tertiary cursor-default'
+                'flex flex-col items-center gap-1.5 pb-0',
+                isDone ? 'cursor-pointer' : 'cursor-default'
               )}
             >
-              {isDone ? (
-                <Check className="w-4 h-4 text-accent" />
-              ) : (
-                <Icon className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline">{s.label}</span>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  'text-sm tabular-nums',
+                  isActive ? 'text-theme-primary font-semibold' :
+                  isDone ? 'text-theme-primary font-medium' :
+                  'text-theme-muted'
+                )}>
+                  {i + 1}.
+                </span>
+                <span className={cn(
+                  'text-sm',
+                  isActive ? 'text-theme-primary font-semibold' :
+                  isDone ? 'text-theme-primary font-medium' :
+                  'text-theme-muted'
+                )}>
+                  {label}
+                </span>
+              </div>
+              <div className={cn(
+                'h-0.5 w-full rounded-full transition-colors',
+                isActive || isDone ? 'bg-theme-primary' : 'bg-transparent'
+              )} />
             </button>
           )
         })}
@@ -221,23 +353,20 @@ export default function DocumentGenerator() {
       {/* Step 0: Select template */}
       {step === 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.values(TEMPLATE_CONFIGS).map(t => (
+          {Object.values(allConfigs).map(t => (
             <button
               key={t.id}
               onClick={() => handleSelectTemplate(t.id)}
               className={cn(
-                'text-left bg-theme-card rounded-xl border p-5 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group',
-                selectedTemplate === t.id ? 'border-accent ring-1 ring-accent/20' : 'border-theme-border-subtle'
+                'text-left rounded-xl border p-5 transition-all cursor-pointer group',
+                selectedTemplate === t.id ? 'border-accent ring-1 ring-accent/20' : 'border-theme-border hover:border-theme-active'
               )}
             >
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
-                <FileText className="w-5 h-5 text-accent" />
-              </div>
               <h3 className="text-sm font-semibold text-theme-primary group-hover:text-accent transition-colors">
                 {t.name}
               </h3>
-              <p className="text-xs text-theme-tertiary mt-1">{t.description}</p>
-              <div className="flex items-center gap-1 mt-3 text-xs text-accent font-medium">
+              <p className="text-xs text-theme-tertiary mt-1.5 leading-relaxed">{t.description}</p>
+              <div className="flex items-center gap-1 mt-3 text-xs text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                 Sélectionner
                 <ChevronRight className="w-3 h-3" />
               </div>
@@ -248,80 +377,124 @@ export default function DocumentGenerator() {
 
       {/* Step 1: Fill form */}
       {step === 1 && templateConfig && (
-        <div className="space-y-6">
-          {/* AI assist banner */}
-          <div className="flex items-center gap-3 bg-accent/5 border border-accent/10 rounded-xl px-4 py-3">
-            <Sparkles className="w-5 h-5 text-accent flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-theme-primary">Remplissage assisté par IA</p>
-              <p className="text-xs text-theme-tertiary">Sélectionnez un contact ou un bien existant pour pré-remplir les champs.</p>
+        <div className="space-y-5">
+          {/* AI pre-fill banner with dropdowns */}
+          <div className="rounded-xl border border-accent/15 bg-accent/5 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-accent shrink-0" />
+              <p className="text-sm font-medium text-theme-primary">Pré-remplissage intelligent</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-theme-secondary mb-1">Contact existant</label>
+                <select
+                  value={selectedContact}
+                  onChange={e => handlePrefillContact(e.target.value)}
+                  className={inputClasses}
+                >
+                  <option value="">Sélectionner un contact...</option>
+                  {MOCK_CONTACTS.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-secondary mb-1">Bien existant</label>
+                <select
+                  value={selectedProperty}
+                  onChange={e => handlePrefillProperty(e.target.value)}
+                  className={inputClasses}
+                >
+                  <option value="">Sélectionner un bien...</option>
+                  {MOCK_PROPERTIES.map(p => (
+                    <option key={p.id} value={p.id}>{p.address}, {p.city}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          {Object.entries(sections).map(([sectionName, fields]) => (
-            <div key={sectionName} className="bg-theme-card rounded-xl border border-theme-border-subtle overflow-hidden">
-              <div className="px-5 py-3 border-b border-theme-border-subtle bg-theme-hover/50">
-                <h3 className="text-sm font-semibold text-theme-primary">{sectionName}</h3>
+          {/* Form sections with numbered headers and dots */}
+          {sectionEntries.map(([sectionName, fields], sectionIdx) => {
+            const dotColor = SECTION_DOTS[sectionName] || 'bg-theme-tertiary'
+            return (
+              <div key={sectionName} className="rounded-xl border border-theme-border overflow-hidden">
+                <div className="px-5 py-3 border-b border-theme-border flex items-center gap-2.5">
+                  <span className={cn('w-2 h-2 rounded-full shrink-0', dotColor)} />
+                  <h3 className="text-sm font-semibold text-theme-primary">
+                    {sectionIdx + 1}. {sectionName}
+                  </h3>
+                </div>
+                <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+                  {fields.map(field => (
+                    <div key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                      <label className="block text-sm font-medium text-theme-primary mb-1.5">
+                        {field.label}
+                        {field.required && <span className="text-danger ml-0.5">*</span>}
+                      </label>
+                      {field.type === 'select' ? (
+                        <select
+                          value={formData[field.name] || ''}
+                          onChange={e => handleFieldChange(field.name, e.target.value)}
+                          className={inputClasses}
+                        >
+                          <option value="">Sélectionner...</option>
+                          {field.options?.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      ) : field.type === 'textarea' ? (
+                        <textarea
+                          value={formData[field.name] || ''}
+                          onChange={e => handleFieldChange(field.name, e.target.value)}
+                          placeholder={field.placeholder}
+                          rows={3}
+                          className="w-full px-3 py-2.5 bg-transparent border border-theme-border rounded-lg text-sm text-theme-primary focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none resize-none transition-colors"
+                        />
+                      ) : (
+                        <input
+                          type={field.type}
+                          value={formData[field.name] || ''}
+                          onChange={e => handleFieldChange(field.name, e.target.value)}
+                          placeholder={field.placeholder}
+                          className={inputClasses}
+                        />
+                      )}
+                      {field.hint && (
+                        <p className="text-[11px] text-theme-tertiary mt-1">{field.hint}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fields.map(field => (
-                  <div key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                    <label className="block text-xs font-medium text-theme-muted mb-1.5">
-                      {field.label}
-                      {field.required && <span className="text-danger ml-0.5">*</span>}
-                    </label>
-                    {field.type === 'select' ? (
-                      <select
-                        value={formData[field.name] || ''}
-                        onChange={e => handleFieldChange(field.name, e.target.value)}
-                        className="w-full h-10 px-3 bg-theme-card border border-theme-border rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
-                      >
-                        <option value="">Sélectionner...</option>
-                        {field.options?.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
-                    ) : field.type === 'textarea' ? (
-                      <textarea
-                        value={formData[field.name] || ''}
-                        onChange={e => handleFieldChange(field.name, e.target.value)}
-                        placeholder={field.placeholder}
-                        rows={3}
-                        className="w-full px-3 py-2 bg-theme-card border border-theme-border rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none resize-none"
-                      />
-                    ) : (
-                      <input
-                        type={field.type}
-                        value={formData[field.name] || ''}
-                        onChange={e => handleFieldChange(field.name, e.target.value)}
-                        placeholder={field.placeholder}
-                        className="w-full h-10 px-3 bg-theme-card border border-theme-border rounded-lg text-sm focus:border-accent focus:ring-1 focus:ring-accent/20 outline-none"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+            )
+          })}
 
+          {/* Actions */}
           <div className="flex items-center justify-between pt-2">
             <Button variant="outline" onClick={() => setStep(0)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour
             </Button>
-            <Button onClick={handleGenerate} disabled={generating}>
-              {generating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Génération...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Générer le document
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="gap-2 text-theme-tertiary">
+                <Save className="w-4 h-4" />
+                <span className="hidden sm:inline">Brouillon</span>
+              </Button>
+              <Button onClick={handleGenerate} disabled={generating}>
+                {generating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Génération...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Générer le document
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -330,13 +503,13 @@ export default function DocumentGenerator() {
       {step === 2 && templateConfig && generated && (
         <div className="space-y-6">
           {/* Preview card */}
-          <div className="bg-theme-card rounded-xl border border-theme-border-subtle overflow-hidden">
-            <div className="px-5 py-3 border-b border-theme-border-subtle bg-theme-hover/50 flex items-center justify-between">
+          <div className="rounded-xl border border-theme-border overflow-hidden">
+            <div className="px-5 py-3 border-b border-theme-border flex items-center justify-between">
               <h3 className="text-sm font-semibold text-theme-primary">Aperçu du document</h3>
-              <span className="text-[10px] font-medium text-theme-tertiary bg-theme-border px-2 py-0.5 rounded">PDF</span>
+              <span className="text-[10px] font-medium text-theme-tertiary bg-theme-section px-2 py-0.5 rounded">PDF</span>
             </div>
 
-            {/* Mock document preview */}
+            {/* Document preview */}
             <div className="p-8 md:p-12 max-w-2xl mx-auto">
               <div className="space-y-6">
                 {/* Header */}
@@ -354,7 +527,7 @@ export default function DocumentGenerator() {
                 </div>
 
                 {/* Content sections */}
-                {Object.entries(sections).map(([sectionName, fields]) => (
+                {sectionEntries.map(([sectionName, fields]) => (
                   <div key={sectionName}>
                     <h3 className="text-sm font-semibold text-theme-primary mb-3 uppercase tracking-wider">
                       {sectionName}
@@ -415,7 +588,7 @@ export default function DocumentGenerator() {
                 <Download className="w-4 h-4" />
                 Télécharger PDF
               </Button>
-              <Button onClick={() => navigate('/dashboard/templates')} className="gap-2">
+              <Button onClick={() => navigate('/dashboard/documents')} className="gap-2">
                 <Check className="w-4 h-4" />
                 Terminer
               </Button>

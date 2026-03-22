@@ -1,0 +1,287 @@
+{
+  "title": "Settings",
+  "subtitle": "Configure your profile, agency and preferences.",
+  "tabs": {
+    "profile": "Profile",
+    "agency": "Agency",
+    "team": "Team",
+    "notifications": "Notifications",
+    "security": "Security",
+    "subscription": "Subscription",
+    "integrations": "Integrations"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your personal information and public profile.",
+    "photo": "Profile photo",
+    "photoHint": "JPG, PNG or GIF. Max 2 MB.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "emailHint": "Login identifier",
+    "phone": "Phone",
+    "role": "Role",
+    "bio": "Bio",
+    "bioHint": "Visible on your public profile.",
+    "language": "Language",
+    "languageHint": "MEGGA interface language.",
+    "save": "Save",
+    "logout": "Sign out"
+  },
+  "agency": {
+    "title": "Agency information",
+    "subtitle": "Configure your agency's public profile.",
+    "logo": "Agency logo",
+    "logoHint": "SVG, PNG or JPG. Square format recommended.",
+    "name": "Agency name",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "website": "Website",
+    "ideNumber": "UID / Company No.",
+    "description": "Description",
+    "save": "Save"
+  },
+  "team": {
+    "title": "Team",
+    "subtitle": "Manage your agency members and their roles.",
+    "invite": "Invite member",
+    "inviteShort": "Invite",
+    "inviteModal": {
+      "title": "Invite a member",
+      "email": "Email address",
+      "role": "Role",
+      "cancel": "Cancel",
+      "send": "Send invitation"
+    },
+    "table": {
+      "member": "Member",
+      "role": "Role",
+      "status": "Status",
+      "addedAt": "Added on"
+    },
+    "roles": {
+      "admin": "Admin",
+      "manager": "Manager",
+      "agent": "Agent",
+      "assistant": "Assistant"
+    },
+    "status": {
+      "active": "Active",
+      "invited": "Invited"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Choose how and when you want to be notified.",
+    "email": "Email",
+    "push": "Push",
+    "categories": {
+      "leads": {
+        "label": "New leads",
+        "description": "When a new contact is assigned"
+      },
+      "messages": {
+        "label": "Messages received",
+        "description": "When a message is received in the inbox"
+      },
+      "visits": {
+        "label": "Scheduled visits",
+        "description": "Reminders before scheduled visits"
+      },
+      "offers": {
+        "label": "Offers received",
+        "description": "When an offer is submitted on a property"
+      },
+      "kyc": {
+        "label": "KYC files to complete",
+        "description": "When a KYC file requires action"
+      },
+      "calendar": {
+        "label": "Calendar reminders",
+        "description": "Reminders for upcoming events"
+      }
+    }
+  },
+  "security": {
+    "password": {
+      "title": "Password",
+      "lastModified": "Last modified: {{date}}",
+      "current": "Current password",
+      "new": "New password",
+      "newHint": "6 characters minimum",
+      "confirm": "Confirm new password",
+      "confirmHint": "Re-enter password",
+      "minLength": "Password must be at least 6 characters.",
+      "mismatch": "Passwords do not match.",
+      "update": "Update"
+    },
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "enabled": "Enabled — your account is protected",
+      "disabled": "Disabled — recommended for more security",
+      "recommendation": "We recommend enabling 2FA to protect your account, especially for an AML/KYC compliance tool."
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "devicesConnected": "{{count}} connected devices",
+      "disconnectAll": "Disconnect all",
+      "current": "Current",
+      "revoke": "Revoke"
+    },
+    "log": {
+      "title": "Security log",
+      "subtitle": "Recent activity on your account"
+    },
+    "connectedAccounts": {
+      "title": "Connected accounts",
+      "subtitle": "Link your accounts for faster login.",
+      "google": "Google",
+      "googleLinked": "Connected",
+      "googleNotLinked": "Not connected",
+      "link": "Link",
+      "unlink": "Unlink",
+      "linking": "Connecting...",
+      "linkedAs": "Connected as {{email}}",
+      "linkHint": "Sign in with one click using your Google account.",
+      "unlinkConfirm": "You won't be able to sign in with Google anymore. Continue?",
+      "cannotUnlink": "You must set a password before unlinking Google."
+    }
+  },
+  "subscription": {
+    "title": "Subscription",
+    "subtitle": "Manage your plan and billing.",
+    "currentBadge": "Current",
+    "manage": "Manage subscription",
+    "comparePlans": "Compare plans",
+    "popular": "Popular",
+    "currentPlan": "Current plan",
+    "choose": "Choose",
+    "redirecting": "Redirecting...",
+    "free": "Free",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "annualDiscount": "-20%",
+    "annualSaving": "Save {{amount}}/year",
+    "billedAnnually": "Billed annually",
+    "renewalDate": "Renewed on {{date}}",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "description": "For independent agents just starting out."
+      },
+      "pro": {
+        "name": "Pro",
+        "description": "For agents who want to go further."
+      },
+      "agency": {
+        "name": "Agency",
+        "description": "For agencies with a team."
+      }
+    },
+    "features": {
+      "activeProperties10": "10 active properties",
+      "contacts50": "50 contacts",
+      "basicSearch": "Basic search",
+      "aiAssistance": "AI assistance",
+      "kycPipeline": "KYC pipeline",
+      "sellerPortal": "Seller portal",
+      "prioritySupport": "Priority support",
+      "unlimitedProperties": "Unlimited properties",
+      "unlimitedContacts": "Unlimited contacts",
+      "aiSearch": "AI conversational search",
+      "aiCopilot": "AI copilot assistance",
+      "fullKyc": "Full KYC pipeline",
+      "allPro": "Everything in Pro plan",
+      "upTo10Agents": "Up to 10 agents",
+      "agencyDashboard": "Agency dashboard",
+      "apiIntegrations": "API & integrations",
+      "customBranding": "Custom branding",
+      "dataExport": "Data export",
+      "support247": "Priority support 24/7"
+    },
+    "custom": {
+      "title": "Need a custom plan?",
+      "description": "For large agencies or specific requirements, we offer tailored solutions.",
+      "cta": "Contact us"
+    }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Connect your external tools to automate your daily workflow.",
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "configure": "Configure",
+      "disconnect": "Disconnect",
+      "comingSoon": "Coming soon"
+    },
+    "categories": {
+      "essential": "Essential",
+      "recommended": "Recommended",
+      "upcoming": "Coming soon"
+    },
+    "googleCalendar": {
+      "name": "Google Calendar",
+      "description": "Sync your visits and appointments with your Google calendar.",
+      "features": {
+        "syncVisits": "Automatic visit synchronization",
+        "twoWaySync": "Two-way synchronization",
+        "reminders": "Reminders before visits"
+      },
+      "connectHint": "Connect your Google account for automatic synchronization."
+    },
+    "email": {
+      "name": "Email (SMTP / Resend)",
+      "description": "Send follow-ups, confirmations and property presentations by email.",
+      "features": {
+        "autoFollowUp": "Automatic follow-ups",
+        "visitConfirmation": "Visit confirmations",
+        "propertyPresentation": "Property presentations"
+      },
+      "connectHint": "Configure your email service to send directly from MEGGA."
+    },
+    "portals": {
+      "name": "Property portals",
+      "description": "Publish your listings on Immoscout24, Homegate and immobilier.ch.",
+      "features": {
+        "autoPublish": "Automatic publishing",
+        "multiPortal": "Multi-portal in one click",
+        "syncStatus": "Status synchronization"
+      },
+      "connectHint": "Connect your portal accounts to publish in one click."
+    },
+    "crmImport": {
+      "name": "CRM Import / Export",
+      "description": "Import your contacts from another CRM or a CSV file. Export your data at any time.",
+      "features": {
+        "csvImport": "CSV / Excel import",
+        "crmMigration": "Migration from Pipedrive, HubSpot",
+        "dataExport": "Full data export"
+      },
+      "connectHint": "Import your existing contacts for a quick start."
+    },
+    "posthog": {
+      "name": "PostHog Analytics",
+      "description": "Analyze how your team uses MEGGA: pages visited, features used, adoption rates.",
+      "features": {
+        "pageViews": "Page view tracking",
+        "featureAdoption": "Feature adoption",
+        "teamInsights": "Per-agent insights"
+      },
+      "connectHint": "Configure your PostHog key to enable analytics."
+    },
+    "cloudStorage": {
+      "name": "Google Drive / OneDrive",
+      "description": "Sync your KYC documents and mandates with your agency's existing drive.",
+      "features": {
+        "docSync": "Document synchronization",
+        "autoOrganize": "Automatic organization",
+        "teamAccess": "Shared team access"
+      },
+      "connectHint": "Connect your agency's drive to centralize your documents."
+    }
+  }
+}
