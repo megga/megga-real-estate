@@ -8,11 +8,11 @@ import type { SellerVisit } from '@/lib/mockSellerData'
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
 
 const STATUS_CONFIG: Record<SellerVisit['status'], { label: string; icon: React.ElementType; color: string }> = {
-  planned: { label: 'Planifiée', icon: Clock, color: 'text-blue-500' },
-  confirmed: { label: 'Confirmée', icon: CalendarDays, color: 'text-blue-500' },
-  done: { label: 'Effectuée', icon: CheckCircle2, color: 'text-emerald-500' },
+  planned: { label: 'Planifiée', icon: Clock, color: 'text-theme-secondary' },
+  confirmed: { label: 'Confirmée', icon: CalendarDays, color: 'text-theme-secondary' },
+  done: { label: 'Effectuée', icon: CheckCircle2, color: 'text-theme-primary' },
   cancelled: { label: 'Annulée', icon: XCircle, color: 'text-theme-muted' },
-  no_show: { label: 'Absent', icon: AlertCircle, color: 'text-orange-500' },
+  no_show: { label: 'Absent', icon: AlertCircle, color: 'text-theme-tertiary' },
 }
 
 // ── Postpone modal ──────────────────────────────────────────────────────
@@ -204,8 +204,8 @@ export default function MesVisitesPage() {
                       {visitDate.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <Icon className={cn('w-3.5 h-3.5', isConfirmed ? 'text-emerald-500' : config.color)} />
-                      <span className={cn('text-xs font-medium', isConfirmed ? 'text-emerald-500' : config.color)}>
+                      <Icon className={cn('w-3.5 h-3.5', isConfirmed ? 'text-theme-primary' : config.color)} />
+                      <span className={cn('text-xs font-medium', isConfirmed ? 'text-theme-primary' : config.color)}>
                         {isConfirmed && !confirmedIds.has(visit.id) ? 'Confirmée' : isConfirmed ? 'Disponibilité confirmée' : config.label}
                       </span>
                     </div>

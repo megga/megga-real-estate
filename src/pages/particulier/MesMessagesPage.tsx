@@ -145,7 +145,7 @@ export default function MesMessagesPage() {
                           'max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed',
                           isAgent
                             ? 'border border-theme-border text-theme-primary rounded-bl-md'
-                            : 'bg-accent/15 text-theme-primary border border-accent/20 rounded-br-md'
+                            : 'bg-theme-hover text-theme-primary border border-theme-border rounded-br-md'
                         )}
                       >
                         <p className="whitespace-pre-wrap">{msg.content}</p>

@@ -196,7 +196,7 @@ export default function MesDocumentsPage() {
           compact ? 'p-3' : 'p-4',
           doc.status === 'missing' && dragTarget !== doc.id && 'border-dashed border-theme-border',
           doc.status !== 'missing' && 'border-theme-border',
-          dragTarget === doc.id && 'border-accent bg-accent/5 border-solid ring-2 ring-accent/20'
+          dragTarget === doc.id && 'border-theme-active bg-theme-hover border-solid'
         )}
       >
         {/* Icon — monochrome, only missing gets red */}
@@ -242,12 +242,12 @@ export default function MesDocumentsPage() {
 
           {/* Expiry — only signal that uses color (amber) */}
           {isExpiring && (
-            <p className="text-[10px] text-amber-500 mt-0.5">
+            <p className="text-[10px] text-theme-secondary mt-0.5">
               Expire dans {daysUntilExpiry(doc.expires_at!)} jour{daysUntilExpiry(doc.expires_at!) > 1 ? 's' : ''}
             </p>
           )}
           {isExpired && (
-            <p className="text-[10px] text-red-500 mt-0.5">Expiré</p>
+            <p className="text-[10px] text-theme-tertiary mt-0.5">Expiré</p>
           )}
 
           {!compact && doc.status === 'pending' && doc.uploaded_at && (
@@ -277,7 +277,7 @@ export default function MesDocumentsPage() {
           {doc.status === 'missing' && <span className="w-2 h-2 rounded-full bg-red-500" />}
           <span className={cn(
             'text-xs',
-            doc.status === 'missing' ? 'font-medium text-red-500' : 'text-theme-muted'
+            doc.status === 'missing' ? 'font-medium text-theme-secondary' : 'text-theme-muted'
           )}>
             {statusLabel(doc.status)}
           </span>
@@ -359,7 +359,7 @@ export default function MesDocumentsPage() {
           {missing > 0 && (
             <button
               onClick={() => setFilter('missing')}
-              className={cn('flex items-center gap-1.5 text-xs text-red-500 hover:text-red-400 transition-colors', FOCUS_RING, 'rounded')}
+              className={cn('flex items-center gap-1.5 text-xs text-theme-secondary hover:text-theme-primary transition-colors', FOCUS_RING, 'rounded')}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
               {missing} manquant{missing > 1 ? 's' : ''}

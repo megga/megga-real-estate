@@ -67,7 +67,7 @@ function SellerLayoutInner() {
     'flex items-center h-9 rounded-lg cursor-pointer select-none transition-colors duration-150',
     isCol ? 'mx-auto justify-center w-10' : 'mx-2 px-2.5 gap-2.5 text-sm',
     active
-      ? 'bg-accent/8 text-accent font-medium'
+      ? 'bg-theme-hover text-accent font-medium'
       : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
   )
 

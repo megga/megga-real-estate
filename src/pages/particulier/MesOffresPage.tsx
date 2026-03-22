@@ -29,10 +29,10 @@ function timeAgo(dateStr: string): string {
 }
 
 const STATUS_CONFIG: Record<SellerOffer['status'], { label: string; color: string; dotColor: string }> = {
-  pending: { label: 'En cours d\'analyse', color: 'text-amber-500', dotColor: 'bg-amber-500' },
-  accepted: { label: 'Acceptée', color: 'text-emerald-500', dotColor: 'bg-emerald-500' },
-  rejected: { label: 'Refusée', color: 'text-red-500', dotColor: 'bg-red-500' },
-  counter_offer: { label: 'Contre-proposition', color: 'text-accent', dotColor: 'bg-accent' },
+  pending: { label: 'En cours d\'analyse', color: 'text-theme-secondary', dotColor: 'bg-amber-500' },
+  accepted: { label: 'Acceptée', color: 'text-theme-primary', dotColor: 'bg-emerald-500' },
+  rejected: { label: 'Refusée', color: 'text-theme-tertiary', dotColor: 'bg-red-500' },
+  counter_offer: { label: 'Contre-proposition', color: 'text-theme-secondary', dotColor: 'bg-accent' },
   expired: { label: 'Expirée', color: 'text-theme-muted', dotColor: 'bg-theme-muted' },
 }
 
