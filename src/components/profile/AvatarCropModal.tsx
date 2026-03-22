@@ -42,10 +42,10 @@ export default function AvatarCropModal({ open, imageSrc, existingAvatar, onSave
   const hasExisting = !!existingAvatar
   const isModified = zoom !== 1 || rotation !== 0 || offset.x !== 0 || offset.y !== 0
 
-  // Load image when modal opens
+  // Load image when modal opens — setState in effect is intentional (sync with external image load)
   useEffect(() => {
     if (!open || !src) return
-    setImageLoaded(false)
+    setImageLoaded(false) // eslint-disable-line react-hooks/set-state-in-effect
     setZoom(1)
     setRotation(0)
     setOffset({ x: 0, y: 0 })

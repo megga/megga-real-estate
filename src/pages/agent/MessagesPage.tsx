@@ -149,7 +149,6 @@ export default function MessagesPage() {
   const { threads, messages: threadMessages, sendMessage, isSending, markAsRead } = useMessaging(selectedThreadId)
 
   // Auto-select first thread when threads load
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (!selectedThreadId && threads.length > 0) {
       setSelectedThreadId(threads[0].id) // eslint-disable-line react-hooks/set-state-in-effect
