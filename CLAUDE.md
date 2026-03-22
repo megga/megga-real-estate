@@ -63,16 +63,26 @@ Backend :      Supabase Pro
                - pgvector (embeddings listings pour recherche IA)
                - pg_cron (tâches automatiques : relances, reminders, surveillance)
 
-IA :           Anthropic Claude API via Edge Functions
-               - Recherche conversationnelle (RAG + pgvector)
-               - Copilote métier (résumés, suggestions, rédaction, next-best-action)
-               - Scoring leads, buyer intelligence, seller intelligence
-               - Matching intelligent acheteurs ↔ biens
-               - Copilote de négociation
-               - Génération d'annonces multi-versions
-               - Analyse d'objections post-visite
+IA :           Anthropic Claude API (Sonnet 4) via Edge Functions
+               ✅ MEGGA AI copilote connecté (Edge Function ai-copilot)
+               - Copilote métier temps réel (résumés, suggestions, rédaction, KYC)
+               - Recherche conversationnelle (RAG + pgvector) — Phase 2
+               - Scoring leads, buyer intelligence, seller intelligence — Phase 2
+               - Matching intelligent acheteurs ↔ biens — Phase 2 (enrichissement IA)
+               - Copilote de négociation — Phase 2
+               - Génération d'annonces multi-versions — Phase 2
+               - Analyse d'objections post-visite — Phase 2
+
+Matching ext : RealAdvisor (realadvisor.ch) via Edge Function external-matching
+               ✅ Scan marché suisse (14 portails agrégés : Homegate, ImmoScout24, Comparis...)
+               - Parse RSC flight data (React Server Components)
+               - Cache 1h dans table external_listings
+               - 3 niveaux : fiche MEGGA, enrichi (10 photos, stats), Full CRM (import, notes, comparaison)
 
 Email :        Resend (transactionnel + relances automatiques)
+               ✅ Domaine megga.ch configuré (DKIM + SPF vérifiés)
+               - Edge Function send-email avec template HTML MEGGA
+               - From : noreply@megga.ch
 Payments :     Stripe (abonnements agents)
 Analytics :    PostHog
 Hosting :      Cloudflare Pages (PAS Vercel — gratuit, pas de surprise billing)
@@ -203,8 +213,17 @@ megga-real-estate/
 │   │   │   ├── CalendarPage.tsx
 │   │   │   ├── DocumentsPage.tsx    # Templates + génération
 │   │   │   └── SettingsPage.tsx
-│   │   └── seller/
-│   │       └── PortalPage.tsx
+│   │   └── particulier/           # ✅ Portail vendeur (6/6 pages complètes)
+│   │       ├── SellerLayout.tsx    # Layout sidebar + dark/light mode
+│   │       ├── MonDossierPage.tsx  # Dashboard confiance (KPIs, timeline, progression)
+│   │       ├── MesVisitesPage.tsx  # Visites planifiées/effectuées + feedbacks
+│   │       ├── MesOffresPage.tsx   # Offres reçues (montants, statuts, progression)
+│   │       ├── MesDocumentsPage.tsx # Documents (10 docs, progression, alertes)
+│   │       ├── MesMessagesPage.tsx # Messagerie agent-vendeur (bulles, timestamps)
+│   │       ├── AnalysePage.tsx     # Positionnement marché (prix/m², comparables)
+│   │       ├── MonProfilPage.tsx   # Profil vendeur (edit, déconnexion)
+│   │       ├── PortalGateway.tsx   # Validation token d'accès
+│   │       └── PortalInvalidPage.tsx # Accès invalide/expiré
 │   ├── types/
 │   │   ├── database.ts          # Types Supabase (générés)
 │   │   ├── listing.ts
@@ -218,14 +237,16 @@ megga-real-estate/
 ├── supabase/
 │   ├── migrations/              # SQL migrations
 │   └── functions/               # Edge Functions Deno
-│       ├── ai-search/           # Recherche conversationnelle
-│       ├── ai-copilot/          # Copilote métier (résumés, rédaction, suggestions)
-│       ├── ai-matching/         # Moteur de matching acheteurs ↔ biens
-│       ├── ai-scoring/          # Buyer intelligence, seller intelligence
-│       ├── ai-negotiation/      # Copilote négociation
-│       ├── ai-listing-gen/      # Génération annonces multi-versions
-│       ├── automation-engine/   # Moteur de relances automatiques
-│       └── webhooks/            # Stripe, Resend...
+│       ├── ai-copilot/          # ✅ DÉPLOYÉ — Copilote IA (Claude Sonnet 4, chat libre + actions)
+│       ├── external-matching/   # ✅ DÉPLOYÉ — Scan marché suisse via RealAdvisor
+│       ├── send-email/          # ✅ DÉPLOYÉ — Envoi email via Resend (template HTML MEGGA)
+│       ├── ai-search/           # Recherche conversationnelle (Phase 2)
+│       ├── ai-matching/         # Enrichissement IA du matching (Phase 2)
+│       ├── ai-scoring/          # Buyer/seller intelligence (Phase 2)
+│       ├── ai-negotiation/      # Copilote négociation (Phase 2)
+│       ├── ai-listing-gen/      # Génération annonces multi-versions (Phase 2)
+│       ├── automation-engine/   # Moteur de relances automatiques (Phase 2)
+│       └── webhooks/            # Stripe, Resend... (Phase 2)
 ```
 
 ---
@@ -1244,12 +1265,77 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 ### Phase 2 (post-launch)
 - Assistant vocal (speech-to-text → commandes CRM)
 - Notes vocales → texte (transcription auto dans fiche client)
-- Recherche externe sur portails (API ou scraping légal)
+- ~~Recherche externe sur portails (API ou scraping légal)~~ → ✅ FAIT (RealAdvisor, 3 niveaux)
 - Analytics avancés (PostHog + dashboards custom)
 - Publication multiportails (export contenu vers portails)
 - Adaptation comportementale relances (email ouvert, lien cliqué)
 - Estimation IA (AVM) basée sur données Registre foncier + transactions publiques
 - Virtual staging IA intégré (API tierce)
-- Dark mode
+- ~~Dark mode~~ → ✅ FAIT (dashboard agent + portail vendeur)
 - i18n (DE, EN, IT)
 - Signature électronique intégrée
+- Alertes matching temps réel (pg_cron → notification Action Board)
+- Historique de prix externe (tracker les baisses)
+- Templates de messages intelligents (relances pré-remplies contextualisées)
+
+---
+
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 22 mars 2026)
+
+### ✅ Fonctionnalités LIVE
+
+#### Matching externe RealAdvisor
+- **Edge Function** `external-matching` déployée sur Supabase
+- Scan marché suisse via RealAdvisor (14 portails agrégés)
+- Parse RSC flight data (React Server Components de Next.js)
+- Cache 1h dans table `external_listings`
+- **3 niveaux implémentés** :
+  - Niveau 1 : Fiche bien MEGGA (photo, prix, surface, adresse)
+  - Niveau 2 : Enrichi (toutes les photos, stats détaillés, contacts agence)
+  - Niveau 3 : Full CRM (import dans portefeuille, notes agent, envoi client, comparaison prix/m²)
+- Onglet "Marché" dans MatchingPage + ContactDetailPage
+- Route `/dashboard/marche/:externalId` pour la fiche détaillée
+
+#### MEGGA AI (Copilote IA)
+- **Edge Function** `ai-copilot` déployée — Claude Sonnet 4
+- Chat libre + actions prédéfinies (résumé client, relance, KYC)
+- System prompt spécialisé immobilier suisse (LAB, KYC, droit foncier)
+- Contexte CRM injecté (contact, bien, deal actif)
+- Panel slide-in depuis bouton ✨ (bas à droite du dashboard)
+- **Coût** : ~$0.01/requête, $5 de crédits = ~500 requêtes
+
+#### Portail vendeur (6/6 pages)
+- **Accès tokénisé** : URL unique `/portail/:token` (pas de login)
+- **Table** `seller_portals` : token, contact_id, property_id, status, expires_at
+- **Dark/light mode** : toggle Sun/Moon dans la sidebar
+- Pages complètes :
+  1. **Mon bien** (MonDossierPage) : KPIs, progression mandat 6 étapes, timeline activité, agent contact
+  2. **Visites** (MesVisitesPage) : planifiées/effectuées, feedbacks anonymisés, ratings étoiles
+  3. **Offres** (MesOffresPage) : montants, statuts (pending/accepted/rejected/counter), barre progression vs prix demandé, conditions
+  4. **Documents** (MesDocumentsPage) : 10 docs, progression 75%, alertes expiration, filtres (tous/validés/attente/manquants), zone upload
+  5. **Messages** (MesMessagesPage) : conversation agent-vendeur, bulles, timestamps, séparateurs de dates, indicateurs lecture
+  6. **Analyse** (AnalysePage) : prix/m² vs quartier, positionnement visuel, risque stagnation, activité hebdo, 4 biens comparables vendus
+
+#### Contact rapide
+- Modal global accessible depuis n'importe quelle page agent
+- Raccourci clavier **⌘⇧C** (Mac) / **Ctrl+Shift+C** (PC)
+- Champs : prénom, nom, email, téléphone, type (acheteur/vendeur/les deux), source
+- Création instantanée dans Supabase via `useContacts`
+
+#### Envoi email Resend
+- **Edge Function** `send-email` déployée
+- Domaine `megga.ch` configuré (DKIM + SPF vérifiés)
+- Template HTML responsive avec branding MEGGA
+- From : `noreply@megga.ch`
+
+### 🔑 Secrets Supabase configurés
+```
+ANTHROPIC_API_KEY    → Claude API (Sonnet 4)
+RESEND_API_KEY       → Envoi email via megga.ch
+```
+
+### 📊 Supabase
+- **Project ref** : eayczugyrvmtqnnmvjod
+- **Region** : eu-west-1 (Ireland)
+- **Plan** : Nano (gratuit)
+- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals
