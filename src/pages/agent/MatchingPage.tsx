@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, ChevronDown, X, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Search, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { useMatching } from '@/hooks/useMatching'
 import { useExternalMatching, type ExternalListing, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
@@ -290,9 +291,15 @@ function MatchCard({ match, onSend, onPreview }: {
 
 // ── External Match Card ──────────────────────────────────────────────────────
 
-function ExternalMatchCard({ listing }: { listing: ExternalListing }) {
+function ExternalMatchCard({ listing, onNavigate }: {
+  listing: ExternalListing
+  onNavigate: (listing: ExternalListing) => void
+}) {
   return (
-    <div className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors">
+    <div
+      onClick={() => onNavigate(listing)}
+      className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors cursor-pointer"
+    >
       {listing.photo_url ? (
         <div className="relative aspect-[16/10] overflow-hidden">
           <img
@@ -321,7 +328,7 @@ function ExternalMatchCard({ listing }: { listing: ExternalListing }) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-theme-primary truncate">
-              {formatCHF(listing.price)}
+              {listing.price > 0 ? formatCHF(listing.price) : 'Prix sur demande'}
             </p>
             <p className="text-xs text-theme-secondary mt-0.5 truncate">
               {listing.address || listing.city}
@@ -343,15 +350,9 @@ function ExternalMatchCard({ listing }: { listing: ExternalListing }) {
         )}
 
         <div className="flex items-center gap-2 mt-3 pt-2 border-t border-theme-border">
-          <a
-            href={listing.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 h-8 flex items-center justify-center gap-1 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
-          >
-            Voir l'annonce
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          <span className="flex-1 h-8 flex items-center justify-center rounded-lg text-xs font-medium text-theme-tertiary opacity-0 group-hover:opacity-100 transition-all">
+            Voir la fiche →
+          </span>
         </div>
       </div>
     </div>
@@ -372,6 +373,7 @@ const SORT_LABELS: Record<SortBy, string> = {
 const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
 
 export default function MatchingPage() {
+  const navigate = useNavigate()
   const { suggested, sent, sendMatch } = useMatching()
   const [search, setSearch] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'suggested' | 'sent'>('all')
@@ -696,9 +698,18 @@ export default function MatchingPage() {
                   {externalListings.length} bien{externalListings.length > 1 ? 's' : ''} trouvé{externalListings.length > 1 ? 's' : ''} sur le marché · Source : RealAdvisor (14 portails agrégés)
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {externalListings.map((listing) => (
-                    <ExternalMatchCard key={listing.external_id} listing={listing} />
-                  ))}
+                  {externalListings.map((listing) => {
+                    const selectedContact = buyerContacts.find(c => c.id === externalContactId)
+                    return (
+                      <ExternalMatchCard
+                        key={listing.external_id}
+                        listing={listing}
+                        onNavigate={(l) => navigate(`/dashboard/marche/${l.external_id}`, {
+                          state: { listing: l, contactName: selectedContact?.name },
+                        })}
+                      />
+                    )
+                  })}
                 </div>
               </>
             )}

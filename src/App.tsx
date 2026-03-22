@@ -27,6 +27,7 @@ import TemplatesPage from '@/pages/agent/TemplatesPage'
 import DocumentGenerator from '@/pages/agent/DocumentGenerator'
 import DocumentViewer from '@/pages/agent/DocumentViewer'
 import CustomTemplatePage from '@/pages/agent/CustomTemplatePage'
+import ExternalListingDetailPage from '@/pages/agent/ExternalListingDetailPage'
 import LouerPage from '@/pages/public/LouerPage'
 import VendrePage from '@/pages/public/VendrePage'
 import EstimationsPage from '@/pages/public/EstimationsPage'
@@ -81,6 +82,7 @@ export default function App() {
               <Route path="contacts/:id" element={<ContactDetailPage />} />
               <Route path="pipeline" element={<PipelinePage />} />
               <Route path="matching" element={<MatchingPage />} />
+              <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
               <Route path="listings" element={<ListingsPage />} />
               <Route path="listings/new" element={<ListingFormPage />} />
               <Route path="listings/:id/edit" element={<ListingFormPage />} />

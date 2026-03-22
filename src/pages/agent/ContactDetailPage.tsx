@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   Mail, Phone, MapPin, Zap,
-  Calendar, Building2, Banknote, Ruler, DoorOpen, ExternalLink,
+  Calendar, Building2, Banknote, Ruler, DoorOpen,
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate, formatDate } from '@/lib/utils'
 import { getContactById, type MockContact } from '@/lib/mockData'
@@ -93,6 +93,7 @@ function NextBestAction({ title, description, actionLabel, score }: {
 
 export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const contact = getContactById(id || '')
   const { setActiveContact } = useCopilotContext()
   const [showEdit, setShowEdit] = useState(false)
@@ -388,25 +389,26 @@ export default function ContactDetailPage() {
                     <div className="space-y-2">
                       <p className="text-[10px] text-theme-muted mb-2">{externalListings.length} résultat{externalListings.length > 1 ? 's' : ''} · RealAdvisor</p>
                       {externalListings.slice(0, 6).map(listing => (
-                        <div key={listing.external_id} className="flex items-center gap-3 py-2 border-b border-theme-border-subtle last:border-0 group">
+                        <div
+                          key={listing.external_id}
+                          onClick={() => navigate(`/dashboard/marche/${listing.external_id}`, {
+                            state: { listing, contactName: fullName },
+                          })}
+                          className="flex items-center gap-3 py-2 border-b border-theme-border-subtle last:border-0 group cursor-pointer hover:bg-theme-hover rounded-lg px-1 -mx-1 transition-colors"
+                        >
                           {listing.photo_url ? (
                             <img src={listing.photo_url} alt="" className="h-12 w-16 rounded-lg object-cover shrink-0" loading="lazy" />
                           ) : (
                             <div className="h-12 w-16 rounded-lg bg-theme-section shrink-0" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-theme-primary truncate">{formatCHF(listing.price)}</p>
+                            <p className="text-sm font-medium text-theme-primary truncate">{listing.price > 0 ? formatCHF(listing.price) : 'Prix sur demande'}</p>
                             <p className="text-xs text-theme-tertiary truncate">{listing.address || listing.city}{listing.rooms ? ` · ${listing.rooms}p.` : ''}{listing.surface_m2 ? ` · ${listing.surface_m2} m²` : ''}</p>
                             {listing.source_agency && <p className="text-[10px] text-theme-muted truncate">via {listing.source_agency}</p>}
                           </div>
-                          <a
-                            href={listing.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5 text-theme-tertiary hover:text-theme-primary" />
-                          </a>
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-xs text-theme-tertiary">
+                            Voir →
+                          </span>
                         </div>
                       ))}
                       {externalListings.length > 6 && (
