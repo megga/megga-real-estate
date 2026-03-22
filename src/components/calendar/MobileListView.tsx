@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { format, isToday, startOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -10,11 +11,25 @@ interface MobileListViewProps {
 }
 
 export default function MobileListView({ events, onSelectEvent }: MobileListViewProps) {
-  const upcoming = [...events]
-    .filter(e => e.date >= startOfMonth(new Date()))
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
+  const upcoming = useMemo(() =>
+    [...events]
+      .filter(e => e.date >= startOfMonth(new Date()))
+      .sort((a, b) => a.date.getTime() - b.date.getTime()),
+    [events]
+  )
 
-  let lastDate = ''
+  const dateHeaders = useMemo(() => {
+    const headers = new Set<string>()
+    const firstByDate: Record<string, string> = {}
+    for (const event of upcoming) {
+      const dateStr = format(event.date, 'EEEE d MMMM', { locale: fr })
+      if (!headers.has(dateStr)) {
+        headers.add(dateStr)
+        firstByDate[event.id] = dateStr
+      }
+    }
+    return firstByDate
+  }, [upcoming])
 
   return (
     <div className="space-y-2">
@@ -22,8 +37,7 @@ export default function MobileListView({ events, onSelectEvent }: MobileListView
         const config = EVENT_CONFIG[event.type]
         const Icon = config.icon
         const dateStr = format(event.date, 'EEEE d MMMM', { locale: fr })
-        const showHeader = dateStr !== lastDate
-        lastDate = dateStr
+        const showHeader = dateHeaders[event.id] !== undefined
 
         return (
           <div key={event.id}>
