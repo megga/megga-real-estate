@@ -11,6 +11,12 @@ import {
   Building2,
   Copy,
   Check,
+  CalendarDays,
+  Bath,
+  Car,
+  Trees,
+  Phone,
+  User,
 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import type { ExternalListing } from '@/hooks/useExternalMatching'
@@ -29,6 +35,19 @@ const TYPE_LABELS: Record<string, string> = {
   appt: 'Appartement',
 }
 
+const PROPERTY_TYPE_DETAIL_LABELS: Record<string, string> = {
+  house_detached: 'Maison individuelle',
+  house_semi_detached: 'Maison jumelée',
+  house_terrace: 'Maison mitoyenne',
+  house_farm: 'Ferme',
+  apartment_normal: 'Appartement',
+  apartment_attic: 'Attique',
+  apartment_penthouse: 'Penthouse',
+  apartment_duplex: 'Duplex',
+  apartment_studio: 'Studio',
+  apartment_loft: 'Loft',
+}
+
 export default function ExternalListingDetailPage() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -37,7 +56,6 @@ export default function ExternalListingDetailPage() {
   const [photoIdx, setPhotoIdx] = useState(0)
   const [copied, setCopied] = useState(false)
 
-  // If no listing in state (direct URL access), redirect back
   if (!listing) {
     return (
       <PageTransition>
@@ -54,10 +72,14 @@ export default function ExternalListingDetailPage() {
     )
   }
 
-  // Build photo array — external listings may have one or no photos
-  const photos = listing.photo_url ? [listing.photo_url] : []
+  // Use enriched photos array, fallback to single photo_url
+  const photos = listing.photos?.length > 0 ? listing.photos : listing.photo_url ? [listing.photo_url] : []
   const typeLabel = TYPE_LABELS[listing.type] || listing.type
-  const locationStr = [listing.address, listing.city, listing.canton].filter(Boolean).join(', ')
+  const detailTypeLabel = listing.property_type_detail
+    ? PROPERTY_TYPE_DETAIL_LABELS[listing.property_type_detail] || null
+    : null
+  const locationStr = [listing.address, listing.postcode, listing.city].filter(Boolean).join(', ')
+  const pricePerM2 = listing.price_per_m2 || (listing.price > 0 && listing.surface_m2 ? Math.round(listing.price / listing.surface_m2) : null)
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(listing.source_url)
@@ -65,27 +87,23 @@ export default function ExternalListingDetailPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Stats to display
+  // Key stats grid
   const statsRaw = [
-    listing.rooms != null
-      ? { label: 'Pièces', value: `${listing.rooms}`, icon: <DoorOpen className="w-4 h-4" /> }
-      : null,
-    listing.surface_m2 != null
-      ? { label: 'Surface', value: `${listing.surface_m2} m²`, icon: <Ruler className="w-4 h-4" /> }
-      : null,
-    typeLabel
-      ? { label: 'Type', value: typeLabel, icon: <Building2 className="w-4 h-4" /> }
-      : null,
-    listing.city
-      ? { label: 'Localisation', value: `${listing.city}${listing.canton ? ` (${listing.canton})` : ''}`, icon: <MapPin className="w-4 h-4" /> }
-      : null,
+    listing.rooms != null ? { label: 'Pièces', value: `${listing.rooms}`, icon: <DoorOpen className="w-4 h-4" /> } : null,
+    listing.surface_m2 != null ? { label: 'Surface hab.', value: `${listing.surface_m2} m²`, icon: <Ruler className="w-4 h-4" /> } : null,
+    listing.bathrooms != null ? { label: 'SdB', value: `${listing.bathrooms}`, icon: <Bath className="w-4 h-4" /> } : null,
+    listing.land_surface != null ? { label: 'Terrain', value: `${listing.land_surface} m²`, icon: <Trees className="w-4 h-4" /> } : null,
+    listing.parking != null ? { label: 'Parking', value: `${listing.parking}`, icon: <Car className="w-4 h-4" /> } : null,
+    typeLabel ? { label: 'Type', value: detailTypeLabel || typeLabel, icon: <Building2 className="w-4 h-4" /> } : null,
+    listing.construction_year ? { label: 'Construction', value: `${listing.construction_year}`, icon: <CalendarDays className="w-4 h-4" /> } : null,
+    listing.renovation_year ? { label: 'Rénovation', value: `${listing.renovation_year}`, icon: <CalendarDays className="w-4 h-4" /> } : null,
   ]
   const stats = statsRaw.filter(Boolean) as { label: string; value: string; icon: React.ReactNode }[]
 
   return (
     <PageTransition>
       <div className="max-w-4xl mx-auto space-y-5">
-        {/* Back button */}
+        {/* Back */}
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
@@ -94,7 +112,7 @@ export default function ExternalListingDetailPage() {
           Retour
         </button>
 
-        {/* Photo section */}
+        {/* Photo carousel */}
         {photos.length > 0 ? (
           <div className="relative rounded-xl overflow-hidden border border-theme-border">
             <div className="aspect-[16/9] bg-black">
@@ -105,7 +123,6 @@ export default function ExternalListingDetailPage() {
               />
             </div>
 
-            {/* Photo navigation */}
             {photos.length > 1 && (
               <>
                 <button
@@ -120,14 +137,16 @@ export default function ExternalListingDetailPage() {
                 >
                   <ChevronRight className="w-4 h-4 text-white" />
                 </button>
+                {/* Dots — max 12 visible */}
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                  {photos.map((_, i) => (
+                  {photos.slice(0, 12).map((_, i) => (
                     <button
                       key={i}
                       onClick={() => setPhotoIdx(i)}
                       className={cn('w-1.5 h-1.5 rounded-full transition-colors', i === photoIdx ? 'bg-white' : 'bg-white/40')}
                     />
                   ))}
+                  {photos.length > 12 && <span className="text-[9px] text-white/60 ml-1">+{photos.length - 12}</span>}
                 </div>
               </>
             )}
@@ -137,12 +156,10 @@ export default function ExternalListingDetailPage() {
               {listing.source_logo_url && (
                 <img src={listing.source_logo_url} alt="" className="h-4 w-4 rounded-sm" />
               )}
-              <span className="text-xs text-white/90 font-medium">
-                {listing.source_portal}
-              </span>
+              <span className="text-xs text-white/90 font-medium">{listing.source_portal}</span>
             </div>
 
-            {/* Photo count */}
+            {/* Photo counter */}
             <span className="absolute bottom-3 right-3 text-[11px] text-white/70 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-md">
               {photoIdx + 1}/{photos.length}
             </span>
@@ -153,11 +170,29 @@ export default function ExternalListingDetailPage() {
           </div>
         )}
 
+        {/* Photo thumbnails strip */}
+        {photos.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            {photos.map((url, i) => (
+              <button
+                key={i}
+                onClick={() => setPhotoIdx(i)}
+                className={cn(
+                  'shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-colors',
+                  i === photoIdx ? 'border-accent' : 'border-transparent opacity-60 hover:opacity-100',
+                )}
+              >
+                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Main content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Left column — main info */}
+          {/* Left column */}
           <div className="lg:col-span-2 space-y-5">
-            {/* Header: Price + Title */}
+            {/* Header */}
             <div className="rounded-xl border border-theme-border p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -174,8 +209,8 @@ export default function ExternalListingDetailPage() {
                 </div>
               </div>
 
-              {/* Key stats */}
-              <div className="flex flex-wrap gap-6 mt-5 pt-4 border-t border-theme-border-subtle">
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 pt-4 border-t border-theme-border-subtle">
                 {stats.map((stat) => (
                   <div key={stat.label} className="flex items-center gap-2">
                     <span className="text-theme-tertiary">{stat.icon}</span>
@@ -188,22 +223,44 @@ export default function ExternalListingDetailPage() {
               </div>
             </div>
 
-            {/* Price per m² calculation */}
-            {listing.price > 0 && listing.surface_m2 && listing.surface_m2 > 0 && (
+            {/* Description */}
+            {listing.description && (
+              <div className="rounded-xl border border-theme-border p-5">
+                <h3 className="text-xs text-theme-tertiary uppercase tracking-wider mb-3">Description</h3>
+                <div
+                  className="text-sm text-theme-secondary leading-relaxed prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: listing.description }}
+                />
+              </div>
+            )}
+
+            {/* Price analysis */}
+            {pricePerM2 && listing.price > 0 && (
               <div className="rounded-xl border border-theme-border p-5">
                 <h3 className="text-xs text-theme-tertiary uppercase tracking-wider mb-3">Analyse prix</h3>
-                <div className="flex items-center gap-6">
+                <div className="flex flex-wrap items-center gap-6">
                   <div>
-                    <p className="text-lg font-semibold text-theme-primary">
-                      {formatCHF(Math.round(listing.price / listing.surface_m2))}
-                    </p>
+                    <p className="text-lg font-semibold text-theme-primary">{formatCHF(pricePerM2)}</p>
                     <p className="text-[10px] text-theme-muted">par m²</p>
                   </div>
-                  <div className="h-8 w-px bg-theme-border" />
-                  <div>
-                    <p className="text-sm font-medium text-theme-primary">{listing.surface_m2} m²</p>
-                    <p className="text-[10px] text-theme-muted">surface habitable</p>
-                  </div>
+                  {listing.surface_m2 && (
+                    <>
+                      <div className="h-8 w-px bg-theme-border" />
+                      <div>
+                        <p className="text-sm font-medium text-theme-primary">{listing.surface_m2} m²</p>
+                        <p className="text-[10px] text-theme-muted">surface habitable</p>
+                      </div>
+                    </>
+                  )}
+                  {listing.land_surface && (
+                    <>
+                      <div className="h-8 w-px bg-theme-border" />
+                      <div>
+                        <p className="text-sm font-medium text-theme-primary">{listing.land_surface} m²</p>
+                        <p className="text-[10px] text-theme-muted">terrain</p>
+                      </div>
+                    </>
+                  )}
                   <div className="h-8 w-px bg-theme-border" />
                   <div>
                     <p className="text-sm font-medium text-theme-primary">{formatCHF(listing.price)}</p>
@@ -216,11 +273,27 @@ export default function ExternalListingDetailPage() {
             {/* Source info */}
             <div className="rounded-xl border border-theme-border p-5">
               <h3 className="text-xs text-theme-tertiary uppercase tracking-wider mb-3">Source</h3>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {listing.source_agency && (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-theme-secondary">Agence</span>
                     <span className="text-xs font-medium text-theme-primary">{listing.source_agency}</span>
+                  </div>
+                )}
+                {listing.agency_phone && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-theme-secondary flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> Téléphone
+                    </span>
+                    <span className="text-xs font-medium text-theme-primary">{listing.agency_phone}</span>
+                  </div>
+                )}
+                {listing.visit_contact && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-theme-secondary flex items-center gap-1">
+                      <User className="w-3 h-3" /> Contact visite
+                    </span>
+                    <span className="text-xs font-medium text-theme-primary">{listing.visit_contact}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
@@ -242,7 +315,6 @@ export default function ExternalListingDetailPage() {
 
           {/* Right column — actions */}
           <div className="space-y-4">
-            {/* Context: matched for contact */}
             {contactName && (
               <div className="rounded-xl border border-theme-border p-4">
                 <p className="text-[10px] text-theme-tertiary uppercase tracking-wider mb-1.5">Match pour</p>
@@ -250,18 +322,14 @@ export default function ExternalListingDetailPage() {
               </div>
             )}
 
-            {/* Action buttons */}
+            {/* Actions */}
             <div className="rounded-xl border border-theme-border p-4 space-y-2.5">
               <p className="text-[10px] text-theme-tertiary uppercase tracking-wider mb-1">Actions</p>
 
-              {/* Send to client */}
-              <button
-                className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
-              >
+              <button className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
                 Envoyer au client
               </button>
 
-              {/* View original */}
               <a
                 href={listing.source_url}
                 target="_blank"
@@ -272,7 +340,6 @@ export default function ExternalListingDetailPage() {
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
 
-              {/* Copy link */}
               <button
                 onClick={handleCopyLink}
                 className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
@@ -291,7 +358,20 @@ export default function ExternalListingDetailPage() {
               </button>
             </div>
 
-            {/* External badge */}
+            {/* Location card */}
+            {listing.city && (
+              <div className="rounded-xl border border-theme-border p-4">
+                <p className="text-[10px] text-theme-tertiary uppercase tracking-wider mb-2">Localisation</p>
+                <p className="text-sm font-medium text-theme-primary">{listing.city}</p>
+                {listing.canton && <p className="text-xs text-theme-tertiary mt-0.5">Canton : {listing.canton}</p>}
+                {listing.postcode && <p className="text-xs text-theme-tertiary">NPA : {listing.postcode}</p>}
+                {listing.lat && listing.lng && (
+                  <p className="text-[10px] text-theme-muted mt-2">{listing.lat.toFixed(4)}°N, {listing.lng.toFixed(4)}°E</p>
+                )}
+              </div>
+            )}
+
+            {/* Disclaimer */}
             <div className="rounded-xl border border-dashed border-theme-border-subtle p-4 text-center">
               <p className="text-[10px] text-theme-muted leading-relaxed">
                 Ce bien provient d'un portail externe.

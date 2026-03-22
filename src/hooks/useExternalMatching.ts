@@ -20,10 +20,25 @@ export interface ExternalListing {
   surface_m2: number | null
   type: string
   photo_url: string | null
+  photos: string[]
   source_url: string
   source_portal: string
   source_agency: string | null
   source_logo_url: string | null
+  // Niveau 2 — champs enrichis
+  description: string | null
+  property_type_detail: string | null
+  construction_year: number | null
+  renovation_year: number | null
+  bathrooms: number | null
+  land_surface: number | null
+  parking: number | null
+  price_per_m2: number | null
+  lat: number | null
+  lng: number | null
+  postcode: string | null
+  agency_phone: string | null
+  visit_contact: string | null
 }
 
 function hashCriteria(criteria: ExternalSearchCriteria): string {
@@ -35,6 +50,41 @@ function hashCriteria(criteria: ExternalSearchCriteria): string {
     hash |= 0
   }
   return `ext_${Math.abs(hash).toString(36)}`
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapRowToListing(row: Record<string, any>): ExternalListing {
+  const photos: string[] = Array.isArray(row.photos) ? row.photos : row.photo_url ? [row.photo_url] : []
+  return {
+    external_id: row.external_id ?? '',
+    title: row.title ?? '',
+    price: Number(row.price) || 0,
+    address: row.address ?? '',
+    city: row.city ?? '',
+    canton: row.canton ?? '',
+    rooms: row.rooms ? Number(row.rooms) : null,
+    surface_m2: row.surface_m2 ? Number(row.surface_m2) : null,
+    type: row.type ?? '',
+    photo_url: photos[0] ?? null,
+    photos,
+    source_url: row.source_url,
+    source_portal: row.source_portal ?? 'realadvisor',
+    source_agency: row.source_agency ?? null,
+    source_logo_url: row.source_logo_url ?? null,
+    description: row.description ?? null,
+    property_type_detail: row.property_type_detail ?? null,
+    construction_year: row.construction_year ? Number(row.construction_year) : null,
+    renovation_year: row.renovation_year ? Number(row.renovation_year) : null,
+    bathrooms: row.bathrooms ? Number(row.bathrooms) : null,
+    land_surface: row.land_surface ? Number(row.land_surface) : null,
+    parking: row.parking ? Number(row.parking) : null,
+    price_per_m2: row.price_per_m2 ? Number(row.price_per_m2) : null,
+    lat: row.lat ? Number(row.lat) : null,
+    lng: row.lng ? Number(row.lng) : null,
+    postcode: row.postcode ?? null,
+    agency_phone: row.agency_phone ?? null,
+    visit_contact: row.visit_contact ?? null,
+  }
 }
 
 async function fetchExternalListings(criteria: ExternalSearchCriteria): Promise<ExternalListing[]> {
@@ -50,22 +100,7 @@ async function fetchExternalListings(criteria: ExternalSearchCriteria): Promise<
       .order('price', { ascending: true })
 
     if (!cacheError && cached && cached.length > 0) {
-      return cached.map((row) => ({
-        external_id: row.external_id ?? '',
-        title: row.title ?? '',
-        price: Number(row.price) || 0,
-        address: row.address ?? '',
-        city: row.city ?? '',
-        canton: row.canton ?? '',
-        rooms: row.rooms ? Number(row.rooms) : null,
-        surface_m2: row.surface_m2 ? Number(row.surface_m2) : null,
-        type: row.type ?? '',
-        photo_url: row.photo_url ?? null,
-        source_url: row.source_url,
-        source_portal: row.source_portal ?? 'realadvisor',
-        source_agency: row.source_agency ?? null,
-        source_logo_url: row.source_logo_url ?? null,
-      }))
+      return cached.map((row) => mapRowToListing(row))
     }
   } catch {
     // Cache miss or table not available — proceed to Edge Function
@@ -90,7 +125,8 @@ async function fetchExternalListings(criteria: ExternalSearchCriteria): Promise<
   }
 
   const data = await response.json()
-  const listings: ExternalListing[] = data?.listings || []
+  const rawListings: Record<string, unknown>[] = data?.listings || []
+  const listings: ExternalListing[] = rawListings.map(mapRowToListing)
 
   // 3. Cache results if we have any and user is authenticated
   if (listings.length > 0) {

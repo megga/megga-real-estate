@@ -20,10 +20,25 @@ interface ExternalListing {
   surface_m2: number | null
   type: string
   photo_url: string | null
+  photos: string[]
   source_url: string
   source_portal: string
   source_agency: string | null
   source_logo_url: string | null
+  // Enriched fields (Niveau 2)
+  description: string | null
+  property_type_detail: string | null
+  construction_year: number | null
+  renovation_year: number | null
+  bathrooms: number | null
+  land_surface: number | null
+  parking: number | null
+  price_per_m2: number | null
+  lat: number | null
+  lng: number | null
+  postcode: string | null
+  agency_phone: string | null
+  visit_contact: string | null
 }
 
 const ZONE_SLUGS: Record<string, string> = {
@@ -137,12 +152,12 @@ function buildRealAdvisorUrl(params: ExternalSearchParams): string {
 function buildImageUrl(image: {
   file_name?: string
   bucket_name?: string
-} | null): string | null {
+} | null, size: 'thumb' | 'large' = 'thumb'): string | null {
   if (!image || !image.file_name) return null
-  // RealAdvisor serves images via img.realadvisor.ch with imgproxy
+  const dims = size === 'large' ? 'rs:fill:1200:800:1:0/q:75' : 'rs:fill:600:400:1:0/q:60'
   const encodedPath = btoa(`https://storage.googleapis.com/${image.bucket_name || 'aggregator-images'}/${image.file_name}`)
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-  return `https://img.realadvisor.ch/_/rs:fill:600:400:1:0/q:60/${encodedPath}.webp`
+  return `https://img.realadvisor.ch/_/${dims}/${encodedPath}.webp`
 }
 
 function parseRealAdvisorResults(html: string, searchUrl: string): ExternalListing[] {
@@ -186,15 +201,29 @@ function parseRealAdvisorResults(html: string, searchUrl: string): ExternalListi
         const listingJson = unescaped.substring(startPos, endPos)
         const item = JSON.parse(listingJson)
 
-        // Build image URL from first image
-        const photoUrl = item.images?.[0]
-          ? buildImageUrl(item.images[0])
+        // Build all photo URLs (thumb for card, large for detail)
+        const allPhotos: string[] = []
+        if (Array.isArray(item.images)) {
+          for (const img of item.images) {
+            const url = buildImageUrl(img, 'large')
+            if (url) allPhotos.push(url)
+          }
+        }
+        const thumbUrl = item.images?.[0] ? buildImageUrl(item.images[0], 'thumb') : null
+
+        // Resolve translated title (prefer FR)
+        const title = item.translated_titles?.fr || item.title || ''
+
+        // Description: RSC references like "$71" can't be resolved here
+        // We pass null and handle descriptions separately if available
+        const rawDesc = item.description
+        const description = (typeof rawDesc === 'string' && !rawDesc.startsWith('$'))
+          ? rawDesc
           : null
 
-        // Source URL: link to the search results page (detail pages use encrypted clickout URLs)
         listings.push({
           external_id: String(item.id),
-          title: item.title || item.translated_titles?.fr || '',
+          title,
           price: item.sale_price || 0,
           address: item.address || '',
           city: item.locality || item.sub_locality || '',
@@ -202,11 +231,26 @@ function parseRealAdvisorResults(html: string, searchUrl: string): ExternalListi
           rooms: item.number_of_rooms || null,
           surface_m2: item.living_surface || item.computed_surface || null,
           type: item.property_main_type || item.property_type || '',
-          photo_url: photoUrl,
+          photo_url: thumbUrl,
+          photos: allPhotos,
           source_url: searchUrl,
           source_portal: item.portal || 'realadvisor',
           source_agency: item.agency_name || null,
           source_logo_url: item.agency_logo_url || null,
+          // Enriched fields
+          description,
+          property_type_detail: item.property_type || null,
+          construction_year: item.construction_year || null,
+          renovation_year: item.renovation_year || null,
+          bathrooms: item.number_of_bathrooms || null,
+          land_surface: item.land_surface || null,
+          parking: item.number_of_parking || null,
+          price_per_m2: item.sale_price_per_living_surface || null,
+          lat: item.lat || null,
+          lng: item.lng || null,
+          postcode: item.postcode || null,
+          agency_phone: item.agency_contact_phone_number || null,
+          visit_contact: item.visit_contact_person || null,
         })
       } catch {
         // Skip malformed listing
