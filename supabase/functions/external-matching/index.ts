@@ -145,7 +145,7 @@ function buildImageUrl(image: {
   return `https://img.realadvisor.ch/_/rs:fill:600:400:1:0/q:60/${encodedPath}.webp`
 }
 
-function parseRealAdvisorResults(html: string): ExternalListing[] {
+function parseRealAdvisorResults(html: string, searchUrl: string): ExternalListing[] {
   const listings: ExternalListing[] = []
 
   // Extract RSC flight data chunks from self.__next_f.push([1,"..."]) calls
@@ -186,17 +186,12 @@ function parseRealAdvisorResults(html: string): ExternalListing[] {
         const listingJson = unescaped.substring(startPos, endPos)
         const item = JSON.parse(listingJson)
 
-        // Build source URL from clickout_url
-        let sourceUrl = ''
-        if (item.clickout_url?.url) {
-          sourceUrl = `https://realadvisor.ch/fr/propriete/${item.id}`
-        }
-
         // Build image URL from first image
         const photoUrl = item.images?.[0]
           ? buildImageUrl(item.images[0])
           : null
 
+        // Source URL: link to the search results page (detail pages use encrypted clickout URLs)
         listings.push({
           external_id: String(item.id),
           title: item.title || item.translated_titles?.fr || '',
@@ -208,7 +203,7 @@ function parseRealAdvisorResults(html: string): ExternalListing[] {
           surface_m2: item.living_surface || item.computed_surface || null,
           type: item.property_main_type || item.property_type || '',
           photo_url: photoUrl,
-          source_url: sourceUrl || `https://realadvisor.ch/fr/propriete/${item.id}`,
+          source_url: searchUrl,
           source_portal: item.portal || 'realadvisor',
           source_agency: item.agency_name || null,
           source_logo_url: item.agency_logo_url || null,
@@ -269,7 +264,7 @@ serve(async (req) => {
     }
 
     const html = await response.text()
-    const listings = parseRealAdvisorResults(html)
+    const listings = parseRealAdvisorResults(html, url)
 
     return new Response(JSON.stringify({
       listings,
