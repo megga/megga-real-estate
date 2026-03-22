@@ -60,24 +60,20 @@ function OfferCard({ offer, askingPrice }: { offer: SellerOffer; askingPrice: nu
         <div className="flex-1">
           <div className="flex items-center justify-between text-xs mb-1.5">
             <span className="text-theme-tertiary">vs prix demandé ({formatCHF(askingPrice)})</span>
-            <span className={cn('font-medium', isBelow ? 'text-red-500' : 'text-emerald-500')}>
+            <span className="font-medium text-theme-secondary">
               {isBelow ? '' : '+'}{diffPercent}%
             </span>
           </div>
-          {/* Barre de progression */}
+          {/* Barre de progression — monochrome */}
           <div className="h-1.5 rounded-full bg-theme-hover overflow-hidden">
             <div
-              className={cn(
-                'h-full rounded-full transition-all duration-500',
-                offer.amount >= askingPrice ? 'bg-emerald-500' :
-                offer.amount >= askingPrice * 0.95 ? 'bg-amber-500' : 'bg-red-500'
-              )}
+              className="h-full rounded-full transition-all duration-500 bg-theme-primary"
               style={{ width: `${Math.min(100, (offer.amount / askingPrice) * 100)}%` }}
             />
           </div>
         </div>
         <div className="text-right shrink-0">
-          <p className={cn('text-sm font-semibold', isBelow ? 'text-red-500' : 'text-emerald-500')}>
+          <p className="text-sm font-semibold text-theme-secondary">
             {isBelow ? '' : '+'}{formatCHF(Math.abs(diffAmount))}
           </p>
         </div>
@@ -111,7 +107,7 @@ export default function MesOffresPage() {
   const bestOffer = offers.reduce((max, o) => o.amount > max.amount ? o : max, offers[0])
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-theme-primary">Offres</h1>
@@ -131,7 +127,7 @@ export default function MesOffresPage() {
           <p className="text-xs text-theme-tertiary mt-0.5">En cours</p>
         </div>
         <div className="rounded-xl border border-theme-border p-4">
-          <p className="text-2xl font-bold text-emerald-500">{formatCHF(bestOffer?.amount || 0)}</p>
+          <p className="text-2xl font-bold text-theme-primary">{formatCHF(bestOffer?.amount || 0)}</p>
           <p className="text-xs text-theme-tertiary mt-0.5">Meilleure offre</p>
         </div>
         <div className="rounded-xl border border-theme-border p-4">
@@ -142,7 +138,7 @@ export default function MesOffresPage() {
 
       {/* Info banner si offre active */}
       {activeOffers.length > 0 && (
-        <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
+        <div className="rounded-xl border border-theme-border p-4">
           <p className="text-sm text-theme-primary">
             <span className="font-medium">{activeOffers.length} offre{activeOffers.length > 1 ? 's' : ''} en cours d'analyse.</span>
             {' '}Votre agent Gregory Lyonnet vous contactera pour discuter de la stratégie de réponse.
