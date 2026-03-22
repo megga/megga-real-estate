@@ -82,14 +82,47 @@ const TYPE_SLUGS: Record<string, string> = {
   'land': 'bien-immobilier',
 }
 
+function resolveZoneSlug(zone: string): string {
+  const trimmed = zone.trim()
+
+  // 1. Exact match
+  if (ZONE_SLUGS[trimmed]) return ZONE_SLUGS[trimmed]
+  if (ZONE_SLUGS[trimmed.toLowerCase()]) return ZONE_SLUGS[trimmed.toLowerCase()]
+
+  // 2. Normalize: remove accents, lowercase
+  const normalized = trimmed.toLowerCase()
+    .replace(/[éèêë]/g, 'e')
+    .replace(/[àâä]/g, 'a')
+    .replace(/[ùûü]/g, 'u')
+    .replace(/[ôö]/g, 'o')
+    .replace(/[îï]/g, 'i')
+    .replace(/[ç]/g, 'c')
+
+  // 3. Try each known slug as substring match (e.g. "Genève centre" contains "geneve")
+  const knownZones: [string, string][] = [
+    ['geneve', 'canton-geneve'], ['genève', 'canton-geneve'],
+    ['lausanne', 'lausanne'], ['zurich', 'zurich'], ['berne', 'berne'],
+    ['eaux-vives', 'eaux-vives'], ['champel', 'champel'],
+    ['plainpalais', 'plainpalais'], ['carouge', 'carouge'],
+    ['nyon', 'nyon'], ['morges', 'morges'], ['montreux', 'montreux'],
+    ['sion', 'sion'], ['fribourg', 'fribourg'], ['florissant', 'quartier-florissant-malagnou'],
+    ['malagnou', 'quartier-florissant-malagnou'], ['lancy', 'lancy'],
+    ['vernier', 'vernier'], ['meyrin', 'meyrin'], ['onex', 'onex'],
+    ['vevey', 'vevey'], ['neuchatel', 'neuchatel'], ['lugano', 'lugano'],
+    ['bale', 'canton-bale-ville'], ['lucerne', 'canton-lucerne'],
+  ]
+
+  for (const [key, slug] of knownZones) {
+    if (normalized.includes(key)) return slug
+  }
+
+  // 4. Fallback: slugify directly
+  return normalized.replace(/\s+/g, '-')
+}
+
 function buildRealAdvisorUrl(params: ExternalSearchParams): string {
   const typeSlug = TYPE_SLUGS[params.type] || 'bien-immobilier'
-
-  // Resolve zone slug — try exact match, then lowercase, then fallback
-  const zoneKey = params.zone.trim()
-  const zoneSlug = ZONE_SLUGS[zoneKey]
-    || ZONE_SLUGS[zoneKey.toLowerCase()]
-    || zoneKey.toLowerCase().replace(/\s+/g, '-').replace(/[éèê]/g, 'e').replace(/[àâ]/g, 'a')
+  const zoneSlug = resolveZoneSlug(params.zone)
 
   const searchParams = new URLSearchParams()
   if (params.budget_max) searchParams.set('salePrice_lte', String(params.budget_max))
