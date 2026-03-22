@@ -12,7 +12,7 @@ function resizeImage(file: File, maxSize: number): Promise<string> {
       const img = new Image()
       img.onload = () => {
         const canvas = document.createElement('canvas')
-        let { width, height } = img
+        const { width, height } = img
 
         // Crop to square (center crop)
         const size = Math.min(width, height)

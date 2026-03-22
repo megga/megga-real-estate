@@ -49,9 +49,9 @@ export default function EditContactDialog({ open, onClose, contact }: EditContac
   const [source, setSource] = useState(contact.source)
   const [notes, setNotes] = useState(contact.notes || '')
 
-  // Reset form when contact changes
+  // Reset form when contact changes — setState in effect is intentional (sync with prop)
   useEffect(() => {
-    setFirstName(contact.first_name)
+    setFirstName(contact.first_name) // eslint-disable-line react-hooks/set-state-in-effect
     setLastName(contact.last_name)
     setEmail(contact.email)
     setPhone(contact.phone)
