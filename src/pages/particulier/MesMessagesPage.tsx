@@ -81,7 +81,7 @@ export default function MesMessagesPage() {
   const agentInitials = agent.name.split(' ').map(n => n[0]).join('')
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)] md:h-[calc(100vh-5rem)]">
+    <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-7rem)] md:h-[calc(100vh-5rem)]">
       {/* Header */}
       <div className="shrink-0 mb-4">
         <h1 className="text-2xl font-semibold text-theme-primary">Messages</h1>
