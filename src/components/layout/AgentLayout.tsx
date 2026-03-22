@@ -8,6 +8,7 @@ import CommandPalette from '@/components/layout/CommandPalette'
 import Breadcrumb from '@/components/layout/Breadcrumb'
 import CopilotPanel from '@/components/ai-copilot/CopilotPanel'
 import NewContactDialog from '@/components/contacts/NewContactDialog'
+import BottomTabBar from '@/components/layout/BottomTabBar'
 
 function AgentLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -67,7 +68,7 @@ function AgentLayoutInner() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 pb-20 md:pb-4 overflow-y-auto">
           <Breadcrumb />
           <Outlet />
         </main>
@@ -81,6 +82,9 @@ function AgentLayoutInner() {
 
       {/* Copilot IA — bouton flottant accessible depuis toute page agent */}
       <CopilotPanel />
+
+      {/* Mobile bottom tab bar */}
+      <BottomTabBar />
     </div>
   )
 }

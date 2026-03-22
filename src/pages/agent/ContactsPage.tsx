@@ -153,8 +153,59 @@ export default function ContactsPage() {
           )}
         </div>
 
-        {/* List — bento transparent */}
-        <div className="rounded-xl border border-theme-border">
+        {/* Mobile: cards empilées */}
+        <div className="md:hidden space-y-2">
+          {paginated.length === 0 ? (
+            <div className="px-4 py-12 text-center">
+              <p className="text-sm text-theme-tertiary">Aucun contact trouvé</p>
+            </div>
+          ) : (
+            paginated.map((contact) => (
+              <Link
+                key={contact.id}
+                to={`/dashboard/contacts/${contact.id}`}
+                className="flex items-center gap-3 p-3 rounded-xl border border-theme-border hover:border-theme-active transition-colors"
+              >
+                <ContactAvatar name={`${contact.first_name} ${contact.last_name}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-theme-primary truncate">
+                    {contact.first_name} {contact.last_name}
+                  </p>
+                  <p className="text-xs text-theme-tertiary mt-0.5">
+                    {TYPE_LABEL[contact.type]} · {SCORE_LABEL[contact.score]}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className={cn('h-2 w-2 rounded-full', SCORE_DOT[contact.score])} />
+                  <span className="text-xs text-theme-tertiary">{formatRelativeDate(contact.last_activity)}</span>
+                </div>
+              </Link>
+            ))
+          )}
+          {/* Mobile pagination */}
+          {filtered.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-between px-2 py-3">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
+              >
+                Précédent
+              </button>
+              <span className="text-xs text-theme-tertiary">{safePage}/{totalPages}</span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
+              >
+                Suivant
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: List — bento transparent */}
+        <div className="hidden md:block rounded-xl border border-theme-border">
           {/* Header row */}
           <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
             <button onClick={() => toggleSort('name')} className="flex-1 flex items-center gap-1 hover:text-theme-primary transition-colors">

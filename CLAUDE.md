@@ -52,7 +52,7 @@ Maps :         Mapbox GL JS (react-map-gl)
 Icons :        Lucide React
 Charts :       Recharts
 Date :         date-fns
-i18n :         (Phase 2 — FR d'abord, DE/EN/IT plus tard)
+i18n :         react-i18next + i18next (FR/DE/EN/IT — installé, sélecteur dans Paramètres > Profil)
 
 Backend :      Supabase Pro
                - PostgreSQL 15+
@@ -225,7 +225,6 @@ megga-real-estate/
 │       ├── ai-negotiation/      # Copilote négociation
 │       ├── ai-listing-gen/      # Génération annonces multi-versions
 │       ├── automation-engine/   # Moteur de relances automatiques
-│       ├── whatsapp/            # Webhook + envoi WhatsApp Business API
 │       └── webhooks/            # Stripe, Resend...
 ```
 
@@ -247,13 +246,23 @@ Caractéristiques clés :
 - **Pas d'icônes** dans les titres, les boutons d'action, ni les labels de formulaire
 - **Dots colorés** pour les indicateurs (score, risque, statut) : `w-2 h-2 rounded-full bg-red-500`
 - **Actions au hover** : les boutons CTA (Voir, Éditer, Supprimer) sont cachés par défaut, visibles au group-hover
-- **Notifications sidebar** : petit dot rouge `w-2 h-2` au lieu de badges compteurs
+- **Notification sidebar** : dot rouge `w-2 h-2` UNIQUEMENT sur Messages (pas sur Pipeline, Matching, etc.)
+- **Modals** : toujours rendu via `createPortal(document.body)` avec `z-[100]` pour overlay plein écran (pas de navbar visible derrière)
+- **Steppers** : monochrome — numéros + underline, pas de dots colorés, pas de cercles verts/bleus
+- **Barres de progression** : monochromes `bg-theme-primary`, pas de gradient rouge→jaune→vert
+- **Scrollbars cachées** : `.scrollbar-hide` sur les containers qui scrollent (modals, pipeline colonnes)
+- **Toggles dark mode** : fond `bg-gray-600` en dark mode (pas `bg-theme-primary` qui est blanc)
+- **Sidebar transitions** : `transition-[width] duration-200 ease-out` (pas `transition-all`), labels en `opacity` animée
+- **Pills sélectionnés** : `bg-theme-active text-theme-primary` (pas de border accent, pas de fond coloré)
 
 **CE QUE CE N'EST PAS :**
 - Pas de gradients flashy
-- Pas de couleurs saturées (les bg-accent plein sont interdits sauf exceptions)
+- Pas de couleurs saturées (les bg-accent plein sont interdits — y compris sur les boutons "Créer", "Envoyer", "Confirmer")
 - Pas d'ombres (shadow-card, shadow-sm, shadow-lg sont supprimés des bentos)
-- Pas d'icônes décoratives dans les boutons et les headers
+- Pas d'icônes décoratives dans les boutons, les headers, ni les labels de formulaire
+- Pas de cercles colorés dans les steppers (pas de CheckCircle vert, pas de cercle bleu numéroté)
+- Pas de barres multicolores (pas de gradient vert→jaune→rouge pour les scores)
+- Pas de titres en UPPERCASE pour les sections (utiliser capitalize)
 
 ### 4.2 Système de thème (CSS Variables)
 
@@ -324,6 +333,47 @@ Borders :      border-theme-border, border-theme-border-subtle, border-theme-bor
 </div>
 ```
 
+**Modal (TOUJOURS via createPortal) :**
+```tsx
+{open && createPortal(
+  <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="relative bg-theme-card rounded-xl border border-theme-border p-6 max-w-lg w-full mx-4">
+      {/* contenu */}
+      <div className="flex justify-end gap-3 mt-6">
+        <button onClick={onClose} className="text-sm text-theme-secondary hover:text-theme-primary">Annuler</button>
+        <button className="h-9 px-4 text-sm font-medium border border-theme-border rounded-lg hover:border-theme-active">Confirmer</button>
+      </div>
+    </div>
+  </div>,
+  document.body
+)}
+```
+
+**Stepper monochrome :**
+```tsx
+<div className="flex items-center gap-8">
+  {steps.map((step, i) => (
+    <button key={i} className={cn(
+      "text-sm pb-2 border-b-2 transition-colors",
+      i === current ? "text-theme-primary border-theme-primary font-semibold" :
+      i < current ? "text-theme-secondary border-theme-primary" :
+      "text-theme-muted border-transparent"
+    )}>
+      {i + 1}. {step}
+    </button>
+  ))}
+</div>
+```
+
+**Pill sélectionné (type, durée, récurrence) :**
+```tsx
+<button className={cn(
+  "h-9 px-4 rounded-lg text-sm transition-colors",
+  selected ? "bg-theme-active text-theme-primary font-medium" : "text-theme-secondary hover:text-theme-primary"
+)}>
+```
+
 ### 4.3 Typographie
 
 ```
@@ -385,14 +435,17 @@ Sidebar width :    w-64 (256px)
 - Hover : shadow-card-hover, transition-shadow duration-200
 
 #### Sidebar Agent (dashboard)
-- Position fixe à gauche, bg-sidebar, border-r
-- Logo GG en haut (petit, 28px)
-- Navigation verticale : icônes Lucide + labels
-- Sections : **Aujourd'hui** (action board), Dashboard, Pipeline, Matching, Contacts, Mes biens, KYC, Messages, Documents, Automatisation, Calendrier
-- Item actif : bg-accent/10 text-accent font-medium border-l-2 border-accent
-- Item hover : bg-gray-100
+- Position fixe à gauche, bg-theme-sidebar, border-r border-theme-border
+- Logo : GG centré quand replié (`w-7 h-7 mx-auto`), logo complet quand déplié
+- Navigation verticale : icônes Lucide + labels (labels en opacity animée au pliage/dépliage)
+- Sections : **PRINCIPAL** (Aujourd'hui, Dashboard), **CRM** (Contacts, Pipeline, Matching), **BIENS** (Mes biens, Créer un bien), **COMMUNICATION** (Messages, Calendrier), **CONFORMITÉ** (KYC, Documents, Automatisation)
+- Item actif : bg-theme-active text-theme-primary font-medium
+- Item hover : bg-theme-hover
 - Profil agent en bas avec avatar + nom + rôle
-- Compteurs (badges) : messages non lus, dossiers en attente, relances à faire, matchs trouvés
+- **Dot notification UNIQUEMENT sur Messages** (pas sur Pipeline, Matching, etc.)
+- **Bouton déplier** : en bas de la sidebar, pas à côté du logo
+- **Transition pliage** : `transition-[width] duration-200 ease-out`, labels en `opacity` avec `delay-75`
+- **Tooltips** quand replié : nom de la page au hover de chaque icône
 
 #### Action Board ("Quoi faire aujourd'hui")
 - **C'est la page d'accueil de l'agent** — la première chose qu'il voit en se connectant
@@ -407,36 +460,47 @@ Sidebar width :    w-64 (256px)
 - Compteur global en haut : "X actions recommandées aujourd'hui"
 
 #### Contact Detail (fiche enrichie)
-- En-tête : nom complet, avatar, type (badge), score (badge couleur), WhatsApp/tel/email en actions rapides
-- **Résumé IA** en haut : encadré bg-accent/5, icône sparkle — 2-3 phrases auto-générées ("Client sérieux, budget CHF 1.2M, recherche active Eaux-Vives, 3 visites effectuées, dernière interaction il y a 5 jours")
+- En-tête : nom complet, avatar, type (badge texte), score (dot coloré), tel/email en actions rapides
+- **Résumé IA** en haut : texte simple, label "estimation IA" en `text-theme-muted text-[10px]` sans fond
 - **Next Best Action** : encadré vert, suggestion IA ("Proposer le 3 pièces rue du Rhône — 92% compatible")
 - Tabs : Infos · Timeline · Biens envoyés · Matching · Documents · Offres
-- **Timeline unifiée** : tous les événements sur une seule timeline chronologique — appels, emails, WhatsApp, visites, biens envoyés, notes, tâches, documents, offres, relances
+- **Timeline unifiée** : tous les événements sur une seule timeline chronologique — appels, emails, messages internes, visites, biens envoyés, notes, tâches, documents, offres, relances
+- **Buyer/Seller Intelligence** : barres monochromes `bg-theme-primary`, titres en minuscule, pas d'icônes devant les labels, valeurs en texte simple (pas de badges colorés)
 - Section critères de recherche : type, zone, budget (annoncé + estimé IA), pièces, surface, features
 - Tags et notes libres
 
 #### Matching Panel
-- S'affiche dans la ContactDetailPage ou comme page dédiée
-- Liste de biens compatibles, triés par score de matching (0-100%)
-- Chaque MatchScoreCard : photo bien, adresse, prix, score %, raisons du match (badges : "Budget ✓", "Zone ✓", "Critères ✓")
-- Actions rapides : "Envoyer au client" (email/WhatsApp), "Planifier visite", "Ignorer"
+- Page dédiée MatchingPage + intégré dans ContactDetailPage onglet Matching
+- Cards en grid avec photos edge-to-edge (pas de padding autour de la photo)
+- Chaque MatchCard : photo bien, adresse, prix, raisons du match en `text-theme-secondary` séparées par " · " (Budget · Zone · Type)
+- **Modal aperçu** : clic sur une card → modal plein écran avec carrousel photos, caractéristiques, description, score de compatibilité détaillé (Budget 30/30, Zone 25/25, etc.)
+- **Barres de score monochromes** (`bg-theme-primary`), pas de pourcentage affiché sur la card
+- Actions : "Envoyer →" au hover de la card → ouvre SendMatchDialog (Email ou Messagerie, PAS WhatsApp)
+- Tri : par score (défaut), par prix, par date
 - Filtre : base interne uniquement (Phase 1) | + portails externes (Phase 2)
+- **Scrollbar cachée** sur le modal aperçu
 
 #### Pipeline Kanban
-- Colonnes : Nouveau lead → À qualifier → Recherche active → Visite planifiée → Visite effectuée → Intérêt confirmé → Offre → Négociation → Réservé → Notaire → Signé
-- Colonnes additionnelles visibles via scroll horizontal : Perdu | À relancer
-- Cards de deal : avatar contact, nom bien, prix, étape, date mise à jour, indicateur relance (badge orange si en retard)
+- **14 colonnes** : Nouveau lead → À qualifier → Recherche active → Visite planifiée → Visite effectuée → Intérêt confirmé → Offre → Négociation → Réservé → Financement → Notaire → Signé | Perdu | À relancer
+- **Layout immersif full-height** : colonnes occupent tout l'espace vertical, header/KPIs/filtres fixes
+- **Scrollbar horizontale cachée** (`.scrollbar-hide`)
+- Cards de deal : avatar contact, nom contact, adresse bien, prix, date mise à jour en relatif
 - Drag & drop via dnd-kit
-- Compteur par colonne
-- Couleur header colonne : gris par défaut, accent pour active
+- **Dialogue confirmation si drop sur "Perdu"** (raison obligatoire)
+- **Barre KPIs en haut** : total deals actifs, valeur totale pipeline, deals à risque, taux de conversion
+- **Filtres** : recherche texte, filtre par agent, filtre par étape
+- Dot coloré par colonne (pas de couleur header)
+- Colonnes "Perdu" et "À relancer" visuellement distinctes (opacité réduite)
 
 #### KYC Dossier
-- En-tête : nom client, type (PP/PM), niveau de risque (badge couleur), statut global
-- Checklist dynamique : items cochables, icônes vert/orange/rouge
-- Section documents : upload zone, liste docs avec statut (validé, en attente, manquant)
+- En-tête : nom client, type (PP/PM), niveau de risque (dot coloré + texte), statut global
+- Checklist dynamique : items cochables
+- **Vérification Compliance** : lignes simples avec dot vert/rouge, pas de cards colorées. "Aucune correspondance" en `text-theme-secondary` (pas en vert)
+- Section documents : upload zone, liste docs avec statut, badges expiration
 - Journal d'audit : timeline d'événements
 - Barre de progression : % complétude
-- **Human-in-the-loop** : bouton "Valider le dossier" bien visible, pas de validation automatique
+- **Human-in-the-loop** : bouton "Valider le dossier" → modal minimaliste (pas d'icône ShieldCheck, pas de bouton vert, style ghost)
+- **Score de risque** : barres monochromes, facteurs détaillés, label "estimation IA"
 
 #### Portail Vendeur
 - Vue simplifiée, pas de sidebar
@@ -447,12 +511,30 @@ Sidebar width :    w-64 (256px)
 - Accès documents
 - Ton rassurant : "Votre bien est entre de bonnes mains"
 
-#### Copilot Panel (IA globale)
-- Accessible depuis n'importe quel écran agent (bouton flottant ou sidebar)
+#### Copilot Panel (MEGGA AI)
+- Accessible depuis n'importe quel écran agent (bouton flottant en bas à droite, icône Sparkles style ghost)
 - Input texte : commandes en langage naturel
 - Exemples : "résume-moi ce client", "rédige une relance", "quels biens envoyer à M. Dupont", "prépare un mandat", "quelles sont les prochaines actions"
 - L'IA est TOUJOURS connectée au contexte réel du CRM (client actif, deal actif, page courante)
-- Réponses affichées dans un panel latéral avec actions cliquables
+- Réponses affichées dans un panel slide-in depuis le bas avec actions cliquables
+
+#### Messagerie
+- **Layout compact** : liste threads à gauche (1/3), thread ouvert à droite (2/3)
+- **Compose** : zone de rédaction en bas avec bouton pièce jointe (icône Paperclip)
+- **Timestamps groupés par jour** : "Aujourd'hui", "Hier", "20 mars 2026"
+- **Statut de lecture** : double check vert pour lu, check gris pour envoyé
+- **Épingler/Archiver** : actions au hover sur chaque thread
+- **Canaux** : Email et Messagerie interne uniquement (PAS de WhatsApp — trop complexe à installer)
+- **Recherche** : barre de recherche dans la liste des threads
+
+#### Settings (7 onglets)
+- **Profil** : avatar avec modal crop (zoom, rotation, reset), nom, email (non modifiable), téléphone, rôle, langue (pills FR/DE/EN/IT), bio
+- **Agence** : infos agence, branding
+- **Équipe** : liste membres, invitation (modal createPortal), rôles
+- **Notifications** : toggles email/push par type, toggles en gris moyen en dark mode (pas blanc)
+- **Sécurité** : lier compte Google (OAuth `linkIdentity`), sessions
+- **Abonnement** : toggle mensuel/annuel (-20%), 3 plans (Starter gratuit, Pro CHF 89, Agency CHF 249), prix barré en annuel, CTA "Besoin d'un plan sur mesure ?"
+- **Intégrations** : cards par catégorie (Google Calendar, Email/Resend, Portails immobiliers, Import/Export CRM, PostHog, Google Drive/OneDrive)
 
 ---
 
@@ -486,7 +568,7 @@ interface ListingCardProps {
 
 export default function ListingCard({ listing, className, onFavorite }: ListingCardProps) {
   return (
-    <div className={cn('bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow', className)}>
+    <div className={cn('rounded-xl border border-theme-border bg-theme-card', className)}>
       {/* ... */}
     </div>
   );
@@ -989,8 +1071,16 @@ Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymi
 - JAMAIS d'envoi automatique au client sans validation agent (sauf relance auto explicitement activée)
 - JAMAIS d'action IA silencieuse — tout est loggé et visible
 - JAMAIS de couleurs hardcodées (bg-white, text-gray-*) — toujours utiliser les tokens thème (text-theme-primary, bg-theme-card, etc.)
-- JAMAIS de bg-accent plein sur les boutons d'action — utiliser le style ghost (border + text)
+- JAMAIS de bg-accent plein sur les boutons d'action — utiliser le style ghost (border + text). Cela inclut "Créer", "Envoyer", "Confirmer", "Sauvegarder"
 - JAMAIS d'ombres (shadow-card, shadow-sm) sur les bentos — juste border border-theme-border
+- JAMAIS de modals rendus inline — toujours `createPortal(document.body)` avec `z-[100]`
+- JAMAIS de dots/cercles colorés dans les steppers — utiliser numéros + underline monochrome
+- JAMAIS de barres de progression multicolores (gradient rouge→vert) — utiliser `bg-theme-primary` monochrome
+- JAMAIS de titres en UPPERCASE (pas de "BUYER INTELLIGENCE") — utiliser capitalize
+- JAMAIS de WhatsApp comme canal — remplacé par Messagerie interne (trop complexe à installer pour les clients)
+- JAMAIS de dots rouges sur la sidebar sauf Messages — les autres pages n'ont pas de "non lu"
+- JAMAIS de scrollbars visibles dans les modals ou le pipeline — utiliser `.scrollbar-hide`
+- JAMAIS de radio buttons natifs dans les modals — utiliser des pills
 - JAMAIS de Next.js — c'est React + Vite (pas besoin de SSR, c'est un SaaS)
 - JAMAIS de Vercel — c'est Cloudflare Pages
 - JAMAIS de `console.log` en production
@@ -1010,6 +1100,10 @@ Format prix :     CHF 720'000 (apostrophe comme séparateur milliers)
 Format surface :  120 m²
 Format date :     16.03.2026 (DD.MM.YYYY) — ou "il y a 2 heures" en relatif
 Langue par défaut : Français
+Langues supportées : FR (Français), DE (Deutsch), EN (English), IT (Italiano)
+Sélecteur :       Paramètres > Profil > Langue (pills compacts, pas de drapeaux)
+Stockage :        localStorage clé 'megga-language', détection auto navigateur
+i18n :            react-i18next, 12 namespaces par langue (common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, automation, documents)
 Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW, OW, UR, GL, SH, TG, AR, AI, SG, GR, TI
 ```
 
