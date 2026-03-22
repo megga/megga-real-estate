@@ -100,10 +100,7 @@ export default function MesMessagesPage() {
             <p className="text-sm font-medium text-theme-primary">{agent.name}</p>
             <p className="text-[10px] text-theme-tertiary">MEGGA Immobilier · Votre agent</p>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[10px] text-theme-tertiary">En ligne</span>
-          </div>
+          <span className="text-[10px] text-theme-tertiary">MEGGA Immobilier</span>
         </div>
 
         {/* Messages list */}
