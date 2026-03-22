@@ -289,7 +289,7 @@ export default function MesDocumentsPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="max-w-3xl mx-auto space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-theme-primary">Mes documents</h1>
