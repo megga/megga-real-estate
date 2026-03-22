@@ -201,7 +201,7 @@ export default function AnalysePage() {
             <span className="text-[10px] text-theme-muted w-20 shrink-0">Moy. quartier</span>
             <div className="flex-1 h-2 rounded-full bg-theme-hover overflow-hidden">
               <div
-                className="h-full rounded-full bg-theme-border transition-all duration-500"
+                className="h-full rounded-full bg-theme-primary/40 transition-all duration-500"
                 style={{ width: `${Math.min(100, (MARKET_STATS.avg_price_m2_quartier / (MARKET_STATS.avg_price_m2_quartier * 1.3)) * 100)}%` }}
               />
             </div>
