@@ -81,7 +81,7 @@ export function WeekViewGrid({
               <div
                 key={`${day.date.toISOString()}-${hourSlot.hour}`}
                 className={cn(
-                  "border-border border-b border-l cursor-pointer hover:bg-accent/5 transition-colors",
+                  "border-theme-border border-b border-l cursor-pointer hover:bg-accent/5 transition-colors",
                   isWeekend && "bg-calendar-weekend",
                 )}
                 onClick={() => {

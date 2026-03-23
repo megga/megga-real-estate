@@ -53,7 +53,7 @@ export function WeekViewDayColumns({
               className={cn(
                 day.isToday
                   ? "text-foreground font-medium"
-                  : "text-muted-foreground font-normal",
+                  : "text-theme-tertiary font-normal",
               )}
             >
               {day.dayName}
@@ -63,7 +63,7 @@ export function WeekViewDayColumns({
                 "flex h-5 w-[1.2rem] items-center justify-center rounded-xs text-sm",
                 day.isToday
                   ? "bg-primary text-primary-foreground font-medium"
-                  : "text-muted-foreground",
+                  : "text-theme-tertiary",
               )}
             >
               {day.dayNumber}
@@ -76,11 +76,11 @@ export function WeekViewDayColumns({
 
   return (
     <div
-      className={cn("grid bg-background", className)}
+      className={cn("grid bg-theme-card", className)}
       style={{ gridTemplateColumns: "4rem 1fr" }}
     >
       {/* Timezone label */}
-      <div className="text-muted-foreground flex items-center justify-end pr-2 text-xxs">
+      <div className="text-theme-tertiary flex items-center justify-end pr-2 text-xxs">
         {timezone}
       </div>
 
@@ -101,7 +101,7 @@ export function WeekViewDayColumns({
               className={cn(
                 day.isToday
                   ? "text-foreground font-medium"
-                  : "text-muted-foreground font-normal",
+                  : "text-theme-tertiary font-normal",
               )}
             >
               {day.dayName}
@@ -111,7 +111,7 @@ export function WeekViewDayColumns({
                 "flex h-5 w-[1.2rem] items-center justify-center rounded-xs text-sm",
                 day.isToday
                   ? "bg-primary text-primary-foreground font-medium"
-                  : "text-muted-foreground",
+                  : "text-theme-tertiary",
               )}
             >
               {day.dayNumber}
