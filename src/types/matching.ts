@@ -11,6 +11,15 @@ export interface MatchReasons {
   type_score: number
   rooms_surface_score: number
   features_score: number
+  // Niveau 1 — Must-have / nice-to-have
+  must_have_met: boolean
+  must_have_missing: string[]
+  nice_to_have_matched: string[]
+  // Niveau 2 — Géospatial
+  distance_km: number | null
+  // Niveau 3 — Decay temporel
+  freshness_decay: number
+  days_on_market: number
 }
 
 export type MatchStatus = 'suggested' | 'sent' | 'visit_planned' | 'interested' | 'rejected' | 'ignored'
@@ -52,15 +61,16 @@ export interface MatchWithRelations extends SupabaseMatch {
     bedrooms: number | null
     bathrooms: number | null
     surface_m2: number
-    floor: number | null
-    year_built: number | null
     address: string
     city: string
     canton: string
     postal_code: string
     photos: string[] | null
     features: string[] | null
-    charges_monthly: number | null
+    lat: number | null
+    lng: number | null
+    published_at: string | null
+    created_at: string
   } | null
 }
 
@@ -74,6 +84,13 @@ export interface ClientSearchCriteria {
   surface_min?: number
   surface_max?: number
   features?: string[]
+  // Niveau 1 — Must-have / nice-to-have
+  must_have?: string[]
+  nice_to_have?: string[]
+  // Niveau 2 — Géospatial
+  center_lat?: number
+  center_lng?: number
+  radius_km?: number
 }
 
 export interface SupabaseClientSearch {

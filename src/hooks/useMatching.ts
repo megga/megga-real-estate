@@ -8,7 +8,7 @@ import type { MatchWithRelations, MatchStatus } from '@/types/matching'
 const MATCH_SELECT = `
   *,
   contact:contacts(id, first_name, last_name, email, phone, whatsapp_phone, type, score),
-  property:properties(id, title, description, type, status, price, rooms, bedrooms, bathrooms, surface_m2, floor, year_built, address, city, canton, postal_code, photos, features, charges_monthly)
+  property:properties(id, title, description, type, status, price, rooms, bedrooms, bathrooms, surface_m2, address, city, canton, postal_code, photos, features, lat, lng, published_at, created_at)
 `
 
 // ── Filters ─────────────────────────────────────────────────────────────────
