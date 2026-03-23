@@ -87,14 +87,12 @@ export default function CalendarPage() {
 
   const handleEventClick = useCallback((event: CalendarEvent) => {
     setSelectedEventId((prev) => {
-      if (prev === event.id) {
-        return undefined
-      }
-      return event.id
+      const next = prev === event.id ? undefined : event.id
+      // Derive sidebar state from the same computation to avoid stale closure
+      setIsSidebarOpen(next !== undefined)
+      return next
     })
-    // Open/close sidebar based on toggle
-    setIsSidebarOpen(selectedEventId === event.id ? false : true)
-  }, [selectedEventId])
+  }, [])
 
   const handleEventChange = useCallback((updated: CalendarEvent) => {
     setEvents((prev) => {
@@ -256,35 +254,35 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Calendar body + sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          <WeekView
-            view={view}
-            currentDate={currentDate}
-            events={filteredEvents}
-            onEventClick={handleEventClick}
-            selectedEventId={selectedEventId}
-            onBackgroundClick={handleBackgroundClick}
-            onDateChange={setCurrentDate}
-            onEventChange={handleEventChange}
-            isSidebarOpen={isSidebarOpen}
-            onDockToSidebar={handleDockToSidebar}
-            onClosePopover={handleClosePopover}
-            onPrevWeek={handlePrevWeek}
-            onNextWeek={handleNextWeek}
-            onSlotClick={handleSlotClick}
-            className="h-full"
-          />
-        </div>
+      {/* Calendar body + sidebar overlay */}
+      <div className="relative flex-1 overflow-hidden">
+        <WeekView
+          view={view}
+          currentDate={currentDate}
+          events={filteredEvents}
+          onEventClick={handleEventClick}
+          selectedEventId={selectedEventId}
+          onBackgroundClick={handleBackgroundClick}
+          onDateChange={setCurrentDate}
+          onEventChange={handleEventChange}
+          isSidebarOpen={isSidebarOpen}
+          onDockToSidebar={handleDockToSidebar}
+          onClosePopover={handleClosePopover}
+          onPrevWeek={handlePrevWeek}
+          onNextWeek={handleNextWeek}
+          onSlotClick={handleSlotClick}
+          className="h-full"
+        />
 
-        {/* Detail sidebar */}
+        {/* Detail sidebar — absolute overlay to avoid resizing the calendar grid */}
         {isSidebarOpen && selectedEvent && (
-          <EventDetailSidebar
-            event={selectedEvent}
-            onClose={handleCloseSidebar}
-            onEventChange={handleEventChange}
-          />
+          <div className="absolute top-0 right-0 bottom-0 z-30">
+            <EventDetailSidebar
+              event={selectedEvent}
+              onClose={handleCloseSidebar}
+              onEventChange={handleEventChange}
+            />
+          </div>
         )}
       </div>
 
