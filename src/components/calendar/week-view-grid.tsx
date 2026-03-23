@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { isPast } from "date-fns";
 import { calculatePositionedEvents } from "@/lib/event-utils";
 import { CalendarEventItem } from "@/components/calendar/calendar-event-item";
-import { useCalendarPopoverBoundary } from "@/components/calendar/calendar-popover-context";
 import type {
   CalendarEvent,
   EventDragState,
@@ -31,15 +30,10 @@ export function WeekViewGrid({
   onEventResizeMouseDown,
   onEventChange,
   onContextMenuOpenChange,
-  isSidebarOpen,
-  onDockToSidebar,
-  onClosePopover,
-  onPrevWeek,
-  onNextWeek,
   onSlotClick,
+  view,
   className,
 }: WeekViewGridProps) {
-  const { view } = useCalendarPopoverBoundary();
   const isDayView = view === "day";
   const gridRef = React.useRef<HTMLDivElement>(null);
   const [gridWidth, setGridWidth] = React.useState(0);
@@ -123,11 +117,6 @@ export function WeekViewGrid({
               onEventChange={onEventChange}
 
               onContextMenuOpenChange={onContextMenuOpenChange}
-              isSidebarOpen={isSidebarOpen}
-              onDockToSidebar={onDockToSidebar}
-              onClosePopover={onClosePopover}
-              onPrevWeek={onPrevWeek}
-              onNextWeek={onNextWeek}
             />
           );
         })}
@@ -456,11 +445,6 @@ interface DayEventsColumnProps {
   ) => void;
   onEventChange?: (event: CalendarEvent) => void;
   onContextMenuOpenChange?: (open: boolean) => void;
-  isSidebarOpen?: boolean;
-  onDockToSidebar?: () => void;
-  onClosePopover?: () => void;
-  onPrevWeek?: () => void;
-  onNextWeek?: () => void;
 }
 
 function renderColumnGhost(
@@ -489,11 +473,6 @@ function DayEventsColumn({
   onEventResizeMouseDown,
   onEventChange,
   onContextMenuOpenChange,
-  isSidebarOpen,
-  onDockToSidebar,
-  onClosePopover,
-  onPrevWeek,
-  onNextWeek,
 }: DayEventsColumnProps) {
   return (
     <div className="relative h-full pointer-events-auto">
@@ -585,11 +564,6 @@ function DayEventsColumn({
             onResizeMouseDown={onEventResizeMouseDown}
             onEventChange={onEventChange}
             onContextMenuOpenChange={onContextMenuOpenChange}
-            isSidebarOpen={isSidebarOpen}
-            onDockToSidebar={onDockToSidebar}
-            onClosePopover={onClosePopover}
-            onPrevWeek={onPrevWeek}
-            onNextWeek={onNextWeek}
           />
         );
       })}

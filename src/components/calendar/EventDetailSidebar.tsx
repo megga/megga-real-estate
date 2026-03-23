@@ -33,21 +33,46 @@ const SCORE_CONFIG: Record<string, { label: string; dotClass: string }> = {
 // ── Props ──
 
 interface EventDetailSidebarProps {
-  event: CalendarEvent
+  event?: CalendarEvent
   onClose: () => void
   onEventChange?: (event: CalendarEvent) => void
 }
 
 export default function EventDetailSidebar({ event, onClose, onEventChange }: EventDetailSidebarProps) {
+  const contactId = event?.contactId
+  const propertyId = event?.propertyId
+
   const contact = useMemo(
-    () => event.contactId ? getContactById(event.contactId) : undefined,
-    [event.contactId]
+    () => contactId ? getContactById(contactId) : undefined,
+    [contactId]
   )
 
   const property = useMemo(
-    () => event.propertyId ? MOCK_AGENT_LISTINGS.find((p) => p.id === event.propertyId) : undefined,
-    [event.propertyId]
+    () => propertyId ? MOCK_AGENT_LISTINGS.find((p) => p.id === propertyId) : undefined,
+    [propertyId]
   )
+
+  // Empty state — sidebar is open but no event selected
+  if (!event) {
+    return (
+      <div className="w-80 flex-shrink-0 border-l border-theme-border bg-theme-card flex flex-col overflow-hidden h-full">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-theme-border">
+          <h3 className="text-sm font-semibold text-theme-primary">Détail</h3>
+          <button
+            onClick={onClose}
+            className="flex h-6 w-6 items-center justify-center rounded text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 flex items-center justify-center px-4">
+          <p className="text-sm text-theme-tertiary text-center">
+            Sélectionnez un événement pour voir ses détails
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const durationMinutes = differenceInMinutes(event.end, event.start)
   const durationLabel = durationMinutes >= 60
@@ -62,7 +87,7 @@ export default function EventDetailSidebar({ event, onClose, onEventChange }: Ev
   }
 
   return (
-    <div className="w-80 flex-shrink-0 border-l border-theme-border bg-theme-card flex flex-col overflow-hidden">
+    <div className="w-80 flex-shrink-0 border-l border-theme-border bg-theme-card flex flex-col overflow-hidden h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-theme-border">
         <h3 className="text-sm font-semibold text-theme-primary">Détail</h3>

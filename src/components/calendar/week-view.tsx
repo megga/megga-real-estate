@@ -26,7 +26,7 @@ import { WeekViewDayColumns } from "@/components/calendar/week-view-day-columns"
 import { WeekViewGrid } from "@/components/calendar/week-view-grid";
 import { WeekViewTimeAxis } from "@/components/calendar/week-view-time-axis";
 import { WeekViewTimeIndicator } from "@/components/calendar/week-view-time-indicator";
-import { CalendarPopoverBoundaryProvider } from "@/components/calendar/calendar-popover-context";
+
 
 /** Minimum height of each hour row in pixels */
 const MIN_HOUR_HEIGHT = 48;
@@ -147,11 +147,6 @@ export function WeekView({
   onDateChange,
   onVisibleDaysChange,
   onEventChange,
-  isSidebarOpen,
-  onDockToSidebar,
-  onClosePopover,
-  onPrevWeek,
-  onNextWeek,
   onSlotClick,
   className,
 }: WeekViewProps) {
@@ -343,19 +338,8 @@ export function WeekView({
     transition: isAnimating ? `transform ${200}ms ease-out` : "none",
   };
 
-  // Ref for the popover collision boundary (constrains popovers within the calendar area)
-  const calendarBoundaryRef = React.useRef<HTMLDivElement>(null);
-  // Ref for the header (weekday columns + all-day row) to measure its height for popover top inset
-  const calendarHeaderRef = React.useRef<HTMLDivElement>(null);
-
   return (
-    <CalendarPopoverBoundaryProvider
-      boundaryRef={calendarBoundaryRef}
-      headerRef={calendarHeaderRef}
-      view={view}
-    >
       <div
-        ref={calendarBoundaryRef}
         className={cn("flex h-full flex-col", className)}
         onClick={(e) => {
           const target = e.target as HTMLElement;
@@ -366,14 +350,7 @@ export function WeekView({
         {/* Header - day columns and all-day row with synchronized scroll */}
         <div className="flex-shrink-0">
           <div
-            ref={(el) => {
-              (
-                dayColumnsScrollRef as React.MutableRefObject<HTMLDivElement | null>
-              ).current = el;
-              (
-                calendarHeaderRef as React.MutableRefObject<HTMLDivElement | null>
-              ).current = el;
-            }}
+            ref={dayColumnsScrollRef}
             className="overflow-hidden"
           >
             <div className="flex bg-background">
@@ -402,14 +379,10 @@ export function WeekView({
               onEventChange={onEventChange}
               onContextMenuOpenChange={setContextMenuOpen}
               allDayScrollContentRef={allDayScrollContentRef}
-              isSidebarOpen={isSidebarOpen}
-              onDockToSidebar={onDockToSidebar}
-              onClosePopover={onClosePopover}
-              onPrevWeek={onPrevWeek}
-              onNextWeek={onNextWeek}
               visibleStartIndex={dynamicBuffer}
               visibleCount={VISIBLE_DAYS}
               dayColumnWidth={dayColumnWidth}
+              view={view}
             />
           </div>
         </div>
@@ -439,12 +412,8 @@ export function WeekView({
                   onEventResizeMouseDown={handleResizeMouseDown}
                   onEventChange={onEventChange}
                   onContextMenuOpenChange={setContextMenuOpen}
-                  isSidebarOpen={isSidebarOpen}
-                  onDockToSidebar={onDockToSidebar}
-                  onClosePopover={onClosePopover}
-                  onPrevWeek={onPrevWeek}
-                  onNextWeek={onNextWeek}
                   onSlotClick={onSlotClick}
+                  view={view}
                 />
               </div>
             </div>
@@ -458,6 +427,5 @@ export function WeekView({
           </div>
         </div>
       </div>
-    </CalendarPopoverBoundaryProvider>
   );
 }
