@@ -9,6 +9,7 @@ import type { CalendarEvent, EventColor, ViewType } from '@/components/calendar/
 import { MOCK_EVENTS } from '@/components/calendar/mock-events'
 import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
 import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
+import EventDetailSidebar from '@/components/calendar/EventDetailSidebar'
 
 /** Event category config for MEGGA real estate */
 const EVENT_CATEGORIES: Record<EventColor, { label: string }> = {
@@ -124,6 +125,16 @@ export default function CalendarPage() {
     setEvents((prev) => [...prev, newEvent])
   }, [])
 
+  // Computed selected event for sidebar
+  const selectedEvent = useMemo(
+    () => selectedEventId ? events.find((e) => e.id === selectedEventId) : undefined,
+    [selectedEventId, events]
+  )
+
+  const handleCloseSidebar = useCallback(() => {
+    setIsSidebarOpen(false)
+  }, [])
+
   // Format header date for French locale
   const headerDate = useMemo(() => {
     const formatted = format(currentDate, 'MMMM yyyy', { locale: fr })
@@ -197,25 +208,36 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Calendar body */}
-      <div className="flex-1 overflow-hidden">
-        <WeekView
-          view={view}
-          currentDate={currentDate}
-          events={filteredEvents}
-          onEventClick={handleEventClick}
-          selectedEventId={selectedEventId}
-          onBackgroundClick={handleBackgroundClick}
-          onDateChange={setCurrentDate}
-          onEventChange={handleEventChange}
-          isSidebarOpen={isSidebarOpen}
-          onDockToSidebar={handleDockToSidebar}
-          onClosePopover={handleClosePopover}
-          onPrevWeek={handlePrevWeek}
-          onNextWeek={handleNextWeek}
-          onSlotClick={handleSlotClick}
-          className="h-full"
-        />
+      {/* Calendar body + sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden">
+          <WeekView
+            view={view}
+            currentDate={currentDate}
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            selectedEventId={selectedEventId}
+            onBackgroundClick={handleBackgroundClick}
+            onDateChange={setCurrentDate}
+            onEventChange={handleEventChange}
+            isSidebarOpen={isSidebarOpen}
+            onDockToSidebar={handleDockToSidebar}
+            onClosePopover={handleClosePopover}
+            onPrevWeek={handlePrevWeek}
+            onNextWeek={handleNextWeek}
+            onSlotClick={handleSlotClick}
+            className="h-full"
+          />
+        </div>
+
+        {/* Detail sidebar */}
+        {isSidebarOpen && selectedEvent && (
+          <EventDetailSidebar
+            event={selectedEvent}
+            onClose={handleCloseSidebar}
+            onEventChange={handleEventChange}
+          />
+        )}
       </div>
 
       {/* Create event dialog */}

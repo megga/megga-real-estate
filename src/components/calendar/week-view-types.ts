@@ -260,6 +260,9 @@ export interface CalendarEvent {
   visibility?: "default" | "public" | "private";
   /** Calendar account email for display */
   calendarEmail?: string;
+  /** MEGGA CRM references */
+  contactId?: string;
+  propertyId?: string;
   /** MEGGA visit status */
   visitStatus?: VisitStatus;
   /** Post-visit feedback from buyer */
