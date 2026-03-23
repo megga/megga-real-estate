@@ -12,6 +12,7 @@ import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
 import { detectConflicts, expandRecurringEvents } from '@/lib/event-utils'
 import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
 import EventDetailSidebar from '@/components/calendar/EventDetailSidebar'
+import { useVisits } from '@/hooks/useVisits'
 
 /** Event category config for MEGGA real estate */
 const EVENT_CATEGORIES: Record<EventColor, { label: string }> = {
@@ -27,10 +28,24 @@ const EVENT_CATEGORIES: Record<EventColor, { label: string }> = {
 const ALL_COLORS = Object.keys(EVENT_CATEGORIES) as EventColor[]
 
 export default function CalendarPage() {
+  const { visits: supabaseVisits, createVisit, updateVisit, deleteVisit } = useVisits()
+
   const [currentDate, setCurrentDate] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
-  const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS)
+  // Local events = non-visit events (meetings, deadlines, etc.) + mock fallback
+  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>(() =>
+    MOCK_EVENTS.filter((e) => e.color !== 'blue' || !e.visitStatus)
+  )
+  // Merge: Supabase visits + local non-visit events. If no visits in DB, include mock visits too.
+  const events = useMemo(() => {
+    if (supabaseVisits.length > 0) {
+      return [...supabaseVisits, ...localEvents]
+    }
+    // Fallback: show all mock events when DB is empty
+    return [...MOCK_EVENTS, ...localEvents.filter((e) => !MOCK_EVENTS.some((m) => m.id === e.id))]
+  }, [supabaseVisits, localEvents])
+
   const [selectedEventId, setSelectedEventId] = useState<string | undefined>()
   const [view, setView] = useState<ViewType>('week')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -122,22 +137,44 @@ export default function CalendarPage() {
   }, [])
 
   const handleEventChange = useCallback((updated: CalendarEvent) => {
-    setEvents((prev) => {
-      const old = prev.find((e) => e.id === updated.id)
-      if (updated.visitStatus === 'done' && old?.visitStatus !== 'done') {
+    // Check if this is a Supabase visit (UUID format) vs mock event
+    const isSupabaseVisit = updated.visitStatus && !updated.id.startsWith('evt-')
+
+    if (isSupabaseVisit) {
+      // Persist to Supabase
+      const oldVisit = supabaseVisits.find((e) => e.id === updated.id)
+      if (updated.visitStatus === 'done' && oldVisit?.visitStatus !== 'done') {
         setFeedbackEvent(updated)
       }
-      return prev.map((e) => (e.id === updated.id ? updated : e))
-    })
-  }, [])
+      updateVisit(updated).catch(() => {
+        // Silently handle — React Query will refetch
+      })
+    } else {
+      // Local event — update in local state
+      setLocalEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+      if (updated.visitStatus === 'done') {
+        const old = localEvents.find((e) => e.id === updated.id)
+        if (old?.visitStatus !== 'done') setFeedbackEvent(updated)
+      }
+    }
+  }, [supabaseVisits, localEvents, updateVisit])
 
   const handleFeedbackSubmit = useCallback((event: CalendarEvent, feedback: { feedbackBuyer: string; feedbackAgent: string; rating: number }) => {
-    setEvents((prev) => prev.map((e) =>
-      e.id === event.id
-        ? { ...e, visitStatus: 'done' as const, feedbackBuyer: feedback.feedbackBuyer, feedbackAgent: feedback.feedbackAgent, rating: feedback.rating }
-        : e
-    ))
-  }, [])
+    const updated: CalendarEvent = {
+      ...event,
+      visitStatus: 'done' as const,
+      feedbackBuyer: feedback.feedbackBuyer,
+      feedbackAgent: feedback.feedbackAgent,
+      rating: feedback.rating,
+    }
+
+    const isSupabaseVisit = !event.id.startsWith('evt-')
+    if (isSupabaseVisit) {
+      updateVisit(updated).catch(() => {})
+    } else {
+      setLocalEvents((prev) => prev.map((e) => (e.id === event.id ? updated : e)))
+    }
+  }, [updateVisit])
 
   // Click background → deselect event + close sidebar
   const handleBackgroundClick = useCallback(() => {
@@ -164,8 +201,17 @@ export default function CalendarPage() {
 
   // Add new event from dialog
   const handleCreateEvent = useCallback((newEvent: CalendarEvent) => {
-    setEvents((prev) => [...prev, newEvent])
-  }, [])
+    // If it's a visit with contact + property, persist to Supabase
+    const isVisit = newEvent.color === 'blue' && newEvent.contactId && newEvent.propertyId
+    if (isVisit) {
+      createVisit(newEvent).catch(() => {
+        // Fallback: add to local state if DB save fails
+        setLocalEvents((prev) => [...prev, newEvent])
+      })
+    } else {
+      setLocalEvents((prev) => [...prev, newEvent])
+    }
+  }, [createVisit])
 
   // Duplicate event (1h later, new ID)
   const handleDuplicate = useCallback((event: CalendarEvent) => {
@@ -177,18 +223,30 @@ export default function CalendarPage() {
       end: new Date(event.end.getTime() + offset),
       title: `${event.title} (copie)`,
     }
-    setEvents((prev) => [...prev, duplicate])
-  }, [])
+    const isVisit = duplicate.color === 'blue' && duplicate.contactId && duplicate.propertyId
+    if (isVisit) {
+      createVisit(duplicate).catch(() => {
+        setLocalEvents((prev) => [...prev, duplicate])
+      })
+    } else {
+      setLocalEvents((prev) => [...prev, duplicate])
+    }
+  }, [createVisit])
 
   // Delete event
   const handleDelete = useCallback((eventId: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== eventId))
+    const isSupabaseVisit = !eventId.startsWith('evt-')
+    if (isSupabaseVisit) {
+      deleteVisit(eventId).catch(() => {})
+    } else {
+      setLocalEvents((prev) => prev.filter((e) => e.id !== eventId))
+    }
     setSelectedEventId((prev) => prev === eventId ? undefined : prev)
     setIsSidebarOpen((prev) => {
       if (selectedEventId === eventId) return false
       return prev
     })
-  }, [selectedEventId])
+  }, [selectedEventId, deleteVisit])
 
   // Computed selected event for sidebar
   const selectedEvent = useMemo(
