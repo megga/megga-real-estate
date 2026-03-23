@@ -1,4 +1,7 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 
 export type ReminderType = 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom'
 export type ReminderStatus = 'pending' | 'triggered' | 'done' | 'cancelled' | 'snoozed'
@@ -44,317 +47,475 @@ export interface MessageTemplate {
   body: string
 }
 
-// ── Mock templates ──────────────────────────────────────────────────────────
+// ── Label mappings ─────────────────────────────────────────────────────────
 
-const MOCK_TEMPLATES: MessageTemplate[] = [
-  {
-    id: 'tpl1',
-    name: 'Relance après envoi de bien',
-    category: 'follow_up',
-    channel: 'email',
-    subject: 'Suite à notre sélection de biens',
-    body: 'Bonjour {{contact.first_name}},\n\nJe vous ai envoyé récemment une sélection de biens, dont le {{property.address}} à {{property.price}}.\n\nAvez-vous eu l\'occasion de la consulter ? Je reste à votre disposition pour organiser des visites.\n\nCordialement,\n{{agent.full_name}}\n{{agency.name}}',
-  },
-  {
-    id: 'tpl2',
-    name: 'Demande de feedback après visite',
-    category: 'post_visit',
-    channel: 'email',
-    subject: 'Votre avis suite à la visite',
-    body: 'Bonjour {{contact.first_name}},\n\nSuite à notre visite du bien situé {{property.address}} ({{property.rooms}} pièces, {{property.surface_m2}} m²), j\'aimerais connaître votre impression.\n\nQuels sont les points qui vous ont plu ? Y a-t-il des éléments qui ne correspondent pas à vos attentes ?\n\nVotre retour m\'aidera à affiner ma recherche.\n\nCordialement,\n{{agent.full_name}}',
-  },
-  {
-    id: 'tpl3',
-    name: 'Présentation de bien',
-    category: 'property_presentation',
-    channel: 'email',
-    subject: 'Un bien qui pourrait vous intéresser',
-    body: 'Bonjour {{contact.first_name}},\n\nJ\'ai le plaisir de vous présenter un bien correspondant à vos critères :\n\n{{property.address}}\nPrix : {{property.price}}\n{{property.rooms}} pièces · {{property.surface_m2}} m²\n\nSouhaitez-vous planifier une visite ?\n\n{{agent.full_name}}\n{{agent.phone}}',
-  },
-  {
-    id: 'tpl4',
-    name: 'Relance lead dormant',
-    category: 'follow_up',
-    channel: 'email',
-    subject: 'Des nouvelles de votre projet immobilier',
-    body: 'Bonjour {{contact.first_name}},\n\nJe me permets de prendre de vos nouvelles concernant votre projet immobilier.\n\nDe nouveaux biens sont disponibles qui pourraient correspondre à vos critères. Souhaitez-vous que je vous envoie une sélection actualisée ?\n\nN\'hésitez pas à me contacter si votre projet a évolué.\n\nCordialement,\n{{agent.full_name}}\n{{agency.name}}',
-  },
-  {
-    id: 'tpl5',
-    name: 'Mise à jour vendeur',
-    category: 'seller_update',
-    channel: 'email',
-    subject: 'Point sur la vente de votre bien',
-    body: 'Bonjour {{contact.first_name}},\n\nJe vous fais un point sur votre bien situé {{property.address}}.\n\nDepuis notre dernier échange, nous avons eu de nouvelles demandes et retours. Je souhaiterais faire un point avec vous pour discuter de la stratégie.\n\nQuand seriez-vous disponible pour un appel ?\n\nCordialement,\n{{agent.full_name}}',
-  },
-]
+const TRIGGER_LABELS: Record<string, string> = {
+  property_sent: 'Quand un bien est envoyé à un client',
+  visit_completed: 'Quand une visite est effectuée',
+  lead_inactive: 'Quand un lead est inactif',
+  document_missing: 'Quand un document KYC est manquant',
+  new_match: 'Quand un nouveau match est trouvé',
+}
 
-// ── Mock automation rules ───────────────────────────────────────────────────
+const ACTION_LABELS: Record<string, string> = {
+  create_reminder: "Créer un rappel pour l'agent",
+  send_email: 'Envoyer un email au client',
+  send_whatsapp: 'Envoyer un WhatsApp au client',
+  notify_agent: 'Notification agent',
+  create_task: 'Créer une tâche',
+}
 
-const INITIAL_RULES: AutomationRule[] = [
-  {
-    id: 'rule1',
-    name: 'Relance J+3 après envoi de bien',
-    triggerEvent: 'property_sent',
-    triggerLabel: 'Quand un bien est envoyé à un client',
-    action: 'create_reminder',
-    actionLabel: 'Créer un rappel pour l\'agent',
-    delayDays: 3,
-    templateId: 'tpl1',
-    isActive: true,
-    autoSend: false,
-    generatedCount: 12,
-    activeCount: 3,
-    lastTriggeredAt: '2026-03-19T14:30:00Z',
-  },
-  {
-    id: 'rule2',
-    name: 'Feedback J+1 après visite',
-    triggerEvent: 'visit_completed',
-    triggerLabel: 'Quand une visite est effectuée',
-    action: 'create_reminder',
-    actionLabel: 'Créer un rappel pour l\'agent',
-    delayDays: 1,
-    templateId: 'tpl2',
-    isActive: true,
-    autoSend: false,
-    generatedCount: 8,
-    activeCount: 1,
-    lastTriggeredAt: '2026-03-18T09:00:00Z',
-  },
-  {
-    id: 'rule3',
-    name: 'Relance lead inactif J+30',
-    triggerEvent: 'lead_inactive',
-    triggerLabel: 'Quand un lead est inactif depuis 30 jours',
-    action: 'create_reminder',
-    actionLabel: 'Créer un rappel pour l\'agent',
-    delayDays: 30,
-    templateId: 'tpl4',
-    isActive: true,
-    autoSend: false,
-    generatedCount: 5,
-    activeCount: 2,
-    lastTriggeredAt: '2026-03-17T09:00:00Z',
-  },
-  {
-    id: 'rule4',
-    name: 'Alerte acheteur chaud non relancé J+7',
-    triggerEvent: 'lead_inactive',
-    triggerLabel: 'Quand un acheteur chaud n\'a pas été relancé',
-    action: 'notify_agent',
-    actionLabel: 'Notification agent',
-    delayDays: 7,
-    templateId: null,
-    isActive: true,
-    autoSend: false,
-    generatedCount: 3,
-    activeCount: 1,
-    lastTriggeredAt: '2026-03-15T11:00:00Z',
-  },
-  {
-    id: 'rule5',
-    name: 'Suivi vendeur J+14',
-    triggerEvent: 'lead_inactive',
-    triggerLabel: 'Quand un vendeur n\'a pas eu de suivi récent',
-    action: 'notify_agent',
-    actionLabel: 'Notification agent + suggestion',
-    delayDays: 14,
-    templateId: 'tpl5',
-    isActive: true,
-    autoSend: false,
-    generatedCount: 2,
-    activeCount: 0,
-    lastTriggeredAt: '2026-03-10T09:00:00Z',
-  },
-  {
-    id: 'rule6',
-    name: 'Relance document manquant KYC J+3',
-    triggerEvent: 'document_missing',
-    triggerLabel: 'Quand un document KYC est manquant',
-    action: 'send_email',
-    actionLabel: 'Envoyer un email au client',
-    delayDays: 3,
-    templateId: null,
-    isActive: false,
-    autoSend: false,
-    generatedCount: 1,
-    activeCount: 0,
-    lastTriggeredAt: null,
-  },
-]
+const REMINDER_TYPE_TITLES: Record<string, string> = {
+  follow_up_sent_property: 'Relance envoi de bien',
+  post_visit_feedback: 'Feedback post-visite',
+  dormant_lead: 'Lead dormant',
+  missing_document: 'Document manquant',
+  price_change: 'Changement de prix',
+  custom: 'Relance personnalisée',
+}
 
-// ── Mock reminders ──────────────────────────────────────────────────────────
+// ── DB row types ───────────────────────────────────────────────────────────
 
-const INITIAL_REMINDERS: Reminder[] = [
-  {
-    id: 'rem1',
-    contactName: 'Marie Dupont',
-    contactId: 'c1',
-    type: 'follow_up_sent_property',
-    status: 'triggered',
-    title: 'Relancer Marie Dupont',
-    description: 'Bien envoyé il y a 5 jours (Appartement Eaux-Vives). Pas de réponse.',
-    channel: 'email',
-    triggerAt: '2026-03-17T09:00:00Z',
-    createdAt: '2026-03-14T09:00:00Z',
-    completedAt: null,
-    propertyTitle: 'Appartement Eaux-Vives',
-  },
-  {
-    id: 'rem2',
-    contactName: 'Thomas Wenger',
-    contactId: 'c12',
-    type: 'post_visit_feedback',
-    status: 'triggered',
-    title: 'Demander feedback visite — Thomas Wenger',
-    description: 'Visite effectuée le 14.03 (Penthouse Quai du Mont-Blanc). Feedback non recueilli.',
-    channel: 'email',
-    triggerAt: '2026-03-15T09:00:00Z',
-    createdAt: '2026-03-14T14:00:00Z',
-    completedAt: null,
-    propertyTitle: 'Penthouse Quai du Mont-Blanc',
-  },
-  {
-    id: 'rem3',
-    contactName: 'Marc Delarue',
-    contactId: 'c16',
-    type: 'follow_up_sent_property',
-    status: 'triggered',
-    title: 'Relancer Marc Delarue — lead dormant',
-    description: 'Aucune interaction depuis 27 jours. 2 nouveaux biens compatibles.',
-    channel: 'email',
-    triggerAt: '2026-03-19T09:00:00Z',
-    createdAt: '2026-02-20T14:00:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'rem4',
-    contactName: 'Nathalie Schmid',
-    contactId: 'c9',
-    type: 'follow_up_sent_property',
-    status: 'pending',
-    title: 'Relancer Nathalie Schmid',
-    description: 'Bien envoyé le 16.03 (Villa vue lac Cologny). Relance prévue le 19.03.',
-    channel: 'email',
-    triggerAt: '2026-03-19T09:00:00Z',
-    createdAt: '2026-03-16T10:00:00Z',
-    completedAt: null,
-    propertyTitle: 'Villa vue lac Cologny',
-  },
-  {
-    id: 'rem5',
-    contactName: 'Pierre Müller',
-    contactId: 'c2',
-    type: 'follow_up_sent_property',
-    status: 'pending',
-    title: 'Point vendeur — Pierre Müller',
-    description: 'Pas de suivi depuis 14 jours. Offre en attente à CHF 2\'800\'000.',
-    channel: 'notification',
-    triggerAt: '2026-03-26T09:00:00Z',
-    createdAt: '2026-03-12T11:00:00Z',
-    completedAt: null,
-  },
-  {
-    id: 'rem6',
-    contactName: 'Hans Zimmermann',
-    contactId: 'c4',
-    type: 'missing_document',
-    status: 'pending',
-    title: 'Document manquant — Hans Zimmermann',
-    description: 'Attestation de financement requise pour poursuivre le dossier.',
-    channel: 'email',
-    triggerAt: '2026-03-22T09:00:00Z',
-    createdAt: '2026-03-19T09:00:00Z',
-    completedAt: null,
-  },
-]
+interface ReminderRow {
+  id: string
+  type: string
+  status: string
+  trigger_at: string
+  channel: string
+  contact_id: string
+  property_id: string | null
+  transaction_id: string | null
+  match_id: string | null
+  message_template: string | null
+  created_at: string
+  completed_at: string | null
+  contact: { first_name: string; last_name: string }[] | { first_name: string; last_name: string } | null
+  property: { title: string; address: string }[] | { title: string; address: string } | null
+}
 
-// ── Hooks ───────────────────────────────────────────────────────────────────
+interface RuleRow {
+  id: string
+  name: string
+  trigger_event: string
+  action: string
+  delay_days: number
+  template_id: string | null
+  is_active: boolean
+  created_at: string
+}
+
+interface TemplateRow {
+  id: string
+  name: string
+  category: string
+  channel: string
+  subject: string | null
+  body: string
+}
+
+// ── Row converters ─────────────────────────────────────────────────────────
+
+function rowToReminder(row: ReminderRow): Reminder {
+  const contact = Array.isArray(row.contact) ? row.contact[0] : row.contact
+  const property = Array.isArray(row.property) ? row.property[0] : row.property
+  const contactName = contact ? `${contact.first_name} ${contact.last_name}` : 'Contact'
+  const propertyTitle = property?.title || property?.address || undefined
+
+  const typeTitle = REMINDER_TYPE_TITLES[row.type] || row.type
+  const title = `${typeTitle} — ${contactName}`
+  const description = propertyTitle
+    ? `${typeTitle} (${propertyTitle}).`
+    : typeTitle
+
+  return {
+    id: row.id,
+    contactName,
+    contactId: row.contact_id,
+    type: row.type as ReminderType,
+    status: row.status as ReminderStatus,
+    title,
+    description,
+    channel: (row.channel || 'email') as ReminderChannel,
+    triggerAt: row.trigger_at,
+    createdAt: row.created_at,
+    completedAt: row.completed_at,
+    propertyTitle,
+  }
+}
+
+function rowToRule(row: RuleRow, generatedCount: number, activeCount: number, lastTriggeredAt: string | null): AutomationRule {
+  return {
+    id: row.id,
+    name: row.name,
+    triggerEvent: row.trigger_event,
+    triggerLabel: TRIGGER_LABELS[row.trigger_event] || row.trigger_event,
+    action: row.action,
+    actionLabel: ACTION_LABELS[row.action] || row.action,
+    delayDays: row.delay_days,
+    templateId: row.template_id,
+    isActive: row.is_active,
+    autoSend: false, // auto_send column not yet in schema — default off
+    generatedCount,
+    activeCount,
+    lastTriggeredAt,
+  }
+}
+
+function rowToTemplate(row: TemplateRow): MessageTemplate {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    channel: (row.channel === 'whatsapp' ? 'email' : row.channel) as 'email' | 'notification',
+    subject: row.subject,
+    body: row.body,
+  }
+}
+
+// ── Hooks ──────────────────────────────────────────────────────────────────
 
 export function useReminders() {
-  const [reminders, setReminders] = useState<Reminder[]>(INITIAL_REMINDERS)
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id
+  const queryClient = useQueryClient()
 
-  const markAsDone = useCallback((id: string) => {
-    setReminders((prev) =>
-      prev.map((r) => r.id === id ? { ...r, status: 'done' as const, completedAt: new Date().toISOString() } : r)
-    )
-  }, [])
+  const { data: reminders = [], isLoading } = useQuery({
+    queryKey: ['reminders', agencyId],
+    queryFn: async () => {
+      if (!agencyId) return []
+      const { data, error } = await supabase
+        .from('reminders')
+        .select('id, type, status, trigger_at, channel, contact_id, property_id, transaction_id, match_id, message_template, created_at, completed_at, contact:contacts(first_name, last_name), property:properties(title, address)')
+        .eq('agency_id', agencyId)
+        .in('status', ['pending', 'triggered', 'snoozed'])
+        .order('trigger_at', { ascending: true })
+        .limit(100)
 
-  const snooze = useCallback((id: string) => {
-    setReminders((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r
-        const newTrigger = new Date(r.triggerAt)
-        newTrigger.setDate(newTrigger.getDate() + 3)
-        return { ...r, status: 'snoozed' as const, triggerAt: newTrigger.toISOString() }
-      })
-    )
-  }, [])
+      if (error) throw error
+      return ((data || []) as ReminderRow[]).map(rowToReminder)
+    },
+    enabled: !!agencyId,
+    staleTime: 30_000,
+  })
 
-  const cancel = useCallback((id: string) => {
-    setReminders((prev) =>
-      prev.map((r) => r.id === id ? { ...r, status: 'cancelled' as const } : r)
-    )
-  }, [])
+  const markAsDoneMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('reminders')
+        .update({ status: 'done', completed_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] })
+      queryClient.invalidateQueries({ queryKey: ['action-board', 'reminders'] })
+    },
+  })
+
+  const snoozeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data: current, error: fetchErr } = await supabase
+        .from('reminders')
+        .select('trigger_at')
+        .eq('id', id)
+        .single()
+
+      if (fetchErr || !current) throw fetchErr || new Error('Reminder not found')
+
+      const newTrigger = new Date(current.trigger_at)
+      newTrigger.setDate(newTrigger.getDate() + 3)
+
+      const { error } = await supabase
+        .from('reminders')
+        .update({ status: 'snoozed', trigger_at: newTrigger.toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] })
+      queryClient.invalidateQueries({ queryKey: ['action-board', 'reminders'] })
+    },
+  })
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('reminders')
+        .update({ status: 'cancelled' })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] })
+      queryClient.invalidateQueries({ queryKey: ['action-board', 'reminders'] })
+    },
+  })
+
+  const markAsDone = useCallback((id: string) => markAsDoneMutation.mutate(id), [markAsDoneMutation])
+  const snooze = useCallback((id: string) => snoozeMutation.mutate(id), [snoozeMutation])
+  const cancel = useCallback((id: string) => cancelMutation.mutate(id), [cancelMutation])
 
   const active = useMemo(() => reminders.filter((r) => r.status === 'pending' || r.status === 'triggered'), [reminders])
   const triggered = useMemo(() => reminders.filter((r) => r.status === 'triggered'), [reminders])
   const pending = useMemo(() => reminders.filter((r) => r.status === 'pending'), [reminders])
 
-  return { reminders, active, triggered, pending, markAsDone, snooze, cancel }
+  return { reminders, active, triggered, pending, markAsDone, snooze, cancel, isLoading }
 }
 
 export function useAutomationRules() {
-  const [rules, setRules] = useState<AutomationRule[]>(INITIAL_RULES)
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id
+  const queryClient = useQueryClient()
+
+  const { data: rules = [], isLoading } = useQuery({
+    queryKey: ['automation-rules', agencyId],
+    queryFn: async () => {
+      if (!agencyId) return []
+
+      const { data: rulesData, error: rulesErr } = await supabase
+        .from('automation_rules')
+        .select('id, name, trigger_event, action, delay_days, template_id, is_active, created_at')
+        .eq('agency_id', agencyId)
+        .order('created_at', { ascending: false })
+
+      if (rulesErr) throw rulesErr
+
+      // For each rule, count generated + active reminders
+      const results: AutomationRule[] = []
+      for (const row of rulesData || []) {
+        // Count reminders generated by this rule type
+        const { count: generatedCount } = await supabase
+          .from('reminders')
+          .select('id', { count: 'exact', head: true })
+          .eq('agency_id', agencyId)
+          .eq('type', mapTriggerToReminderType(row.trigger_event))
+
+        const { count: activeCount } = await supabase
+          .from('reminders')
+          .select('id', { count: 'exact', head: true })
+          .eq('agency_id', agencyId)
+          .eq('type', mapTriggerToReminderType(row.trigger_event))
+          .in('status', ['pending', 'triggered'])
+
+        // Get last triggered
+        const { data: lastReminder } = await supabase
+          .from('reminders')
+          .select('created_at')
+          .eq('agency_id', agencyId)
+          .eq('type', mapTriggerToReminderType(row.trigger_event))
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        results.push(rowToRule(
+          row as RuleRow,
+          generatedCount || 0,
+          activeCount || 0,
+          lastReminder?.[0]?.created_at || null,
+        ))
+      }
+
+      return results
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
+
+  const toggleRuleMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const { error } = await supabase
+        .from('automation_rules')
+        .update({ is_active: !isActive })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['automation-rules'] })
+    },
+  })
+
+  const addRuleMutation = useMutation({
+    mutationFn: async (rule: Omit<AutomationRule, 'id' | 'generatedCount' | 'activeCount' | 'lastTriggeredAt'>) => {
+      if (!agencyId) throw new Error('No agency')
+      const { error } = await supabase
+        .from('automation_rules')
+        .insert({
+          agency_id: agencyId,
+          name: rule.name,
+          trigger_event: rule.triggerEvent,
+          action: rule.action,
+          delay_days: rule.delayDays,
+          template_id: rule.templateId,
+          is_active: rule.isActive,
+        })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['automation-rules'] })
+    },
+  })
+
+  const deleteRuleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('automation_rules')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['automation-rules'] })
+    },
+  })
+
+  const duplicateRuleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!agencyId) throw new Error('No agency')
+      const source = rules.find((r) => r.id === id)
+      if (!source) return
+      const { error } = await supabase
+        .from('automation_rules')
+        .insert({
+          agency_id: agencyId,
+          name: `${source.name} (copie)`,
+          trigger_event: source.triggerEvent,
+          action: source.action,
+          delay_days: source.delayDays,
+          template_id: source.templateId,
+          is_active: false,
+        })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['automation-rules'] })
+    },
+  })
 
   const toggleRule = useCallback((id: string) => {
-    setRules((prev) =>
-      prev.map((r) => r.id === id ? { ...r, isActive: !r.isActive } : r)
-    )
+    const rule = rules.find((r) => r.id === id)
+    if (rule) toggleRuleMutation.mutate({ id, isActive: rule.isActive })
+  }, [rules, toggleRuleMutation])
+
+  // autoSend not yet persisted (no column in DB) — keep as no-op
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const toggleAutoSend = useCallback((_id: string) => {
+    // Future: UPDATE automation_rules SET auto_send = NOT auto_send WHERE id = _id
   }, [])
 
-  const toggleAutoSend = useCallback((id: string) => {
-    setRules((prev) =>
-      prev.map((r) => r.id === id ? { ...r, autoSend: !r.autoSend } : r)
-    )
-  }, [])
+  const addRule = useCallback(
+    (rule: Omit<AutomationRule, 'id' | 'generatedCount' | 'activeCount' | 'lastTriggeredAt'>) =>
+      addRuleMutation.mutate(rule),
+    [addRuleMutation]
+  )
 
-  const addRule = useCallback((rule: Omit<AutomationRule, 'id' | 'generatedCount' | 'activeCount' | 'lastTriggeredAt'>) => {
-    setRules((prev) => [...prev, { ...rule, id: `rule-${Date.now()}`, generatedCount: 0, activeCount: 0, lastTriggeredAt: null }])
-  }, [])
+  const deleteRule = useCallback((id: string) => deleteRuleMutation.mutate(id), [deleteRuleMutation])
+  const duplicateRule = useCallback((id: string) => duplicateRuleMutation.mutate(id), [duplicateRuleMutation])
 
-  const deleteRule = useCallback((id: string) => {
-    setRules((prev) => prev.filter((r) => r.id !== id))
-  }, [])
-
-  const duplicateRule = useCallback((id: string) => {
-    setRules((prev) => {
-      const source = prev.find((r) => r.id === id)
-      if (!source) return prev
-      return [...prev, { ...source, id: `rule-${Date.now()}`, name: `${source.name} (copie)`, generatedCount: 0, activeCount: 0, lastTriggeredAt: null }]
-    })
-  }, [])
-
-  return { rules, toggleRule, toggleAutoSend, addRule, deleteRule, duplicateRule }
+  return { rules, toggleRule, toggleAutoSend, addRule, deleteRule, duplicateRule, isLoading }
 }
 
 export function useMessageTemplates() {
-  const [templates, setTemplates] = useState<MessageTemplate[]>(MOCK_TEMPLATES)
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id
+  const queryClient = useQueryClient()
 
-  const addTemplate = useCallback((template: Omit<MessageTemplate, 'id'>) => {
-    setTemplates((prev) => [...prev, { ...template, id: `tpl-${Date.now()}` }])
-  }, [])
+  const { data: templates = [], isLoading } = useQuery({
+    queryKey: ['message-templates', agencyId],
+    queryFn: async () => {
+      if (!agencyId) return []
+      const { data, error } = await supabase
+        .from('message_templates')
+        .select('id, name, category, channel, subject, body')
+        .eq('agency_id', agencyId)
+        .order('created_at', { ascending: false })
 
-  const updateTemplate = useCallback((id: string, updates: Partial<Omit<MessageTemplate, 'id'>>) => {
-    setTemplates((prev) =>
-      prev.map((t) => t.id === id ? { ...t, ...updates } : t)
-    )
-  }, [])
+      if (error) throw error
+      return ((data || []) as TemplateRow[]).map(rowToTemplate)
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
 
-  const deleteTemplate = useCallback((id: string) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== id))
-  }, [])
+  const addTemplateMutation = useMutation({
+    mutationFn: async (template: Omit<MessageTemplate, 'id'>) => {
+      if (!agencyId) throw new Error('No agency')
+      const { error } = await supabase
+        .from('message_templates')
+        .insert({
+          agency_id: agencyId,
+          name: template.name,
+          category: template.category,
+          channel: template.channel,
+          subject: template.subject,
+          body: template.body,
+          is_ai_generated: false,
+        })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['message-templates'] })
+    },
+  })
 
-  return { templates, addTemplate, updateTemplate, deleteTemplate }
+  const updateTemplateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Omit<MessageTemplate, 'id'>> }) => {
+      const dbUpdates: Record<string, unknown> = {}
+      if (updates.name !== undefined) dbUpdates.name = updates.name
+      if (updates.category !== undefined) dbUpdates.category = updates.category
+      if (updates.channel !== undefined) dbUpdates.channel = updates.channel
+      if (updates.subject !== undefined) dbUpdates.subject = updates.subject
+      if (updates.body !== undefined) dbUpdates.body = updates.body
+
+      const { error } = await supabase
+        .from('message_templates')
+        .update(dbUpdates)
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['message-templates'] })
+    },
+  })
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('message_templates')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['message-templates'] })
+    },
+  })
+
+  const addTemplate = useCallback(
+    (template: Omit<MessageTemplate, 'id'>) => addTemplateMutation.mutate(template),
+    [addTemplateMutation]
+  )
+
+  const updateTemplate = useCallback(
+    (id: string, updates: Partial<Omit<MessageTemplate, 'id'>>) => updateTemplateMutation.mutate({ id, updates }),
+    [updateTemplateMutation]
+  )
+
+  const deleteTemplate = useCallback(
+    (id: string) => deleteTemplateMutation.mutate(id),
+    [deleteTemplateMutation]
+  )
+
+  return { templates, addTemplate, updateTemplate, deleteTemplate, isLoading }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function mapTriggerToReminderType(trigger: string): string {
+  switch (trigger) {
+    case 'property_sent': return 'follow_up_sent_property'
+    case 'visit_completed': return 'post_visit_feedback'
+    case 'lead_inactive': return 'dormant_lead'
+    case 'document_missing': return 'missing_document'
+    case 'new_match': return 'follow_up_sent_property'
+    default: return 'custom'
+  }
 }
