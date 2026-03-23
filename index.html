@@ -12,6 +12,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>MEGGA Real Estate — Le portail immobilier suisse nouvelle génération</title>
+    <script>
+      // Pre-set theme BEFORE React renders to prevent white flash (FOUC)
+      (function() {
+        try {
+          var t = localStorage.getItem('megga-theme');
+          if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
