@@ -155,6 +155,28 @@ export function useValidateKycCase() {
   })
 }
 
+// ─── Update KYC status ─────────────────────────────────────────────────────
+
+export function useUpdateKycStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: KycStatus }) => {
+      const { data, error } = await supabase
+        .from('kyc_cases')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data as KycCase
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
+    },
+  })
+}
+
 // ─── Update notes ──────────────────────────────────────────────────────────
 
 export function useUpdateKycNotes() {

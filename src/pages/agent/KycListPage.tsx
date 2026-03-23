@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Search, Eye, ChevronLeft, ChevronRight,
   ChevronUp, ChevronDown, AlertTriangle, ShieldCheck,
-  Loader2, Plus, X,
+  Loader2, Plus, X, Copy, CheckCircle2,
 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { calculateRiskScore } from '@/lib/kycUtils'
@@ -13,11 +13,16 @@ import {
   KYC_STATUSES, KYC_RISK_LEVELS, KYC_TYPES,
 } from '@/lib/constants'
 import type { PepStatus, KycType as KycTypeConst } from '@/lib/constants'
-import { useKycCases, useCreateKycCase } from '@/hooks/useKyc'
+import { useKycCases, useCreateKycCase, useScreenKycCase, useUpdateKycStatus, useValidateKycCase } from '@/hooks/useKyc'
 import { useContacts } from '@/hooks/useContacts'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useAuth } from '@/hooks/useAuth'
 import type { KycCase, KycStatus, KycType } from '@/types/kyc'
+import {
+  ContextMenu, ContextMenuTrigger, ContextMenuContent,
+  ContextMenuItem, ContextMenuSeparator, ContextMenuLabel,
+  ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
+} from '@/components/ui/context-menu'
 
 type SortField = 'contact' | 'completion' | 'updated'
 type SortDir = 'asc' | 'desc'
@@ -257,9 +262,37 @@ export default function KycListPage() {
   const [page, setPage] = useState(1)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
+  const { profile } = useAuth()
   const { data: kycCases, isLoading, error } = useKycCases()
+  const screenMutation = useScreenKycCase()
+  const statusMutation = useUpdateKycStatus()
+  const validateMutation = useValidateKycCase()
 
   const dataSource = useMemo(() => kycCases ?? [], [kycCases])
+
+  const handleScreen = useCallback((kyc: KycCase) => {
+    const contactName = getContactName(kyc)
+    const entityType = kyc.type.includes('_pm') ? 'entity' as const : 'individual' as const
+    screenMutation.mutate({
+      kycCaseId: kyc.id,
+      contactName,
+      contactNationality: kyc.contact_nationality ?? 'CH',
+      entityType,
+    })
+  }, [screenMutation])
+
+  const handleStatusChange = useCallback((id: string, status: KycStatus) => {
+    statusMutation.mutate({ id, status })
+  }, [statusMutation])
+
+  const handleValidate = useCallback((id: string) => {
+    if (!profile) return
+    validateMutation.mutate({ id, validated_by: profile.full_name || profile.email })
+  }, [validateMutation, profile])
+
+  const handleCopyId = useCallback((id: string) => {
+    navigator.clipboard.writeText(id)
+  }, [])
 
   const filtered = useMemo(() => {
     let list = [...dataSource]
@@ -524,66 +557,111 @@ export default function KycListPage() {
                   }).score
 
                   const riskLevel = riskScore >= 40 ? 'high' : riskScore >= 20 ? 'medium' : 'low'
+                  const canValidate = kyc.status !== 'validated' && kyc.status !== 'rejected'
 
                   return (
-                    <tr key={kyc.id} className="hover:bg-theme-section/50 transition-colors group">
-                      <td className="px-4 py-3">
-                        <Link to={`/dashboard/kyc/${kyc.id}`} className="flex items-center gap-3">
-                          <ContactAvatar name={contactName} />
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
-                              {contactName}
-                            </p>
-                          </div>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-theme-hover text-theme-secondary">
-                          {KYC_TYPE_LABELS[kyc.type]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {pepSanctionsIcon(pepStatus, sanctionsStatus)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={cn(
-                          'text-xs font-bold tabular-nums',
-                          riskLevel === 'high' ? 'text-red-500' : riskLevel === 'medium' ? 'text-amber-500' : 'text-emerald-500'
-                        )}>
-                          {riskScore}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">{statusBadge(kyc.status)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 min-w-[100px]">
-                          <div className="flex-1 h-2 bg-theme-active rounded-full overflow-hidden">
-                            <div
-                              className={cn('h-full rounded-full transition-all', progressColor(kyc.completion_pct))}
-                              style={{ width: `${kyc.completion_pct}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-medium text-theme-secondary w-8 text-right">
-                            {kyc.completion_pct}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className="text-xs text-theme-tertiary">
-                          {formatRelativeDate(kyc.created_at)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end">
-                          <Link
-                            to={`/dashboard/kyc/${kyc.id}`}
-                            className="p-1.5 rounded-md text-theme-tertiary hover:text-accent hover:bg-accent/10 transition-colors"
-                            title="Voir le dossier"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
+                    <ContextMenu key={kyc.id}>
+                      <ContextMenuTrigger asChild>
+                        <tr className="hover:bg-theme-section/50 transition-colors group cursor-default">
+                          <td className="px-4 py-3">
+                            <Link to={`/dashboard/kyc/${kyc.id}`} className="flex items-center gap-3">
+                              <ContactAvatar name={contactName} />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
+                                  {contactName}
+                                </p>
+                              </div>
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-theme-hover text-theme-secondary">
+                              {KYC_TYPE_LABELS[kyc.type]}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {pepSanctionsIcon(pepStatus, sanctionsStatus)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={cn(
+                              'text-xs font-bold tabular-nums',
+                              riskLevel === 'high' ? 'text-red-500' : riskLevel === 'medium' ? 'text-amber-500' : 'text-emerald-500'
+                            )}>
+                              {riskScore}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">{statusBadge(kyc.status)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 min-w-[100px]">
+                              <div className="flex-1 h-2 bg-theme-active rounded-full overflow-hidden">
+                                <div
+                                  className={cn('h-full rounded-full transition-all', progressColor(kyc.completion_pct))}
+                                  style={{ width: `${kyc.completion_pct}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium text-theme-secondary w-8 text-right">
+                                {kyc.completion_pct}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 hidden lg:table-cell">
+                            <span className="text-xs text-theme-tertiary">
+                              {formatRelativeDate(kyc.created_at)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end">
+                              <Link
+                                to={`/dashboard/kyc/${kyc.id}`}
+                                className="p-1.5 rounded-md text-theme-tertiary hover:text-accent hover:bg-accent/10 transition-colors"
+                                title="Voir le dossier"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuLabel>{contactName}</ContextMenuLabel>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onSelect={() => navigate(`/dashboard/kyc/${kyc.id}`)}>
+                          <Eye className="h-3.5 w-3.5" />
+                          Voir le dossier
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => handleScreen(kyc)}>
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Lancer le screening
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            Changer le statut
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent>
+                            {KYC_STATUSES.filter(s => s !== 'validated' && s !== 'rejected').map((s) => (
+                              <ContextMenuItem
+                                key={s}
+                                onSelect={() => handleStatusChange(kyc.id, s)}
+                                disabled={kyc.status === s}
+                              >
+                                {KYC_STATUS_LABELS[s]}
+                              </ContextMenuItem>
+                            ))}
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+                        {canValidate && (
+                          <ContextMenuItem onSelect={() => handleValidate(kyc.id)}>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                            Valider le dossier
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onSelect={() => handleCopyId(kyc.id)}>
+                          <Copy className="h-3.5 w-3.5" />
+                          Copier l'ID
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
                   )
                 })
               )}

@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, Circle, Clock, FileText,
   Upload, X, ChevronDown, ChevronRight,
-  Sparkles, Loader2,
+  Sparkles, Loader2, Download, Ban,
 } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate } from '@/lib/utils'
 import { KYC_STATUS_LABELS, KYC_RISK_LABELS, KYC_TYPE_LABELS, PEP_STATUS_LABELS, SANCTIONS_STATUS_LABELS } from '@/lib/constants'
@@ -18,6 +18,11 @@ import {
   useScreenKycCase, useUpdateKycItem,
 } from '@/hooks/useKyc'
 import type { KycStatus, KycChecklistItem, KycDocument, KycAuditEvent, DocumentCategory } from '@/types/kyc'
+import {
+  ContextMenu, ContextMenuTrigger, ContextMenuContent,
+  ContextMenuItem, ContextMenuSeparator,
+} from '@/components/ui/context-menu'
+import { supabase } from '@/lib/supabase'
 
 function progressColor(pct: number) {
   if (pct < 40) return 'bg-danger'
@@ -156,6 +161,24 @@ export default function KycDetailPage() {
     })
     // Reset input
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function handleDownloadDoc(doc: KycDocument) {
+    const { data } = await supabase.storage.from('kyc-documents').download(doc.storage_path)
+    if (data) {
+      const url = URL.createObjectURL(data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = doc.name
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+  }
+
+  async function handleUpdateDocStatus(docId: string, status: 'validated' | 'rejected') {
+    await supabase.from('documents').update({ status }).eq('id', docId)
+    // Refresh documents
+    window.location.reload()
   }
 
   function handleScreening() {
@@ -475,39 +498,55 @@ export default function KycDetailPage() {
                       {expanded && (
                         <div className="divide-y divide-theme-border/50">
                           {items.map((item) => (
-                            <div key={item.id} className="flex items-start gap-3 px-6 py-3 pl-12">
-                              <button
-                                onClick={() => handleToggleItem(item.id, item.is_completed)}
-                                disabled={toggleItemMutation.isPending}
-                                className="mt-0.5 flex-shrink-0"
-                              >
-                                {item.is_completed
-                                  ? <CheckCircle2 className="h-5 w-5 text-success" />
-                                  : <Circle className="h-5 w-5 text-theme-tertiary hover:text-accent transition-colors" />
-                                }
-                              </button>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className={cn(
-                                    'text-sm',
-                                    item.is_completed ? 'text-theme-secondary line-through' : 'text-theme-primary font-medium'
-                                  )}>
-                                    {item.label}
-                                  </span>
-                                  {item.is_required && (
-                                    <span className="text-[10px] font-medium text-theme-tertiary uppercase">Requis</span>
-                                  )}
+                            <ContextMenu key={item.id}>
+                              <ContextMenuTrigger asChild>
+                                <div className="flex items-start gap-3 px-6 py-3 pl-12 cursor-default">
+                                  <button
+                                    onClick={() => handleToggleItem(item.id, item.is_completed)}
+                                    disabled={toggleItemMutation.isPending}
+                                    className="mt-0.5 flex-shrink-0"
+                                  >
+                                    {item.is_completed
+                                      ? <CheckCircle2 className="h-5 w-5 text-success" />
+                                      : <Circle className="h-5 w-5 text-theme-tertiary hover:text-accent transition-colors" />
+                                    }
+                                  </button>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={cn(
+                                        'text-sm',
+                                        item.is_completed ? 'text-theme-secondary line-through' : 'text-theme-primary font-medium'
+                                      )}>
+                                        {item.label}
+                                      </span>
+                                      {item.is_required && (
+                                        <span className="text-[10px] font-medium text-theme-tertiary uppercase">Requis</span>
+                                      )}
+                                    </div>
+                                    {item.notes && (
+                                      <p className="text-xs text-theme-tertiary mt-0.5">{item.notes}</p>
+                                    )}
+                                    {item.completed_at && (
+                                      <p className="text-[11px] text-theme-tertiary mt-0.5">
+                                        Complété {formatRelativeDate(item.completed_at)}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
-                                {item.notes && (
-                                  <p className="text-xs text-theme-tertiary mt-0.5">{item.notes}</p>
-                                )}
-                                {item.completed_at && (
-                                  <p className="text-[11px] text-theme-tertiary mt-0.5">
-                                    Complété {formatRelativeDate(item.completed_at)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent>
+                                <ContextMenuItem onSelect={() => handleToggleItem(item.id, item.is_completed)}>
+                                  {item.is_completed
+                                    ? <><Circle className="h-3.5 w-3.5" /> Marquer non complété</>
+                                    : <><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Marquer complété</>
+                                  }
+                                </ContextMenuItem>
+                                <ContextMenuItem onSelect={() => fileInputRef.current?.click()}>
+                                  <Upload className="h-3.5 w-3.5" />
+                                  Lier un document
+                                </ContextMenuItem>
+                              </ContextMenuContent>
+                            </ContextMenu>
                           ))}
                         </div>
                       )}
@@ -570,35 +609,58 @@ export default function KycDetailPage() {
             ) : (
               <div className="divide-y divide-theme-border">
                 {documents.map((doc: KycDocument) => (
-                  <div key={doc.id} className="flex items-center gap-3 px-6 py-3 hover:bg-theme-section/30 transition-colors">
-                    <FileText className="h-5 w-5 text-theme-tertiary flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-theme-primary truncate">{doc.name}</p>
-                      <p className="text-xs text-theme-tertiary">
-                        {formatFileSize(doc.size_bytes)} · {formatRelativeDate(doc.created_at)}
-                      </p>
-                    </div>
-                    <span className={cn(
-                      'text-xs font-medium flex-shrink-0',
-                      doc.status === 'validated' && 'text-success',
-                      doc.status === 'pending' && 'text-warning',
-                      doc.status === 'rejected' && 'text-danger',
-                    )}>
-                      {doc.status === 'validated' ? 'Validé' : doc.status === 'pending' ? 'En attente' : 'Rejeté'}
-                    </span>
-                    {docStatusIcon(doc.status)}
-                    {doc.expires_at && (() => {
-                      const now = new Date()
-                      const exp = new Date(doc.expires_at)
-                      const isExpired = exp < now
-                      const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-                      const isExpiringSoon = !isExpired && daysUntil <= 30
+                  <ContextMenu key={doc.id}>
+                    <ContextMenuTrigger asChild>
+                      <div className="flex items-center gap-3 px-6 py-3 hover:bg-theme-section/30 transition-colors cursor-default">
+                        <FileText className="h-5 w-5 text-theme-tertiary flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-theme-primary truncate">{doc.name}</p>
+                          <p className="text-xs text-theme-tertiary">
+                            {formatFileSize(doc.size_bytes)} · {formatRelativeDate(doc.created_at)}
+                          </p>
+                        </div>
+                        <span className={cn(
+                          'text-xs font-medium flex-shrink-0',
+                          doc.status === 'validated' && 'text-success',
+                          doc.status === 'pending' && 'text-warning',
+                          doc.status === 'rejected' && 'text-danger',
+                        )}>
+                          {doc.status === 'validated' ? 'Validé' : doc.status === 'pending' ? 'En attente' : 'Rejeté'}
+                        </span>
+                        {docStatusIcon(doc.status)}
+                        {doc.expires_at && (() => {
+                          const now = new Date()
+                          const exp = new Date(doc.expires_at)
+                          const isExpired = exp < now
+                          const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                          const isExpiringSoon = !isExpired && daysUntil <= 30
 
-                      if (isExpired) return <span className="text-[10px] font-medium text-red-500 ml-2">Expiré</span>
-                      if (isExpiringSoon) return <span className="text-[10px] font-medium text-amber-500 ml-2">Expire dans {daysUntil}j</span>
-                      return null
-                    })()}
-                  </div>
+                          if (isExpired) return <span className="text-[10px] font-medium text-red-500 ml-2">Expiré</span>
+                          if (isExpiringSoon) return <span className="text-[10px] font-medium text-amber-500 ml-2">Expire dans {daysUntil}j</span>
+                          return null
+                        })()}
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onSelect={() => handleDownloadDoc(doc)}>
+                        <Download className="h-3.5 w-3.5" />
+                        Télécharger
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      {doc.status !== 'validated' && (
+                        <ContextMenuItem onSelect={() => handleUpdateDocStatus(doc.id, 'validated')}>
+                          <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                          Valider le document
+                        </ContextMenuItem>
+                      )}
+                      {doc.status !== 'rejected' && (
+                        <ContextMenuItem onSelect={() => handleUpdateDocStatus(doc.id, 'rejected')}>
+                          <Ban className="h-3.5 w-3.5 text-danger" />
+                          Rejeter le document
+                        </ContextMenuItem>
+                      )}
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))}
               </div>
             )}
