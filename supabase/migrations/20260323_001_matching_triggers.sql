@@ -2,20 +2,38 @@
 -- Matching Phase B — Triggers automatiques + pg_cron quotidien
 -- ═══════════════════════════════════════════════════════════════════════════
 --
--- Prérequis :
---   1. Extension pg_net activée (Dashboard > Database > Extensions)
---   2. Extension pg_cron activée (Dashboard > Database > Extensions)
---   3. Variables app.settings configurées via SQL Editor :
---      ALTER DATABASE postgres SET app.settings.supabase_url = 'https://eayczugyrvmtqnnmvjod.supabase.co';
---      ALTER DATABASE postgres SET app.settings.service_role_key = 'VOTRE_SERVICE_ROLE_KEY';
+-- Utilise une table app_config pour stocker l'URL et la service_role_key
+-- (compatible Supabase Free — pas besoin de ALTER DATABASE)
 --
--- Ces triggers utilisent pg_net (net.http_post) pour appeler l'Edge Function
--- matching-engine de manière ASYNCHRONE — pas de blocage des transactions.
+-- Prérequis : extensions pg_net et pg_cron activées (bloc 1 déjà fait)
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- Activer les extensions nécessaires
-CREATE EXTENSION IF NOT EXISTS pg_net;
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- ── Table de configuration ──────────────────────────────────────────────
+-- Stocke les secrets nécessaires aux triggers (URL + service role key)
+
+CREATE TABLE IF NOT EXISTS app_config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+-- Insérer les valeurs (REMPLACEZ service_role_key par votre vraie clé)
+INSERT INTO app_config (key, value) VALUES
+  ('supabase_url', 'https://eayczugyrvmtqnnmvjod.supabase.co'),
+  ('service_role_key', 'REMPLACEZ_PAR_VOTRE_SERVICE_ROLE_KEY')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- Sécuriser : seul le service role peut lire cette table
+ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
+-- Aucune policy = personne via l'API ne peut lire (seulement SECURITY DEFINER functions)
+
+
+-- ── Helper : lire la config ─────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_app_config(config_key TEXT)
+RETURNS TEXT AS $$
+  SELECT value FROM app_config WHERE key = config_key;
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
 
 -- ═══════════════════════════════════════════════════════════════
 -- Trigger 1 : Bien activé → lancer matching contre tous les acheteurs
@@ -23,16 +41,21 @@ CREATE EXTENSION IF NOT EXISTS pg_cron;
 
 CREATE OR REPLACE FUNCTION trigger_matching_on_property_active()
 RETURNS trigger AS $$
+DECLARE
+  base_url TEXT;
+  svc_key TEXT;
 BEGIN
-  -- Déclencher seulement si le statut passe à 'active'
   IF (TG_OP = 'INSERT' AND NEW.status = 'active')
      OR (TG_OP = 'UPDATE' AND NEW.status = 'active' AND (OLD.status IS DISTINCT FROM 'active'))
   THEN
+    base_url := get_app_config('supabase_url');
+    svc_key := get_app_config('service_role_key');
+
     PERFORM net.http_post(
-      url := current_setting('app.settings.supabase_url') || '/functions/v1/matching-engine',
+      url := base_url || '/functions/v1/matching-engine',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+        'Authorization', 'Bearer ' || svc_key
       ),
       body := jsonb_build_object(
         'mode', 'match-property',
@@ -58,13 +81,19 @@ CREATE TRIGGER on_property_active
 
 CREATE OR REPLACE FUNCTION trigger_matching_on_new_search()
 RETURNS trigger AS $$
+DECLARE
+  base_url TEXT;
+  svc_key TEXT;
 BEGIN
   IF NEW.is_active = true THEN
+    base_url := get_app_config('supabase_url');
+    svc_key := get_app_config('service_role_key');
+
     PERFORM net.http_post(
-      url := current_setting('app.settings.supabase_url') || '/functions/v1/matching-engine',
+      url := base_url || '/functions/v1/matching-engine',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+        'Authorization', 'Bearer ' || svc_key
       ),
       body := jsonb_build_object(
         'mode', 'match-contact',
@@ -90,15 +119,21 @@ CREATE TRIGGER on_new_client_search
 
 CREATE OR REPLACE FUNCTION trigger_matching_on_search_updated()
 RETURNS trigger AS $$
+DECLARE
+  base_url TEXT;
+  svc_key TEXT;
 BEGIN
   IF NEW.is_active = true AND (
     NEW.criteria IS DISTINCT FROM OLD.criteria
   ) THEN
+    base_url := get_app_config('supabase_url');
+    svc_key := get_app_config('service_role_key');
+
     PERFORM net.http_post(
-      url := current_setting('app.settings.supabase_url') || '/functions/v1/matching-engine',
+      url := base_url || '/functions/v1/matching-engine',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+        'Authorization', 'Bearer ' || svc_key
       ),
       body := jsonb_build_object(
         'mode', 'match-contact',
@@ -124,17 +159,22 @@ CREATE TRIGGER on_search_criteria_updated
 
 CREATE OR REPLACE FUNCTION trigger_matching_on_price_change()
 RETURNS trigger AS $$
+DECLARE
+  base_url TEXT;
+  svc_key TEXT;
 BEGIN
   IF NEW.status = 'active' AND NEW.price IS DISTINCT FROM OLD.price THEN
-    -- Supprimer les anciens matchs "suggested" pour ce bien (les scores changent)
     DELETE FROM matches
     WHERE property_id = NEW.id AND status = 'suggested';
 
+    base_url := get_app_config('supabase_url');
+    svc_key := get_app_config('service_role_key');
+
     PERFORM net.http_post(
-      url := current_setting('app.settings.supabase_url') || '/functions/v1/matching-engine',
+      url := base_url || '/functions/v1/matching-engine',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+        'Authorization', 'Bearer ' || svc_key
       ),
       body := jsonb_build_object(
         'mode', 'match-property',
@@ -162,15 +202,19 @@ CREATE OR REPLACE FUNCTION daily_matching_scan()
 RETURNS void AS $$
 DECLARE
   agency RECORD;
+  base_url TEXT;
+  svc_key TEXT;
 BEGIN
-  -- Pour chaque agence ayant des recherches actives
+  base_url := get_app_config('supabase_url');
+  svc_key := get_app_config('service_role_key');
+
   FOR agency IN SELECT DISTINCT agency_id FROM client_searches WHERE is_active = true
   LOOP
     PERFORM net.http_post(
-      url := current_setting('app.settings.supabase_url') || '/functions/v1/matching-engine',
+      url := base_url || '/functions/v1/matching-engine',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key')
+        'Authorization', 'Bearer ' || svc_key
       ),
       body := jsonb_build_object(
         'mode', 'scan-all',
@@ -181,7 +225,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Programmer le job quotidien
 SELECT cron.schedule(
   'daily-matching-scan',
   '0 5 * * *',
