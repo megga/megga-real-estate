@@ -8,6 +8,7 @@ import { WeekView } from '@/components/calendar/week-view'
 import type { CalendarEvent, EventColor, ViewType } from '@/components/calendar/week-view-types'
 import { MOCK_EVENTS } from '@/components/calendar/mock-events'
 import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
+import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
 
 /** Event category config for MEGGA real estate */
 const EVENT_CATEGORIES: Record<EventColor, { label: string }> = {
@@ -56,6 +57,9 @@ export default function CalendarPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createInitialDate, setCreateInitialDate] = useState<Date | undefined>()
 
+  // Feedback dialog state
+  const [feedbackEvent, setFeedbackEvent] = useState<CalendarEvent | null>(null)
+
   const handlePrevWeek = useCallback(() => {
     setCurrentDate((d) => addDays(d, -7))
   }, [])
@@ -73,7 +77,22 @@ export default function CalendarPage() {
   }, [])
 
   const handleEventChange = useCallback((updated: CalendarEvent) => {
-    setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+    setEvents((prev) => {
+      const old = prev.find((e) => e.id === updated.id)
+      // If status just changed to 'done', open feedback dialog
+      if (updated.visitStatus === 'done' && old?.visitStatus !== 'done') {
+        setFeedbackEvent(updated)
+      }
+      return prev.map((e) => (e.id === updated.id ? updated : e))
+    })
+  }, [])
+
+  const handleFeedbackSubmit = useCallback((event: CalendarEvent, feedback: { feedbackBuyer: string; feedbackAgent: string; rating: number }) => {
+    setEvents((prev) => prev.map((e) =>
+      e.id === event.id
+        ? { ...e, visitStatus: 'done' as const, feedbackBuyer: feedback.feedbackBuyer, feedbackAgent: feedback.feedbackAgent, rating: feedback.rating }
+        : e
+    ))
   }, [])
 
   const handleBackgroundClick = useCallback(() => {
@@ -205,6 +224,14 @@ export default function CalendarPage() {
         onOpenChange={setShowCreateDialog}
         initialDate={createInitialDate}
         onCreateEvent={handleCreateEvent}
+      />
+
+      {/* Feedback dialog — opens when visit is marked as "done" */}
+      <VisitFeedbackDialog
+        open={!!feedbackEvent}
+        onOpenChange={(open) => { if (!open) setFeedbackEvent(null) }}
+        event={feedbackEvent}
+        onSubmit={handleFeedbackSubmit}
       />
     </div>
   )

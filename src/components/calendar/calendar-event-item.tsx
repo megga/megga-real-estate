@@ -14,8 +14,20 @@ import type {
   CalendarEvent,
   CalendarEventItemProps,
   EventColor,
+  VisitStatus,
 } from "@/components/calendar/week-view-types";
 import { EventContextMenu } from "@/components/calendar/event-context-menu";
+import { Check, X as XIcon } from "lucide-react";
+
+/** Small inline status indicator for visit events */
+function VisitStatusBadge({ status }: { status?: VisitStatus }) {
+  if (!status || status === "planned") return null;
+  if (status === "confirmed") return <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />;
+  if (status === "done") return <Check className="w-2.5 h-2.5 text-emerald-400 shrink-0" />;
+  if (status === "no_show") return <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />;
+  if (status === "cancelled") return <XIcon className="w-2.5 h-2.5 opacity-50 shrink-0" />;
+  return null;
+}
 
 export const eventColorStyles: Record<
   EventColor,
@@ -526,9 +538,11 @@ export function CalendarEventItem({
                   "dark:text-white/80",
                   eventIsPast && "opacity-60",
                 ),
+            event.visitStatus === "cancelled" && "line-through opacity-50",
           )}
         >
           {event.title}
+          <VisitStatusBadge status={event.visitStatus} />
         </span>
         {!isCompact && (
           <span

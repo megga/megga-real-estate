@@ -31,6 +31,7 @@ export const MOCK_EVENTS: CalendarEvent[] = [
     color: 'blue',
     description: 'Visite avec M. Dupont pour l\'appartement 4 pièces à Champel',
     location: 'Rue de Champel 12, 1206 Genève',
+    visitStatus: 'confirmed',
   },
   {
     id: 'evt-2',
@@ -58,6 +59,10 @@ export const MOCK_EVENTS: CalendarEvent[] = [
     end: makeDate(1, 11, 45),
     color: 'blue',
     location: 'Rue de Carouge 45, 1205 Genève',
+    visitStatus: 'done',
+    feedbackAgent: 'Client très intéressé, souhaite revoir le bien avec sa femme',
+    feedbackBuyer: 'Bel appartement, lumineux, quartier agréable. Prix un peu élevé.',
+    rating: 4,
   },
   {
     id: 'evt-5',
@@ -104,6 +109,7 @@ export const MOCK_EVENTS: CalendarEvent[] = [
     color: 'blue',
     description: 'Deuxième visite avec famille Bernard',
     location: 'Rue Jacques-Dalphin 18, 1227 Carouge',
+    visitStatus: 'cancelled',
   },
   {
     id: 'evt-10',

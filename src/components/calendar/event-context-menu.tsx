@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { CalendarEvent, EventColor } from "@/components/calendar/week-view-types";
+import type { CalendarEvent, EventColor, VisitStatus } from "@/components/calendar/week-view-types";
 
 const EVENT_COLORS: EventColor[] = [
   "red",
@@ -50,6 +50,14 @@ const CALENDAR_ACCOUNTS: CalendarAccountData[] = [
       { name: "Holidays in Brazil", color: "green" },
     ],
   },
+];
+
+const VISIT_STATUSES: { value: VisitStatus; label: string; dotClass: string }[] = [
+  { value: "planned", label: "Planifiée", dotClass: "bg-gray-400" },
+  { value: "confirmed", label: "Confirmée", dotClass: "bg-emerald-400" },
+  { value: "done", label: "Effectuée", dotClass: "bg-green-600" },
+  { value: "cancelled", label: "Annulée", dotClass: "bg-red-400" },
+  { value: "no_show", label: "No-show", dotClass: "bg-red-600" },
 ];
 
 interface EventContextMenuProps {
@@ -211,6 +219,11 @@ export function EventContextMenu({
     onClose();
   }
 
+  function handleStatusSelect(status: VisitStatus) {
+    onEventChange?.({ ...event, visitStatus: status });
+    onClose();
+  }
+
   return createPortal(
     <div
       ref={menuRef}
@@ -239,6 +252,20 @@ export function EventContextMenu({
           </button>
         ))}
       </div>
+
+      <Separator />
+
+      {/* Visit status */}
+      <div className="px-2 py-1 text-[10px] text-white/40">Statut</div>
+      {VISIT_STATUSES.map((s) => (
+        <MenuItem key={s.value} onSelect={() => handleStatusSelect(s.value)}>
+          <span className={cn("size-2 rounded-full shrink-0", s.dotClass)} />
+          {s.label}
+          {(event.visitStatus ?? "planned") === s.value && (
+            <Check className="ml-auto size-3 text-white/60" />
+          )}
+        </MenuItem>
+      ))}
 
       <Separator />
 

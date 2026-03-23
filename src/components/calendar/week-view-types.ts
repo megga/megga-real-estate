@@ -260,7 +260,20 @@ export interface CalendarEvent {
   visibility?: "default" | "public" | "private";
   /** Calendar account email for display */
   calendarEmail?: string;
+  /** MEGGA visit status */
+  visitStatus?: VisitStatus;
+  /** Post-visit feedback from buyer */
+  feedbackBuyer?: string;
+  /** Post-visit feedback/notes from agent */
+  feedbackAgent?: string;
+  /** Rating 1-5 */
+  rating?: number;
 }
+
+/**
+ * Visit status for MEGGA real estate events
+ */
+export type VisitStatus = "planned" | "confirmed" | "done" | "cancelled" | "no_show";
 
 /**
  * Predefined event colors
