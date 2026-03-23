@@ -242,6 +242,10 @@ export interface CalendarEvent {
   timezone?: string;
   /** Recurrence rule display string (e.g. "Every week on Thu") */
   recurrence?: string;
+  /** Structured recurrence rule */
+  recurrenceRule?: RecurrenceRule;
+  /** ID of the parent recurring event (for generated instances) */
+  recurringEventId?: string;
   /** Reminders list */
   reminders?: EventReminder[];
   /** Busy/Free status */
@@ -261,6 +265,23 @@ export interface CalendarEvent {
   feedbackAgent?: string;
   /** Rating 1-5 */
   rating?: number;
+}
+
+/**
+ * Recurrence frequency
+ */
+export type RecurrenceFrequency = "daily" | "weekly" | "biweekly" | "monthly";
+
+/**
+ * Structured recurrence rule for repeating events
+ */
+export interface RecurrenceRule {
+  /** How often the event repeats */
+  frequency: RecurrenceFrequency;
+  /** End date for the recurrence (no instances after this date) */
+  until?: Date;
+  /** Number of occurrences (alternative to until) */
+  count?: number;
 }
 
 /**

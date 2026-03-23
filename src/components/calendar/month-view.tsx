@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
   startOfMonth,
   endOfMonth,
@@ -9,6 +9,7 @@ import {
   isSameDay,
   isToday,
   format,
+  differenceInMilliseconds,
 } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { eventColorStyles } from '@/components/calendar/calendar-event-item'
@@ -22,6 +23,7 @@ interface MonthViewProps {
   currentDate: Date
   events: CalendarEvent[]
   onEventClick?: (event: CalendarEvent) => void
+  onEventChange?: (event: CalendarEvent) => void
   selectedEventId?: string
   onBackgroundClick?: () => void
   onSlotClick?: (date: Date) => void
@@ -33,7 +35,6 @@ function getEventsForDay(events: CalendarEvent[], day: Date): CalendarEvent[] {
   return events
     .filter((e) => {
       if (e.isAllDay || isMultiDayEvent(e)) {
-        // Multi-day: check if day is within start..end range
         const eventStart = new Date(e.start.getFullYear(), e.start.getMonth(), e.start.getDate())
         const eventEnd = new Date(e.end.getFullYear(), e.end.getMonth(), e.end.getDate())
         const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate())
@@ -56,11 +57,15 @@ export function MonthView({
   currentDate,
   events,
   onEventClick,
+  onEventChange,
   selectedEventId,
   onBackgroundClick,
   onSlotClick,
   className,
 }: MonthViewProps) {
+  const [dragOverDay, setDragOverDay] = useState<string | null>(null)
+  const [draggedEventId, setDraggedEventId] = useState<string | null>(null)
+
   // Compute the 6-week grid of days
   const days = useMemo(() => {
     const monthStart = startOfMonth(currentDate)
@@ -88,6 +93,53 @@ export function MonthView({
     }
     return map
   }, [days, events])
+
+  // Drag handlers
+  const handleDragStart = useCallback((e: React.DragEvent, event: CalendarEvent) => {
+    e.dataTransfer.setData('text/plain', event.id)
+    e.dataTransfer.effectAllowed = 'move'
+    setDraggedEventId(event.id)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent, dayKey: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverDay(dayKey)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverDay(null)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, targetDay: Date) => {
+    e.preventDefault()
+    setDragOverDay(null)
+    setDraggedEventId(null)
+
+    const eventId = e.dataTransfer.getData('text/plain')
+    const event = events.find((ev) => ev.id === eventId)
+    if (!event || !onEventChange) return
+
+    // Calculate duration to preserve it
+    const duration = differenceInMilliseconds(event.end, event.start)
+
+    // Move to target day, keeping same time
+    const newStart = new Date(
+      targetDay.getFullYear(),
+      targetDay.getMonth(),
+      targetDay.getDate(),
+      event.start.getHours(),
+      event.start.getMinutes(),
+    )
+    const newEnd = new Date(newStart.getTime() + duration)
+
+    onEventChange({ ...event, start: newStart, end: newEnd })
+  }, [events, onEventChange])
+
+  const handleDragEnd = useCallback(() => {
+    setDragOverDay(null)
+    setDraggedEventId(null)
+  }, [])
 
   return (
     <div
@@ -121,20 +173,26 @@ export function MonthView({
               const inMonth = isSameMonth(day, currentDate)
               const today = isToday(day)
               const isWeekend = day.getDay() === 0 || day.getDay() === 6
+              const isDragOver = dragOverDay === key
 
               return (
                 <div
                   key={key}
                   className={cn(
-                    'border-r border-theme-border/50 last:border-r-0 px-1 py-1 min-h-0 overflow-hidden cursor-pointer transition-colors hover:bg-theme-hover/30',
+                    'border-r border-theme-border/50 last:border-r-0 px-1 py-1 min-h-0 overflow-hidden cursor-pointer transition-colors',
                     !inMonth && 'opacity-40',
                     isWeekend && inMonth && 'bg-theme-hover/20',
+                    isDragOver && 'bg-accent/10 ring-1 ring-inset ring-accent/30',
+                    !isDragOver && 'hover:bg-theme-hover/30',
                   )}
                   onClick={(e) => {
                     if (!(e.target as HTMLElement).closest('[data-event-pill]')) {
                       onSlotClick?.(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 10, 0))
                     }
                   }}
+                  onDragOver={(e) => handleDragOver(e, key)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
                 >
                   {/* Day number */}
                   <div className="flex items-center justify-center mb-0.5">
@@ -157,20 +215,25 @@ export function MonthView({
                       const styles = eventColorStyles[color]
                       const isSelected = event.id === selectedEventId
                       const time = formatEventTime(event)
+                      const isDragging = draggedEventId === event.id
 
                       return (
                         <button
                           key={event.id}
                           data-event-pill
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, event)}
+                          onDragEnd={handleDragEnd}
                           onClick={(e) => {
                             e.stopPropagation()
                             onEventClick?.(event)
                           }}
                           className={cn(
-                            'w-full text-left text-[10px] leading-tight px-1.5 py-0.5 rounded truncate transition-all',
+                            'w-full text-left text-[10px] leading-tight px-1.5 py-0.5 rounded truncate transition-all cursor-grab active:cursor-grabbing',
                             isSelected
                               ? cn(styles.border, 'text-white')
                               : cn(styles.bg, styles.text, 'hover:brightness-90'),
+                            isDragging && 'opacity-40',
                           )}
                         >
                           {time && <span className="font-medium">{time} </span>}
