@@ -9,6 +9,7 @@ import { getContactById, type MockContact } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 import PageTransition from '@/components/layout/PageTransition'
 import EditContactDialog from '@/components/contacts/EditContactDialog'
+import MatchingPanel from '@/components/matching/MatchingPanel'
 import CopilotSummary from '@/components/ai-copilot/CopilotSummary'
 import BuyerIntelligence from '@/components/ai-copilot/BuyerIntelligence'
 import SellerIntelligence from '@/components/ai-copilot/SellerIntelligence'
@@ -298,6 +299,16 @@ export default function ContactDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Matching panel (buyers only) */}
+          {showBuyer && (
+            <div className="rounded-xl border border-theme-border p-5">
+              <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">
+                Matching · Biens compatibles
+              </h2>
+              <MatchingPanel contactId={contact.id} contactName={fullName} />
+            </div>
+          )}
 
           {/* Activity timeline */}
           <div className="rounded-xl border border-theme-border p-5">

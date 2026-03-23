@@ -1,9 +1,9 @@
 import { Send, Calendar } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
-import type { MatchResult } from '@/lib/matching'
+import type { MatchWithRelations } from '@/types/matching'
 
 interface MatchScoreCardProps {
-  match: MatchResult
+  match: MatchWithRelations
   onSend: () => void
   onIgnore: () => void
   className?: string
@@ -21,8 +21,11 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function MatchScoreCard({ match, onSend, onIgnore, className }: MatchScoreCardProps) {
-  const listing = match.listing
+  const property = match.property
+  if (!property) return null
+
   const isSent = match.status === 'sent'
+  const reasons = match.reasons
 
   return (
     <div className={cn(
@@ -33,21 +36,27 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
       <div className="flex">
         {/* Photo */}
         <div className="w-28 sm:w-36 flex-shrink-0">
-          <img
-            src={listing.photos[0]}
-            alt={listing.title}
-            className="h-full w-full object-cover"
-          />
+          {property.photos?.[0] ? (
+            <img
+              src={property.photos[0]}
+              alt={property.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full bg-theme-section flex items-center justify-center">
+              <span className="text-xs text-theme-muted">Pas de photo</span>
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="flex-1 p-3 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-theme-primary truncate">{listing.title}</p>
-              <p className="text-xs text-theme-tertiary truncate">{listing.address}, {listing.city}</p>
+              <p className="text-sm font-medium text-theme-primary truncate">{property.title}</p>
+              <p className="text-xs text-theme-tertiary truncate">{property.address}, {property.city}</p>
             </div>
-            <span className="text-sm font-semibold text-theme-primary flex-shrink-0">{formatCHF(listing.price)}</span>
+            <span className="text-sm font-semibold text-theme-primary flex-shrink-0">{formatCHF(property.price)}</span>
           </div>
 
           {/* Score bar */}
@@ -56,17 +65,19 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
           </div>
 
           {/* Reason badges */}
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {match.reasons.budget.match && <span className="text-[10px] text-emerald-500">Budget</span>}
-            {match.reasons.zone.match && <span className="text-[10px] text-emerald-500">Zone</span>}
-            {match.reasons.type.match && <span className="text-[10px] text-emerald-500">Type</span>}
-            {match.reasons.rooms.match && <span className="text-[10px] text-emerald-500">Surface</span>}
-            {match.reasons.features.match && <span className="text-[10px] text-emerald-500">Extras</span>}
-          </div>
+          {reasons && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {reasons.budget && <span className="text-[10px] text-emerald-500">Budget</span>}
+              {reasons.zone && <span className="text-[10px] text-emerald-500">Zone</span>}
+              {reasons.type && <span className="text-[10px] text-emerald-500">Type</span>}
+              {reasons.rooms_surface && <span className="text-[10px] text-emerald-500">Surface</span>}
+              {reasons.features && <span className="text-[10px] text-emerald-500">Extras</span>}
+            </div>
+          )}
 
           {/* Actions */}
           {isSent ? (
-            <p className="text-[11px] text-theme-muted">Envoyé · {match.sentVia}</p>
+            <p className="text-[11px] text-theme-muted">Envoyé · {match.sent_via}</p>
           ) : (
             <div className="flex items-center gap-2">
               <button
