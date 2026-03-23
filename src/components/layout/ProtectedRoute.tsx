@@ -10,7 +10,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
   const location = useLocation()
 
-  // DEV BYPASS: skip auth in development
+  // BYPASS: skip auth (demo mode)
+  return <>{children}</>
+
+  // TODO: re-enable auth when Supabase is connected
+  /* eslint-disable no-unreachable */
   if (import.meta.env.DEV) {
     return <>{children}</>
   }

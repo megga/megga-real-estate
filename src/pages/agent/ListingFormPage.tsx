@@ -622,7 +622,7 @@ function Step4({ form }: { form: UseFormReturn<ListingFormData> }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {photos.map((url, idx) => (
             <div key={url} className="relative group aspect-[4/3] rounded-card overflow-hidden border border-theme-border">
-              <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+              <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
               {/* Overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity">

@@ -40,17 +40,17 @@ export default function MonProfilPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-primary-900">
+        <h1 className="text-2xl font-semibold text-theme-primary">
           Mon profil
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-theme-secondary mt-1">
           Gérez vos informations personnelles
         </p>
       </div>
 
-      <form onSubmit={handleSave} className="bg-white rounded-card border border-border shadow-card p-6 space-y-5">
+      <form onSubmit={handleSave} className="rounded-xl border border-theme-border p-6 space-y-5">
         <div>
-          <label htmlFor="fullName" className="block text-sm font-medium text-primary-700 mb-1.5">
+          <label htmlFor="fullName" className="block text-sm font-medium text-theme-primary mb-1.5">
             Nom complet
           </label>
           <input
@@ -58,12 +58,12 @@ export default function MonProfilPage() {
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full h-11 px-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+            className="w-full h-11 px-4 text-sm bg-transparent border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-primary-700 mb-1.5">
+          <label htmlFor="email" className="block text-sm font-medium text-theme-primary mb-1.5">
             Adresse e-mail
           </label>
           <input
@@ -71,13 +71,13 @@ export default function MonProfilPage() {
             type="email"
             value={profile?.email || ''}
             disabled
-            className="w-full h-11 px-4 text-sm bg-gray-100 border border-border rounded-input text-gray-500 cursor-not-allowed"
+            className="w-full h-11 px-4 text-sm bg-theme-hover border border-theme-border rounded-lg text-theme-tertiary cursor-not-allowed"
           />
-          <p className="text-xs text-muted-foreground mt-1">L'adresse e-mail ne peut pas être modifiée</p>
+          <p className="text-xs text-theme-muted mt-1">L'adresse e-mail ne peut pas être modifiée</p>
         </div>
 
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-primary-700 mb-1.5">
+          <label htmlFor="phone" className="block text-sm font-medium text-theme-primary mb-1.5">
             Téléphone
           </label>
           <input
@@ -86,27 +86,31 @@ export default function MonProfilPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+41 79 123 45 67"
-            className="w-full h-11 px-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+            className="w-full h-11 px-4 text-sm bg-transparent border border-theme-border rounded-lg text-theme-primary placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
           />
         </div>
 
         <div className="flex items-center gap-3">
-          <Button type="submit" disabled={saving}>
+          <button
+            type="submit"
+            disabled={saving}
+            className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+          >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enregistrer'}
-          </Button>
+          </button>
           {saved && (
-            <p className="text-sm text-success font-medium">Modifications enregistrées</p>
+            <p className="text-sm text-emerald-500 font-medium">Modifications enregistrées</p>
           )}
         </div>
       </form>
 
       {/* Sign out */}
-      <div className="bg-white rounded-card border border-border shadow-card p-6">
-        <h3 className="text-sm font-semibold text-primary-900 mb-2">Déconnexion</h3>
-        <p className="text-sm text-muted-foreground mb-4">
+      <div className="rounded-xl border border-theme-border p-6">
+        <h3 className="text-sm font-semibold text-theme-primary mb-2">Déconnexion</h3>
+        <p className="text-sm text-theme-secondary mb-4">
           Vous serez déconnecté de votre compte MEGGA.
         </p>
-        <Button variant="outline" onClick={handleSignOut} className="text-danger border-danger/30 hover:bg-danger/5">
+        <Button variant="outline" onClick={handleSignOut} className="text-red-500 border-red-500/30 hover:bg-red-500/5">
           <LogOut className="h-4 w-4 mr-2" />
           Se déconnecter
         </Button>

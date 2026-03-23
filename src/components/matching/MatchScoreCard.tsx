@@ -1,6 +1,6 @@
 import { Send, Calendar } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
-import type { MatchResult } from '@/lib/matching'
+import type { MatchResult } from '@/hooks/useMatching'
 
 interface MatchScoreCardProps {
   match: MatchResult

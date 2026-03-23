@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Pages + Supabase Edge Functions
 
 on:
   push:
@@ -45,3 +45,23 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=megga-real-estate
+
+      - name: Deploy Supabase Edge Functions
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase project and deploy functions
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          supabase link --project-ref eayczugyrvmtqnnmvjod
+          for fn_dir in supabase/functions/*/; do
+            fn_name=$(basename "$fn_dir")
+            if [ -f "$fn_dir/index.ts" ]; then
+              echo "Deploying $fn_name..."
+              supabase functions deploy "$fn_name" --no-verify-jwt
+            fi
+          done
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { Search, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
-import { useMatching } from '@/hooks/useMatching'
+import { useMatching, type MatchResult } from '@/hooks/useMatching'
+import { useExternalMatching, type ExternalListing, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
 import SendMatchDialog from '@/components/matching/SendMatchDialog'
-import type { MatchResult } from '@/lib/matching'
 import PageTransition from '@/components/layout/PageTransition'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
+import { MOCK_CONTACTS } from '@/lib/mockData'
 
 // ── (Score utilities removed — breakdown now in preview modal) ───────────────
 
@@ -286,6 +288,76 @@ function MatchCard({ match, onSend, onPreview }: {
   )
 }
 
+// ── External Match Card ──────────────────────────────────────────────────────
+
+function ExternalMatchCard({ listing, onNavigate }: {
+  listing: ExternalListing
+  onNavigate: (listing: ExternalListing) => void
+}) {
+  return (
+    <div
+      onClick={() => onNavigate(listing)}
+      className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors cursor-pointer"
+    >
+      {listing.photo_url ? (
+        <div className="relative aspect-[16/10] overflow-hidden">
+          <img
+            src={listing.photo_url}
+            alt={listing.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-md px-2 py-1">
+            {listing.source_logo_url && (
+              <img src={listing.source_logo_url} alt="" className="h-3 w-3 rounded-sm" />
+            )}
+            <span className="text-[10px] text-white/80 font-medium">
+              {listing.source_portal}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="aspect-[16/10] bg-theme-section flex items-center justify-center">
+          <span className="text-theme-tertiary text-xs">Pas de photo</span>
+        </div>
+      )}
+
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-theme-primary truncate">
+              {listing.price > 0 ? formatCHF(listing.price) : 'Prix sur demande'}
+            </p>
+            <p className="text-xs text-theme-secondary mt-0.5 truncate">
+              {listing.address || listing.city}
+            </p>
+          </div>
+        </div>
+
+        <p className="text-xs text-theme-tertiary mt-1.5">
+          {[
+            listing.rooms ? `${listing.rooms} pièces` : null,
+            listing.surface_m2 ? `${listing.surface_m2} m²` : null,
+          ].filter(Boolean).join(' · ')}
+        </p>
+
+        {listing.source_agency && (
+          <p className="text-[10px] text-theme-muted mt-2">
+            via {listing.source_agency}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-theme-border">
+          <span className="flex-1 h-8 flex items-center justify-center rounded-lg text-xs font-medium text-theme-tertiary opacity-0 group-hover:opacity-100 transition-all">
+            Voir la fiche →
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ───────────────────────────────────────────────────────────────
 
 type SortBy = 'score' | 'price_asc' | 'price_desc' | 'date'
@@ -300,13 +372,54 @@ const SORT_LABELS: Record<SortBy, string> = {
 const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
 
 export default function MatchingPage() {
-  const { suggested, sent, sendMatch } = useMatching()
+  const navigate = useNavigate()
+  const { suggested, sent, sendMatch, runMatching, isRunning } = useMatching()
   const [search, setSearch] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'suggested' | 'sent'>('all')
   const [sortBy, setSortBy] = useState<SortBy>('score')
   const [contactFilter, setContactFilter] = useState('')
   const [sendDialog, setSendDialog] = useState<MatchResult | null>(null)
   const [previewMatch, setPreviewMatch] = useState<MatchResult | null>(null)
+  const [activeMainTab, setActiveMainTab] = useState<'internal' | 'external'>('internal')
+  const [externalContactId, setExternalContactId] = useState('')
+
+  // Derive external search criteria from selected contact
+  const externalCriteria: ExternalSearchCriteria | null = useMemo(() => {
+    if (!externalContactId) return null
+    const contact = MOCK_CONTACTS.find(c => c.id === externalContactId)
+    if (!contact?.search_criteria) return null
+    const sc = contact.search_criteria
+    // Map property type to RealAdvisor format
+    const typeMap: Record<string, string> = {
+      'Appartement': 'APARTMENT',
+      'Maison': 'HOUSE',
+      'Villa': 'VILLA',
+    }
+    // Extract first zone from location
+    const zone = sc.location.split(',')[0].trim() || 'geneve'
+    return {
+      zone,
+      type: typeMap[sc.property_type] || 'APARTMENT',
+      budget_max: sc.budget_max,
+      budget_min: sc.budget_min,
+      rooms_min: sc.rooms_min,
+    }
+  }, [externalContactId])
+
+  const {
+    data: externalListings,
+    isLoading: isLoadingExternal,
+    error: externalError,
+    refetch: refetchExternal,
+  } = useExternalMatching(externalCriteria)
+
+  // Buyers for external tab selector
+  const buyerContacts = useMemo(() =>
+    MOCK_CONTACTS
+      .filter(c => (c.type === 'buyer' || c.type === 'both') && c.search_criteria)
+      .map(c => ({ id: c.id, name: `${c.first_name} ${c.last_name}` })),
+    []
+  )
 
   // All unique contacts for filter dropdown
   const allContacts = useMemo(() => {
@@ -368,8 +481,49 @@ export default function MatchingPage() {
               Acheteurs ↔ Biens compatibles
             </p>
           </div>
+          <button
+            onClick={() => {
+              if (contactFilter) {
+                runMatching(contactFilter)
+              }
+            }}
+            disabled={isRunning || !contactFilter}
+            className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40"
+          >
+            {isRunning ? 'Analyse en cours...' : 'Lancer le matching'}
+          </button>
         </div>
 
+        {/* Main tabs: Portefeuille / Marché */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setActiveMainTab('internal')}
+            className={cn(
+              'h-9 px-4 rounded-lg text-sm transition-colors',
+              activeMainTab === 'internal'
+                ? 'bg-theme-active text-theme-primary font-medium'
+                : 'text-theme-secondary hover:text-theme-primary'
+            )}
+          >
+            Portefeuille
+          </button>
+          <button
+            onClick={() => setActiveMainTab('external')}
+            className={cn(
+              'h-9 px-4 rounded-lg text-sm transition-colors',
+              activeMainTab === 'external'
+                ? 'bg-theme-active text-theme-primary font-medium'
+                : 'text-theme-secondary hover:text-theme-primary'
+            )}
+          >
+            Marché
+            {externalListings && externalListings.length > 0 && (
+              <span className="ml-1.5 text-xs text-theme-tertiary">{externalListings.length}</span>
+            )}
+          </button>
+        </div>
+
+        {activeMainTab === 'internal' && <>
         {/* KPI Summary */}
         <div className="flex items-center gap-6 py-3 px-4 rounded-xl border border-theme-border">
           <div>
@@ -480,6 +634,95 @@ export default function MatchingPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        </>}
+
+        {/* ── External (Marché) Tab ─────────────────────────────── */}
+        {activeMainTab === 'external' && (
+          <div className="space-y-4">
+            {/* Contact selector */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative">
+                <select
+                  value={externalContactId}
+                  onChange={(e) => setExternalContactId(e.target.value)}
+                  className={selectClasses}
+                >
+                  <option value="">Choisir un acheteur...</option>
+                  {buyerContacts.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
+              </div>
+
+              {externalCriteria && (
+                <p className="text-xs text-theme-tertiary">
+                  {externalCriteria.type === 'APARTMENT' ? 'Appartement' : externalCriteria.type === 'HOUSE' ? 'Maison' : externalCriteria.type} · {externalCriteria.zone} · max {formatCHF(externalCriteria.budget_max)}{externalCriteria.rooms_min ? ` · ${externalCriteria.rooms_min}+ pièces` : ''}
+                </p>
+              )}
+            </div>
+
+            {/* No contact selected */}
+            {!externalContactId && (
+              <div className="text-center py-12 rounded-xl border border-theme-border">
+                <p className="text-sm text-theme-tertiary">Sélectionnez un acheteur pour scanner le marché</p>
+                <p className="text-xs text-theme-muted mt-1">Les critères de recherche du client seront utilisés</p>
+              </div>
+            )}
+
+            {/* Loading */}
+            {externalContactId && isLoadingExternal && (
+              <div className="flex items-center justify-center h-40">
+                <div className="h-5 w-5 border-2 border-theme-border border-t-accent rounded-full animate-spin" />
+              </div>
+            )}
+
+            {/* Error */}
+            {externalContactId && externalError && !isLoadingExternal && (
+              <div className="text-center py-12 rounded-xl border border-theme-border">
+                <p className="text-sm text-theme-tertiary">Impossible de charger les données du marché</p>
+                <button
+                  onClick={() => refetchExternal()}
+                  className="mt-2 text-xs text-accent hover:text-accent/80 transition-colors"
+                >
+                  Réessayer
+                </button>
+              </div>
+            )}
+
+            {/* Empty */}
+            {externalContactId && !isLoadingExternal && !externalError && externalListings && externalListings.length === 0 && (
+              <div className="text-center py-12 rounded-xl border border-theme-border">
+                <p className="text-sm text-theme-tertiary">Aucun bien trouvé sur le marché pour ces critères</p>
+                <p className="text-xs text-theme-muted mt-1">Essayez d'élargir la zone ou le budget</p>
+              </div>
+            )}
+
+            {/* Results grid */}
+            {externalListings && externalListings.length > 0 && (
+              <>
+                <p className="text-xs text-theme-muted">
+                  {externalListings.length} bien{externalListings.length > 1 ? 's' : ''} trouvé{externalListings.length > 1 ? 's' : ''} sur le marché · Source : RealAdvisor (14 portails agrégés)
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {externalListings.map((listing) => {
+                    const selectedContact = buyerContacts.find(c => c.id === externalContactId)
+                    return (
+                      <ExternalMatchCard
+                        key={listing.external_id}
+                        listing={listing}
+                        onNavigate={(l) => navigate(`/dashboard/marche/${l.external_id}`, {
+                          state: { listing: l, contactName: selectedContact?.name },
+                        })}
+                      />
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
 

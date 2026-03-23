@@ -1,19 +1,28 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, ShieldCheck, CheckCircle2, Circle, Clock, FileText,
-  Upload, AlertTriangle, X, ChevronDown, ChevronRight,
-  Sparkles,
+  Upload, X, ChevronDown, ChevronRight,
+  Sparkles, Loader2, Download, Ban,
 } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate } from '@/lib/utils'
 import { KYC_STATUS_LABELS, KYC_RISK_LABELS, KYC_TYPE_LABELS, PEP_STATUS_LABELS, SANCTIONS_STATUS_LABELS } from '@/lib/constants'
+import type { PepStatus, SanctionsStatus } from '@/lib/constants'
 import { calculateRiskScore } from '@/lib/kycUtils'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
 import {
-  MOCK_KYC_CASES, MOCK_KYC_CHECKLIST, MOCK_KYC_DOCUMENTS,
-  MOCK_KYC_AUDIT, type MockKycCase, type MockKycChecklistItem,
-} from '@/lib/mockData'
+  useKycCase, useKycDocuments, useKycAuditEvents,
+  useValidateKycCase, useUpdateKycNotes, useUploadKycDocument,
+  useScreenKycCase, useUpdateKycItem,
+} from '@/hooks/useKyc'
+import type { KycStatus, KycChecklistItem, KycDocument, KycAuditEvent, DocumentCategory } from '@/types/kyc'
+import {
+  ContextMenu, ContextMenuTrigger, ContextMenuContent,
+  ContextMenuItem, ContextMenuSeparator,
+} from '@/components/ui/context-menu'
+import { supabase } from '@/lib/supabase'
 
 function progressColor(pct: number) {
   if (pct < 40) return 'bg-danger'
@@ -27,8 +36,8 @@ function progressTextColor(pct: number) {
   return 'text-success'
 }
 
-function statusBadge(status: MockKycCase['status']) {
-  const map = {
+function statusBadge(status: KycStatus) {
+  const map: Record<KycStatus, string> = {
     pending:     'text-theme-tertiary',
     in_progress: 'text-accent',
     review:      'text-warning',
@@ -42,7 +51,7 @@ function statusBadge(status: MockKycCase['status']) {
   )
 }
 
-function riskBadge(risk: MockKycCase['risk_level']) {
+function riskBadge(risk: 'low' | 'medium' | 'high' | 'unassessed') {
   const map = {
     low:        { dot: 'bg-success',        text: 'text-success' },
     medium:     { dot: 'bg-warning',        text: 'text-warning' },
@@ -58,33 +67,58 @@ function riskBadge(risk: MockKycCase['risk_level']) {
   )
 }
 
-function docStatusIcon(status: 'validated' | 'pending' | 'missing' | 'rejected' | null) {
+function docStatusIcon(status: 'validated' | 'pending' | 'rejected' | null) {
   switch (status) {
     case 'validated': return <CheckCircle2 className="h-4 w-4 text-success" />
     case 'pending': return <Clock className="h-4 w-4 text-warning" />
-    case 'missing': return <AlertTriangle className="h-4 w-4 text-danger" />
     case 'rejected': return <X className="h-4 w-4 text-danger" />
     default: return <Circle className="h-4 w-4 text-theme-tertiary" />
   }
+}
+
+function formatFileSize(bytes: number | null): string {
+  if (!bytes) return '—'
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
 }
 
 const CATEGORIES = ['Identité', 'Domicile', 'Revenus', 'Origine des fonds', 'Compliance'] as const
 
 export default function KycDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const { profile } = useAuth()
   const [showValidateModal, setShowValidateModal] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(CATEGORIES)
   )
   const [notes, setNotes] = useState('')
+  const [notesInitialized, setNotesInitialized] = useState(false)
+  const [uploadCategory, setUploadCategory] = useState<DocumentCategory>('other')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const kyc = MOCK_KYC_CASES.find((c) => c.id === id)
-  const checklist = MOCK_KYC_CHECKLIST.filter((c) => c.kyc_case_id === id)
-  const documents = MOCK_KYC_DOCUMENTS.filter((d) => d.kyc_case_id === id)
-  const audit = MOCK_KYC_AUDIT.filter((e) => e.kyc_case_id === id)
+  // ─── Supabase queries ──────────────────────────────────────────────────────
+  const { data: kyc, isLoading: kycLoading, error: kycError } = useKycCase(id)
+  const { data: documents = [] } = useKycDocuments(id)
+  const { data: auditEvents = [] } = useKycAuditEvents(id)
+
+  // ─── Mutations ─────────────────────────────────────────────────────────────
+  const validateMutation = useValidateKycCase()
+  const notesMutation = useUpdateKycNotes()
+  const uploadMutation = useUploadKycDocument()
+  const screenMutation = useScreenKycCase()
+  const toggleItemMutation = useUpdateKycItem()
+
+  // Initialize notes from DB
+  if (kyc && !notesInitialized) {
+    setNotes(kyc.notes ?? '')
+    setNotesInitialized(true)
+  }
+
+  const checklist = useMemo(() => kyc?.checklist ?? [], [kyc?.checklist])
 
   const checklistByCategory = useMemo(() => {
-    const map = new Map<string, MockKycChecklistItem[]>()
+    const map = new Map<string, KycChecklistItem[]>()
     CATEGORIES.forEach((cat) => map.set(cat, []))
     checklist.forEach((item) => {
       const items = map.get(item.category)
@@ -102,7 +136,87 @@ export default function KycDetailPage() {
     })
   }
 
-  if (!kyc) {
+  function handleValidate() {
+    if (!id || !profile) return
+    validateMutation.mutate(
+      { id, validated_by: profile.full_name || profile.email },
+      { onSuccess: () => setShowValidateModal(false) }
+    )
+  }
+
+  function handleSaveNotes() {
+    if (!id || !notes.trim()) return
+    notesMutation.mutate({ id, notes: notes.trim() })
+  }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !id || !kyc || !profile) return
+    uploadMutation.mutate({
+      kycCaseId: id,
+      agencyId: kyc.agency_id,
+      file,
+      documentCategory: uploadCategory,
+      uploadedBy: profile.id,
+    })
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function handleDownloadDoc(doc: KycDocument) {
+    const { data } = await supabase.storage.from('kyc-documents').download(doc.storage_path)
+    if (data) {
+      const url = URL.createObjectURL(data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = doc.name
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+  }
+
+  async function handleUpdateDocStatus(docId: string, status: 'validated' | 'rejected') {
+    await supabase.from('documents').update({ status }).eq('id', docId)
+    // Refresh documents
+    window.location.reload()
+  }
+
+  function handleScreening() {
+    if (!id || !kyc) return
+    const contactName = kyc.contact
+      ? `${kyc.contact.first_name} ${kyc.contact.last_name}`
+      : 'Unknown'
+    const entityType = kyc.type.includes('_pm') ? 'entity' as const : 'individual' as const
+    screenMutation.mutate({
+      kycCaseId: id,
+      contactName,
+      contactNationality: kyc.contact_nationality ?? 'CH',
+      entityType,
+    })
+  }
+
+  function handleToggleItem(itemId: string, currentCompleted: boolean) {
+    toggleItemMutation.mutate({ id: itemId, is_completed: !currentCompleted })
+  }
+
+  // ─── Loading / Error / Not found ──────────────────────────────────────────
+
+  if (kycLoading) {
+    return (
+      <div className="space-y-6">
+        <Link to="/dashboard/kyc" className="inline-flex items-center gap-1.5 text-sm text-theme-tertiary hover:text-theme-primary transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+          Retour aux dossiers
+        </Link>
+        <div className="rounded-xl border border-theme-border p-12 text-center">
+          <Loader2 className="h-8 w-8 text-theme-tertiary mx-auto mb-3 animate-spin" />
+          <p className="text-sm text-theme-tertiary">Chargement du dossier...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (kycError || !kyc) {
     return (
       <div className="space-y-6">
         <Link to="/dashboard/kyc" className="inline-flex items-center gap-1.5 text-sm text-theme-tertiary hover:text-theme-primary transition-colors">
@@ -111,20 +225,31 @@ export default function KycDetailPage() {
         </Link>
         <div className="rounded-xl border border-theme-border p-12 text-center">
           <ShieldCheck className="h-12 w-12 text-theme-tertiary mx-auto mb-4" />
-          <p className="text-theme-tertiary">Dossier introuvable</p>
+          <p className="text-theme-tertiary">
+            {kycError ? 'Erreur lors du chargement du dossier' : 'Dossier introuvable'}
+          </p>
         </div>
       </div>
     )
   }
 
+  // ─── Computed ──────────────────────────────────────────────────────────────
+
+  const contactName = kyc.contact
+    ? `${kyc.contact.first_name} ${kyc.contact.last_name}`
+    : 'Contact'
+
   const completedItems = checklist.filter((c) => c.is_completed).length
   const totalItems = checklist.length
   const canValidate = kyc.status !== 'validated' && kyc.status !== 'rejected'
 
+  const pepStatus = (kyc.pep_status ?? 'not_checked') as PepStatus
+  const sanctionsStatus = (kyc.sanctions_status ?? 'not_checked') as SanctionsStatus
+
   const riskResult = calculateRiskScore({
-    contactNationality: kyc.contact_nationality,
-    pepStatus: kyc.pep_status,
-    transactionAmount: kyc.transaction_amount,
+    contactNationality: kyc.contact_nationality ?? 'CH',
+    pepStatus: pepStatus === 'match' ? 'match' : 'clear',
+    transactionAmount: kyc.transaction_amount ?? 0,
     kycType: kyc.type,
     completionPct: kyc.completion_pct,
   })
@@ -142,14 +267,12 @@ export default function KycDetailPage() {
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold text-theme-primary">{kyc.contact_name}</h1>
+              <h1 className="text-xl font-semibold text-theme-primary">{contactName}</h1>
               {statusBadge(kyc.status)}
               {riskBadge(kyc.risk_level)}
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-theme-tertiary">
               <span>Type : <span className="font-medium text-theme-primary">{KYC_TYPE_LABELS[kyc.type]}</span></span>
-              <span>Bien : <span className="font-medium text-theme-primary">{kyc.property_title}</span></span>
-              <span>Agent : <span className="font-medium text-theme-primary">{kyc.assigned_to}</span></span>
               <span>Créé le {formatDate(kyc.created_at)}</span>
             </div>
             {kyc.validated_by && kyc.validated_at && (
@@ -196,65 +319,94 @@ export default function KycDetailPage() {
       <div className="rounded-xl border border-theme-border p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-theme-primary">Vérification Compliance</h2>
-          <button className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
-            Relancer la vérification
+          <button
+            onClick={handleScreening}
+            disabled={screenMutation.isPending}
+            className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+          >
+            {screenMutation.isPending ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Vérification...
+              </span>
+            ) : (
+              'Relancer la vérification'
+            )}
           </button>
         </div>
+
+        {screenMutation.isError && (
+          <p className="text-xs text-red-500 mb-3">
+            Erreur lors de la vérification : {screenMutation.error instanceof Error ? screenMutation.error.message : 'Erreur inconnue'}
+          </p>
+        )}
 
         <div className="space-y-0">
           {/* PEP row */}
           <div className={cn(
             'flex items-center gap-3 py-3 border-b border-theme-border-subtle',
-            kyc.pep_status !== 'clear' && 'bg-red-500/5 -mx-3 px-3 rounded-lg border-none'
+            pepStatus === 'match' && 'bg-red-500/5 -mx-3 px-3 rounded-lg border-none'
           )}>
             <span className={cn(
               'w-2 h-2 rounded-full shrink-0',
-              kyc.pep_status === 'clear' ? 'bg-emerald-500' : 'bg-red-500'
+              pepStatus === 'clear' ? 'bg-emerald-500' :
+              pepStatus === 'match' ? 'bg-red-500' :
+              pepStatus === 'pending' ? 'bg-amber-500' : 'bg-theme-tertiary'
             )} />
             <span className="text-sm text-theme-primary flex-1">PEP (Personnes Exposées Politiquement)</span>
             <span className={cn(
               'text-sm',
-              kyc.pep_status === 'clear' ? 'text-theme-secondary' : 'text-red-500 font-medium'
+              pepStatus === 'clear' ? 'text-theme-secondary' :
+              pepStatus === 'match' ? 'text-red-500 font-medium' :
+              pepStatus === 'pending' ? 'text-amber-500' : 'text-theme-tertiary'
             )}>
-              {PEP_STATUS_LABELS[kyc.pep_status]}
+              {PEP_STATUS_LABELS[pepStatus]}
             </span>
             {kyc.last_screening_at && (
               <span className="text-xs text-theme-muted hidden sm:block">{formatDate(kyc.last_screening_at)}</span>
             )}
           </div>
-          {kyc.pep_details && (
-            <p className="text-xs text-red-400 pl-5 py-1.5">{kyc.pep_details}</p>
+          {kyc.pep_details && pepStatus === 'match' && (
+            <p className="text-xs text-red-400 pl-5 py-1.5">
+              {(kyc.pep_details as { total?: number }).total ?? 0} correspondance(s) trouvée(s)
+            </p>
           )}
 
           {/* Sanctions row */}
           <div className={cn(
             'flex items-center gap-3 py-3',
-            kyc.sanctions_status !== 'clear' && 'bg-red-500/5 -mx-3 px-3 rounded-lg'
+            sanctionsStatus === 'match' && 'bg-red-500/5 -mx-3 px-3 rounded-lg'
           )}>
             <span className={cn(
               'w-2 h-2 rounded-full shrink-0',
-              kyc.sanctions_status === 'clear' ? 'bg-emerald-500' : 'bg-red-500'
+              sanctionsStatus === 'clear' ? 'bg-emerald-500' :
+              sanctionsStatus === 'match' ? 'bg-red-500' :
+              sanctionsStatus === 'pending' ? 'bg-amber-500' : 'bg-theme-tertiary'
             )} />
             <span className="text-sm text-theme-primary flex-1">Sanctions (SECO, UN, EU)</span>
             <span className={cn(
               'text-sm',
-              kyc.sanctions_status === 'clear' ? 'text-theme-secondary' : 'text-red-500 font-medium'
+              sanctionsStatus === 'clear' ? 'text-theme-secondary' :
+              sanctionsStatus === 'match' ? 'text-red-500 font-medium' :
+              sanctionsStatus === 'pending' ? 'text-amber-500' : 'text-theme-tertiary'
             )}>
-              {SANCTIONS_STATUS_LABELS[kyc.sanctions_status]}
+              {SANCTIONS_STATUS_LABELS[sanctionsStatus]}
             </span>
             {kyc.last_screening_at && (
               <span className="text-xs text-theme-muted hidden sm:block">{formatDate(kyc.last_screening_at)}</span>
             )}
           </div>
-          {kyc.sanctions_details && (
-            <p className="text-xs text-red-400 pl-5 py-1.5">{kyc.sanctions_details}</p>
+          {kyc.sanctions_details && sanctionsStatus === 'match' && (
+            <p className="text-xs text-red-400 pl-5 py-1.5">
+              {(kyc.sanctions_details as { total?: number }).total ?? 0} correspondance(s) trouvée(s)
+            </p>
           )}
         </div>
 
         {kyc.last_screening_at && (
           <p className="text-[10px] text-theme-muted mt-4 flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
-            estimation IA
+            estimation IA — dernière vérification {formatRelativeDate(kyc.last_screening_at)}
           </p>
         )}
       </div>
@@ -346,38 +498,55 @@ export default function KycDetailPage() {
                       {expanded && (
                         <div className="divide-y divide-theme-border/50">
                           {items.map((item) => (
-                            <div key={item.id} className="flex items-start gap-3 px-6 py-3 pl-12">
-                              {item.is_completed
-                                ? <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                                : <Circle className="h-5 w-5 text-theme-tertiary mt-0.5 flex-shrink-0" />
-                              }
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className={cn(
-                                    'text-sm',
-                                    item.is_completed ? 'text-theme-secondary line-through' : 'text-theme-primary font-medium'
-                                  )}>
-                                    {item.label}
-                                  </span>
-                                  {item.is_required && (
-                                    <span className="text-[10px] font-medium text-theme-tertiary uppercase">Requis</span>
-                                  )}
-                                  {item.document_status && (
-                                    <span className="ml-auto flex-shrink-0">
-                                      {docStatusIcon(item.document_status)}
-                                    </span>
-                                  )}
+                            <ContextMenu key={item.id}>
+                              <ContextMenuTrigger asChild>
+                                <div className="flex items-start gap-3 px-6 py-3 pl-12 cursor-default">
+                                  <button
+                                    onClick={() => handleToggleItem(item.id, item.is_completed)}
+                                    disabled={toggleItemMutation.isPending}
+                                    className="mt-0.5 flex-shrink-0"
+                                  >
+                                    {item.is_completed
+                                      ? <CheckCircle2 className="h-5 w-5 text-success" />
+                                      : <Circle className="h-5 w-5 text-theme-tertiary hover:text-accent transition-colors" />
+                                    }
+                                  </button>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={cn(
+                                        'text-sm',
+                                        item.is_completed ? 'text-theme-secondary line-through' : 'text-theme-primary font-medium'
+                                      )}>
+                                        {item.label}
+                                      </span>
+                                      {item.is_required && (
+                                        <span className="text-[10px] font-medium text-theme-tertiary uppercase">Requis</span>
+                                      )}
+                                    </div>
+                                    {item.notes && (
+                                      <p className="text-xs text-theme-tertiary mt-0.5">{item.notes}</p>
+                                    )}
+                                    {item.completed_at && (
+                                      <p className="text-[11px] text-theme-tertiary mt-0.5">
+                                        Complété {formatRelativeDate(item.completed_at)}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
-                                {item.notes && (
-                                  <p className="text-xs text-theme-tertiary mt-0.5">{item.notes}</p>
-                                )}
-                                {item.completed_at && (
-                                  <p className="text-[11px] text-theme-tertiary mt-0.5">
-                                    Complété {formatRelativeDate(item.completed_at)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent>
+                                <ContextMenuItem onSelect={() => handleToggleItem(item.id, item.is_completed)}>
+                                  {item.is_completed
+                                    ? <><Circle className="h-3.5 w-3.5" /> Marquer non complété</>
+                                    : <><CheckCircle2 className="h-3.5 w-3.5 text-success" /> Marquer complété</>
+                                  }
+                                </ContextMenuItem>
+                                <ContextMenuItem onSelect={() => fileInputRef.current?.click()}>
+                                  <Upload className="h-3.5 w-3.5" />
+                                  Lier un document
+                                </ContextMenuItem>
+                              </ContextMenuContent>
+                            </ContextMenu>
                           ))}
                         </div>
                       )}
@@ -392,11 +561,45 @@ export default function KycDetailPage() {
           <div className="rounded-xl border border-theme-border overflow-hidden">
             <div className="px-6 py-4 border-b border-theme-border flex items-center justify-between">
               <h2 className="text-base font-semibold text-theme-primary">Documents ({documents.length})</h2>
-              <button className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80 transition-colors">
-                <Upload className="h-3.5 w-3.5" />
-                Téléverser
-              </button>
+              <div className="flex items-center gap-2">
+                <select
+                  value={uploadCategory}
+                  onChange={(e) => setUploadCategory(e.target.value as DocumentCategory)}
+                  className="h-8 px-2 text-xs bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                >
+                  <option value="identity">Identité</option>
+                  <option value="domicile">Domicile</option>
+                  <option value="financial">Financier</option>
+                  <option value="compliance">Compliance</option>
+                  <option value="other">Autre</option>
+                </select>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadMutation.isPending}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
+                >
+                  {uploadMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  Téléverser
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                />
+              </div>
             </div>
+
+            {uploadMutation.isError && (
+              <div className="px-6 py-2">
+                <p className="text-xs text-red-500">Erreur lors du téléversement</p>
+              </div>
+            )}
 
             {documents.length === 0 ? (
               <div className="px-6 py-8 text-center">
@@ -405,35 +608,59 @@ export default function KycDetailPage() {
               </div>
             ) : (
               <div className="divide-y divide-theme-border">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center gap-3 px-6 py-3 hover:bg-theme-section/30 transition-colors">
-                    <FileText className="h-5 w-5 text-theme-tertiary flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-theme-primary truncate">{doc.name}</p>
-                      <p className="text-xs text-theme-tertiary">
-                        {doc.size_display} · Téléversé par {doc.uploaded_by} · {formatRelativeDate(doc.uploaded_at)}
-                      </p>
-                    </div>
-                    <span className={cn(
-                      'text-xs font-medium flex-shrink-0',
-                      doc.status === 'validated' && 'text-success',
-                      doc.status === 'pending' && 'text-warning',
-                      doc.status === 'rejected' && 'text-danger',
-                    )}>
-                      {doc.status === 'validated' ? 'Validé' : doc.status === 'pending' ? 'En attente' : 'Rejeté'}
-                    </span>
-                    {doc.expires_at && (() => {
-                      const now = new Date()
-                      const exp = new Date(doc.expires_at)
-                      const isExpired = exp < now
-                      const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-                      const isExpiringSoon = !isExpired && daysUntil <= 30
+                {documents.map((doc: KycDocument) => (
+                  <ContextMenu key={doc.id}>
+                    <ContextMenuTrigger asChild>
+                      <div className="flex items-center gap-3 px-6 py-3 hover:bg-theme-section/30 transition-colors cursor-default">
+                        <FileText className="h-5 w-5 text-theme-tertiary flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-theme-primary truncate">{doc.name}</p>
+                          <p className="text-xs text-theme-tertiary">
+                            {formatFileSize(doc.size_bytes)} · {formatRelativeDate(doc.created_at)}
+                          </p>
+                        </div>
+                        <span className={cn(
+                          'text-xs font-medium flex-shrink-0',
+                          doc.status === 'validated' && 'text-success',
+                          doc.status === 'pending' && 'text-warning',
+                          doc.status === 'rejected' && 'text-danger',
+                        )}>
+                          {doc.status === 'validated' ? 'Validé' : doc.status === 'pending' ? 'En attente' : 'Rejeté'}
+                        </span>
+                        {docStatusIcon(doc.status)}
+                        {doc.expires_at && (() => {
+                          const now = new Date()
+                          const exp = new Date(doc.expires_at)
+                          const isExpired = exp < now
+                          const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                          const isExpiringSoon = !isExpired && daysUntil <= 30
 
-                      if (isExpired) return <span className="text-[10px] font-medium text-red-500 ml-2">Expiré</span>
-                      if (isExpiringSoon) return <span className="text-[10px] font-medium text-amber-500 ml-2">Expire dans {daysUntil}j</span>
-                      return null
-                    })()}
-                  </div>
+                          if (isExpired) return <span className="text-[10px] font-medium text-red-500 ml-2">Expiré</span>
+                          if (isExpiringSoon) return <span className="text-[10px] font-medium text-amber-500 ml-2">Expire dans {daysUntil}j</span>
+                          return null
+                        })()}
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onSelect={() => handleDownloadDoc(doc)}>
+                        <Download className="h-3.5 w-3.5" />
+                        Télécharger
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      {doc.status !== 'validated' && (
+                        <ContextMenuItem onSelect={() => handleUpdateDocStatus(doc.id, 'validated')}>
+                          <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                          Valider le document
+                        </ContextMenuItem>
+                      )}
+                      {doc.status !== 'rejected' && (
+                        <ContextMenuItem onSelect={() => handleUpdateDocStatus(doc.id, 'rejected')}>
+                          <Ban className="h-3.5 w-3.5 text-danger" />
+                          Rejeter le document
+                        </ContextMenuItem>
+                      )}
+                    </ContextMenuContent>
+                  </ContextMenu>
                 ))}
               </div>
             )}
@@ -455,16 +682,20 @@ export default function KycDetailPage() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Ajouter une note sur ce dossier..."
                 rows={4}
-                className="w-full text-sm bg-input border border-theme-border rounded-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
+                className="w-full text-sm bg-transparent border border-theme-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
               />
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-2 rounded-button text-xs"
-                disabled={!notes.trim()}
+                className="mt-2 rounded-lg text-xs"
+                disabled={!notes.trim() || notesMutation.isPending}
+                onClick={handleSaveNotes}
               >
-                Enregistrer la note
+                {notesMutation.isPending ? 'Enregistrement...' : 'Enregistrer la note'}
               </Button>
+              {notesMutation.isSuccess && (
+                <span className="text-xs text-success ml-2">Enregistré</span>
+              )}
             </div>
           </div>
 
@@ -474,23 +705,25 @@ export default function KycDetailPage() {
               Journal d'audit
             </h2>
 
-            {audit.length === 0 ? (
+            {auditEvents.length === 0 ? (
               <p className="text-sm text-theme-tertiary text-center py-4">Aucun événement enregistré</p>
             ) : (
               <div className="space-y-0">
-                {audit.map((event, i) => (
+                {auditEvents.map((event: KycAuditEvent, i: number) => (
                   <div key={event.id} className={cn(
                     'flex items-start gap-3 py-3',
-                    i < audit.length - 1 && 'border-b border-theme-border'
+                    i < auditEvents.length - 1 && 'border-b border-theme-border'
                   )}>
                     <div className="h-2 w-2 rounded-full bg-theme-border shrink-0 mt-1.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-theme-primary">{event.action}</p>
-                      {event.details && (
-                        <p className="text-xs text-theme-tertiary mt-0.5">{event.details}</p>
+                      {event.metadata && (
+                        <p className="text-xs text-theme-tertiary mt-0.5">
+                          {event.metadata.provider === 'dilisense' && `Screening dilisense — ${(event.metadata as Record<string, unknown>).total_hits ?? 0} résultat(s)`}
+                        </p>
                       )}
                       <p className="text-[11px] text-theme-tertiary mt-1">
-                        {event.actor} · {formatDate(event.timestamp)} à {new Date(event.timestamp).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
+                        {event.actor_id === 'ai' ? 'Système IA' : event.actor_id} · {formatDate(event.created_at)} à {new Date(event.created_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>
@@ -507,7 +740,7 @@ export default function KycDetailPage() {
           <div className="bg-theme-card border border-theme-border rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-theme-primary">Valider ce dossier KYC ?</h3>
             <p className="text-sm text-theme-secondary mt-2">
-              Êtes-vous sûr de vouloir valider le dossier de <span className="font-medium text-theme-primary">{kyc.contact_name}</span> ?
+              Êtes-vous sûr de vouloir valider le dossier de <span className="font-medium text-theme-primary">{contactName}</span> ?
             </p>
             <p className="text-xs text-theme-muted mt-2">
               Cette action sera tracée dans le journal d'audit.
@@ -521,10 +754,11 @@ export default function KycDetailPage() {
                 Annuler
               </button>
               <button
-                className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors"
-                onClick={() => setShowValidateModal(false)}
+                className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+                onClick={handleValidate}
+                disabled={validateMutation.isPending}
               >
-                Confirmer la validation
+                {validateMutation.isPending ? 'Validation...' : 'Confirmer la validation'}
               </button>
             </div>
           </div>
