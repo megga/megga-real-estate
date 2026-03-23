@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { format, isPast } from "date-fns";
+import { isPast } from "date-fns";
 import type {
   CalendarEvent,
   CalendarEventItemProps,
@@ -83,33 +83,24 @@ export const eventColorStyles: Record<
 };
 
 /**
- * Formats time showing only minutes if not on the hour
- * e.g., "10" for 10:00, "2:45" for 2:45
+ * Formats time in 24h Swiss French format
+ * e.g., "10h" for 10:00, "14h30" for 14:30
  */
 function formatTimeShort(date: Date): string {
+  const hours = date.getHours();
   const minutes = date.getMinutes();
   if (minutes === 0) {
-    return format(date, "h");
+    return `${hours}h`;
   }
-  return format(date, "h:mm");
+  return `${hours}h${String(minutes).padStart(2, '0')}`;
 }
 
 /**
- * Formats event time as a compact range like "10–11 AM" or "11 AM–2 PM"
+ * Formats event time as a compact range in 24h French format
+ * e.g., "10h–11h" or "14h–15h30"
  */
 function formatEventTimeRange(event: CalendarEvent): string {
-  const startTime = formatTimeShort(event.start);
-  const endTime = formatTimeShort(event.end);
-  const endPeriod = format(event.end, "a");
-  const startPeriod = format(event.start, "a");
-
-  // If same period (both AM or both PM), only show period at the end
-  if (startPeriod === endPeriod) {
-    return `${startTime}\u2013${endTime} ${endPeriod}`;
-  }
-
-  // Different periods, show both
-  return `${startTime} ${startPeriod}\u2013${endTime} ${endPeriod}`;
+  return `${formatTimeShort(event.start)}\u2013${formatTimeShort(event.end)}`;
 }
 
 function computeOverrideStyle(
@@ -238,7 +229,7 @@ export function CalendarEventItem({
         <div className={cn("absolute inset-0 rounded-sm", styles.bg)} />
         <div
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-[4px] rounded-l-md dark:bg-white/20",
+            "absolute left-0 top-0 bottom-0 w-[4px] rounded-l-md dark:bg-white/40",
             styles.border,
           )}
         />
@@ -334,7 +325,7 @@ export function CalendarEventItem({
         <div className={cn("absolute inset-0 rounded-sm", styles.bg)} />
         <div
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-[4px] rounded-l-md dark:bg-white/20",
+            "absolute left-0 top-0 bottom-0 w-[4px] rounded-l-md dark:bg-white/40",
             styles.border,
           )}
         />
@@ -474,7 +465,7 @@ export function CalendarEventItem({
       {!isSelected && (
         <div
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-[4px] dark:bg-white/20",
+            "absolute left-0 top-0 bottom-0 w-[4px] dark:bg-white/40",
             hasTopRounding && "rounded-tl-md",
             hasBottomRounding && "rounded-bl-md",
             styles.border,
@@ -587,14 +578,10 @@ export interface AllDayEventItemProps {
 }
 
 /**
- * Formats start time for all-day events like "8:45 AM" or "4 PM"
+ * Formats start time for all-day events in 24h Swiss French format
  */
 function formatAllDayStartTime(date: Date): string {
-  const minutes = date.getMinutes();
-  if (minutes === 0) {
-    return format(date, "h a");
-  }
-  return format(date, "h:mm a");
+  return formatTimeShort(date);
 }
 
 const ALL_DAY_RESIZE_HOTZONE_PX = 6;
@@ -659,7 +646,7 @@ export function AllDayEventItem({
         {spanStart && (
           <div
             className={cn(
-              "absolute left-0 top-0 bottom-0 w-[4px] dark:bg-white/20",
+              "absolute left-0 top-0 bottom-0 w-[4px] dark:bg-white/40",
               spanStart && "rounded-l-md",
               styles.border,
             )}
@@ -709,7 +696,7 @@ export function AllDayEventItem({
         />
         <div
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-[4px] rounded-l-md dark:bg-white/20",
+            "absolute left-0 top-0 bottom-0 w-[4px] rounded-l-md dark:bg-white/40",
             styles.border,
           )}
         />
@@ -846,7 +833,7 @@ export function AllDayEventItem({
       {spanStart && !isSelected && (
         <div
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-[4px] dark:bg-white/20",
+            "absolute left-0 top-0 bottom-0 w-[4px] dark:bg-white/40",
             spanStart && "rounded-l-md",
             styles.border,
             eventIsPast && "opacity-60",
