@@ -25,6 +25,8 @@ export function WeekViewAllDayRow({
   allDayScrollContentRef,
   onEventChange,
   onContextMenuOpenChange,
+  onDuplicate,
+  onDelete,
   visibleStartIndex,
   visibleCount,
   dayColumnWidth,
@@ -130,6 +132,8 @@ export function WeekViewAllDayRow({
                     isBeingMoved={isBeingMoved}
                     onEventChange={onEventChange}
                     onContextMenuOpenChange={onContextMenuOpenChange}
+                    onDuplicate={onDuplicate}
+                    onDelete={onDelete}
                     visibleStartIndex={visibleStartIndex}
                     view={view}
                   />
@@ -226,6 +230,8 @@ interface AllDayEventRowProps {
   onEventChange?: (event: CalendarEvent) => void;
   /** Callback when context menu open state changes */
   onContextMenuOpenChange?: (open: boolean) => void;
+  onDuplicate?: (event: CalendarEvent) => void;
+  onDelete?: (eventId: string) => void;
   /** Index of the first visible column (for sticky-title offset) */
   visibleStartIndex?: number;
   /** Current view type (used for day-view specific styling) */
@@ -248,6 +254,8 @@ function AllDayEventRow({
   isBeingMoved,
   onEventChange,
   onContextMenuOpenChange,
+  onDuplicate,
+  onDelete,
   visibleStartIndex,
   view,
 }: AllDayEventRowProps) {
@@ -328,6 +336,8 @@ function AllDayEventRow({
         onResizeMouseDown={handleResizeMouseDown}
         onEventChange={onEventChange}
         onContextMenuOpenChange={onContextMenuOpenChange}
+        onDuplicate={onDuplicate}
+        onDelete={onDelete}
         titleOffsetPercent={titleOffsetPercent}
         dragVariant={isBeingMoved ? "ghost" : undefined}
       />

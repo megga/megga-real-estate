@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-const SITE_PASSWORD = 'megga2026'
+const SITE_PASSWORD = 'gg'
 const STORAGE_KEY = 'megga-site-access'
 
 interface PasswordGateProps {

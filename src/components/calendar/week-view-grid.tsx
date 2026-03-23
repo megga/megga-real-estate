@@ -30,6 +30,9 @@ export function WeekViewGrid({
   onEventResizeMouseDown,
   onEventChange,
   onContextMenuOpenChange,
+  onDuplicate,
+  onDelete,
+  conflictIds,
   onSlotClick,
   view,
   className,
@@ -115,7 +118,9 @@ export function WeekViewGrid({
               resizeState={resizeState}
               onEventResizeMouseDown={onEventResizeMouseDown}
               onEventChange={onEventChange}
-
+              onDuplicate={onDuplicate}
+              onDelete={onDelete}
+              conflictIds={conflictIds}
               onContextMenuOpenChange={onContextMenuOpenChange}
             />
           );
@@ -445,6 +450,9 @@ interface DayEventsColumnProps {
   ) => void;
   onEventChange?: (event: CalendarEvent) => void;
   onContextMenuOpenChange?: (open: boolean) => void;
+  onDuplicate?: (event: CalendarEvent) => void;
+  onDelete?: (eventId: string) => void;
+  conflictIds?: Set<string>;
 }
 
 function renderColumnGhost(
@@ -473,6 +481,9 @@ function DayEventsColumn({
   onEventResizeMouseDown,
   onEventChange,
   onContextMenuOpenChange,
+  onDuplicate,
+  onDelete,
+  conflictIds,
 }: DayEventsColumnProps) {
   return (
     <div className="relative h-full pointer-events-auto">
@@ -563,6 +574,9 @@ function DayEventsColumn({
             onDragMouseDown={onEventDragMouseDown}
             onResizeMouseDown={onEventResizeMouseDown}
             onEventChange={onEventChange}
+            onDuplicate={onDuplicate}
+            onDelete={onDelete}
+            hasConflict={conflictIds?.has(eventId)}
             onContextMenuOpenChange={onContextMenuOpenChange}
           />
         );

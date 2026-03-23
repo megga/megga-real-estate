@@ -62,6 +62,12 @@ export interface WeekViewProps {
   onVisibleDaysChange?: (days: Date[]) => void;
   /** Callback when an event is changed (e.g. dragged to a new time) */
   onEventChange?: (event: CalendarEvent) => void;
+  /** Callback to duplicate an event */
+  onDuplicate?: (event: CalendarEvent) => void;
+  /** Callback to delete an event */
+  onDelete?: (eventId: string) => void;
+  /** Set of event IDs that have time conflicts */
+  conflictIds?: Set<string>;
   /** Callback when clicking an empty time slot to create an event */
   onSlotClick?: (date: Date) => void;
   /** Optional className for the root element */
@@ -124,6 +130,12 @@ export interface WeekViewGridProps {
   onEventChange?: (event: CalendarEvent) => void;
   /** Callback when context menu open state changes */
   onContextMenuOpenChange?: (open: boolean) => void;
+  /** Callback to duplicate an event */
+  onDuplicate?: (event: CalendarEvent) => void;
+  /** Callback to delete an event */
+  onDelete?: (eventId: string) => void;
+  /** Set of event IDs that have time conflicts */
+  conflictIds?: Set<string>;
   /** Callback when clicking an empty time slot to create an event */
   onSlotClick?: (date: Date) => void;
   /** Current view type (used for day-view specific styling) */
@@ -178,6 +190,10 @@ export interface WeekViewAllDayRowProps {
   onEventChange?: (event: CalendarEvent) => void;
   /** Callback when context menu open state changes */
   onContextMenuOpenChange?: (open: boolean) => void;
+  /** Callback to duplicate an event */
+  onDuplicate?: (event: CalendarEvent) => void;
+  /** Callback to delete an event */
+  onDelete?: (eventId: string) => void;
   /** Ref to attach to the scroll content div for column measurements */
   allDayScrollContentRef?: React.RefObject<HTMLDivElement | null>;
   /** Index of the first visible column (used to skip buffer-only events in day view) */
@@ -419,6 +435,12 @@ export interface CalendarEventItemProps {
   fixedHeight?: number;
   /** Callback when context menu open state changes */
   onContextMenuOpenChange?: (open: boolean) => void;
+  /** Callback to duplicate an event */
+  onDuplicate?: (event: CalendarEvent) => void;
+  /** Callback to delete an event */
+  onDelete?: (eventId: string) => void;
+  /** Whether this event has a time conflict with another event */
+  hasConflict?: boolean;
   /** Optional className */
   className?: string;
 }
