@@ -464,7 +464,7 @@ function renderColumnGhost(
   );
 }
 
-const DayEventsColumn = React.memo(function DayEventsColumn({
+function DayEventsColumn({
   columnDate,
   events,
   hourHeight,
@@ -578,4 +578,4 @@ const DayEventsColumn = React.memo(function DayEventsColumn({
       })}
     </div>
   );
-});
+}
