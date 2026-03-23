@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import type { CalendarEvent, EventColor } from '@/components/calendar/week-view-types'
+import type { CalendarEvent, EventColor, RecurrenceFrequency } from '@/components/calendar/week-view-types'
 import { MOCK_CONTACTS, MOCK_AGENT_LISTINGS } from '@/lib/mockData'
 
 // ── Event type config ──
@@ -30,6 +30,14 @@ const DURATION_PRESETS = [
   { label: '1h', minutes: 60 },
   { label: '1h30', minutes: 90 },
   { label: '2h', minutes: 120 },
+]
+
+const RECURRENCE_OPTIONS: { label: string; value: RecurrenceFrequency | 'none' }[] = [
+  { label: 'Jamais', value: 'none' },
+  { label: 'Chaque jour', value: 'daily' },
+  { label: 'Chaque semaine', value: 'weekly' },
+  { label: 'Toutes les 2 sem.', value: 'biweekly' },
+  { label: 'Chaque mois', value: 'monthly' },
 ]
 
 // ── Props ──
@@ -97,6 +105,7 @@ function CreateVisitForm({
   const [propertyId, setPropertyId] = useState('')
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
+  const [recurrenceFreq, setRecurrenceFreq] = useState<RecurrenceFrequency | 'none'>('none')
 
   // Handle property change → auto-fill location
   const handlePropertyChange = useCallback((newPropertyId: string) => {
@@ -146,11 +155,18 @@ function CreateVisitForm({
       color: config.color,
       location: location || undefined,
       description: notes || undefined,
+      ...(recurrenceFreq !== 'none' && {
+        recurrenceRule: {
+          frequency: recurrenceFreq,
+          count: recurrenceFreq === 'daily' ? 30 : recurrenceFreq === 'weekly' ? 12 : recurrenceFreq === 'biweekly' ? 12 : 6,
+        },
+        recurrence: RECURRENCE_OPTIONS.find((o) => o.value === recurrenceFreq)?.label,
+      }),
     }
 
     onCreateEvent(newEvent)
     onClose()
-  }, [date, startTime, durationMinutes, eventType, location, notes, displayTitle, onCreateEvent, onClose])
+  }, [date, startTime, durationMinutes, eventType, location, notes, recurrenceFreq, displayTitle, onCreateEvent, onClose])
 
   const isValid = date && startTime
 
@@ -241,6 +257,30 @@ function CreateVisitForm({
               )}
             >
               {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Recurrence */}
+      <div>
+        <label className="text-xs font-medium text-theme-secondary mb-2 block">
+          Récurrence
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {RECURRENCE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setRecurrenceFreq(opt.value)}
+              className={cn(
+                'h-7 px-3 rounded-full text-xs font-medium transition-colors border',
+                recurrenceFreq === opt.value
+                  ? 'border-theme-border-focus bg-accent/10 text-accent'
+                  : 'border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
+              )}
+            >
+              {opt.label}
             </button>
           ))}
         </div>

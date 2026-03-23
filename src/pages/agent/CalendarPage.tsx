@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { addDays, addMonths, subMonths, startOfWeek, startOfMonth, format } from 'date-fns'
+import { addDays, addMonths, subMonths, startOfWeek, startOfMonth, endOfMonth, endOfWeek, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, PanelRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -9,7 +9,7 @@ import { MonthView } from '@/components/calendar/month-view'
 import type { CalendarEvent, EventColor, ViewType } from '@/components/calendar/week-view-types'
 import { MOCK_EVENTS } from '@/components/calendar/mock-events'
 import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
-import { detectConflicts } from '@/lib/event-utils'
+import { detectConflicts, expandRecurringEvents } from '@/lib/event-utils'
 import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
 import EventDetailSidebar from '@/components/calendar/EventDetailSidebar'
 
@@ -38,10 +38,23 @@ export default function CalendarPage() {
   // Filter state — all colors active by default
   const [activeFilters, setActiveFilters] = useState<Set<EventColor>>(() => new Set(ALL_COLORS))
 
-  const filteredEvents = useMemo(
-    () => events.filter((e) => activeFilters.has(e.color ?? 'blue')),
-    [events, activeFilters]
-  )
+  // Compute visible range for recurring event expansion
+  const visibleRange = useMemo(() => {
+    if (view === 'month') {
+      const ms = startOfMonth(currentDate)
+      return { start: startOfWeek(ms, { weekStartsOn: 1 }), end: endOfWeek(endOfMonth(ms), { weekStartsOn: 1 }) }
+    }
+    if (view === 'day') {
+      return { start: currentDate, end: addDays(currentDate, 1) }
+    }
+    // week: show 2 weeks buffer
+    return { start: addDays(currentDate, -7), end: addDays(currentDate, 14) }
+  }, [view, currentDate])
+
+  const filteredEvents = useMemo(() => {
+    const colorFiltered = events.filter((e) => activeFilters.has(e.color ?? 'blue'))
+    return expandRecurringEvents(colorFiltered, visibleRange.start, visibleRange.end)
+  }, [events, activeFilters, visibleRange])
 
   const conflictIds = useMemo(
     () => detectConflicts(filteredEvents),

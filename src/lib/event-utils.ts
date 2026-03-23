@@ -2,6 +2,11 @@ import {
   isSameDay,
   startOfDay,
   addDays,
+  addWeeks,
+  addMonths,
+  isBefore,
+  isAfter,
+  differenceInMilliseconds,
   differenceInMinutes,
   isWithinInterval,
   areIntervalsOverlapping,
@@ -400,4 +405,70 @@ export function detectConflicts(events: CalendarEvent[]): Set<string> {
   }
 
   return conflictIds;
+}
+
+/**
+ * Expand recurring events into individual instances within a date range.
+ * Non-recurring events pass through unchanged.
+ * Generated instances get a unique id and a `recurringEventId` pointing to the parent.
+ */
+export function expandRecurringEvents(
+  events: CalendarEvent[],
+  rangeStart: Date,
+  rangeEnd: Date,
+): CalendarEvent[] {
+  const result: CalendarEvent[] = [];
+
+  for (const event of events) {
+    if (!event.recurrenceRule) {
+      result.push(event);
+      continue;
+    }
+
+    const { frequency, until, count } = event.recurrenceRule;
+    const duration = differenceInMilliseconds(event.end, event.start);
+    const maxDate = until ?? rangeEnd;
+    const maxCount = count ?? 200; // safety limit
+
+    let current = new Date(event.start);
+    let instanceIndex = 0;
+
+    while (instanceIndex < maxCount) {
+      // Stop if past the range or past the until date
+      if (isAfter(current, maxDate) || isAfter(current, rangeEnd)) break;
+
+      // Only include if within range
+      if (!isBefore(current, rangeStart) || isSameDay(current, rangeStart)) {
+        const instanceId = instanceIndex === 0 ? event.id : `${event.id}_r${instanceIndex}`;
+        result.push({
+          ...event,
+          id: instanceId,
+          start: new Date(current),
+          end: new Date(current.getTime() + duration),
+          recurringEventId: instanceIndex === 0 ? undefined : event.id,
+          // Keep recurrenceRule only on the original
+          recurrenceRule: instanceIndex === 0 ? event.recurrenceRule : undefined,
+        });
+      }
+
+      // Advance to next occurrence
+      instanceIndex++;
+      switch (frequency) {
+        case 'daily':
+          current = addDays(event.start, instanceIndex);
+          break;
+        case 'weekly':
+          current = addWeeks(event.start, instanceIndex);
+          break;
+        case 'biweekly':
+          current = addWeeks(event.start, instanceIndex * 2);
+          break;
+        case 'monthly':
+          current = addMonths(event.start, instanceIndex);
+          break;
+      }
+    }
+  }
+
+  return result;
 }

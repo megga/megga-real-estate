@@ -166,4 +166,17 @@ export const MOCK_EVENTS: CalendarEvent[] = [
     description: 'Stand MEGGA au salon immobilier',
     location: 'Palexpo, Route François-Peyrot 30',
   },
+
+  // Recurring: weekly team meeting
+  {
+    id: 'evt-15',
+    title: 'Réunion équipe',
+    start: makeDate(1, 14, 0),
+    end: makeDate(1, 15, 0),
+    color: 'gray',
+    description: 'Point hebdomadaire équipe MEGGA',
+    location: 'Bureau MEGGA, Genève',
+    recurrence: 'Chaque semaine',
+    recurrenceRule: { frequency: 'weekly', count: 12 },
+  },
 ]

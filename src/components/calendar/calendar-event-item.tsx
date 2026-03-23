@@ -502,6 +502,11 @@ export function CalendarEventItem({
           )}
         >
           {event.title}
+          {(event.recurrenceRule || event.recurringEventId) && (
+            <svg className="inline-block w-2.5 h-2.5 shrink-0 ml-0.5 opacity-60" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M11 5.466V4H5a4 4 0 0 0-4 4 4 4 0 0 0 4 4h6a3 3 0 1 0 0-6H6.534a2 2 0 1 0 0 2H11V7H6.534a1 1 0 1 1 0-2H11a2 2 0 1 1 0 4H5a3 3 0 1 1 0-6h6v1.466z" />
+            </svg>
+          )}
           <VisitStatusBadge status={event.visitStatus} />
           {hasConflict && (
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0 ml-0.5" title="Conflit horaire" />
