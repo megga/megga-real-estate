@@ -59,13 +59,13 @@ export function WeekViewAllDayRow({
   return (
     <div
       className={cn(
-        "border-border flex border-t border-b bg-background",
+        "border-theme-border flex border-t border-b bg-theme-card",
         className,
       )}
     >
       {/* All-day label */}
-      <div className="border-border text-muted-foreground flex w-16 flex-shrink-0 items-start justify-end border-r px-2 py-2 text-xxs">
-        All-day
+      <div className="border-theme-border text-theme-tertiary flex w-16 flex-shrink-0 items-start justify-end border-r px-2 py-2 text-xxs">
+        Journée
       </div>
 
       {/* Day columns for all-day events - wrapped for scroll sync */}
@@ -84,7 +84,7 @@ export function WeekViewAllDayRow({
                   <div
                     key={day.date.toISOString()}
                     className={cn(
-                      "border-border border-l first:border-l-0 h-full",
+                      "border-theme-border border-l first:border-l-0 h-full",
                       isWeekend && "bg-calendar-weekend",
                     )}
                   />

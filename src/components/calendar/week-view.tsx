@@ -102,7 +102,7 @@ function generateHours(): HourSlot[] {
     dateWithHour.setHours(i, 0, 0, 0);
     return {
       hour: i,
-      label: format(dateWithHour, "h a"),
+      label: `${i}h`,
     };
   });
 }
@@ -356,9 +356,9 @@ export function WeekView({
             ref={dayColumnsScrollRef}
             className="overflow-hidden"
           >
-            <div className="flex bg-background">
+            <div className="flex bg-theme-card">
               {/* Timezone label - rendered outside scroll container */}
-              <div className="text-muted-foreground flex w-16 flex-shrink-0 items-center justify-end pr-2 text-xxs">
+              <div className="text-theme-tertiary flex w-16 flex-shrink-0 items-center justify-end pr-2 text-xxs">
                 {new Date()
                   .toLocaleTimeString("en-US", { timeZoneName: "short" })
                   .match(/\s([A-Z]{2,5})$/)?.[1] ?? ""}
