@@ -1,4 +1,8 @@
 import { useState, useCallback, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
+import { formatCHF } from '@/lib/utils'
 
 export type ActionPriority = 'urgent' | 'high' | 'medium' | 'low'
 export type ActionCategory = 'urgency' | 'follow_up' | 'match_found' | 'visit_confirm' | 'suggestion'
@@ -28,7 +32,71 @@ export interface ActionItem {
   isOverdue?: boolean // > 3 days late
 }
 
-// Mock action data — Phase A (static, no AI)
+// ── Supabase match shape for Action Board ───────────────────────────────────
+
+interface RecentMatchRow {
+  id: string
+  score: number
+  created_at: string
+  contact_id: string
+  property_id: string
+  contact: { first_name: string; last_name: string }[] | { first_name: string; last_name: string } | null
+  property: { title: string; address: string; city: string; price: number }[] | { title: string; address: string; city: string; price: number } | null
+}
+
+interface RecentMatch {
+  id: string
+  score: number
+  created_at: string
+  contact_id: string
+  property_id: string
+  contact: { first_name: string; last_name: string } | null
+  property: { title: string; address: string; city: string; price: number } | null
+}
+
+function normalizeMatch(row: RecentMatchRow): RecentMatch {
+  return {
+    ...row,
+    contact: Array.isArray(row.contact) ? row.contact[0] ?? null : row.contact,
+    property: Array.isArray(row.property) ? row.property[0] ?? null : row.property,
+  }
+}
+
+function matchToAction(match: RecentMatch): ActionItem {
+  const contactName = match.contact
+    ? `${match.contact.first_name} ${match.contact.last_name}`
+    : 'Contact'
+  const propertyInfo = match.property
+    ? `${match.property.title || match.property.address}, ${match.property.city}`
+    : 'Bien'
+  const priceStr = match.property ? formatCHF(match.property.price) : ''
+
+  const createdDate = new Date(match.created_at)
+  const now = new Date()
+  const diffHours = Math.round((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60))
+  const timestamp = diffHours < 1
+    ? "à l'instant"
+    : diffHours < 24
+      ? `il y a ${diffHours}h`
+      : `il y a ${Math.round(diffHours / 24)}j`
+
+  return {
+    id: `match-${match.id}`,
+    category: 'match_found',
+    priority: 'medium',
+    title: `Nouveau match — ${contactName}`,
+    description: `${propertyInfo}, ${priceStr}, ${match.score}% compatible.`,
+    actionLabel: 'Envoyer le bien',
+    actionType: 'send_property',
+    entityType: 'contact',
+    entityId: match.contact_id,
+    isCompleted: false,
+    timestamp,
+  }
+}
+
+// ── Mock actions for categories not yet connected to Supabase ────────────────
+
 const MOCK_ACTIONS: ActionItem[] = [
   // Urgences
   {
@@ -50,7 +118,7 @@ const MOCK_ACTIONS: ActionItem[] = [
     category: 'urgency',
     priority: 'urgent',
     title: 'Deal à risque — Villa Champel',
-    description: 'Aucune activité depuis 12 jours. Le vendeur s\'impatiente.',
+    description: "Aucune activité depuis 12 jours. Le vendeur s'impatiente.",
     actionLabel: 'Relancer',
     actionType: 'relancer',
     entityType: 'deal',
@@ -64,7 +132,7 @@ const MOCK_ACTIONS: ActionItem[] = [
     category: 'urgency',
     priority: 'urgent',
     title: 'Document expiré — Attestation domicile Sophie Favre',
-    description: 'L\'attestation de domicile a expiré le 10.03.2026. Dossier KYC bloqué.',
+    description: "L'attestation de domicile a expiré le 10.03.2026. Dossier KYC bloqué.",
     actionLabel: 'Voir le dossier',
     actionType: 'review_document',
     entityType: 'contact',
@@ -128,40 +196,13 @@ const MOCK_ACTIONS: ActionItem[] = [
     timestamp: 'il y a 27 jours',
     isOverdue: true,
   },
-  // Matchs trouvés
-  {
-    id: 'a6',
-    category: 'match_found',
-    priority: 'medium',
-    title: 'Nouveau match — Marie Dupont',
-    description: '3 pièces Rue du Rhône, CHF 820\'000, 92% compatible. Budget, zone et surface OK.',
-    actionLabel: 'Envoyer le bien',
-    actionType: 'send_property',
-    entityType: 'contact',
-    entityId: 'c1',
-    isCompleted: false,
-    timestamp: 'hier 09:15',
-  },
-  {
-    id: 'a7',
-    category: 'match_found',
-    priority: 'medium',
-    title: 'Nouveau match — Hans Zimmermann',
-    description: 'Duplex Florissant, CHF 1\'180\'000, 85% compatible. Type et zone correspondants.',
-    actionLabel: 'Envoyer le bien',
-    actionType: 'send_property',
-    entityType: 'contact',
-    entityId: 'c3',
-    isCompleted: false,
-    timestamp: 'hier 14:20',
-  },
   // Visites à confirmer
   {
     id: 'a8',
     category: 'visit_confirm',
     priority: 'medium',
     title: 'Confirmer visite — Isabelle Rochat',
-    description: 'Duplex Champel, aujourd\'hui à 14h30. Confirmation du client en attente.',
+    description: "Duplex Champel, aujourd'hui à 14h30. Confirmation du client en attente.",
     actionLabel: 'Appeler',
     actionType: 'call',
     entityType: 'visit',
@@ -174,7 +215,7 @@ const MOCK_ACTIONS: ActionItem[] = [
     category: 'visit_confirm',
     priority: 'medium',
     title: 'Préparer visite — Laurent Berset',
-    description: 'Appartement Eaux-Vives, demain à 10h00. Dossier du bien à imprimer.',
+    description: "Appartement Eaux-Vives, demain à 10h00. Dossier du bien à imprimer.",
     actionLabel: 'Voir le dossier',
     actionType: 'review_document',
     entityType: 'deal',
@@ -189,7 +230,7 @@ const MOCK_ACTIONS: ActionItem[] = [
     priority: 'low',
     title: 'Proposer une baisse de prix — Villa Cologny',
     description: 'Le bien est en vente depuis 45 jours sans offre. Le marché comparable suggère un ajustement de -5%.',
-    actionLabel: 'Voir l\'analyse',
+    actionLabel: "Voir l'analyse",
     actionType: 'view_analysis',
     entityType: 'property',
     entityId: 'p3',
@@ -211,15 +252,54 @@ const MOCK_ACTIONS: ActionItem[] = [
 ]
 
 export function useActionBoard() {
-  const [actions, setActions] = useState<ActionItem[]>(MOCK_ACTIONS)
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id
+
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
+
+  // ── Fetch recent matches from Supabase (last 48h, status = 'suggested') ──
+  const { data: recentMatches = [] } = useQuery({
+    queryKey: ['recent-matches', agencyId],
+    queryFn: async () => {
+      const twoDaysAgo = new Date()
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+
+      const { data, error } = await supabase
+        .from('matches')
+        .select('id, score, created_at, contact_id, property_id, contact:contacts(first_name, last_name), property:properties(title, address, city, price)')
+        .eq('agency_id', agencyId)
+        .eq('status', 'suggested')
+        .gte('created_at', twoDaysAgo.toISOString())
+        .order('score', { ascending: false })
+        .limit(10)
+
+      if (error) throw error
+      return ((data || []) as RecentMatchRow[]).map(normalizeMatch)
+    },
+    enabled: !!agencyId,
+    staleTime: 30000,
+  })
+
+  // ── Convert Supabase matches to ActionItems ──
+  const supabaseMatchActions = useMemo(
+    () => recentMatches.map(matchToAction),
+    [recentMatches]
+  )
+
+  // ── Merge: mock actions (non-match categories) + real match actions ──
+  const allActions = useMemo(() => {
+    const mockNonMatch = MOCK_ACTIONS.filter((a) => a.category !== 'match_found')
+    return [...mockNonMatch, ...supabaseMatchActions]
+  }, [supabaseMatchActions])
 
   const markAsCompleted = useCallback((actionId: string) => {
-    setActions((prev) =>
-      prev.map((a) => (a.id === actionId ? { ...a, isCompleted: true } : a))
-    )
+    setCompletedIds((prev) => new Set([...prev, actionId]))
   }, [])
 
-  const pending = useMemo(() => actions.filter((a) => !a.isCompleted), [actions])
+  const pending = useMemo(
+    () => allActions.filter((a) => !a.isCompleted && !completedIds.has(a.id)),
+    [allActions, completedIds]
+  )
 
   const byCategory = useMemo(() => ({
     urgencies: pending.filter((a) => a.category === 'urgency'),
