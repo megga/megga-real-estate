@@ -1,256 +1,160 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { matchContactAgainstListings, matchAllBuyers, type MatchResult as MockMatchResult } from '@/lib/matching'
+import type { MatchWithRelations, MatchStatus } from '@/types/matching'
 
-// ── Supabase match shape ────────────────────────────────────────────────────
+// ── Shared select for matches with relations ────────────────────────────────
 
-export interface SupabaseMatchResult {
-  id: string
-  contact_id: string
-  property_id: string
-  client_search_id: string | null
-  score: number
-  reasons: Record<string, { match: boolean; score: number; detail: string }>
-  status: 'suggested' | 'sent' | 'visit_planned' | 'interested' | 'rejected' | 'ignored'
-  sent_via: string | null
-  sent_at: string | null
-  created_at: string
-  contact?: {
-    first_name: string
-    last_name: string
-    email: string
-    phone: string
-  }
-  property?: {
-    title: string
-    price: number
-    address: string
-    city: string
-    canton: string
-    postal_code: string
-    rooms: number
-    bedrooms: number
-    surface_m2: number
-    photos: string[]
-    type: string
-    description: string
-    features: string[]
-    floor: number | null
-    year_built: number
-    charges_monthly: number
-  }
+const MATCH_SELECT = `
+  *,
+  contact:contacts(id, first_name, last_name, email, phone, whatsapp_phone, type, score),
+  property:properties(id, title, description, type, status, price, rooms, bedrooms, bathrooms, surface_m2, floor, year_built, address, city, canton, postal_code, photos, features, charges_monthly)
+`
+
+// ── Filters ─────────────────────────────────────────────────────────────────
+
+export interface MatchFilters {
+  status?: MatchStatus | 'all'
+  contactId?: string
+  propertyId?: string
 }
 
-// ── Unified match shape used by MatchingPage ────────────────────────────────
+// ── useMatches — list matches with filters ──────────────────────────────────
 
-export interface MatchResult {
-  id: string
-  contactId: string
-  contactName: string
-  propertyId: string
-  listing: {
-    title: string
-    price: number
-    address: string
-    city: string
-    canton: string
-    postal_code: string
-    rooms: number
-    bedrooms: number
-    surface_m2: number
-    photos: string[]
-    type: string
-    description: string
-    features: Record<string, string>
-    floor: number | null
-    total_floors: number | null
-    year_built: number
-    charges_monthly: number
-  }
-  score: number
-  reasons: {
-    budget: { match: boolean; score: number; detail: string }
-    zone: { match: boolean; score: number; detail: string }
-    type: { match: boolean; score: number; detail: string }
-    rooms: { match: boolean; score: number; detail: string }
-    features: { match: boolean; score: number; detail: string }
-  }
-  status: 'suggested' | 'sent' | 'visit_planned' | 'interested' | 'rejected' | 'ignored'
-  sentVia: string | null
-  sentAt: string | null
-  createdAt: string
-}
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
-  const contact = m.contact
-  const property = m.property
-
-  // Convert features array to Record<string, string> for compatibility with existing UI
-  const featuresRecord: Record<string, string> = {}
-  if (Array.isArray(property?.features)) {
-    for (const f of property.features) {
-      featuresRecord[f] = '✓'
-    }
-  }
-
-  return {
-    id: m.id,
-    contactId: m.contact_id,
-    contactName: contact ? `${contact.first_name} ${contact.last_name}` : 'Contact inconnu',
-    propertyId: m.property_id,
-    listing: {
-      title: property?.title ?? 'Bien inconnu',
-      price: property?.price ?? 0,
-      address: property?.address ?? '',
-      city: property?.city ?? '',
-      canton: property?.canton ?? '',
-      postal_code: property?.postal_code ?? '',
-      rooms: property?.rooms ?? 0,
-      bedrooms: property?.bedrooms ?? 0,
-      surface_m2: property?.surface_m2 ?? 0,
-      photos: property?.photos ?? [],
-      type: property?.type ?? '',
-      description: property?.description ?? '',
-      features: featuresRecord,
-      floor: property?.floor ?? null,
-      total_floors: null,
-      year_built: property?.year_built ?? 0,
-      charges_monthly: property?.charges_monthly ?? 0,
-    },
-    score: m.score,
-    reasons: {
-      budget: m.reasons?.budget ?? { match: false, score: 0, detail: '' },
-      zone: m.reasons?.zone ?? { match: false, score: 0, detail: '' },
-      type: m.reasons?.type ?? { match: false, score: 0, detail: '' },
-      rooms: m.reasons?.rooms ?? { match: false, score: 0, detail: '' },
-      features: m.reasons?.features ?? { match: false, score: 0, detail: '' },
-    },
-    status: m.status,
-    sentVia: m.sent_via,
-    sentAt: m.sent_at,
-    createdAt: m.created_at,
-  }
-}
-
-// ── Hook ────────────────────────────────────────────────────────────────────
-
-export function useMatching(contactId?: string) {
+export function useMatches(filters?: MatchFilters) {
   const { profile } = useAuth()
-  const queryClient = useQueryClient()
   const agencyId = profile?.agency_id
 
-  // ── Load matches from Supabase, fallback to mock ──
-  const { data: matches = [], isLoading } = useQuery({
-    queryKey: ['matches', agencyId, contactId],
-    queryFn: async (): Promise<MatchResult[]> => {
-      if (!agencyId) return fallbackToMock(contactId)
+  return useQuery({
+    queryKey: ['matches', agencyId, filters],
+    queryFn: async () => {
+      if (!agencyId) return []
 
       let query = supabase
         .from('matches')
-        .select(
-          '*, contact:contacts(first_name, last_name, email, phone), property:properties(title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, features, floor, year_built, charges_monthly)'
-        )
+        .select(MATCH_SELECT)
         .eq('agency_id', agencyId)
         .order('score', { ascending: false })
 
-      if (contactId) {
-        query = query.eq('contact_id', contactId)
+      if (filters?.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status)
+      }
+      if (filters?.contactId) {
+        query = query.eq('contact_id', filters.contactId)
+      }
+      if (filters?.propertyId) {
+        query = query.eq('property_id', filters.propertyId)
       }
 
       const { data, error } = await query
       if (error) throw error
-
-      const supabaseMatches = (data || []) as SupabaseMatchResult[]
-
-      // If Supabase returns empty, fallback to mock data
-      if (supabaseMatches.length === 0) {
-        return fallbackToMock(contactId)
-      }
-
-      return supabaseMatches.map(supabaseToMatch)
+      return (data || []) as MatchWithRelations[]
     },
-    enabled: true,
+    enabled: !!agencyId,
+    staleTime: 30_000,
   })
-
-  // ── Update match status ──
-  const sendMatchMutation = useMutation({
-    mutationFn: async ({ matchId, channel }: { matchId: string; channel: string }) => {
-      // Skip Supabase update for mock matches
-      if (matchId.startsWith('match-')) return
-
-      const { error } = await supabase
-        .from('matches')
-        .update({
-          status: 'sent',
-          sent_via: channel,
-          sent_at: new Date().toISOString(),
-        })
-        .eq('id', matchId)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['matches'] })
-    },
-  })
-
-  const ignoreMatchMutation = useMutation({
-    mutationFn: async (matchId: string) => {
-      if (matchId.startsWith('match-')) return
-
-      const { error } = await supabase
-        .from('matches')
-        .update({ status: 'ignored' })
-        .eq('id', matchId)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['matches'] })
-    },
-  })
-
-  // ── Trigger matching via Edge Function ──
-  const runMatchingMutation = useMutation({
-    mutationFn: async (targetContactId: string) => {
-      const { data, error } = await supabase.functions.invoke('matching-engine', {
-        body: {
-          mode: 'match-contact',
-          contact_id: targetContactId,
-          agency_id: agencyId,
-        },
-      })
-      if (error) throw error
-      return data as { newMatches: number; mode: string }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['matches'] })
-    },
-  })
-
-  const suggested = matches.filter((m) => m.status === 'suggested')
-  const sent = matches.filter((m) => m.status === 'sent')
-
-  return {
-    matches,
-    suggested,
-    sent,
-    isLoading,
-    sendMatch: (matchId: string, channel: 'email' | 'whatsapp' | 'both') =>
-      sendMatchMutation.mutate({ matchId, channel }),
-    ignoreMatch: (matchId: string) => ignoreMatchMutation.mutate(matchId),
-    runMatching: (targetContactId: string) => runMatchingMutation.mutate(targetContactId),
-    isRunning: runMatchingMutation.isPending,
-  }
 }
 
-// ── Mock fallback (uses existing mock engine) ───────────────────────────────
+// ── useContactMatches — matches for a specific contact ──────────────────────
 
-function fallbackToMock(contactId?: string): MatchResult[] {
-  const mockResults: MockMatchResult[] = contactId
-    ? matchContactAgainstListings(contactId)
-    : matchAllBuyers()
+export function useContactMatches(contactId: string) {
+  return useMatches({ contactId })
+}
 
-  return mockResults as MatchResult[]
+// ── usePropertyMatches — matches for a specific property ────────────────────
+
+export function usePropertyMatches(propertyId: string) {
+  return useMatches({ propertyId })
+}
+
+// ── useRunMatching — trigger the matching engine Edge Function ───────────────
+
+export function useRunMatching() {
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: {
+      trigger: 'new_property' | 'new_search' | 'daily'
+      property_id?: string
+      contact_id?: string
+    }) => {
+      if (!profile?.agency_id) throw new Error('No agency_id')
+
+      const { data, error } = await supabase.functions.invoke('matching-engine', {
+        body: {
+          trigger: params.trigger,
+          property_id: params.property_id,
+          contact_id: params.contact_id,
+          agency_id: profile.agency_id,
+        },
+      })
+
+      if (error) throw error
+      return data as { matches_created: number; matches: MatchWithRelations[] }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+    },
+  })
+}
+
+// ── useUpdateMatchStatus — change a match's status ──────────────────────────
+
+export function useUpdateMatchStatus() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ matchId, status }: { matchId: string; status: MatchStatus }) => {
+      const { data, error } = await supabase
+        .from('matches')
+        .update({ status })
+        .eq('id', matchId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+    },
+  })
+}
+
+// ── useSendMatchToClient — send property via Edge Function ──────────────────
+
+export function useSendMatchToClient() {
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      matchId,
+      channel,
+      message,
+    }: {
+      matchId: string
+      channel: 'email' | 'whatsapp'
+      message: string
+    }) => {
+      if (!profile?.agency_id) throw new Error('No agency_id')
+
+      const { data, error } = await supabase.functions.invoke('send-property-email', {
+        body: {
+          match_id: matchId,
+          channel,
+          message,
+          agency_id: profile.agency_id,
+          agent_id: profile.id,
+        },
+      })
+
+      if (error) throw error
+      return data as { success: boolean; match_id: string; channel: string }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+    },
+  })
 }
