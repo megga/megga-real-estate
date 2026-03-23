@@ -270,7 +270,7 @@ export default function CopilotPanel() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-50 h-10 w-10 rounded-xl border border-theme-border bg-theme-card hover:bg-theme-hover text-theme-tertiary hover:text-theme-primary shadow-sm hover:shadow-md flex items-center justify-center transition-all duration-200"
+          className="fixed bottom-20 right-4 md:bottom-5 md:right-5 z-50 h-10 w-10 rounded-xl border border-theme-border bg-theme-card hover:bg-theme-hover text-theme-tertiary hover:text-theme-primary shadow-sm hover:shadow-md flex items-center justify-center transition-all duration-200"
           title="MEGGA AI"
         >
           <Sparkles className="h-4 w-4" />

@@ -158,9 +158,3 @@ export function useSendMatchToClient() {
     },
   })
 }
-
-// ── Legacy hook for backward compatibility (mock-based) ─────────────────────
-// Keep this for components that still use the old mock interface.
-// Will be removed once all consumers are migrated.
-
-export { useMatching as useMatchingMock } from '@/hooks/useMatchingMock'

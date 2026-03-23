@@ -133,15 +133,19 @@ export const FATF_INCREASED_MONITORING = [
   'PH', 'SN', 'ZA', 'SS', 'TZ', 'VN',
 ] as const
 
-export type PepStatus = 'clear' | 'match_found'
-export type SanctionsStatus = 'clear' | 'match_found'
+export type PepStatus = 'clear' | 'match' | 'pending' | 'not_checked'
+export type SanctionsStatus = 'clear' | 'match' | 'pending' | 'not_checked'
 
 export const PEP_STATUS_LABELS: Record<PepStatus, string> = {
   clear: 'Aucune correspondance',
-  match_found: 'Correspondance trouvée',
+  match: 'Correspondance trouvée',
+  pending: 'Vérification en cours',
+  not_checked: 'Non vérifié',
 }
 
 export const SANCTIONS_STATUS_LABELS: Record<SanctionsStatus, string> = {
   clear: 'Aucune correspondance',
-  match_found: 'Correspondance trouvée',
+  match: 'Correspondance trouvée',
+  pending: 'Vérification en cours',
+  not_checked: 'Non vérifié',
 }

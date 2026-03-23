@@ -1,131 +1,218 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+interface PropertyPayload {
+  title: string
+  price: number
+  address: string
+  city: string
+  rooms: number | null
+  surface_m2: number | null
+  type: string
+  photo_url: string | null
+  source_url: string
+  source_agency: string | null
+  source_portal: string
+}
+
+interface SendRequest {
+  to: string
+  contactFirstName: string
+  agentName: string
+  agentPhone: string
+  property: PropertyPayload
+  message?: string
+}
+
+function formatCHF(amount: number): string {
+  return `CHF ${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, "'")}`
+}
+
+function buildEmailHtml(req: SendRequest): string {
+  const p = req.property
+  const photoSection = p.photo_url
+    ? `<img src="${p.photo_url}" alt="${p.title || 'Bien immobilier'}" style="width:100%;height:auto;border-radius:12px;display:block;" />`
+    : `<div style="background:#f3f4f6;border-radius:12px;height:200px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:14px;">Pas de photo disponible</div>`
+
+  const stats = [
+    p.rooms ? `${p.rooms} pièces` : null,
+    p.surface_m2 ? `${p.surface_m2} m²` : null,
+    p.type || null,
+  ].filter(Boolean).join(' · ')
+
+  const priceDisplay = p.price > 0 ? formatCHF(p.price) : 'Prix sur demande'
+  const personalMessage = req.message
+    ? `<p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 24px 0;white-space:pre-line;">${req.message}</p>`
+    : ''
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bien immobilier — ${priceDisplay}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-0.5px;">MEGGA</span>
+      <span style="font-size:11px;color:#9ca3af;display:block;margin-top:2px;">Immobilier Suisse</span>
+    </div>
+
+    <!-- Greeting -->
+    <p style="font-size:15px;color:#374151;margin:0 0 8px 0;">
+      Bonjour ${req.contactFirstName},
+    </p>
+    <p style="font-size:14px;color:#6b7280;margin:0 0 24px 0;">
+      Voici un bien qui pourrait vous intéresser :
+    </p>
+
+    ${personalMessage}
+
+    <!-- Property Card -->
+    <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
+
+      <!-- Photo -->
+      <div style="padding:0;">
+        ${photoSection}
+      </div>
+
+      <!-- Info -->
+      <div style="padding:20px 24px;">
+        <!-- Price -->
+        <p style="font-size:24px;font-weight:700;color:#1a1a1a;margin:0 0 4px 0;">
+          ${priceDisplay}
+        </p>
+
+        <!-- Title -->
+        ${p.title ? `<p style="font-size:14px;color:#6b7280;margin:0 0 8px 0;">${p.title}</p>` : ''}
+
+        <!-- Address -->
+        <p style="font-size:13px;color:#9ca3af;margin:0 0 16px 0;">
+          📍 ${p.address || p.city || 'Suisse'}
+        </p>
+
+        <!-- Stats -->
+        ${stats ? `<p style="font-size:13px;color:#6b7280;margin:0 0 20px 0;padding:12px 0;border-top:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;">${stats}</p>` : ''}
+
+        <!-- Source -->
+        ${p.source_agency ? `<p style="font-size:11px;color:#9ca3af;margin:0 0 16px 0;">via ${p.source_agency}${p.source_portal ? ` · ${p.source_portal}` : ''}</p>` : ''}
+
+        <!-- CTA Button -->
+        <a href="${p.source_url}" target="_blank" rel="noopener noreferrer" style="display:block;text-align:center;background:#1a1a1a;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;">
+          Voir l'annonce →
+        </a>
+      </div>
+    </div>
+
+    <!-- Agent signature -->
+    <div style="margin-top:32px;padding-top:20px;border-top:1px solid #e5e7eb;">
+      <p style="font-size:13px;color:#374151;margin:0;font-weight:600;">${req.agentName}</p>
+      <p style="font-size:12px;color:#9ca3af;margin:4px 0 0 0;">
+        MEGGA Immobilier${req.agentPhone ? ` · ${req.agentPhone}` : ''}
+      </p>
+    </div>
+
+    <!-- Disclaimer -->
+    <p style="font-size:10px;color:#d1d5db;text-align:center;margin-top:24px;line-height:1.5;">
+      Les informations sont fournies à titre indicatif et peuvent évoluer sans préavis.
+      Cet email a été envoyé via MEGGA Real Estate.
+    </p>
+
+  </div>
+</body>
+</html>`
 }
 
 serve(async (req) => {
+  // CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    })
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const body: SendRequest = await req.json()
 
-    const resendApiKey = Deno.env.get('RESEND_KEY')
-
-    const body = await req.json()
-    const { match_id, channel, message, agency_id } = body as {
-      match_id: string
-      channel: 'email' | 'whatsapp'
-      message: string
-      agency_id: string
-    }
-
-    if (!match_id || !channel || !message || !agency_id) {
-      return new Response(JSON.stringify({ error: 'match_id, channel, message, and agency_id are required' }), {
+    // Validate required fields
+    if (!body.to || !body.property) {
+      return new Response(JSON.stringify({ error: 'to and property are required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
-    // Fetch the match with related data
-    const { data: match, error: matchError } = await supabase
-      .from('matches')
-      .select(`
-        *,
-        contact:contacts(id, first_name, last_name, email, phone, whatsapp_phone),
-        property:properties(id, title, address, city, canton, price, rooms, surface_m2)
-      `)
-      .eq('id', match_id)
-      .eq('agency_id', agency_id)
-      .single()
-
-    if (matchError || !match) {
-      return new Response(JSON.stringify({ error: 'Match not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(body.to)) {
+      return new Response(JSON.stringify({ error: 'Invalid email address' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
-    // Send email via Resend if channel is email
-    if (channel === 'email' && resendApiKey && match.contact?.email) {
-      const emailResponse = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${resendApiKey}`,
-        },
-        body: JSON.stringify({
-          from: 'MEGGA Immobilier <noreply@megga.ch>',
-          to: match.contact.email,
-          subject: `Bien immobilier : ${match.property?.title || 'Nouvelle proposition'}`,
-          text: message,
-        }),
+    const RESEND_KEY = Deno.env.get('RESEND_KEY')
+    if (!RESEND_KEY) {
+      return new Response(JSON.stringify({ error: 'RESEND_KEY not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
-
-      if (!emailResponse.ok) {
-        const errorBody = await emailResponse.text()
-        console.error('Resend error:', errorBody)
-        // Continue — we still update the match status
-      }
     }
 
-    // Update match status
-    const { error: updateError } = await supabase
-      .from('matches')
-      .update({
-        status: 'sent',
-        sent_via: channel,
-        sent_at: new Date().toISOString(),
-      })
-      .eq('id', match_id)
+    const html = buildEmailHtml(body)
 
-    if (updateError) throw updateError
+    const priceDisplay = body.property.price > 0
+      ? formatCHF(body.property.price)
+      : 'Bien immobilier'
 
-    // Log activity event
-    await supabase.from('activity_events').insert({
-      agency_id,
-      actor_id: body.agent_id || null,
-      action: 'property_sent',
-      entity_type: 'match',
-      entity_id: match_id,
-      metadata: {
-        contact_id: match.contact_id,
-        property_id: match.property_id,
-        channel,
-        contact_name: match.contact ? `${match.contact.first_name} ${match.contact.last_name}` : null,
-        property_title: match.property?.title || null,
+    const locationDisplay = body.property.city || body.property.address || ''
+
+    // Send via Resend
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_KEY}`,
       },
+      body: JSON.stringify({
+        from: `MEGGA Immobilier <noreply@megga.ch>`,
+        to: [body.to],
+        subject: `${priceDisplay} — ${body.property.title || locationDisplay}`,
+        html,
+      }),
     })
 
-    // Create a follow-up reminder (J+3)
-    await supabase.from('reminders').insert({
-      agency_id,
-      contact_id: match.contact_id,
-      property_id: match.property_id,
-      match_id: match_id,
-      type: 'follow_up_sent_property',
-      trigger_rule: 'days_after_event',
-      trigger_days: 3,
-      status: 'pending',
-      trigger_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      channel: 'notification',
+    const resendData = await resendResponse.json()
+
+    if (!resendResponse.ok) {
+      return new Response(JSON.stringify({
+        error: resendData.message || 'Resend API error',
+        details: resendData,
+      }), {
+        status: resendResponse.status,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      emailId: resendData.id,
+      to: body.to,
+    }), {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
 
-    return new Response(
-      JSON.stringify({ success: true, match_id, channel }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 })

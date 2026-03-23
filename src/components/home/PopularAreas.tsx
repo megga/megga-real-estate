@@ -5,9 +5,7 @@ import { MapPin, ArrowRight, TrendingUp, Home, Users, Navigation } from 'lucide-
 import { cn, formatCHF } from '@/lib/utils'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-const MAPBOX_TOKEN =
-  import.meta.env.VITE_MAPBOX_TOKEN ||
-  'pk.eyJ1IjoibWVnZ2FpIiwiYSI6ImNtbXZiM3JpYzIwdGQycXF4cnI2bDdhYzAifQ.xvmW0Co7J3F497zSCXNQsw'
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 
 interface Area {
   id: string

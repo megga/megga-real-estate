@@ -68,6 +68,30 @@
 
     /* Logo filter — no filter in light mode (logo is black) */
     --logo-filter: none;
+
+    /* ─── CalendarCN event colors (light) ─── */
+    --event-red: #B23E31;
+    --event-red-border: #EE000E;
+    --event-red-bg: #FFE1D4;
+    --event-orange: #AD4517;
+    --event-orange-border: #FE7132;
+    --event-orange-bg: #FFE3C8;
+    --event-yellow: #855100;
+    --event-yellow-border: #F2B827;
+    --event-yellow-bg: #FFF0BE;
+    --event-green: #027B27;
+    --event-green-border: #49CA81;
+    --event-green-bg: #DEFFE3;
+    --event-blue: #006CBF;
+    --event-blue-border: #32A5E5;
+    --event-blue-bg: #E2F9FF;
+    --event-purple: #7733D2;
+    --event-purple-border: #9950FF;
+    --event-purple-bg: #FEECFF;
+    --event-gray: #5F6061;
+    --event-gray-border: #B3B4B4;
+    --event-gray-bg: #F6F4F3;
+    --calendar-weekend: #fcfcfc;
   }
 
   /* ─── Dark theme (confirmed palette) ─── */
@@ -124,6 +148,30 @@
 
     /* Ring */
     --color-ring: 59 130 246;
+
+    /* ─── CalendarCN event colors (dark) ─── */
+    --event-red: #D85140;
+    --event-red-border: #D85140;
+    --event-red-bg: #6C2920;
+    --event-orange: #E07040;
+    --event-orange-border: #E07040;
+    --event-orange-bg: #5F3524;
+    --event-yellow: #D4A83A;
+    --event-yellow-border: #D4A83A;
+    --event-yellow-bg: #4E3F1B;
+    --event-green: #52B577;
+    --event-green-border: #52B577;
+    --event-green-bg: #2D4935;
+    --event-blue: #4895C8;
+    --event-blue-border: #4895C8;
+    --event-blue-bg: #2F4656;
+    --event-purple: #8A5AD6;
+    --event-purple-border: #8A5AD6;
+    --event-purple-bg: #483A63;
+    --event-gray: #A0A0A0;
+    --event-gray-border: #A0A0A0;
+    --event-gray-bg: #424242;
+    --calendar-weekend: #222222;
   }
 
   * {
@@ -204,4 +252,37 @@
 
 .mapboxgl-ctrl-group button:hover .mapboxgl-ctrl-icon {
   opacity: 0.8;
+}
+
+/* ── Print styles (Analyse marché export) ─────────────────────────────── */
+
+@media print {
+  /* Hide sidebar, mobile header, MEGGA AI button */
+  aside, header, [class*="fixed"][class*="bottom"], [class*="z-50"] {
+    display: none !important;
+  }
+
+  /* Full width content */
+  .flex-1 {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove borders/backgrounds for clean print */
+  body, [data-theme] {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Force light colors for print */
+  * {
+    color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Page breaks */
+  .rounded-xl {
+    break-inside: avoid;
+  }
 }

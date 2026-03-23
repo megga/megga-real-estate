@@ -7,6 +7,7 @@ function themeColor(variable: string) {
 }
 
 export default {
+  darkMode: ['selector', '[data-theme="dark"]'],
   content: [
     './index.html',
     './src/**/*.{ts,tsx}',
@@ -109,6 +110,19 @@ export default {
           foreground: themeColor('--color-accent-fg'),
         },
         'accent-foreground': themeColor('--color-accent-fg'),
+
+        /* ─── CalendarCN event colors ─── */
+        'event-red': { DEFAULT: 'var(--event-red)', border: 'var(--event-red-border)', bg: 'var(--event-red-bg)' },
+        'event-orange': { DEFAULT: 'var(--event-orange)', border: 'var(--event-orange-border)', bg: 'var(--event-orange-bg)' },
+        'event-yellow': { DEFAULT: 'var(--event-yellow)', border: 'var(--event-yellow-border)', bg: 'var(--event-yellow-bg)' },
+        'event-green': { DEFAULT: 'var(--event-green)', border: 'var(--event-green-border)', bg: 'var(--event-green-bg)' },
+        'event-blue': { DEFAULT: 'var(--event-blue)', border: 'var(--event-blue-border)', bg: 'var(--event-blue-bg)' },
+        'event-purple': { DEFAULT: 'var(--event-purple)', border: 'var(--event-purple-border)', bg: 'var(--event-purple-bg)' },
+        'event-gray': { DEFAULT: 'var(--event-gray)', border: 'var(--event-gray-border)', bg: 'var(--event-gray-bg)' },
+        'calendar-weekend': 'var(--calendar-weekend)',
+      },
+      fontSize: {
+        xxs: ['0.625rem', { lineHeight: '1' }],
       },
       borderRadius: {
         DEFAULT: '8px',
@@ -120,6 +134,7 @@ export default {
         lg: '8px',
         md: '6px',
         sm: '4px',
+        xs: '3px',
       },
       boxShadow: {
         card: 'var(--shadow-card)',

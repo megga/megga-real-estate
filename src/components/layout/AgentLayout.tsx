@@ -7,21 +7,32 @@ import Sidebar from '@/components/layout/Sidebar'
 import CommandPalette from '@/components/layout/CommandPalette'
 import Breadcrumb from '@/components/layout/Breadcrumb'
 import CopilotPanel from '@/components/ai-copilot/CopilotPanel'
+import NewContactDialog from '@/components/contacts/NewContactDialog'
+import BottomTabBar from '@/components/layout/BottomTabBar'
 
 function AgentLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [quickContactOpen, setQuickContactOpen] = useState(false)
 
   const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), [])
   const closeCommandPalette = useCallback(() => setCommandPaletteOpen(false), [])
+  const openQuickContact = useCallback(() => setQuickContactOpen(true), [])
+  const closeQuickContact = useCallback(() => setQuickContactOpen(false), [])
 
-  // Global Cmd+K / Ctrl+K shortcut
+  // Global keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      // Cmd+K / Ctrl+K — Command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setCommandPaletteOpen((prev) => !prev)
+      }
+      // Cmd+Shift+C / Ctrl+Shift+C — Quick contact creation
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault()
+        setQuickContactOpen(true)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -36,6 +47,7 @@ function AgentLayoutInner() {
         onClose={() => setMobileOpen(false)}
         onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
         onOpenCommandPalette={openCommandPalette}
+        onQuickContact={openQuickContact}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -56,17 +68,23 @@ function AgentLayoutInner() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 pb-20 md:pb-4 overflow-y-auto">
           <Breadcrumb />
           <Outlet />
         </main>
       </div>
 
       {/* Command Palette */}
-      <CommandPalette isOpen={commandPaletteOpen} onClose={closeCommandPalette} />
+      <CommandPalette isOpen={commandPaletteOpen} onClose={closeCommandPalette} onCreateContact={() => { closeCommandPalette(); openQuickContact() }} />
+
+      {/* Quick Contact Creation — accessible globalement via ⌘⇧C */}
+      <NewContactDialog open={quickContactOpen} onClose={closeQuickContact} />
 
       {/* Copilot IA — bouton flottant accessible depuis toute page agent */}
       <CopilotPanel />
+
+      {/* Mobile bottom tab bar */}
+      <BottomTabBar />
     </div>
   )
 }

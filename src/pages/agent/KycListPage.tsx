@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useMemo, useCallback } from 'react'
+import { createPortal } from 'react-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Search, Eye, ChevronLeft, ChevronRight,
   ChevronUp, ChevronDown, AlertTriangle, ShieldCheck,
+  Loader2, Plus, X, Copy, CheckCircle2,
 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { calculateRiskScore } from '@/lib/kycUtils'
@@ -10,8 +12,17 @@ import {
   KYC_STATUS_LABELS, KYC_RISK_LABELS, KYC_TYPE_LABELS,
   KYC_STATUSES, KYC_RISK_LEVELS, KYC_TYPES,
 } from '@/lib/constants'
-import { MOCK_KYC_CASES, type MockKycCase } from '@/lib/mockData'
-import { useKycCases } from '@/hooks/useKyc'
+import type { PepStatus, KycType as KycTypeConst } from '@/lib/constants'
+import { useKycCases, useCreateKycCase, useScreenKycCase, useUpdateKycStatus, useValidateKycCase } from '@/hooks/useKyc'
+import { useContacts } from '@/hooks/useContacts'
+import { useTransactions } from '@/hooks/useTransactions'
+import { useAuth } from '@/hooks/useAuth'
+import type { KycCase, KycStatus, KycType } from '@/types/kyc'
+import {
+  ContextMenu, ContextMenuTrigger, ContextMenuContent,
+  ContextMenuItem, ContextMenuSeparator, ContextMenuLabel,
+  ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
+} from '@/components/ui/context-menu'
 
 type SortField = 'contact' | 'completion' | 'updated'
 type SortDir = 'asc' | 'desc'
@@ -24,8 +35,8 @@ function progressColor(pct: number) {
   return 'bg-success'
 }
 
-function statusBadge(status: MockKycCase['status']) {
-  const map = {
+function statusBadge(status: KycStatus) {
+  const map: Record<KycStatus, string> = {
     pending:     'text-theme-tertiary',
     in_progress: 'text-accent',
     review:      'text-warning',
@@ -39,8 +50,7 @@ function statusBadge(status: MockKycCase['status']) {
   )
 }
 
-
-function ContactAvatar({ name }: { name: string; color?: string }) {
+function ContactAvatar({ name }: { name: string }) {
   const initials = name
     .split(' ')
     .map((n) => n[0])
@@ -63,7 +73,186 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
     : <ChevronDown className="h-3.5 w-3.5 text-accent" />
 }
 
+function getContactName(kyc: KycCase): string {
+  if (kyc.contact) return `${kyc.contact.first_name} ${kyc.contact.last_name}`
+  return `Dossier ${kyc.type === 'buyer_pp' || kyc.type === 'buyer_pm' ? 'Acheteur' : 'Vendeur'}`
+}
+
+function pepSanctionsIcon(pepStatus: string, sanctionsStatus: string) {
+  const pep = pepStatus ?? 'not_checked'
+  const sanctions = sanctionsStatus ?? 'not_checked'
+  const hasMatch = pep === 'match' || sanctions === 'match'
+  const isPending = pep === 'pending' || sanctions === 'pending'
+  const isClear = pep === 'clear' && sanctions === 'clear'
+
+  if (hasMatch) return <AlertTriangle className="w-4 h-4 text-red-500" />
+  if (isPending) return <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
+  if (isClear) return <ShieldCheck className="w-4 h-4 text-emerald-500" />
+  return <span className="text-xs text-theme-tertiary">—</span>
+}
+
+// ─── Create KYC Modal ──────────────────────────────────────────────────────
+
+interface CreateKycModalProps {
+  onClose: () => void
+  onCreated: (id: string) => void
+}
+
+function CreateKycModal({ onClose, onCreated }: CreateKycModalProps) {
+  const { profile } = useAuth()
+  const { contacts } = useContacts()
+  const { data: transactionsData } = useTransactions()
+  const createMutation = useCreateKycCase()
+
+  const [contactId, setContactId] = useState('')
+  const [transactionId, setTransactionId] = useState('')
+  const [kycType, setKycType] = useState<KycType>('buyer_pp')
+  const [nationality, setNationality] = useState('CH')
+  const [amount, setAmount] = useState('')
+
+  const contactList = contacts ?? []
+  const transactionList = transactionsData ?? []
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!contactId || !profile?.agency_id) return
+
+    createMutation.mutate({
+      agencyId: profile.agency_id,
+      contactId,
+      transactionId: transactionId || undefined,
+      type: kycType,
+      contactNationality: nationality || undefined,
+      transactionAmount: amount ? parseFloat(amount) : undefined,
+    }, {
+      onSuccess: (data) => onCreated(data.id),
+    })
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-theme-card border border-theme-border rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-base font-semibold text-theme-primary">Nouveau dossier KYC</h3>
+          <button onClick={onClose} className="text-theme-tertiary hover:text-theme-primary transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Contact */}
+          <div>
+            <label className="block text-sm font-medium text-theme-secondary mb-1.5">Contact *</label>
+            <select
+              value={contactId}
+              onChange={(e) => setContactId(e.target.value)}
+              required
+              className="w-full h-10 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            >
+              <option value="">Sélectionner un contact</option>
+              {contactList.map((c: { id: string; first_name: string; last_name: string; type: string }) => (
+                <option key={c.id} value={c.id}>
+                  {c.first_name} {c.last_name} ({c.type})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Type KYC */}
+          <div>
+            <label className="block text-sm font-medium text-theme-secondary mb-1.5">Type de dossier *</label>
+            <select
+              value={kycType}
+              onChange={(e) => setKycType(e.target.value as KycType)}
+              className="w-full h-10 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            >
+              {KYC_TYPES.map((t) => (
+                <option key={t} value={t}>{KYC_TYPE_LABELS[t as KycTypeConst]}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Transaction (optionnel) */}
+          <div>
+            <label className="block text-sm font-medium text-theme-secondary mb-1.5">Transaction liée (optionnel)</label>
+            <select
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
+              className="w-full h-10 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            >
+              <option value="">Aucune transaction</option>
+              {transactionList.map((t) => {
+                const tx = t as unknown as Record<string, unknown>
+                const buyer = tx.buyer as { first_name: string; last_name: string } | null
+                const property = tx.property as { address?: string } | null
+                const label = buyer
+                  ? `${buyer.first_name} ${buyer.last_name} — ${property?.address ?? 'Bien'}`
+                  : `Transaction ${String(tx.id).slice(0, 8)}`
+                return (
+                  <option key={String(tx.id)} value={String(tx.id)}>{label}</option>
+                )
+              })}
+            </select>
+          </div>
+
+          {/* Nationalité */}
+          <div>
+            <label className="block text-sm font-medium text-theme-secondary mb-1.5">Nationalité du contact</label>
+            <input
+              type="text"
+              value={nationality}
+              onChange={(e) => setNationality(e.target.value.toUpperCase())}
+              placeholder="CH"
+              maxLength={2}
+              className="w-full h-10 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            />
+            <p className="text-[11px] text-theme-tertiary mt-1">Code pays ISO 2 lettres (CH, FR, DE...)</p>
+          </div>
+
+          {/* Montant */}
+          <div>
+            <label className="block text-sm font-medium text-theme-secondary mb-1.5">Montant de la transaction (CHF)</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="850000"
+              min="0"
+              className="w-full h-10 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+            />
+          </div>
+
+          {createMutation.isError && (
+            <p className="text-xs text-red-500">Erreur lors de la création du dossier</p>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={!contactId || createMutation.isPending}
+              className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+            >
+              {createMutation.isPending ? 'Création...' : 'Créer le dossier'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+// ─── Main Page ─────────────────────────────────────────────────────────────
+
 export default function KycListPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [riskFilter, setRiskFilter] = useState<string>('')
@@ -71,41 +260,49 @@ export default function KycListPage() {
   const [sortField, setSortField] = useState<SortField>('updated')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
-  // Real data from Supabase with mock fallback
-  const { data: realKycCases } = useKycCases()
-  const dataSource: MockKycCase[] = (realKycCases && realKycCases.length > 0)
-    ? realKycCases.map(k => {
-        const kx = k as unknown as Record<string, unknown>
-        const c = kx.contact as Record<string, string> | null
-        return {
-          id: k.id,
-          contact_name: c ? `${c.first_name} ${c.last_name}` : 'Contact',
-          contact_avatar_color: 'bg-accent',
-          type: k.type,
-          status: k.status,
-          risk_level: k.risk_level,
-          completion_pct: k.completion_pct,
-          property_title: 'Bien associé',
-          assigned_to: 'Agent',
-          validated_by: k.validated_by ?? null,
-          validated_at: k.validated_at ?? null,
-          created_at: k.created_at,
-          updated_at: k.created_at,
-        } as MockKycCase
-      })
-    : MOCK_KYC_CASES
+  const { profile } = useAuth()
+  const { data: kycCases, isLoading, error } = useKycCases()
+  const screenMutation = useScreenKycCase()
+  const statusMutation = useUpdateKycStatus()
+  const validateMutation = useValidateKycCase()
+
+  const dataSource = useMemo(() => kycCases ?? [], [kycCases])
+
+  const handleScreen = useCallback((kyc: KycCase) => {
+    const contactName = getContactName(kyc)
+    const entityType = kyc.type.includes('_pm') ? 'entity' as const : 'individual' as const
+    screenMutation.mutate({
+      kycCaseId: kyc.id,
+      contactName,
+      contactNationality: kyc.contact_nationality ?? 'CH',
+      entityType,
+    })
+  }, [screenMutation])
+
+  const handleStatusChange = useCallback((id: string, status: KycStatus) => {
+    statusMutation.mutate({ id, status })
+  }, [statusMutation])
+
+  const handleValidate = useCallback((id: string) => {
+    if (!profile) return
+    validateMutation.mutate({ id, validated_by: profile.full_name || profile.email })
+  }, [validateMutation, profile])
+
+  const handleCopyId = useCallback((id: string) => {
+    navigator.clipboard.writeText(id)
+  }, [])
 
   const filtered = useMemo(() => {
     let list = [...dataSource]
 
     if (search) {
       const q = search.toLowerCase()
-      list = list.filter(
-        (c) =>
-          c.contact_name.toLowerCase().includes(q) ||
-          c.property_title.toLowerCase().includes(q)
-      )
+      list = list.filter((c) => {
+        const name = getContactName(c).toLowerCase()
+        return name.includes(q)
+      })
     }
     if (statusFilter) list = list.filter((c) => c.status === statusFilter)
     if (riskFilter) list = list.filter((c) => c.risk_level === riskFilter)
@@ -114,11 +311,11 @@ export default function KycListPage() {
     list.sort((a, b) => {
       let cmp = 0
       if (sortField === 'contact') {
-        cmp = a.contact_name.localeCompare(b.contact_name)
+        cmp = getContactName(a).localeCompare(getContactName(b))
       } else if (sortField === 'completion') {
         cmp = a.completion_pct - b.completion_pct
       } else if (sortField === 'updated') {
-        cmp = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
+        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
@@ -139,12 +336,62 @@ export default function KycListPage() {
     }
   }
 
-  // Counts by status for the header
   const counts = useMemo(() => {
-    const c = { pending: 0, in_progress: 0, review: 0, validated: 0, rejected: 0 }
+    const c: Record<KycStatus, number> = { pending: 0, in_progress: 0, review: 0, validated: 0, rejected: 0 }
     dataSource.forEach((k) => { c[k.status]++ })
     return c
   }, [dataSource])
+
+  function handleCreated(id: string) {
+    setShowCreateModal(false)
+    navigate(`/dashboard/kyc/${id}`)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-theme-primary">Dossiers KYC</h1>
+        <div className="rounded-xl border border-theme-border p-12 text-center">
+          <Loader2 className="h-8 w-8 text-theme-tertiary mx-auto mb-3 animate-spin" />
+          <p className="text-sm text-theme-tertiary">Chargement des dossiers...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-theme-primary">Dossiers KYC</h1>
+        <div className="rounded-xl border border-theme-border p-12 text-center">
+          <AlertTriangle className="h-8 w-8 text-danger mx-auto mb-3" />
+          <p className="text-sm text-theme-tertiary">Erreur lors du chargement</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Empty state
+  if (dataSource.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-theme-primary">Dossiers KYC</h1>
+        <div className="rounded-xl border border-theme-border p-12 text-center">
+          <ShieldCheck className="h-12 w-12 text-theme-tertiary mx-auto mb-4" />
+          <p className="text-theme-secondary font-medium mb-1">Aucun dossier KYC</p>
+          <p className="text-sm text-theme-tertiary mb-4">Créez votre premier dossier de vérification</p>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors inline-flex items-center gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            Créer un dossier KYC
+          </button>
+        </div>
+        {showCreateModal && <CreateKycModal onClose={() => setShowCreateModal(false)} onCreated={handleCreated} />}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -158,6 +405,13 @@ export default function KycListPage() {
             {dataSource.length} dossiers · {counts.review} en revue · {counts.in_progress} en cours
           </p>
         </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors inline-flex items-center gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Nouveau dossier
+        </button>
       </div>
 
       {/* Status pills */}
@@ -191,7 +445,7 @@ export default function KycListPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
           <input
             type="text"
-            placeholder="Rechercher par nom ou bien..."
+            placeholder="Rechercher par nom..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full h-10 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -216,7 +470,7 @@ export default function KycListPage() {
         >
           <option value="">Tous les types</option>
           {KYC_TYPES.map((t) => (
-            <option key={t} value={t}>{KYC_TYPE_LABELS[t]}</option>
+            <option key={t} value={t}>{KYC_TYPE_LABELS[t as KycTypeConst]}</option>
           ))}
         </select>
 
@@ -245,13 +499,10 @@ export default function KycListPage() {
                     <SortIcon field="contact" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="text-left px-4 py-3 hidden md:table-cell">
-                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Bien lié</span>
-                </th>
                 <th className="text-left px-4 py-3">
                   <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Type</span>
                 </th>
-                <th className="text-left px-4 py-3 hidden lg:table-cell">
+                <th className="text-left px-4 py-3">
                   <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">PEP/S</span>
                 </th>
                 <th className="text-left px-4 py-3">
@@ -269,15 +520,12 @@ export default function KycListPage() {
                     <SortIcon field="completion" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
-                <th className="text-left px-4 py-3 hidden sm:table-cell">
-                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Agent</span>
-                </th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">
                   <button
                     onClick={() => toggleSort('updated')}
                     className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
                   >
-                    Mis à jour
+                    Créé
                     <SortIcon field="updated" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
@@ -289,97 +537,133 @@ export default function KycListPage() {
             <tbody className="divide-y divide-border">
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center">
+                  <td colSpan={8} className="px-4 py-12 text-center">
                     <ShieldCheck className="h-10 w-10 text-theme-tertiary mx-auto mb-3" />
                     <p className="text-sm text-theme-tertiary">Aucun dossier trouvé</p>
                   </td>
                 </tr>
               ) : (
-                paginated.map((kyc) => (
-                  <tr key={kyc.id} className="hover:bg-theme-section/50 transition-colors group">
-                    <td className="px-4 py-3">
-                      <Link to={`/dashboard/kyc/${kyc.id}`} className="flex items-center gap-3">
-                        <ContactAvatar name={kyc.contact_name} color={kyc.contact_avatar_color} />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
-                            {kyc.contact_name}
-                          </p>
-                          <p className="text-xs text-theme-tertiary truncate md:hidden">
-                            {kyc.property_title}
-                          </p>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-sm text-theme-secondary truncate block max-w-[200px]">
-                        {kyc.property_title}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-theme-hover text-theme-secondary">
-                        {KYC_TYPE_LABELS[kyc.type]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      {(kyc.pep_status === 'match_found' || kyc.sanctions_status === 'match_found')
-                        ? <AlertTriangle className="w-4 h-4 text-red-500" />
-                        : <ShieldCheck className="w-4 h-4 text-emerald-500/60" />
-                      }
-                    </td>
-                    <td className="px-4 py-3">
-                      {(() => {
-                        const rs = calculateRiskScore({
-                          contactNationality: kyc.contact_nationality,
-                          pepStatus: kyc.pep_status,
-                          transactionAmount: kyc.transaction_amount,
-                          kycType: kyc.type,
-                          completionPct: kyc.completion_pct,
-                        })
-                        return (
-                          <span className={cn(
-                            'text-xs font-bold tabular-nums',
-                            rs.level === 'high' ? 'text-red-500' : rs.level === 'medium' ? 'text-amber-500' : 'text-emerald-500'
-                          )}>
-                            {rs.score}
-                          </span>
-                        )
-                      })()}
-                    </td>
-                    <td className="px-4 py-3">{statusBadge(kyc.status)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2 min-w-[100px]">
-                        <div className="flex-1 h-2 bg-theme-active rounded-full overflow-hidden">
-                          <div
-                            className={cn('h-full rounded-full transition-all', progressColor(kyc.completion_pct))}
-                            style={{ width: `${kyc.completion_pct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-medium text-theme-secondary w-8 text-right">
-                          {kyc.completion_pct}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className="text-sm text-theme-tertiary">{kyc.assigned_to}</span>
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      <span className="text-xs text-theme-tertiary">
-                        {formatRelativeDate(kyc.updated_at)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end">
-                        <Link
-                          to={`/dashboard/kyc/${kyc.id}`}
-                          className="p-1.5 rounded-md text-theme-tertiary hover:text-accent hover:bg-accent/10 transition-colors"
-                          title="Voir le dossier"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                paginated.map((kyc) => {
+                  const contactName = getContactName(kyc)
+                  const pepStatus = (kyc.pep_status ?? 'not_checked') as PepStatus
+                  const sanctionsStatus = kyc.sanctions_status ?? 'not_checked'
+
+                  const riskScore = kyc.risk_score ?? calculateRiskScore({
+                    contactNationality: kyc.contact_nationality ?? 'CH',
+                    pepStatus: pepStatus === 'match' ? 'match' : 'clear',
+                    transactionAmount: kyc.transaction_amount ?? 0,
+                    kycType: kyc.type,
+                    completionPct: kyc.completion_pct,
+                  }).score
+
+                  const riskLevel = riskScore >= 40 ? 'high' : riskScore >= 20 ? 'medium' : 'low'
+                  const canValidate = kyc.status !== 'validated' && kyc.status !== 'rejected'
+
+                  return (
+                    <ContextMenu key={kyc.id}>
+                      <ContextMenuTrigger asChild>
+                        <tr className="hover:bg-theme-section/50 transition-colors group cursor-default">
+                          <td className="px-4 py-3">
+                            <Link to={`/dashboard/kyc/${kyc.id}`} className="flex items-center gap-3">
+                              <ContactAvatar name={contactName} />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
+                                  {contactName}
+                                </p>
+                              </div>
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-badge bg-theme-hover text-theme-secondary">
+                              {KYC_TYPE_LABELS[kyc.type]}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {pepSanctionsIcon(pepStatus, sanctionsStatus)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={cn(
+                              'text-xs font-bold tabular-nums',
+                              riskLevel === 'high' ? 'text-red-500' : riskLevel === 'medium' ? 'text-amber-500' : 'text-emerald-500'
+                            )}>
+                              {riskScore}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">{statusBadge(kyc.status)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 min-w-[100px]">
+                              <div className="flex-1 h-2 bg-theme-active rounded-full overflow-hidden">
+                                <div
+                                  className={cn('h-full rounded-full transition-all', progressColor(kyc.completion_pct))}
+                                  style={{ width: `${kyc.completion_pct}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium text-theme-secondary w-8 text-right">
+                                {kyc.completion_pct}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 hidden lg:table-cell">
+                            <span className="text-xs text-theme-tertiary">
+                              {formatRelativeDate(kyc.created_at)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end">
+                              <Link
+                                to={`/dashboard/kyc/${kyc.id}`}
+                                className="p-1.5 rounded-md text-theme-tertiary hover:text-accent hover:bg-accent/10 transition-colors"
+                                title="Voir le dossier"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuLabel>{contactName}</ContextMenuLabel>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onSelect={() => navigate(`/dashboard/kyc/${kyc.id}`)}>
+                          <Eye className="h-3.5 w-3.5" />
+                          Voir le dossier
+                        </ContextMenuItem>
+                        <ContextMenuItem onSelect={() => handleScreen(kyc)}>
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Lancer le screening
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            Changer le statut
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent>
+                            {KYC_STATUSES.filter(s => s !== 'validated' && s !== 'rejected').map((s) => (
+                              <ContextMenuItem
+                                key={s}
+                                onSelect={() => handleStatusChange(kyc.id, s)}
+                                disabled={kyc.status === s}
+                              >
+                                {KYC_STATUS_LABELS[s]}
+                              </ContextMenuItem>
+                            ))}
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
+                        {canValidate && (
+                          <ContextMenuItem onSelect={() => handleValidate(kyc.id)}>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                            Valider le dossier
+                          </ContextMenuItem>
+                        )}
+                        <ContextMenuSeparator />
+                        <ContextMenuItem onSelect={() => handleCopyId(kyc.id)}>
+                          <Copy className="h-3.5 w-3.5" />
+                          Copier l'ID
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -422,6 +706,9 @@ export default function KycListPage() {
           </div>
         )}
       </div>
+
+      {/* Create modal */}
+      {showCreateModal && <CreateKycModal onClose={() => setShowCreateModal(false)} onCreated={handleCreated} />}
     </div>
   )
 }

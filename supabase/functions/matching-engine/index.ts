@@ -318,6 +318,23 @@ serve(async (req) => {
       if (insertError) throw insertError
       insertedMatches = inserted || []
 
+      // Audit trail — toute action IA loggée avec actor_id = 'ai'
+      for (const match of insertedMatches) {
+        await supabase.from('activity_events').insert({
+          agency_id,
+          actor_id: 'ai',
+          action: 'match_suggested',
+          entity_type: 'match',
+          entity_id: match.id,
+          metadata: {
+            contact_id: match.contact_id,
+            property_id: match.property_id,
+            score: match.score,
+            trigger,
+          },
+        })
+      }
+
       // Update last_matched_at on client_searches that had matches
       const searchIdsWithMatches = [...new Set(newMatches.map((m) => m.client_search_id))]
       if (searchIdsWithMatches.length > 0) {

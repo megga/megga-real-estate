@@ -1,263 +1,442 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format, startOfWeek, addDays, addMonths, subMonths, parse } from 'date-fns'
+import { useState, useCallback, useMemo } from 'react'
+import { addDays, addMonths, subMonths, startOfWeek, startOfMonth, endOfMonth, endOfWeek, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core'
+import { ChevronLeft, ChevronRight, Plus, PanelRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-import { EVENT_TYPES, VIEW_LABELS, type CalendarEvent, type ViewMode, type EventType } from '@/components/calendar/calendar.types'
-import { getConflicts } from '@/components/calendar/calendarHelpers'
-import { MOCK_EVENTS } from '@/components/calendar/calendarMockData'
-import MonthView from '@/components/calendar/MonthView'
-import WeekView from '@/components/calendar/WeekView'
-import CalendarDragOverlay from '@/components/calendar/CalendarDragOverlay'
-import DayView from '@/components/calendar/DayView'
-import MobileListView from '@/components/calendar/MobileListView'
-import EventDetailPanel from '@/components/calendar/EventDetailPanel'
-import CreateEventModal from '@/components/calendar/CreateEventModal'
-import EventTypeFilter from '@/components/calendar/EventTypeFilter'
+import { WeekView } from '@/components/calendar/week-view'
+import { MonthView } from '@/components/calendar/month-view'
+import type { CalendarEvent, EventColor, ViewType } from '@/components/calendar/week-view-types'
+import { MOCK_EVENTS } from '@/components/calendar/mock-events'
+import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
+import { detectConflicts, expandRecurringEvents } from '@/lib/event-utils'
+import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
+import EventDetailSidebar from '@/components/calendar/EventDetailSidebar'
+import { useVisits } from '@/hooks/useVisits'
+
+/** Event category config for MEGGA real estate */
+const EVENT_CATEGORIES: Record<EventColor, { label: string }> = {
+  blue: { label: 'Visite' },
+  purple: { label: 'Rendez-vous' },
+  orange: { label: 'Relance' },
+  green: { label: 'Signature' },
+  red: { label: 'Échéance' },
+  yellow: { label: 'Autre' },
+  gray: { label: 'Personnel' },
+}
+
+const ALL_COLORS = Object.keys(EVENT_CATEGORIES) as EventColor[]
 
 export default function CalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<ViewMode>('week')
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editEvent, setEditEvent] = useState<CalendarEvent | undefined>(undefined)
-  const [createInitialDate, setCreateInitialDate] = useState<Date | undefined>(undefined)
-  const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS)
-  const [activeFilters, setActiveFilters] = useState<Set<EventType>>(() => new Set(EVENT_TYPES))
-  const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null)
-  const [conflictWarning, setConflictWarning] = useState<string | null>(null)
+  const { visits: supabaseVisits, createVisit, updateVisit, deleteVisit } = useVisits()
 
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  const [currentDate, setCurrentDate] = useState(() =>
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  )
+  // Local events = all mock events initially (drag/edit works on all of them)
+  // When Supabase visits exist, mock visits are replaced by real ones.
+  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>(() => [...MOCK_EVENTS])
+
+  // Merge: Supabase visits replace mock visits, local events fill the rest
+  const events = useMemo(() => {
+    if (supabaseVisits.length > 0) {
+      // Exclude mock visits (blue with visitStatus) — replaced by Supabase visits
+      const nonVisitLocal = localEvents.filter((e) => !(e.color === 'blue' && e.visitStatus))
+      return [...supabaseVisits, ...nonVisitLocal]
+    }
+    // No Supabase visits — use all local events (includes mock visits)
+    return localEvents
+  }, [supabaseVisits, localEvents])
+
+  const [selectedEventId, setSelectedEventId] = useState<string | undefined>()
+  const [view, setView] = useState<ViewType>('week')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Filter state — all colors active by default
+  const [activeFilters, setActiveFilters] = useState<Set<EventColor>>(() => new Set(ALL_COLORS))
+
+  // Compute visible range for recurring event expansion
+  const visibleRange = useMemo(() => {
+    if (view === 'month') {
+      const ms = startOfMonth(currentDate)
+      return { start: startOfWeek(ms, { weekStartsOn: 1 }), end: endOfWeek(endOfMonth(ms), { weekStartsOn: 1 }) }
+    }
+    if (view === 'day') {
+      return { start: currentDate, end: addDays(currentDate, 1) }
+    }
+    // week: show 2 weeks buffer
+    return { start: addDays(currentDate, -7), end: addDays(currentDate, 14) }
+  }, [view, currentDate])
+
+  const filteredEvents = useMemo(() => {
+    const colorFiltered = events.filter((e) => activeFilters.has(e.color ?? 'blue'))
+    return expandRecurringEvents(colorFiltered, visibleRange.start, visibleRange.end)
+  }, [events, activeFilters, visibleRange])
+
+  const conflictIds = useMemo(
+    () => detectConflicts(filteredEvents),
+    [filteredEvents]
   )
 
-  // Filtered events
-  const filteredEvents = useMemo(
-    () => events.filter(e => activeFilters.has(e.type)),
-    [events, activeFilters]
-  )
-
-  const handleCreateEvent = useCallback((newEvents: CalendarEvent[]) => {
-    setEvents(prev => [...prev, ...newEvents])
-  }, [])
-
-  const handleUpdateEvent = useCallback((updated: CalendarEvent) => {
-    setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
-  }, [])
-
-  const handleDeleteEvent = useCallback((eventId: string) => {
-    setEvents(prev => prev.filter(e => e.id !== eventId))
-  }, [])
-
-  const handleEditEvent = useCallback((event: CalendarEvent) => {
-    setEditEvent(event)
-    setShowCreateModal(true)
-  }, [])
-
-  const handleClickSlot = useCallback((date: Date) => {
-    setCreateInitialDate(date)
-    setEditEvent(undefined)
-    setShowCreateModal(true)
-  }, [])
-
-  const handleCloseModal = useCallback(() => {
-    setShowCreateModal(false)
-    setEditEvent(undefined)
-    setCreateInitialDate(undefined)
-  }, [])
-
-  const handleDragStart = useCallback((e: DragStartEvent) => {
-    const event = e.active.data.current?.event as CalendarEvent | undefined
-    if (event) setDraggedEvent(event)
-  }, [])
-
-  const handleDragEnd = useCallback((e: DragEndEvent) => {
-    setDraggedEvent(null)
-    const event = e.active.data.current?.event as CalendarEvent | undefined
-    const overId = e.over?.id as string | undefined
-    if (!event || !overId) return
-
-    let newDate: Date | null = null
-
-    if (overId.startsWith('month-')) {
-      // month-YYYY-MM-DD → change date, keep time
-      const dateStr = overId.replace('month-', '')
-      const parsed = parse(dateStr, 'yyyy-MM-dd', new Date())
-      newDate = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), event.date.getHours(), event.date.getMinutes())
-    } else if (overId.startsWith('week-')) {
-      // week-YYYY-MM-DD-HH-mm → change date and hour
-      const parts = overId.replace('week-', '').split('-')
-      const y = Number(parts[0]), mo = Number(parts[1]) - 1, d = Number(parts[2])
-      const h = Number(parts[3]), m = Number(parts[4])
-      newDate = new Date(y, mo, d, h, m)
-    } else if (overId.startsWith('day-')) {
-      // day-HH-mm → change hour only
-      const parts = overId.replace('day-', '').split('-')
-      const h = Number(parts[0]), m = Number(parts[1])
-      newDate = new Date(event.date.getFullYear(), event.date.getMonth(), event.date.getDate(), h, m)
-    }
-
-    if (!newDate || newDate.getTime() === event.date.getTime()) return
-
-    // Preserve duration
-    const durationMs = event.endDate.getTime() - event.date.getTime()
-    const newEndDate = new Date(newDate.getTime() + durationMs)
-
-    const updatedEvent: CalendarEvent = { ...event, date: newDate, endDate: newEndDate }
-
-    // Check conflicts
-    const conflicts = getConflicts(events, updatedEvent)
-    if (conflicts.length > 0) {
-      setConflictWarning(`Conflit avec : ${conflicts.map(c => c.title).join(', ')}`)
-      setTimeout(() => setConflictWarning(null), 4000)
-    }
-
-    setEvents(prev => prev.map(ev => ev.id === event.id ? updatedEvent : ev))
-  }, [events])
-
-  const toggleFilter = useCallback((type: EventType) => {
-    setActiveFilters(prev => {
+  const toggleFilter = useCallback((color: EventColor) => {
+    setActiveFilters((prev) => {
       const next = new Set(prev)
-      if (next.has(type)) next.delete(type)
-      else next.add(type)
+      if (next.has(color)) {
+        if (next.size > 1) next.delete(color)
+      } else {
+        next.add(color)
+      }
       return next
     })
   }, [])
 
-  const navigatePrev = () => {
-    if (viewMode === 'month') setCurrentDate(prev => subMonths(prev, 1))
-    else if (viewMode === 'week') setCurrentDate(prev => addDays(prev, -7))
-    else setCurrentDate(prev => addDays(prev, -1))
-  }
+  // Create event dialog state
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [createInitialDate, setCreateInitialDate] = useState<Date | undefined>()
 
-  const navigateNext = () => {
-    if (viewMode === 'month') setCurrentDate(prev => addMonths(prev, 1))
-    else if (viewMode === 'week') setCurrentDate(prev => addDays(prev, 7))
-    else setCurrentDate(prev => addDays(prev, 1))
-  }
+  // Feedback dialog state
+  const [feedbackEvent, setFeedbackEvent] = useState<CalendarEvent | null>(null)
 
-  const navigateToday = () => setCurrentDate(new Date())
+  const handlePrev = useCallback(() => {
+    if (view === 'month') setCurrentDate((d) => subMonths(d, 1))
+    else if (view === 'day') setCurrentDate((d) => addDays(d, -1))
+    else setCurrentDate((d) => addDays(d, -7))
+  }, [view])
 
-  const headerLabel = useMemo(() => {
-    if (viewMode === 'month') return format(currentDate, 'MMMM yyyy', { locale: fr })
-    if (viewMode === 'week') {
-      const ws = startOfWeek(currentDate, { weekStartsOn: 1 })
-      const we = addDays(ws, 6)
-      return `${format(ws, 'd', { locale: fr })} — ${format(we, 'd MMMM yyyy', { locale: fr })}`
+  const handleNext = useCallback(() => {
+    if (view === 'month') setCurrentDate((d) => addMonths(d, 1))
+    else if (view === 'day') setCurrentDate((d) => addDays(d, 1))
+    else setCurrentDate((d) => addDays(d, 7))
+  }, [view])
+
+  const handleToday = useCallback(() => {
+    const today = new Date()
+    if (view === 'month') setCurrentDate(startOfMonth(today))
+    else if (view === 'day') setCurrentDate(today)
+    else setCurrentDate(startOfWeek(today, { weekStartsOn: 1 }))
+  }, [view])
+
+  const handleViewChange = useCallback((newView: ViewType) => {
+    const today = new Date()
+    if (newView === 'month') setCurrentDate(startOfMonth(today))
+    else if (newView === 'day') setCurrentDate(today)
+    else setCurrentDate(startOfWeek(today, { weekStartsOn: 1 }))
+    setView(newView)
+  }, [])
+
+  // Click event → open sidebar directly (toggle if same event)
+  const handleEventClick = useCallback((event: CalendarEvent) => {
+    setSelectedEventId((prev) => {
+      if (prev === event.id) {
+        // Re-click same event → close sidebar
+        setIsSidebarOpen(false)
+        return undefined
+      }
+      // Click new event → open sidebar
+      setIsSidebarOpen(true)
+      return event.id
+    })
+  }, [])
+
+  const handleEventChange = useCallback((updated: CalendarEvent) => {
+    // Check if this is a Supabase visit (UUID format) vs mock event
+    const isSupabaseVisit = updated.visitStatus && !updated.id.startsWith('evt-')
+
+    if (isSupabaseVisit) {
+      // Persist to Supabase
+      const oldVisit = supabaseVisits.find((e) => e.id === updated.id)
+      if (updated.visitStatus === 'done' && oldVisit?.visitStatus !== 'done') {
+        setFeedbackEvent(updated)
+      }
+      updateVisit(updated).catch(() => {
+        // Silently handle — React Query will refetch
+      })
+    } else {
+      // Local event — update in local state
+      setLocalEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+      if (updated.visitStatus === 'done') {
+        const old = localEvents.find((e) => e.id === updated.id)
+        if (old?.visitStatus !== 'done') setFeedbackEvent(updated)
+      }
     }
-    return format(currentDate, 'EEEE d MMMM yyyy', { locale: fr })
-  }, [currentDate, viewMode])
+  }, [supabaseVisits, localEvents, updateVisit])
+
+  const handleFeedbackSubmit = useCallback((event: CalendarEvent, feedback: { feedbackBuyer: string; feedbackAgent: string; rating: number }) => {
+    const updated: CalendarEvent = {
+      ...event,
+      visitStatus: 'done' as const,
+      feedbackBuyer: feedback.feedbackBuyer,
+      feedbackAgent: feedback.feedbackAgent,
+      rating: feedback.rating,
+    }
+
+    const isSupabaseVisit = !event.id.startsWith('evt-')
+    if (isSupabaseVisit) {
+      updateVisit(updated).catch(() => {})
+    } else {
+      setLocalEvents((prev) => prev.map((e) => (e.id === event.id ? updated : e)))
+    }
+  }, [updateVisit])
+
+  // Click background → deselect event + close sidebar
+  const handleBackgroundClick = useCallback(() => {
+    setSelectedEventId(undefined)
+    setIsSidebarOpen(false)
+  }, [])
+
+  // Toggle sidebar open/close via header button
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev)
+  }, [])
+
+  // Slot click → open create dialog with pre-filled date/time
+  const handleSlotClick = useCallback((date: Date) => {
+    setCreateInitialDate(date)
+    setShowCreateDialog(true)
+  }, [])
+
+  // "+" button → open create dialog with current time
+  const handleCreateNew = useCallback(() => {
+    setCreateInitialDate(undefined)
+    setShowCreateDialog(true)
+  }, [])
+
+  // Add new event from dialog
+  const handleCreateEvent = useCallback((newEvent: CalendarEvent) => {
+    // If it's a visit with contact + property, persist to Supabase
+    const isVisit = newEvent.color === 'blue' && newEvent.contactId && newEvent.propertyId
+    if (isVisit) {
+      createVisit(newEvent).catch(() => {
+        // Fallback: add to local state if DB save fails
+        setLocalEvents((prev) => [...prev, newEvent])
+      })
+    } else {
+      setLocalEvents((prev) => [...prev, newEvent])
+    }
+  }, [createVisit])
+
+  // Duplicate event (1h later, new ID)
+  const handleDuplicate = useCallback((event: CalendarEvent) => {
+    const offset = 60 * 60 * 1000 // 1h
+    const duplicate: CalendarEvent = {
+      ...event,
+      id: `evt-${Date.now()}`,
+      start: new Date(event.start.getTime() + offset),
+      end: new Date(event.end.getTime() + offset),
+      title: `${event.title} (copie)`,
+    }
+    const isVisit = duplicate.color === 'blue' && duplicate.contactId && duplicate.propertyId
+    if (isVisit) {
+      createVisit(duplicate).catch(() => {
+        setLocalEvents((prev) => [...prev, duplicate])
+      })
+    } else {
+      setLocalEvents((prev) => [...prev, duplicate])
+    }
+  }, [createVisit])
+
+  // Delete event
+  const handleDelete = useCallback((eventId: string) => {
+    const isSupabaseVisit = !eventId.startsWith('evt-')
+    if (isSupabaseVisit) {
+      deleteVisit(eventId).catch(() => {})
+    } else {
+      setLocalEvents((prev) => prev.filter((e) => e.id !== eventId))
+    }
+    setSelectedEventId((prev) => prev === eventId ? undefined : prev)
+    setIsSidebarOpen((prev) => {
+      if (selectedEventId === eventId) return false
+      return prev
+    })
+  }, [selectedEventId, deleteVisit])
+
+  // Computed selected event for sidebar
+  const selectedEvent = useMemo(
+    () => selectedEventId ? events.find((e) => e.id === selectedEventId) : undefined,
+    [selectedEventId, events]
+  )
+
+  const handleCloseSidebar = useCallback(() => {
+    setIsSidebarOpen(false)
+    setSelectedEventId(undefined)
+  }, [])
+
+  // Format header date for French locale
+  const headerDate = useMemo(() => {
+    if (view === 'day') {
+      const formatted = format(currentDate, "EEEE d MMMM yyyy", { locale: fr })
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+    }
+    const formatted = format(currentDate, 'MMMM yyyy', { locale: fr })
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+  }, [currentDate, view])
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-theme-primary">Calendrier</h1>
-        <button
-          onClick={() => { setEditEvent(undefined); setShowCreateModal(true) }}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Nouveau RDV
-        </button>
-      </div>
-
-      {/* Controls bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex items-center gap-2">
-          <button onClick={navigateToday} className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+    <div className="flex h-full flex-col">
+      {/* Calendar header */}
+      <div className="flex items-center justify-between border-b border-theme-border px-4 py-2">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-semibold text-theme-primary">
+            {headerDate}
+          </h1>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handlePrev}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleNext}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            onClick={handleToday}
+            className="h-7 rounded-md border border-theme-border px-3 text-xs font-medium text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+          >
             Aujourd&apos;hui
           </button>
-          <button onClick={navigatePrev} className="p-1.5 rounded-lg hover:bg-theme-active transition-colors">
-            <ChevronLeft className="w-5 h-5 text-theme-secondary" />
+          <button
+            onClick={handleCreateNew}
+            className="flex h-7 items-center gap-1.5 rounded-md border border-theme-border px-3 text-xs font-medium text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Nouveau
           </button>
-          <h2 className="text-lg font-semibold text-theme-primary capitalize min-w-[180px] text-center">
-            {headerLabel}
-          </h2>
-          <button onClick={navigateNext} className="p-1.5 rounded-lg hover:bg-theme-active transition-colors">
-            <ChevronRight className="w-5 h-5 text-theme-secondary" />
-          </button>
+          {/* View toggle */}
+          <div className="flex h-7 rounded-md border border-theme-border overflow-hidden">
+            {(['day', 'week', 'month'] as ViewType[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => handleViewChange(v)}
+                className={cn(
+                  'px-2.5 text-xs font-medium transition-colors',
+                  v !== 'day' && 'border-l border-theme-border',
+                  view === v
+                    ? 'bg-accent/10 text-accent'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                )}
+              >
+                {v === 'day' ? 'Jour' : v === 'week' ? 'Semaine' : 'Mois'}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* View toggle */}
-        <div className="hidden md:flex items-center border border-theme-border rounded-lg p-0.5 sm:ml-auto">
-          {(['month', 'week', 'day'] as ViewMode[]).map(mode => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={cn(
-                'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                viewMode === mode
-                  ? 'bg-theme-active text-theme-primary'
-                  : 'text-theme-tertiary hover:text-theme-secondary',
-              )}
-            >
-              {VIEW_LABELS[mode]}
-            </button>
-          ))}
+        {/* Legend — clickable filters + sidebar toggle */}
+        <div className="flex items-center gap-1">
+          {(Object.entries(EVENT_CATEGORIES) as [EventColor, { label: string }][]).map(([color, config]) => {
+            const isActive = activeFilters.has(color)
+            return (
+              <button
+                key={color}
+                type="button"
+                onClick={() => toggleFilter(color)}
+                className={cn(
+                  'flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs transition-all border',
+                  isActive
+                    ? 'border-theme-border text-theme-primary'
+                    : 'border-transparent text-theme-tertiary opacity-50'
+                )}
+              >
+                <span
+                  className={cn(
+                    'h-2 w-2 rounded-full transition-opacity',
+                    `bg-event-${color}-border`,
+                    !isActive && 'opacity-40'
+                  )}
+                />
+                {config.label}
+              </button>
+            )
+          })}
+          {/* Sidebar toggle button */}
+          <button
+            onClick={handleToggleSidebar}
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-md ml-2 transition-colors',
+              isSidebarOpen
+                ? 'text-accent bg-accent/10'
+                : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
+            )}
+            title="Panneau de détail"
+          >
+            <PanelRight className="h-4 w-4" />
+          </button>
         </div>
-
-        {/* Desktop legend/filter */}
-        <EventTypeFilter activeFilters={activeFilters} onToggle={toggleFilter} className="hidden lg:flex" />
       </div>
 
-      {/* Mobile legend/filter */}
-      <EventTypeFilter activeFilters={activeFilters} onToggle={toggleFilter} className="flex lg:hidden flex-wrap" />
+      {/* Calendar body + sidebar overlay */}
+      <div className="relative flex-1 overflow-hidden">
+        {view === 'month' ? (
+          <MonthView
+            currentDate={currentDate}
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            onEventChange={handleEventChange}
+            selectedEventId={selectedEventId}
+            onBackgroundClick={handleBackgroundClick}
+            onSlotClick={handleSlotClick}
+            className="h-full"
+          />
+        ) : (
+          <WeekView
+            view={view}
+            currentDate={currentDate}
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            selectedEventId={selectedEventId}
+            onBackgroundClick={handleBackgroundClick}
+            onDateChange={setCurrentDate}
+            onEventChange={handleEventChange}
+            onDuplicate={handleDuplicate}
+            onDelete={handleDelete}
+            conflictIds={conflictIds}
+            onSlotClick={handleSlotClick}
+            className="h-full"
+          />
+        )}
 
-      {/* Conflict warning toast */}
-      {conflictWarning && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg border border-warning/30 bg-warning/10 text-warning text-sm font-medium shadow-lg animate-in fade-in slide-in-from-bottom-4">
-          {conflictWarning}
+        {/* Detail sidebar — absolute overlay with slide animation */}
+        <div
+          className={cn(
+            'absolute top-0 right-0 bottom-0 z-30 transition-transform duration-200 ease-out',
+            isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+          )}
+        >
+          <EventDetailSidebar
+            event={selectedEvent}
+            allEvents={filteredEvents}
+            onClose={handleCloseSidebar}
+            onEventChange={handleEventChange}
+            onDateSelect={(date) => {
+              if (view === 'day') setCurrentDate(date)
+              else if (view === 'week') setCurrentDate(startOfWeek(date, { weekStartsOn: 1 }))
+              else setCurrentDate(startOfMonth(date))
+            }}
+            onEventClick={handleEventClick}
+          />
         </div>
-      )}
-
-      {/* Calendar views with DnD */}
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="hidden md:block">
-          {viewMode === 'month' && (
-            <MonthView currentDate={currentDate} events={filteredEvents} onSelectEvent={setSelectedEvent} onClickSlot={handleClickSlot} />
-          )}
-          {viewMode === 'week' && (
-            <WeekView currentDate={currentDate} events={filteredEvents} onSelectEvent={setSelectedEvent} onClickSlot={handleClickSlot} />
-          )}
-          {viewMode === 'day' && (
-            <DayView currentDate={currentDate} events={filteredEvents} onSelectEvent={setSelectedEvent} onClickSlot={handleClickSlot} />
-          )}
-        </div>
-
-        <DragOverlay>
-          {draggedEvent && <CalendarDragOverlay event={draggedEvent} />}
-        </DragOverlay>
-      </DndContext>
-
-      {/* Mobile: list view (no DnD) */}
-      <div className="md:hidden">
-        <MobileListView events={filteredEvents} onSelectEvent={setSelectedEvent} />
       </div>
 
-      {/* Event detail modal */}
-      {selectedEvent && (
-        <EventDetailPanel
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          onEdit={handleEditEvent}
-          onDelete={handleDeleteEvent}
-        />
-      )}
+      {/* Create event dialog */}
+      <CreateVisitDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        initialDate={createInitialDate}
+        onCreateEvent={handleCreateEvent}
+      />
 
-      {/* Create/Edit event modal */}
-      {showCreateModal && (
-        <CreateEventModal
-          onClose={handleCloseModal}
-          onCreate={handleCreateEvent}
-          onUpdate={handleUpdateEvent}
-          editEvent={editEvent}
-          initialDate={createInitialDate}
-        />
-      )}
+      {/* Feedback dialog — opens when visit is marked as "done" */}
+      <VisitFeedbackDialog
+        open={!!feedbackEvent}
+        onOpenChange={(open) => { if (!open) setFeedbackEvent(null) }}
+        event={feedbackEvent}
+        onSubmit={handleFeedbackSubmit}
+      />
     </div>
   )
 }
