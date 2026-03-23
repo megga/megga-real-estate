@@ -45,7 +45,7 @@ export default function MonthView({ currentDate, events, onSelectEvent, onClickS
               className={cn(
                 'min-h-[100px] lg:min-h-[120px] border-b border-r border-theme-border/50 p-1.5 transition-colors cursor-pointer hover:bg-theme-hover/30',
                 !inMonth && 'bg-theme-hover/50',
-                today && 'bg-accent/10 rounded-lg',
+                today && 'bg-accent/5',
               )}
             >
               <div
@@ -65,16 +65,19 @@ export default function MonthView({ currentDate, events, onSelectEvent, onClickS
                 {dayEvents.slice(0, 3).map(event => {
                   const config = EVENT_CONFIG[event.type]
                   return (
-                    <DraggableEvent key={event.id} event={event}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onSelectEvent(event) }}
+                    <DraggableEvent
+                      key={event.id}
+                      event={event}
+                      onClick={(e) => { e.stopPropagation(); onSelectEvent(event) }}
+                    >
+                      <div
                         className={cn(
-                          'w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-lg truncate border transition-all hover:brightness-95 cursor-grab active:cursor-grabbing',
+                          'w-full text-left text-[11px] leading-tight px-1.5 py-1 rounded-lg truncate border transition-all hover:brightness-95',
                           config.bg, config.color,
                         )}
                       >
                         {formatTime(event.date)} {event.title.split(' — ')[0].split(' ').slice(0, 3).join(' ')}
-                      </button>
+                      </div>
                     </DraggableEvent>
                   )
                 })}

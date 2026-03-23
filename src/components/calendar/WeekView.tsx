@@ -1,8 +1,9 @@
+import { useMemo } from 'react'
 import { format, startOfWeek, addDays, isToday, getHours, getMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { EVENT_CONFIG, HOURS, type CalendarEvent } from './calendar.types'
-import { getEventsForDay, formatTime } from './calendarHelpers'
+import { formatTime } from './calendarHelpers'
 import DraggableEvent from './DraggableEvent'
 import DroppableSlot from './DroppableSlot'
 import TodayIndicator from './TodayIndicator'
@@ -18,6 +19,25 @@ export default function WeekView({ currentDate, events, onSelectEvent, onClickSl
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const todayInView = weekDays.some(d => isToday(d))
+
+  // Stable key for the week (avoids depending on weekStart Date object)
+  const weekKey = format(weekStart, 'yyyy-MM-dd')
+
+  // Pre-compute events by day to avoid filtering per slot
+  const eventsByDay = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>()
+    for (const day of weekDays) {
+      const key = format(day, 'yyyy-MM-dd')
+      map.set(key, [])
+    }
+    for (const event of events) {
+      const key = format(event.date, 'yyyy-MM-dd')
+      const arr = map.get(key)
+      if (arr) arr.push(event)
+    }
+    return map
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, weekKey])
 
   return (
     <div className="rounded-xl border border-theme-border overflow-hidden">
@@ -48,9 +68,10 @@ export default function WeekView({ currentDate, events, onSelectEvent, onClickSl
               <span className="text-xs text-theme-tertiary">{hour}:00</span>
             </div>
             {weekDays.map((day, di) => {
-              const dayEvents = getEventsForDay(events, day)
+              const key = format(day, 'yyyy-MM-dd')
+              const dayEvents = eventsByDay.get(key) ?? []
               const hourEvents = dayEvents.filter(e => getHours(e.date) === hour)
-              const slotId = `week-${format(day, 'yyyy-MM-dd')}-${hour.toString().padStart(2, '0')}-00`
+              const slotId = `week-${key}-${hour.toString().padStart(2, '0')}-00`
 
               return (
                 <DroppableSlot
@@ -73,18 +94,22 @@ export default function WeekView({ currentDate, events, onSelectEvent, onClickSl
                     const heightPx = Math.max((durationMin / 60) * 64, 20)
 
                     return (
-                      <DraggableEvent key={event.id} event={event} className="absolute left-0.5 right-0.5 z-10">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onSelectEvent(event) }}
+                      <DraggableEvent
+                        key={event.id}
+                        event={event}
+                        className="absolute left-0.5 right-0.5 z-10"
+                        onClick={(e) => { e.stopPropagation(); onSelectEvent(event) }}
+                      >
+                        <div
                           style={{ height: `${heightPx}px`, top: `${topPx}px` }}
                           className={cn(
-                            'w-full px-1.5 py-0.5 rounded border text-[10px] leading-tight overflow-hidden transition-all hover:z-20 hover:brightness-95 cursor-grab active:cursor-grabbing absolute',
+                            'w-full px-1.5 py-0.5 rounded border text-[10px] leading-tight overflow-hidden transition-all hover:z-20 hover:brightness-95 absolute',
                             config.bg, config.color,
                           )}
                         >
                           <div className="font-medium truncate">{formatTime(event.date)}</div>
                           <div className="truncate opacity-80">{event.title.split(' — ')[0]}</div>
-                        </button>
+                        </div>
                       </DraggableEvent>
                     )
                   })}

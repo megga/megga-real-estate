@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { CalendarDays, Clock, User, Building2, MapPin, FileText, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -15,11 +16,23 @@ interface EventDetailPanelProps {
 
 export default function EventDetailPanel({ event, onClose, onEdit, onDelete }: EventDetailPanelProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const config = EVENT_CONFIG[event.type]
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-theme-card rounded-xl border border-theme-border w-full max-w-md" onClick={e => e.stopPropagation()}>
+  // Delay mounting to avoid capturing the same pointer event that opened the panel
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  if (!mounted) return null
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="bg-theme-card rounded-xl border border-theme-border w-full max-w-md" onPointerDown={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 p-5 border-b border-theme-border">
           <div className="flex-1 min-w-0">
@@ -115,6 +128,7 @@ export default function EventDetailPanel({ event, onClose, onEdit, onDelete }: E
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

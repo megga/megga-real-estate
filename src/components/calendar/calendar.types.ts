@@ -28,7 +28,7 @@ export const EVENT_CONFIG: Record<EventType, { label: string; color: string; bg:
   meeting:    { label: 'RDV client',  color: 'text-success',     bg: 'bg-success/10 border-success/30',     dot: 'bg-success',     icon: User },
   reminder:   { label: 'Rappel',      color: 'text-warning',     bg: 'bg-warning/10 border-warning/30',     dot: 'bg-warning',     icon: Phone },
   deadline:   { label: 'Deadline',    color: 'text-danger',      bg: 'bg-danger/10 border-danger/30',       dot: 'bg-danger',      icon: AlertTriangle },
-  estimation: { label: 'Estimation',  color: 'text-purple-600',  bg: 'bg-purple-50 border-purple-300/30',   dot: 'bg-purple-500',  icon: Star },
+  estimation: { label: 'Estimation',  color: 'text-purple-500',  bg: 'bg-purple-500/10 border-purple-500/30', dot: 'bg-purple-500',  icon: Star },
 }
 
 export const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8h-20h

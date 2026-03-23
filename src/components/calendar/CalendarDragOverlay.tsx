@@ -11,7 +11,7 @@ export default function CalendarDragOverlay({ event }: CalendarDragOverlayProps)
 
   return (
     <div className={cn(
-      'px-2.5 py-2 rounded-lg border text-xs opacity-90 shadow-lg pointer-events-none max-w-[200px]',
+      'px-2.5 py-2 rounded-lg border text-xs opacity-90 pointer-events-none max-w-[200px]',
       config.bg, config.color,
     )}>
       <div className="font-semibold truncate">{event.title}</div>

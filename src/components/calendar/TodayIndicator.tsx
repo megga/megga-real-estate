@@ -21,7 +21,7 @@ export default function TodayIndicator() {
 
   return (
     <div
-      className="absolute left-0 right-0 z-30 pointer-events-none"
+      className="absolute left-[60px] right-0 z-30 pointer-events-none"
       style={{ top: `${topPx}px` }}
     >
       <div className="flex items-center">

@@ -6,9 +6,10 @@ interface DraggableEventProps {
   event: CalendarEvent
   children: React.ReactNode
   className?: string
+  onClick?: (e: React.MouseEvent) => void
 }
 
-export default function DraggableEvent({ event, children, className }: DraggableEventProps) {
+export default function DraggableEvent({ event, children, className, onClick }: DraggableEventProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `event-${event.id}`,
     data: { event },
@@ -17,12 +18,19 @@ export default function DraggableEvent({ event, children, className }: Draggable
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
       {...attributes}
       className={cn(className, isDragging && 'opacity-30')}
       style={{ touchAction: 'none' }}
     >
-      {children}
+      {/* Drag handle layer — captures pointer events for dnd-kit */}
+      <div
+        {...listeners}
+        className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"
+      />
+      {/* Content layer — click events go here, above the drag handle */}
+      <div className="relative z-[1]" onClick={onClick}>
+        {children}
+      </div>
     </div>
   )
 }

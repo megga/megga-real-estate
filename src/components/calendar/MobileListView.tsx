@@ -31,6 +31,14 @@ export default function MobileListView({ events, onSelectEvent }: MobileListView
     return firstByDate
   }, [upcoming])
 
+  if (upcoming.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-theme-tertiary">Aucun événement à venir ce mois</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2">
       {upcoming.map(event => {
