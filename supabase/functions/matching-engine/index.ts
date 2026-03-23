@@ -6,7 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// ── Scoring Engine (100 points, no LLM) ─────────────────────────────────────
+// ── Scoring Engine v2 (100 pts + bonus, no LLM) ─────────────────────────────
+// Niveau 1: Must-have / nice-to-have + pondération dynamique
+// Niveau 2: Scoring géospatial (Haversine)
+// Niveau 3: Decay temporel (fraîcheur du bien)
 
 interface ClientSearchCriteria {
   budget_min?: number
@@ -18,6 +21,13 @@ interface ClientSearchCriteria {
   surface_min?: number
   surface_max?: number
   features?: string[]
+  // Niveau 1 — Must-have / nice-to-have
+  must_have?: string[]
+  nice_to_have?: string[]
+  // Niveau 2 — Géospatial : centre de recherche
+  center_lat?: number
+  center_lng?: number
+  radius_km?: number
 }
 
 interface Property {
@@ -31,6 +41,12 @@ interface Property {
   city: string
   canton: string
   features: string[] | null
+  // Niveau 2
+  lat: number | null
+  lng: number | null
+  // Niveau 3
+  published_at: string | null
+  created_at: string
 }
 
 interface ClientSearch {
@@ -52,10 +68,111 @@ interface MatchReason {
   type_score: number
   rooms_surface_score: number
   features_score: number
+  // Niveau 1
+  must_have_met: boolean
+  must_have_missing: string[]
+  nice_to_have_matched: string[]
+  // Niveau 2
+  distance_km: number | null
+  // Niveau 3
+  freshness_decay: number
+  days_on_market: number
 }
 
+// ── Niveau 2 — Haversine distance (km) ──────────────────────────────────────
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+// ── Centres géographiques des villes/cantons suisses ─────────────────────────
+
+const ZONE_CENTERS: Record<string, { lat: number; lng: number }> = {
+  // Cantons
+  'ge': { lat: 46.2044, lng: 6.1432 },
+  'vd': { lat: 46.5197, lng: 6.6323 },
+  'vs': { lat: 46.2330, lng: 7.3607 },
+  'ne': { lat: 46.9900, lng: 6.9293 },
+  'fr': { lat: 46.8065, lng: 7.1620 },
+  'be': { lat: 46.9480, lng: 7.4474 },
+  'zh': { lat: 47.3769, lng: 8.5417 },
+  'bs': { lat: 47.5596, lng: 7.5886 },
+  'lu': { lat: 47.0502, lng: 8.3093 },
+  'ti': { lat: 46.0037, lng: 8.9511 },
+  'sg': { lat: 47.4245, lng: 9.3767 },
+  'ag': { lat: 47.3913, lng: 8.0455 },
+  'so': { lat: 47.2088, lng: 7.5323 },
+  'bl': { lat: 47.4855, lng: 7.7271 },
+  'tg': { lat: 47.5536, lng: 9.0727 },
+  'gr': { lat: 46.8508, lng: 9.5320 },
+  'zg': { lat: 47.1724, lng: 8.5177 },
+  'sz': { lat: 47.0207, lng: 8.6530 },
+  'sh': { lat: 47.6960, lng: 8.6340 },
+  'ju': { lat: 47.3667, lng: 7.3500 },
+  'ar': { lat: 47.3831, lng: 9.2787 },
+  'ai': { lat: 47.3317, lng: 9.4099 },
+  'nw': { lat: 46.9579, lng: 8.3652 },
+  'ow': { lat: 46.8737, lng: 8.2464 },
+  'ur': { lat: 46.8803, lng: 8.6440 },
+  'gl': { lat: 47.0411, lng: 9.0680 },
+  // Villes principales
+  'genève': { lat: 46.2044, lng: 6.1432 },
+  'lausanne': { lat: 46.5197, lng: 6.6323 },
+  'zürich': { lat: 47.3769, lng: 8.5417 },
+  'zurich': { lat: 47.3769, lng: 8.5417 },
+  'berne': { lat: 46.9480, lng: 7.4474 },
+  'bern': { lat: 46.9480, lng: 7.4474 },
+  'bâle': { lat: 47.5596, lng: 7.5886 },
+  'basel': { lat: 47.5596, lng: 7.5886 },
+  'lucerne': { lat: 47.0502, lng: 8.3093 },
+  'luzern': { lat: 47.0502, lng: 8.3093 },
+  'lugano': { lat: 46.0037, lng: 8.9511 },
+  'fribourg': { lat: 46.8065, lng: 7.1620 },
+  'neuchâtel': { lat: 46.9900, lng: 6.9293 },
+  'sion': { lat: 46.2330, lng: 7.3607 },
+  'montreux': { lat: 46.4312, lng: 6.9107 },
+  'nyon': { lat: 46.3833, lng: 6.2396 },
+  'morges': { lat: 46.5117, lng: 6.4985 },
+  'vevey': { lat: 46.4628, lng: 6.8432 },
+  'carouge': { lat: 46.1839, lng: 6.1390 },
+  'lancy': { lat: 46.1833, lng: 6.1167 },
+  'meyrin': { lat: 46.2333, lng: 6.0833 },
+  'vernier': { lat: 46.2167, lng: 6.0833 },
+  'onex': { lat: 46.1833, lng: 6.1000 },
+  'thônex': { lat: 46.2167, lng: 6.2000 },
+  'cologny': { lat: 46.2167, lng: 6.1833 },
+  'vandoeuvres': { lat: 46.2167, lng: 6.2167 },
+  'chêne-bourg': { lat: 46.2000, lng: 6.1833 },
+  'plan-les-ouates': { lat: 46.1667, lng: 6.1167 },
+}
+
+function getZoneCenter(zone: string): { lat: number; lng: number } | null {
+  return ZONE_CENTERS[zone.toLowerCase()] || null
+}
+
+// ── Niveau 3 — Decay temporel ───────────────────────────────────────────────
+
+function calculateDecay(publishedAt: string | null, createdAt: string): { decay: number; daysOnMarket: number } {
+  const refDate = publishedAt || createdAt
+  const daysOnMarket = Math.max(0, Math.floor((Date.now() - new Date(refDate).getTime()) / 86400000))
+
+  // Decay : 1.0 pour un bien neuf, 0.7 minimum après 180 jours
+  // Formule douce : decay = max(0.7, 1.0 - (jours / 600))
+  const decay = Math.max(0.7, 1.0 - (daysOnMarket / 600))
+  return { decay, daysOnMarket }
+}
+
+// ── Score Budget (30 pts) ────────────────────────────────────────────────────
+
 function scoreBudget(price: number, budgetMin?: number, budgetMax?: number): number {
-  if (!budgetMin && !budgetMax) return 15 // No budget constraint → partial score
+  if (!budgetMin && !budgetMax) return 15
   const min = budgetMin || 0
   const max = budgetMax || Infinity
 
@@ -65,39 +182,91 @@ function scoreBudget(price: number, budgetMin?: number, budgetMax?: number): num
     if (overRatio <= 1.15) return Math.max(5, Math.round(30 * (1 - (overRatio - 1) / 0.15)))
     return 0
   }
-  // Under budget
   if (price >= min * 0.7) return 20
   return 0
 }
 
-function scoreZone(city: string, canton: string, zones?: string[]): number {
-  if (!zones || zones.length === 0) return 12 // No zone constraint → partial score
+// ── Score Zone (25 pts) — Niveau 2 : géospatial si lat/lng disponibles ──────
+
+function scoreZone(
+  city: string,
+  canton: string,
+  zones?: string[],
+  propertyLat?: number | null,
+  propertyLng?: number | null,
+  centerLat?: number,
+  centerLng?: number,
+  radiusKm?: number,
+): { score: number; distanceKm: number | null } {
+  // Si on a les coordonnées du bien ET un centre de recherche → géospatial
+  if (propertyLat && propertyLng && centerLat && centerLng) {
+    const distance = haversineKm(propertyLat, propertyLng, centerLat, centerLng)
+    const maxRadius = radiusKm || 10
+    if (distance <= maxRadius * 0.5) return { score: 25, distanceKm: Math.round(distance * 10) / 10 }
+    if (distance <= maxRadius) return { score: 20, distanceKm: Math.round(distance * 10) / 10 }
+    if (distance <= maxRadius * 1.5) return { score: 10, distanceKm: Math.round(distance * 10) / 10 }
+    return { score: 0, distanceKm: Math.round(distance * 10) / 10 }
+  }
+
+  // Sinon, si le bien a des coords ET on a des zones → calculer la distance au centre de zone le plus proche
+  if (propertyLat && propertyLng && zones && zones.length > 0) {
+    let bestScore = 0
+    let bestDistance: number | null = null
+
+    for (const zone of zones) {
+      const center = getZoneCenter(zone)
+      if (center) {
+        const distance = haversineKm(propertyLat, propertyLng, center.lat, center.lng)
+        const d = Math.round(distance * 10) / 10
+        // Scoring progressif : 0-3km = 25pts, 3-8km = 20pts, 8-15km = 12pts, 15-25km = 5pts
+        let s = 0
+        if (distance <= 3) s = 25
+        else if (distance <= 8) s = Math.round(25 - (distance - 3) * 1)
+        else if (distance <= 15) s = Math.round(20 - (distance - 8) * 1.14)
+        else if (distance <= 25) s = Math.round(12 - (distance - 15) * 0.7)
+        else s = 0
+
+        if (s > bestScore) {
+          bestScore = s
+          bestDistance = d
+        }
+      }
+    }
+
+    if (bestScore > 0) return { score: bestScore, distanceKm: bestDistance }
+  }
+
+  // Fallback : matching textuel classique (ville/canton)
+  if (!zones || zones.length === 0) return { score: 12, distanceKm: null }
   const normalizedCity = city.toLowerCase()
   const normalizedCanton = canton.toLowerCase()
 
   for (const zone of zones) {
     const z = zone.toLowerCase()
-    if (z === normalizedCity) return 25
-    if (z === normalizedCanton) return 15
-    // Partial match (e.g. "genève" matches "ge")
-    if (normalizedCanton === 'ge' && z.includes('genèv')) return 20
-    if (normalizedCanton === 'vd' && z.includes('lausann')) return 20
+    if (z === normalizedCity) return { score: 25, distanceKm: null }
+    if (z === normalizedCanton) return { score: 15, distanceKm: null }
+    if (normalizedCanton === 'ge' && z.includes('genèv')) return { score: 20, distanceKm: null }
+    if (normalizedCanton === 'vd' && z.includes('lausann')) return { score: 20, distanceKm: null }
   }
-  return 0
+  return { score: 0, distanceKm: null }
 }
 
+// ── Score Type (15 pts) ──────────────────────────────────────────────────────
+
 function scoreType(propertyType: string, searchType?: string): number {
-  if (!searchType) return 7 // No type constraint → partial score
+  if (!searchType) return 7
   const normalized = searchType.toLowerCase()
   const propNorm = propertyType.toLowerCase()
 
   if (propNorm === normalized) return 15
-  // Villa ≈ house
   if ((propNorm === 'villa' && normalized === 'house') || (propNorm === 'house' && normalized === 'villa')) return 10
   if ((propNorm === 'villa' && normalized === 'maison') || (propNorm === 'house' && normalized === 'maison')) return 10
   if ((propNorm === 'apartment' && normalized === 'appartement')) return 15
   return 0
 }
+
+// ── Score Pièces/Surface (15 pts) ────────────────────────────────────────────
+
 
 function scoreRoomsSurface(
   rooms: number,
@@ -139,19 +308,73 @@ function scoreRoomsSurface(
   return Math.min(15, s)
 }
 
-function scoreFeatures(propertyFeatures: string[] | null, searchFeatures?: string[]): number {
-  if (!searchFeatures || searchFeatures.length === 0) return 7 // No constraint → partial
-  if (!propertyFeatures || propertyFeatures.length === 0) return 0
+// ── Score Features (15 pts) — Niveau 1 : must-have / nice-to-have ───────────
 
-  const propSet = new Set(propertyFeatures.map((f) => f.toLowerCase()))
+function scoreFeatures(
+  propertyFeatures: string[] | null,
+  searchFeatures?: string[],
+  mustHave?: string[],
+  niceToHave?: string[],
+): { score: number; mustHaveMet: boolean; mustHaveMissing: string[]; niceToHaveMatched: string[] } {
+  const propSet = new Set((propertyFeatures || []).map((f) => f.toLowerCase()))
+
+  // Niveau 1 : vérifier les must_have
+  const mustHaveMissing: string[] = []
+  if (mustHave && mustHave.length > 0) {
+    for (const mh of mustHave) {
+      if (!propSet.has(mh.toLowerCase())) {
+        mustHaveMissing.push(mh)
+      }
+    }
+  }
+  const mustHaveMet = mustHaveMissing.length === 0
+
+  // Niveau 1 : compter les nice_to_have
+  const niceToHaveMatched: string[] = []
+  if (niceToHave && niceToHave.length > 0) {
+    for (const nth of niceToHave) {
+      if (propSet.has(nth.toLowerCase())) {
+        niceToHaveMatched.push(nth)
+      }
+    }
+  }
+
+  // Score classique basé sur features générales
+  if (!searchFeatures || searchFeatures.length === 0) {
+    // Pas de features classiques → bonus nice-to-have uniquement
+    const niceBonus = niceToHave && niceToHave.length > 0
+      ? Math.round((niceToHaveMatched.length / niceToHave.length) * 8)
+      : 0
+    return { score: 7 + niceBonus, mustHaveMet, mustHaveMissing, niceToHaveMatched }
+  }
+
+  if (!propertyFeatures || propertyFeatures.length === 0) {
+    return { score: 0, mustHaveMet, mustHaveMissing, niceToHaveMatched }
+  }
+
+
   let matched = 0
   for (const sf of searchFeatures) {
     if (propSet.has(sf.toLowerCase())) matched++
   }
 
-  if (searchFeatures.length === 0) return 7
-  return Math.min(15, Math.round((matched / searchFeatures.length) * 15))
+  const baseScore = Math.round((matched / searchFeatures.length) * 15)
+
+  // Bonus nice-to-have (jusqu'à +5 pts)
+  const niceBonus = niceToHave && niceToHave.length > 0
+    ? Math.round((niceToHaveMatched.length / niceToHave.length) * 5)
+    : 0
+
+  return {
+    score: Math.min(15, baseScore) + niceBonus,
+    mustHaveMet,
+    mustHaveMissing,
+    niceToHaveMatched,
+  }
 }
+
+// ── Score final composite ────────────────────────────────────────────────────
+
 
 function calculateScore(
   property: Property,
@@ -160,18 +383,34 @@ function calculateScore(
   const c = search.criteria
 
   const budgetScore = scoreBudget(property.price, c.budget_min, c.budget_max)
-  const zoneScore = scoreZone(property.city, property.canton, c.zones)
+  const { score: zoneScore, distanceKm } = scoreZone(
+    property.city, property.canton, c.zones,
+    property.lat, property.lng,
+    c.center_lat, c.center_lng, c.radius_km,
+  )
   const typeScore = scoreType(property.type, c.type)
   const roomsSurfaceScore = scoreRoomsSurface(
     property.rooms, property.surface_m2,
     c.rooms_min, c.rooms_max, c.surface_min, c.surface_max,
   )
-  const featuresScore = scoreFeatures(property.features, c.features)
+  const { score: featuresScore, mustHaveMet, mustHaveMissing, niceToHaveMatched } = scoreFeatures(
+    property.features, c.features, c.must_have, c.nice_to_have,
+  )
 
-  const score = budgetScore + zoneScore + typeScore + roomsSurfaceScore + featuresScore
+  // Score brut (peut dépasser 100 avec bonus nice-to-have)
+  let rawScore = budgetScore + zoneScore + typeScore + roomsSurfaceScore + featuresScore
+
+  // Niveau 1 : si un must_have manque → score plafonné à 40
+  if (!mustHaveMet) {
+    rawScore = Math.min(40, rawScore)
+  }
+
+  // Niveau 3 : decay temporel — biens récents favorisés
+  const { decay, daysOnMarket } = calculateDecay(property.published_at, property.created_at)
+  const finalScore = Math.min(100, Math.round(rawScore * decay))
 
   return {
-    score,
+    score: finalScore,
     reasons: {
       budget: budgetScore >= 20,
       zone: zoneScore >= 15,
@@ -183,6 +422,12 @@ function calculateScore(
       type_score: typeScore,
       rooms_surface_score: roomsSurfaceScore,
       features_score: featuresScore,
+      must_have_met: mustHaveMet,
+      must_have_missing: mustHaveMissing,
+      nice_to_have_matched: niceToHaveMatched,
+      distance_km: distanceKm,
+      freshness_decay: Math.round(decay * 100) / 100,
+      days_on_market: daysOnMarket,
     },
   }
 }
@@ -221,17 +466,19 @@ serve(async (req) => {
       })
     }
 
-    // Fetch properties
+    // Fetch properties (v2: includes lat, lng, published_at for geospatial + decay)
+    const PROPERTY_SELECT = 'id, agency_id, type, status, price, rooms, surface_m2, city, canton, features, lat, lng, published_at, created_at'
+
     let propertiesQuery = supabase
       .from('properties')
-      .select('id, agency_id, type, status, price, rooms, surface_m2, city, canton, features')
+      .select(PROPERTY_SELECT)
       .eq('agency_id', agency_id)
       .eq('status', 'active')
 
     if (trigger === 'new_property' && property_id) {
       propertiesQuery = supabase
         .from('properties')
-        .select('id, agency_id, type, status, price, rooms, surface_m2, city, canton, features')
+        .select(PROPERTY_SELECT)
         .eq('id', property_id)
         .eq('status', 'active')
     }

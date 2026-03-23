@@ -119,22 +119,10 @@ function MatchPreviewModal({ match, onClose, onSend }: {
               <p className="text-xs text-theme-tertiary">Surface</p>
               <p className="text-sm font-medium text-theme-primary">{property.surface_m2} m²</p>
             </div>
-            {property.floor != null && (
+            {property.canton && (
               <div>
-                <p className="text-xs text-theme-tertiary">Étage</p>
-                <p className="text-sm font-medium text-theme-primary">{property.floor}</p>
-              </div>
-            )}
-            {property.year_built != null && (
-              <div>
-                <p className="text-xs text-theme-tertiary">Année</p>
-                <p className="text-sm font-medium text-theme-primary">{property.year_built}</p>
-              </div>
-            )}
-            {property.charges_monthly != null && property.charges_monthly > 0 && (
-              <div>
-                <p className="text-xs text-theme-tertiary">Charges</p>
-                <p className="text-sm font-medium text-theme-primary">{formatCHF(property.charges_monthly)}/mois</p>
+                <p className="text-xs text-theme-tertiary">Canton</p>
+                <p className="text-sm font-medium text-theme-primary">{property.canton}</p>
               </div>
             )}
           </div>
@@ -167,8 +155,43 @@ function MatchPreviewModal({ match, onClose, onSend }: {
                   </div>
                 ))}
               </div>
+
+              {/* Niveau 1 — must-have / nice-to-have */}
+              {reasons?.must_have_missing && reasons.must_have_missing.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-theme-border-subtle">
+                  <p className="text-[10px] text-red-500">
+                    Critères non négociables manquants : {reasons.must_have_missing.join(', ')}
+                  </p>
+                </div>
+              )}
+              {reasons?.nice_to_have_matched && reasons.nice_to_have_matched.length > 0 && (
+                <div className="mt-1">
+                  <p className="text-[10px] text-blue-500">
+                    Bonus : {reasons.nice_to_have_matched.join(', ')}
+                  </p>
+                </div>
+              )}
+
+              {/* Niveau 2 — distance */}
+              {reasons?.distance_km != null && (
+                <div className="mt-1">
+                  <p className="text-[10px] text-theme-muted">
+                    Distance : {reasons.distance_km} km du centre de recherche
+                  </p>
+                </div>
+              )}
+
+              {/* Niveau 3 — fraîcheur */}
+              {reasons?.days_on_market != null && reasons.days_on_market > 0 && (
+                <div className="mt-1">
+                  <p className="text-[10px] text-theme-muted">
+                    {reasons.days_on_market}j en ligne · fraîcheur {Math.round(reasons.freshness_decay * 100)}%
+                  </p>
+                </div>
+              )}
             </div>
           )}
+
 
           <p className="text-xs text-theme-tertiary mb-4">
             Match pour <span className="font-medium text-theme-primary">{contactName}</span>
