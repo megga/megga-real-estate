@@ -239,13 +239,15 @@ megga-real-estate/
 │   └── functions/               # Edge Functions Deno
 │       ├── ai-copilot/          # ✅ DÉPLOYÉ — Copilote IA (Claude Sonnet 4, chat libre + actions)
 │       ├── external-matching/   # ✅ DÉPLOYÉ — Scan marché suisse via RealAdvisor
-│       ├── send-email/          # ✅ DÉPLOYÉ — Envoi email via Resend (template HTML MEGGA)
+│       ├── send-property-email/  # ✅ DÉPLOYÉ — Envoi email bien immobilier via Resend
+│       ├── send-reminder-email/ # ✅ DÉPLOYÉ — Envoi email relance automatique via Resend
+│       ├── matching-engine/     # ✅ DÉPLOYÉ — Scoring matching acheteurs ↔ biens (5 critères, 100 pts)
+│       ├── automation-engine/   # ✅ DÉPLOYÉ — Moteur de relances (6 types, pg_cron horaire, auto-send)
 │       ├── ai-search/           # Recherche conversationnelle (Phase 2)
 │       ├── ai-matching/         # Enrichissement IA du matching (Phase 2)
 │       ├── ai-scoring/          # Buyer/seller intelligence (Phase 2)
 │       ├── ai-negotiation/      # Copilote négociation (Phase 2)
 │       ├── ai-listing-gen/      # Génération annonces multi-versions (Phase 2)
-│       ├── automation-engine/   # Moteur de relances automatiques (Phase 2)
 │       └── webhooks/            # Stripe, Resend... (Phase 2)
 ```
 
@@ -1288,8 +1290,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - Edge Function ai-search (pgvector + Claude API) pour recherche conversationnelle (Phase 2 prioritaire)
 
 ### Sprint 6 (Semaine 11-12) — Communication + Portail vendeur
-- **WhatsApp Business API** : envoi, réception, archivage dans timeline
-- Messaging unifié (email + WhatsApp + interne) + Inbox
+- Messaging unifié (email + messagerie interne) + Inbox (WhatsApp retiré du scope — trop complexe)
 - **Portail vendeur** : dashboard confiance, visites, offres, documents, analyse positionnement
 - Onboarding client (formulaires PP/PM)
 
@@ -1405,9 +1406,13 @@ DILISENSE_API_KEY    → Screening PEP/Sanctions
 - Policies ouvertes temp sur `kyc_cases`, `kyc_checklist_items`, `contacts` (anon read)
 - **À nettoyer pour la prod** : supprimer les policies `anon` et forcer `authenticated` partout
 
+### Modules backend déployés
+1. ✅ **Matching Engine** — scoring 5 critères (100 pts), triggers automatiques, scan pg_cron quotidien
+2. ✅ **Système de relances Phase A** — automation-engine (6 types de détection), pg_cron horaire, Action Board connecté Supabase
+3. ✅ **Système de relances Phase B** — send-reminder-email (envoi auto via Resend quand auto_send=true), templates par défaut, audit trail
+4. ✅ **KYC Screening** — vérification PEP/Sanctions via Dilisense API
+
 ### Prochaines priorités backend
-1. **Matching Engine connecté** (Sprint 4 — Étape 5) — scoring interne connecté au frontend
-2. **Système de relances connecté** (Sprint 4 — Étape 6) — automation-engine + send-reminder-email
-3. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action, rédaction
-4. **AI Search connecté** (Sprint 5) — recherche conversationnelle pgvector + Claude
-5. **WhatsApp Business API** (Sprint 6)
+1. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action, rédaction
+2. **AI Search connecté** (Sprint 5) — recherche conversationnelle pgvector + Claude
+3. **Messaging unifié** (Sprint 6) — email + messagerie interne (WhatsApp retiré du scope — trop complexe)
