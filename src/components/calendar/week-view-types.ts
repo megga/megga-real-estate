@@ -72,6 +72,8 @@ export interface WeekViewProps {
   onPrevWeek?: () => void;
   /** Navigate to next week */
   onNextWeek?: () => void;
+  /** Callback when clicking an empty time slot to create an event */
+  onSlotClick?: (date: Date) => void;
   /** Optional className for the root element */
   className?: string;
 }
@@ -142,6 +144,8 @@ export interface WeekViewGridProps {
   onPrevWeek?: () => void;
   /** Navigate to next week */
   onNextWeek?: () => void;
+  /** Callback when clicking an empty time slot to create an event */
+  onSlotClick?: (date: Date) => void;
   /** Optional className */
   className?: string;
 }

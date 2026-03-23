@@ -1,12 +1,13 @@
 import { useState, useCallback, useMemo } from 'react'
 import { addDays, startOfWeek, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { WeekView } from '@/components/calendar/week-view'
 import type { CalendarEvent, ViewType } from '@/components/calendar/week-view-types'
 import { MOCK_EVENTS } from '@/components/calendar/mock-events'
+import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
 
 /** Event category config for MEGGA real estate */
 const EVENT_CATEGORIES = {
@@ -26,6 +27,10 @@ export default function CalendarPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | undefined>()
   const [view] = useState<ViewType>('week')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Create event dialog state
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [createInitialDate, setCreateInitialDate] = useState<Date | undefined>()
 
   const handlePrevWeek = useCallback(() => {
     setCurrentDate((d) => addDays(d, -7))
@@ -57,6 +62,23 @@ export default function CalendarPage() {
 
   const handleDockToSidebar = useCallback(() => {
     setIsSidebarOpen(true)
+  }, [])
+
+  // Slot click → open create dialog with pre-filled date/time
+  const handleSlotClick = useCallback((date: Date) => {
+    setCreateInitialDate(date)
+    setShowCreateDialog(true)
+  }, [])
+
+  // "+" button → open create dialog with current time
+  const handleCreateNew = useCallback(() => {
+    setCreateInitialDate(undefined)
+    setShowCreateDialog(true)
+  }, [])
+
+  // Add new event from dialog
+  const handleCreateEvent = useCallback((newEvent: CalendarEvent) => {
+    setEvents((prev) => [...prev, newEvent])
   }, [])
 
   // Format header date for French locale
@@ -93,6 +115,13 @@ export default function CalendarPage() {
           >
             Aujourd'hui
           </button>
+          <button
+            onClick={handleCreateNew}
+            className="flex h-7 items-center gap-1.5 rounded-md border border-theme-border px-3 text-xs font-medium text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Nouveau
+          </button>
         </div>
 
         {/* Legend */}
@@ -127,9 +156,18 @@ export default function CalendarPage() {
           onClosePopover={handleClosePopover}
           onPrevWeek={handlePrevWeek}
           onNextWeek={handleNextWeek}
+          onSlotClick={handleSlotClick}
           className="h-full"
         />
       </div>
+
+      {/* Create event dialog */}
+      <CreateVisitDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        initialDate={createInitialDate}
+        onCreateEvent={handleCreateEvent}
+      />
     </div>
   )
 }

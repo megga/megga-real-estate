@@ -36,6 +36,7 @@ export function WeekViewGrid({
   onClosePopover,
   onPrevWeek,
   onNextWeek,
+  onSlotClick,
   className,
 }: WeekViewGridProps) {
   const { view } = useCalendarPopoverBoundary();
@@ -74,9 +75,15 @@ export function WeekViewGrid({
               <div
                 key={`${day.date.toISOString()}-${hourSlot.hour}`}
                 className={cn(
-                  "border-border border-b border-l",
+                  "border-border border-b border-l cursor-pointer hover:bg-accent/5 transition-colors",
                   isWeekend && "bg-calendar-weekend",
                 )}
+                onClick={() => {
+                  if (!onSlotClick) return;
+                  const slotDate = new Date(day.date);
+                  slotDate.setHours(hourSlot.hour, 0, 0, 0);
+                  onSlotClick(slotDate);
+                }}
               />
             );
           }),

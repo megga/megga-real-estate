@@ -152,6 +152,7 @@ export function WeekView({
   onClosePopover,
   onPrevWeek,
   onNextWeek,
+  onSlotClick,
   className,
 }: WeekViewProps) {
   const VISIBLE_DAYS = VISIBLE_DAYS_BY_VIEW[view];
@@ -443,6 +444,7 @@ export function WeekView({
                   onClosePopover={onClosePopover}
                   onPrevWeek={onPrevWeek}
                   onNextWeek={onNextWeek}
+                  onSlotClick={onSlotClick}
                 />
               </div>
             </div>
