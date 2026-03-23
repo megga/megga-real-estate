@@ -86,7 +86,16 @@ export default function CalendarPage() {
   }, [])
 
   const handleEventClick = useCallback((event: CalendarEvent) => {
-    setSelectedEventId((prev) => (prev === event.id ? undefined : event.id))
+    setSelectedEventId((prev) => {
+      if (prev === event.id) {
+        // Clicking the same event again → deselect and close sidebar
+        setIsSidebarOpen(false)
+        return undefined
+      }
+      // Open sidebar automatically on event click
+      setIsSidebarOpen(true)
+      return event.id
+    })
   }, [])
 
   const handleEventChange = useCallback((updated: CalendarEvent) => {
