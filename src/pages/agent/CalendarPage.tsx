@@ -5,19 +5,22 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { WeekView } from '@/components/calendar/week-view'
-import type { CalendarEvent, ViewType } from '@/components/calendar/week-view-types'
+import type { CalendarEvent, EventColor, ViewType } from '@/components/calendar/week-view-types'
 import { MOCK_EVENTS } from '@/components/calendar/mock-events'
 import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
 
 /** Event category config for MEGGA real estate */
-const EVENT_CATEGORIES = {
+const EVENT_CATEGORIES: Record<EventColor, { label: string }> = {
   blue: { label: 'Visite' },
   purple: { label: 'Rendez-vous' },
   orange: { label: 'Relance' },
   green: { label: 'Signature' },
   red: { label: 'Échéance' },
+  yellow: { label: 'Autre' },
   gray: { label: 'Personnel' },
-} as const
+}
+
+const ALL_COLORS = Object.keys(EVENT_CATEGORIES) as EventColor[]
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(() =>
@@ -27,6 +30,27 @@ export default function CalendarPage() {
   const [selectedEventId, setSelectedEventId] = useState<string | undefined>()
   const [view] = useState<ViewType>('week')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Filter state — all colors active by default
+  const [activeFilters, setActiveFilters] = useState<Set<EventColor>>(() => new Set(ALL_COLORS))
+
+  const filteredEvents = useMemo(
+    () => events.filter((e) => activeFilters.has(e.color ?? 'blue')),
+    [events, activeFilters]
+  )
+
+  const toggleFilter = useCallback((color: EventColor) => {
+    setActiveFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(color)) {
+        // Don't allow deactivating all filters
+        if (next.size > 1) next.delete(color)
+      } else {
+        next.add(color)
+      }
+      return next
+    })
+  }, [])
 
   // Create event dialog state
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -124,19 +148,33 @@ export default function CalendarPage() {
           </button>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-3">
-          {Object.entries(EVENT_CATEGORIES).map(([color, config]) => (
-            <div key={color} className="flex items-center gap-1.5">
-              <span
+        {/* Legend — clickable filters */}
+        <div className="flex items-center gap-1">
+          {(Object.entries(EVENT_CATEGORIES) as [EventColor, { label: string }][]).map(([color, config]) => {
+            const isActive = activeFilters.has(color)
+            return (
+              <button
+                key={color}
+                type="button"
+                onClick={() => toggleFilter(color)}
                 className={cn(
-                  'h-2 w-2 rounded-full',
-                  `bg-event-${color}-border`
+                  'flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs transition-all border',
+                  isActive
+                    ? 'border-theme-border text-theme-primary'
+                    : 'border-transparent text-theme-tertiary opacity-50'
                 )}
-              />
-              <span className="text-xs text-theme-secondary">{config.label}</span>
-            </div>
-          ))}
+              >
+                <span
+                  className={cn(
+                    'h-2 w-2 rounded-full transition-opacity',
+                    `bg-event-${color}-border`,
+                    !isActive && 'opacity-40'
+                  )}
+                />
+                {config.label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -145,7 +183,7 @@ export default function CalendarPage() {
         <WeekView
           view={view}
           currentDate={currentDate}
-          events={events}
+          events={filteredEvents}
           onEventClick={handleEventClick}
           selectedEventId={selectedEventId}
           onBackgroundClick={handleBackgroundClick}
