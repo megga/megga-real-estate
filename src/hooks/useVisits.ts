@@ -110,6 +110,8 @@ export function useVisits() {
       return ((data || []) as VisitRow[]).map(visitToCalendarEvent)
     },
     enabled: !!agencyId,
+    staleTime: 5 * 60 * 1000,   // 5 minutes — avoid refetch on every focus
+    gcTime: 30 * 60 * 1000,     // 30 minutes cache
   })
 
   // ── Create a visit ──

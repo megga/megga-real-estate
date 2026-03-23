@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import {
   startOfMonth,
   endOfMonth,
@@ -101,10 +101,15 @@ export function MonthView({
     setDraggedEventId(event.id)
   }, [])
 
+  const dragOverDayRef = React.useRef<string | null>(null)
   const handleDragOver = useCallback((e: React.DragEvent, dayKey: string) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    setDragOverDay(dayKey)
+    // Only update state when day actually changes — avoids 60 setState/sec
+    if (dragOverDayRef.current !== dayKey) {
+      dragOverDayRef.current = dayKey
+      setDragOverDay(dayKey)
+    }
   }, [])
 
   const handleDragLeave = useCallback(() => {
