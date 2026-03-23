@@ -5,8 +5,7 @@ import { isPast, isSameDay } from "date-fns";
 import { useCallback } from "react";
 import { calculateAllDayEventRows } from "@/lib/event-utils";
 import { AllDayEventItem } from "@/components/calendar/calendar-event-item";
-import { useCalendarPopoverBoundary } from "@/components/calendar/calendar-popover-context";
-import type { CalendarEvent, WeekViewAllDayRowProps } from "@/components/calendar/week-view-types";
+import type { CalendarEvent, ViewType, WeekViewAllDayRowProps } from "@/components/calendar/week-view-types";
 
 const ALL_DAY_EVENT_HEIGHT = 24;
 const ALL_DAY_ROW_GAP = 2;
@@ -29,6 +28,7 @@ export function WeekViewAllDayRow({
   visibleStartIndex,
   visibleCount,
   dayColumnWidth,
+  view,
   className,
 }: WeekViewAllDayRowProps) {
   const allEventRows = calculateAllDayEventRows(allDayEvents, days);
@@ -131,6 +131,7 @@ export function WeekViewAllDayRow({
                     onEventChange={onEventChange}
                     onContextMenuOpenChange={onContextMenuOpenChange}
                     visibleStartIndex={visibleStartIndex}
+                    view={view}
                   />
                 );
               })}
@@ -227,6 +228,8 @@ interface AllDayEventRowProps {
   onContextMenuOpenChange?: (open: boolean) => void;
   /** Index of the first visible column (for sticky-title offset) */
   visibleStartIndex?: number;
+  /** Current view type (used for day-view specific styling) */
+  view?: ViewType;
 }
 
 function AllDayEventRow({
@@ -246,8 +249,8 @@ function AllDayEventRow({
   onEventChange,
   onContextMenuOpenChange,
   visibleStartIndex,
+  view,
 }: AllDayEventRowProps) {
-  const { view } = useCalendarPopoverBoundary();
   const isDayView = view === "day";
 
   const left = (startColumn / totalColumns) * 100;

@@ -126,6 +126,8 @@ export interface WeekViewGridProps {
   onContextMenuOpenChange?: (open: boolean) => void;
   /** Callback when clicking an empty time slot to create an event */
   onSlotClick?: (date: Date) => void;
+  /** Current view type (used for day-view specific styling) */
+  view?: ViewType;
   /** Optional className */
   className?: string;
 }
@@ -184,6 +186,8 @@ export interface WeekViewAllDayRowProps {
   visibleCount?: number;
   /** Width of a single day column in pixels (for floating drag copy sizing) */
   dayColumnWidth?: number;
+  /** Current view type (used for day-view specific styling) */
+  view?: ViewType;
   /** Optional className */
   className?: string;
 }
