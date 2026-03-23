@@ -59,7 +59,7 @@ export function calculateRiskScore(input: RiskInput): RiskScoreResult {
   }
 
   // 2. PEP status (0-25 points)
-  if (input.pepStatus === 'match_found') {
+  if (input.pepStatus === 'match') {
     factors.push({
       id: 'pep',
       label: 'Statut PEP',

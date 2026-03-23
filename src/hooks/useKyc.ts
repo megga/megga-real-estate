@@ -1,10 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { KycCase, KycChecklistItem, KycStatus } from '@/types/kyc'
+import type {
+  KycCase, KycCaseWithChecklist, KycChecklistItem,
+  KycDocument, KycAuditEvent, KycStatus, ScreeningResult,
+} from '@/types/kyc'
 
 interface KycFilters {
   status?: KycStatus
 }
+
+// ─── List all KYC cases ────────────────────────────────────────────────────
 
 export function useKycCases(filters?: KycFilters) {
   return useQuery({
@@ -12,7 +17,11 @@ export function useKycCases(filters?: KycFilters) {
     queryFn: async () => {
       let query = supabase
         .from('kyc_cases')
-        .select('*, contact:contacts(first_name, last_name), transaction:transactions(id, stage)')
+        .select(`
+          *,
+          contact:contacts(first_name, last_name, nationality),
+          transaction:transactions(id, stage, property_id)
+        `)
 
       if (filters?.status) query = query.eq('status', filters.status)
 
@@ -23,6 +32,8 @@ export function useKycCases(filters?: KycFilters) {
   })
 }
 
+// ─── Single KYC case with checklist ────────────────────────────────────────
+
 export function useKycCase(id: string | undefined) {
   return useQuery({
     queryKey: ['kyc-case', id],
@@ -30,15 +41,61 @@ export function useKycCase(id: string | undefined) {
       if (!id) throw new Error('No KYC case ID')
       const { data, error } = await supabase
         .from('kyc_cases')
-        .select('*, contact:contacts(*), transaction:transactions(*), checklist:kyc_checklist_items(*)')
+        .select(`
+          *,
+          contact:contacts(first_name, last_name, nationality),
+          transaction:transactions(id, stage, property_id),
+          checklist:kyc_checklist_items(*)
+        `)
         .eq('id', id)
         .single()
       if (error) throw error
-      return data as KycCase & { checklist: KycChecklistItem[] }
+      return data as KycCaseWithChecklist
     },
     enabled: !!id,
   })
 }
+
+// ─── Documents for a KYC case ──────────────────────────────────────────────
+
+export function useKycDocuments(kycCaseId: string | undefined) {
+  return useQuery({
+    queryKey: ['kyc-documents', kycCaseId],
+    queryFn: async () => {
+      if (!kycCaseId) throw new Error('No KYC case ID')
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('kyc_case_id', kycCaseId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data as KycDocument[]
+    },
+    enabled: !!kycCaseId,
+  })
+}
+
+// ─── Audit events for a KYC case ───────────────────────────────────────────
+
+export function useKycAuditEvents(kycCaseId: string | undefined) {
+  return useQuery({
+    queryKey: ['kyc-audit', kycCaseId],
+    queryFn: async () => {
+      if (!kycCaseId) throw new Error('No KYC case ID')
+      const { data, error } = await supabase
+        .from('activity_events')
+        .select('*')
+        .eq('entity_type', 'kyc')
+        .eq('entity_id', kycCaseId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data as KycAuditEvent[]
+    },
+    enabled: !!kycCaseId,
+  })
+}
+
+// ─── Toggle checklist item ─────────────────────────────────────────────────
 
 export function useUpdateKycItem() {
   const queryClient = useQueryClient()
@@ -59,7 +116,7 @@ export function useUpdateKycItem() {
         .select()
         .single()
       if (error) throw error
-      return data
+      return data as KycChecklistItem
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-case'] })
@@ -67,6 +124,8 @@ export function useUpdateKycItem() {
     },
   })
 }
+
+// ─── Validate KYC case (human-in-the-loop) ─────────────────────────────────
 
 export function useValidateKycCase() {
   const queryClient = useQueryClient()
@@ -83,11 +142,143 @@ export function useValidateKycCase() {
         .select()
         .single()
       if (error) throw error
-      return data
+
+      // Log validation event
+      const kycCase = data as KycCase
+      await supabase.from('activity_events').insert({
+        agency_id: kycCase.agency_id,
+        actor_id: validated_by,
+        action: 'Dossier KYC validé',
+        entity_type: 'kyc',
+        entity_id: id,
+        metadata: { validated_by },
+      })
+
+      return data as KycCase
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.id] })
+    },
+  })
+}
+
+// ─── Update notes ──────────────────────────────────────────────────────────
+
+export function useUpdateKycNotes() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      const { data, error } = await supabase
+        .from('kyc_cases')
+        .update({ notes })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data as KycCase
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.id] })
+    },
+  })
+}
+
+// ─── Upload document to Supabase Storage ───────────────────────────────────
+
+export function useUploadKycDocument() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      kycCaseId,
+      agencyId,
+      file,
+      documentCategory,
+      uploadedBy,
+    }: {
+      kycCaseId: string
+      agencyId: string
+      file: File
+      documentCategory: 'identity' | 'domicile' | 'financial' | 'compliance' | 'other'
+      uploadedBy: string
+    }) => {
+      // Upload to storage
+      const filePath = `${agencyId}/${kycCaseId}/${Date.now()}_${file.name}`
+      const { error: uploadError } = await supabase.storage
+        .from('kyc-documents')
+        .upload(filePath, file)
+      if (uploadError) throw uploadError
+
+      // Insert document record
+      const { data, error } = await supabase
+        .from('documents')
+        .insert({
+          agency_id: agencyId,
+          kyc_case_id: kycCaseId,
+          name: file.name,
+          type: 'kyc',
+          storage_path: filePath,
+          size_bytes: file.size,
+          uploaded_by: uploadedBy,
+          status: 'pending',
+          document_category: documentCategory,
+        })
+        .select()
+        .single()
+      if (error) throw error
+
+      // Log upload event
+      await supabase.from('activity_events').insert({
+        agency_id: agencyId,
+        actor_id: uploadedBy,
+        action: `Document téléversé : ${file.name}`,
+        entity_type: 'kyc',
+        entity_id: kycCaseId,
+        metadata: { document_name: file.name, document_category: documentCategory, size_bytes: file.size },
+      })
+
+      return data as KycDocument
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-documents', variables.kycCaseId] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
+    },
+  })
+}
+
+// ─── Screen KYC case via dilisense Edge Function ───────────────────────────
+
+export function useScreenKycCase() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      kycCaseId,
+      contactName,
+      contactNationality,
+      entityType,
+    }: {
+      kycCaseId: string
+      contactName: string
+      contactNationality: string
+      entityType: 'individual' | 'entity'
+    }) => {
+      const { data, error } = await supabase.functions.invoke('kyc-screening', {
+        body: {
+          kyc_case_id: kycCaseId,
+          contact_name: contactName,
+          contact_nationality: contactNationality,
+          entity_type: entityType,
+        },
+      })
+      if (error) throw error
+      return data as ScreeningResult
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })
     },
   })
 }
