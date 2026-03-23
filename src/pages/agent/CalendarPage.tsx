@@ -303,6 +303,7 @@ export default function CalendarPage() {
             currentDate={currentDate}
             events={filteredEvents}
             onEventClick={handleEventClick}
+            onEventChange={handleEventChange}
             selectedEventId={selectedEventId}
             onBackgroundClick={handleBackgroundClick}
             onSlotClick={handleSlotClick}
