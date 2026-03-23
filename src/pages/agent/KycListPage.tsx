@@ -66,7 +66,7 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
 
 function getContactName(kyc: KycCase): string {
   if (kyc.contact) return `${kyc.contact.first_name} ${kyc.contact.last_name}`
-  return 'Contact'
+  return `Dossier ${kyc.type === 'buyer_pp' || kyc.type === 'buyer_pm' ? 'Acheteur' : 'Vendeur'}`
 }
 
 export default function KycListPage() {
@@ -322,7 +322,7 @@ export default function KycListPage() {
                   const hasMatch = pepStatus === 'match' || sanctionsStatus === 'match'
 
                   const riskScore = kyc.risk_score ?? calculateRiskScore({
-                    contactNationality: kyc.contact_nationality ?? kyc.contact?.nationality ?? 'CH',
+                    contactNationality: kyc.contact_nationality ?? 'CH',
                     pepStatus: pepStatus === 'match' ? 'match' : 'clear',
                     transactionAmount: kyc.transaction_amount ?? 0,
                     kycType: kyc.type,

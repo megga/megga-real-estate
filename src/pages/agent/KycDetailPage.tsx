@@ -167,7 +167,7 @@ export default function KycDetailPage() {
     screenMutation.mutate({
       kycCaseId: id,
       contactName,
-      contactNationality: kyc.contact_nationality ?? kyc.contact?.nationality ?? 'CH',
+      contactNationality: kyc.contact_nationality ?? 'CH',
       entityType,
     })
   }
@@ -224,7 +224,7 @@ export default function KycDetailPage() {
   const sanctionsStatus = (kyc.sanctions_status ?? 'not_checked') as SanctionsStatus
 
   const riskResult = calculateRiskScore({
-    contactNationality: kyc.contact_nationality ?? kyc.contact?.nationality ?? 'CH',
+    contactNationality: kyc.contact_nationality ?? 'CH',
     pepStatus: pepStatus === 'match' ? 'match' : 'clear',
     transactionAmount: kyc.transaction_amount ?? 0,
     kycType: kyc.type,

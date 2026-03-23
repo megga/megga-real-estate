@@ -17,11 +17,7 @@ export function useKycCases(filters?: KycFilters) {
     queryFn: async () => {
       let query = supabase
         .from('kyc_cases')
-        .select(`
-          *,
-          contact:contacts(first_name, last_name, nationality),
-          transaction:transactions(id, stage, property_id)
-        `)
+        .select('*')
 
       if (filters?.status) query = query.eq('status', filters.status)
 
@@ -39,14 +35,10 @@ export function useKycCase(id: string | undefined) {
     queryKey: ['kyc-case', id],
     queryFn: async () => {
       if (!id) throw new Error('No KYC case ID')
+      // Load case + checklist (no joins on contacts/transactions to avoid RLS recursion)
       const { data, error } = await supabase
         .from('kyc_cases')
-        .select(`
-          *,
-          contact:contacts(first_name, last_name, nationality),
-          transaction:transactions(id, stage, property_id),
-          checklist:kyc_checklist_items(*)
-        `)
+        .select('*, checklist:kyc_checklist_items(*)')
         .eq('id', id)
         .single()
       if (error) throw error

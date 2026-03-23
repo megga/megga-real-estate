@@ -31,7 +31,6 @@ export interface KycCase {
   contact?: {
     first_name: string
     last_name: string
-    nationality?: string
   }
   transaction?: {
     id: string
