@@ -1,10 +1,11 @@
 import { useState, useCallback, useMemo } from 'react'
-import { addDays, startOfWeek, format } from 'date-fns'
+import { addDays, addMonths, subMonths, startOfWeek, startOfMonth, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, PanelRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { WeekView } from '@/components/calendar/week-view'
+import { MonthView } from '@/components/calendar/month-view'
 import type { CalendarEvent, EventColor, ViewType } from '@/components/calendar/week-view-types'
 import { MOCK_EVENTS } from '@/components/calendar/mock-events'
 import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
@@ -60,25 +61,30 @@ export default function CalendarPage() {
   // Feedback dialog state
   const [feedbackEvent, setFeedbackEvent] = useState<CalendarEvent | null>(null)
 
-  const handlePrevWeek = useCallback(() => {
-    setCurrentDate((d) => addDays(d, view === 'day' ? -1 : -7))
+  const handlePrev = useCallback(() => {
+    if (view === 'month') setCurrentDate((d) => subMonths(d, 1))
+    else if (view === 'day') setCurrentDate((d) => addDays(d, -1))
+    else setCurrentDate((d) => addDays(d, -7))
   }, [view])
 
-  const handleNextWeek = useCallback(() => {
-    setCurrentDate((d) => addDays(d, view === 'day' ? 1 : 7))
+  const handleNext = useCallback(() => {
+    if (view === 'month') setCurrentDate((d) => addMonths(d, 1))
+    else if (view === 'day') setCurrentDate((d) => addDays(d, 1))
+    else setCurrentDate((d) => addDays(d, 7))
   }, [view])
 
   const handleToday = useCallback(() => {
     const today = new Date()
-    setCurrentDate(view === 'day' ? today : startOfWeek(today, { weekStartsOn: 1 }))
+    if (view === 'month') setCurrentDate(startOfMonth(today))
+    else if (view === 'day') setCurrentDate(today)
+    else setCurrentDate(startOfWeek(today, { weekStartsOn: 1 }))
   }, [view])
 
   const handleViewChange = useCallback((newView: ViewType) => {
-    if (newView === 'day') {
-      setCurrentDate(new Date())
-    } else {
-      setCurrentDate(startOfWeek(new Date(), { weekStartsOn: 1 }))
-    }
+    const today = new Date()
+    if (newView === 'month') setCurrentDate(startOfMonth(today))
+    else if (newView === 'day') setCurrentDate(today)
+    else setCurrentDate(startOfWeek(today, { weekStartsOn: 1 }))
     setView(newView)
   }, [])
 
@@ -173,13 +179,13 @@ export default function CalendarPage() {
           </h1>
           <div className="flex items-center gap-1">
             <button
-              onClick={handlePrevWeek}
+              onClick={handlePrev}
               className="flex h-7 w-7 items-center justify-center rounded-md text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
-              onClick={handleNextWeek}
+              onClick={handleNext}
               className="flex h-7 w-7 items-center justify-center rounded-md text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
@@ -200,28 +206,21 @@ export default function CalendarPage() {
           </button>
           {/* View toggle */}
           <div className="flex h-7 rounded-md border border-theme-border overflow-hidden">
-            <button
-              onClick={() => handleViewChange('day')}
-              className={cn(
-                'px-2.5 text-xs font-medium transition-colors',
-                view === 'day'
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-              )}
-            >
-              Jour
-            </button>
-            <button
-              onClick={() => handleViewChange('week')}
-              className={cn(
-                'px-2.5 text-xs font-medium transition-colors border-l border-theme-border',
-                view === 'week'
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-              )}
-            >
-              Semaine
-            </button>
+            {(['day', 'week', 'month'] as ViewType[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => handleViewChange(v)}
+                className={cn(
+                  'px-2.5 text-xs font-medium transition-colors',
+                  v !== 'day' && 'border-l border-theme-border',
+                  view === v
+                    ? 'bg-accent/10 text-accent'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+                )}
+              >
+                {v === 'day' ? 'Jour' : v === 'week' ? 'Semaine' : 'Mois'}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -270,18 +269,30 @@ export default function CalendarPage() {
 
       {/* Calendar body + sidebar overlay */}
       <div className="relative flex-1 overflow-hidden">
-        <WeekView
-          view={view}
-          currentDate={currentDate}
-          events={filteredEvents}
-          onEventClick={handleEventClick}
-          selectedEventId={selectedEventId}
-          onBackgroundClick={handleBackgroundClick}
-          onDateChange={setCurrentDate}
-          onEventChange={handleEventChange}
-          onSlotClick={handleSlotClick}
-          className="h-full"
-        />
+        {view === 'month' ? (
+          <MonthView
+            currentDate={currentDate}
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            selectedEventId={selectedEventId}
+            onBackgroundClick={handleBackgroundClick}
+            onSlotClick={handleSlotClick}
+            className="h-full"
+          />
+        ) : (
+          <WeekView
+            view={view}
+            currentDate={currentDate}
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            selectedEventId={selectedEventId}
+            onBackgroundClick={handleBackgroundClick}
+            onDateChange={setCurrentDate}
+            onEventChange={handleEventChange}
+            onSlotClick={handleSlotClick}
+            className="h-full"
+          />
+        )}
 
         {/* Detail sidebar — absolute overlay with slide animation */}
         <div
