@@ -45,6 +45,56 @@ serve(async (req) => {
 
     let newMatches = 0
 
+    // ── Helper: insert match + log activity event ──
+    async function insertMatchWithAudit(
+      matchContactId: string,
+      matchPropertyId: string,
+      searchId: string,
+      score: ScoreResult
+    ): Promise<boolean> {
+      const { data: existing } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('contact_id', matchContactId)
+        .eq('property_id', matchPropertyId)
+        .maybeSingle()
+
+      if (existing) return false
+
+      const { data: inserted } = await supabase
+        .from('matches')
+        .insert({
+          agency_id,
+          contact_id: matchContactId,
+          property_id: matchPropertyId,
+          client_search_id: searchId,
+          score: score.total,
+          reasons: score.reasons,
+          status: 'suggested',
+        })
+        .select('id')
+        .single()
+
+      // Audit trail — toute action IA loggée avec actor_id = 'ai'
+      if (inserted) {
+        await supabase.from('activity_events').insert({
+          agency_id,
+          actor_id: 'ai',
+          action: 'match_suggested',
+          entity_type: 'match',
+          entity_id: inserted.id,
+          metadata: {
+            contact_id: matchContactId,
+            property_id: matchPropertyId,
+            score: score.total,
+            mode,
+          },
+        })
+      }
+
+      return true
+    }
+
     if (mode === 'match-property' && property_id) {
       // ── Nouveau bien → scanner tous les acheteurs ──
 
@@ -67,25 +117,8 @@ serve(async (req) => {
       for (const search of searches || []) {
         const score = calculateScore(property, search)
         if (score.total >= 60) {
-          const { data: existing } = await supabase
-            .from('matches')
-            .select('id')
-            .eq('contact_id', search.contact_id)
-            .eq('property_id', property_id)
-            .maybeSingle()
-
-          if (!existing) {
-            await supabase.from('matches').insert({
-              agency_id,
-              contact_id: search.contact_id,
-              property_id,
-              client_search_id: search.id,
-              score: score.total,
-              reasons: score.reasons,
-              status: 'suggested',
-            })
-            newMatches++
-          }
+          const created = await insertMatchWithAudit(search.contact_id, property_id, search.id, score)
+          if (created) newMatches++
         }
       }
     } else if (mode === 'match-contact' && contact_id) {
@@ -116,25 +149,8 @@ serve(async (req) => {
         for (const property of properties || []) {
           const score = calculateScore(property, search)
           if (score.total >= 60) {
-            const { data: existing } = await supabase
-              .from('matches')
-              .select('id')
-              .eq('contact_id', contact_id)
-              .eq('property_id', property.id)
-              .maybeSingle()
-
-            if (!existing) {
-              await supabase.from('matches').insert({
-                agency_id,
-                contact_id,
-                property_id: property.id,
-                client_search_id: search.id,
-                score: score.total,
-                reasons: score.reasons,
-                status: 'suggested',
-              })
-              newMatches++
-            }
+            const created = await insertMatchWithAudit(contact_id, property.id, search.id, score)
+            if (created) newMatches++
           }
         }
       }
@@ -157,25 +173,8 @@ serve(async (req) => {
         for (const property of properties || []) {
           const score = calculateScore(property, search)
           if (score.total >= 60) {
-            const { data: existing } = await supabase
-              .from('matches')
-              .select('id')
-              .eq('contact_id', search.contact_id)
-              .eq('property_id', property.id)
-              .maybeSingle()
-
-            if (!existing) {
-              await supabase.from('matches').insert({
-                agency_id,
-                contact_id: search.contact_id,
-                property_id: property.id,
-                client_search_id: search.id,
-                score: score.total,
-                reasons: score.reasons,
-                status: 'suggested',
-              })
-              newMatches++
-            }
+            const created = await insertMatchWithAudit(search.contact_id, property.id, search.id, score)
+            if (created) newMatches++
           }
         }
       }
