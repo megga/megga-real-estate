@@ -139,7 +139,7 @@ function computeOverrideStyle(
 
 const RESIZE_HOTZONE_PX = 8;
 
-export function CalendarEventItem({
+export const CalendarEventItem = React.memo(function CalendarEventItem({
   positionedEvent,
   hourHeight,
   isPast: isPastProp,
@@ -548,7 +548,7 @@ export function CalendarEventItem({
       )}
     </>
   );
-}
+});
 
 /** Drag visual variant for all-day events */
 export type AllDayDragVariant = "ghost" | "placeholder" | "dragging";
@@ -599,7 +599,7 @@ function formatAllDayStartTime(date: Date): string {
 
 const ALL_DAY_RESIZE_HOTZONE_PX = 6;
 
-export function AllDayEventItem({
+export const AllDayEventItem = React.memo(function AllDayEventItem({
   event,
   isPast: isPastProp,
   isSelected,
@@ -903,4 +903,4 @@ export function AllDayEventItem({
       )}
     </>
   );
-}
+});

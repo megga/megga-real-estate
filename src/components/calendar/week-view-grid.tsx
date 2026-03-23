@@ -54,6 +54,15 @@ export function WeekViewGrid({
     return () => observer.disconnect();
   }, []);
 
+  // Memoize positioned events per day — avoids O(n²) recalculation on every render
+  const positionedByDay = React.useMemo(() => {
+    const rightGap = isDayView ? 2 : 8;
+    return days.map((day) => ({
+      day,
+      positioned: calculatePositionedEvents(events, day, rightGap),
+    }));
+  }, [events, days, isDayView]);
+
   return (
     <div ref={gridRef} className={cn("relative", className)}>
       {/* Background grid */}
@@ -92,24 +101,11 @@ export function WeekViewGrid({
         className="absolute inset-0 grid pointer-events-none"
         style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)` }}
       >
-        {days.map((day) => {
-          /**
-           * Day view uses a smaller right gap than week view so events
-           * nearly fill the column but still show a sliver of the grid
-           * line — matching Notion Calendar's day-view styling.
-           */
-          const rightGap = isDayView ? 2 : 8;
-          const positionedEvents = calculatePositionedEvents(
-            events,
-            day,
-            rightGap,
-          );
-
-          return (
+        {positionedByDay.map(({ day, positioned }) => (
             <DayEventsColumn
               key={day.date.toISOString()}
               columnDate={day.date}
-              events={positionedEvents}
+              events={positioned}
               hourHeight={hourHeight}
               onEventClick={onEventClick}
               selectedEventId={selectedEventId}
@@ -123,8 +119,7 @@ export function WeekViewGrid({
               conflictIds={conflictIds}
               onContextMenuOpenChange={onContextMenuOpenChange}
             />
-          );
-        })}
+        ))}
       </div>
 
       {/* Resize placeholder overlay — rendered at grid level for cross-day support */}
@@ -469,7 +464,7 @@ function renderColumnGhost(
   );
 }
 
-function DayEventsColumn({
+const DayEventsColumn = React.memo(function DayEventsColumn({
   columnDate,
   events,
   hourHeight,
@@ -583,4 +578,4 @@ function DayEventsColumn({
       })}
     </div>
   );
-}
+});

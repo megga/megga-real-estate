@@ -381,26 +381,40 @@ export function calculateAllDayEventRows(
 }
 
 /**
- * Detects conflicting (overlapping) timed events.
+ * Detects conflicting (overlapping) timed events using a sweep-line algorithm.
+ * O(n log n) instead of O(n²).
  * Returns a Set of event IDs that have at least one time conflict.
  */
 export function detectConflicts(events: CalendarEvent[]): Set<string> {
   const timed = events.filter((e) => !e.isAllDay);
   const conflictIds = new Set<string>();
 
-  for (let i = 0; i < timed.length; i++) {
-    for (let j = i + 1; j < timed.length; j++) {
-      const a = timed[i];
-      const b = timed[j];
-      if (
-        areIntervalsOverlapping(
-          { start: a.start, end: a.end },
-          { start: b.start, end: b.end },
-        )
-      ) {
-        conflictIds.add(a.id);
-        conflictIds.add(b.id);
+  if (timed.length < 2) return conflictIds;
+
+  // Create timeline markers
+  const timeline: Array<{ time: number; type: 'start' | 'end'; eventId: string }> = [];
+  for (const e of timed) {
+    timeline.push({ time: e.start.getTime(), type: 'start', eventId: e.id });
+    timeline.push({ time: e.end.getTime(), type: 'end', eventId: e.id });
+  }
+
+  // Sort by time, ends before starts at same time (adjacent events don't conflict)
+  timeline.sort((a, b) => {
+    if (a.time !== b.time) return a.time - b.time;
+    return a.type === 'end' ? -1 : 1;
+  });
+
+  // Sweep through timeline
+  const active = new Set<string>();
+  for (const marker of timeline) {
+    if (marker.type === 'start') {
+      if (active.size > 0) {
+        conflictIds.add(marker.eventId);
+        for (const id of active) conflictIds.add(id);
       }
+      active.add(marker.eventId);
+    } else {
+      active.delete(marker.eventId);
     }
   }
 
@@ -428,7 +442,9 @@ export function expandRecurringEvents(
     const { frequency, until, count } = event.recurrenceRule;
     const duration = differenceInMilliseconds(event.end, event.start);
     const maxDate = until ?? rangeEnd;
-    const maxCount = count ?? 200; // safety limit
+    // Reasonable safety limits per frequency to avoid runaway loops
+    const safeLimits: Record<string, number> = { daily: 90, weekly: 52, biweekly: 26, monthly: 24 };
+    const maxCount = count ?? (safeLimits[frequency] || 52);
 
     let current = new Date(event.start);
     let instanceIndex = 0;

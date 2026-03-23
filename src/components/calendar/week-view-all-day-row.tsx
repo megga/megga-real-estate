@@ -1,4 +1,4 @@
-import type React from "react";
+import React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { isPast, isSameDay } from "date-fns";
@@ -238,7 +238,7 @@ interface AllDayEventRowProps {
   view?: ViewType;
 }
 
-function AllDayEventRow({
+const AllDayEventRow = React.memo(function AllDayEventRow({
   event,
   startColumn,
   endColumn,
@@ -343,7 +343,7 @@ function AllDayEventRow({
       />
     </div>
   );
-}
+});
 
 /** Placeholder border-only outline rendered at the target position during move */
 function AllDayPlaceholderRow({
