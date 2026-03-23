@@ -101,6 +101,7 @@ interface RuleRow {
   delay_days: number
   template_id: string | null
   is_active: boolean
+  auto_send: boolean
   created_at: string
 }
 
@@ -154,7 +155,7 @@ function rowToRule(row: RuleRow, generatedCount: number, activeCount: number, la
     delayDays: row.delay_days,
     templateId: row.template_id,
     isActive: row.is_active,
-    autoSend: false, // auto_send column not yet in schema — default off
+    autoSend: row.auto_send ?? false,
     generatedCount,
     activeCount,
     lastTriggeredAt,
@@ -274,7 +275,7 @@ export function useAutomationRules() {
 
       const { data: rulesData, error: rulesErr } = await supabase
         .from('automation_rules')
-        .select('id, name, trigger_event, action, delay_days, template_id, is_active, created_at')
+        .select('id, name, trigger_event, action, delay_days, template_id, is_active, auto_send, created_at')
         .eq('agency_id', agencyId)
         .order('created_at', { ascending: false })
 
@@ -396,10 +397,23 @@ export function useAutomationRules() {
   }, [rules, toggleRuleMutation])
 
   // autoSend not yet persisted (no column in DB) — keep as no-op
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const toggleAutoSend = useCallback((_id: string) => {
-    // Future: UPDATE automation_rules SET auto_send = NOT auto_send WHERE id = _id
-  }, [])
+  const toggleAutoSendMutation = useMutation({
+    mutationFn: async ({ id, autoSend }: { id: string; autoSend: boolean }) => {
+      const { error } = await supabase
+        .from('automation_rules')
+        .update({ auto_send: !autoSend })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['automation-rules'] })
+    },
+  })
+
+  const toggleAutoSend = useCallback((id: string) => {
+    const rule = rules.find((r) => r.id === id)
+    if (rule) toggleAutoSendMutation.mutate({ id, autoSend: rule.autoSend })
+  }, [rules, toggleAutoSendMutation])
 
   const addRule = useCallback(
     (rule: Omit<AutomationRule, 'id' | 'generatedCount' | 'activeCount' | 'lastTriggeredAt'>) =>

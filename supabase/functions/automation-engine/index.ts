@@ -47,7 +47,59 @@ serve(async (req) => {
     }
 
     let remindersCreated = 0
+    let emailsSent = 0
     const now = new Date()
+
+    // ── Helper: map reminder type to trigger_event for rule lookup ──
+    function reminderTypeToTrigger(type: string): string {
+      switch (type) {
+        case 'follow_up_sent_property': return 'property_sent'
+        case 'post_visit_feedback': return 'visit_completed'
+        case 'dormant_lead': return 'lead_inactive'
+        case 'missing_document': return 'document_missing'
+        default: return 'lead_inactive'
+      }
+    }
+
+    // ── Helper: check if auto_send is enabled for this reminder type ──
+    async function shouldAutoSend(reminderType: string): Promise<boolean> {
+      const triggerEvent = reminderTypeToTrigger(reminderType)
+      const { data } = await supabase
+        .from('automation_rules')
+        .select('auto_send')
+        .eq('agency_id', agency_id)
+        .eq('trigger_event', triggerEvent)
+        .eq('is_active', true)
+        .eq('auto_send', true)
+        .limit(1)
+
+      return (data?.length ?? 0) > 0
+    }
+
+    // ── Helper: call send-reminder-email Edge Function ──
+    async function sendAutoEmail(reminderId: string): Promise<boolean> {
+      try {
+        const baseUrl = Deno.env.get('SUPABASE_URL')!
+        const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+        const response = await fetch(`${baseUrl}/functions/v1/send-reminder-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${svcKey}`,
+          },
+          body: JSON.stringify({ reminder_id: reminderId, agency_id }),
+        })
+
+        if (response.ok) {
+          emailsSent++
+          return true
+        }
+        return false
+      } catch {
+        return false
+      }
+    }
 
     // ── Helper: check for existing reminder to avoid duplicates ──
     async function reminderExists(
@@ -77,7 +129,7 @@ serve(async (req) => {
       return (data?.length ?? 0) > 0
     }
 
-    // ── Helper: insert reminder + audit event ──
+    // ── Helper: insert reminder + audit event + auto-send if enabled ──
     async function createReminder(reminder: ReminderInsert): Promise<boolean> {
       const { data: inserted } = await supabase
         .from('reminders')
@@ -100,6 +152,15 @@ serve(async (req) => {
           },
         })
         remindersCreated++
+
+        // Phase B: auto-send email if rule has auto_send = true
+        if (reminder.channel === 'email') {
+          const autoSend = await shouldAutoSend(reminder.type)
+          if (autoSend) {
+            await sendAutoEmail(inserted.id)
+          }
+        }
+
         return true
       }
       return false
@@ -337,7 +398,7 @@ serve(async (req) => {
         .lte('trigger_at', now.toISOString())
     }
 
-    return new Response(JSON.stringify({ remindersCreated, agency_id }), {
+    return new Response(JSON.stringify({ remindersCreated, emailsSent, agency_id }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
