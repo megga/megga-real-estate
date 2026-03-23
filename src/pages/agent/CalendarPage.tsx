@@ -33,17 +33,19 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
-  // Local events = non-visit events (meetings, deadlines, etc.) + mock fallback
-  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>(() =>
-    MOCK_EVENTS.filter((e) => e.color !== 'blue' || !e.visitStatus)
-  )
-  // Merge: Supabase visits + local non-visit events. If no visits in DB, include mock visits too.
+  // Local events = all mock events initially (drag/edit works on all of them)
+  // When Supabase visits exist, mock visits are replaced by real ones.
+  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>(() => [...MOCK_EVENTS])
+
+  // Merge: Supabase visits replace mock visits, local events fill the rest
   const events = useMemo(() => {
     if (supabaseVisits.length > 0) {
-      return [...supabaseVisits, ...localEvents]
+      // Exclude mock visits (blue with visitStatus) — replaced by Supabase visits
+      const nonVisitLocal = localEvents.filter((e) => !(e.color === 'blue' && e.visitStatus))
+      return [...supabaseVisits, ...nonVisitLocal]
     }
-    // Fallback: show all mock events when DB is empty
-    return [...MOCK_EVENTS, ...localEvents.filter((e) => !MOCK_EVENTS.some((m) => m.id === e.id))]
+    // No Supabase visits — use all local events (includes mock visits)
+    return localEvents
   }, [supabaseVisits, localEvents])
 
   const [selectedEventId, setSelectedEventId] = useState<string | undefined>()
