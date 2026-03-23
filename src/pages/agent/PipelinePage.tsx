@@ -240,7 +240,8 @@ export default function PipelinePage() {
   }, [])
 
   const [deals, setDeals] = useState<MockDeal[]>(MOCK_DEALS)
-  const [view, setView] = useState<'kanban' | 'list'>('kanban')
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const [view, setView] = useState<'kanban' | 'list'>(isMobile ? 'list' : 'kanban')
   const [search, setSearch] = useState('')
   const [agentFilter, setAgentFilter] = useState('')
   const [stageFilter, setStageFilter] = useState('')
@@ -342,7 +343,7 @@ export default function PipelinePage() {
             <p className="text-sm text-theme-tertiary mt-0.5">{deals.length} deals</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center border border-theme-border rounded-lg p-0.5">
+            <div className="hidden md:flex items-center border border-theme-border rounded-lg p-0.5">
               <button
                 onClick={() => setView('kanban')}
                 className={cn(

@@ -57,10 +57,10 @@ export default function DashboardPage() {
 
         <NewTransactionDialog open={showNewTransaction} onClose={() => setShowNewTransaction(false)} />
 
-        {/* KPIs — inline row with dividers */}
-        <div className="flex items-stretch rounded-xl border border-theme-border divide-x divide-theme-border">
-          {kpis.map((kpi) => (
-            <div key={kpi.labelKey} className="flex-1 px-5 py-4">
+        {/* KPIs — grid 2x2 mobile, inline row desktop */}
+        <div className="grid grid-cols-2 md:flex md:items-stretch rounded-xl border border-theme-border md:divide-x divide-theme-border">
+          {kpis.map((kpi, idx) => (
+            <div key={kpi.labelKey} className={cn('flex-1 px-4 py-3 md:px-5 md:py-4', idx < 2 && 'border-b md:border-b-0 border-theme-border', idx % 2 === 0 && 'border-r md:border-r-0 border-theme-border')}>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-theme-primary">{kpi.value}</span>
                 <span className="text-sm text-theme-tertiary">{t(kpi.labelKey)}</span>

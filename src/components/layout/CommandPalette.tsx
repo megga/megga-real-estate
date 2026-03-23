@@ -34,7 +34,7 @@ const pageItems: CommandItem[] = [
 ]
 
 const actionItems: CommandItem[] = [
-  { id: 'a-contact', label: 'Créer un contact', category: 'actions', icon: Plus, href: '/dashboard/contacts' },
+  { id: 'a-contact', label: 'Créer un contact', category: 'actions', icon: Plus, href: '/dashboard/contacts', shortcut: '⌘⇧C' },
   { id: 'a-listing', label: 'Nouveau bien', category: 'actions', icon: Plus, href: '/dashboard/listings/new' },
   { id: 'a-deal', label: 'Nouvelle transaction', category: 'actions', icon: Plus, href: '/dashboard/pipeline' },
 ]
@@ -60,9 +60,10 @@ const categoryLabels: Record<string, string> = {
 interface CommandPaletteProps {
   isOpen: boolean
   onClose: () => void
+  onCreateContact?: () => void
 }
 
-export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
+export default function CommandPalette({ isOpen, onClose, onCreateContact }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -101,8 +102,13 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     onClose()
     setQuery('')
     setSelectedIndex(0)
+    // Special action: create contact opens the quick dialog
+    if (item.id === 'a-contact' && onCreateContact) {
+      onCreateContact()
+      return
+    }
     navigate(item.href)
-  }, [navigate, onClose])
+  }, [navigate, onClose, onCreateContact])
 
   // Reset on open
   useEffect(() => {
