@@ -1,10 +1,22 @@
-import { useMemo } from 'react'
-import { format, differenceInMinutes } from 'date-fns'
+import { useMemo, useState } from 'react'
+import {
+  format,
+  differenceInMinutes,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameMonth,
+  isSameDay,
+  isToday,
+} from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { X, Phone, Mail, ExternalLink, MapPin, Clock, Star, Check, Calendar } from 'lucide-react'
+import { X, Phone, Mail, ExternalLink, MapPin, Clock, Star, Check, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCHF, formatSurface } from '@/lib/utils'
 import { getContactById, MOCK_AGENT_LISTINGS } from '@/lib/mockData'
+import { eventColorStyles } from '@/components/calendar/calendar-event-item'
 import type { CalendarEvent, VisitStatus } from '@/components/calendar/week-view-types'
 
 // ── Status config ──
@@ -34,11 +46,163 @@ const SCORE_CONFIG: Record<string, { label: string; dotClass: string }> = {
 
 interface EventDetailSidebarProps {
   event?: CalendarEvent
+  allEvents?: CalendarEvent[]
   onClose: () => void
   onEventChange?: (event: CalendarEvent) => void
+  onDateSelect?: (date: Date) => void
+  onEventClick?: (event: CalendarEvent) => void
 }
 
-export default function EventDetailSidebar({ event, onClose, onEventChange }: EventDetailSidebarProps) {
+// ── Mini calendar component ──
+
+const MINI_WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+
+function MiniCalendar({
+  selectedDate,
+  events,
+  onDateSelect,
+}: {
+  selectedDate: Date
+  events: CalendarEvent[]
+  onDateSelect?: (date: Date) => void
+}) {
+  const [viewMonth, setViewMonth] = useState(selectedDate)
+
+  const days = useMemo(() => {
+    const monthStart = startOfMonth(viewMonth)
+    const monthEnd = endOfMonth(viewMonth)
+    const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+    const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+    return eachDayOfInterval({ start: gridStart, end: gridEnd })
+  }, [viewMonth])
+
+  // Events per day (dots)
+  const eventDays = useMemo(() => {
+    const set = new Set<string>()
+    for (const e of events) {
+      set.add(format(e.start, 'yyyy-MM-dd'))
+    }
+    return set
+  }, [events])
+
+  return (
+    <div className="px-3 py-2">
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-2">
+        <button
+          onClick={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+          className="h-5 w-5 flex items-center justify-center rounded text-theme-tertiary hover:text-theme-primary transition-colors"
+        >
+          <ChevronLeft className="h-3 w-3" />
+        </button>
+        <span className="text-xs font-medium text-theme-primary capitalize">
+          {format(viewMonth, 'MMMM yyyy', { locale: fr })}
+        </span>
+        <button
+          onClick={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+          className="h-5 w-5 flex items-center justify-center rounded text-theme-tertiary hover:text-theme-primary transition-colors"
+        >
+          <ChevronRight className="h-3 w-3" />
+        </button>
+      </div>
+      {/* Weekday header */}
+      <div className="grid grid-cols-7 mb-1">
+        {MINI_WEEKDAYS.map((d, i) => (
+          <div key={i} className="text-center text-[10px] text-theme-tertiary font-medium py-0.5">{d}</div>
+        ))}
+      </div>
+      {/* Day grid */}
+      <div className="grid grid-cols-7">
+        {days.map((day) => {
+          const inMonth = isSameMonth(day, viewMonth)
+          const today = isToday(day)
+          const selected = isSameDay(day, selectedDate)
+          const hasEvents = eventDays.has(format(day, 'yyyy-MM-dd'))
+
+          return (
+            <button
+              key={day.toISOString()}
+              onClick={() => onDateSelect?.(day)}
+              className={cn(
+                'relative h-7 w-full flex items-center justify-center text-[11px] rounded transition-colors',
+                !inMonth && 'text-theme-tertiary/40',
+                inMonth && !today && !selected && 'text-theme-secondary hover:bg-theme-hover',
+                today && !selected && 'text-accent font-semibold',
+                selected && 'bg-accent text-white font-semibold',
+              )}
+            >
+              {format(day, 'd')}
+              {hasEvents && !selected && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-accent" />
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Agenda du jour ──
+
+function DayAgenda({
+  date,
+  events,
+  onEventClick,
+}: {
+  date: Date
+  events: CalendarEvent[]
+  onEventClick?: (event: CalendarEvent) => void
+}) {
+  const dayEvents = useMemo(
+    () => events
+      .filter((e) => isSameDay(e.start, date))
+      .sort((a, b) => a.start.getTime() - b.start.getTime()),
+    [events, date]
+  )
+
+  if (dayEvents.length === 0) {
+    return (
+      <div className="px-3 py-4 text-center">
+        <p className="text-xs text-theme-tertiary">Aucun événement ce jour</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-3 py-2 space-y-1">
+      <div className="text-[10px] font-medium text-theme-tertiary uppercase tracking-wider mb-1">
+        {format(date, "EEEE d MMMM", { locale: fr })}
+      </div>
+      {dayEvents.map((event) => {
+        const color = event.color ?? 'blue'
+        const styles = eventColorStyles[color]
+        return (
+          <button
+            key={event.id}
+            onClick={() => onEventClick?.(event)}
+            className={cn(
+              'w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors',
+              styles.bg,
+              'hover:brightness-90'
+            )}
+          >
+            <div className={cn('font-medium truncate', styles.text)}>
+              {event.title}
+            </div>
+            <div className="text-theme-tertiary text-[10px] mt-0.5">
+              {event.isAllDay
+                ? 'Journée entière'
+                : `${format(event.start, 'HH:mm')} — ${format(event.end, 'HH:mm')}`}
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function EventDetailSidebar({ event, allEvents = [], onClose, onEventChange, onDateSelect, onEventClick }: EventDetailSidebarProps) {
   const contactId = event?.contactId
   const propertyId = event?.propertyId
 
@@ -52,12 +216,19 @@ export default function EventDetailSidebar({ event, onClose, onEventChange }: Ev
     [propertyId]
   )
 
-  // Empty state — sidebar is open but no event selected
+  const [miniDate, setMiniDate] = useState(new Date())
+
+  const handleMiniDateSelect = (date: Date) => {
+    setMiniDate(date)
+    onDateSelect?.(date)
+  }
+
+  // Empty state — sidebar is open but no event selected → show mini calendar + agenda
   if (!event) {
     return (
       <div className="w-80 flex-shrink-0 border-l border-theme-border bg-theme-card flex flex-col overflow-hidden h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-theme-border">
-          <h3 className="text-sm font-semibold text-theme-primary">Détail</h3>
+          <h3 className="text-sm font-semibold text-theme-primary">Calendrier</h3>
           <button
             onClick={onClose}
             className="flex h-6 w-6 items-center justify-center rounded text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover transition-colors"
@@ -65,10 +236,13 @@ export default function EventDetailSidebar({ event, onClose, onEventChange }: Ev
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex-1 flex items-center justify-center px-4">
-          <p className="text-sm text-theme-tertiary text-center">
-            Sélectionnez un événement pour voir ses détails
-          </p>
+        <MiniCalendar
+          selectedDate={miniDate}
+          events={allEvents}
+          onDateSelect={handleMiniDateSelect}
+        />
+        <div className="border-t border-theme-border flex-1 overflow-y-auto scrollbar-hide">
+          <DayAgenda date={miniDate} events={allEvents} onEventClick={onEventClick} />
         </div>
       </div>
     )

@@ -147,6 +147,9 @@ export function WeekView({
   onDateChange,
   onVisibleDaysChange,
   onEventChange,
+  onDuplicate,
+  onDelete,
+  conflictIds,
   onSlotClick,
   className,
 }: WeekViewProps) {
@@ -378,6 +381,8 @@ export function WeekView({
               onAllDayResizeMouseDown={handleAllDayResizeMouseDown}
               onEventChange={onEventChange}
               onContextMenuOpenChange={setContextMenuOpen}
+              onDuplicate={onDuplicate}
+              onDelete={onDelete}
               allDayScrollContentRef={allDayScrollContentRef}
               visibleStartIndex={dynamicBuffer}
               visibleCount={VISIBLE_DAYS}
@@ -412,6 +417,9 @@ export function WeekView({
                   onEventResizeMouseDown={handleResizeMouseDown}
                   onEventChange={onEventChange}
                   onContextMenuOpenChange={setContextMenuOpen}
+                  onDuplicate={onDuplicate}
+                  onDelete={onDelete}
+                  conflictIds={conflictIds}
                   onSlotClick={onSlotClick}
                   view={view}
                 />

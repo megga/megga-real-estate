@@ -9,6 +9,7 @@ import { MonthView } from '@/components/calendar/month-view'
 import type { CalendarEvent, EventColor, ViewType } from '@/components/calendar/week-view-types'
 import { MOCK_EVENTS } from '@/components/calendar/mock-events'
 import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
+import { detectConflicts } from '@/lib/event-utils'
 import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
 import EventDetailSidebar from '@/components/calendar/EventDetailSidebar'
 
@@ -40,6 +41,11 @@ export default function CalendarPage() {
   const filteredEvents = useMemo(
     () => events.filter((e) => activeFilters.has(e.color ?? 'blue')),
     [events, activeFilters]
+  )
+
+  const conflictIds = useMemo(
+    () => detectConflicts(filteredEvents),
+    [filteredEvents]
   )
 
   const toggleFilter = useCallback((color: EventColor) => {
@@ -147,6 +153,29 @@ export default function CalendarPage() {
   const handleCreateEvent = useCallback((newEvent: CalendarEvent) => {
     setEvents((prev) => [...prev, newEvent])
   }, [])
+
+  // Duplicate event (1h later, new ID)
+  const handleDuplicate = useCallback((event: CalendarEvent) => {
+    const offset = 60 * 60 * 1000 // 1h
+    const duplicate: CalendarEvent = {
+      ...event,
+      id: `evt-${Date.now()}`,
+      start: new Date(event.start.getTime() + offset),
+      end: new Date(event.end.getTime() + offset),
+      title: `${event.title} (copie)`,
+    }
+    setEvents((prev) => [...prev, duplicate])
+  }, [])
+
+  // Delete event
+  const handleDelete = useCallback((eventId: string) => {
+    setEvents((prev) => prev.filter((e) => e.id !== eventId))
+    setSelectedEventId((prev) => prev === eventId ? undefined : prev)
+    setIsSidebarOpen((prev) => {
+      if (selectedEventId === eventId) return false
+      return prev
+    })
+  }, [selectedEventId])
 
   // Computed selected event for sidebar
   const selectedEvent = useMemo(
@@ -289,6 +318,9 @@ export default function CalendarPage() {
             onBackgroundClick={handleBackgroundClick}
             onDateChange={setCurrentDate}
             onEventChange={handleEventChange}
+            onDuplicate={handleDuplicate}
+            onDelete={handleDelete}
+            conflictIds={conflictIds}
             onSlotClick={handleSlotClick}
             className="h-full"
           />
@@ -303,8 +335,15 @@ export default function CalendarPage() {
         >
           <EventDetailSidebar
             event={selectedEvent}
+            allEvents={filteredEvents}
             onClose={handleCloseSidebar}
             onEventChange={handleEventChange}
+            onDateSelect={(date) => {
+              if (view === 'day') setCurrentDate(date)
+              else if (view === 'week') setCurrentDate(startOfWeek(date, { weekStartsOn: 1 }))
+              else setCurrentDate(startOfMonth(date))
+            }}
+            onEventClick={handleEventClick}
           />
         </div>
       </div>

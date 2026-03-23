@@ -156,6 +156,9 @@ export function CalendarEventItem({
   fixedWidth,
   fixedHeight,
   onContextMenuOpenChange,
+  onDuplicate,
+  onDelete,
+  hasConflict,
   className,
 }: CalendarEventItemProps) {
   const { event, segmentPosition = "full" } = positionedEvent;
@@ -500,6 +503,9 @@ export function CalendarEventItem({
         >
           {event.title}
           <VisitStatusBadge status={event.visitStatus} />
+          {hasConflict && (
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0 ml-0.5" title="Conflit horaire" />
+          )}
         </span>
         {!isCompact && (
           <span
@@ -531,6 +537,8 @@ export function CalendarEventItem({
           position={contextMenu}
           onClose={closeContextMenu}
           onEventChange={onEventChange}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
         />
       )}
     </>
@@ -559,6 +567,10 @@ export interface AllDayEventItemProps {
   onEventChange?: (event: CalendarEvent) => void;
   /** Callback when context menu open state changes */
   onContextMenuOpenChange?: (open: boolean) => void;
+  /** Callback to duplicate an event */
+  onDuplicate?: (event: CalendarEvent) => void;
+  /** Callback to delete an event */
+  onDelete?: (eventId: string) => void;
   /**
    * Percentage of the event's width that is hidden off-screen to the left.
    * Used in day view to offset the title into the visible area so multi-day
@@ -593,6 +605,8 @@ export function AllDayEventItem({
   onResizeMouseDown,
   onEventChange,
   onContextMenuOpenChange,
+  onDuplicate,
+  onDelete,
   titleOffsetPercent = 0,
   dragVariant,
 }: AllDayEventItemProps) {
@@ -878,6 +892,8 @@ export function AllDayEventItem({
           position={contextMenu}
           onClose={closeContextMenu}
           onEventChange={onEventChange}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
         />
       )}
     </>

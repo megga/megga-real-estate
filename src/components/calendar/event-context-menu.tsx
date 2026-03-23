@@ -4,8 +4,6 @@ import {
   Check,
   Copy,
   Monitor,
-  SquareDashed,
-  TabletSmartphone,
   Trash2,
 } from "lucide-react";
 
@@ -65,6 +63,8 @@ interface EventContextMenuProps {
   position: { x: number; y: number };
   onClose: () => void;
   onEventChange?: (event: CalendarEvent) => void;
+  onDuplicate?: (event: CalendarEvent) => void;
+  onDelete?: (eventId: string) => void;
 }
 
 function MenuItem({
@@ -162,6 +162,8 @@ export function EventContextMenu({
   position,
   onClose,
   onEventChange,
+  onDuplicate,
+  onDelete,
 }: EventContextMenuProps) {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const [adjustedPos, setAdjustedPos] = React.useState(position);
@@ -303,29 +305,22 @@ export function EventContextMenu({
 
       <Separator />
 
-      {/* Cut / Copy / Duplicate */}
-      <MenuItem>
-        <SquareDashed className="size-3.5" />
-        Cut
-        <Shortcut>⌘X</Shortcut>
-      </MenuItem>
-      <MenuItem>
-        <TabletSmartphone className="size-3.5" />
-        Copy
-        <Shortcut>⌘C</Shortcut>
-      </MenuItem>
-      <MenuItem>
+      {/* Duplicate */}
+      <MenuItem onSelect={() => { onDuplicate?.(event); onClose(); }}>
         <Copy className="size-3.5" />
-        Duplicate
+        Dupliquer
         <Shortcut>⌘D</Shortcut>
       </MenuItem>
 
       <Separator />
 
       {/* Delete */}
-      <MenuItem className="text-[#E56458] hover:!bg-[#DE5551] hover:!text-white focus:!bg-[#DE5551] focus:!text-white [&:hover>svg]:!text-white [&:focus>svg]:!text-white [&:hover>.ml-auto]:!text-white [&:focus>.ml-auto]:!text-white">
+      <MenuItem
+        className="text-[#E56458] hover:!bg-[#DE5551] hover:!text-white focus:!bg-[#DE5551] focus:!text-white [&:hover>svg]:!text-white [&:focus>svg]:!text-white [&:hover>.ml-auto]:!text-white [&:focus>.ml-auto]:!text-white"
+        onSelect={() => { onDelete?.(event.id); onClose(); }}
+      >
         <Trash2 className="size-3.5 text-[#E56458]" />
-        Delete
+        Supprimer
         <Shortcut>delete</Shortcut>
       </MenuItem>
     </div>,

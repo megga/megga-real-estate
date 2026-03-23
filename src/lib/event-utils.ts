@@ -374,3 +374,30 @@ export function calculateAllDayEventRows(
 
   return rows;
 }
+
+/**
+ * Detects conflicting (overlapping) timed events.
+ * Returns a Set of event IDs that have at least one time conflict.
+ */
+export function detectConflicts(events: CalendarEvent[]): Set<string> {
+  const timed = events.filter((e) => !e.isAllDay);
+  const conflictIds = new Set<string>();
+
+  for (let i = 0; i < timed.length; i++) {
+    for (let j = i + 1; j < timed.length; j++) {
+      const a = timed[i];
+      const b = timed[j];
+      if (
+        areIntervalsOverlapping(
+          { start: a.start, end: a.end },
+          { start: b.start, end: b.end },
+        )
+      ) {
+        conflictIds.add(a.id);
+        conflictIds.add(b.id);
+      }
+    }
+  }
+
+  return conflictIds;
+}
