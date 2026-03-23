@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react'
 import { useMatching } from '@/hooks/useMatching'
 import MatchScoreCard from './MatchScoreCard'
 import SendMatchDialog from './SendMatchDialog'
-import type { MatchResult } from '@/lib/matching'
+import type { MatchResult } from '@/hooks/useMatching'
 
 interface MatchingPanelProps {
   contactId: string

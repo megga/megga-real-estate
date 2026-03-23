@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
-import type { MatchResult } from '@/lib/matching'
+import type { MatchResult } from '@/hooks/useMatching'
 
 interface SendMatchDialogProps {
   open: boolean

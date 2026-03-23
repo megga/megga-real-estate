@@ -3,10 +3,9 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Search, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
-import { useMatching } from '@/hooks/useMatching'
+import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import { useExternalMatching, type ExternalListing, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
 import SendMatchDialog from '@/components/matching/SendMatchDialog'
-import type { MatchResult } from '@/lib/matching'
 import PageTransition from '@/components/layout/PageTransition'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
 import { MOCK_CONTACTS } from '@/lib/mockData'
@@ -374,7 +373,7 @@ const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-
 
 export default function MatchingPage() {
   const navigate = useNavigate()
-  const { suggested, sent, sendMatch } = useMatching()
+  const { suggested, sent, sendMatch, runMatching, isRunning } = useMatching()
   const [search, setSearch] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'suggested' | 'sent'>('all')
   const [sortBy, setSortBy] = useState<SortBy>('score')
@@ -482,6 +481,17 @@ export default function MatchingPage() {
               Acheteurs ↔ Biens compatibles
             </p>
           </div>
+          <button
+            onClick={() => {
+              if (contactFilter) {
+                runMatching(contactFilter)
+              }
+            }}
+            disabled={isRunning || !contactFilter}
+            className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40"
+          >
+            {isRunning ? 'Analyse en cours...' : 'Lancer le matching'}
+          </button>
         </div>
 
         {/* Main tabs: Portefeuille / Marché */}
