@@ -9,6 +9,7 @@ import LoginPage from '@/pages/public/LoginPage'
 import RegisterPage from '@/pages/public/RegisterPage'
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
+import PasswordGate from '@/components/layout/PasswordGate'
 import AgentLayout from '@/components/layout/AgentLayout'
 import ActionBoardPage from '@/pages/agent/ActionBoardPage'
 
@@ -73,6 +74,7 @@ const queryClient = new QueryClient({
 
 export default function App() {
   return (
+    <PasswordGate>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
@@ -153,5 +155,6 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
+    </PasswordGate>
   )
 }
