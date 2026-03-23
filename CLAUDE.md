@@ -909,26 +909,72 @@ Après les visites, l'IA regroupe et analyse :
 
 Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymisé).
 
-### 8.10 KYC Tier 1 — Compliance avancée (IMPLÉMENTÉ)
+### 8.10 KYC Tier 1 — Compliance avancée (IMPLÉMENTÉ + CONNECTÉ SUPABASE)
 
-**Screening PEP & Sanctions :**
-- Vérification automatique PEP (Personnes Exposées Politiquement) et listes de sanctions (SECO, UN, EU)
-- Section "Vérification Compliance" dans KycDetailPage avec statut vert/rouge
-- Colonne PEP/S dans KycListPage avec icône AlertTriangle/ShieldCheck
-- Bouton "Relancer la vérification" (human-in-the-loop)
-- Mock data : kyc5 (PEP match), kyc9 (sanctions match Russie)
+**100% connecté à Supabase — plus aucun mock.**
+
+**Screening PEP & Sanctions (API dilisense) :**
+- Edge Function `kyc-screening` déployée — appelle l'API dilisense (`checkIndividual` / `checkEntity`)
+- Sépare automatiquement les hits PEP et Sanctions
+- Statuts : `not_checked` → `pending` → `clear` | `match`
+- Section "Vérification Compliance" dans KycDetailPage avec statut vert/rouge/amber
+- Colonne PEP/S toujours visible dans KycListPage avec icônes : AlertTriangle (match), ShieldCheck (clear), Loader2 (pending), tiret (non vérifié)
+- Bouton "Relancer la vérification" → appelle Edge Function → résultats temps réel (human-in-the-loop)
+- Testé avec succès : Vladimir Putin → 3 hits PEP + 14 hits Sanctions, score 85/100
+- Chaque screening loggé dans `activity_events` avec `actor_id = 'ai'`
+- Secret requis : `DILISENSE_API_KEY` dans Supabase Edge Functions Secrets
 
 **Score de risque automatique :**
-- Fonction `calculateRiskScore()` dans `src/lib/kycUtils.ts`
+- Fonction `calculateRiskScore()` dans `src/lib/kycUtils.ts` (frontend) + calculé aussi dans Edge Function (backend)
 - 5 facteurs : nationalité GAFI (25pts), PEP (25pts), montant >5M (20pts), PM vs PP (15pts), docs incomplets (15pts)
 - Score 0-100 → low/medium/high avec barre visuelle et facteurs détaillés
+- Stocké en DB : `kyc_cases.risk_score`, `kyc_cases.risk_factors`, `kyc_cases.risk_level`
 - Listes FATF dans `src/lib/constants.ts` (FATF_HIGH_RISK_COUNTRIES, FATF_INCREASED_MONITORING)
 - Label "estimation IA" obligatoire
 
+**Création de dossier KYC depuis l'interface :**
+- Bouton "Nouveau dossier" dans KycListPage (header + empty state)
+- Modal : sélection contact, type (PP/PM), nationalité, montant, transaction liée (optionnel)
+- `useCreateKycCase()` — crée le dossier + checklist par défaut adaptée PP/PM
+- Checklist auto-générée : Identité (RC/passeport, statuts, UBO), Domicile, Revenus, Origine des fonds, Compliance
+
+**Upload documents vers Supabase Storage :**
+- Bucket `kyc-documents` (privé)
+- Upload avec sélection catégorie (identité, domicile, financier, compliance, autre)
+- `useUploadKycDocument()` → upload Storage + INSERT documents + activity_event
+
 **Alertes expiration documents :**
-- Champs `issued_at`, `expires_at`, `document_category` sur MockKycDocument
+- Champs `issued_at`, `expires_at`, `document_category` sur table `documents`
 - Badges "Expiré" (rouge) / "Expire dans Xj" (orange) dans la liste documents
-- Alertes dans ActionBoard urgences pour documents expirés/expirants
+
+**Menus contextuels (clic droit) :**
+- Liste KYC : Voir le dossier, Lancer le screening, Changer le statut (sous-menu), Valider, Copier l'ID
+- Documents : Télécharger, Valider le document, Rejeter le document
+- Checklist : Marquer complété/non complété, Lier un document
+- Composant `ContextMenu` Radix UI réutilisable dans `src/components/ui/context-menu.tsx`
+
+**Validation human-in-the-loop :**
+- Bouton "Valider le dossier" → modal de confirmation → `useValidateKycCase()` → status = 'validated' + activity_event
+- Notes internes persistées → `useUpdateKycNotes()`
+- Journal d'audit chargé depuis `activity_events` WHERE entity_type = 'kyc'
+
+**Hooks Supabase (`src/hooks/useKyc.ts`) :**
+- `useKycCases(filters?)` — liste avec join contacts
+- `useKycCase(id)` — détail avec checklist
+- `useKycDocuments(kycCaseId)` — documents d'un dossier
+- `useKycAuditEvents(kycCaseId)` — journal d'audit
+- `useCreateKycCase()` — création + checklist auto
+- `useUpdateKycItem()` — toggle checklist item
+- `useUpdateKycStatus()` — changement de statut
+- `useUpdateKycNotes()` — sauvegarde notes
+- `useValidateKycCase()` — validation human-in-the-loop
+- `useUploadKycDocument()` — upload Storage + INSERT
+- `useScreenKycCase()` — appel Edge Function dilisense
+
+**RLS corrigé :**
+- Récursion infinie sur `profiles` fixée avec fonctions `SECURITY DEFINER` (`get_my_agency_id()`)
+- Policies `contacts`, `documents`, `activity_events` mises à jour
+- Policies ouvertes temporaires sur `kyc_cases` et `kyc_checklist_items` pour dev
 
 ---
 
@@ -1159,3 +1205,56 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - Dark mode
 - i18n (DE, EN, IT)
 - Signature électronique intégrée
+
+---
+
+## 13. ÉTAT D'AVANCEMENT (mis à jour 2026-03-23)
+
+### Backend — Edge Functions déployées
+| Function | Statut | Connecté frontend |
+|---|---|---|
+| `kyc-screening` | ✅ Déployé | ✅ Connecté |
+| `ai-copilot` | ✅ Déployé | ❌ À connecter (Sprint 5) |
+| `ai-search` | ✅ Déployé | ❌ À connecter (Sprint 5) |
+| `matching-engine` | ✅ Déployé | ❌ À connecter (Sprint 4) |
+| `external-matching` | ✅ Déployé | ❌ Phase 2 |
+| `automation-engine` | ✅ Déployé | ❌ À connecter (Sprint 4) |
+| `send-property-email` | ✅ Déployé | ❌ À connecter (Sprint 4) |
+| `send-reminder-email` | ✅ Déployé | ❌ À connecter (Sprint 4) |
+| `stripe-checkout` | ✅ Déployé | ❌ À connecter (Sprint 8) |
+| `stripe-webhook` | ✅ Déployé | ❌ À connecter (Sprint 8) |
+
+### Frontend — Pages implémentées
+| Page | Mock | Supabase | Complet |
+|---|---|---|---|
+| HomePage | — | ✅ | ✅ |
+| LoginPage / RegisterPage | — | ✅ | ✅ |
+| ActionBoardPage | ✅ Mock | Partiel | ❌ Sprint 5 (IA) |
+| DashboardPage | ✅ Mock | Partiel | ❌ |
+| PipelinePage (Kanban) | ✅ | ✅ | ✅ |
+| ContactsPage | ✅ | ✅ | ✅ |
+| ContactDetailPage | ✅ | ✅ | ✅ (sauf onglet Matching) |
+| MatchingPage | ✅ Mock | ❌ | ❌ Sprint 4 prochain |
+| ListingsPage | ✅ | ✅ | ✅ |
+| ListingFormPage | ✅ | ✅ | ✅ |
+| KycListPage | ~~Mock~~ | ✅ | ✅ |
+| KycDetailPage | ~~Mock~~ | ✅ | ✅ |
+| MessagesPage | ✅ Mock | ❌ | ❌ Sprint 6 |
+| CalendarPage | ✅ Mock | Partiel | ❌ |
+| AutomationPage | ✅ Mock | ❌ | ❌ Sprint 4 prochain |
+| DocumentsPage | ✅ | Partiel | ❌ |
+| SettingsPage | ✅ | Partiel | ❌ |
+
+### DB — Corrections RLS appliquées (2026-03-23)
+- Récursion infinie `profiles` → fixée avec `get_my_agency_id()` SECURITY DEFINER
+- Policies `contacts`, `documents`, `activity_events` → migrées vers `get_my_agency_id()`
+- Policies ouvertes temp sur `kyc_cases`, `kyc_checklist_items`, `contacts` (anon read)
+- **À nettoyer pour la prod** : supprimer les policies `anon` et forcer `authenticated` partout
+
+### Prochaines priorités backend
+1. **Matching Engine connecté** (Sprint 4 — Étape 5)
+2. **Système de relances connecté** (Sprint 4 — Étape 6)
+3. **AI Copilot connecté** (Sprint 5) — résumés, next-best-action, rédaction
+4. **AI Search connecté** (Sprint 5) — recherche conversationnelle pgvector + Claude
+5. **WhatsApp Business API** (Sprint 6)
+6. **Portail vendeur** (Sprint 6)
