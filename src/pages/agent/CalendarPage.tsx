@@ -30,7 +30,7 @@ export default function CalendarPage() {
   )
   const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS)
   const [selectedEventId, setSelectedEventId] = useState<string | undefined>()
-  const [view] = useState<ViewType>('week')
+  const [view, setView] = useState<ViewType>('week')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   // Filter state — all colors active by default
@@ -62,15 +62,27 @@ export default function CalendarPage() {
   const [feedbackEvent, setFeedbackEvent] = useState<CalendarEvent | null>(null)
 
   const handlePrevWeek = useCallback(() => {
-    setCurrentDate((d) => addDays(d, -7))
-  }, [])
+    setCurrentDate((d) => addDays(d, view === 'day' ? -1 : -7))
+  }, [view])
 
   const handleNextWeek = useCallback(() => {
-    setCurrentDate((d) => addDays(d, 7))
-  }, [])
+    setCurrentDate((d) => addDays(d, view === 'day' ? 1 : 7))
+  }, [view])
 
   const handleToday = useCallback(() => {
-    setCurrentDate(startOfWeek(new Date(), { weekStartsOn: 1 }))
+    const today = new Date()
+    setCurrentDate(view === 'day' ? today : startOfWeek(today, { weekStartsOn: 1 }))
+  }, [view])
+
+  const handleViewChange = useCallback((newView: ViewType) => {
+    if (newView === 'day') {
+      // Switch to today in day view
+      setCurrentDate(new Date())
+    } else {
+      // Switch to the week containing current date
+      setCurrentDate(startOfWeek(new Date(), { weekStartsOn: 1 }))
+    }
+    setView(newView)
   }, [])
 
   const handleEventClick = useCallback((event: CalendarEvent) => {
@@ -137,9 +149,13 @@ export default function CalendarPage() {
 
   // Format header date for French locale
   const headerDate = useMemo(() => {
+    if (view === 'day') {
+      const formatted = format(currentDate, "EEEE d MMMM yyyy", { locale: fr })
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+    }
     const formatted = format(currentDate, 'MMMM yyyy', { locale: fr })
     return formatted.charAt(0).toUpperCase() + formatted.slice(1)
-  }, [currentDate])
+  }, [currentDate, view])
 
   return (
     <div className="flex h-full flex-col">
@@ -176,6 +192,31 @@ export default function CalendarPage() {
             <Plus className="h-3.5 w-3.5" />
             Nouveau
           </button>
+          {/* View toggle */}
+          <div className="flex h-7 rounded-md border border-theme-border overflow-hidden">
+            <button
+              onClick={() => handleViewChange('day')}
+              className={cn(
+                'px-2.5 text-xs font-medium transition-colors',
+                view === 'day'
+                  ? 'bg-accent/10 text-accent'
+                  : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+              )}
+            >
+              Jour
+            </button>
+            <button
+              onClick={() => handleViewChange('week')}
+              className={cn(
+                'px-2.5 text-xs font-medium transition-colors border-l border-theme-border',
+                view === 'week'
+                  ? 'bg-accent/10 text-accent'
+                  : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
+              )}
+            >
+              Semaine
+            </button>
+          </div>
         </div>
 
         {/* Legend — clickable filters */}
