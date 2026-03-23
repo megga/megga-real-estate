@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { addDays, startOfWeek, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, PanelRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { WeekView } from '@/components/calendar/week-view'
@@ -45,7 +45,6 @@ export default function CalendarPage() {
     setActiveFilters((prev) => {
       const next = new Set(prev)
       if (next.has(color)) {
-        // Don't allow deactivating all filters
         if (next.size > 1) next.delete(color)
       } else {
         next.add(color)
@@ -76,28 +75,30 @@ export default function CalendarPage() {
 
   const handleViewChange = useCallback((newView: ViewType) => {
     if (newView === 'day') {
-      // Switch to today in day view
       setCurrentDate(new Date())
     } else {
-      // Switch to the week containing current date
       setCurrentDate(startOfWeek(new Date(), { weekStartsOn: 1 }))
     }
     setView(newView)
   }, [])
 
+  // Click event → open sidebar directly (toggle if same event)
   const handleEventClick = useCallback((event: CalendarEvent) => {
     setSelectedEventId((prev) => {
-      const next = prev === event.id ? undefined : event.id
-      // Derive sidebar state from the same computation to avoid stale closure
-      setIsSidebarOpen(next !== undefined)
-      return next
+      if (prev === event.id) {
+        // Re-click same event → close sidebar
+        setIsSidebarOpen(false)
+        return undefined
+      }
+      // Click new event → open sidebar
+      setIsSidebarOpen(true)
+      return event.id
     })
   }, [])
 
   const handleEventChange = useCallback((updated: CalendarEvent) => {
     setEvents((prev) => {
       const old = prev.find((e) => e.id === updated.id)
-      // If status just changed to 'done', open feedback dialog
       if (updated.visitStatus === 'done' && old?.visitStatus !== 'done') {
         setFeedbackEvent(updated)
       }
@@ -113,16 +114,15 @@ export default function CalendarPage() {
     ))
   }, [])
 
+  // Click background → deselect event + close sidebar
   const handleBackgroundClick = useCallback(() => {
     setSelectedEventId(undefined)
+    setIsSidebarOpen(false)
   }, [])
 
-  const handleClosePopover = useCallback(() => {
-    setSelectedEventId(undefined)
-  }, [])
-
-  const handleDockToSidebar = useCallback(() => {
-    setIsSidebarOpen(true)
+  // Toggle sidebar open/close via header button
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev)
   }, [])
 
   // Slot click → open create dialog with pre-filled date/time
@@ -150,6 +150,7 @@ export default function CalendarPage() {
 
   const handleCloseSidebar = useCallback(() => {
     setIsSidebarOpen(false)
+    setSelectedEventId(undefined)
   }, [])
 
   // Format header date for French locale
@@ -188,7 +189,7 @@ export default function CalendarPage() {
             onClick={handleToday}
             className="h-7 rounded-md border border-theme-border px-3 text-xs font-medium text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
           >
-            Aujourd'hui
+            Aujourd&apos;hui
           </button>
           <button
             onClick={handleCreateNew}
@@ -224,7 +225,7 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Legend — clickable filters */}
+        {/* Legend — clickable filters + sidebar toggle */}
         <div className="flex items-center gap-1">
           {(Object.entries(EVENT_CATEGORIES) as [EventColor, { label: string }][]).map(([color, config]) => {
             const isActive = activeFilters.has(color)
@@ -251,6 +252,19 @@ export default function CalendarPage() {
               </button>
             )
           })}
+          {/* Sidebar toggle button */}
+          <button
+            onClick={handleToggleSidebar}
+            className={cn(
+              'flex h-7 w-7 items-center justify-center rounded-md ml-2 transition-colors',
+              isSidebarOpen
+                ? 'text-accent bg-accent/10'
+                : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
+            )}
+            title="Panneau de détail"
+          >
+            <PanelRight className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -265,25 +279,23 @@ export default function CalendarPage() {
           onBackgroundClick={handleBackgroundClick}
           onDateChange={setCurrentDate}
           onEventChange={handleEventChange}
-          isSidebarOpen={isSidebarOpen}
-          onDockToSidebar={handleDockToSidebar}
-          onClosePopover={handleClosePopover}
-          onPrevWeek={handlePrevWeek}
-          onNextWeek={handleNextWeek}
           onSlotClick={handleSlotClick}
           className="h-full"
         />
 
-        {/* Detail sidebar — absolute overlay to avoid resizing the calendar grid */}
-        {isSidebarOpen && selectedEvent && (
-          <div className="absolute top-0 right-0 bottom-0 z-30">
-            <EventDetailSidebar
-              event={selectedEvent}
-              onClose={handleCloseSidebar}
-              onEventChange={handleEventChange}
-            />
-          </div>
-        )}
+        {/* Detail sidebar — absolute overlay with slide animation */}
+        <div
+          className={cn(
+            'absolute top-0 right-0 bottom-0 z-30 transition-transform duration-200 ease-out',
+            isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+          )}
+        >
+          <EventDetailSidebar
+            event={selectedEvent}
+            onClose={handleCloseSidebar}
+            onEventChange={handleEventChange}
+          />
+        </div>
       </div>
 
       {/* Create event dialog */}

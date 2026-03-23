@@ -62,16 +62,6 @@ export interface WeekViewProps {
   onVisibleDaysChange?: (days: Date[]) => void;
   /** Callback when an event is changed (e.g. dragged to a new time) */
   onEventChange?: (event: CalendarEvent) => void;
-  /** Whether the right sidebar is open */
-  isSidebarOpen?: boolean;
-  /** Callback to dock popover to sidebar (opens sidebar) */
-  onDockToSidebar?: () => void;
-  /** Callback to close popover (deselect event) */
-  onClosePopover?: () => void;
-  /** Navigate to previous week */
-  onPrevWeek?: () => void;
-  /** Navigate to next week */
-  onNextWeek?: () => void;
   /** Callback when clicking an empty time slot to create an event */
   onSlotClick?: (date: Date) => void;
   /** Optional className for the root element */
@@ -134,16 +124,6 @@ export interface WeekViewGridProps {
   onEventChange?: (event: CalendarEvent) => void;
   /** Callback when context menu open state changes */
   onContextMenuOpenChange?: (open: boolean) => void;
-  /** Whether the right sidebar is open */
-  isSidebarOpen?: boolean;
-  /** Callback to dock popover to sidebar */
-  onDockToSidebar?: () => void;
-  /** Callback to close popover */
-  onClosePopover?: () => void;
-  /** Navigate to previous week */
-  onPrevWeek?: () => void;
-  /** Navigate to next week */
-  onNextWeek?: () => void;
   /** Callback when clicking an empty time slot to create an event */
   onSlotClick?: (date: Date) => void;
   /** Optional className */
@@ -198,16 +178,6 @@ export interface WeekViewAllDayRowProps {
   onContextMenuOpenChange?: (open: boolean) => void;
   /** Ref to attach to the scroll content div for column measurements */
   allDayScrollContentRef?: React.RefObject<HTMLDivElement | null>;
-  /** Whether the right sidebar is open */
-  isSidebarOpen?: boolean;
-  /** Callback to dock popover to sidebar */
-  onDockToSidebar?: () => void;
-  /** Callback to close popover */
-  onClosePopover?: () => void;
-  /** Navigate to previous week */
-  onPrevWeek?: () => void;
-  /** Navigate to next week */
-  onNextWeek?: () => void;
   /** Index of the first visible column (used to skip buffer-only events in day view) */
   visibleStartIndex?: number;
   /** Number of visible columns (defaults to days.length when omitted) */
@@ -445,16 +415,6 @@ export interface CalendarEventItemProps {
   fixedHeight?: number;
   /** Callback when context menu open state changes */
   onContextMenuOpenChange?: (open: boolean) => void;
-  /** Whether the right sidebar is open (controls popover visibility) */
-  isSidebarOpen?: boolean;
-  /** Callback to dock popover to sidebar */
-  onDockToSidebar?: () => void;
-  /** Callback to close popover (deselect event) */
-  onClosePopover?: () => void;
-  /** Navigate to previous week */
-  onPrevWeek?: () => void;
-  /** Navigate to next week */
-  onNextWeek?: () => void;
   /** Optional className */
   className?: string;
 }

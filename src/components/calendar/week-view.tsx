@@ -147,11 +147,6 @@ export function WeekView({
   onDateChange,
   onVisibleDaysChange,
   onEventChange,
-  isSidebarOpen,
-  onDockToSidebar,
-  onClosePopover,
-  onPrevWeek,
-  onNextWeek,
   onSlotClick,
   className,
 }: WeekViewProps) {
@@ -402,11 +397,6 @@ export function WeekView({
               onEventChange={onEventChange}
               onContextMenuOpenChange={setContextMenuOpen}
               allDayScrollContentRef={allDayScrollContentRef}
-              isSidebarOpen={isSidebarOpen}
-              onDockToSidebar={onDockToSidebar}
-              onClosePopover={onClosePopover}
-              onPrevWeek={onPrevWeek}
-              onNextWeek={onNextWeek}
               visibleStartIndex={dynamicBuffer}
               visibleCount={VISIBLE_DAYS}
               dayColumnWidth={dayColumnWidth}
@@ -439,11 +429,6 @@ export function WeekView({
                   onEventResizeMouseDown={handleResizeMouseDown}
                   onEventChange={onEventChange}
                   onContextMenuOpenChange={setContextMenuOpen}
-                  isSidebarOpen={isSidebarOpen}
-                  onDockToSidebar={onDockToSidebar}
-                  onClosePopover={onClosePopover}
-                  onPrevWeek={onPrevWeek}
-                  onNextWeek={onNextWeek}
                   onSlotClick={onSlotClick}
                 />
               </div>
