@@ -10,10 +10,9 @@ import {
   isSameMonth,
   isSameDay,
   isToday,
-  getISOWeek,
 } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { X, Phone, Mail, ExternalLink, MapPin, Clock, Star, Check, Calendar, ChevronUp, ChevronDown } from 'lucide-react'
+import { X, Phone, Mail, ExternalLink, MapPin, Clock, Star, Check, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCHF, formatSurface } from '@/lib/utils'
 import { getContactById, MOCK_AGENT_LISTINGS } from '@/lib/mockData'
@@ -54,9 +53,9 @@ interface EventDetailSidebarProps {
   onEventClick?: (event: CalendarEvent) => void
 }
 
-// ── Mini calendar (CalendarCN style) ──
+// ── Mini calendar component ──
 
-const MINI_WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const MINI_WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
 function MiniCalendar({
   selectedDate,
@@ -72,19 +71,10 @@ function MiniCalendar({
   const days = useMemo(() => {
     const monthStart = startOfMonth(viewMonth)
     const monthEnd = endOfMonth(viewMonth)
-    const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 })
-    const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 0 })
+    const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+    const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
     return eachDayOfInterval({ start: gridStart, end: gridEnd })
   }, [viewMonth])
-
-  // Split into rows of 7
-  const weeks = useMemo(() => {
-    const result: Date[][] = []
-    for (let i = 0; i < days.length; i += 7) {
-      result.push(days.slice(i, i + 7))
-    }
-    return result
-  }, [days])
 
   // Events per day (dots)
   const eventDays = useMemo(() => {
@@ -95,79 +85,60 @@ function MiniCalendar({
     return set
   }, [events])
 
-  const todayWeek = getISOWeek(new Date())
-
   return (
     <div className="px-3 py-2">
-      {/* Navigation arrows — top right */}
-      <div className="flex items-center justify-end gap-0.5 mb-2">
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-          className="h-6 w-6 flex items-center justify-center rounded text-theme-tertiary hover:text-theme-primary transition-colors"
+          className="h-5 w-5 flex items-center justify-center rounded text-theme-tertiary hover:text-theme-primary transition-colors"
         >
-          <ChevronUp className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-3 w-3" />
         </button>
+        <span className="text-xs font-medium text-theme-primary capitalize">
+          {format(viewMonth, 'MMMM yyyy', { locale: fr })}
+        </span>
         <button
           onClick={() => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-          className="h-6 w-6 flex items-center justify-center rounded text-theme-tertiary hover:text-theme-primary transition-colors"
+          className="h-5 w-5 flex items-center justify-center rounded text-theme-tertiary hover:text-theme-primary transition-colors"
         >
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronRight className="h-3 w-3" />
         </button>
       </div>
-
-      {/* Weekday header with week number column */}
-      <div className="grid grid-cols-[24px_repeat(7,1fr)] mb-0.5">
-        <div /> {/* Empty corner for week number column */}
+      {/* Weekday header */}
+      <div className="grid grid-cols-7 mb-1">
         {MINI_WEEKDAYS.map((d, i) => (
-          <div key={i} className="text-center text-[11px] text-theme-tertiary font-medium py-1">{d}</div>
+          <div key={i} className="text-center text-[10px] text-theme-tertiary font-medium py-0.5">{d}</div>
         ))}
       </div>
+      {/* Day grid */}
+      <div className="grid grid-cols-7">
+        {days.map((day) => {
+          const inMonth = isSameMonth(day, viewMonth)
+          const today = isToday(day)
+          const selected = isSameDay(day, selectedDate)
+          const hasEvents = eventDays.has(format(day, 'yyyy-MM-dd'))
 
-      {/* Week rows with week numbers */}
-      {weeks.map((week, wi) => {
-        const weekNum = getISOWeek(week[3]) // Use Thursday for ISO week
-        const isCurrentWeek = weekNum === todayWeek && isSameMonth(week[3], new Date())
-
-        return (
-          <div
-            key={wi}
-            className={cn(
-              'grid grid-cols-[24px_repeat(7,1fr)] rounded-md',
-              isCurrentWeek && 'bg-theme-hover/60',
-            )}
-          >
-            {/* Week number */}
-            <div className="flex items-center justify-center text-[10px] text-theme-tertiary/50 font-medium">
-              {weekNum}
-            </div>
-
-            {/* Days */}
-            {week.map((day) => {
-              const inMonth = isSameMonth(day, viewMonth)
-              const today = isToday(day)
-              const hasEvents = eventDays.has(format(day, 'yyyy-MM-dd'))
-
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => onDateSelect?.(day)}
-                  className={cn(
-                    'relative h-8 w-full flex items-center justify-center text-[12px] rounded-md transition-colors',
-                    !inMonth && 'text-theme-tertiary/30',
-                    inMonth && !today && 'text-theme-primary hover:bg-theme-hover',
-                    today && 'bg-red-400 text-white font-semibold rounded-md',
-                  )}
-                >
-                  {format(day, 'd')}
-                  {hasEvents && !today && inMonth && (
-                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-accent" />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )
-      })}
+          return (
+            <button
+              key={day.toISOString()}
+              onClick={() => onDateSelect?.(day)}
+              className={cn(
+                'relative h-7 w-full flex items-center justify-center text-[11px] rounded transition-colors',
+                !inMonth && 'text-theme-tertiary/40',
+                inMonth && !today && !selected && 'text-theme-secondary hover:bg-theme-hover',
+                today && !selected && 'text-accent font-semibold',
+                selected && 'bg-accent text-white font-semibold',
+              )}
+            >
+              {format(day, 'd')}
+              {hasEvents && !selected && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-accent" />
+              )}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
