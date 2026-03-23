@@ -267,6 +267,7 @@ function scoreType(propertyType: string, searchType?: string): number {
 
 // ── Score Pièces/Surface (15 pts) ────────────────────────────────────────────
 
+
 function scoreRoomsSurface(
   rooms: number,
   surfaceM2: number,
@@ -351,6 +352,7 @@ function scoreFeatures(
     return { score: 0, mustHaveMet, mustHaveMissing, niceToHaveMatched }
   }
 
+
   let matched = 0
   for (const sf of searchFeatures) {
     if (propSet.has(sf.toLowerCase())) matched++
@@ -372,6 +374,7 @@ function scoreFeatures(
 }
 
 // ── Score final composite ────────────────────────────────────────────────────
+
 
 function calculateScore(
   property: Property,

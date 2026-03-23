@@ -192,6 +192,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
             </div>
           )}
 
+
           <p className="text-xs text-theme-tertiary mb-4">
             Match pour <span className="font-medium text-theme-primary">{contactName}</span>
           </p>
