@@ -239,6 +239,71 @@ export function useUploadKycDocument() {
   })
 }
 
+// ─── Create KYC case ───────────────────────────────────────────────────────
+
+export function useCreateKycCase() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      agencyId: string
+      contactId: string
+      transactionId?: string
+      type: 'buyer_pp' | 'buyer_pm' | 'seller_pp' | 'seller_pm'
+      contactNationality?: string
+      transactionAmount?: number
+    }) => {
+      const { data, error } = await supabase
+        .from('kyc_cases')
+        .insert({
+          agency_id: input.agencyId,
+          contact_id: input.contactId,
+          transaction_id: input.transactionId || null,
+          type: input.type,
+          risk_level: 'unassessed',
+          status: 'pending',
+          completion_pct: 0,
+          pep_status: 'not_checked',
+          sanctions_status: 'not_checked',
+          contact_nationality: input.contactNationality || null,
+          transaction_amount: input.transactionAmount || null,
+        })
+        .select()
+        .single()
+      if (error) throw error
+
+      // Create default checklist items
+      const isPM = input.type.includes('_pm')
+      const defaultItems = [
+        { label: isPM ? 'Extrait du Registre du Commerce' : 'Pièce d\'identité (passeport ou CI)', category: 'Identité', is_required: true },
+        { label: isPM ? 'Statuts de la société' : 'Extrait du registre des poursuites', category: 'Identité', is_required: true },
+        ...(isPM ? [{ label: 'Identification des ayants droit économiques (UBO)', category: 'Identité', is_required: true }] : []),
+        { label: isPM ? 'Attestation de domicile du siège' : 'Attestation de domicile', category: 'Domicile', is_required: true },
+        { label: isPM ? 'Rapport de révision / comptes annuels' : 'Dernière déclaration fiscale', category: 'Revenus', is_required: true },
+        { label: isPM ? 'Bilan et compte de résultat' : 'Attestation bancaire (preuve de fonds)', category: 'Revenus', is_required: false },
+        { label: 'Déclaration d\'origine des fonds', category: 'Origine des fonds', is_required: true },
+        ...(isPM ? [{ label: 'Formulaire A / T', category: 'Origine des fonds', is_required: true }] : []),
+        { label: 'Screening PEP/Sanctions effectué', category: 'Compliance', is_required: true },
+      ]
+
+      const kycCase = data as KycCase
+      await supabase.from('kyc_checklist_items').insert(
+        defaultItems.map(item => ({
+          kyc_case_id: kycCase.id,
+          label: item.label,
+          category: item.category,
+          is_required: item.is_required,
+          is_completed: false,
+        }))
+      )
+
+      return kycCase
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
+    },
+  })
+}
+
 // ─── Screen KYC case via dilisense Edge Function ───────────────────────────
 
 export function useScreenKycCase() {
