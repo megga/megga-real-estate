@@ -10,45 +10,27 @@ const corsHeaders = {
 // ── Types ──────────────────────────────────────────────────
 
 interface ScrapeRequest {
-  canton: 'GE' | 'VD'
-  property_type: string  // 'appartement' | 'maison' | 'villa' | 'bien-immobilier'
-  zone: string           // 'canton-geneve' | 'carouge' | etc.
+  offset?: number  // Pagination offset (default 0)
+  limit?: number   // Items per page (default 36, max 36)
+  cantons?: string[]  // Filter: only keep these cantons (e.g. ['Genève', 'Vaud'])
 }
 
 interface ScrapeResult {
   listings_created: number
   listings_updated: number
+  listings_skipped: number
   photos_uploaded: number
   price_changes: number
   total_found: number
-  zone: string
-  property_type: string
-  canton: string
+  total_api: number
+  offset: number
 }
 
-interface ParsedListing {
-  source_id: string
-  title: string
-  price: number
-  address: string
-  city: string
-  canton: string
-  postal_code: string | null
-  lat: number | null
-  lng: number | null
-  rooms: number | null
-  bedrooms: number | null
-  bathrooms: number | null
-  surface_m2: number | null
-  floor: number | null
-  type: string
-  description: string | null
-  photo_urls: string[]
-  source_url: string
-  source_portal: string
-  agency_name: string | null
-  agency_phone: string | null
-  price_per_m2: number | null
+// ── Canton name mapping (API uses full German/French names) ──
+
+const CANTON_MAP: Record<string, string> = {
+  'Genève': 'GE', 'Geneva': 'GE', 'Genf': 'GE',
+  'Vaud': 'VD', 'Waadt': 'VD',
 }
 
 const TYPE_NORMALIZE: Record<string, string> = {
@@ -59,87 +41,14 @@ const TYPE_NORMALIZE: Record<string, string> = {
   'LAND': 'land', 'land': 'land',
 }
 
-// ── RealAdvisor Image URL builder ──────────────────────────
+// ── Image URL builder ──────────────────────────────────────
 
-function buildImageUrl(fileName: string): string | null {
-  if (!fileName) return null
-  const encodedPath = btoa(`https://storage.googleapis.com/aggregator-images/${fileName}`)
+function buildImageUrl(image: { file_name?: string; bucket_name?: string }): string | null {
+  if (!image?.file_name) return null
+  const bucket = image.bucket_name || 'aggregator-images'
+  const encodedPath = btoa(`https://storage.googleapis.com/${bucket}/${image.file_name}`)
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
   return `https://img.realadvisor.ch/_/rs:fill:1200:800:1:0/q:75/${encodedPath}.webp`
-}
-
-// ── RSC Parser v2 — regex field extraction ─────────────────
-// RealAdvisor uses RSC references ($xx) that break JSON parsing.
-// Instead we find each listing by {"id":DIGITS,"created_at" and
-// extract fields individually via regex from a surrounding window.
-
-function parseListingsFromHtml(html: string, sourceUrl: string, canton: string): ParsedListing[] {
-  const chunkRegex = /self\.__next_f\.push\(\[1,"(.*?)"\]\)/g
-  let allText = ''
-  let chunkMatch: RegExpExecArray | null
-  while ((chunkMatch = chunkRegex.exec(html)) !== null) {
-    try { allText += JSON.parse('"' + chunkMatch[1] + '"') } catch { /* skip */ }
-  }
-
-  const listings: ParsedListing[] = []
-  const seenIds = new Set<string>()
-  const idRegex = /\{"id":(\d{6,}),"created_at"/g
-  let idMatch: RegExpExecArray | null
-
-  while ((idMatch = idRegex.exec(allText)) !== null) {
-    const listingId = idMatch[1]
-    if (seenIds.has(listingId)) continue
-
-    const start = idMatch.index
-    const window = allText.substring(start, start + 8000)
-
-    const extract = (pattern: RegExp): string | null => {
-      const m = pattern.exec(window)
-      return m ? m[1] : null
-    }
-
-    const salePrice = extract(/"sale_price":(\d+)/)
-    if (!salePrice || salePrice === '0') continue
-    seenIds.add(listingId)
-
-    // Extract image file_names
-    const photoUrls: string[] = []
-    const fileNameRegex = /"file_name":"([^"]+)"/g
-    let fm: RegExpExecArray | null
-    while ((fm = fileNameRegex.exec(window)) !== null) {
-      const url = buildImageUrl(fm[1])
-      if (url) photoUrls.push(url)
-    }
-
-    const rawType = extract(/"property_main_type":"([^"]+)"/) || 'APPT'
-
-    listings.push({
-      source_id: listingId,
-      title: extract(/"title":"([^"]+)"/) || '',
-      price: parseInt(salePrice),
-      address: extract(/"address":"([^"]+)"/) || '',
-      city: extract(/"locality":"([^"]+)"/) || '',
-      canton: extract(/"state":"([^"]+)"/) || canton,
-      postal_code: extract(/"postcode":"([^"]+)"/),
-      lat: extract(/"lat":([\d.-]+)/) ? parseFloat(extract(/"lat":([\d.-]+)/)!) : null,
-      lng: extract(/"lng":([\d.-]+)/) ? parseFloat(extract(/"lng":([\d.-]+)/)!) : null,
-      rooms: extract(/"number_of_rooms":([\d.]+)/) ? parseFloat(extract(/"number_of_rooms":([\d.]+)/)!) : null,
-      bedrooms: extract(/"number_of_bedrooms":(\d+)/) ? parseInt(extract(/"number_of_bedrooms":(\d+)/)!) : null,
-      bathrooms: extract(/"number_of_bathrooms":(\d+)/) ? parseInt(extract(/"number_of_bathrooms":(\d+)/)!) : null,
-      surface_m2: extract(/"living_surface":([\d.]+)/) ? parseFloat(extract(/"living_surface":([\d.]+)/)!) : null,
-      floor: extract(/"floor":(\d+)/) ? parseInt(extract(/"floor":(\d+)/)!) : null,
-      type: TYPE_NORMALIZE[rawType] || 'apartment',
-      description: null,
-      photo_urls: photoUrls,
-      source_url: sourceUrl,
-      source_portal: extract(/"portal":"([^"]+)"/) || 'realadvisor',
-      agency_name: extract(/"agency_name":"([^"]+)"/),
-      agency_phone: extract(/"agency_contact_phone_number":"([^"]+)"/),
-      price_per_m2: extract(/"sale_price_per_living_surface":([\d.]+)/) ? parseFloat(extract(/"sale_price_per_living_surface":([\d.]+)/)!) : null,
-    })
-  }
-
-  return listings
 }
 
 // ── R2 Upload ──────────────────────────────────────────────
@@ -172,12 +81,9 @@ serve(async (req) => {
 
   try {
     const params: ScrapeRequest = await req.json()
-    if (!params.canton || !params.zone || !params.property_type) {
-      return new Response(
-        JSON.stringify({ error: 'canton, zone, and property_type are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const offset = params.offset || 0
+    const limit = Math.min(params.limit || 36, 36)
+    const cantonFilter = params.cantons || ['Genève', 'Vaud']
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -190,76 +96,119 @@ serve(async (req) => {
     const r2Bucket = Deno.env.get('R2_BUCKET_NAME')!
     const r2PublicUrl = Deno.env.get('R2_PUBLIC_URL')!
 
-    const url = `https://realadvisor.ch/fr/acheter/${params.property_type}/${params.zone}`
-    const response = await fetch(url, {
+    // ── Fetch from RealAdvisor JSON API ──
+    const apiUrl = `https://realadvisor.ch/api/listings?offerType_eq=buy&limit=${limit}&offset=${offset}`
+    const response = await fetch(apiUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'fr-CH,fr;q=0.9',
-        'Accept-Encoding': 'identity',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
       },
     })
 
-    if (!response.ok) throw new Error(`RealAdvisor returned ${response.status} for ${url}`)
-
-    const html = await response.text()
-    const parsed = parseListingsFromHtml(html, url, params.canton)
-
-    const result: ScrapeResult = {
-      listings_created: 0, listings_updated: 0,
-      photos_uploaded: 0, price_changes: 0,
-      total_found: parsed.length,
-      zone: params.zone, property_type: params.property_type, canton: params.canton,
+    if (!response.ok) {
+      throw new Error(`RealAdvisor API returned ${response.status}`)
     }
 
-    for (const listing of parsed) {
+    const data = await response.json()
+    const apiListings = data.listings || []
+    const totalApi = data.total_count || 0
+
+    const result: ScrapeResult = {
+      listings_created: 0, listings_updated: 0, listings_skipped: 0,
+      photos_uploaded: 0, price_changes: 0,
+      total_found: apiListings.length, total_api: totalApi, offset,
+    }
+
+    for (const item of apiListings) {
+      // Filter by canton
+      const stateName = item.state || ''
+      const cantonCode = CANTON_MAP[stateName]
+      if (!cantonFilter.includes(stateName) && !cantonFilter.includes(cantonCode)) {
+        result.listings_skipped++
+        continue
+      }
+
+      const sourceId = String(item.id)
+      const salePrice = item.sale_price || 0
+      if (salePrice <= 0) { result.listings_skipped++; continue }
+
+      // Build photo URLs from images array
+      const photoUrls: string[] = []
+      if (Array.isArray(item.images)) {
+        for (const img of item.images) {
+          const url = buildImageUrl(img)
+          if (url) photoUrls.push(url)
+        }
+      }
+
+      const rawType = item.property_main_type || item.property_type || 'APPT'
+      const canton = cantonCode || stateName
+
+      // Check if exists (dedup by source_id)
       const { data: existing } = await supabase
         .from('market_listings').select('id, current_price, photos')
-        .eq('source_id', listing.source_id).maybeSingle()
+        .eq('source_id', sourceId).maybeSingle()
 
+      // Upload photos to R2
       const r2Photos: string[] = []
       if (!existing || (existing.photos as string[] || []).length === 0) {
-        for (let i = 0; i < listing.photo_urls.length; i++) {
-          const r2Path = `${params.canton.toLowerCase()}/${listing.source_id}/photo-${i}.webp`
-          const r2Url = await uploadPhotoToR2(r2Client, r2Endpoint, r2Bucket, r2PublicUrl, listing.photo_urls[i], r2Path)
+        for (let i = 0; i < Math.min(photoUrls.length, 15); i++) {
+          const r2Path = `${canton.toLowerCase()}/${sourceId}/photo-${i}.webp`
+          const r2Url = await uploadPhotoToR2(
+            r2Client, r2Endpoint, r2Bucket, r2PublicUrl, photoUrls[i], r2Path
+          )
           if (r2Url) { r2Photos.push(r2Url); result.photos_uploaded++ }
         }
       }
 
       if (existing) {
         const updates: Record<string, unknown> = {
-          last_seen_at: new Date().toISOString(), title: listing.title, agency_name: listing.agency_name,
+          last_seen_at: new Date().toISOString(),
+          title: item.title || '',
+          agency_name: item.agency_name,
         }
         if (r2Photos.length > 0) { updates.photos = r2Photos; updates.photos_count = r2Photos.length }
+
         const oldPrice = Number(existing.current_price) || 0
-        if (oldPrice > 0 && listing.price > 0 && oldPrice !== listing.price) {
+        if (oldPrice > 0 && salePrice > 0 && oldPrice !== salePrice) {
           await supabase.from('market_price_history').insert({
-            market_listing_id: existing.id, old_price: oldPrice, new_price: listing.price,
-            change_pct: Math.round(((listing.price - oldPrice) / oldPrice) * 10000) / 100,
+            market_listing_id: existing.id, old_price: oldPrice, new_price: salePrice,
+            change_pct: Math.round(((salePrice - oldPrice) / oldPrice) * 10000) / 100,
           })
-          updates.current_price = listing.price; updates.price = listing.price
-          updates.status = listing.price < oldPrice ? 'price_reduced' : 'active'
+          updates.current_price = salePrice
+          updates.price = salePrice
+          updates.status = salePrice < oldPrice ? 'price_reduced' : 'active'
           result.price_changes++
         }
         await supabase.from('market_listings').update(updates).eq('id', existing.id)
         result.listings_updated++
       } else {
+        const title = item.translated_titles?.fr || item.title || ''
         await supabase.from('market_listings').insert({
-          canton: listing.canton || params.canton, city: listing.city,
-          postal_code: listing.postal_code, address: listing.address,
-          lat: listing.lat, lng: listing.lng, title: listing.title,
-          description: listing.description, type: listing.type,
-          transaction_type: 'buy', price: listing.price,
-          price_at_first_seen: listing.price, current_price: listing.price,
-          price_per_m2: listing.price_per_m2, rooms: listing.rooms,
-          bedrooms: listing.bedrooms, bathrooms: listing.bathrooms,
-          surface_m2: listing.surface_m2, floor: listing.floor, features: '[]',
+          canton,
+          city: item.locality || item.sub_locality || '',
+          postal_code: item.postcode || null,
+          address: item.address || '',
+          lat: item.lat || null, lng: item.lng || null,
+          title,
+          description: (item.description && !item.description.startsWith('$'))
+            ? item.description.substring(0, 2000) : null,
+          type: TYPE_NORMALIZE[rawType] || 'apartment',
+          transaction_type: 'buy',
+          price: salePrice, price_at_first_seen: salePrice, current_price: salePrice,
+          price_per_m2: item.sale_price_per_living_surface || null,
+          rooms: item.number_of_rooms || null,
+          bedrooms: item.number_of_bedrooms || null,
+          bathrooms: item.number_of_bathrooms || null,
+          surface_m2: item.living_surface || item.computed_surface || null,
+          floor: item.floor || null, features: '[]',
           photos: r2Photos, photos_count: r2Photos.length,
-          source_portal: listing.source_portal, source_url: listing.source_url,
-          source_id: listing.source_id, agency_name: listing.agency_name,
-          agency_phone: listing.agency_phone, status: 'active',
+          source_portal: item.portal || 'realadvisor',
+          source_url: item.clickout_url?.url || `https://realadvisor.ch/fr/acheter/bien-immobilier/${sourceId}`,
+          source_id: sourceId,
+          agency_name: item.agency_name || null,
+          agency_phone: item.agency_contact_phone_number || null,
+          status: 'active',
         })
         result.listings_created++
       }
