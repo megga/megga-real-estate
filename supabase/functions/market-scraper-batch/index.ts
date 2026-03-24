@@ -58,7 +58,7 @@ serve(async (req) => {
 
     const zones = CANTON_ZONES[canton]
     const results: ScanResult[] = []
-    let grandTotal = { found: 0, created: 0, updated: 0, photos: 0 }
+    const grandTotal = { found: 0, created: 0, updated: 0, photos: 0 }
 
     // Scan each zone × property type combination
     for (const zone of zones) {
