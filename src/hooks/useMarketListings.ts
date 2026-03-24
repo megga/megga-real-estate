@@ -257,16 +257,37 @@ export function useMapPoints(filters: MarketFilters = {}) {
       }
 
       // Supabase limit max = 1000 par requête, on doit paginer
+      // IMPORTANT: recréer la query à chaque itération car .range() mute l'objet
       const allPoints: MapPoint[] = []
       let page = 0
       const batchSize = 1000
       let hasMore = true
 
+      const buildQuery = () => {
+        let q = supabase
+          .from('market_listings')
+          .select('id, lat, lng, price, current_price, type, rooms, transaction_type')
+          .in('status', ['active', 'price_reduced'])
+          .not('lat', 'is', null)
+          .not('lng', 'is', null)
+          .gt('price', 0)
+          .gte('quality_score', 50)
+          .eq('transaction_type', filters.context || 'buy')
+        if (filters.types && filters.types.length > 0) q = q.in('type', filters.types)
+        if (filters.canton) q = q.eq('canton', filters.canton)
+        if (filters.city) q = q.ilike('city', `%${filters.city}%`)
+        if (filters.minPrice) q = q.gte('price', filters.minPrice)
+        if (filters.maxPrice) q = q.lte('price', filters.maxPrice)
+        if (filters.minRooms) q = q.gte('rooms', filters.minRooms)
+        if (filters.minSurface) q = q.gte('surface_m2', filters.minSurface)
+        return q
+      }
+
       while (hasMore) {
         const from = page * batchSize
         const to = from + batchSize - 1
 
-        const { data } = await query.range(from, to)
+        const { data } = await buildQuery().range(from, to)
 
         if (data && data.length > 0) {
           for (const d of data) {
