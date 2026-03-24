@@ -11,7 +11,8 @@ const corsHeaders = {
 
 interface ScrapeRequest {
   canton: 'GE' | 'VD'
-  city: string       // City slug to scan (e.g. 'carouge', 'geneve')
+  property_type: string  // 'appartement' | 'maison' | 'villa' | 'bien-immobilier'
+  zone: string           // 'canton-geneve' | 'carouge' | etc.
 }
 
 interface ScrapeResult {
@@ -20,7 +21,8 @@ interface ScrapeResult {
   photos_uploaded: number
   price_changes: number
   total_found: number
-  city: string
+  zone: string
+  property_type: string
   canton: string
 }
 
@@ -41,7 +43,6 @@ interface ParsedListing {
   floor: number | null
   type: string
   description: string | null
-  features: Record<string, unknown>[]
   photo_urls: string[]
   source_url: string
   source_portal: string
@@ -50,8 +51,8 @@ interface ParsedListing {
   price_per_m2: number | null
 }
 
-const TYPE_MAP: Record<string, string> = {
-  'APARTMENT': 'apartment', 'apartment': 'apartment', 'APPT': 'apartment',
+const TYPE_NORMALIZE: Record<string, string> = {
+  'APARTMENT': 'apartment', 'APPT': 'apartment', 'apartment': 'apartment',
   'HOUSE': 'house', 'house': 'house',
   'VILLA': 'villa', 'villa': 'villa',
   'COMMERCIAL': 'commercial', 'commercial': 'commercial',
@@ -60,116 +61,82 @@ const TYPE_MAP: Record<string, string> = {
 
 // ── RealAdvisor Image URL builder ──────────────────────────
 
-function buildImageUrl(
-  image: { file_name?: string; bucket_name?: string } | null,
-  size: 'thumb' | 'large' = 'large'
-): string | null {
-  if (!image || !image.file_name) return null
-  const dims = size === 'large' ? 'rs:fill:1200:800:1:0/q:75' : 'rs:fill:600:400:1:0/q:60'
-  const encodedPath = btoa(
-    `https://storage.googleapis.com/${image.bucket_name || 'aggregator-images'}/${image.file_name}`
-  )
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-  return `https://img.realadvisor.ch/_/${dims}/${encodedPath}.webp`
+function buildImageUrl(fileName: string): string | null {
+  if (!fileName) return null
+  const encodedPath = btoa(`https://storage.googleapis.com/aggregator-images/${fileName}`)
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return `https://img.realadvisor.ch/_/rs:fill:1200:800:1:0/q:75/${encodedPath}.webp`
 }
 
-// ── URL builder — uses landing page pattern (search endpoint returns 403) ──
+// ── RSC Parser v2 — regex field extraction ─────────────────
+// RealAdvisor uses RSC references ($xx) that break JSON parsing.
+// Instead we find each listing by {"id":DIGITS,"created_at" and
+// extract fields individually via regex from a surrounding window.
 
-function buildUrl(city: string): string {
-  return `https://realadvisor.ch/fr/acheter/bien-immobilier/${city}`
-}
+function parseListingsFromHtml(html: string, sourceUrl: string, canton: string): ParsedListing[] {
+  const chunkRegex = /self\.__next_f\.push\(\[1,"(.*?)"\]\)/g
+  let allText = ''
+  let chunkMatch: RegExpExecArray | null
+  while ((chunkMatch = chunkRegex.exec(html)) !== null) {
+    try { allText += JSON.parse('"' + chunkMatch[1] + '"') } catch { /* skip */ }
+  }
 
-// ── RSC Flight Data Parser ─────────────────────────────────
-
-function parseRscListings(html: string, sourceUrl: string, canton: string): ParsedListing[] {
   const listings: ParsedListing[] = []
   const seenIds = new Set<string>()
+  const idRegex = /\{"id":(\d{6,}),"created_at"/g
+  let idMatch: RegExpExecArray | null
 
-  const chunkRegex = /self\.__next_f\.push\(\[1,"(.*?)"\]\)/g
-  let chunkMatch: RegExpExecArray | null
+  while ((idMatch = idRegex.exec(allText)) !== null) {
+    const listingId = idMatch[1]
+    if (seenIds.has(listingId)) continue
 
-  while ((chunkMatch = chunkRegex.exec(html)) !== null) {
-    let unescaped: string
-    try {
-      unescaped = JSON.parse('"' + chunkMatch[1] + '"')
-    } catch {
-      continue
+    const start = idMatch.index
+    const window = allText.substring(start, start + 8000)
+
+    const extract = (pattern: RegExp): string | null => {
+      const m = pattern.exec(window)
+      return m ? m[1] : null
     }
 
-    const listingRegex = /\{"listing":\{"id":(\d+)/g
-    let listingMatch: RegExpExecArray | null
+    const salePrice = extract(/"sale_price":(\d+)/)
+    if (!salePrice || salePrice === '0') continue
+    seenIds.add(listingId)
 
-    while ((listingMatch = listingRegex.exec(unescaped)) !== null) {
-      const startPos = listingMatch.index + '{"listing":'.length
-      let braceCount = 0
-      let endPos = startPos
-
-      for (let i = startPos; i < unescaped.length; i++) {
-        if (unescaped[i] === '{') braceCount++
-        else if (unescaped[i] === '}') {
-          braceCount--
-          if (braceCount === 0) {
-            endPos = i + 1
-            break
-          }
-        }
-      }
-
-      try {
-        const listingJson = unescaped.substring(startPos, endPos)
-        const item = JSON.parse(listingJson)
-        const id = String(item.id)
-
-        if (seenIds.has(id)) continue
-        seenIds.add(id)
-
-        const photoUrls: string[] = []
-        if (Array.isArray(item.images)) {
-          for (const img of item.images) {
-            const url = buildImageUrl(img, 'large')
-            if (url) photoUrls.push(url)
-          }
-        }
-
-        const title = item.translated_titles?.fr || item.title || ''
-        const rawDesc = item.description
-        const description = (typeof rawDesc === 'string' && !rawDesc.startsWith('$'))
-          ? rawDesc : null
-
-        const rawType = item.property_main_type || item.property_type || 'apartment'
-        const normalizedType = TYPE_MAP[rawType] || 'apartment'
-
-        listings.push({
-          source_id: id,
-          title,
-          price: item.sale_price || 0,
-          address: item.address || '',
-          city: item.locality || item.sub_locality || '',
-          canton: item.state || canton,
-          postal_code: item.postcode || null,
-          lat: item.lat || null,
-          lng: item.lng || null,
-          rooms: item.number_of_rooms || null,
-          bedrooms: item.number_of_bedrooms || null,
-          bathrooms: item.number_of_bathrooms || null,
-          surface_m2: item.living_surface || item.computed_surface || null,
-          floor: item.floor || null,
-          type: normalizedType,
-          description,
-          features: [],
-          photo_urls: photoUrls,
-          source_url: sourceUrl,
-          source_portal: item.portal || 'realadvisor',
-          agency_name: item.agency_name || null,
-          agency_phone: item.agency_contact_phone_number || null,
-          price_per_m2: item.sale_price_per_living_surface || null,
-        })
-      } catch {
-        // Skip malformed listing
-      }
+    // Extract image file_names
+    const photoUrls: string[] = []
+    const fileNameRegex = /"file_name":"([^"]+)"/g
+    let fm: RegExpExecArray | null
+    while ((fm = fileNameRegex.exec(window)) !== null) {
+      const url = buildImageUrl(fm[1])
+      if (url) photoUrls.push(url)
     }
+
+    const rawType = extract(/"property_main_type":"([^"]+)"/) || 'APPT'
+
+    listings.push({
+      source_id: listingId,
+      title: extract(/"title":"([^"]+)"/) || '',
+      price: parseInt(salePrice),
+      address: extract(/"address":"([^"]+)"/) || '',
+      city: extract(/"locality":"([^"]+)"/) || '',
+      canton: extract(/"state":"([^"]+)"/) || canton,
+      postal_code: extract(/"postcode":"([^"]+)"/),
+      lat: extract(/"lat":([\d.-]+)/) ? parseFloat(extract(/"lat":([\d.-]+)/)!) : null,
+      lng: extract(/"lng":([\d.-]+)/) ? parseFloat(extract(/"lng":([\d.-]+)/)!) : null,
+      rooms: extract(/"number_of_rooms":([\d.]+)/) ? parseFloat(extract(/"number_of_rooms":([\d.]+)/)!) : null,
+      bedrooms: extract(/"number_of_bedrooms":(\d+)/) ? parseInt(extract(/"number_of_bedrooms":(\d+)/)!) : null,
+      bathrooms: extract(/"number_of_bathrooms":(\d+)/) ? parseInt(extract(/"number_of_bathrooms":(\d+)/)!) : null,
+      surface_m2: extract(/"living_surface":([\d.]+)/) ? parseFloat(extract(/"living_surface":([\d.]+)/)!) : null,
+      floor: extract(/"floor":(\d+)/) ? parseInt(extract(/"floor":(\d+)/)!) : null,
+      type: TYPE_NORMALIZE[rawType] || 'apartment',
+      description: null,
+      photo_urls: photoUrls,
+      source_url: sourceUrl,
+      source_portal: extract(/"portal":"([^"]+)"/) || 'realadvisor',
+      agency_name: extract(/"agency_name":"([^"]+)"/),
+      agency_phone: extract(/"agency_contact_phone_number":"([^"]+)"/),
+      price_per_m2: extract(/"sale_price_per_living_surface":([\d.]+)/) ? parseFloat(extract(/"sale_price_per_living_surface":([\d.]+)/)!) : null,
+    })
   }
 
   return listings
@@ -178,37 +145,22 @@ function parseRscListings(html: string, sourceUrl: string, canton: string): Pars
 // ── R2 Upload ──────────────────────────────────────────────
 
 async function uploadPhotoToR2(
-  r2Client: AwsClient,
-  r2Endpoint: string,
-  r2Bucket: string,
-  r2PublicUrl: string,
-  photoUrl: string,
-  r2Path: string
+  r2Client: AwsClient, r2Endpoint: string, r2Bucket: string,
+  r2PublicUrl: string, photoUrl: string, r2Path: string
 ): Promise<string | null> {
   try {
-    const response = await fetch(photoUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        'Accept': 'image/webp,image/avif,image/*,*/*;q=0.8',
-      },
+    const resp = await fetch(photoUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'image/*,*/*;q=0.8' },
     })
-    if (!response.ok) return null
-
-    const imageData = await response.arrayBuffer()
-    if (imageData.byteLength < 100) return null
-
-    const uploadUrl = `${r2Endpoint}/${r2Bucket}/${r2Path}`
-    const uploadResponse = await r2Client.fetch(uploadUrl, {
-      method: 'PUT',
-      body: imageData,
-      headers: { 'Content-Type': 'image/webp' },
+    if (!resp.ok) return null
+    const data = await resp.arrayBuffer()
+    if (data.byteLength < 100) return null
+    const uploadResp = await r2Client.fetch(`${r2Endpoint}/${r2Bucket}/${r2Path}`, {
+      method: 'PUT', body: data, headers: { 'Content-Type': 'image/webp' },
     })
-
-    if (!uploadResponse.ok) return null
+    if (!uploadResp.ok) return null
     return `${r2PublicUrl}/${r2Path}`
-  } catch {
-    return null
-  }
+  } catch { return null }
 }
 
 // ── Main Handler ───────────────────────────────────────────
@@ -220,19 +172,16 @@ serve(async (req) => {
 
   try {
     const params: ScrapeRequest = await req.json()
-
-    if (!params.canton || !params.city) {
+    if (!params.canton || !params.zone || !params.property_type) {
       return new Response(
-        JSON.stringify({ error: 'canton and city are required' }),
+        JSON.stringify({ error: 'canton, zone, and property_type are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
-
     const r2Client = new AwsClient({
       accessKeyId: Deno.env.get('R2_ACCESS_KEY_ID')!,
       secretAccessKey: Deno.env.get('R2_SECRET_ACCESS_KEY')!,
@@ -241,125 +190,76 @@ serve(async (req) => {
     const r2Bucket = Deno.env.get('R2_BUCKET_NAME')!
     const r2PublicUrl = Deno.env.get('R2_PUBLIC_URL')!
 
-    // Fetch RealAdvisor landing page (search endpoint returns 403)
-    const url = buildUrl(params.city)
+    const url = `https://realadvisor.ch/fr/acheter/${params.property_type}/${params.zone}`
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'fr-CH,fr;q=0.9',
         'Accept-Encoding': 'identity',
         'Sec-Fetch-Dest': 'document',
         'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
       },
     })
 
-    if (!response.ok) {
-      throw new Error(`RealAdvisor returned ${response.status} for ${url}`)
-    }
+    if (!response.ok) throw new Error(`RealAdvisor returned ${response.status} for ${url}`)
 
     const html = await response.text()
-    const parsed = parseRscListings(html, url, params.canton)
+    const parsed = parseListingsFromHtml(html, url, params.canton)
 
     const result: ScrapeResult = {
-      listings_created: 0,
-      listings_updated: 0,
-      photos_uploaded: 0,
-      price_changes: 0,
+      listings_created: 0, listings_updated: 0,
+      photos_uploaded: 0, price_changes: 0,
       total_found: parsed.length,
-      city: params.city,
-      canton: params.canton,
+      zone: params.zone, property_type: params.property_type, canton: params.canton,
     }
 
     for (const listing of parsed) {
-      if (listing.price <= 0) continue
-
       const { data: existing } = await supabase
-        .from('market_listings')
-        .select('id, current_price, photos')
-        .eq('source_id', listing.source_id)
-        .maybeSingle()
+        .from('market_listings').select('id, current_price, photos')
+        .eq('source_id', listing.source_id).maybeSingle()
 
-      // Upload ALL photos to R2 (only for new listings or those without photos)
       const r2Photos: string[] = []
       if (!existing || (existing.photos as string[] || []).length === 0) {
         for (let i = 0; i < listing.photo_urls.length; i++) {
           const r2Path = `${params.canton.toLowerCase()}/${listing.source_id}/photo-${i}.webp`
-          const r2Url = await uploadPhotoToR2(
-            r2Client, r2Endpoint, r2Bucket, r2PublicUrl,
-            listing.photo_urls[i], r2Path
-          )
-          if (r2Url) {
-            r2Photos.push(r2Url)
-            result.photos_uploaded++
-          }
+          const r2Url = await uploadPhotoToR2(r2Client, r2Endpoint, r2Bucket, r2PublicUrl, listing.photo_urls[i], r2Path)
+          if (r2Url) { r2Photos.push(r2Url); result.photos_uploaded++ }
         }
       }
 
       if (existing) {
         const updates: Record<string, unknown> = {
-          last_seen_at: new Date().toISOString(),
-          title: listing.title,
-          description: listing.description,
-          agency_name: listing.agency_name,
-          agency_phone: listing.agency_phone,
+          last_seen_at: new Date().toISOString(), title: listing.title, agency_name: listing.agency_name,
         }
-
-        if (r2Photos.length > 0) {
-          updates.photos = r2Photos
-          updates.photos_count = r2Photos.length
-        }
-
+        if (r2Photos.length > 0) { updates.photos = r2Photos; updates.photos_count = r2Photos.length }
         const oldPrice = Number(existing.current_price) || 0
-        const newPrice = listing.price
-        if (oldPrice > 0 && newPrice > 0 && oldPrice !== newPrice) {
-          const changePct = ((newPrice - oldPrice) / oldPrice) * 100
+        if (oldPrice > 0 && listing.price > 0 && oldPrice !== listing.price) {
           await supabase.from('market_price_history').insert({
-            market_listing_id: existing.id,
-            old_price: oldPrice,
-            new_price: newPrice,
-            change_pct: Math.round(changePct * 100) / 100,
+            market_listing_id: existing.id, old_price: oldPrice, new_price: listing.price,
+            change_pct: Math.round(((listing.price - oldPrice) / oldPrice) * 10000) / 100,
           })
-          updates.current_price = newPrice
-          updates.price = newPrice
-          updates.price_per_m2 = listing.price_per_m2
-          updates.status = newPrice < oldPrice ? 'price_reduced' : 'active'
+          updates.current_price = listing.price; updates.price = listing.price
+          updates.status = listing.price < oldPrice ? 'price_reduced' : 'active'
           result.price_changes++
         }
-
         await supabase.from('market_listings').update(updates).eq('id', existing.id)
         result.listings_updated++
       } else {
         await supabase.from('market_listings').insert({
-          canton: listing.canton || params.canton,
-          city: listing.city,
-          postal_code: listing.postal_code,
-          address: listing.address,
-          lat: listing.lat, lng: listing.lng,
-          title: listing.title,
-          description: listing.description,
-          type: listing.type,
-          transaction_type: 'buy',
-          price: listing.price,
-          price_at_first_seen: listing.price,
-          current_price: listing.price,
-          price_per_m2: listing.price_per_m2,
-          rooms: listing.rooms,
-          bedrooms: listing.bedrooms,
-          bathrooms: listing.bathrooms,
-          surface_m2: listing.surface_m2,
-          floor: listing.floor,
-          features: listing.features,
-          photos: r2Photos,
-          photos_count: r2Photos.length,
-          source_portal: listing.source_portal,
-          source_url: listing.source_url,
-          source_id: listing.source_id,
-          agency_name: listing.agency_name,
-          agency_phone: listing.agency_phone,
-          status: 'active',
+          canton: listing.canton || params.canton, city: listing.city,
+          postal_code: listing.postal_code, address: listing.address,
+          lat: listing.lat, lng: listing.lng, title: listing.title,
+          description: listing.description, type: listing.type,
+          transaction_type: 'buy', price: listing.price,
+          price_at_first_seen: listing.price, current_price: listing.price,
+          price_per_m2: listing.price_per_m2, rooms: listing.rooms,
+          bedrooms: listing.bedrooms, bathrooms: listing.bathrooms,
+          surface_m2: listing.surface_m2, floor: listing.floor, features: '[]',
+          photos: r2Photos, photos_count: r2Photos.length,
+          source_portal: listing.source_portal, source_url: listing.source_url,
+          source_id: listing.source_id, agency_name: listing.agency_name,
+          agency_phone: listing.agency_phone, status: 'active',
         })
         result.listings_created++
       }
@@ -371,8 +271,7 @@ serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 })
