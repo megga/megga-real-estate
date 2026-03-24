@@ -65,7 +65,7 @@ serve(async (req) => {
       )
     }
 
-    const cantonFilter = params.cantons || ['Genève', 'Vaud']
+    const cantonFilter = params.cantons || null // null = accept all cantons
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
@@ -95,7 +95,8 @@ serve(async (req) => {
     for (const item of apiListings) {
       const stateName = item.state || ''
       const cantonCode = CANTON_MAP[stateName]
-      if (!cantonFilter.includes(stateName) && !cantonFilter.includes(cantonCode || '')) {
+      // If cantonFilter is set, skip listings outside those cantons
+      if (cantonFilter && !cantonFilter.includes(stateName) && !cantonFilter.includes(cantonCode || '')) {
         result.listings_skipped++
         continue
       }
