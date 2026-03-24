@@ -24,6 +24,7 @@ interface RequestBody {
   property_id?: string
   contact_id?: string
   agency_id: string
+  include_market?: boolean // Also match against market_listings
 }
 
 serve(async (req) => {
@@ -37,15 +38,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { mode, property_id, contact_id, agency_id } = (await req.json()) as RequestBody
+    const { mode, property_id, contact_id, agency_id, include_market = true } = (await req.json()) as RequestBody
 
     if (!agency_id) {
       throw new Error('agency_id is required')
     }
 
     let newMatches = 0
+    let newMarketMatches = 0
 
-    // ── Helper: insert match + log activity event ──
+    // ── Helper: insert internal match + log activity event ──
     async function insertMatchWithAudit(
       matchContactId: string,
       matchPropertyId: string,
@@ -71,6 +73,7 @@ serve(async (req) => {
           score: score.total,
           reasons: score.reasons,
           status: 'suggested',
+          source: 'internal',
         })
         .select('id')
         .single()
@@ -88,11 +91,92 @@ serve(async (req) => {
             property_id: matchPropertyId,
             score: score.total,
             mode,
+            source: 'internal',
           },
         })
       }
 
       return true
+    }
+
+    // ── Helper: insert market match + log activity event ──
+    async function insertMarketMatchWithAudit(
+      matchContactId: string,
+      marketListingId: string,
+      searchId: string,
+      score: ScoreResult
+    ): Promise<boolean> {
+      const { data: existing } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('contact_id', matchContactId)
+        .eq('market_listing_id', marketListingId)
+        .maybeSingle()
+
+      if (existing) return false
+
+      const { data: inserted } = await supabase
+        .from('matches')
+        .insert({
+          agency_id,
+          contact_id: matchContactId,
+          market_listing_id: marketListingId,
+          client_search_id: searchId,
+          score: score.total,
+          reasons: score.reasons,
+          status: 'suggested',
+          source: 'market',
+        })
+        .select('id')
+        .single()
+
+      if (inserted) {
+        await supabase.from('activity_events').insert({
+          agency_id,
+          actor_id: 'ai',
+          action: 'match_suggested',
+          entity_type: 'match',
+          entity_id: inserted.id,
+          metadata: {
+            contact_id: matchContactId,
+            market_listing_id: marketListingId,
+            score: score.total,
+            mode,
+            source: 'market',
+          },
+        })
+      }
+
+      return true
+    }
+
+    // ── Helper: match searches against market listings ──
+    async function matchSearchesAgainstMarket(
+      searches: Record<string, unknown>[],
+      resolveContactId: (search: Record<string, unknown>) => string
+    ): Promise<void> {
+      if (!include_market) return
+
+      // Fetch active market listings (GE + VD for now)
+      const { data: marketListings } = await supabase
+        .from('market_listings')
+        .select('*')
+        .eq('status', 'active')
+        .limit(5000)
+
+      if (!marketListings || marketListings.length === 0) return
+
+      for (const search of searches) {
+        const cId = resolveContactId(search)
+        for (const ml of marketListings) {
+          // market_listings uses same fields as properties
+          const score = calculateScore(ml, search)
+          if (score.total >= 60) {
+            const created = await insertMarketMatchWithAudit(cId, ml.id, search.id as string, score)
+            if (created) newMarketMatches++
+          }
+        }
+      }
     }
 
     if (mode === 'match-property' && property_id) {
@@ -154,6 +238,9 @@ serve(async (req) => {
           }
         }
       }
+
+      // Also match against market listings
+      await matchSearchesAgainstMarket(searches, () => contact_id!)
     } else if (mode === 'scan-all') {
       // ── Scan complet (appelé par pg_cron) ──
 
@@ -178,11 +265,17 @@ serve(async (req) => {
           }
         }
       }
+
+      // Also match against market listings
+      await matchSearchesAgainstMarket(
+        searches || [],
+        (search) => search.contact_id as string
+      )
     } else {
       throw new Error(`Invalid mode: ${mode}. Expected 'match-property', 'match-contact', or 'scan-all'`)
     }
 
-    return new Response(JSON.stringify({ newMatches, mode }), {
+    return new Response(JSON.stringify({ newMatches, newMarketMatches, mode }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {

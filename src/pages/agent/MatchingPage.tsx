@@ -176,6 +176,34 @@ function MatchPreviewModal({ match, onClose, onSend }: {
             </div>
           </div>
 
+          {/* Market-specific info */}
+          {match.source === 'market' && listing.source_portal && (
+            <div className="flex items-center gap-4 py-2.5 px-3 rounded-lg border border-theme-border-subtle mb-4">
+              <div>
+                <p className="text-[10px] text-theme-tertiary">Source</p>
+                <p className="text-xs font-medium text-theme-primary">{listing.source_portal}</p>
+              </div>
+              {listing.agency_name && (
+                <div>
+                  <p className="text-[10px] text-theme-tertiary">Agence</p>
+                  <p className="text-xs font-medium text-theme-primary">{listing.agency_name}</p>
+                </div>
+              )}
+              {listing.price_per_m2 != null && listing.price_per_m2 > 0 && (
+                <div>
+                  <p className="text-[10px] text-theme-tertiary">Prix/m²</p>
+                  <p className="text-xs font-medium text-theme-primary">{formatCHF(listing.price_per_m2)}</p>
+                </div>
+              )}
+              {(listing.days_on_market ?? 0) > 0 && (
+                <div>
+                  <p className="text-[10px] text-theme-tertiary">En ligne</p>
+                  <p className="text-xs font-medium text-theme-primary">{listing.days_on_market}j</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Match for contact */}
           <p className="text-xs text-theme-tertiary mb-4">
             Match pour <span className="font-medium text-theme-primary">{match.contactName}</span>
@@ -189,6 +217,16 @@ function MatchPreviewModal({ match, onClose, onSend }: {
             >
               Fermer
             </button>
+            {match.source === 'market' && listing.source_url && (
+              <a
+                href={listing.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center"
+              >
+                Voir l'annonce
+              </a>
+            )}
             {!isSent && (
               <button
                 onClick={onSend}
@@ -238,6 +276,13 @@ function MatchCard({ match, onSend, onPreview }: {
             alt={match.listing.title}
             className="w-full h-full object-cover"
           />
+          {match.source === 'market' && (
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-md px-2 py-1">
+              <span className="text-[10px] text-white/80 font-medium">
+                {match.listing.source_portal || 'Marché'}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -373,9 +418,10 @@ const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-
 
 export default function MatchingPage() {
   const navigate = useNavigate()
-  const { suggested, sent, sendMatch, runMatching, isRunning } = useMatching()
+  const { suggested, sent, internalMatches, marketMatches, sendMatch, runMatching, isRunning } = useMatching()
   const [search, setSearch] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'suggested' | 'sent'>('all')
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'internal' | 'market'>('all')
   const [sortBy, setSortBy] = useState<SortBy>('score')
   const [contactFilter, setContactFilter] = useState('')
   const [sendDialog, setSendDialog] = useState<MatchResult | null>(null)
@@ -432,6 +478,12 @@ export default function MatchingPage() {
 
   const allMatches = useMemo(() => {
     let list = filterBy === 'suggested' ? suggested : filterBy === 'sent' ? sent : [...suggested, ...sent]
+    // Source filter
+    if (sourceFilter === 'internal') {
+      list = list.filter((m) => m.source === 'internal')
+    } else if (sourceFilter === 'market') {
+      list = list.filter((m) => m.source === 'market')
+    }
     if (search) {
       const q = search.toLowerCase()
       list = list.filter((m) =>
@@ -454,7 +506,7 @@ export default function MatchingPage() {
       }
     })
     return list
-  }, [suggested, sent, search, filterBy, sortBy, contactFilter])
+  }, [suggested, sent, search, filterBy, sourceFilter, sortBy, contactFilter])
 
   // Group by contact
   const groupedByContact = useMemo(() => {
@@ -575,6 +627,22 @@ export default function MatchingPage() {
             ))}
           </div>
 
+          {/* Source filter */}
+          <div className="flex items-center border border-theme-border rounded-lg p-0.5">
+            {(['all', 'internal', 'market'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setSourceFilter(f)}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                  sourceFilter === f ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
+                )}
+              >
+                {f === 'all' ? 'Tous' : f === 'internal' ? `Interne${internalMatches.length ? ` (${internalMatches.length})` : ''}` : `Marché${marketMatches.length ? ` (${marketMatches.length})` : ''}`}
+              </button>
+            ))}
+          </div>
+
           {/* Contact filter */}
           <div className="relative">
             <select value={contactFilter} onChange={(e) => setContactFilter(e.target.value)} className={selectClasses}>
@@ -594,8 +662,8 @@ export default function MatchingPage() {
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
           </div>
 
-          {(search || contactFilter || filterBy !== 'all') && (
-            <button onClick={() => { setSearch(''); setContactFilter(''); setFilterBy('all') }} className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors">
+          {(search || contactFilter || filterBy !== 'all' || sourceFilter !== 'all') && (
+            <button onClick={() => { setSearch(''); setContactFilter(''); setFilterBy('all'); setSourceFilter('all') }} className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors">
               Effacer
             </button>
           )}
