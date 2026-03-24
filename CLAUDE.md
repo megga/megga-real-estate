@@ -73,11 +73,29 @@ IA :           Anthropic Claude API (Sonnet 4) via Edge Functions
                - Génération d'annonces multi-versions — Phase 2
                - Analyse d'objections post-visite — Phase 2
 
+Marché :       RealAdvisor (realadvisor.ch) — BASE DE DONNÉES MARCHÉ SUISSE
+               ✅ API JSON découverte : /api/listings?offerType_eq=buy&salePrice_gte=X&salePrice_lte=Y
+               - 43'000+ biens à vendre dans toute la Suisse
+               - Pas de pagination (offset ignoré), MAIS filtre prix fonctionne
+               - Stratégie : tranches de prix fines → 36 résultats uniques par tranche
+               - ~620 tranches = ~10'000+ biens uniques ingérés
+               - Photos via CDN img.realadvisor.ch (pas d'upload R2 nécessaire)
+               - Edge Function market-scraper : 1 tranche par appel
+               - Edge Function market-scraper-batch : orchestre toutes les tranches (~3 min)
+               - Table market_listings (permanente) + market_price_history (tracker prix)
+               - Matching engine enrichi : matches aussi contre market_listings
+               - Page publique Acheter connectée (usePublicListings hook)
+               ⚠️ IMPORTANT — Secrets API :
+               - L'API /api/listings est NON documentée et sans CAPTCHA
+               - Tous les autres portails (Homegate, ImmoScout24, Comparis) ont Cloudflare/Datadome
+               - Le endpoint /fr/search?page=N retourne 403 depuis Edge Functions (marche uniquement dans un vrai navigateur)
+               - Garder un délai 2-4s entre les requêtes, pas plus de 1 scan/jour
+
 Matching ext : RealAdvisor (realadvisor.ch) via Edge Function external-matching
-               ✅ Scan marché suisse (14 portails agrégés : Homegate, ImmoScout24, Comparis...)
-               - Parse RSC flight data (React Server Components)
+               - Ancien système : parse RSC flight data (React Server Components)
                - Cache 1h dans table external_listings
                - 3 niveaux : fiche MEGGA, enrichi (10 photos, stats), Full CRM (import, notes, comparaison)
+               - ⚠️ RSC parsing ne retourne que ~3-24 listings par page (limité)
 
 Email :        Resend (transactionnel + relances automatiques)
                ✅ Domaine megga.ch configuré (DKIM + SPF vérifiés)
@@ -1326,9 +1344,25 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 23 mars 2026)
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 24 mars 2026)
 
 ### ✅ Fonctionnalités LIVE
+
+#### Base de données marché immobilier suisse (24 mars 2026)
+- **API RealAdvisor découverte** : `/api/listings?offerType_eq=buy&salePrice_gte=X&salePrice_lte=Y`
+- 43'000+ biens à vendre toute Suisse, JSON paginé par tranches de prix
+- **Edge Function `market-scraper`** : fetch 1 tranche de prix → 36 listings → INSERT/UPDATE Supabase
+- **Edge Function `market-scraper-batch`** : orchestre 41+ tranches (~3 min pour un scan complet)
+- **Tables** : `market_listings` (permanente) + `market_price_history` (tracker baisses/hausses)
+- **Photos** : URLs CDN RealAdvisor (`img.realadvisor.ch`) stockées dans `photos` text[]
+- **RLS** : lecture publique (anon) pour la page Acheter, écriture service_role pour les Edge Functions
+- **Matching engine** enrichi : `matches.source = 'internal' | 'market'`, `matches.market_listing_id`
+- **SearchPage** connectée : hook `usePublicListings` charge `properties` + `market_listings`
+- **Onglet "Vendre"** remplace "Louer" (MEGGA ne fait pas de location)
+- **Résultats actuels** : ~500+ biens GE+VD, en cours d'augmentation
+- **Scan automatisable** : pg_cron 1x/jour, ~3 min par scan, détecte nouveaux biens + changements de prix
+- ⚠️ L'API `/api/listings` est non documentée — garder délai 2-4s, max 1 scan/jour
+- ⚠️ Homegate, ImmoScout24, Comparis → tous protégés Cloudflare/Datadome (inaccessibles)
 
 #### KYC Connecté Supabase + Screening dilisense (23 mars 2026)
 - **Edge Function** `kyc-screening` déployée — appelle API dilisense (PEP + Sanctions)
@@ -1342,17 +1376,11 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - Secret requis : `DILISENSE_API_KEY`
 - **RLS corrigé** : récursion `profiles` fixée avec `get_my_agency_id()` SECURITY DEFINER
 
-#### Matching externe RealAdvisor
-- **Edge Function** `external-matching` déployée sur Supabase
-- Scan marché suisse via RealAdvisor (14 portails agrégés)
-- Parse RSC flight data (React Server Components de Next.js)
-- Cache 1h dans table `external_listings`
-- **3 niveaux implémentés** :
-  - Niveau 1 : Fiche bien MEGGA (photo, prix, surface, adresse)
-  - Niveau 2 : Enrichi (toutes les photos, stats détaillés, contacts agence)
-  - Niveau 3 : Full CRM (import dans portefeuille, notes agent, envoi client, comparaison prix/m²)
-- Onglet "Marché" dans MatchingPage + ContactDetailPage
-- Route `/dashboard/marche/:externalId` pour la fiche détaillée
+#### Matching externe RealAdvisor (ancien système — remplacé par market-scraper)
+- **Edge Function** `external-matching` — ancien système RSC parsing
+- Limité à ~3-24 listings par page (RSC data incomplète depuis 2026)
+- Remplacé par `market-scraper` v4 (API JSON + tranches de prix)
+- Gardé pour compatibilité (MatchingPage onglet "Marché" temps réel)
 
 #### MEGGA AI (Copilote IA)
 - **Edge Function** `ai-copilot` déployée — Claude Sonnet 4
