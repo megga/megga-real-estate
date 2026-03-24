@@ -329,3 +329,50 @@ function fallbackToMock(contactId?: string): MatchResult[] {
     source: 'internal' as const,
   }))
 }
+
+// ── Re-exports for compatibility with main's MatchingPanel/SendMatchDialog ──
+
+export { useMatching as useContactMatches }
+
+export function useRunMatching() {
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (params: { trigger: string; property_id?: string; contact_id?: string }) => {
+      if (!profile?.agency_id) throw new Error('No agency_id')
+      const { data, error } = await supabase.functions.invoke('matching-engine', {
+        body: { ...params, agency_id: profile.agency_id },
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['matches'] }) },
+  })
+}
+
+export function useUpdateMatchStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ matchId, status }: { matchId: string; status: string }) => {
+      const { error } = await supabase.from('matches').update({ status }).eq('id', matchId)
+      if (error) throw error
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['matches'] }) },
+  })
+}
+
+export function useSendMatchToClient() {
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ matchId, channel, message }: { matchId: string; channel: string; message: string }) => {
+      if (!profile?.agency_id) throw new Error('No agency_id')
+      const { data, error } = await supabase.functions.invoke('send-property-email', {
+        body: { match_id: matchId, channel, message, agency_id: profile.agency_id, agent_id: profile.id },
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['matches'] }) },
+  })
+}

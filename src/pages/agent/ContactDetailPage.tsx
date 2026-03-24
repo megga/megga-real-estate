@@ -9,13 +9,13 @@ import { getContactById, type MockContact } from '@/lib/mockData'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 import PageTransition from '@/components/layout/PageTransition'
 import EditContactDialog from '@/components/contacts/EditContactDialog'
+import MatchingPanel from '@/components/matching/MatchingPanel'
 import CopilotSummary from '@/components/ai-copilot/CopilotSummary'
 import BuyerIntelligence from '@/components/ai-copilot/BuyerIntelligence'
 import SellerIntelligence from '@/components/ai-copilot/SellerIntelligence'
 import { useContactDetail } from '@/hooks/useContactDetail'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
 import { useExternalMatching, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
-import MatchingPanel from '@/components/matching/MatchingPanel'
 import { useSellerPortals } from '@/hooks/useSellerPortal'
 import { useSendPropertyEmail } from '@/hooks/useSendEmail'
 
@@ -101,7 +101,7 @@ export default function ContactDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const { aiSummary, nextAction, enrichedData, isRefreshingAi, refreshAiSummary } = useContactDetail(id || '')
   const [matchingTab, setMatchingTab] = useState<'internal' | 'external'>('internal')
-  const { createPortal, getPortalForContact, getPortalUrl, markInviteSent } = useSellerPortals()
+  const { createPortal: createSellerPortal, getPortalForContact, getPortalUrl, markInviteSent } = useSellerPortals()
   const sendEmail = useSendPropertyEmail()
   const [portalCopied, setPortalCopied] = useState(false)
   const [inviteSending, setInviteSending] = useState(false)
@@ -246,7 +246,7 @@ export default function ContactDetailPage() {
         const propertyAddress = `${contact.city || ''}, ${contact.canton || ''}`
 
         const handleCreatePortal = () => {
-          createPortal({
+          createSellerPortal({
             contactId: contact.id,
             contactName: fullName,
             contactEmail: contact.email,
