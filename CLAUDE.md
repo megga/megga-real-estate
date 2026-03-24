@@ -97,6 +97,14 @@ Matching ext : RealAdvisor (realadvisor.ch) via Edge Function external-matching
                - 3 niveaux : fiche MEGGA, enrichi (10 photos, stats), Full CRM (import, notes, comparaison)
                - ⚠️ RSC parsing ne retourne que ~3-24 listings par page (limité)
 
+Scraping :     Scripts Node.js (scrape-paginated, scrape-delta, scrape-extra)
+               ✅ 38'514 biens en DB (table market_listings, 26 cantons)
+               - scrape-paginated.mjs : scraping complet par tranches de prix (590 tranches)
+               - scrape-delta.mjs : mise à jour quotidienne (50 tranches, ~3 min)
+               - scrape-extra.mjs : stratégies complémentaires (propertyType, rooms, sort variations)
+               - Contrôle qualité automatique : quality_score 0-100 + quality_flags
+               - Biens suspects (score < 50) masqués automatiquement
+
 Email :        Resend (transactionnel + relances automatiques)
                ✅ Domaine megga.ch configuré (DKIM + SPF vérifiés)
                - Edge Function send-email avec template HTML MEGGA
@@ -252,6 +260,13 @@ megga-real-estate/
 │   │   └── kyc.ts
 │   └── styles/
 │       └── globals.css          # Tailwind base + custom CSS
+├── scripts/
+│   ├── lib/
+│   │   └── validate-listing.mjs  # Fonction de validation qualité partagée
+│   ├── scrape-paginated.mjs      # Scraping complet RealAdvisor (590 tranches)
+│   ├── scrape-delta.mjs          # Mise à jour quotidienne (~3 min)
+│   ├── scrape-extra.mjs          # Stratégies complémentaires
+│   └── recalculate-quality.mjs   # Recalcul quality_score sur tous les biens
 ├── supabase/
 │   ├── migrations/              # SQL migrations
 │   └── functions/               # Edge Functions Deno
@@ -1348,21 +1363,26 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ### ✅ Fonctionnalités LIVE
 
-#### Base de données marché immobilier suisse (24 mars 2026)
-- **API RealAdvisor découverte** : `/api/listings?offerType_eq=buy&salePrice_gte=X&salePrice_lte=Y`
-- 43'000+ biens à vendre toute Suisse, JSON paginé par tranches de prix
-- **Edge Function `market-scraper`** : fetch 1 tranche de prix → 36 listings → INSERT/UPDATE Supabase
-- **Edge Function `market-scraper-batch`** : orchestre 41+ tranches (~3 min pour un scan complet)
-- **Tables** : `market_listings` (permanente) + `market_price_history` (tracker baisses/hausses)
-- **Photos** : URLs CDN RealAdvisor (`img.realadvisor.ch`) stockées dans `photos` text[]
-- **RLS** : lecture publique (anon) pour la page Acheter, écriture service_role pour les Edge Functions
-- **Matching engine** enrichi : `matches.source = 'internal' | 'market'`, `matches.market_listing_id`
-- **SearchPage** connectée : hook `usePublicListings` charge `properties` + `market_listings`
-- **Onglet "Vendre"** remplace "Louer" (MEGGA ne fait pas de location)
-- **Résultats actuels** : ~500+ biens GE+VD, en cours d'augmentation
-- **Scan automatisable** : pg_cron 1x/jour, ~3 min par scan, détecte nouveaux biens + changements de prix
-- ⚠️ L'API `/api/listings` est non documentée — garder délai 2-4s, max 1 scan/jour
-- ⚠️ Homegate, ImmoScout24, Comparis → tous protégés Cloudflare/Datadome (inaccessibles)
+#### Marketplace publique (38K biens) — 24 mars 2026
+- **38'514 biens** dans table `market_listings` (scrappés de RealAdvisor, 26 cantons suisses)
+- Page `/acheter` connectée aux vraies données Supabase (plus de mock)
+- **4 hooks** dans `useMarketListings.ts` :
+  - `useMarketListings(filters)` : pagination serveur (50/page), filtres Supabase
+  - `useMapPoints(filters)` : 38K points légers pour Mapbox (id, lat, lng, prix)
+  - `useMarketStats(context)` : compteurs par canton/type (fonctions RPC)
+  - `useMarketListing(id)` : détail d'un bien
+- **MapView** avec clustering Supercluster sur 38K points
+- **Contrôle qualité** : quality_score 0-100 (prix/m² par canton, surface, photos, coords)
+  - 96.6% Excellent (80-100), 3.2% Bon, 0.2% Acceptable, 18 suspects masqués
+  - Fonction partagée `scripts/lib/validate-listing.mjs`
+  - Script `scripts/recalculate-quality.mjs` pour recalculer les scores
+- **Scripts scraping** :
+  - `scripts/scrape-paginated.mjs` : scraping complet (~20 min, 590 tranches de prix)
+  - `scripts/scrape-delta.mjs` : mise à jour quotidienne (~3 min, 50 tranches)
+  - `scripts/scrape-extra.mjs` : stratégies complémentaires (propertyType, rooms, sort)
+- **Migrations SQL** : market_listings table, quality_score, RPC stats functions
+- **DB** : 160 MB / 500 MB (32% du plan Nano)
+- **À FAIRE** : ListingPage pas encore connectée (utilise encore mockData)
 
 #### KYC Connecté Supabase + Screening dilisense (23 mars 2026)
 - **Edge Function** `kyc-screening` déployée — appelle API dilisense (PEP + Sanctions)
@@ -1433,9 +1453,9 @@ DILISENSE_API_KEY    → Screening PEP/Sanctions
 - Policies ouvertes temp sur `kyc_cases`, `kyc_checklist_items`, `contacts` (anon read)
 - **À nettoyer pour la prod** : supprimer les policies `anon` et forcer `authenticated` partout
 
-### Prochaines priorités backend
-1. **Matching Engine connecté** (Sprint 4 — Étape 5) — scoring interne connecté au frontend
-2. **Système de relances connecté** (Sprint 4 — Étape 6) — automation-engine + send-reminder-email
-3. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action, rédaction
-4. **AI Search connecté** (Sprint 5) — recherche conversationnelle pgvector + Claude
-5. **WhatsApp Business API** (Sprint 6)
+### Prochaines priorités
+1. **ListingPage connectée** — remplacer getListingById(mockData) par useMarketListing(supabase)
+2. **Matching externe enrichi** — scoring client_searches × market_listings (38K biens)
+3. **Matching interne connecté** — scoring client_searches × properties (mandats agence)
+4. **Script delta automatisé** — GitHub Action quotidien pour scrape-delta.mjs
+5. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action
