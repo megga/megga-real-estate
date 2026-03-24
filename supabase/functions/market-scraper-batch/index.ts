@@ -6,35 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// ── Price segments to bypass the ~756 listing cap per query ──
-// RealAdvisor limits to ~21 pages (756 listings) per search.
-// We split by price range so each segment stays under the cap.
-const PRICE_SEGMENTS = [
-  { min: 0, max: 500000, label: '0-500K' },
-  { min: 500000, max: 800000, label: '500K-800K' },
-  { min: 800000, max: 1200000, label: '800K-1.2M' },
-  { min: 1200000, max: 2000000, label: '1.2M-2M' },
-  { min: 2000000, max: 3500000, label: '2M-3.5M' },
-  { min: 3500000, max: 5000000, label: '3.5M-5M' },
-  { min: 5000000, max: 10000000, label: '5M-10M' },
-  { min: 10000000, max: 0, label: '10M+' }, // max=0 means no upper limit
-]
+// ── Cities per canton ──────────────────────────────────────
+// Each city gets its own landing page scan (~20-40 listings per page)
 
-const MAX_PAGES_PER_SEGMENT = 21 // RealAdvisor hard cap
+const CANTON_CITIES: Record<string, string[]> = {
+  GE: [
+    'geneve', 'carouge', 'lancy', 'meyrin', 'vernier', 'onex', 'thonex',
+    'chene-bourg', 'plan-les-ouates', 'cologny', 'vandoeuvres', 'grand-saconnex',
+    'bernex', 'confignon', 'pregny-chambesy', 'bellevue', 'collonge-bellerive',
+  ],
+  VD: [
+    'lausanne', 'nyon', 'morges', 'montreux', 'vevey', 'renens',
+    'yverdon-les-bains', 'pully', 'lutry', 'prilly', 'ecublens', 'aigle', 'bex',
+  ],
+}
 
 interface BatchRequest {
   canton: 'GE' | 'VD'
 }
 
-interface SegmentResult {
-  segment: string
-  pages_scanned: number
-  listings_found: number
+interface CityResult {
+  city: string
   listings_created: number
   listings_updated: number
   photos_uploaded: number
   price_changes: number
-  errors: string[]
+  total_found: number
+  error?: string
 }
 
 function sleep(ms: number): Promise<void> {
@@ -56,108 +54,89 @@ serve(async (req) => {
       )
     }
 
+    const cities = CANTON_CITIES[params.canton]
+    if (!cities) {
+      return new Response(
+        JSON.stringify({ error: `Unknown canton: ${params.canton}. Supported: GE, VD` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-    const segmentResults: SegmentResult[] = []
-    let grandTotalFound = 0
-    let grandTotalCreated = 0
-    let grandTotalUpdated = 0
-    let grandTotalPhotos = 0
-    let grandTotalPriceChanges = 0
+    const cityResults: CityResult[] = []
+    let totalCreated = 0
+    let totalUpdated = 0
+    let totalPhotos = 0
+    let totalPriceChanges = 0
+    let totalFound = 0
 
-    // ── Scan each price segment with full pagination ──
-    for (const segment of PRICE_SEGMENTS) {
-      const segResult: SegmentResult = {
-        segment: segment.label,
-        pages_scanned: 0,
-        listings_found: 0,
-        listings_created: 0,
-        listings_updated: 0,
-        photos_uploaded: 0,
-        price_changes: 0,
-        errors: [],
-      }
+    for (let i = 0; i < cities.length; i++) {
+      const city = cities[i]
 
-      for (let page = 1; page <= MAX_PAGES_PER_SEGMENT; page++) {
-        try {
-          const body: Record<string, unknown> = {
-            canton: params.canton,
-            page,
+      try {
+        const scraperResponse = await fetch(
+          `${supabaseUrl}/functions/v1/market-scraper`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${serviceRoleKey}`,
+            },
+            body: JSON.stringify({ canton: params.canton, city }),
           }
-          if (segment.min > 0) body.price_min = segment.min
-          if (segment.max > 0) body.price_max = segment.max
+        )
 
-          const scraperResponse = await fetch(
-            `${supabaseUrl}/functions/v1/market-scraper`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${serviceRoleKey}`,
-              },
-              body: JSON.stringify(body),
-            }
-          )
-
-          if (!scraperResponse.ok) {
-            const errorText = await scraperResponse.text()
-            segResult.errors.push(`Page ${page}: HTTP ${scraperResponse.status} — ${errorText}`)
-            break // Stop this segment on error
-          }
-
-          const result = await scraperResponse.json()
-          const found = result.total_found || 0
-
-          segResult.pages_scanned++
-          segResult.listings_found += found
-          segResult.listings_created += result.listings_created || 0
-          segResult.listings_updated += result.listings_updated || 0
-          segResult.photos_uploaded += result.photos_uploaded || 0
-          segResult.price_changes += result.price_changes || 0
-
-          console.log(
-            `[${params.canton}] ${segment.label} page ${page}: ${found} found, ` +
-            `${result.listings_created || 0} new, ${result.listings_updated || 0} updated, ` +
-            `${result.photos_uploaded || 0} photos`
-          )
-
-          // Stop pagination if no results on this page
-          if (found === 0) {
-            console.log(`[${params.canton}] ${segment.label}: no more results after page ${page - 1}`)
-            break
-          }
-
-          // Rate limiting: 2s delay between pages
-          if (page < MAX_PAGES_PER_SEGMENT && found > 0) {
-            await sleep(2000)
-          }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error'
-          segResult.errors.push(`Page ${page}: ${message}`)
-          break
+        if (!scraperResponse.ok) {
+          const errorText = await scraperResponse.text()
+          cityResults.push({
+            city, listings_created: 0, listings_updated: 0,
+            photos_uploaded: 0, price_changes: 0, total_found: 0,
+            error: `HTTP ${scraperResponse.status}: ${errorText.substring(0, 200)}`,
+          })
+          continue
         }
+
+        const result = await scraperResponse.json()
+        cityResults.push({
+          city,
+          listings_created: result.listings_created || 0,
+          listings_updated: result.listings_updated || 0,
+          photos_uploaded: result.photos_uploaded || 0,
+          price_changes: result.price_changes || 0,
+          total_found: result.total_found || 0,
+        })
+
+        totalCreated += result.listings_created || 0
+        totalUpdated += result.listings_updated || 0
+        totalPhotos += result.photos_uploaded || 0
+        totalPriceChanges += result.price_changes || 0
+        totalFound += result.total_found || 0
+
+        console.log(
+          `[${i + 1}/${cities.length}] ${city}: ` +
+          `${result.total_found} found, ${result.listings_created} new, ` +
+          `${result.listings_updated} updated, ${result.photos_uploaded} photos`
+        )
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        cityResults.push({
+          city, listings_created: 0, listings_updated: 0,
+          photos_uploaded: 0, price_changes: 0, total_found: 0,
+          error: message,
+        })
+        console.error(`[${i + 1}/${cities.length}] ${city}: ERROR - ${message}`)
       }
 
-      grandTotalFound += segResult.listings_found
-      grandTotalCreated += segResult.listings_created
-      grandTotalUpdated += segResult.listings_updated
-      grandTotalPhotos += segResult.photos_uploaded
-      grandTotalPriceChanges += segResult.price_changes
-      segmentResults.push(segResult)
-
-      console.log(
-        `[${params.canton}] ✓ Segment ${segment.label} done: ` +
-        `${segResult.pages_scanned} pages, ${segResult.listings_found} found, ` +
-        `${segResult.listings_created} new`
-      )
-
-      // Small delay between segments
-      await sleep(1000)
+      // Rate limiting: 2s delay between cities
+      if (i < cities.length - 1) {
+        await sleep(2000)
+      }
     }
 
-    // ── Mark stale listings as removed ──
+    // Mark stale listings as removed (not seen in 7 days)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     const { count: removedCount } = await supabase
       .from('market_listings')
@@ -169,14 +148,14 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       canton: params.canton,
-      segments_scanned: PRICE_SEGMENTS.length,
-      grand_total_found: grandTotalFound,
-      grand_total_created: grandTotalCreated,
-      grand_total_updated: grandTotalUpdated,
-      grand_total_photos: grandTotalPhotos,
-      grand_total_price_changes: grandTotalPriceChanges,
+      cities_scanned: cities.length,
+      total_found: totalFound,
+      total_created: totalCreated,
+      total_updated: totalUpdated,
+      total_photos: totalPhotos,
+      total_price_changes: totalPriceChanges,
       listings_removed: removedCount || 0,
-      segment_results: segmentResults,
+      city_results: cityResults,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
