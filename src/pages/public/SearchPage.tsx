@@ -19,8 +19,7 @@ import {
 import Navbar from '@/components/layout/Navbar'
 import MapView from '@/components/map/MapView'
 import ChatSearch from '@/components/search/ChatSearch'
-import { usePublicListings } from '@/hooks/usePublicListings'
-import { MOCK_LISTINGS, toCardData } from '@/lib/mockData'
+import { useMarketListings, useMapPoints, type MarketFilters } from '@/hooks/useMarketListings'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
 import type { ListingCardData } from '@/components/listings/ListingCard'
@@ -48,8 +47,6 @@ interface Filters {
 }
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
-
-const MOCK_FALLBACK = MOCK_LISTINGS.map(toCardData)
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'relevance', label: 'Pertinence' },
@@ -321,86 +318,36 @@ function filtersToParams(filters: Filters): Record<string, string> {
   return p
 }
 
-function applyFilters(listings: ListingCardData[], filters: Filters): ListingCardData[] {
-  // Default context is 'buy' (MEGGA ne fait pas de location)
-  let result = listings.filter((l) => (l.context || 'buy') === filters.context)
-
-  if (filters.q) {
-    const q = filters.q.toLowerCase()
-    result = result.filter(
-      (l) =>
-        l.title.toLowerCase().includes(q) ||
-        l.address.toLowerCase().includes(q) ||
-        l.city.toLowerCase().includes(q) ||
-        (l.description?.toLowerCase().includes(q) ?? false)
-    )
+// Convertir les filtres UI → filtres serveur (MarketFilters)
+function toServerFilters(filters: Filters): MarketFilters {
+  const sf: MarketFilters = {
+    context: filters.context,
+    sort: filters.sort,
   }
 
-  if (filters.types.length) {
-    result = result.filter((l) => l.type && filters.types.includes(l.type))
-  }
-
-  if (filters.minPrice) {
-    result = result.filter((l) => l.price >= Number(filters.minPrice))
-  }
-  if (filters.maxPrice) {
-    result = result.filter((l) => l.price <= Number(filters.maxPrice))
-  }
+  if (filters.types.length > 0) sf.types = filters.types
+  if (filters.minPrice) sf.minPrice = Number(filters.minPrice)
+  if (filters.maxPrice) sf.maxPrice = Number(filters.maxPrice)
+  if (filters.city) sf.city = filters.city
+  if (filters.canton) sf.canton = filters.canton
+  if (filters.minSurface) sf.minSurface = Number(filters.minSurface)
+  if (filters.q) sf.q = filters.q
 
   if (filters.rooms) {
     const minRooms = filters.rooms.endsWith('+')
       ? Number(filters.rooms.replace('+', ''))
       : Number(filters.rooms)
-    result = result.filter((l) => l.rooms >= minRooms)
+    sf.minRooms = minRooms
   }
 
   if (filters.bedrooms) {
     const minBed = filters.bedrooms.endsWith('+')
       ? Number(filters.bedrooms.replace('+', ''))
       : Number(filters.bedrooms)
-    result = result.filter((l) => l.bedrooms >= minBed)
+    sf.minBedrooms = minBed
   }
 
-  if (filters.minSurface) {
-    result = result.filter((l) => l.surface_m2 >= Number(filters.minSurface))
-  }
-
-  if (filters.city) {
-    result = result.filter((l) => l.city === filters.city)
-  }
-  if (filters.canton) {
-    result = result.filter((l) => l.canton === filters.canton)
-  }
-
-  if (filters.lifestyleTags.length) {
-    result = result.filter((l) =>
-      filters.lifestyleTags.every((tag) => l.lifestyle_tags?.includes(tag))
-    )
-  }
-
-  // Sort
-  switch (filters.sort) {
-    case 'price_asc':
-      result.sort((a, b) => a.price - b.price)
-      break
-    case 'price_desc':
-      result.sort((a, b) => b.price - a.price)
-      break
-    case 'newest':
-      result.sort((a, b) => {
-        const da = a.published_at ? new Date(a.published_at).getTime() : 0
-        const db = b.published_at ? new Date(b.published_at).getTime() : 0
-        return db - da
-      })
-      break
-    case 'surface_desc':
-      result.sort((a, b) => b.surface_m2 - a.surface_m2)
-      break
-    default:
-      break
-  }
-
-  return result
+  return sf
 }
 
 // ─── FILTER PILL DROPDOWN ───────────────────────────────────────────────────
@@ -783,7 +730,6 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<Filters>(() => parseFiltersFromParams(searchParams))
   const [hoveredListing, setHoveredListing] = useState<string>()
-  const [visibleCount, setVisibleCount] = useState(10)
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [searchInput, setSearchInput] = useState(filters.q)
@@ -792,10 +738,24 @@ export default function SearchPage() {
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
   const [showChat, setShowChat] = useState(false)
 
-  // Fetch real listings from Supabase (properties + market_listings)
-  const { data: supabaseListings, isLoading: isLoadingListings } = usePublicListings()
-  // Use Supabase data if available, fallback to mock
-  const ALL_LISTINGS = (supabaseListings && supabaseListings.length > 0) ? supabaseListings : MOCK_FALLBACK
+  // Convertir filtres UI → filtres serveur
+  const serverFilters = toServerFilters(filters)
+
+  // Fetch listings paginées depuis Supabase (filtrage côté serveur)
+  const {
+    data: listingsData,
+    isLoading: isLoadingListings,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMarketListings(serverFilters)
+
+  // Fetch points carte (légers, tous les biens avec lat/lng)
+  const { data: mapPoints } = useMapPoints(serverFilters)
+
+  // Aplatir les pages en une seule liste
+  const allListings = listingsData?.pages.flatMap((p) => p.listings) ?? []
+  const totalCount = listingsData?.pages[0]?.totalCount ?? 0
 
   // Sync filters to URL
   useEffect(() => {
@@ -806,17 +766,16 @@ export default function SearchPage() {
   const updateFilter = useCallback(
     (patch: Partial<Filters>) => {
       setFilters((prev) => ({ ...prev, ...patch }))
-      setVisibleCount(10) // Reset pagination on filter change
     },
     []
   )
 
-  const filteredByFilters = applyFilters(ALL_LISTINGS, filters)
+  // Zone filter (polygon drawn on map)
   const filtered = zoneFilterIds
-    ? filteredByFilters.filter((l) => zoneFilterIds.includes(l.id))
-    : filteredByFilters
-  const visible = filtered.slice(0, visibleCount)
-  const hasMore = visibleCount < filtered.length
+    ? allListings.filter((l) => zoneFilterIds.includes(l.id))
+    : allListings
+  const visible = filtered
+  const hasMore = hasNextPage ?? false
 
   const hasActiveFilters =
     filters.types.length > 0 ||
@@ -1215,7 +1174,7 @@ export default function SearchPage() {
           {/* ─── ZONE 3: Results bar ─── */}
           <div className="px-4 md:px-6 py-2.5 flex items-center justify-between border-b border-gray-100">
             <span className="text-sm text-gray-500">
-              <span className="font-semibold text-primary-900">{filtered.length}</span> bien{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
+              <span className="font-semibold text-primary-900">{totalCount > 0 ? totalCount.toLocaleString('fr-CH') : filtered.length}</span> bien{(totalCount || filtered.length) !== 1 ? 's' : ''} trouvé{(totalCount || filtered.length) !== 1 ? 's' : ''}
               {filters.city ? ` à ${filters.city}` : filters.canton ? ` (${filters.canton})` : ''}
             </span>
 
@@ -1312,10 +1271,11 @@ export default function SearchPage() {
             {hasMore && (
               <div className="flex justify-center py-8">
                 <button
-                  onClick={() => setVisibleCount((prev) => prev + 10)}
-                  className="px-6 py-2.5 text-sm font-medium text-accent border border-accent rounded-full hover:bg-accent hover:text-white transition-colors cursor-pointer"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-6 py-2.5 text-sm font-medium text-accent border border-accent rounded-full hover:bg-accent hover:text-white transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  Charger plus de résultats ({filtered.length - visibleCount} restants)
+                  {isFetchingNextPage ? 'Chargement...' : 'Charger plus de résultats'}
                 </button>
               </div>
             )}
@@ -1325,7 +1285,8 @@ export default function SearchPage() {
         {/* ─── ZONE 5: Map (desktop) ─── */}
         <div className="hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)] border-l border-gray-200">
           <MapView
-            listings={filteredByFilters}
+            listings={allListings}
+            mapPoints={mapPoints}
             hoveredId={hoveredListing}
             onHover={setHoveredListing}
             onZoneFilter={setZoneFilterIds}
@@ -1346,7 +1307,8 @@ export default function SearchPage() {
       {showMobileMap && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <MapView
-            listings={filteredByFilters}
+            listings={allListings}
+            mapPoints={mapPoints}
             hoveredId={hoveredListing}
             onHover={setHoveredListing}
             onZoneFilter={setZoneFilterIds}
@@ -1377,7 +1339,7 @@ export default function SearchPage() {
       <ChatSearch
         isOpen={showChat}
         onClose={() => setShowChat(false)}
-        allListings={ALL_LISTINGS}
+        allListings={allListings}
         onHighlightListing={(id) => {
           setHoveredListing(id)
           setTimeout(() => setHoveredListing(undefined), 3000)

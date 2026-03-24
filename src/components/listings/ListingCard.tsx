@@ -32,6 +32,12 @@ export interface ListingCardData {
   }
   lat?: number
   lng?: number
+  // Market listing extras
+  source_portal?: string
+  source_url?: string
+  agency_name?: string
+  price_per_m2?: number
+  days_on_market?: number
 }
 
 interface ListingCardProps {

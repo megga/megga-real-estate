@@ -15,12 +15,14 @@ import Supercluster from 'supercluster'
 import { LocateFixed, PenTool, X } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
+import type { MapPoint } from '@/hooks/useMarketListings'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 
 interface MapViewProps {
   listings: ListingCardData[]
+  mapPoints?: MapPoint[]
   hoveredId?: string
   onHover?: (id: string | undefined) => void
   onZoneFilter?: (listingIds: string[] | null) => void
@@ -55,7 +57,7 @@ function pointInPolygon(point: [number, number], polygon: [number, number][]): b
 
 type ListingPoint = Supercluster.PointFeature<{ listing: ListingCardData }>
 
-export default function MapView({ listings, hoveredId, onHover, onZoneFilter, className }: MapViewProps) {
+export default function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, className }: MapViewProps) {
   const mapRef = useRef<MapRef>(null)
   const [viewState, setViewState] = useState({
     longitude: 6.1432,
@@ -70,21 +72,45 @@ export default function MapView({ listings, hoveredId, onHover, onZoneFilter, cl
   const [closedPolygon, setClosedPolygon] = useState<[number, number][] | null>(null)
   const [cursorPos, setCursorPos] = useState<[number, number] | null>(null)
 
-  // Build GeoJSON points from listings
-  const points: ListingPoint[] = useMemo(
-    () =>
-      listings
-        .filter((l) => l.lat && l.lng)
-        .map((l) => ({
-          type: 'Feature' as const,
-          properties: { listing: l },
-          geometry: {
-            type: 'Point' as const,
-            coordinates: [l.lng!, l.lat!],
-          },
-        })),
-    [listings]
-  )
+  // Build GeoJSON points — use mapPoints (lightweight, all 38K) if available, otherwise listings
+  const points: ListingPoint[] = useMemo(() => {
+    if (mapPoints && mapPoints.length > 0) {
+      return mapPoints.map((mp) => ({
+        type: 'Feature' as const,
+        properties: {
+          listing: {
+            id: mp.id,
+            title: '',
+            price: mp.price,
+            address: '',
+            city: '',
+            rooms: mp.rooms,
+            bedrooms: 0,
+            surface_m2: 0,
+            photos: [],
+            type: mp.type,
+            context: mp.context,
+            lat: mp.lat,
+            lng: mp.lng,
+          } as ListingCardData,
+        },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [mp.lng, mp.lat],
+        },
+      }))
+    }
+    return listings
+      .filter((l) => l.lat && l.lng)
+      .map((l) => ({
+        type: 'Feature' as const,
+        properties: { listing: l },
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [l.lng!, l.lat!],
+        },
+      }))
+  }, [mapPoints, listings])
 
   // Build supercluster index
   const supercluster = useMemo(() => {
