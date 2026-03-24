@@ -213,49 +213,6 @@ export function useMapPoints(filters: MarketFilters = {}) {
   return useQuery({
     queryKey: ['map-points', filters],
     queryFn: async (): Promise<MapPoint[]> => {
-      // Charger uniquement les coordonnées + prix pour la carte
-      // Beaucoup plus léger que les données complètes
-      let query = supabase
-        .from('market_listings')
-        .select('id, lat, lng, price, current_price, type, rooms, transaction_type')
-        .in('status', ['active', 'price_reduced'])
-        .not('lat', 'is', null)
-        .not('lng', 'is', null)
-
-      if (filters.context) {
-        query = query.eq('transaction_type', filters.context)
-      } else {
-        query = query.eq('transaction_type', 'buy')
-      }
-
-      if (filters.types && filters.types.length > 0) {
-        query = query.in('type', filters.types)
-      }
-
-      if (filters.canton) {
-        query = query.eq('canton', filters.canton)
-      }
-
-      if (filters.city) {
-        query = query.ilike('city', `%${filters.city}%`)
-      }
-
-      if (filters.minPrice) {
-        query = query.gte('price', filters.minPrice)
-      }
-
-      if (filters.maxPrice) {
-        query = query.lte('price', filters.maxPrice)
-      }
-
-      if (filters.minRooms) {
-        query = query.gte('rooms', filters.minRooms)
-      }
-
-      if (filters.minSurface) {
-        query = query.gte('surface_m2', filters.minSurface)
-      }
-
       // Supabase limit max = 1000 par requête, on doit paginer
       // IMPORTANT: recréer la query à chaque itération car .range() mute l'objet
       const allPoints: MapPoint[] = []
