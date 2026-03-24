@@ -11,9 +11,7 @@ const corsHeaders = {
 
 interface ScrapeRequest {
   canton: 'GE' | 'VD'
-  page?: number           // Default 1
-  price_min?: number      // Price range segmentation
-  price_max?: number      // Price range segmentation
+  city: string       // City slug to scan (e.g. 'carouge', 'geneve')
 }
 
 interface ScrapeResult {
@@ -22,7 +20,7 @@ interface ScrapeResult {
   photos_uploaded: number
   price_changes: number
   total_found: number
-  page: number
+  city: string
   canton: string
 }
 
@@ -52,15 +50,8 @@ interface ParsedListing {
   price_per_m2: number | null
 }
 
-// ── Canton slug mapping ────────────────────────────────────
-
-const CANTON_SLUGS: Record<string, string> = {
-  'GE': 'canton-geneve',
-  'VD': 'canton-vaud',
-}
-
 const TYPE_MAP: Record<string, string> = {
-  'APARTMENT': 'apartment', 'apartment': 'apartment',
+  'APARTMENT': 'apartment', 'apartment': 'apartment', 'APPT': 'apartment',
   'HOUSE': 'house', 'house': 'house',
   'VILLA': 'villa', 'villa': 'villa',
   'COMMERCIAL': 'commercial', 'commercial': 'commercial',
@@ -84,20 +75,10 @@ function buildImageUrl(
   return `https://img.realadvisor.ch/_/${dims}/${encodedPath}.webp`
 }
 
-// ── Search page URL builder (supports pagination!) ─────────
+// ── URL builder — uses landing page pattern (search endpoint returns 403) ──
 
-function buildSearchUrl(params: ScrapeRequest): string {
-  const cantonSlug = CANTON_SLUGS[params.canton] || 'canton-geneve'
-  const page = params.page || 1
-
-  const searchParams = new URLSearchParams()
-  searchParams.set('placeSlugs', cantonSlug)
-  searchParams.set('offerType_eq', 'buy')
-  searchParams.set('page', String(page))
-  if (params.price_min) searchParams.set('salePrice_gte', String(params.price_min))
-  if (params.price_max) searchParams.set('salePrice_lte', String(params.price_max))
-
-  return `https://realadvisor.ch/fr/search?${searchParams.toString()}`
+function buildUrl(city: string): string {
+  return `https://realadvisor.ch/fr/acheter/bien-immobilier/${city}`
 }
 
 // ── RSC Flight Data Parser ─────────────────────────────────
@@ -240,9 +221,9 @@ serve(async (req) => {
   try {
     const params: ScrapeRequest = await req.json()
 
-    if (!params.canton) {
+    if (!params.canton || !params.city) {
       return new Response(
-        JSON.stringify({ error: 'canton is required' }),
+        JSON.stringify({ error: 'canton and city are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -260,8 +241,8 @@ serve(async (req) => {
     const r2Bucket = Deno.env.get('R2_BUCKET_NAME')!
     const r2PublicUrl = Deno.env.get('R2_PUBLIC_URL')!
 
-    // ── Use search page with pagination ──
-    const url = buildSearchUrl(params)
+    // Fetch RealAdvisor landing page (search endpoint returns 403)
+    const url = buildUrl(params.city)
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -288,12 +269,12 @@ serve(async (req) => {
       photos_uploaded: 0,
       price_changes: 0,
       total_found: parsed.length,
-      page: params.page || 1,
+      city: params.city,
       canton: params.canton,
     }
 
     for (const listing of parsed) {
-      if (listing.price <= 0) continue // Skip listings without price
+      if (listing.price <= 0) continue
 
       const { data: existing } = await supabase
         .from('market_listings')
@@ -301,7 +282,7 @@ serve(async (req) => {
         .eq('source_id', listing.source_id)
         .maybeSingle()
 
-      // Upload photos to R2 (only for new listings or those without photos)
+      // Upload ALL photos to R2 (only for new listings or those without photos)
       const r2Photos: string[] = []
       if (!existing || (existing.photos as string[] || []).length === 0) {
         for (let i = 0; i < listing.photo_urls.length; i++) {
