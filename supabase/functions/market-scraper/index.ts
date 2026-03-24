@@ -11,7 +11,9 @@ const corsHeaders = {
 interface ScrapeRequest {
   price_min: number
   price_max: number
-  cantons?: string[]  // Default: ['Genève', 'Vaud']
+  cantons?: string[] | null  // null = accept all
+  sort_by?: string     // e.g. 'createdAt', 'salePrice', 'salePricePerLivingSurface'
+  sort_dir?: string    // 'ASC' | 'DESC'
 }
 
 interface ScrapeResult {
@@ -70,8 +72,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Fetch from RealAdvisor JSON API with price range
-    const apiUrl = `https://realadvisor.ch/api/listings?offerType_eq=buy&salePrice_gte=${params.price_min}&salePrice_lte=${params.price_max}&limit=36`
+    // Fetch from RealAdvisor JSON API with price range + optional sort
+    let apiUrl = `https://realadvisor.ch/api/listings?offerType_eq=buy&salePrice_gte=${params.price_min}&salePrice_lte=${params.price_max}&limit=36`
+    if (params.sort_by) apiUrl += `&sortBy=${params.sort_by}`
+    if (params.sort_dir) apiUrl += `&sortDirection=${params.sort_dir}`
     const response = await fetch(apiUrl, {
       headers: {
         'Accept': 'application/json',
