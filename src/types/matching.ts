@@ -28,11 +28,13 @@ export interface SupabaseMatch {
   id: string
   agency_id: string
   contact_id: string
-  property_id: string
+  property_id: string | null
+  market_listing_id: string | null
   client_search_id: string | null
   score: number
   reasons: MatchReasons | null
   status: MatchStatus
+  source: 'internal' | 'market'
   sent_via: 'email' | 'whatsapp' | 'both' | null
   sent_at: string | null
   response_at: string | null

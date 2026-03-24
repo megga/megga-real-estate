@@ -1,42 +1,36 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Search, ChevronDown, X, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react'
+import { Search, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
-import { useMatches, useRunMatching, useUpdateMatchStatus } from '@/hooks/useMatching'
+import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import { useExternalMatching, type ExternalListing, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
 import SendMatchDialog from '@/components/matching/SendMatchDialog'
-import type { MatchWithRelations } from '@/types/matching'
 import PageTransition from '@/components/layout/PageTransition'
-import { PROPERTY_TYPE_LABELS, type PropertyType } from '@/lib/constants'
+import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
 import { MOCK_CONTACTS } from '@/lib/mockData'
+
+// ── (Score utilities removed — breakdown now in preview modal) ───────────────
 
 // ── Match Preview Modal ─────────────────────────────────────────────────────
 
 function MatchPreviewModal({ match, onClose, onSend }: {
-  match: MatchWithRelations
+  match: MatchResult
   onClose: () => void
   onSend: () => void
 }) {
   const [photoIdx, setPhotoIdx] = useState(0)
-  const property = match.property
-  if (!property) return null
-
-  const photos = property.photos || []
+  const listing = match.listing
+  const photos = listing.photos || []
   const isSent = match.status === 'sent'
-  const reasons = match.reasons
 
-  const criteria = reasons ? [
-    { label: 'Budget', score: reasons.budget_score, max: 30, ok: reasons.budget },
-    { label: 'Zone', score: reasons.zone_score, max: 25, ok: reasons.zone },
-    { label: 'Type', score: reasons.type_score, max: 15, ok: reasons.type },
-    { label: 'Surface', score: reasons.rooms_surface_score, max: 15, ok: reasons.rooms_surface },
-    { label: 'Extras', score: reasons.features_score, max: 15, ok: reasons.features },
-  ] : []
-
-  const contactName = match.contact
-    ? `${match.contact.first_name} ${match.contact.last_name}`
-    : 'Contact inconnu'
+  const criteria = [
+    { label: 'Budget', score: match.reasons.budget.score, max: 30, ok: match.reasons.budget.match },
+    { label: 'Zone', score: match.reasons.zone.score, max: 25, ok: match.reasons.zone.match },
+    { label: 'Type', score: match.reasons.type.score, max: 15, ok: match.reasons.type.match },
+    { label: 'Surface', score: match.reasons.rooms.score, max: 15, ok: match.reasons.rooms.match },
+    { label: 'Extras', score: match.reasons.features.score, max: 15, ok: match.reasons.features.match },
+  ]
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
@@ -50,9 +44,10 @@ function MatchPreviewModal({ match, onClose, onSend }: {
           <div className="relative aspect-[16/9] bg-black">
             <img
               src={photos[photoIdx]}
-              alt={property.title}
+              alt={listing.title}
               className="w-full h-full object-cover"
             />
+            {/* Nav arrows */}
             {photos.length > 1 && (
               <>
                 <button
@@ -67,6 +62,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
                 >
                   <ChevronRight className="w-4 h-4 text-white" />
                 </button>
+                {/* Dots */}
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                   {photos.map((_, i) => (
                     <button
@@ -78,129 +74,159 @@ function MatchPreviewModal({ match, onClose, onSend }: {
                 </div>
               </>
             )}
+            {/* Close */}
             <button
               onClick={onClose}
               className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-black/60 transition-colors"
             >
               <X className="w-4 h-4 text-white" />
             </button>
+            {/* Photo count */}
             <span className="absolute bottom-3 right-3 text-[11px] text-white/70 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-md">
               {photoIdx + 1}/{photos.length}
             </span>
           </div>
         )}
 
+        {/* Content */}
         <div className="p-6">
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <p className="text-xs text-theme-tertiary mb-1">
-                {PROPERTY_TYPE_LABELS[property.type as PropertyType] || property.type} · {property.city} ({property.canton})
+                {PROPERTY_TYPE_LABELS[listing.type as keyof typeof PROPERTY_TYPE_LABELS] || listing.type} · {listing.city} ({listing.canton})
               </p>
-              <h2 className="text-lg font-semibold text-theme-primary">{property.title}</h2>
-              <p className="text-xs text-theme-tertiary mt-0.5">{property.address}, {property.postal_code} {property.city}</p>
+              <h2 className="text-lg font-semibold text-theme-primary">{listing.title}</h2>
+              <p className="text-xs text-theme-tertiary mt-0.5">{listing.address}, {listing.postal_code} {listing.city}</p>
             </div>
-            <p className="text-lg font-semibold text-theme-primary shrink-0">{formatCHF(property.price)}</p>
+            <p className="text-lg font-semibold text-theme-primary shrink-0">{formatCHF(listing.price)}</p>
           </div>
 
           {/* Key stats */}
           <div className="flex gap-6 py-3 border-y border-theme-border-subtle mb-4">
             <div>
               <p className="text-xs text-theme-tertiary">Pièces</p>
-              <p className="text-sm font-medium text-theme-primary">{property.rooms}</p>
+              <p className="text-sm font-medium text-theme-primary">{listing.rooms}</p>
             </div>
-            {property.bedrooms != null && (
+            <div>
+              <p className="text-xs text-theme-tertiary">Chambres</p>
+              <p className="text-sm font-medium text-theme-primary">{listing.bedrooms}</p>
+            </div>
+            <div>
+              <p className="text-xs text-theme-tertiary">Surface</p>
+              <p className="text-sm font-medium text-theme-primary">{listing.surface_m2} m²</p>
+            </div>
+            {listing.floor != null && (
               <div>
-                <p className="text-xs text-theme-tertiary">Chambres</p>
-                <p className="text-sm font-medium text-theme-primary">{property.bedrooms}</p>
+                <p className="text-xs text-theme-tertiary">Étage</p>
+                <p className="text-sm font-medium text-theme-primary">{listing.floor}/{listing.total_floors}</p>
               </div>
             )}
             <div>
-              <p className="text-xs text-theme-tertiary">Surface</p>
-              <p className="text-sm font-medium text-theme-primary">{property.surface_m2} m²</p>
+              <p className="text-xs text-theme-tertiary">Année</p>
+              <p className="text-sm font-medium text-theme-primary">{listing.year_built}</p>
             </div>
-            {property.canton && (
+            {listing.charges_monthly > 0 && (
               <div>
-                <p className="text-xs text-theme-tertiary">Canton</p>
-                <p className="text-sm font-medium text-theme-primary">{property.canton}</p>
+                <p className="text-xs text-theme-tertiary">Charges</p>
+                <p className="text-sm font-medium text-theme-primary">{formatCHF(listing.charges_monthly)}/mois</p>
               </div>
             )}
           </div>
 
           {/* Description */}
-          {property.description && (
-            <div className="mb-4">
-              <p className="text-sm text-theme-secondary leading-relaxed whitespace-pre-line line-clamp-4">
-                {property.description}
-              </p>
+          <div className="mb-4">
+            <p className="text-sm text-theme-secondary leading-relaxed whitespace-pre-line line-clamp-4">
+              {listing.description}
+            </p>
+          </div>
+
+          {/* Features */}
+          {Object.keys(listing.features).length > 0 && (
+            <div className="mb-5">
+              <p className="text-xs text-theme-tertiary mb-2">Caractéristiques</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {Object.entries(listing.features).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between py-1 border-b border-theme-border-subtle">
+                    <span className="text-xs text-theme-secondary">{key}</span>
+                    <span className="text-xs font-medium text-theme-primary">{value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {/* Score breakdown */}
-          {criteria.length > 0 && (
-            <div className="rounded-lg border border-theme-border p-4 mb-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-theme-primary">Score de compatibilité · estimation</p>
-                <p className="text-sm font-semibold text-theme-primary">{match.score}%</p>
-              </div>
-              <div className="h-1.5 bg-theme-border rounded-full overflow-hidden mb-3">
-                <div className="h-full rounded-full bg-theme-primary" style={{ width: `${match.score}%` }} />
-              </div>
-              <div className="space-y-1.5">
-                {criteria.map((c) => (
-                  <div key={c.label} className="flex items-center gap-2">
-                    <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', c.ok ? 'bg-emerald-500' : 'bg-gray-400')} />
-                    <span className="text-xs text-theme-secondary flex-1">{c.label}</span>
-                    <span className="text-xs font-medium text-theme-primary tabular-nums">{c.score}/{c.max}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="rounded-lg border border-theme-border p-4 mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-theme-primary">Score de compatibilité</p>
+              <p className="text-sm font-semibold text-theme-primary">{match.score}%</p>
+            </div>
+            <div className="h-1.5 bg-theme-border rounded-full overflow-hidden mb-3">
+              <div className="h-full rounded-full bg-theme-primary" style={{ width: `${match.score}%` }} />
+            </div>
+            <div className="space-y-1.5">
+              {criteria.map((c) => (
+                <div key={c.label} className="flex items-center gap-2">
+                  <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', c.ok ? 'bg-emerald-500' : 'bg-gray-400')} />
+                  <span className="text-xs text-theme-secondary flex-1">{c.label}</span>
+                  <span className="text-xs font-medium text-theme-primary tabular-nums">{c.score}/{c.max}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-              {/* Niveau 1 — must-have / nice-to-have */}
-              {reasons?.must_have_missing && reasons.must_have_missing.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-theme-border-subtle">
-                  <p className="text-[10px] text-red-500">
-                    Critères non négociables manquants : {reasons.must_have_missing.join(', ')}
-                  </p>
+          {/* Market-specific info */}
+          {match.source === 'market' && listing.source_portal && (
+            <div className="flex items-center gap-4 py-2.5 px-3 rounded-lg border border-theme-border-subtle mb-4">
+              <div>
+                <p className="text-[10px] text-theme-tertiary">Source</p>
+                <p className="text-xs font-medium text-theme-primary">{listing.source_portal}</p>
+              </div>
+              {listing.agency_name && (
+                <div>
+                  <p className="text-[10px] text-theme-tertiary">Agence</p>
+                  <p className="text-xs font-medium text-theme-primary">{listing.agency_name}</p>
                 </div>
               )}
-              {reasons?.nice_to_have_matched && reasons.nice_to_have_matched.length > 0 && (
-                <div className="mt-1">
-                  <p className="text-[10px] text-blue-500">
-                    Bonus : {reasons.nice_to_have_matched.join(', ')}
-                  </p>
+              {listing.price_per_m2 != null && listing.price_per_m2 > 0 && (
+                <div>
+                  <p className="text-[10px] text-theme-tertiary">Prix/m²</p>
+                  <p className="text-xs font-medium text-theme-primary">{formatCHF(listing.price_per_m2)}</p>
                 </div>
               )}
-
-              {/* Niveau 2 — distance */}
-              {reasons?.distance_km != null && (
-                <div className="mt-1">
-                  <p className="text-[10px] text-theme-muted">
-                    Distance : {reasons.distance_km} km du centre de recherche
-                  </p>
-                </div>
-              )}
-
-              {/* Niveau 3 — fraîcheur */}
-              {reasons?.days_on_market != null && reasons.days_on_market > 0 && (
-                <div className="mt-1">
-                  <p className="text-[10px] text-theme-muted">
-                    {reasons.days_on_market}j en ligne · fraîcheur {Math.round(reasons.freshness_decay * 100)}%
-                  </p>
+              {(listing.days_on_market ?? 0) > 0 && (
+                <div>
+                  <p className="text-[10px] text-theme-tertiary">En ligne</p>
+                  <p className="text-xs font-medium text-theme-primary">{listing.days_on_market}j</p>
                 </div>
               )}
             </div>
           )}
 
-
+          {/* Match for contact */}
           <p className="text-xs text-theme-tertiary mb-4">
-            Match pour <span className="font-medium text-theme-primary">{contactName}</span>
+            Match pour <span className="font-medium text-theme-primary">{match.contactName}</span>
           </p>
 
+          {/* Actions */}
           <div className="flex items-center justify-end gap-3">
-            <button onClick={onClose} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
+            <button
+              onClick={onClose}
+              className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
+            >
               Fermer
             </button>
+            {match.source === 'market' && listing.source_url && (
+              <a
+                href={listing.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center"
+              >
+                Voir l'annonce
+              </a>
+            )}
             {!isSent && (
               <button
                 onClick={onSend}
@@ -220,22 +246,19 @@ function MatchPreviewModal({ match, onClose, onSend }: {
 // ── Match Card ──────────────────────────────────────────────────────────────
 
 function MatchCard({ match, onSend, onPreview }: {
-  match: MatchWithRelations
+  match: MatchResult
   onSend: () => void
   onPreview: () => void
 }) {
   const isSent = match.status === 'sent'
-  const property = match.property
-  if (!property) return null
 
-  const reasons = match.reasons
-  const matchedReasons = reasons ? [
-    reasons.budget && 'Budget',
-    reasons.zone && 'Zone',
-    reasons.type && 'Type',
-    reasons.rooms_surface && 'Surface',
-    reasons.features && 'Extras',
-  ].filter(Boolean) : []
+  const matchedReasons = [
+    match.reasons.budget.match && 'Budget',
+    match.reasons.zone.match && 'Zone',
+    match.reasons.type.match && 'Type',
+    match.reasons.rooms.match && 'Surface',
+    match.reasons.features.match && 'Extras',
+  ].filter(Boolean)
 
   return (
     <div
@@ -245,44 +268,60 @@ function MatchCard({ match, onSend, onPreview }: {
         isSent ? 'border-theme-border-subtle opacity-60' : 'border-theme-border hover:border-theme-active',
       )}
     >
-      {property.photos?.[0] && (
+      {/* Photo — edge to edge */}
+      {match.listing.photos?.[0] && (
         <div className="relative aspect-[16/10]">
-          <img src={property.photos[0]} alt={property.title} className="w-full h-full object-cover" />
+          <img
+            src={match.listing.photos[0]}
+            alt={match.listing.title}
+            className="w-full h-full object-cover"
+          />
+          {match.source === 'market' && (
+            <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-md px-2 py-1">
+              <span className="text-[10px] text-white/80 font-medium">
+                {match.listing.source_portal || 'Marché'}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
+      {/* Info — padded */}
       <div className="p-3.5">
-        <p className="text-sm font-medium text-theme-primary truncate">{property.title}</p>
-        <p className="text-xs text-theme-tertiary truncate mt-0.5">{property.address}, {property.city}</p>
+        <p className="text-sm font-medium text-theme-primary truncate">{match.listing.title}</p>
+        <p className="text-xs text-theme-tertiary truncate mt-0.5">{match.listing.address}, {match.listing.city}</p>
 
         <div className="flex items-center justify-between mt-2">
-          <span className="text-sm font-semibold text-theme-primary">{formatCHF(property.price)}</span>
-          <span className="text-xs text-theme-tertiary">{property.rooms} p. · {property.surface_m2} m²</span>
+          <span className="text-sm font-semibold text-theme-primary">{formatCHF(match.listing.price)}</span>
+          <span className="text-xs text-theme-tertiary">{match.listing.rooms} p. · {match.listing.surface_m2} m²</span>
         </div>
 
+        {/* Score bar — monochrome */}
         <div className="mt-3">
           <div className="h-1 bg-theme-border rounded-full overflow-hidden">
             <div className="h-full rounded-full bg-theme-primary transition-all" style={{ width: `${match.score}%` }} />
           </div>
         </div>
 
+        {/* Reasons — monochrome text */}
         {matchedReasons.length > 0 && (
           <p className="text-[10px] text-theme-secondary mt-1.5">
             {matchedReasons.join(' · ')}
           </p>
         )}
 
+        {/* Action */}
         <div className="flex items-center justify-end mt-3">
           {isSent ? (
             <div className="text-right">
-              <p className="text-[11px] text-theme-muted">Envoyé par {match.sent_via}</p>
-              {match.sent_at && (
-                <p className="text-[10px] text-theme-muted">{formatRelativeDate(match.sent_at)}</p>
+              <p className="text-[11px] text-theme-muted">Envoyé par {match.sentVia}</p>
+              {match.sentAt && (
+                <p className="text-[10px] text-theme-muted">{formatRelativeDate(match.sentAt)}</p>
               )}
             </div>
           ) : (
             <button
-              onClick={(e) => { e.stopPropagation(); onSend() }}
+              onClick={onSend}
               className="text-xs font-medium text-theme-tertiary opacity-0 group-hover:opacity-100 hover:text-theme-primary transition-all"
             >
               Envoyer →
@@ -379,26 +418,16 @@ const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-
 
 export default function MatchingPage() {
   const navigate = useNavigate()
-  const { data: allMatchesRaw, isLoading, isError } = useMatches()
-  const runMatching = useRunMatching()
-  const updateStatus = useUpdateMatchStatus()
-
+  const { suggested, sent, internalMatches, marketMatches, sendMatch, runMatching, isRunning } = useMatching()
   const [search, setSearch] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'suggested' | 'sent'>('all')
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'internal' | 'market'>('all')
   const [sortBy, setSortBy] = useState<SortBy>('score')
   const [contactFilter, setContactFilter] = useState('')
-  const [sendDialog, setSendDialog] = useState<MatchWithRelations | null>(null)
-  const [previewMatch, setPreviewMatch] = useState<MatchWithRelations | null>(null)
+  const [sendDialog, setSendDialog] = useState<MatchResult | null>(null)
+  const [previewMatch, setPreviewMatch] = useState<MatchResult | null>(null)
   const [activeMainTab, setActiveMainTab] = useState<'internal' | 'external'>('internal')
   const [externalContactId, setExternalContactId] = useState('')
-
-  // Suppress unused var lint — updateStatus is used for future context menu actions
-  void updateStatus
-
-  const allMatchesData = useMemo(() => allMatchesRaw || [], [allMatchesRaw])
-
-  const suggested = useMemo(() => allMatchesData.filter((m) => m.status === 'suggested'), [allMatchesData])
-  const sent = useMemo(() => allMatchesData.filter((m) => m.status === 'sent'), [allMatchesData])
 
   // Derive external search criteria from selected contact
   const externalCriteria: ExternalSearchCriteria | null = useMemo(() => {
@@ -406,11 +435,13 @@ export default function MatchingPage() {
     const contact = MOCK_CONTACTS.find(c => c.id === externalContactId)
     if (!contact?.search_criteria) return null
     const sc = contact.search_criteria
+    // Map property type to RealAdvisor format
     const typeMap: Record<string, string> = {
       'Appartement': 'APARTMENT',
       'Maison': 'HOUSE',
       'Villa': 'VILLA',
     }
+    // Extract first zone from location
     const zone = sc.location.split(',')[0].trim() || 'geneve'
     return {
       zone,
@@ -436,59 +467,60 @@ export default function MatchingPage() {
     []
   )
 
+  // All unique contacts for filter dropdown
   const allContacts = useMemo(() => {
     const map = new Map<string, string>()
-    for (const m of allMatchesData) {
-      if (m.contact && !map.has(m.contact_id)) {
-        map.set(m.contact_id, `${m.contact.first_name} ${m.contact.last_name}`)
-      }
+    for (const m of [...suggested, ...sent]) {
+      if (!map.has(m.contactId)) map.set(m.contactId, m.contactName)
     }
     return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]))
-  }, [allMatchesData])
+  }, [suggested, sent])
 
-  const filteredMatches = useMemo(() => {
-    let list = filterBy === 'suggested' ? suggested : filterBy === 'sent' ? sent : allMatchesData
+  const allMatches = useMemo(() => {
+    let list = filterBy === 'suggested' ? suggested : filterBy === 'sent' ? sent : [...suggested, ...sent]
+    // Source filter
+    if (sourceFilter === 'internal') {
+      list = list.filter((m) => m.source === 'internal')
+    } else if (sourceFilter === 'market') {
+      list = list.filter((m) => m.source === 'market')
+    }
     if (search) {
       const q = search.toLowerCase()
-      list = list.filter((m) => {
-        const contactName = m.contact ? `${m.contact.first_name} ${m.contact.last_name}`.toLowerCase() : ''
-        const title = m.property?.title?.toLowerCase() || ''
-        const city = m.property?.city?.toLowerCase() || ''
-        return contactName.includes(q) || title.includes(q) || city.includes(q)
-      })
+      list = list.filter((m) =>
+        m.contactName.toLowerCase().includes(q) ||
+        m.listing.title.toLowerCase().includes(q) ||
+        m.listing.city.toLowerCase().includes(q)
+      )
     }
     if (contactFilter) {
-      list = list.filter((m) => m.contact_id === contactFilter)
+      list = list.filter((m) => m.contactId === contactFilter)
     }
+    // Sort
     list = [...list].sort((a, b) => {
       switch (sortBy) {
         case 'score': return b.score - a.score
-        case 'price_asc': return (a.property?.price || 0) - (b.property?.price || 0)
-        case 'price_desc': return (b.property?.price || 0) - (a.property?.price || 0)
-        case 'date': return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        case 'price_asc': return a.listing.price - b.listing.price
+        case 'price_desc': return b.listing.price - a.listing.price
+        case 'date': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         default: return 0
       }
     })
     return list
-  }, [allMatchesData, suggested, sent, search, filterBy, sortBy, contactFilter])
+  }, [suggested, sent, search, filterBy, sourceFilter, sortBy, contactFilter])
 
+  // Group by contact
   const groupedByContact = useMemo(() => {
-    const groups = new Map<string, { name: string; matches: MatchWithRelations[] }>()
-    for (const m of filteredMatches) {
-      const name = m.contact ? `${m.contact.first_name} ${m.contact.last_name}` : 'Contact inconnu'
-      const existing = groups.get(m.contact_id)
+    const groups = new Map<string, { name: string; matches: MatchResult[] }>()
+    for (const m of allMatches) {
+      const existing = groups.get(m.contactId)
       if (existing) {
         existing.matches.push(m)
       } else {
-        groups.set(m.contact_id, { name, matches: [m] })
+        groups.set(m.contactId, { name: m.contactName, matches: [m] })
       }
     }
     return Array.from(groups.entries())
-  }, [filteredMatches])
-
-  function handleRunMatching() {
-    runMatching.mutate({ trigger: 'daily' })
-  }
+  }, [allMatches])
 
   return (
     <PageTransition>
@@ -502,33 +534,17 @@ export default function MatchingPage() {
             </p>
           </div>
           <button
-            onClick={handleRunMatching}
-            disabled={runMatching.isPending}
-            className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+            onClick={() => {
+              if (contactFilter) {
+                runMatching(contactFilter)
+              }
+            }}
+            disabled={isRunning || !contactFilter}
+            className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40"
           >
-            {runMatching.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Lancer le matching
+            {isRunning ? 'Analyse en cours...' : 'Lancer le matching'}
           </button>
         </div>
-
-        {/* Result notification */}
-        {runMatching.isSuccess && runMatching.data && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-            <p className="text-sm text-emerald-600">
-              {runMatching.data.matches_created} nouveau{runMatching.data.matches_created > 1 ? 'x' : ''} match{runMatching.data.matches_created > 1 ? 's' : ''} trouvé{runMatching.data.matches_created > 1 ? 's' : ''}
-            </p>
-          </div>
-        )}
-
-        {runMatching.isError && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
-            <p className="text-sm text-red-600">Erreur lors du matching. Vérifiez que des biens actifs et des recherches clients existent.</p>
-          </div>
-        )}
 
         {/* Main tabs: Portefeuille / Marché */}
         <div className="flex items-center gap-1">
@@ -564,7 +580,7 @@ export default function MatchingPage() {
         <div className="flex items-center gap-6 py-3 px-4 rounded-xl border border-theme-border">
           <div>
             <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">Total matchs</p>
-            <p className="text-lg font-semibold text-theme-primary">{allMatchesData.length}</p>
+            <p className="text-lg font-semibold text-theme-primary">{suggested.length + sent.length}</p>
           </div>
           <div className="h-8 w-px bg-theme-border" />
           <div>
@@ -579,7 +595,7 @@ export default function MatchingPage() {
           <div className="h-8 w-px bg-theme-border" />
           <div>
             <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">Contacts</p>
-            <p className="text-lg font-semibold text-theme-primary">{allContacts.length}</p>
+            <p className="text-lg font-semibold text-theme-primary">{groupedByContact.length}</p>
           </div>
         </div>
 
@@ -611,6 +627,23 @@ export default function MatchingPage() {
             ))}
           </div>
 
+          {/* Source filter */}
+          <div className="flex items-center border border-theme-border rounded-lg p-0.5">
+            {(['all', 'internal', 'market'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setSourceFilter(f)}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+                  sourceFilter === f ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
+                )}
+              >
+                {f === 'all' ? 'Tous' : f === 'internal' ? `Interne${internalMatches.length ? ` (${internalMatches.length})` : ''}` : `Marché${marketMatches.length ? ` (${marketMatches.length})` : ''}`}
+              </button>
+            ))}
+          </div>
+
+          {/* Contact filter */}
           <div className="relative">
             <select value={contactFilter} onChange={(e) => setContactFilter(e.target.value)} className={selectClasses}>
               <option value="">Contact</option>
@@ -619,6 +652,7 @@ export default function MatchingPage() {
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
           </div>
 
+          {/* Sort */}
           <div className="relative">
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className={selectClasses}>
               {(Object.entries(SORT_LABELS) as [SortBy, string][]).map(([val, label]) => (
@@ -628,32 +662,23 @@ export default function MatchingPage() {
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
           </div>
 
-          {(search || contactFilter || filterBy !== 'all') && (
-            <button onClick={() => { setSearch(''); setContactFilter(''); setFilterBy('all') }} className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors">
+          {(search || contactFilter || filterBy !== 'all' || sourceFilter !== 'all') && (
+            <button onClick={() => { setSearch(''); setContactFilter(''); setFilterBy('all'); setSourceFilter('all') }} className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors">
               Effacer
             </button>
           )}
         </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="text-center py-12 rounded-xl border border-theme-border">
-            <Loader2 className="h-6 w-6 animate-spin text-theme-tertiary mx-auto mb-2" />
-            <p className="text-sm text-theme-tertiary">Chargement des matchs...</p>
-          </div>
-        ) : isError ? (
-          <div className="text-center py-12 rounded-xl border border-theme-border">
-            <p className="text-sm text-red-500">Erreur lors du chargement des matchs</p>
-          </div>
-        ) : groupedByContact.length === 0 ? (
+        {/* Grouped by contact — card grid */}
+        {groupedByContact.length === 0 ? (
           <div className="text-center py-12 rounded-xl border border-theme-border">
             <p className="text-sm text-theme-tertiary">Aucun match trouvé</p>
-            <p className="text-xs text-theme-muted mt-1">Lancez le matching ou ajoutez des biens et des recherches clients.</p>
           </div>
         ) : (
           <div className="space-y-8">
             {groupedByContact.map(([contactId, group]) => (
               <div key={contactId}>
+                {/* Contact header */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-7 w-7 rounded-full bg-theme-active flex items-center justify-center text-[10px] font-semibold text-theme-secondary shrink-0">
                     {group.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
@@ -664,6 +689,7 @@ export default function MatchingPage() {
                   </span>
                 </div>
 
+                {/* Match cards grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {group.matches.map((match) => (
                     <MatchCard
@@ -776,13 +802,13 @@ export default function MatchingPage() {
           />
         )}
 
-        {sendDialog && (
-          <SendMatchDialog
-            open={true}
-            match={sendDialog}
-            onClose={() => setSendDialog(null)}
-          />
-        )}
+        <SendMatchDialog
+          open={sendDialog !== null}
+          match={sendDialog}
+          contactName={sendDialog?.contactName || ''}
+          onSend={sendMatch}
+          onClose={() => setSendDialog(null)}
+        />
       </div>
     </PageTransition>
   )

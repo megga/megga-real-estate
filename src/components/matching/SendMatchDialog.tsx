@@ -2,51 +2,55 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader2 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
-import { useSendMatchToClient } from '@/hooks/useMatching'
-import type { MatchWithRelations } from '@/types/matching'
+import { useSendMatchToClient, type MatchResult } from '@/hooks/useMatching'
 
 interface SendMatchDialogProps {
   open: boolean
-  match: MatchWithRelations | null
+  match: MatchResult | null
+  contactName?: string
+  onSend?: (matchId: string, channel: 'email' | 'whatsapp' | 'both') => void
   onClose: () => void
 }
 
 type Channel = 'email' | 'whatsapp'
 
-export default function SendMatchDialog({ open, match, onClose }: SendMatchDialogProps) {
+export default function SendMatchDialog({ open, match, contactName: propContactName, onSend, onClose }: SendMatchDialogProps) {
   const [channel, setChannel] = useState<Channel>('email')
   const [message, setMessage] = useState('')
   const sendMutation = useSendMatchToClient()
 
-  const contactName = match?.contact
-    ? `${match.contact.first_name} ${match.contact.last_name}`
-    : 'Contact'
-  const property = match?.property
+  const name = propContactName || match?.contactName || 'Contact'
+  const listing = match?.listing
 
-  const template = match && property ? generateTemplate(channel, contactName, property) : ''
+  const template = match && listing ? generateTemplate(channel, name, listing) : ''
 
   function generateTemplate(
     ch: Channel,
-    name: string,
-    prop: NonNullable<MatchWithRelations['property']>,
+    n: string,
+    l: MatchResult['listing'],
   ): string {
-    const firstName = name.split(' ')[0]
+    const firstName = n.split(' ')[0]
     if (ch === 'whatsapp') {
-      return `Bonjour ${firstName}, j'ai un bien qui pourrait vous intéresser : ${prop.title}, ${prop.address} à ${prop.city}. Prix : ${formatCHF(prop.price)}. ${prop.rooms} pièces, ${prop.surface_m2} m². Souhaitez-vous planifier une visite ?`
+      return `Bonjour ${firstName}, j'ai un bien qui pourrait vous intéresser : ${l.title}, ${l.address} à ${l.city}. Prix : ${formatCHF(l.price)}. ${l.rooms} pièces, ${l.surface_m2} m². Souhaitez-vous planifier une visite ?`
     }
-    return `Bonjour ${firstName},\n\nSuite à notre échange, j'ai le plaisir de vous présenter un bien qui correspond à vos critères :\n\n${prop.title}\n${prop.address}, ${prop.city}\nPrix : ${formatCHF(prop.price)}\n${prop.rooms} pièces · ${prop.surface_m2} m²\n\nSouhaitez-vous organiser une visite ? Je reste à votre disposition.\n\nCordialement,\nGregory Lyonnet\nMEGGA Immobilier`
+    return `Bonjour ${firstName},\n\nSuite à notre échange, j'ai le plaisir de vous présenter un bien qui correspond à vos critères :\n\n${l.title}\n${l.address}, ${l.city}\nPrix : ${formatCHF(l.price)}\n${l.rooms} pièces · ${l.surface_m2} m²\n\nSouhaitez-vous organiser une visite ? Je reste à votre disposition.\n\nCordialement,\nGregory Lyonnet\nMEGGA Immobilier`
   }
 
   function handleSend() {
     if (!match) return
     const finalMessage = message || template
-    sendMutation.mutate(
-      { matchId: match.id, channel, message: finalMessage },
-      { onSuccess: () => onClose() },
-    )
+    if (onSend) {
+      onSend(match.id, channel)
+      onClose()
+    } else {
+      sendMutation.mutate(
+        { matchId: match.id, channel, message: finalMessage },
+        { onSuccess: () => onClose() },
+      )
+    }
   }
 
-  if (!open || !match || !property) return null
+  if (!open || !match || !listing) return null
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
@@ -54,12 +58,11 @@ export default function SendMatchDialog({ open, match, onClose }: SendMatchDialo
         className="bg-theme-card border border-theme-border rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-theme-border">
           <div>
-            <h3 className="text-base font-semibold text-theme-primary">Envoyer le bien à {contactName}</h3>
+            <h3 className="text-base font-semibold text-theme-primary">Envoyer le bien à {name}</h3>
             <p className="text-xs text-theme-tertiary mt-0.5">
-              {property.title} — {formatCHF(property.price)} — Score {match.score}%
+              {listing.title} — {formatCHF(listing.price)} — Score {match.score}%
             </p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
@@ -67,9 +70,7 @@ export default function SendMatchDialog({ open, match, onClose }: SendMatchDialo
           </button>
         </div>
 
-        {/* Form */}
         <div className="p-5 space-y-4">
-          {/* Channel selector */}
           <div>
             <label className="block text-sm font-medium text-theme-primary mb-1.5">Canal d&apos;envoi</label>
             <div className="flex gap-1.5">
@@ -94,7 +95,6 @@ export default function SendMatchDialog({ open, match, onClose }: SendMatchDialo
             </div>
           </div>
 
-          {/* Message */}
           <div>
             <label className="block text-sm font-medium text-theme-primary mb-1.5">Message</label>
             <textarea
@@ -110,12 +110,8 @@ export default function SendMatchDialog({ open, match, onClose }: SendMatchDialo
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-5 border-t border-theme-border">
-          <button
-            onClick={onClose}
-            className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
-          >
+          <button onClick={onClose} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
             Annuler
           </button>
           <button

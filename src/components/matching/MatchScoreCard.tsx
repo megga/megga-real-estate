@@ -1,9 +1,15 @@
 import { Send, Calendar } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
-import type { MatchWithRelations } from '@/types/matching'
-
 interface MatchScoreCardProps {
-  match: MatchWithRelations
+  match: {
+    id: string
+    score: number
+    status: string
+    sent_via?: string | null
+    reasons: Record<string, unknown> | null
+    property?: { title?: string; price?: number; address?: string; city?: string; rooms?: number; surface_m2?: number; photos?: string[] | null } | null
+    listing?: { title: string; price: number; address: string; city: string; rooms: number; surface_m2: number; photos: string[] }
+  }
   onSend: () => void
   onIgnore: () => void
   className?: string
@@ -21,11 +27,13 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function MatchScoreCard({ match, onSend, onIgnore, className }: MatchScoreCardProps) {
-  const property = match.property
+  // Support both shapes: match.property (MatchWithRelations) or match.listing (MatchResult)
+  const property = match.property || match.listing
   if (!property) return null
 
   const isSent = match.status === 'sent'
-  const reasons = match.reasons
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reasons = match.reasons as Record<string, any> | null
 
   return (
     <div className={cn(
@@ -56,7 +64,7 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
               <p className="text-sm font-medium text-theme-primary truncate">{property.title}</p>
               <p className="text-xs text-theme-tertiary truncate">{property.address}, {property.city}</p>
             </div>
-            <span className="text-sm font-semibold text-theme-primary flex-shrink-0">{formatCHF(property.price)}</span>
+            <span className="text-sm font-semibold text-theme-primary flex-shrink-0">{formatCHF(property.price || 0)}</span>
           </div>
 
           {/* Score bar */}

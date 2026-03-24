@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Sparkles, RefreshCw, Loader2 } from 'lucide-react'
-import { useContactMatches, useRunMatching, useUpdateMatchStatus } from '@/hooks/useMatching'
+import { useContactMatches, useRunMatching, useUpdateMatchStatus, type MatchResult } from '@/hooks/useMatching'
 import MatchScoreCard from './MatchScoreCard'
 import SendMatchDialog from './SendMatchDialog'
-import type { MatchWithRelations } from '@/types/matching'
 
 interface MatchingPanelProps {
   contactId: string
@@ -11,10 +10,11 @@ interface MatchingPanelProps {
 }
 
 export default function MatchingPanel({ contactId, contactName }: MatchingPanelProps) {
-  const { data: matches, isLoading, isError } = useContactMatches(contactId)
+  const { matches, isLoading } = useContactMatches(contactId)
+  const isError = false
   const runMatching = useRunMatching()
   const updateStatus = useUpdateMatchStatus()
-  const [sendDialog, setSendDialog] = useState<MatchWithRelations | null>(null)
+  const [sendDialog, setSendDialog] = useState<MatchResult | null>(null)
 
   // contactName kept in props for future use (e.g. send dialog context)
   void contactName
