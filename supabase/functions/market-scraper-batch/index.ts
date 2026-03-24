@@ -22,7 +22,6 @@ const CANTON_CITIES: Record<string, string[]> = {
 
 interface BatchRequest {
   canton: 'GE' | 'VD'
-  transaction_type: 'buy' | 'rent'
 }
 
 interface CityResult {
@@ -47,9 +46,9 @@ serve(async (req) => {
   try {
     const params: BatchRequest = await req.json()
 
-    if (!params.canton || !params.transaction_type) {
+    if (!params.canton) {
       return new Response(
-        JSON.stringify({ error: 'canton and transaction_type are required' }),
+        JSON.stringify({ error: 'canton is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -90,7 +89,6 @@ serve(async (req) => {
             body: JSON.stringify({
               canton: params.canton,
               city,
-              transaction_type: params.transaction_type,
             }),
           }
         )
@@ -157,14 +155,13 @@ serve(async (req) => {
       .from('market_listings')
       .update({ status: 'removed' })
       .eq('canton', params.canton)
-      .eq('transaction_type', params.transaction_type)
       .eq('status', 'active')
       .lt('last_seen_at', sevenDaysAgo)
       .select('id', { count: 'exact', head: true })
 
     return new Response(JSON.stringify({
       canton: params.canton,
-      transaction_type: params.transaction_type,
+      transaction_type: 'buy',
       cities_scanned: cities.length,
       total_found: totalFound,
       total_created: totalCreated,

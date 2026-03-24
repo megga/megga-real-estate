@@ -19,6 +19,7 @@ import {
 import Navbar from '@/components/layout/Navbar'
 import MapView from '@/components/map/MapView'
 import ChatSearch from '@/components/search/ChatSearch'
+import { usePublicListings } from '@/hooks/usePublicListings'
 import { MOCK_LISTINGS, toCardData } from '@/lib/mockData'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
@@ -48,7 +49,7 @@ interface Filters {
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
 
-const ALL_LISTINGS = MOCK_LISTINGS.map(toCardData)
+const MOCK_FALLBACK = MOCK_LISTINGS.map(toCardData)
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'relevance', label: 'Pertinence' },
@@ -321,7 +322,8 @@ function filtersToParams(filters: Filters): Record<string, string> {
 }
 
 function applyFilters(listings: ListingCardData[], filters: Filters): ListingCardData[] {
-  let result = listings.filter((l) => l.context === filters.context)
+  // Default context is 'buy' (MEGGA ne fait pas de location)
+  let result = listings.filter((l) => (l.context || 'buy') === filters.context)
 
   if (filters.q) {
     const q = filters.q.toLowerCase()
@@ -503,7 +505,7 @@ function ListingCardHorizontal({
     : listing.is_hot
       ? { label: 'Hot price', bg: 'bg-red-500/90' }
       : listing.is_exclusive
-        ? { label: 'Exclusif', bg: 'bg-gray-900' }
+        ? { label: 'MEGGA', bg: 'bg-gray-900' }
         : listing.is_3d
           ? { label: '3D', bg: 'bg-purple-500' }
           : null
@@ -670,7 +672,7 @@ function ListingCardGrid({
     : listing.is_hot
       ? { label: 'Hot price', bg: 'bg-red-500/90' }
       : listing.is_exclusive
-        ? { label: 'Exclusif', bg: 'bg-gray-900' }
+        ? { label: 'MEGGA', bg: 'bg-gray-900' }
         : listing.is_3d
           ? { label: '3D', bg: 'bg-purple-500' }
           : null
@@ -789,6 +791,11 @@ export default function SearchPage() {
   const [showAiBanner, setShowAiBanner] = useState(false)
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
   const [showChat, setShowChat] = useState(false)
+
+  // Fetch real listings from Supabase (properties + market_listings)
+  const { data: supabaseListings, isLoading: isLoadingListings } = usePublicListings()
+  // Use Supabase data if available, fallback to mock
+  const ALL_LISTINGS = (supabaseListings && supabaseListings.length > 0) ? supabaseListings : MOCK_FALLBACK
 
   // Sync filters to URL
   useEffect(() => {
@@ -1263,7 +1270,12 @@ export default function SearchPage() {
 
           {/* ─── ZONE 4: Listing cards ─── */}
           <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
-            {filtered.length === 0 ? (
+            {isLoadingListings ? (
+              <div className="flex flex-col items-center justify-center h-64">
+                <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
+                <p className="text-sm text-gray-500">Chargement des biens...</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
                 <Search className="h-12 w-12 text-gray-200 mb-4" />
                 <p className="text-lg font-medium text-gray-700 mb-1">Aucun bien trouvé</p>

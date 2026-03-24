@@ -12,7 +12,6 @@ const corsHeaders = {
 interface ScrapeRequest {
   canton: 'GE' | 'VD'
   city: string
-  transaction_type: 'buy' | 'rent'
 }
 
 interface ScrapeResult {
@@ -23,7 +22,7 @@ interface ScrapeResult {
   total_found: number
   city: string
   canton: string
-  transaction_type: string
+  transaction_type: 'buy'
 }
 
 interface ParsedListing {
@@ -123,10 +122,8 @@ function buildImageUrl(
 
 function buildUrl(params: ScrapeRequest): string {
   const citySlug = CITY_SLUGS[params.city] || params.city
-  const base = params.transaction_type === 'rent'
-    ? `https://realadvisor.ch/fr/louer/bien-immobilier/${citySlug}`
-    : `https://realadvisor.ch/fr/acheter/bien-immobilier/${citySlug}`
-  return base
+  // MEGGA ne fait PAS de location — uniquement achat/vente
+  return `https://realadvisor.ch/fr/acheter/bien-immobilier/${citySlug}`
 }
 
 // ── RSC Flight Data Parser (from external-matching) ────────
@@ -284,9 +281,9 @@ serve(async (req) => {
   try {
     const params: ScrapeRequest = await req.json()
 
-    if (!params.canton || !params.city || !params.transaction_type) {
+    if (!params.canton || !params.city) {
       return new Response(
-        JSON.stringify({ error: 'canton, city, and transaction_type are required' }),
+        JSON.stringify({ error: 'canton and city are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -336,7 +333,7 @@ serve(async (req) => {
       total_found: parsed.length,
       city: params.city,
       canton: params.canton,
-      transaction_type: params.transaction_type,
+      transaction_type: 'buy',
     }
 
     for (const listing of parsed) {
@@ -421,7 +418,7 @@ serve(async (req) => {
           title: listing.title,
           description: listing.description,
           type: listing.type,
-          transaction_type: params.transaction_type,
+          transaction_type: 'buy',
           price: listing.price,
           price_at_first_seen: listing.price,
           current_price: listing.price,
