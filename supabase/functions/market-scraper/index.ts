@@ -1,6 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.18'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,7 +18,7 @@ interface ScrapeResult {
   listings_created: number
   listings_updated: number
   listings_skipped: number
-  photos_uploaded: number
+  photos_found: number
   price_changes: number
   total_found: number
   total_api: number
@@ -51,42 +50,6 @@ function buildImageUrl(image: { file_name?: string; bucket_name?: string }): str
   return `https://img.realadvisor.ch/_/rs:fill:1200:800:1:0/q:75/${encodedPath}.webp`
 }
 
-// ── R2 Upload ──────────────────────────────────────────────
-
-async function uploadPhotoToR2(
-  r2Client: AwsClient, r2Endpoint: string, r2Bucket: string,
-  r2PublicUrl: string, photoUrl: string, r2Path: string
-): Promise<string | null> {
-  try {
-    const resp = await fetch(photoUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'image/*,*/*;q=0.8' },
-    })
-    if (!resp.ok) {
-      console.error(`[R2] Image fetch failed: ${resp.status} for ${photoUrl.substring(0, 80)}`)
-      return null
-    }
-    const data = await resp.arrayBuffer()
-    if (data.byteLength < 100) {
-      console.error(`[R2] Image too small: ${data.byteLength} bytes`)
-      return null
-    }
-    console.log(`[R2] Uploading ${data.byteLength} bytes to ${r2Endpoint}/${r2Bucket}/${r2Path}`)
-    const uploadResp = await r2Client.fetch(`${r2Endpoint}/${r2Bucket}/${r2Path}`, {
-      method: 'PUT', body: data, headers: { 'Content-Type': 'image/webp' },
-    })
-    if (!uploadResp.ok) {
-      const errBody = await uploadResp.text().catch(() => '')
-      console.error(`[R2] Upload failed: ${uploadResp.status} ${errBody.substring(0, 200)}`)
-      return null
-    }
-    console.log(`[R2] ✓ Uploaded: ${r2PublicUrl}/${r2Path}`)
-    return `${r2PublicUrl}/${r2Path}`
-  } catch (error) {
-    console.error(`[R2] Error: ${error instanceof Error ? error.message : 'Unknown'}`)
-    return null
-  }
-}
-
 // ── Main Handler ───────────────────────────────────────────
 
 serve(async (req) => {
@@ -103,14 +66,6 @@ serve(async (req) => {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
-    const r2Client = new AwsClient({
-      accessKeyId: Deno.env.get('R2_ACCESS_KEY_ID')!,
-      secretAccessKey: Deno.env.get('R2_SECRET_ACCESS_KEY')!,
-    })
-    const r2Endpoint = Deno.env.get('R2_ENDPOINT')!
-    const r2Bucket = Deno.env.get('R2_BUCKET_NAME')!
-    const r2PublicUrl = Deno.env.get('R2_PUBLIC_URL')!
-
     // ── Fetch from RealAdvisor JSON API ──
     const apiUrl = `https://realadvisor.ch/api/listings?offerType_eq=buy&limit=${limit}&offset=${offset}`
     const response = await fetch(apiUrl, {
@@ -130,7 +85,7 @@ serve(async (req) => {
 
     const result: ScrapeResult = {
       listings_created: 0, listings_updated: 0, listings_skipped: 0,
-      photos_uploaded: 0, price_changes: 0,
+      photos_found: 0, price_changes: 0,
       total_found: apiListings.length, total_api: totalApi, offset,
     }
 
@@ -164,25 +119,17 @@ serve(async (req) => {
         .from('market_listings').select('id, current_price, photos')
         .eq('source_id', sourceId).maybeSingle()
 
-      // Upload photos to R2
-      const r2Photos: string[] = []
-      if (!existing || (existing.photos as string[] || []).length === 0) {
-        for (let i = 0; i < Math.min(photoUrls.length, 15); i++) {
-          const r2Path = `${canton.toLowerCase()}/${sourceId}/photo-${i}.webp`
-          const r2Url = await uploadPhotoToR2(
-            r2Client, r2Endpoint, r2Bucket, r2PublicUrl, photoUrls[i], r2Path
-          )
-          if (r2Url) { r2Photos.push(r2Url); result.photos_uploaded++ }
-        }
-      }
+      // Use RealAdvisor CDN URLs directly (R2 upload deferred to background job)
+      const photoUrlsFinal = photoUrls.slice(0, 15)
 
       if (existing) {
         const updates: Record<string, unknown> = {
           last_seen_at: new Date().toISOString(),
           title: item.title || '',
           agency_name: item.agency_name,
+          photos: photoUrlsFinal,
+          photos_count: photoUrlsFinal.length,
         }
-        if (r2Photos.length > 0) { updates.photos = r2Photos; updates.photos_count = r2Photos.length }
 
         const oldPrice = Number(existing.current_price) || 0
         if (oldPrice > 0 && salePrice > 0 && oldPrice !== salePrice) {
@@ -217,7 +164,7 @@ serve(async (req) => {
           bathrooms: item.number_of_bathrooms || null,
           surface_m2: item.living_surface || item.computed_surface || null,
           floor: item.floor || null, features: '[]',
-          photos: r2Photos, photos_count: r2Photos.length,
+          photos: photoUrlsFinal, photos_count: photoUrlsFinal.length,
           source_portal: item.portal || 'realadvisor',
           source_url: item.clickout_url?.url || `https://realadvisor.ch/fr/acheter/bien-immobilier/${sourceId}`,
           source_id: sourceId,
