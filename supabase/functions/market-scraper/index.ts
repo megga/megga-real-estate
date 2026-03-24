@@ -61,15 +61,30 @@ async function uploadPhotoToR2(
     const resp = await fetch(photoUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'image/*,*/*;q=0.8' },
     })
-    if (!resp.ok) return null
+    if (!resp.ok) {
+      console.error(`[R2] Image fetch failed: ${resp.status} for ${photoUrl.substring(0, 80)}`)
+      return null
+    }
     const data = await resp.arrayBuffer()
-    if (data.byteLength < 100) return null
+    if (data.byteLength < 100) {
+      console.error(`[R2] Image too small: ${data.byteLength} bytes`)
+      return null
+    }
+    console.log(`[R2] Uploading ${data.byteLength} bytes to ${r2Endpoint}/${r2Bucket}/${r2Path}`)
     const uploadResp = await r2Client.fetch(`${r2Endpoint}/${r2Bucket}/${r2Path}`, {
       method: 'PUT', body: data, headers: { 'Content-Type': 'image/webp' },
     })
-    if (!uploadResp.ok) return null
+    if (!uploadResp.ok) {
+      const errBody = await uploadResp.text().catch(() => '')
+      console.error(`[R2] Upload failed: ${uploadResp.status} ${errBody.substring(0, 200)}`)
+      return null
+    }
+    console.log(`[R2] ✓ Uploaded: ${r2PublicUrl}/${r2Path}`)
     return `${r2PublicUrl}/${r2Path}`
-  } catch { return null }
+  } catch (error) {
+    console.error(`[R2] Error: ${error instanceof Error ? error.message : 'Unknown'}`)
+    return null
+  }
 }
 
 // ── Main Handler ───────────────────────────────────────────
