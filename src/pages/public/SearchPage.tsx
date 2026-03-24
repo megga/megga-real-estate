@@ -928,15 +928,10 @@ export default function SearchPage() {
                 Acheter
               </button>
               <button
-                onClick={() => updateFilter({ context: 'rent' })}
-                className={cn(
-                  'px-4 py-1.5 text-sm rounded-full font-medium transition-colors cursor-pointer',
-                  filters.context === 'rent'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-500 hover:bg-gray-100'
-                )}
+                onClick={() => window.location.href = '/vendre'}
+                className="px-4 py-1.5 text-sm rounded-full font-medium transition-colors cursor-pointer text-gray-500 hover:bg-gray-100"
               >
-                Louer
+                Vendre
               </button>
             </div>
 
@@ -1152,10 +1147,10 @@ export default function SearchPage() {
           {/* Mobile: filter button */}
           <div className="md:hidden px-4 py-3 border-b border-gray-100 flex items-center gap-3">
             <button
-              onClick={() => updateFilter({ context: filters.context === 'buy' ? 'rent' : 'buy' })}
+              onClick={() => {/* MEGGA = achat uniquement */}}
               className="px-3 py-1.5 text-sm rounded-full bg-gray-900 text-white font-medium cursor-pointer"
             >
-              {filters.context === 'buy' ? 'Acheter' : 'Louer'}
+              Acheter
             </button>
             <button
               onClick={() => setShowMobileFilters(!showMobileFilters)}
