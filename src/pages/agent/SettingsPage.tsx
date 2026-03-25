@@ -3,11 +3,12 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Camera,
-  Plus, X,
+  X,
   Smartphone,
   Monitor, KeyRound,
   ShieldCheck, AlertTriangle,
   Loader2,
+  MoreHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -563,27 +564,67 @@ function AgencyTab() {
 
 /* ─── Team Tab ─── */
 
-interface TeamMember {
-  id: string
-  name: string
-  email: string
-  role: 'admin' | 'manager' | 'agent' | 'assistant'
-  status: 'active' | 'invited'
-  addedAt: string
-  initials: string
+import {
+  useTeamMembers,
+  useTeamInvitations,
+  useAgencyPlan,
+  useInviteTeamMember,
+  useResendInvitation,
+  useCancelInvitation,
+  useChangeTeamRole,
+  useRemoveTeamMember,
+} from '@/hooks/useTeam'
+import type { TeamMember as TeamMemberType, TeamInvitation } from '@/hooks/useTeam'
+
+type TeamRole = 'admin' | 'manager' | 'agent' | 'assistant'
+
+const TEAM_ROLES: TeamRole[] = ['admin', 'manager', 'agent', 'assistant']
+
+function getInitials(name: string): string {
+  return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2)
 }
 
-const MOCK_TEAM: TeamMember[] = [
-  { id: '1', name: 'Gregory Lyonnet', email: 'gregory.lyonnet@megga.ch', role: 'admin', status: 'active', addedAt: '12.01.2025', initials: 'GL' },
-  { id: '2', name: 'Sophie Martin', email: 'sophie.martin@megga.ch', role: 'agent', status: 'active', addedAt: '15.03.2025', initials: 'SM' },
-  { id: '3', name: 'Lucas Bernard', email: 'lucas.bernard@megga.ch', role: 'agent', status: 'active', addedAt: '02.06.2025', initials: 'LB' },
-  { id: '4', name: 'Emma Favre', email: 'emma.favre@megga.ch', role: 'assistant', status: 'invited', addedAt: '10.03.2026', initials: 'EF' },
-]
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr)
+  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
+}
+
+function RolePermissions({ role }: { role: TeamRole }) {
+  const { t } = useTranslation('settings')
+  const permissions = t(`team.permissions.${role}`, { returnObjects: true }) as string[]
+  if (!Array.isArray(permissions)) return null
+
+  return (
+    <ul className="mt-2 space-y-1">
+      {permissions.map((p, i) => (
+        <li key={i} className="text-xs text-theme-tertiary flex items-center gap-1.5">
+          <span className="w-1 h-1 rounded-full bg-theme-muted shrink-0" />
+          {p}
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 function InviteMemberModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('settings')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<TeamMember['role']>('agent')
+  const [role, setRole] = useState<TeamRole>('agent')
+  const [error, setError] = useState('')
+  const inviteMutation = useInviteTeamMember()
+
+  const handleSubmit = async () => {
+    setError('')
+    try {
+      await inviteMutation.mutateAsync({ email, role })
+      onClose()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur'
+      if (msg === 'already_member') setError(t('team.inviteModal.alreadyMember'))
+      else if (msg === 'already_invited') setError(t('team.inviteModal.alreadyInvited'))
+      else setError(t('team.inviteModal.error'))
+    }
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
@@ -597,22 +638,38 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
         <div className="p-5 space-y-4">
           <div>
             <label className={labelClasses}>{t('team.inviteModal.email')}</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="nom@agence.ch" className={inputClasses} />
+            <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError('') }} placeholder="nom@agence.ch" className={inputClasses} />
           </div>
           <div>
             <label className={labelClasses}>{t('team.inviteModal.role')}</label>
-            <select value={role} onChange={e => setRole(e.target.value as TeamMember['role'])} className={inputClasses}>
-              <option value="admin">{t('team.roles.admin')}</option>
-              <option value="manager">{t('team.roles.manager')}</option>
-              <option value="agent">{t('team.roles.agent')}</option>
-              <option value="assistant">{t('team.roles.assistant')}</option>
-            </select>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {TEAM_ROLES.map(r => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={cn(
+                    'h-9 px-4 rounded-lg text-sm transition-colors',
+                    role === r ? 'bg-theme-active text-theme-primary font-medium' : 'text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active'
+                  )}
+                >
+                  {t(`team.roles.${r}`)}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-theme-tertiary mt-2">{t(`team.roleDescriptions.${role}`)}</p>
+            <RolePermissions role={role} />
           </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
         <div className="flex items-center gap-3 p-5 border-t border-theme-border">
           <button onClick={onClose} className="flex-1 h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">{t('team.inviteModal.cancel')}</button>
-          <button disabled={!email.includes('@')} className={cn('flex-1 h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors', !email.includes('@') && 'opacity-50 cursor-not-allowed')}>
-            {t('team.inviteModal.send')}
+          <button
+            disabled={!email.includes('@') || inviteMutation.isPending}
+            onClick={handleSubmit}
+            className={cn('flex-1 h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors', (!email.includes('@') || inviteMutation.isPending) && 'opacity-50 cursor-not-allowed')}
+          >
+            {inviteMutation.isPending ? t('team.inviteModal.sending') : t('team.inviteModal.send')}
           </button>
         </div>
       </div>
@@ -621,69 +678,320 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-function TeamTab() {
+function ChangeRoleModal({ member, onClose, onConfirm }: { member: TeamMemberType; onClose: () => void; onConfirm: (role: TeamRole) => void }) {
   const { t } = useTranslation('settings')
-  const [showInvite, setShowInvite] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<TeamRole>(member.role)
+  const changeRoleMutation = useChangeTeamRole()
 
-  const statusStyles: Record<TeamMember['status'], { classes: string }> = {
-    active:  { classes: 'bg-success/10 text-success' },
-    invited: { classes: 'bg-warning/10 text-warning' },
+  const handleConfirm = async () => {
+    try {
+      await changeRoleMutation.mutateAsync({ memberId: member.id, newRole: selectedRole })
+      onConfirm(selectedRole)
+    } catch { /* RLS will block unauthorized changes */ }
   }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="rounded-xl border border-theme-border bg-theme-page w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-theme-border">
+          <h3 className="text-base font-semibold text-theme-primary">{t('team.changeRole.title')}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
+            <X className="w-4 h-4 text-theme-muted" />
+          </button>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-theme-secondary">{t('team.changeRole.subtitle', { name: member.full_name })}</p>
+          <div className="flex flex-wrap gap-2">
+            {TEAM_ROLES.map(r => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setSelectedRole(r)}
+                className={cn(
+                  'h-9 px-4 rounded-lg text-sm transition-colors',
+                  selectedRole === r ? 'bg-theme-active text-theme-primary font-medium' : 'text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active'
+                )}
+              >
+                {t(`team.roles.${r}`)}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-theme-tertiary">{t(`team.roleDescriptions.${selectedRole}`)}</p>
+          <RolePermissions role={selectedRole} />
+        </div>
+        <div className="flex items-center gap-3 p-5 border-t border-theme-border">
+          <button onClick={onClose} className="flex-1 h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">{t('team.inviteModal.cancel')}</button>
+          <button
+            disabled={selectedRole === member.role || changeRoleMutation.isPending}
+            onClick={handleConfirm}
+            className={cn('flex-1 h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors', (selectedRole === member.role || changeRoleMutation.isPending) && 'opacity-50 cursor-not-allowed')}
+          >
+            {t('team.changeRole.confirm')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+function RemoveMemberModal({ member, onClose, onConfirm }: { member: TeamMemberType; onClose: () => void; onConfirm: () => void }) {
+  const { t } = useTranslation('settings')
+  const removeMutation = useRemoveTeamMember()
+
+  const handleConfirm = async () => {
+    try {
+      await removeMutation.mutateAsync(member.id)
+      onConfirm()
+    } catch { /* handled by React Query */ }
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="rounded-xl border border-theme-border bg-theme-page w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="p-5 space-y-3">
+          <h3 className="text-base font-semibold text-theme-primary">{t('team.remove.title')}</h3>
+          <p className="text-sm text-theme-secondary">{t('team.remove.message', { name: member.full_name })}</p>
+        </div>
+        <div className="flex items-center gap-3 p-5 border-t border-theme-border">
+          <button onClick={onClose} className="flex-1 h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">{t('team.inviteModal.cancel')}</button>
+          <button
+            disabled={removeMutation.isPending}
+            onClick={handleConfirm}
+            className={cn('flex-1 h-9 px-4 rounded-lg text-sm font-medium text-red-500 border border-red-500/30 hover:border-red-500 transition-colors', removeMutation.isPending && 'opacity-50 cursor-not-allowed')}
+          >
+            {t('team.remove.confirm')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+function TeamMemberRow({ member, isCurrentUser, onChangeRole, onRemove }: {
+  member: TeamMemberType
+  isCurrentUser: boolean
+  onChangeRole: () => void
+  onRemove: () => void
+}) {
+  const { t } = useTranslation('settings')
+  const [showMenu, setShowMenu] = useState(false)
+  const initials = getInitials(member.full_name)
+
+  return (
+    <div className="group flex items-center gap-3 py-3.5 px-5">
+      <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+        {member.avatar_url
+          ? <img src={member.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+          : <span className="text-xs font-semibold text-accent">{initials}</span>
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-theme-primary truncate">{member.full_name}</p>
+          {isCurrentUser && <span className="text-[10px] text-theme-tertiary">({t('team.you')})</span>}
+        </div>
+        <p className="text-xs text-theme-muted truncate">{member.email}</p>
+      </div>
+      <div className="hidden sm:flex items-center gap-3">
+        <span className="text-xs text-theme-secondary">{t(`team.roles.${member.role}`)}</span>
+      </div>
+      <div className="hidden lg:block text-xs text-theme-muted">{formatDateShort(member.created_at)}</div>
+
+      {/* Actions (hover) */}
+      <div className="relative">
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className={cn(
+            'p-1.5 rounded-lg transition-all',
+            showMenu ? 'bg-theme-hover' : 'opacity-0 group-hover:opacity-100 hover:bg-theme-hover'
+          )}
+        >
+          <MoreHorizontal className="w-4 h-4 text-theme-muted" />
+        </button>
+        {showMenu && (
+          <>
+            <div className="fixed inset-0 z-[50]" onClick={() => setShowMenu(false)} />
+            <div className="absolute right-0 top-full mt-1 z-[51] w-48 rounded-lg border border-theme-border bg-theme-card py-1">
+              <button
+                onClick={() => { setShowMenu(false); onChangeRole() }}
+                className="w-full text-left px-3 py-2 text-sm text-theme-secondary hover:text-theme-primary hover:bg-theme-hover transition-colors"
+              >
+                {t('team.actions.changeRole')}
+              </button>
+              {!isCurrentUser && (
+                <button
+                  onClick={() => { setShowMenu(false); onRemove() }}
+                  className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-theme-hover transition-colors"
+                >
+                  {t('team.actions.remove')}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function InvitationRow({ invitation }: { invitation: TeamInvitation }) {
+  const { t } = useTranslation('settings')
+  const [showMenu, setShowMenu] = useState(false)
+  const resendMutation = useResendInvitation()
+  const cancelMutation = useCancelInvitation()
+  const initials = invitation.email.slice(0, 2).toUpperCase()
+
+  return (
+    <div className="group flex items-center gap-3 py-3.5 px-5">
+      <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+        <span className="text-xs font-semibold text-amber-500">{initials}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-theme-primary truncate">{invitation.email}</p>
+        <p className="text-xs text-theme-muted">{t('team.invitation.expiresOn', { date: formatDateShort(invitation.expires_at) })}</p>
+      </div>
+      <div className="hidden sm:flex items-center gap-3">
+        <span className="text-xs text-theme-secondary">{t(`team.roles.${invitation.role}`)}</span>
+        <span className="text-xs font-medium text-amber-500">{t('team.status.invited')}</span>
+      </div>
+
+      <div className="relative">
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className={cn(
+            'p-1.5 rounded-lg transition-all',
+            showMenu ? 'bg-theme-hover' : 'opacity-0 group-hover:opacity-100 hover:bg-theme-hover'
+          )}
+        >
+          <MoreHorizontal className="w-4 h-4 text-theme-muted" />
+        </button>
+        {showMenu && (
+          <>
+            <div className="fixed inset-0 z-[50]" onClick={() => setShowMenu(false)} />
+            <div className="absolute right-0 top-full mt-1 z-[51] w-48 rounded-lg border border-theme-border bg-theme-card py-1">
+              <button
+                disabled={resendMutation.isPending}
+                onClick={async () => { setShowMenu(false); await resendMutation.mutateAsync(invitation.id) }}
+                className="w-full text-left px-3 py-2 text-sm text-theme-secondary hover:text-theme-primary hover:bg-theme-hover transition-colors"
+              >
+                {resendMutation.isPending ? t('team.actions.resending') : t('team.actions.resend')}
+              </button>
+              <button
+                disabled={cancelMutation.isPending}
+                onClick={async () => { setShowMenu(false); await cancelMutation.mutateAsync(invitation.id) }}
+                className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-theme-hover transition-colors"
+              >
+                {t('team.actions.cancel')}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TeamTab({ onSwitchTab }: { onSwitchTab: (tab: SettingsTab) => void }) {
+  const { t } = useTranslation('settings')
+  const { profile } = useAuth()
+  const [showInvite, setShowInvite] = useState(false)
+  const [changeRoleMember, setChangeRoleMember] = useState<TeamMemberType | null>(null)
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<TeamMemberType | null>(null)
+
+  const { data: members = [], isLoading: loadingMembers } = useTeamMembers()
+  const { data: invitations = [], isLoading: loadingInvitations } = useTeamInvitations()
+  const { maxMembers } = useAgencyPlan()
+
+  const totalCount = members.length + invitations.length
+  const limitReached = totalCount >= maxMembers
 
   return (
     <div className="space-y-6">
+      {/* Header + plan limit */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-theme-primary">{t('team.title')}</h2>
-          <p className="text-sm text-theme-muted mt-1">{t('team.subtitle')}</p>
+          <p className="text-sm text-theme-muted mt-1">
+            {t('team.memberCount', { current: totalCount, max: maxMembers })}
+          </p>
         </div>
-        <button onClick={() => setShowInvite(true)} className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('team.invite')}</span>
-          <span className="sm:hidden">{t('team.inviteShort')}</span>
-        </button>
+        {limitReached ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-theme-tertiary hidden sm:inline">{t('team.limitReached')}</span>
+            <button onClick={() => onSwitchTab('subscription')} className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+              {t('team.upgrade')}
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setShowInvite(true)} className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+            <span className="hidden sm:inline">{t('team.invite')}</span>
+            <span className="sm:hidden">{t('team.inviteShort')}</span>
+          </button>
+        )}
       </div>
 
-      <div className={cn(cardClasses, 'overflow-hidden')}>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-theme-border bg-theme-section/30">
-              <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3">{t('team.table.member')}</th>
-              <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3 hidden md:table-cell">{t('team.table.role')}</th>
-              <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3 hidden sm:table-cell">{t('team.table.status')}</th>
-              <th className="text-left text-xs font-medium text-theme-muted uppercase tracking-wider px-5 py-3 hidden lg:table-cell">{t('team.table.addedAt')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {MOCK_TEAM.map((member, i) => (
-              <tr key={member.id} className={cn('hover:bg-theme-hover transition-colors', i < MOCK_TEAM.length - 1 && 'border-b border-theme-border/50')}>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-semibold text-accent">{member.initials}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-theme-primary truncate">{member.name}</p>
-                      <p className="text-xs text-theme-muted truncate">{member.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-4 hidden md:table-cell">
-                  <span className="text-sm text-theme-secondary">{t(`team.roles.${member.role}`)}</span>
-                </td>
-                <td className="px-5 py-4 hidden sm:table-cell">
-                  <span className={cn('text-xs font-medium px-2 py-1 rounded-badge', statusStyles[member.status].classes)}>
-                    {t(`team.status.${member.status}`)}
-                  </span>
-                </td>
-                <td className="px-5 py-4 text-sm text-theme-muted hidden lg:table-cell">{member.addedAt}</td>
-              </tr>
+      {/* Loading */}
+      {(loadingMembers || loadingInvitations) && (
+        <p className="text-sm text-theme-muted py-8 text-center">{t('team.loading')}</p>
+      )}
+
+      {/* Active members bento */}
+      {!loadingMembers && members.length > 0 && (
+        <div className={cardClasses}>
+          <div className="px-5 py-3 border-b border-theme-border rounded-t-xl">
+            <h3 className="text-sm font-medium text-theme-primary">{t('team.activeMembers')}</h3>
+          </div>
+          <div className="divide-y divide-theme-border/50">
+            {members.map(member => (
+              <TeamMemberRow
+                key={member.id}
+                member={member}
+                isCurrentUser={member.id === profile?.id}
+                onChangeRole={() => setChangeRoleMember(member)}
+                onRemove={() => setRemoveMemberTarget(member)}
+              />
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      )}
 
+      {/* Empty state */}
+      {!loadingMembers && members.length === 0 && (
+        <p className="text-sm text-theme-muted py-8 text-center">{t('team.empty')}</p>
+      )}
+
+      {/* Pending invitations bento */}
+      {!loadingInvitations && invitations.length > 0 && (
+        <div className={cardClasses}>
+          <div className="px-5 py-3 border-b border-theme-border rounded-t-xl">
+            <h3 className="text-sm font-medium text-theme-primary">{t('team.pendingInvitations')}</h3>
+          </div>
+          <div className="divide-y divide-theme-border/50">
+            {invitations.map(inv => (
+              <InvitationRow key={inv.id} invitation={inv} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
       {showInvite && <InviteMemberModal onClose={() => setShowInvite(false)} />}
+      {changeRoleMember && (
+        <ChangeRoleModal
+          member={changeRoleMember}
+          onClose={() => setChangeRoleMember(null)}
+          onConfirm={() => setChangeRoleMember(null)}
+        />
+      )}
+      {removeMemberTarget && (
+        <RemoveMemberModal
+          member={removeMemberTarget}
+          onClose={() => setRemoveMemberTarget(null)}
+          onConfirm={() => setRemoveMemberTarget(null)}
+        />
+      )}
     </div>
   )
 }
@@ -1558,7 +1866,7 @@ export default function SettingsPage() {
           {activeTab === 'profile' && <ProfileTab />}
           {activeTab === 'appearance' && <AppearanceTab />}
           {activeTab === 'agency' && <AgencyTab />}
-          {activeTab === 'team' && <TeamTab />}
+          {activeTab === 'team' && <TeamTab onSwitchTab={setActiveTab} />}
           {activeTab === 'notifications' && <NotificationsTab />}
           {activeTab === 'security' && <SecurityTab />}
           {activeTab === 'subscription' && <SubscriptionTab />}

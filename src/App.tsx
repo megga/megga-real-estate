@@ -54,6 +54,7 @@ const MesDocumentsPage = lazy(() => import('@/pages/particulier/MesDocumentsPage
 const MesMessagesPage = lazy(() => import('@/pages/particulier/MesMessagesPage'))
 const AnalysePage = lazy(() => import('@/pages/particulier/AnalysePage'))
 const MonProfilPage = lazy(() => import('@/pages/particulier/MonProfilPage'))
+const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 
 function PageLoader() {
   return (
@@ -95,6 +96,7 @@ export default function App() {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/publier" element={<PublierPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
               {/* Portail vendeur — accès direct (dev/test) */}
               <Route path="/portail" element={<SellerLayout />}>

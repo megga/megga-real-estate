@@ -100,20 +100,26 @@
   "team": {
     "title": "Team",
     "subtitle": "Manage your agency members and their roles.",
+    "memberCount": "{{current}} / {{max}} members",
+    "limitReached": "Limit reached",
+    "upgrade": "Upgrade plan",
+    "activeMembers": "Active members",
+    "pendingInvitations": "Pending invitations",
+    "you": "you",
     "invite": "Invite member",
     "inviteShort": "Invite",
+    "loading": "Loading team...",
+    "empty": "No team members yet.",
     "inviteModal": {
       "title": "Invite a member",
       "email": "Email address",
       "role": "Role",
       "cancel": "Cancel",
-      "send": "Send invitation"
-    },
-    "table": {
-      "member": "Member",
-      "role": "Role",
-      "status": "Status",
-      "addedAt": "Added on"
+      "send": "Send invitation",
+      "sending": "Sending...",
+      "error": "Failed to send invitation",
+      "alreadyMember": "This email is already a member of the agency.",
+      "alreadyInvited": "An invitation is already pending for this email."
     },
     "roles": {
       "admin": "Admin",
@@ -121,9 +127,59 @@
       "agent": "Agent",
       "assistant": "Assistant"
     },
+    "roleDescriptions": {
+      "admin": "Full access: settings, billing, team management.",
+      "manager": "Manage agents, oversee transactions and pipeline.",
+      "agent": "Manage own contacts, properties and transactions.",
+      "assistant": "Read-only access, administrative support."
+    },
     "status": {
       "active": "Active",
       "invited": "Invited"
+    },
+    "permissions": {
+      "admin": ["Full access to settings", "Billing management", "Team management", "All contacts and properties"],
+      "manager": ["Agent supervision", "Transaction access", "Pipeline management", "Reports and analytics"],
+      "agent": ["Manage own contacts", "Manage own properties", "Personal pipeline", "Messaging"],
+      "assistant": ["Read-only access", "Administrative support", "View files"]
+    },
+    "actions": {
+      "changeRole": "Change role",
+      "remove": "Remove from team",
+      "resend": "Resend invitation",
+      "cancel": "Cancel invitation",
+      "resending": "Resending..."
+    },
+    "invitation": {
+      "expiresOn": "Expires on {{date}}"
+    },
+    "changeRole": {
+      "title": "Change role",
+      "subtitle": "Choose a new role for {{name}}.",
+      "confirm": "Confirm"
+    },
+    "remove": {
+      "title": "Remove this member?",
+      "message": "{{name}} will lose access to the agency. This action cannot be undone.",
+      "confirm": "Remove"
+    },
+    "acceptInvite": {
+      "loading": "Loading...",
+      "title": "Team invitation",
+      "invitesYou": "invites you to join",
+      "yourRole": "Your role",
+      "accept": "Accept invitation",
+      "accepting": "Accepting...",
+      "login": "Sign in to accept",
+      "register": "No account yet? Create one",
+      "notFound": "This invitation does not exist.",
+      "expired": "This invitation has expired.",
+      "alreadyAccepted": "This invitation has already been accepted.",
+      "cancelled": "This invitation has been cancelled.",
+      "emailMismatch": "Sign in with {{email}} to accept.",
+      "wrongAccount": "Sign in with {{email}} to accept this invitation.",
+      "error": "An error occurred.",
+      "backHome": "Back to home"
     }
   },
   "notifications": {

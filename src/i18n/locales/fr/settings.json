@@ -100,20 +100,26 @@
   "team": {
     "title": "Équipe",
     "subtitle": "Gérez les membres de votre agence et leurs rôles.",
+    "memberCount": "{{current}} / {{max}} membres",
+    "limitReached": "Limite atteinte",
+    "upgrade": "Passer au plan supérieur",
+    "activeMembers": "Membres actifs",
+    "pendingInvitations": "Invitations en attente",
+    "you": "vous",
     "invite": "Inviter un membre",
     "inviteShort": "Inviter",
+    "loading": "Chargement de l'équipe...",
+    "empty": "Aucun membre dans l'équipe.",
     "inviteModal": {
       "title": "Inviter un membre",
       "email": "Adresse email",
       "role": "Rôle",
       "cancel": "Annuler",
-      "send": "Envoyer l'invitation"
-    },
-    "table": {
-      "member": "Membre",
-      "role": "Rôle",
-      "status": "Statut",
-      "addedAt": "Ajouté le"
+      "send": "Envoyer l'invitation",
+      "sending": "Envoi...",
+      "error": "Erreur lors de l'envoi",
+      "alreadyMember": "Cet email est déjà membre de l'agence.",
+      "alreadyInvited": "Une invitation est déjà en attente pour cet email."
     },
     "roles": {
       "admin": "Admin",
@@ -121,9 +127,59 @@
       "agent": "Agent",
       "assistant": "Assistant"
     },
+    "roleDescriptions": {
+      "admin": "Accès complet : paramètres, facturation, gestion de l'équipe.",
+      "manager": "Gestion des agents, supervision des transactions et du pipeline.",
+      "agent": "Gestion de ses contacts, biens et transactions.",
+      "assistant": "Accès en lecture, support administratif."
+    },
     "status": {
       "active": "Actif",
       "invited": "Invité"
+    },
+    "permissions": {
+      "admin": ["Accès complet aux paramètres", "Gestion de la facturation", "Gestion de l'équipe", "Tous les contacts et biens"],
+      "manager": ["Supervision des agents", "Accès aux transactions", "Gestion du pipeline", "Rapports et analytics"],
+      "agent": ["Gestion de ses contacts", "Gestion de ses biens", "Pipeline personnel", "Messagerie"],
+      "assistant": ["Lecture seule", "Support administratif", "Consultation des dossiers"]
+    },
+    "actions": {
+      "changeRole": "Modifier le rôle",
+      "remove": "Retirer de l'équipe",
+      "resend": "Renvoyer l'invitation",
+      "cancel": "Annuler l'invitation",
+      "resending": "Renvoi..."
+    },
+    "invitation": {
+      "expiresOn": "Expire le {{date}}"
+    },
+    "changeRole": {
+      "title": "Modifier le rôle",
+      "subtitle": "Choisissez le nouveau rôle de {{name}}.",
+      "confirm": "Confirmer"
+    },
+    "remove": {
+      "title": "Retirer ce membre ?",
+      "message": "{{name}} perdra l'accès à l'agence. Cette action est irréversible.",
+      "confirm": "Retirer"
+    },
+    "acceptInvite": {
+      "loading": "Chargement...",
+      "title": "Invitation à rejoindre une équipe",
+      "invitesYou": "vous invite à rejoindre",
+      "yourRole": "Votre rôle",
+      "accept": "Accepter l'invitation",
+      "accepting": "Acceptation...",
+      "login": "Se connecter pour accepter",
+      "register": "Pas encore de compte ? Créer un compte",
+      "notFound": "Cette invitation n'existe pas.",
+      "expired": "Cette invitation a expiré.",
+      "alreadyAccepted": "Cette invitation a déjà été acceptée.",
+      "cancelled": "Cette invitation a été annulée.",
+      "emailMismatch": "Connectez-vous avec le compte {{email}} pour accepter.",
+      "wrongAccount": "Connectez-vous avec le compte {{email}} pour accepter cette invitation.",
+      "error": "Une erreur est survenue.",
+      "backHome": "Retour à l'accueil"
     }
   },
   "notifications": {

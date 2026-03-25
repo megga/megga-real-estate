@@ -100,20 +100,26 @@
   "team": {
     "title": "Team",
     "subtitle": "Verwalten Sie die Mitglieder Ihrer Agentur und deren Rollen.",
+    "memberCount": "{{current}} / {{max}} Mitglieder",
+    "limitReached": "Limit erreicht",
+    "upgrade": "Plan upgraden",
+    "activeMembers": "Aktive Mitglieder",
+    "pendingInvitations": "Ausstehende Einladungen",
+    "you": "Sie",
     "invite": "Mitglied einladen",
     "inviteShort": "Einladen",
+    "loading": "Team wird geladen...",
+    "empty": "Noch keine Teammitglieder.",
     "inviteModal": {
       "title": "Mitglied einladen",
       "email": "E-Mail-Adresse",
       "role": "Rolle",
       "cancel": "Abbrechen",
-      "send": "Einladung senden"
-    },
-    "table": {
-      "member": "Mitglied",
-      "role": "Rolle",
-      "status": "Status",
-      "addedAt": "Hinzugefügt am"
+      "send": "Einladung senden",
+      "sending": "Wird gesendet...",
+      "error": "Fehler beim Senden der Einladung",
+      "alreadyMember": "Diese E-Mail ist bereits Mitglied der Agentur.",
+      "alreadyInvited": "Für diese E-Mail steht bereits eine Einladung aus."
     },
     "roles": {
       "admin": "Admin",
@@ -121,9 +127,59 @@
       "agent": "Makler",
       "assistant": "Assistent"
     },
+    "roleDescriptions": {
+      "admin": "Voller Zugriff: Einstellungen, Abrechnung, Teamverwaltung.",
+      "manager": "Maklerverwaltung, Transaktions- und Pipeline-Übersicht.",
+      "agent": "Verwaltung eigener Kontakte, Objekte und Transaktionen.",
+      "assistant": "Lesezugriff, administrative Unterstützung."
+    },
     "status": {
       "active": "Aktiv",
       "invited": "Eingeladen"
+    },
+    "permissions": {
+      "admin": ["Voller Zugriff auf Einstellungen", "Abrechnungsverwaltung", "Teamverwaltung", "Alle Kontakte und Objekte"],
+      "manager": ["Maklerüberwachung", "Transaktionszugriff", "Pipeline-Verwaltung", "Berichte und Analysen"],
+      "agent": ["Eigene Kontakte verwalten", "Eigene Objekte verwalten", "Persönliche Pipeline", "Nachrichten"],
+      "assistant": ["Nur-Lese-Zugriff", "Administrative Unterstützung", "Akten einsehen"]
+    },
+    "actions": {
+      "changeRole": "Rolle ändern",
+      "remove": "Aus dem Team entfernen",
+      "resend": "Einladung erneut senden",
+      "cancel": "Einladung abbrechen",
+      "resending": "Wird erneut gesendet..."
+    },
+    "invitation": {
+      "expiresOn": "Läuft ab am {{date}}"
+    },
+    "changeRole": {
+      "title": "Rolle ändern",
+      "subtitle": "Wählen Sie die neue Rolle für {{name}}.",
+      "confirm": "Bestätigen"
+    },
+    "remove": {
+      "title": "Mitglied entfernen?",
+      "message": "{{name}} verliert den Zugang zur Agentur. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "confirm": "Entfernen"
+    },
+    "acceptInvite": {
+      "loading": "Wird geladen...",
+      "title": "Team-Einladung",
+      "invitesYou": "lädt Sie ein, beizutreten",
+      "yourRole": "Ihre Rolle",
+      "accept": "Einladung annehmen",
+      "accepting": "Wird angenommen...",
+      "login": "Anmelden um anzunehmen",
+      "register": "Noch kein Konto? Erstellen",
+      "notFound": "Diese Einladung existiert nicht.",
+      "expired": "Diese Einladung ist abgelaufen.",
+      "alreadyAccepted": "Diese Einladung wurde bereits angenommen.",
+      "cancelled": "Diese Einladung wurde abgebrochen.",
+      "emailMismatch": "Melden Sie sich mit {{email}} an.",
+      "wrongAccount": "Melden Sie sich mit {{email}} an, um diese Einladung anzunehmen.",
+      "error": "Ein Fehler ist aufgetreten.",
+      "backHome": "Zurück zur Startseite"
     }
   },
   "notifications": {
