@@ -4,6 +4,7 @@
   "kpi": {
     "activeProperties": "Active properties",
     "activeTransactions": "Active transactions",
+    "pipelineValue": "Pipeline value",
     "contacts": "Contacts",
     "visitsThisMonth": "Visits this month"
   },
@@ -12,17 +13,39 @@
     "viewPipeline": "View pipeline →",
     "deals": "deal",
     "dealsPlural": "deals",
+    "conversionRate": "Conversion rate",
+    "projection": "At {{rate}}% conversion → {{amount}} this quarter",
+    "empty": "No active transactions",
     "stages": {
-      "lead": "Lead",
-      "qualified": "Qualified",
-      "visit": "Visit",
+      "new_lead": "New lead",
+      "to_qualify": "To qualify",
+      "active_search": "Active search",
+      "visit_planned": "Visit planned",
+      "visit_done": "Visit done",
+      "interest_confirmed": "Interest confirmed",
       "offer": "Offer",
-      "signed": "Signed"
+      "negotiation": "Negotiation",
+      "reserved": "Reserved",
+      "financing": "Financing",
+      "notary": "Notary",
+      "signed": "Signed",
+      "lost": "Lost",
+      "to_recontact": "To recontact"
     }
+  },
+  "atRisk": {
+    "title": "Deals at risk",
+    "empty": "No deals at risk",
+    "emptyDescription": "Your pipeline is healthy",
+    "unknownContact": "Unknown contact",
+    "daysSince": "{{count}} day without activity",
+    "daysSince_plural": "{{count}} days without activity",
+    "view": "View →"
   },
   "activity": {
     "title": "Recent activity",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "empty": "No recent activity"
   },
   "actionBoard": {
     "sections": {

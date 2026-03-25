@@ -66,6 +66,15 @@
     /* Ring */
     --color-ring: 37 99 235;
 
+    /* Border radius (customizable) */
+    --radius-card: 12px;
+    --radius-button: 8px;
+    --radius-input: 10px;
+    --radius-badge: 6px;
+
+    /* Font size base (customizable) */
+    --font-size-base: 14px;
+
     /* Logo filter — no filter in light mode (logo is black) */
     --logo-filter: none;
 
@@ -149,6 +158,15 @@
     /* Ring */
     --color-ring: 59 130 246;
 
+    /* Border radius (inherit from root, can be overridden) */
+    --radius-card: 12px;
+    --radius-button: 8px;
+    --radius-input: 10px;
+    --radius-badge: 6px;
+
+    /* Font size base */
+    --font-size-base: 14px;
+
     /* ─── CalendarCN event colors (dark) ─── */
     --event-red: #D85140;
     --event-red-border: #D85140;
@@ -178,11 +196,27 @@
     border-color: rgb(var(--color-border));
   }
 
-  /* Smooth theme transition on all elements */
-  [data-theme-transitioning] *,
-  [data-theme-transitioning] *::before,
-  [data-theme-transitioning] *::after {
-    transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease !important;
+  /* Smooth theme transition — targeted elements only (not * which causes jank on 1000+ nodes) */
+  [data-theme-transitioning] body,
+  [data-theme-transitioning] aside,
+  [data-theme-transitioning] main,
+  [data-theme-transitioning] nav,
+  [data-theme-transitioning] header,
+  [data-theme-transitioning] .rounded-xl,
+  [data-theme-transitioning] button,
+  [data-theme-transitioning] a,
+  [data-theme-transitioning] input,
+  [data-theme-transitioning] textarea,
+  [data-theme-transitioning] select,
+  [data-theme-transitioning] kbd {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+  }
+
+  /* Accent color smooth transitions (always active, not just during theme toggle) */
+  .text-accent,
+  .bg-accent,
+  .border-accent {
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   }
 
   body {
@@ -252,6 +286,75 @@
 
 .mapboxgl-ctrl-group button:hover .mapboxgl-ctrl-icon {
   opacity: 0.8;
+}
+
+/* ─── Density + Font size (single zoom on main, set via --content-zoom in JS) ─── */
+
+main {
+  zoom: var(--content-zoom, 1);
+}
+
+/* ─── Sidebar colored style ─── */
+
+[data-sidebar-style="colored"] aside {
+  background-color: rgb(var(--color-accent)) !important;
+  border-color: rgb(var(--color-accent-dark)) !important;
+}
+
+[data-sidebar-style="colored"] aside * {
+  --color-text-secondary: 255 255 255;
+  --color-text-tertiary: 255 255 255;
+  --color-bg-hover: var(--color-accent-dark);
+}
+
+[data-sidebar-style="colored"] aside .text-theme-primary,
+[data-sidebar-style="colored"] aside .text-theme-secondary,
+[data-sidebar-style="colored"] aside .text-theme-tertiary,
+[data-sidebar-style="colored"] aside .text-theme-muted {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-sidebar-style="colored"] aside .text-accent {
+  color: rgba(255, 255, 255, 1) !important;
+  font-weight: 600;
+}
+
+[data-sidebar-style="colored"] aside .bg-accent\/8 {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-sidebar-style="colored"] aside .hover\:bg-theme-hover:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-sidebar-style="colored"] aside .border-theme-border-subtle {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-sidebar-style="colored"] aside .border-theme-border {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-sidebar-style="colored"] aside img {
+  filter: brightness(0) invert(1) !important;
+}
+
+[data-sidebar-style="colored"] aside .bg-theme-input {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-sidebar-style="colored"] aside .bg-theme-active {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-sidebar-style="colored"] aside kbd {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+[data-sidebar-style="colored"] aside .bg-accent {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: rgb(var(--color-accent)) !important;
 }
 
 /* ── Print styles (Analyse marché export) ─────────────────────────────── */

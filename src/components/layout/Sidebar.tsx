@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { useAvatar } from '@/hooks/useAvatar'
+import { usePreferences } from '@/hooks/usePreferences'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -94,7 +95,9 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const { theme, toggleTheme } = useTheme()
   const { t } = useTranslation('common')
   const { avatarUrl } = useAvatar()
+  const { preferences } = usePreferences()
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const isMinimalSidebar = preferences.sidebarStyle === 'minimal'
 
   function isActive(href: string) {
     if (href === '/dashboard') return location.pathname === '/dashboard'
@@ -197,7 +200,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
         {NAV_SECTIONS.map((section) => (
           <div key={section.labelKey}>
             {/* Section label */}
-            {isCol ? (
+            {isCol || isMinimalSidebar ? (
               <div className="mt-3" />
             ) : (
               <div className="mt-6 mb-1 px-3">

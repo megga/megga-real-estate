@@ -4,6 +4,7 @@
   "kpi": {
     "activeProperties": "Aktive Objekte",
     "activeTransactions": "Laufende Transaktionen",
+    "pipelineValue": "Pipeline-Wert",
     "contacts": "Kontakte",
     "visitsThisMonth": "Besichtigungen diesen Monat"
   },
@@ -12,17 +13,39 @@
     "viewPipeline": "Pipeline ansehen →",
     "deals": "Deal",
     "dealsPlural": "Deals",
+    "conversionRate": "Konversionsrate",
+    "projection": "Bei {{rate}}% Konversion → {{amount}} dieses Quartal",
+    "empty": "Keine aktiven Transaktionen",
     "stages": {
-      "lead": "Lead",
-      "qualified": "Qualifiziert",
-      "visit": "Besichtigung",
+      "new_lead": "Neuer Lead",
+      "to_qualify": "Zu qualifizieren",
+      "active_search": "Aktive Suche",
+      "visit_planned": "Besichtigung geplant",
+      "visit_done": "Besichtigung durchgeführt",
+      "interest_confirmed": "Interesse bestätigt",
       "offer": "Angebot",
-      "signed": "Unterzeichnet"
+      "negotiation": "Verhandlung",
+      "reserved": "Reserviert",
+      "financing": "Finanzierung",
+      "notary": "Notar",
+      "signed": "Unterzeichnet",
+      "lost": "Verloren",
+      "to_recontact": "Erneut kontaktieren"
     }
+  },
+  "atRisk": {
+    "title": "Gefährdete Deals",
+    "empty": "Keine gefährdeten Deals",
+    "emptyDescription": "Ihre Pipeline ist gesund",
+    "unknownContact": "Unbekannter Kontakt",
+    "daysSince": "Seit {{count}} Tag ohne Aktivität",
+    "daysSince_plural": "Seit {{count}} Tagen ohne Aktivität",
+    "view": "Ansehen →"
   },
   "activity": {
     "title": "Letzte Aktivitäten",
-    "viewAll": "Alle anzeigen"
+    "viewAll": "Alle anzeigen",
+    "empty": "Keine aktuelle Aktivität"
   },
   "actionBoard": {
     "sections": {
