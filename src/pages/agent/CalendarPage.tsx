@@ -14,12 +14,13 @@ import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
 import EventDetailSidebar from '@/components/calendar/EventDetailSidebar'
 import { useVisits } from '@/hooks/useVisits'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
+import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 
 /** Event category config for MEGGA real estate */
 const EVENT_CATEGORIES: Record<EventColor, { label: string }> = {
   blue: { label: 'Visite' },
   purple: { label: 'Google Calendar' },
-  orange: { label: 'Relance' },
+  orange: { label: 'Relance / Outlook' },
   green: { label: 'Signature' },
   red: { label: 'Échéance' },
   yellow: { label: 'Autre' },
@@ -54,7 +55,16 @@ export default function CalendarPage() {
     removeFromGoogle,
   } = useGoogleCalendar(gcalRange)
 
-  // Merge: Supabase visits + Google events + local events
+  // Outlook Calendar integration
+  const {
+    isConnected: ocalConnected,
+    outlookEvents,
+    syncVisitToOutlook,
+    updateVisitInOutlook,
+    removeFromOutlook,
+  } = useOutlookCalendar(gcalRange)
+
+  // Merge: Supabase visits + Google events + Outlook events + local events
   const events = useMemo(() => {
     const merged: CalendarEvent[] = []
 
@@ -78,8 +88,15 @@ export default function CalendarPage() {
       merged.push(...filteredGoogleEvents)
     }
 
+    // Add Outlook Calendar events (blue, read-only)
+    if (outlookEvents.length > 0) {
+      const meggaVisitIds2 = new Set(supabaseVisits.map(v => v.id))
+      const filteredOutlookEvents = outlookEvents.filter(oe => !meggaVisitIds2.has(oe.id))
+      merged.push(...filteredOutlookEvents)
+    }
+
     return merged
-  }, [supabaseVisits, localEvents, googleEvents])
+  }, [supabaseVisits, localEvents, googleEvents, outlookEvents])
 
   const [selectedEventId, setSelectedEventId] = useState<string | undefined>()
   const [view, setView] = useState<ViewType>('week')
@@ -184,6 +201,7 @@ export default function CalendarPage() {
       updateVisit(updated)
         .then(() => {
           if (gcalConnected) updateVisitInGoogle(updated.id).catch(() => {})
+          if (ocalConnected) updateVisitInOutlook(updated.id).catch(() => {})
         })
         .catch(() => {})
     } else {
@@ -194,7 +212,7 @@ export default function CalendarPage() {
         if (old?.visitStatus !== 'done') setFeedbackEvent(updated)
       }
     }
-  }, [supabaseVisits, localEvents, updateVisit, gcalConnected, updateVisitInGoogle])
+  }, [supabaseVisits, localEvents, updateVisit, gcalConnected, updateVisitInGoogle, ocalConnected, updateVisitInOutlook])
 
   const handleFeedbackSubmit = useCallback((event: CalendarEvent, feedback: { feedbackBuyer: string; feedbackAgent: string; rating: number }) => {
     const updated: CalendarEvent = {
@@ -245,6 +263,7 @@ export default function CalendarPage() {
         .then((created) => {
           // Sync to Google Calendar if connected
           if (gcalConnected && created?.id) syncVisitToGoogle(created.id).catch(() => {})
+          if (ocalConnected && created?.id) syncVisitToOutlook(created.id).catch(() => {})
         })
         .catch(() => {
           // Fallback: add to local state if DB save fails
@@ -253,7 +272,7 @@ export default function CalendarPage() {
     } else {
       setLocalEvents((prev) => [...prev, newEvent])
     }
-  }, [createVisit, gcalConnected, syncVisitToGoogle])
+  }, [createVisit, gcalConnected, syncVisitToGoogle, ocalConnected, syncVisitToOutlook])
 
   // Duplicate event (1h later, new ID)
   const handleDuplicate = useCallback((event: CalendarEvent) => {
@@ -278,12 +297,13 @@ export default function CalendarPage() {
   // Delete event
   const handleDelete = useCallback((eventId: string) => {
     // Don't allow deleting Google Calendar events
-    if (eventId.startsWith('gcal_')) return
+    if (eventId.startsWith('gcal_') || eventId.startsWith('ocal_')) return
 
     const isSupabaseVisit = !eventId.startsWith('evt-')
     if (isSupabaseVisit) {
       // Remove from Google first, then delete locally
       if (gcalConnected) removeFromGoogle(eventId).catch(() => {})
+      if (ocalConnected) removeFromOutlook(eventId).catch(() => {})
       deleteVisit(eventId).catch(() => {})
     } else {
       setLocalEvents((prev) => prev.filter((e) => e.id !== eventId))
@@ -293,7 +313,7 @@ export default function CalendarPage() {
       if (selectedEventId === eventId) return false
       return prev
     })
-  }, [selectedEventId, deleteVisit, gcalConnected, removeFromGoogle])
+  }, [selectedEventId, deleteVisit, gcalConnected, removeFromGoogle, ocalConnected, removeFromOutlook])
 
   // Computed selected event for sidebar
   const selectedEvent = useMemo(

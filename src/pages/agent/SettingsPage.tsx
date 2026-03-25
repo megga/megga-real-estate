@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useAvatar } from '@/hooks/useAvatar'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
+import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 import { STRIPE_PRICES } from '@/lib/constants'
 import AvatarCropModal from '@/components/profile/AvatarCropModal'
 import AppearanceTab from '@/components/settings/AppearanceTab'
@@ -1705,7 +1706,7 @@ function SubscriptionTab() {
 
 /* ─── Applications Tab (Stripe Marketplace style) ─── */
 
-type AppCategory = 'calendar' | 'email' | 'crm' | 'tools'
+type AppCategory = 'calendar' | 'crm' | 'tools'
 
 interface AppIntegration {
   id: string
@@ -1715,17 +1716,13 @@ interface AppIntegration {
 }
 
 const APPS: AppIntegration[] = [
-  // Email
-  { id: 'resend', category: 'email', isConnected: true },
   // Calendar
   { id: 'google-calendar', category: 'calendar', isConnected: false },
-  { id: 'outlook-calendar', category: 'calendar', isConnected: false, comingSoon: true },
+  { id: 'outlook-calendar', category: 'calendar', isConnected: false },
   // CRM
   { id: 'salesforce', category: 'crm', isConnected: false, comingSoon: true },
   { id: 'hubspot', category: 'crm', isConnected: false, comingSoon: true },
   { id: 'pipedrive', category: 'crm', isConnected: false, comingSoon: true },
-  { id: 'zoho', category: 'crm', isConnected: false, comingSoon: true },
-  { id: 'freshsales', category: 'crm', isConnected: false, comingSoon: true },
   // Tools
   { id: 'csv-import', category: 'tools', isConnected: false, comingSoon: true },
   { id: 'posthog', category: 'tools', isConnected: false, comingSoon: true },
@@ -1738,9 +1735,6 @@ const APPS: AppIntegration[] = [
 function AppLogo({ id, className }: { id: string; className?: string }) {
   const size = className ?? 'w-8 h-8'
   switch (id) {
-    // Resend — official "R" mark: bold geometric R with notch
-    case 'resend':
-      return <svg className={size} viewBox="0 0 24 24" fill="none"><path d="M5 3h8.5a5.5 5.5 0 0 1 3.83 9.45L21 21h-4.5l-3.6-7.5H9V21H5V3zm4 3.5v4h4.5a2 2 0 1 0 0-4H9z" fill="currentColor" className="text-theme-primary"/></svg>
     // Google Calendar — multicolor calendar icon (blue/green/yellow/red)
     case 'google-calendar':
       return <svg className={size} viewBox="0 0 24 24"><path d="M18 3h-1V1.5h-2V3H9V1.5H7V3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" fill="#fff"/><path d="M6 3h12a2 2 0 0 1 2 2v2H4V5a2 2 0 0 1 2-2z" fill="#4285F4"/><rect x="4" y="7" width="16" height="14" rx="0" fill="#fff" stroke="#E0E0E0" strokeWidth="0.3"/><rect x="6" y="9" width="3" height="2.5" rx="0.5" fill="#EA4335" opacity="0.8"/><rect x="10.5" y="9" width="3" height="2.5" rx="0.5" fill="#FBBC04" opacity="0.8"/><rect x="15" y="9" width="3" height="2.5" rx="0.5" fill="#34A853" opacity="0.8"/><rect x="6" y="13" width="3" height="2.5" rx="0.5" fill="#4285F4" opacity="0.8"/><rect x="10.5" y="13" width="3" height="2.5" rx="0.5" fill="#EA4335" opacity="0.6"/><rect x="15" y="13" width="3" height="2.5" rx="0.5" fill="#FBBC04" opacity="0.6"/><rect x="6" y="17" width="3" height="2.5" rx="0.5" fill="#34A853" opacity="0.6"/><rect x="10.5" y="17" width="3" height="2.5" rx="0.5" fill="#4285F4" opacity="0.6"/></svg>
@@ -1756,12 +1750,6 @@ function AppLogo({ id, className }: { id: string; className?: string }) {
     // Pipedrive — green "speech bubble" / droplet mark
     case 'pipedrive':
       return <svg className={size} viewBox="0 0 24 24"><path d="M12 2C7.6 2 4 5.4 4 9.6c0 2.5 1.3 4.8 3.3 6.2l-.3 4.1a.5.5 0 0 0 .8.4l3.5-2.5c.2 0 .5.1.7.1 4.4 0 8-3.4 8-7.7S16.4 2 12 2z" fill="#017737"/><circle cx="9.5" cy="9.5" r="1.5" fill="#fff"/><circle cx="14.5" cy="9.5" r="1.5" fill="#fff"/></svg>
-    // Zoho — stylized "Z" on red background (rounded rect)
-    case 'zoho':
-      return <svg className={size} viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="4" fill="#E42527"/><path d="M7 8h10l-6 8h6" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-    // Freshsales/Freshworks — green circle with "F" cutout
-    case 'freshsales':
-      return <svg className={size} viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="#12AF6A"/><path d="M8 7h8v2h-5.5v2.5H15v2h-4.5V17H8V7z" fill="#fff"/></svg>
     // CSV Import — spreadsheet/table icon (theme-aware)
     case 'csv-import':
       return <svg className={size} viewBox="0 0 24 24" fill="none"><path d="M4 4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" stroke="currentColor" strokeWidth="1.5" className="text-theme-secondary"/><path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="text-theme-secondary"/><path d="M8 13h8M8 16h8M8 13v6M12 13v6M16 13v6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="text-theme-muted"/></svg>
@@ -1861,6 +1849,48 @@ function GoogleCalendarAppCard() {
   )
 }
 
+function OutlookCalendarAppCard() {
+  const { t } = useTranslation('settings')
+  const { isConnected, isLoading, outlookEmail, connectOutlookCalendar, disconnectOutlookCalendar, isDisconnecting, syncAll, isSyncing, lastSyncAt } = useOutlookCalendar()
+
+  return (
+    <div className={cn(cardClasses, 'p-5 flex flex-col items-center text-center transition-colors hover:border-theme-active')}>
+      <div className="mb-3">
+        {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-theme-muted" /> : <AppLogo id="outlook-calendar" />}
+      </div>
+
+      <p className="text-sm font-semibold text-theme-primary">{t('apps.outlook-calendar.name')}</p>
+      <p className="text-xs text-theme-tertiary mt-1 line-clamp-2">
+        {isConnected && outlookEmail ? outlookEmail : t('apps.outlook-calendar.desc')}
+      </p>
+
+      <div className="mt-auto pt-4 flex flex-col items-center gap-2">
+        {isConnected ? (
+          <>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-xs font-medium text-emerald-500">{t('apps.status.connected')}</span>
+            </div>
+            {lastSyncAt && <span className="text-[10px] text-theme-muted">{t('apps.outlookCalendar.lastSync', { date: formatRelativeDate(lastSyncAt) })}</span>}
+            <div className="flex gap-1.5">
+              <button onClick={() => syncAll()} disabled={isSyncing} className="h-6 px-2 rounded text-[10px] font-medium border border-theme-border text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50">
+                {isSyncing ? '...' : t('apps.outlookCalendar.syncNow')}
+              </button>
+              <button onClick={() => { if (confirm(t('apps.outlookCalendar.disconnectConfirm'))) disconnectOutlookCalendar() }} disabled={isDisconnecting} className="h-6 px-2 rounded text-[10px] font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors disabled:opacity-50">
+                {t('apps.outlookCalendar.disconnect')}
+              </button>
+            </div>
+          </>
+        ) : isLoading ? null : (
+          <button onClick={connectOutlookCalendar} className="h-7 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+            {t('apps.status.connect')}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Applications Tab ──
 
 type AppFilter = 'all' | 'connected' | AppCategory
@@ -1873,7 +1903,6 @@ function ApplicationsTab() {
     { key: 'all', labelKey: 'apps.filters.all' },
     { key: 'connected', labelKey: 'apps.filters.connected' },
     { key: 'calendar', labelKey: 'apps.filters.calendar' },
-    { key: 'email', labelKey: 'apps.filters.email' },
     { key: 'crm', labelKey: 'apps.filters.crm' },
     { key: 'tools', labelKey: 'apps.filters.tools' },
   ]
@@ -1910,6 +1939,8 @@ function ApplicationsTab() {
         {filtered.map(app =>
           app.id === 'google-calendar'
             ? <GoogleCalendarAppCard key={app.id} />
+            : app.id === 'outlook-calendar'
+            ? <OutlookCalendarAppCard key={app.id} />
             : <AppCard key={app.id} app={app} />
         )}
       </div>

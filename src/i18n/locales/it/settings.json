@@ -423,21 +423,19 @@
     }
   },
   "apps": {
-    "filters": { "all": "Tutti", "connected": "Connessi", "calendar": "Calendario", "email": "Email", "crm": "CRM", "tools": "Strumenti", "storage": "Archiviazione" },
+    "filters": { "all": "Tutti", "connected": "Connessi", "calendar": "Calendario", "crm": "CRM", "tools": "Strumenti", "storage": "Archiviazione" },
     "status": { "connected": "Connesso", "notConnected": "Non connesso", "comingSoon": "Presto", "connect": "Collegare" },
     "empty": "Nessuna applicazione in questa categoria.",
-    "resend": { "name": "Email / Resend", "desc": "Solleciti, conferme e presentazioni di immobili" },
     "google-calendar": { "name": "Google Calendar", "desc": "Sincronizzazione visite e appuntamenti" },
     "outlook-calendar": { "name": "Outlook Calendar", "desc": "Sincronizzazione visite e appuntamenti" },
     "salesforce": { "name": "Salesforce", "desc": "Importazione contatti, account e opportunità" },
     "hubspot": { "name": "HubSpot", "desc": "Importazione contatti, aziende e deal" },
     "pipedrive": { "name": "Pipedrive", "desc": "Importazione persone, organizzazioni e deal" },
-    "zoho": { "name": "Zoho CRM", "desc": "Importazione contatti, account e potenziali" },
-    "freshsales": { "name": "Freshsales", "desc": "Importazione contatti, account e deal" },
     "csv-import": { "name": "Import / Export", "desc": "Importa dati da file CSV o Excel" },
     "posthog": { "name": "PostHog", "desc": "Analytics di utilizzo e adozione del team" },
     "google-drive": { "name": "Google Drive", "desc": "Sincronizzazione documenti KYC e mandati" },
     "onedrive": { "name": "OneDrive", "desc": "Sincronizzazione documenti KYC e mandati" },
-    "googleCalendar": { "lastSync": "Ultima sincronia: {{date}}", "syncNow": "Sync", "disconnect": "Scollegare", "disconnectConfirm": "Scollegare Google Calendar?" }
+    "googleCalendar": { "lastSync": "Ultima sincronia: {{date}}", "syncNow": "Sync", "disconnect": "Scollegare", "disconnectConfirm": "Scollegare Google Calendar?" },
+    "outlookCalendar": { "lastSync": "Ultima sincronia: {{date}}", "syncNow": "Sync", "disconnect": "Scollegare", "disconnectConfirm": "Scollegare Outlook Calendar?" }
   }
 }
