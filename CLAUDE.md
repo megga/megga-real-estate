@@ -581,14 +581,15 @@ Sidebar width :    w-64 (256px)
 - **Canaux** : Email et Messagerie interne uniquement (PAS de WhatsApp — trop complexe à installer)
 - **Recherche** : barre de recherche dans la liste des threads
 
-#### Settings (7 onglets)
+#### Settings (8 onglets)
 - **Profil** : avatar avec modal crop (zoom, rotation, reset), nom, email (non modifiable), téléphone, rôle, langue (pills FR/DE/EN/IT), bio
+- **Apparence** : couleur d'accent, densité, coins, style sidebar, taille texte
 - **Agence** : infos agence, branding
 - **Équipe** : liste membres, invitation (modal createPortal), rôles
 - **Notifications** : toggles email/push par type, toggles en gris moyen en dark mode (pas blanc)
-- **Sécurité** : lier compte Google (OAuth `linkIdentity`), sessions
+- **Sécurité** : mot de passe (connecté Supabase), 2FA (bientôt disponible), Google OAuth link/unlink avec feedback, sessions (bientôt disponible), journal de sécurité (connecté activity_events)
 - **Abonnement** : toggle mensuel/annuel (-20%), 3 plans (Starter gratuit, Pro CHF 89, Agency CHF 249), prix barré en annuel, CTA "Besoin d'un plan sur mesure ?"
-- **Intégrations** : cards par catégorie (Google Calendar, Email/Resend, Portails immobiliers, Import/Export CRM, PostHog, Google Drive/OneDrive)
+- **Applications** : style Stripe Marketplace — 12 apps en grille 4 colonnes avec logos SVG officiels, filtres par catégorie (Tous, Connectés, Calendrier, Email, CRM, Outils). Apps : Email/Resend (connecté), Google Calendar (connectable avec sync), Outlook Calendar, Salesforce, HubSpot, Pipedrive, Zoho CRM, Freshsales, Import/Export CSV, PostHog, Google Drive, OneDrive
 
 ---
 
@@ -1359,7 +1360,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 24 mars 2026)
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 25 mars 2026)
 
 ### ✅ Fonctionnalités LIVE
 
@@ -1434,6 +1435,28 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - Template HTML responsive avec branding MEGGA
 - From : `noreply@megga.ch`
 
+#### Google Calendar Integration — 25 mars 2026
+- **Edge Function** `google-calendar-sync` — 7 actions (save_tokens, list/create/update/delete events, sync_all, disconnect)
+- **Hook** `useGoogleCalendar` — connexion OAuth, sync bidirectionnelle, events Google dans CalendarPage
+- **Migration SQL** : tables `google_calendar_tokens` + `calendar_sync` avec RLS
+- **CalendarPage** : événements Google affichés en violet (lecture seule), auto-sync au CRUD visites
+- **Auth callback** : capture `provider_token` + `provider_refresh_token` si `gcal=1`
+- **Prérequis** : Google Cloud Console (Calendar API activée) + secrets `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`
+- **Statut** : code prêt, en attente de configuration Google Cloud Console (mode Testing)
+
+#### Settings — Audit Sécurité + Applications — 25 mars 2026
+- **SecurityTab** : mot de passe connecté Supabase (`updateUser`), 2FA marqué "Bientôt disponible" (toggle désactivé), sessions marquées "Bientôt disponible" (boutons désactivés), journal de sécurité connecté `activity_events`, Google OAuth link/unlink avec feedback succès/erreur
+- **Applications** (ex-Intégrations) : refonte style Stripe Marketplace — 12 apps en grille 4 colonnes avec logos SVG, filtres par catégorie (Tous, Connectés, Calendrier, Email, CRM, Outils)
+  - **Connectés** : Email/Resend
+  - **Connectable** : Google Calendar (OAuth + sync)
+  - **Bientôt** : Outlook Calendar, Salesforce, HubSpot, Pipedrive, Zoho CRM, Freshsales, Import/Export CSV, PostHog, Google Drive, OneDrive
+- **Portails immobiliers** supprimés (pas d'API publique — SMG/Homegate/ImmoScout24 = jardin fermé)
+
+#### Page Privacy — 25 mars 2026
+- Route `/privacy` — politique de confidentialité conforme LPD suisse (9 sections)
+- Lien "Confidentialité" dans le Footer pointe vers `/privacy`
+- Nécessaire pour Google OAuth consent screen
+
 ### 🔑 Secrets Supabase configurés
 ```
 ANTHROPIC_API_KEY    → Claude API (Sonnet 4)
@@ -1445,7 +1468,7 @@ DILISENSE_API_KEY    → Screening PEP/Sanctions
 - **Project ref** : eayczugyrvmtqnnmvjod
 - **Region** : eu-west-1 (Ireland)
 - **Plan** : Nano (gratuit)
-- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals
+- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync
 
 ### DB — Corrections RLS appliquées (2026-03-23)
 - Récursion infinie `profiles` → fixée avec `get_my_agency_id()` SECURITY DEFINER
@@ -1454,8 +1477,10 @@ DILISENSE_API_KEY    → Screening PEP/Sanctions
 - **À nettoyer pour la prod** : supprimer les policies `anon` et forcer `authenticated` partout
 
 ### Prochaines priorités
-1. **ListingPage connectée** — remplacer getListingById(mockData) par useMarketListing(supabase)
-2. **Matching externe enrichi** — scoring client_searches × market_listings (38K biens)
-3. **Matching interne connecté** — scoring client_searches × properties (mandats agence)
-4. **Script delta automatisé** — GitHub Action quotidien pour scrape-delta.mjs
-5. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action
+1. **Google Calendar** — configurer Google Cloud Console (mode Testing) + déployer Edge Function + appliquer migration SQL
+2. **Logos officiels Applications** — remplacer les 12 SVG approximatifs par les vrais logos officiels de chaque service
+3. **Import/Export CSV** — connecter l'app Import/Export pour permettre la migration depuis Pipedrive/HubSpot/Excel
+4. **ListingPage connectée** — remplacer getListingById(mockData) par useMarketListing(supabase)
+5. **Matching externe enrichi** — scoring client_searches × market_listings (38K biens)
+6. **Matching interne connecté** — scoring client_searches × properties (mandats agence)
+7. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action
