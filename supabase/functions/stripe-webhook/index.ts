@@ -1,233 +1,290 @@
 // supabase/functions/stripe-webhook/index.ts
 // Edge Function pour gérer les webhooks Stripe
-// Met à jour agencies.plan quand un paiement est confirmé
+// Met à jour la table subscriptions quand un événement Stripe arrive
+// AUCUNE AUTH SUPABASE — validation via Stripe webhook signing secret
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 
-const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
-const STRIPE_SECRET_KEY = Deno.env.get('STRIPE_SECRET_KEY') ?? ''
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
+  apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(),
+})
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
 }
 
-// Map Stripe price IDs to MEGGA plan names
-const PRICE_TO_PLAN: Record<string, string> = {
-  [Deno.env.get('STRIPE_PRICE_STARTER') ?? 'price_starter']: 'starter',
-  [Deno.env.get('STRIPE_PRICE_PRO') ?? 'price_pro']: 'pro',
-  [Deno.env.get('STRIPE_PRICE_AGENCY') ?? 'price_agency']: 'agency',
+function getPlanFromPriceId(priceId: string): string {
+  const priceMap: Record<string, string> = {
+    [Deno.env.get('STRIPE_PRICE_PRO_MONTHLY') ?? '']: 'pro',
+    [Deno.env.get('STRIPE_PRICE_PRO_YEARLY') ?? '']: 'pro',
+    [Deno.env.get('STRIPE_PRICE_ENTREPRISE_MONTHLY') ?? '']: 'entreprise',
+    [Deno.env.get('STRIPE_PRICE_ENTREPRISE_YEARLY') ?? '']: 'entreprise',
+  }
+  return priceMap[priceId] || 'starter'
 }
 
-interface StripeEvent {
-  id: string
-  type: string
-  data: {
-    object: Record<string, unknown>
-  }
-}
-
-async function verifyStripeSignature(body: string, signature: string): Promise<StripeEvent | null> {
-  // In production, use Stripe SDK to verify webhook signature
-  // For now, parse the event directly (configure STRIPE_WEBHOOK_SECRET in production)
-  if (!STRIPE_WEBHOOK_SECRET) {
-    console.warn('STRIPE_WEBHOOK_SECRET not set — skipping signature verification')
-    return JSON.parse(body) as StripeEvent
-  }
-
-  // Stripe signature verification using Web Crypto API
-  const parts = signature.split(',')
-  const timestamp = parts.find(p => p.startsWith('t='))?.slice(2)
-  const v1Signature = parts.find(p => p.startsWith('v1='))?.slice(3)
-
-  if (!timestamp || !v1Signature) return null
-
-  const payload = `${timestamp}.${body}`
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(STRIPE_WEBHOOK_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  const signed = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))
-  const expectedSignature = Array.from(new Uint8Array(signed))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-
-  if (expectedSignature !== v1Signature) {
-    console.error('Stripe webhook signature verification failed')
-    return null
-  }
-
-  return JSON.parse(body) as StripeEvent
+function getBillingPeriod(priceId: string): string {
+  const yearlyPrices = [
+    Deno.env.get('STRIPE_PRICE_PRO_YEARLY'),
+    Deno.env.get('STRIPE_PRICE_ENTREPRISE_YEARLY'),
+  ]
+  return yearlyPrices.includes(priceId) ? 'yearly' : 'monthly'
 }
 
 serve(async (req) => {
-  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const body = await req.text()
-    const signature = req.headers.get('stripe-signature') ?? ''
+    const signature = req.headers.get('stripe-signature')!
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
 
-    const event = await verifyStripeSignature(body, signature)
-    if (!event) {
-      return new Response('Invalid signature', { status: 400, headers: corsHeaders })
+    let event: Stripe.Event
+    try {
+      event = await stripe.webhooks.constructEventAsync(
+        body, signature, webhookSecret
+      )
+    } catch (err) {
+      console.error('Webhook signature verification failed:', (err as Error).message)
+      return new Response(`Webhook Error: ${(err as Error).message}`, { status: 400 })
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
     switch (event.type) {
-      // Checkout completed — activate subscription
+      // ─── Checkout completed — activate subscription ───
       case 'checkout.session.completed': {
-        const session = event.data.object as Record<string, unknown>
-        const customerId = session.customer as string
+        const session = event.data.object as Stripe.Checkout.Session
         const subscriptionId = session.subscription as string
-        const agencyId = (session.metadata as Record<string, string>)?.agency_id
+        const customerId = session.customer as string
+
+        // Retrieve full subscription from Stripe
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+        const priceId = subscription.items.data[0].price.id
+        const agencyId = subscription.metadata.agency_id
 
         if (!agencyId) {
-          console.error('No agency_id in checkout session metadata')
+          console.error('No agency_id in subscription metadata')
           break
         }
 
-        // Get subscription details to find the plan
-        const subResponse = await fetch(
-          `https://api.stripe.com/v1/subscriptions/${subscriptionId}`,
-          {
-            headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
-          }
-        )
-        const subscription = await subResponse.json()
-        const priceId = subscription.items?.data?.[0]?.price?.id ?? ''
-        const plan = PRICE_TO_PLAN[priceId] ?? 'starter'
-
-        // Update agency plan + store Stripe customer ID
-        const { error } = await supabase
-          .from('agencies')
-          .update({
-            plan,
+        // UPSERT subscription in DB
+        const { error } = await supabaseAdmin
+          .from('subscriptions')
+          .upsert({
+            agency_id: agencyId,
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
-          })
+            stripe_price_id: priceId,
+            plan: getPlanFromPriceId(priceId),
+            billing_period: getBillingPeriod(priceId),
+            status: 'active',
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'agency_id' })
+
+        if (error) console.error('Failed to upsert subscription:', error)
+
+        // Update agencies.stripe_customer_id
+        await supabaseAdmin
+          .from('agencies')
+          .update({ stripe_customer_id: customerId })
           .eq('id', agencyId)
 
-        if (error) console.error('Failed to update agency plan:', error)
-
         // Log activity event
-        await supabase.from('activity_events').insert({
+        await supabaseAdmin.from('activity_events').insert({
           agency_id: agencyId,
           actor_id: 'system',
           action: 'subscription_activated',
           entity_type: 'agency',
           entity_id: agencyId,
-          metadata: { plan, stripe_customer_id: customerId },
+          metadata: {
+            plan: getPlanFromPriceId(priceId),
+            stripe_customer_id: customerId,
+            billing_period: getBillingPeriod(priceId),
+          },
         })
 
-        console.log(`Agency ${agencyId} upgraded to ${plan}`)
+        console.log(`Agency ${agencyId} subscription activated: ${getPlanFromPriceId(priceId)}`)
         break
       }
 
-      // Subscription updated (plan change)
+      // ─── Subscription updated (plan change, renewal, etc.) ───
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Record<string, unknown>
-        const priceId = (subscription.items as Record<string, unknown[]>)?.data?.[0]?.price?.id ?? ''
-        const plan = PRICE_TO_PLAN[priceId as string] ?? 'starter'
+        const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
-        const status = subscription.status as string
+        const priceId = subscription.items.data[0].price.id
+        const plan = getPlanFromPriceId(priceId)
+        const status = subscription.status
 
-        // Find agency by Stripe customer ID
-        const { data: agency } = await supabase
-          .from('agencies')
-          .select('id')
+        // Find agency by stripe_customer_id
+        const { data: sub } = await supabaseAdmin
+          .from('subscriptions')
+          .select('agency_id')
           .eq('stripe_customer_id', customerId)
-          .single()
+          .maybeSingle()
 
-        if (!agency) {
+        // Fallback: check agencies table
+        let agencyId = sub?.agency_id
+        if (!agencyId) {
+          const { data: agency } = await supabaseAdmin
+            .from('agencies')
+            .select('id')
+            .eq('stripe_customer_id', customerId)
+            .maybeSingle()
+          agencyId = agency?.id
+        }
+
+        if (!agencyId) {
           console.error('No agency found for Stripe customer:', customerId)
           break
         }
 
-        // Update plan (only if subscription is active)
-        if (status === 'active' || status === 'trialing') {
-          await supabase
-            .from('agencies')
-            .update({ plan })
-            .eq('id', agency.id)
+        // Update subscription
+        await supabaseAdmin
+          .from('subscriptions')
+          .upsert({
+            agency_id: agencyId,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscription.id,
+            stripe_price_id: priceId,
+            plan,
+            billing_period: getBillingPeriod(priceId),
+            status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'agency_id' })
 
-          await supabase.from('activity_events').insert({
-            agency_id: agency.id,
-            actor_id: 'system',
-            action: 'subscription_changed',
-            entity_type: 'agency',
-            entity_id: agency.id,
-            metadata: { plan, status },
-          })
-        }
+        // Log activity
+        await supabaseAdmin.from('activity_events').insert({
+          agency_id: agencyId,
+          actor_id: 'system',
+          action: 'subscription_changed',
+          entity_type: 'agency',
+          entity_id: agencyId,
+          metadata: { plan, status, billing_period: getBillingPeriod(priceId) },
+        })
+
+        console.log(`Agency ${agencyId} subscription updated: ${plan} (${status})`)
         break
       }
 
-      // Payment failed
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as Record<string, unknown>
-        const customerId = invoice.customer as string
-
-        const { data: agency } = await supabase
-          .from('agencies')
-          .select('id')
-          .eq('stripe_customer_id', customerId)
-          .single()
-
-        if (agency) {
-          await supabase.from('activity_events').insert({
-            agency_id: agency.id,
-            actor_id: 'system',
-            action: 'payment_failed',
-            entity_type: 'agency',
-            entity_id: agency.id,
-            metadata: { invoice_id: invoice.id },
-          })
-          console.warn(`Payment failed for agency ${agency.id}`)
-        }
-        break
-      }
-
-      // Subscription cancelled
+      // ─── Subscription deleted (cancelled) ───
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Record<string, unknown>
+        const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
 
-        const { data: agency } = await supabase
-          .from('agencies')
-          .select('id')
+        const { data: sub } = await supabaseAdmin
+          .from('subscriptions')
+          .select('agency_id')
           .eq('stripe_customer_id', customerId)
-          .single()
+          .maybeSingle()
 
-        if (agency) {
-          // Downgrade to starter
-          await supabase
+        let agencyId = sub?.agency_id
+        if (!agencyId) {
+          const { data: agency } = await supabaseAdmin
             .from('agencies')
-            .update({
-              plan: 'starter',
-              stripe_subscription_id: null,
-            })
-            .eq('id', agency.id)
+            .select('id')
+            .eq('stripe_customer_id', customerId)
+            .maybeSingle()
+          agencyId = agency?.id
+        }
 
-          await supabase.from('activity_events').insert({
-            agency_id: agency.id,
+        if (agencyId) {
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({
+              status: 'canceled',
+              plan: 'starter',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('agency_id', agencyId)
+
+          await supabaseAdmin.from('activity_events').insert({
+            agency_id: agencyId,
             actor_id: 'system',
             action: 'subscription_cancelled',
             entity_type: 'agency',
-            entity_id: agency.id,
+            entity_id: agencyId,
             metadata: { previous_customer_id: customerId },
           })
-          console.log(`Agency ${agency.id} downgraded to starter (subscription cancelled)`)
+
+          console.log(`Agency ${agencyId} subscription cancelled → starter`)
+        }
+        break
+      }
+
+      // ─── Payment failed ───
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice
+        const customerId = invoice.customer as string
+
+        const { data: sub } = await supabaseAdmin
+          .from('subscriptions')
+          .select('agency_id')
+          .eq('stripe_customer_id', customerId)
+          .maybeSingle()
+
+        const agencyId = sub?.agency_id
+        if (agencyId) {
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({
+              status: 'past_due',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('agency_id', agencyId)
+
+          await supabaseAdmin.from('activity_events').insert({
+            agency_id: agencyId,
+            actor_id: 'system',
+            action: 'payment_failed',
+            entity_type: 'agency',
+            entity_id: agencyId,
+            metadata: { invoice_id: invoice.id },
+          })
+
+          console.warn(`Payment failed for agency ${agencyId}`)
+        }
+        break
+      }
+
+      // ─── Payment succeeded ───
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice
+        const customerId = invoice.customer as string
+
+        const { data: sub } = await supabaseAdmin
+          .from('subscriptions')
+          .select('agency_id')
+          .eq('stripe_customer_id', customerId)
+          .maybeSingle()
+
+        const agencyId = sub?.agency_id
+        if (agencyId && invoice.lines?.data?.[0]?.period) {
+          const period = invoice.lines.data[0].period
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({
+              status: 'active',
+              current_period_start: new Date(period.start * 1000).toISOString(),
+              current_period_end: new Date(period.end * 1000).toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('agency_id', agencyId)
         }
         break
       }

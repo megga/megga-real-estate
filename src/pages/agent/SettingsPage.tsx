@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -7,13 +7,15 @@ import {
   Smartphone,
   Monitor, KeyRound,
   ShieldCheck, AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useStripe } from '@/hooks/useStripe'
+import { useSubscription } from '@/hooks/useSubscription'
 import { useAvatar } from '@/hooks/useAvatar'
+import { STRIPE_PRICES } from '@/lib/constants'
 import AvatarCropModal from '@/components/profile/AvatarCropModal'
 import PageTransition from '@/components/layout/PageTransition'
 
@@ -782,13 +784,12 @@ function SecurityTab() {
 
 interface PlanFeature { textKey: string; included: boolean }
 interface PlanConfig {
-  planId: 'starter' | 'pro' | 'agency'
+  planId: 'starter' | 'pro' | 'entreprise'
   nameKey: string
   descriptionKey: string
   monthlyPrice: number // 0 = free
-  annualPrice: number  // 0 = free
+  annualPrice: number  // per month when billed annually
   features: PlanFeature[]
-  isCurrent?: boolean
   isPopular?: boolean
 }
 
@@ -808,7 +809,7 @@ const PLANS: PlanConfig[] = [
   },
   {
     planId: 'pro', nameKey: 'subscription.plans.pro.name', descriptionKey: 'subscription.plans.pro.description',
-    monthlyPrice: 89, annualPrice: 71, isCurrent: true, isPopular: true,
+    monthlyPrice: 89, annualPrice: 890, isPopular: true,
     features: [
       { textKey: 'subscription.features.unlimitedProperties', included: true },
       { textKey: 'subscription.features.unlimitedContacts', included: true },
@@ -820,8 +821,8 @@ const PLANS: PlanConfig[] = [
     ],
   },
   {
-    planId: 'agency', nameKey: 'subscription.plans.agency.name', descriptionKey: 'subscription.plans.agency.description',
-    monthlyPrice: 249, annualPrice: 199,
+    planId: 'entreprise', nameKey: 'subscription.plans.entreprise.name', descriptionKey: 'subscription.plans.entreprise.description',
+    monthlyPrice: 249, annualPrice: 2490,
     features: [
       { textKey: 'subscription.features.allPro', included: true },
       { textKey: 'subscription.features.upTo10Agents', included: true },
@@ -836,8 +837,99 @@ const PLANS: PlanConfig[] = [
 
 function SubscriptionTab() {
   const { t } = useTranslation('settings')
-  const { checkout, manageSubscription, isLoading: stripeLoading, error: stripeError } = useStripe()
+  const {
+    subscription,
+    isLoading: subLoading,
+    error: subError,
+    currentPlan,
+    isActive,
+    createCheckout,
+    isCheckoutLoading,
+    openPortal,
+    isPortalLoading,
+    invalidate,
+  } = useSubscription()
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+
+  // Handle return from Stripe Checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+
+    if (params.get('success') === 'true') {
+      invalidate()
+    }
+
+    if (params.get('canceled') === 'true') {
+      // User cancelled — no action needed beyond cleanup
+    }
+
+    // Clean up query params
+    if (params.has('success') || params.has('canceled')) {
+      window.history.replaceState({}, '', window.location.pathname + '?tab=abonnement')
+    }
+  }, [invalidate])
+
+  const handleCheckout = async (priceId: string | undefined) => {
+    setCheckoutError(null)
+    if (!priceId) {
+      setCheckoutError('Configuration Stripe manquante. Contactez le support.')
+      return
+    }
+    try {
+      await createCheckout(priceId)
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : 'Erreur')
+    }
+  }
+
+  const handlePortal = async () => {
+    setCheckoutError(null)
+    try {
+      await openPortal()
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : 'Erreur')
+    }
+  }
+
+  const isStripeLoading = isCheckoutLoading || isPortalLoading
+
+  // Format renewal date
+  const renewalDate = subscription?.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : null
+
+  // Plan display info
+  const planLabels: Record<string, string> = {
+    starter: 'Starter',
+    pro: 'Pro',
+    entreprise: 'Entreprise',
+  }
+  const planPrices: Record<string, string> = {
+    starter: 'Gratuit',
+    pro: subscription?.billing_period === 'yearly' ? 'CHF 890/an' : 'CHF 89/mois',
+    entreprise: subscription?.billing_period === 'yearly' ? "CHF 2'490/an" : 'CHF 249/mois',
+  }
+
+  // Determine CTA for each plan card
+  const getPlanCta = (plan: PlanConfig) => {
+    const isCurrent = plan.planId === currentPlan
+    if (isCurrent) return 'current'
+
+    // Starter: if current plan is paid, user should use portal to downgrade
+    if (plan.planId === 'starter' && currentPlan !== 'starter') return 'portal'
+
+    // Upgrade from starter → direct checkout
+    if (currentPlan === 'starter') return 'checkout'
+
+    // Plan change between paid plans → portal
+    return 'portal'
+  }
+
+  const getPriceId = (planId: 'pro' | 'entreprise'): string | undefined => {
+    const period = billing === 'annual' ? 'yearly' : 'monthly'
+    return STRIPE_PRICES[planId]?.[period]
+  }
 
   return (
     <div className="space-y-6">
@@ -846,27 +938,58 @@ function SubscriptionTab() {
         <p className="text-sm text-theme-muted mt-1">{t('subscription.subtitle')}</p>
       </div>
 
-      {/* Current plan — clean, no accent border */}
+      {/* Current plan */}
       <div className={cn(cardClasses, 'p-5')}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-theme-primary">Plan Pro</h3>
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">{t('subscription.currentBadge')}</span>
-              </div>
-              <p className="text-xs text-theme-muted mt-0.5">CHF 89{t('subscription.perMonth')} — {t('subscription.renewalDate', { date: '01.04.2026' })}</p>
-            </div>
+        {subLoading && !subError ? (
+          <div className="flex items-center gap-2 text-theme-muted">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Chargement...</span>
           </div>
-          <button
-            onClick={() => manageSubscription()}
-            disabled={stripeLoading}
-            className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
-          >
-            {stripeLoading ? t('subscription.redirecting') : t('subscription.manage')}
-          </button>
-        </div>
-        {stripeError && <p className="text-xs text-danger mt-2">{stripeError}</p>}
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-theme-primary">Plan {planLabels[currentPlan]}</h3>
+                  {isActive && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">{t('subscription.currentBadge')}</span>
+                  )}
+                  {subscription?.status === 'past_due' && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-red-500">Paiement échoué</span>
+                  )}
+                  {subscription?.cancel_at_period_end && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500">Annulation prévue</span>
+                  )}
+                </div>
+                <p className="text-xs text-theme-muted mt-0.5">
+                  {planPrices[currentPlan]}
+                  {renewalDate && !subscription?.cancel_at_period_end && ` — Renouvelé le ${renewalDate}`}
+                  {renewalDate && subscription?.cancel_at_period_end && ` — Annulation prévue le ${renewalDate}`}
+                </p>
+              </div>
+            </div>
+            {currentPlan !== 'starter' && (
+              <button
+                onClick={handlePortal}
+                disabled={isStripeLoading}
+                className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isPortalLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                {isPortalLoading ? 'Redirection...' : t('subscription.manage')}
+              </button>
+            )}
+            {subscription?.status === 'past_due' && (
+              <button
+                onClick={handlePortal}
+                disabled={isStripeLoading}
+                className="h-8 px-3 rounded-lg text-xs font-medium border border-red-500/30 text-red-500 hover:border-red-500 transition-colors disabled:opacity-50"
+              >
+                Mettre à jour le moyen de paiement
+              </button>
+            )}
+          </div>
+        )}
+        {checkoutError && <p className="text-xs text-red-500 mt-2">{checkoutError}</p>}
       </div>
 
       {/* Billing toggle + Plans */}
@@ -883,7 +1006,7 @@ function SubscriptionTab() {
                 billing === 'monthly' ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
               )}
             >
-              {t('subscription.monthly')}
+              Mensuel
             </button>
             <button
               onClick={() => setBilling('annual')}
@@ -892,8 +1015,8 @@ function SubscriptionTab() {
                 billing === 'annual' ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
               )}
             >
-              {t('subscription.annual')}
-              <span className="text-[10px] font-semibold text-emerald-500">{t('subscription.annualDiscount')}</span>
+              Annuel
+              <span className="text-[10px] font-semibold text-emerald-500">2 mois offerts</span>
             </button>
           </div>
         </div>
@@ -901,9 +1024,13 @@ function SubscriptionTab() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map(plan => {
             const isFree = plan.monthlyPrice === 0
-            const price = isFree ? t('subscription.free') : `CHF ${billing === 'monthly' ? plan.monthlyPrice : plan.annualPrice}`
-            const monthlyOriginal = plan.monthlyPrice
-            const annualSaving = isFree ? 0 : (plan.monthlyPrice - plan.annualPrice) * 12
+            const price = isFree
+              ? 'Gratuit'
+              : billing === 'monthly'
+                ? `CHF ${plan.monthlyPrice}`
+                : `CHF ${plan.annualPrice >= 1000 ? plan.annualPrice.toLocaleString('fr-CH') : plan.annualPrice}`
+            const period = isFree ? '' : billing === 'monthly' ? '/mois' : '/an'
+            const ctaType = getPlanCta(plan)
 
             return (
               <div
@@ -913,11 +1040,11 @@ function SubscriptionTab() {
                   plan.isPopular ? 'border-theme-primary' : 'border-theme-border',
                 )}
               >
-                {/* Popular badge — text only, no bg */}
+                {/* Popular badge */}
                 {plan.isPopular && (
                   <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
                     <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-theme-page border border-theme-primary text-theme-primary">
-                      {t('subscription.popular')}
+                      Populaire
                     </span>
                   </div>
                 )}
@@ -928,25 +1055,22 @@ function SubscriptionTab() {
                   {/* Price */}
                   <div className="mt-3">
                     <span className="text-3xl font-bold text-theme-primary">{price}</span>
-                    {!isFree && <span className="text-sm text-theme-muted">{t('subscription.perMonth')}</span>}
+                    {!isFree && <span className="text-sm text-theme-muted">{period}</span>}
                   </div>
 
                   {/* Annual savings */}
                   {!isFree && billing === 'annual' && (
                     <div className="mt-1.5 space-y-0.5">
-                      <p className="text-xs text-theme-muted line-through">CHF {monthlyOriginal}{t('subscription.perMonth')}</p>
-                      <p className="text-xs font-medium text-emerald-500">{t('subscription.annualSaving', { amount: `CHF ${annualSaving}` })}</p>
+                      <p className="text-xs text-theme-muted line-through">CHF {plan.monthlyPrice * 12}/an</p>
+                      <p className="text-xs font-medium text-emerald-500">2 mois offerts</p>
                     </div>
                   )}
-                  {!isFree && billing === 'monthly' && (
-                    <p className="text-xs text-theme-muted mt-1.5">{t(plan.descriptionKey)}</p>
-                  )}
-                  {isFree && (
+                  {(isFree || billing === 'monthly') && (
                     <p className="text-xs text-theme-muted mt-1.5">{t(plan.descriptionKey)}</p>
                   )}
                 </div>
 
-                {/* Features — text with opacity, no icons */}
+                {/* Features */}
                 <div className="space-y-2 mb-6">
                   {plan.features.map((feat, i) => (
                     <p key={i} className={cn(
@@ -959,19 +1083,31 @@ function SubscriptionTab() {
                 </div>
 
                 {/* CTA */}
-                {plan.isCurrent ? (
+                {ctaType === 'current' ? (
                   <button disabled className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-tertiary cursor-not-allowed opacity-50">
-                    {t('subscription.currentPlan')}
+                    Plan actuel
                   </button>
-                ) : (
+                ) : ctaType === 'checkout' && plan.planId !== 'starter' ? (
                   <button
-                    onClick={() => checkout(plan.planId)}
-                    disabled={stripeLoading}
-                    className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+                    onClick={() => handleCheckout(getPriceId(plan.planId as 'pro' | 'entreprise'))}
+                    disabled={isStripeLoading}
+                    className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
-                    {stripeLoading ? t('subscription.redirecting') : t('subscription.choose')}
+                    {isCheckoutLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {isCheckoutLoading
+                      ? 'Redirection...'
+                      : plan.planId === 'pro' ? 'Passer au Pro' : 'Passer à Entreprise'}
                   </button>
-                )}
+                ) : ctaType === 'portal' ? (
+                  <button
+                    onClick={handlePortal}
+                    disabled={isStripeLoading}
+                    className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {isPortalLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {isPortalLoading ? 'Redirection...' : 'Changer de plan'}
+                  </button>
+                ) : null}
               </div>
             )
           })}
@@ -980,13 +1116,13 @@ function SubscriptionTab() {
 
       {/* Custom plan CTA */}
       <div className="rounded-xl border border-theme-border p-6 text-center">
-        <p className="text-sm text-theme-primary font-medium">{t('subscription.custom.title')}</p>
-        <p className="text-xs text-theme-tertiary mt-1">{t('subscription.custom.description')}</p>
+        <p className="text-sm text-theme-primary font-medium">Besoin d'un plan sur mesure ?</p>
+        <p className="text-xs text-theme-tertiary mt-1">Pour les grandes agences ou les besoins spécifiques, nous proposons des solutions personnalisées.</p>
         <a
           href="mailto:contact@megga.ch?subject=Plan sur mesure MEGGA"
           className="inline-flex items-center h-9 px-4 mt-3 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
         >
-          {t('subscription.custom.cta')}
+          Contactez-nous
         </a>
       </div>
     </div>

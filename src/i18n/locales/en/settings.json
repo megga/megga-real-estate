@@ -177,7 +177,11 @@
         "description": "For agents who want to go further."
       },
       "agency": {
-        "name": "Agency",
+        "name": "Entreprise",
+        "description": "For agencies with a team."
+      },
+      "entreprise": {
+        "name": "Entreprise",
         "description": "For agencies with a team."
       }
     },
