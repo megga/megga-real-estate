@@ -108,6 +108,7 @@ export function applyPreferences(prefs: DashboardPreferences, theme: 'light' | '
 
 export function usePreferences() {
   const { profile } = useAuth()
+  const profileId = profile?.id
   const [preferences, setPreferences] = useState<DashboardPreferences>(loadFromStorage)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -119,12 +120,12 @@ export function usePreferences() {
 
   // Sync from Supabase on profile load
   useEffect(() => {
-    if (!profile?.id) return
+    if (!profileId) return
 
     supabase
       .from('profiles')
       .select('preferences')
-      .eq('id', profile.id)
+      .eq('id', profileId)
       .single()
       .then(({ data }) => {
         if (data?.preferences && typeof data.preferences === 'object') {
@@ -135,20 +136,20 @@ export function usePreferences() {
           applyPreferences(merged, theme)
         }
       })
-  }, [profile?.id])
+  }, [profileId])
 
   // Save to Supabase (debounced)
   const saveToSupabase = useCallback((prefs: DashboardPreferences) => {
-    if (!profile?.id) return
+    if (!profileId) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       supabase
         .from('profiles')
         .update({ preferences: prefs })
-        .eq('id', profile.id)
+        .eq('id', profileId)
         .then(() => { /* silent */ })
     }, 500)
-  }, [profile?.id])
+  }, [profileId])
 
   // Update a single preference
   const updatePreference = useCallback(<K extends keyof DashboardPreferences>(
