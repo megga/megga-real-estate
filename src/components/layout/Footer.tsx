@@ -22,7 +22,7 @@ const LINKS_MEGGA = [
   { label: 'Centre d\'aide', href: '/aide' },
   { label: 'Contact', href: '/services' },
   { label: 'Mentions légales', href: '/services' },
-  { label: 'Confidentialité', href: '/services' },
+  { label: 'Confidentialité', href: '/privacy' },
   { label: 'CGU', href: '/services' },
 ];
 
