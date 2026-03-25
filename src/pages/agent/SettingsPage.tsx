@@ -6,14 +6,7 @@ import {
   X,
   Loader2,
   MoreHorizontal,
-  Calendar,
-  Mail,
-  Globe,
-  Upload,
-  BarChart3,
-  Cloud,
 } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 
 import { supabase } from '@/lib/supabase'
@@ -28,7 +21,7 @@ import PageTransition from '@/components/layout/PageTransition'
 
 /* ─── Tab Types ─── */
 
-const TABS = ['profile', 'appearance', 'agency', 'team', 'notifications', 'security', 'subscription', 'integrations'] as const
+const TABS = ['profile', 'appearance', 'agency', 'team', 'notifications', 'security', 'subscription', 'applications'] as const
 type SettingsTab = typeof TABS[number]
 
 /* ─── Shared Styles ─── */
@@ -1710,235 +1703,208 @@ function SubscriptionTab() {
   )
 }
 
-/* ─── Integrations Tab ─── */
+/* ─── Applications Tab (Stripe Marketplace style) ─── */
 
-interface Integration {
+type AppCategory = 'calendar' | 'email' | 'crm' | 'tools'
+
+interface AppIntegration {
   id: string
-  icon: LucideIcon
-  nameKey: string
-  shortDescKey: string
+  category: AppCategory
   isConnected: boolean
   comingSoon?: boolean
-  category: 'essential' | 'recommended'
 }
 
-const INTEGRATIONS: Integration[] = [
-  {
-    id: 'email',
-    icon: Mail,
-    nameKey: 'integrations.email.name',
-    shortDescKey: 'integrations.email.shortDesc',
-    isConnected: true,
-    category: 'essential',
-  },
-  {
-    id: 'google-calendar',
-    icon: Calendar,
-    nameKey: 'integrations.googleCalendar.name',
-    shortDescKey: 'integrations.googleCalendar.shortDesc',
-    isConnected: false,
-    category: 'essential',
-  },
-  {
-    id: 'portals',
-    icon: Globe,
-    nameKey: 'integrations.portals.name',
-    shortDescKey: 'integrations.portals.shortDesc',
-    isConnected: false,
-    comingSoon: true,
-    category: 'essential',
-  },
-  {
-    id: 'crm-import',
-    icon: Upload,
-    nameKey: 'integrations.crmImport.name',
-    shortDescKey: 'integrations.crmImport.shortDesc',
-    isConnected: false,
-    comingSoon: true,
-    category: 'recommended',
-  },
-  {
-    id: 'posthog',
-    icon: BarChart3,
-    nameKey: 'integrations.posthog.name',
-    shortDescKey: 'integrations.posthog.shortDesc',
-    isConnected: false,
-    comingSoon: true,
-    category: 'recommended',
-  },
-  {
-    id: 'cloud-storage',
-    icon: Cloud,
-    nameKey: 'integrations.cloudStorage.name',
-    shortDescKey: 'integrations.cloudStorage.shortDesc',
-    isConnected: false,
-    comingSoon: true,
-    category: 'recommended',
-  },
+const APPS: AppIntegration[] = [
+  // Email
+  { id: 'resend', category: 'email', isConnected: true },
+  // Calendar
+  { id: 'google-calendar', category: 'calendar', isConnected: false },
+  { id: 'outlook-calendar', category: 'calendar', isConnected: false, comingSoon: true },
+  // CRM
+  { id: 'salesforce', category: 'crm', isConnected: false, comingSoon: true },
+  { id: 'hubspot', category: 'crm', isConnected: false, comingSoon: true },
+  { id: 'pipedrive', category: 'crm', isConnected: false, comingSoon: true },
+  { id: 'zoho', category: 'crm', isConnected: false, comingSoon: true },
+  { id: 'freshsales', category: 'crm', isConnected: false, comingSoon: true },
+  // Tools
+  { id: 'csv-import', category: 'tools', isConnected: false, comingSoon: true },
+  { id: 'posthog', category: 'tools', isConnected: false, comingSoon: true },
+  { id: 'google-drive', category: 'tools', isConnected: false, comingSoon: true },
+  { id: 'onedrive', category: 'tools', isConnected: false, comingSoon: true },
 ]
 
-function IntegrationCard({ integration }: { integration: Integration }) {
+// ── Official SVG Logos ──
+
+function AppLogo({ id, className }: { id: string; className?: string }) {
+  const size = className ?? 'w-8 h-8'
+  switch (id) {
+    case 'resend':
+      return <svg className={size} viewBox="0 0 24 24" fill="none"><path d="M3 6.5h9.5a5.5 5.5 0 0 1 0 11H9v-5h3.5a2 2 0 0 0 0-4H5.5v12" stroke="currentColor" strokeWidth="1.8" className="text-theme-primary" /></svg>
+    case 'google-calendar':
+      return <svg className={size} viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#fff" stroke="#4285F4" strokeWidth="1.5"/><rect x="3" y="3" width="18" height="5" rx="2" fill="#4285F4"/><text x="12" y="17" textAnchor="middle" fontSize="8" fontWeight="700" fill="#4285F4">31</text></svg>
+    case 'outlook-calendar':
+      return <svg className={size} viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#0078D4"/><rect x="5" y="8" width="14" height="11" rx="1" fill="#fff"/><text x="12" y="17" textAnchor="middle" fontSize="7" fontWeight="700" fill="#0078D4">31</text></svg>
+    case 'salesforce':
+      return <svg className={size} viewBox="0 0 24 24"><path d="M10 5.5a4 4 0 0 1 7.2 1.3 3.5 3.5 0 0 1 2.3 6.2 3.5 3.5 0 0 1-4.5 3.5 4 4 0 0 1-6.5.5 3.5 3.5 0 0 1-5-3.5A3.5 3.5 0 0 1 6 7a4 4 0 0 1 4-1.5z" fill="#00A1E0"/></svg>
+    case 'hubspot':
+      return <svg className={size} viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="none" stroke="#FF7A59" strokeWidth="1.8"/><circle cx="12" cy="10" r="1" fill="#FF7A59"/><line x1="12" y1="13" x2="12" y2="17" stroke="#FF7A59" strokeWidth="1.8"/><circle cx="12" cy="19" r="1.5" fill="none" stroke="#FF7A59" strokeWidth="1.5"/><line x1="17" y1="7" x2="14.5" y2="8.5" stroke="#FF7A59" strokeWidth="1.5"/><circle cx="18" cy="6" r="1.2" fill="#FF7A59"/></svg>
+    case 'pipedrive':
+      return <svg className={size} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#017737" strokeWidth="2"/><path d="M12 7v6l4 2" stroke="#017737" strokeWidth="2" strokeLinecap="round"/></svg>
+    case 'zoho':
+      return <svg className={size} viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3" fill="#E42527"/><text x="12" y="15.5" textAnchor="middle" fontSize="7" fontWeight="700" fill="#fff" fontFamily="sans-serif">Z</text></svg>
+    case 'freshsales':
+      return <svg className={size} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#05B2DC"/><path d="M8 14c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="#fff" strokeWidth="1.5" fill="none"/><circle cx="12" cy="8" r="2" fill="#fff"/></svg>
+    case 'csv-import':
+      return <svg className={size} viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-theme-secondary"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" className="text-theme-muted"/></svg>
+    case 'posthog':
+      return <svg className={size} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#1D4AFF"/><text x="12" y="16" textAnchor="middle" fontSize="10" fill="#F9BD2B">🦔</text></svg>
+    case 'google-drive':
+      return <svg className={size} viewBox="0 0 24 24"><path d="M8.5 4h7l5.5 9.5H14L8.5 4z" fill="#FBBC05"/><path d="M3 13.5L8.5 4l5.5 9.5H3z" fill="#34A853"/><path d="M3 13.5h11l2.5 4.5H5.5L3 13.5z" fill="#4285F4"/></svg>
+    case 'onedrive':
+      return <svg className={size} viewBox="0 0 24 24"><path d="M9.5 14.5l3-5a5 5 0 0 1 8.5 3.5h.5a3 3 0 0 1 0 6H5a4 4 0 0 1-.5-8l2-1" fill="none" stroke="#0078D4" strokeWidth="1.5"/><path d="M5 19a4 4 0 0 1-.5-8 5 5 0 0 1 8-3" fill="none" stroke="#0364B8" strokeWidth="1.5"/></svg>
+    default:
+      return <div className={cn(size, 'rounded bg-theme-hover')} />
+  }
+}
+
+// ── App Card ──
+
+function AppCard({ app }: { app: AppIntegration }) {
   const { t } = useTranslation('settings')
-  const Icon = integration.icon
 
   return (
     <div className={cn(
-      cardClasses, 'p-4 flex items-center gap-4 transition-colors',
-      integration.comingSoon && 'opacity-60',
-      integration.isConnected && 'border-l-2 border-l-emerald-500'
+      cardClasses, 'p-5 flex flex-col items-center text-center transition-colors hover:border-theme-active',
+      app.comingSoon && 'opacity-50',
     )}>
-      {/* Icon */}
-      <div className={cn(
-        'w-10 h-10 rounded-lg border border-theme-border flex items-center justify-center shrink-0',
-        integration.isConnected && 'border-emerald-500/30'
-      )}>
-        <Icon className={cn(
-          'w-5 h-5',
-          integration.isConnected ? 'text-emerald-500' : 'text-theme-secondary'
-        )} />
+      {/* Logo */}
+      <div className="mb-3">
+        <AppLogo id={app.id} />
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-theme-primary truncate">{t(integration.nameKey)}</p>
-        <p className="text-xs text-theme-tertiary mt-0.5 truncate">{t(integration.shortDescKey)}</p>
-      </div>
+      {/* Name */}
+      <p className="text-sm font-semibold text-theme-primary">{t(`apps.${app.id}.name`)}</p>
+      <p className="text-xs text-theme-tertiary mt-1 line-clamp-2">{t(`apps.${app.id}.desc`)}</p>
 
       {/* Status */}
-      <div className="flex items-center gap-2 shrink-0">
-        <span className={cn(
-          'w-1.5 h-1.5 rounded-full',
-          integration.isConnected ? 'bg-emerald-500' : 'bg-theme-muted'
-        )} />
-        <span className={cn(
-          'text-xs font-medium',
-          integration.isConnected ? 'text-emerald-500' : 'text-theme-muted'
-        )}>
-          {integration.isConnected
-            ? t('integrations.status.connected')
-            : integration.comingSoon
-              ? t('integrations.status.comingSoon')
-              : t('integrations.status.notConnected')
-          }
-        </span>
+      <div className="mt-auto pt-4">
+        {app.isConnected ? (
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-xs font-medium text-emerald-500">{t('apps.status.connected')}</span>
+          </div>
+        ) : app.comingSoon ? (
+          <span className="text-xs font-medium text-theme-muted">{t('apps.status.comingSoon')}</span>
+        ) : (
+          <button className="h-7 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+            {t('apps.status.connect')}
+          </button>
+        )}
       </div>
     </div>
   )
 }
 
-function GoogleCalendarCard() {
+// ── Google Calendar Card (special — has connect/sync/disconnect) ──
+
+function GoogleCalendarAppCard() {
   const { t } = useTranslation('settings')
   const { isConnected, isLoading, googleEmail, connectGoogleCalendar, disconnectGoogleCalendar, isDisconnecting, syncAll, isSyncing, lastSyncAt } = useGoogleCalendar()
 
-  if (isLoading) {
-    return (
-      <div className={cn(cardClasses, 'p-4 flex items-center gap-4')}>
-        <div className="w-10 h-10 rounded-lg border border-theme-border flex items-center justify-center shrink-0">
-          <Loader2 className="w-4 h-4 animate-spin text-theme-muted" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-theme-primary">Google Calendar</p>
-          <p className="text-xs text-theme-tertiary mt-0.5">...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className={cn(
-      cardClasses, 'p-4 transition-colors',
-      isConnected && 'border-l-2 border-l-emerald-500'
-    )}>
-      <div className="flex items-center gap-4">
-        <div className={cn(
-          'w-10 h-10 rounded-lg border border-theme-border flex items-center justify-center shrink-0',
-          isConnected && 'border-emerald-500/30'
-        )}>
-          <Calendar className={cn('w-5 h-5', isConnected ? 'text-emerald-500' : 'text-theme-secondary')} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-theme-primary truncate">Google Calendar</p>
-          <p className="text-xs text-theme-tertiary mt-0.5 truncate">
-            {isConnected && googleEmail
-              ? googleEmail
-              : t('integrations.googleCalendar.shortDesc')
-            }
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={cn('w-1.5 h-1.5 rounded-full', isConnected ? 'bg-emerald-500' : 'bg-theme-muted')} />
-          <span className={cn('text-xs font-medium', isConnected ? 'text-emerald-500' : 'text-theme-muted')}>
-            {isConnected ? t('integrations.status.connected') : t('integrations.status.notConnected')}
-          </span>
-        </div>
+    <div className={cn(cardClasses, 'p-5 flex flex-col items-center text-center transition-colors hover:border-theme-active')}>
+      <div className="mb-3">
+        {isLoading ? <Loader2 className="w-8 h-8 animate-spin text-theme-muted" /> : <AppLogo id="google-calendar" />}
       </div>
 
-      {/* Actions */}
-      {isConnected ? (
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-theme-border">
-          {lastSyncAt && (
-            <span className="text-[10px] text-theme-muted flex-1">
-              {t('integrations.googleCalendar.lastSync', { date: formatRelativeDate(lastSyncAt) })}
-            </span>
-          )}
-          <button
-            onClick={() => syncAll()}
-            disabled={isSyncing}
-            className="h-7 px-2.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
-          >
-            {isSyncing ? t('integrations.googleCalendar.syncing') : t('integrations.googleCalendar.syncNow')}
+      <p className="text-sm font-semibold text-theme-primary">{t('apps.google-calendar.name')}</p>
+      <p className="text-xs text-theme-tertiary mt-1 line-clamp-2">
+        {isConnected && googleEmail ? googleEmail : t('apps.google-calendar.desc')}
+      </p>
+
+      <div className="mt-auto pt-4 flex flex-col items-center gap-2">
+        {isConnected ? (
+          <>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-xs font-medium text-emerald-500">{t('apps.status.connected')}</span>
+            </div>
+            {lastSyncAt && <span className="text-[10px] text-theme-muted">{t('apps.googleCalendar.lastSync', { date: formatRelativeDate(lastSyncAt) })}</span>}
+            <div className="flex gap-1.5">
+              <button onClick={() => syncAll()} disabled={isSyncing} className="h-6 px-2 rounded text-[10px] font-medium border border-theme-border text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50">
+                {isSyncing ? '...' : t('apps.googleCalendar.syncNow')}
+              </button>
+              <button onClick={() => { if (confirm(t('apps.googleCalendar.disconnectConfirm'))) disconnectGoogleCalendar() }} disabled={isDisconnecting} className="h-6 px-2 rounded text-[10px] font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors disabled:opacity-50">
+                {t('apps.googleCalendar.disconnect')}
+              </button>
+            </div>
+          </>
+        ) : isLoading ? null : (
+          <button onClick={connectGoogleCalendar} className="h-7 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+            {t('apps.status.connect')}
           </button>
-          <button
-            onClick={() => { if (confirm(t('integrations.googleCalendar.disconnectConfirm'))) disconnectGoogleCalendar() }}
-            disabled={isDisconnecting}
-            className="h-7 px-2.5 rounded-lg text-xs font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors disabled:opacity-50"
-          >
-            {t('integrations.googleCalendar.disconnect')}
-          </button>
-        </div>
-      ) : (
-        <div className="mt-3 pt-3 border-t border-theme-border">
-          <button
-            onClick={connectGoogleCalendar}
-            className="h-7 px-2.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
-          >
-            {t('integrations.googleCalendar.connect')}
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
 
-function IntegrationsTab() {
-  const { t } = useTranslation('settings')
+// ── Applications Tab ──
 
-  const essential = INTEGRATIONS.filter(i => i.category === 'essential')
-  const recommended = INTEGRATIONS.filter(i => i.category === 'recommended')
+type AppFilter = 'all' | 'connected' | AppCategory
+
+function ApplicationsTab() {
+  const { t } = useTranslation('settings')
+  const [filter, setFilter] = useState<AppFilter>('all')
+
+  const filters: { key: AppFilter; labelKey: string }[] = [
+    { key: 'all', labelKey: 'apps.filters.all' },
+    { key: 'connected', labelKey: 'apps.filters.connected' },
+    { key: 'calendar', labelKey: 'apps.filters.calendar' },
+    { key: 'email', labelKey: 'apps.filters.email' },
+    { key: 'crm', labelKey: 'apps.filters.crm' },
+    { key: 'tools', labelKey: 'apps.filters.tools' },
+  ]
+
+  const filtered = APPS.filter(app => {
+    if (filter === 'all') return true
+    if (filter === 'connected') return app.isConnected
+    return app.category === filter
+  })
 
   return (
-    <div className="space-y-6">
-      {/* Essential */}
-      <div>
-        <p className="text-xs font-medium text-theme-tertiary mb-3">{t('integrations.categories.essential')}</p>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {essential.map(integration =>
-            integration.id === 'google-calendar'
-              ? <GoogleCalendarCard key={integration.id} />
-              : <IntegrationCard key={integration.id} integration={integration} />
-          )}
-        </div>
+    <div className="space-y-5">
+      {/* Filter pills */}
+      <div className="flex flex-wrap gap-2">
+        {filters.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={cn(
+              'h-8 px-3.5 rounded-lg text-xs font-medium transition-colors',
+              filter === f.key
+                ? 'bg-theme-active text-theme-primary'
+                : 'text-theme-secondary hover:text-theme-primary'
+            )}
+          >
+            {t(f.labelKey)}
+            {f.key === 'connected' && <span className="ml-1.5 text-theme-muted">{APPS.filter(a => a.isConnected).length}</span>}
+          </button>
+        ))}
       </div>
 
-      {/* Recommended */}
-      <div>
-        <p className="text-xs font-medium text-theme-tertiary mb-3">{t('integrations.categories.recommended')}</p>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {recommended.map(integration => (
-            <IntegrationCard key={integration.id} integration={integration} />
-          ))}
-        </div>
+      {/* Apps grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {filtered.map(app =>
+          app.id === 'google-calendar'
+            ? <GoogleCalendarAppCard key={app.id} />
+            : <AppCard key={app.id} app={app} />
+        )}
       </div>
+
+      {filtered.length === 0 && (
+        <p className="text-sm text-theme-muted text-center py-8">{t('apps.empty')}</p>
+      )}
     </div>
   )
 }
@@ -1990,7 +1956,7 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && <NotificationsTab />}
           {activeTab === 'security' && <SecurityTab />}
           {activeTab === 'subscription' && <SubscriptionTab />}
-          {activeTab === 'integrations' && <IntegrationsTab />}
+          {activeTab === 'applications' && <ApplicationsTab />}
         </div>
       </div>
     </PageTransition>
