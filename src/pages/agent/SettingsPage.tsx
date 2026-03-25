@@ -15,11 +15,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { useStripe } from '@/hooks/useStripe'
 import { useAvatar } from '@/hooks/useAvatar'
 import AvatarCropModal from '@/components/profile/AvatarCropModal'
+import AppearanceTab from '@/components/settings/AppearanceTab'
 import PageTransition from '@/components/layout/PageTransition'
 
 /* ─── Tab Types ─── */
 
-const TABS = ['profile', 'agency', 'team', 'notifications', 'security', 'subscription', 'integrations'] as const
+const TABS = ['profile', 'appearance', 'agency', 'team', 'notifications', 'security', 'subscription', 'integrations'] as const
 type SettingsTab = typeof TABS[number]
 
 /* ─── Shared Styles ─── */
@@ -266,87 +267,294 @@ function ProfileTab() {
 
 /* ─── Agency Tab ─── */
 
+const SPECIALTIES = [
+  'Résidentiel', 'Commercial', 'Luxe', 'Neuf',
+  'Terrain', 'Investissement', 'Location', 'Gestion',
+] as const
+
+const CANTONS = [
+  'GE', 'VD', 'VS', 'NE', 'FR', 'BE', 'JU', 'BS', 'BL', 'AG', 'SO',
+  'ZH', 'LU', 'ZG', 'SZ', 'NW', 'OW', 'UR', 'GL', 'SH', 'TG', 'AR',
+  'AI', 'SG', 'GR', 'TI',
+] as const
+
+function AgencySectionCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-theme-border p-6">
+      <h3 className="text-sm font-semibold text-theme-primary">{title}</h3>
+      {hint && <p className="text-xs text-theme-tertiary mt-0.5 mb-5">{hint}</p>}
+      {!hint && <div className="mb-5" />}
+      {children}
+    </div>
+  )
+}
+
 function AgencyTab() {
   const { t } = useTranslation('settings')
 
   const [form, setForm] = useState({
     name: 'MEGGA Real Estate',
-    address: 'Rue du Rhône 42, 1204 Genève',
+    slogan: 'L\'immobilier de prestige à Genève',
+    address: 'Rue du Rhône 42',
+    city: 'Genève',
+    canton: 'GE',
+    postalCode: '1204',
     phone: '+41 22 310 00 00',
     email: 'contact@megga.ch',
     website: 'www.megga.ch',
-    description: 'Agence immobilière premium à Genève, spécialisée dans les biens de prestige et les transactions internationales.',
+    description: 'Agence immobilière premium à Genève, spécialisée dans les biens de prestige et les transactions internationales. Notre équipe de courtiers expérimentés vous accompagne à chaque étape de votre projet immobilier.',
     ideNumber: 'CHE-123.456.789',
+    specialties: ['Résidentiel', 'Luxe'] as string[],
+    certifications: 'SVIT, USPI Genève',
+    linkedin: 'https://linkedin.com/company/megga-real-estate',
+    instagram: '',
+    facebook: '',
   })
+
+  const [savedForm, setSavedForm] = useState(form)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const isDirty = JSON.stringify(form) !== JSON.stringify(savedForm)
+
+  const handleSave = () => {
+    setSaveState('saving')
+    // Simulate Supabase save (replace with real call later)
+    setTimeout(() => {
+      setSavedForm(form)
+      setSaveState('saved')
+      setTimeout(() => setSaveState('idle'), 2000)
+    }, 600)
+  }
+
+  const handleCancel = () => {
+    setForm(savedForm)
+    setSaveState('idle')
+  }
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }))
 
+  const toggleSpecialty = (s: string) => {
+    setForm(prev => ({
+      ...prev,
+      specialties: prev.specialties.includes(s)
+        ? prev.specialties.filter(x => x !== s)
+        : [...prev.specialties, s],
+    }))
+  }
+
+  const textareaClasses = 'w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none'
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-theme-primary">{t('agency.title')}</h2>
-        <p className="text-sm text-theme-muted mt-1">{t('agency.subtitle')}</p>
-      </div>
+    <div className="space-y-5 pb-16">
 
-      {/* Logo */}
-      <div className="flex items-center gap-5">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-card bg-theme-primary flex items-center justify-center">
-            <span className="text-lg font-bold text-theme-inverse">GG</span>
+      {/* ── Card 1: Profile Preview (cover + logo + name live) ── */}
+      <AgencySectionCard title={t('agency.profilePreview')} hint={t('agency.profilePreviewHint')}>
+        {/* Live preview mimicking the public profile header */}
+        <div className="rounded-xl border border-theme-border overflow-hidden">
+          {/* Cover */}
+          <div className="relative h-28 bg-gradient-to-r from-theme-section to-theme-hover group cursor-pointer">
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-theme-overlay/20">
+              <div className="flex items-center gap-2 text-xs text-white bg-black/40 px-3 py-1.5 rounded-lg">
+                <Camera className="w-3.5 h-3.5" />
+                {t('agency.changeCover')}
+              </div>
+            </div>
           </div>
-          <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-theme-card border border-theme-border flex items-center justify-center hover:bg-theme-hover transition-colors">
-            <Camera className="w-4 h-4 text-theme-muted" />
-          </button>
+          {/* Logo + info overlay */}
+          <div className="px-5 pb-4 -mt-6">
+            <div className="flex items-end gap-4">
+              <div className="relative group cursor-pointer">
+                <div className="w-14 h-14 rounded-xl bg-theme-primary flex items-center justify-center border-2 border-theme-card">
+                  <span className="text-sm font-bold text-theme-inverse">GG</span>
+                </div>
+                <div className="absolute inset-0 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                  <Camera className="w-3.5 h-3.5 text-white" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 pt-7">
+                <p className="text-sm font-semibold text-theme-primary truncate">{form.name || 'Nom de l\'agence'}</p>
+                <p className="text-xs text-theme-tertiary truncate">{form.slogan || 'Slogan'} · {form.city}{form.canton ? `, ${form.canton}` : ''}</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-medium text-theme-primary">{t('agency.logo')}</p>
-          <p className="text-xs text-theme-muted mt-0.5">{t('agency.logoHint')}</p>
-        </div>
-      </div>
 
-      {/* Form */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="md:col-span-2">
-          <label className={labelClasses}>{t('agency.name')}</label>
-          <input type="text" value={form.name} onChange={e => update('name', e.target.value)} className={inputClasses} />
+        {/* Name + Slogan inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+          <div>
+            <label className={labelClasses}>{t('agency.name')}</label>
+            <input type="text" value={form.name} onChange={e => update('name', e.target.value)} className={inputClasses} />
+          </div>
+          <div>
+            <label className={labelClasses}>{t('agency.slogan')}</label>
+            <input type="text" value={form.slogan} onChange={e => update('slogan', e.target.value)} className={inputClasses} placeholder={t('agency.sloganPlaceholder')} />
+          </div>
         </div>
-        <div className="md:col-span-2">
-          <label className={labelClasses}>{t('agency.address')}</label>
-          <input type="text" value={form.address} onChange={e => update('address', e.target.value)} className={inputClasses} />
-        </div>
-        <div>
-          <label className={labelClasses}>{t('agency.phone')}</label>
-          <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className={inputClasses} />
-        </div>
-        <div>
-          <label className={labelClasses}>{t('agency.email')}</label>
-          <input type="email" value={form.email} onChange={e => update('email', e.target.value)} className={inputClasses} />
-        </div>
-        <div>
-          <label className={labelClasses}>{t('agency.website')}</label>
-          <input type="text" value={form.website} onChange={e => update('website', e.target.value)} className={inputClasses} />
-        </div>
-        <div>
-          <label className={labelClasses}>{t('agency.ideNumber')}</label>
-          <input type="text" value={form.ideNumber} onChange={e => update('ideNumber', e.target.value)} className={inputClasses} />
-        </div>
-      </div>
+      </AgencySectionCard>
 
-      <div>
-        <label className={labelClasses}>{t('agency.description')}</label>
-        <textarea
-          value={form.description}
-          onChange={e => update('description', e.target.value)}
-          rows={3}
-          className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none"
-        />
-      </div>
+      {/* ── Card 2: Localisation ── */}
+      <AgencySectionCard title={t('agency.locationTitle')} hint={t('agency.locationHint')}>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClasses}>{t('agency.address')}</label>
+            <input type="text" value={form.address} onChange={e => update('address', e.target.value)} className={inputClasses} />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className={labelClasses}>{t('agency.city')}</label>
+              <input type="text" value={form.city} onChange={e => update('city', e.target.value)} className={inputClasses} />
+            </div>
+            <div>
+              <label className={labelClasses}>{t('agency.canton')}</label>
+              <select
+                value={form.canton}
+                onChange={e => update('canton', e.target.value)}
+                className={inputClasses}
+              >
+                {CANTONS.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClasses}>{t('agency.postalCode')}</label>
+              <input type="text" value={form.postalCode} onChange={e => update('postalCode', e.target.value)} className={inputClasses} />
+            </div>
+          </div>
+        </div>
+      </AgencySectionCard>
 
-      <div className="flex justify-end">
-        <button className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
-          {t('agency.save')}
-        </button>
-      </div>
+      {/* ── Card 3: Contact ── */}
+      <AgencySectionCard title={t('agency.contactTitle')} hint={t('agency.contactHint')}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={labelClasses}>{t('agency.phone')}</label>
+            <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className={inputClasses} />
+          </div>
+          <div>
+            <label className={labelClasses}>{t('agency.email')}</label>
+            <input type="email" value={form.email} onChange={e => update('email', e.target.value)} className={inputClasses} />
+          </div>
+          <div>
+            <label className={labelClasses}>{t('agency.website')}</label>
+            <input type="text" value={form.website} onChange={e => update('website', e.target.value)} className={inputClasses} />
+          </div>
+          <div>
+            <label className={labelClasses}>{t('agency.ideNumber')}</label>
+            <input type="text" value={form.ideNumber} onChange={e => update('ideNumber', e.target.value)} className={inputClasses} />
+          </div>
+        </div>
+      </AgencySectionCard>
+
+      {/* ── Card 4: Présentation ── */}
+      <AgencySectionCard title={t('agency.presentationTitle')} hint={t('agency.presentationHint')}>
+        <div className="space-y-5">
+          <div>
+            <label className={labelClasses}>{t('agency.description')}</label>
+            <textarea
+              value={form.description}
+              onChange={e => update('description', e.target.value)}
+              rows={4}
+              className={textareaClasses}
+            />
+          </div>
+          <div>
+            <label className={labelClasses}>{t('agency.specialties')}</label>
+            <p className="text-xs text-theme-tertiary mb-3">{t('agency.specialtiesHint')}</p>
+            <div className="flex flex-wrap gap-2">
+              {SPECIALTIES.map(s => (
+                <button
+                  key={s}
+                  onClick={() => toggleSpecialty(s)}
+                  className={cn(
+                    'h-8 px-3.5 rounded-lg text-sm transition-colors',
+                    form.specialties.includes(s)
+                      ? 'bg-theme-active text-theme-primary font-medium'
+                      : 'text-theme-secondary border border-theme-border hover:text-theme-primary hover:border-theme-active'
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className={labelClasses}>{t('agency.certifications')}</label>
+            <input type="text" value={form.certifications} onChange={e => update('certifications', e.target.value)} className={inputClasses} placeholder="SVIT, USPI, etc." />
+          </div>
+        </div>
+      </AgencySectionCard>
+
+      {/* ── Card 5: Réseaux sociaux ── */}
+      <AgencySectionCard title={t('agency.socialLinks')} hint={t('agency.socialLinksHint')}>
+        <div className="space-y-3">
+          {[
+            { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/company/...' },
+            { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/...' },
+            { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/...' },
+          ].map(({ key, label, placeholder }) => (
+            <div key={key} className="flex items-center gap-3">
+              <span className="w-20 text-xs font-medium text-theme-secondary shrink-0">{label}</span>
+              <input
+                type="url"
+                value={form[key as keyof typeof form] as string}
+                onChange={e => update(key, e.target.value)}
+                className={inputClasses}
+                placeholder={placeholder}
+              />
+            </div>
+          ))}
+        </div>
+      </AgencySectionCard>
+
+      {/* ── Sticky save bar (portal to body, offset for sidebar) ── */}
+      {(isDirty || saveState === 'saved') && createPortal(
+        <div className={cn(
+          'fixed bottom-0 right-0 z-[100] border-t border-theme-border bg-theme-card/95 backdrop-blur-sm animate-in slide-in-from-bottom-2 duration-200',
+          'left-0 md:left-16 lg:left-64',
+        )}>
+          <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
+            {/* Left: status indicator */}
+            <div className="flex items-center gap-2">
+              {saveState === 'saved' ? (
+                <>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-xs text-emerald-500 font-medium">{t('agency.saved')}</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span className="text-xs text-theme-secondary">{t('agency.unsavedChanges')}</span>
+                </>
+              )}
+            </div>
+
+            {/* Right: actions */}
+            {saveState !== 'saved' && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleCancel}
+                  className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors"
+                >
+                  {t('agency.cancel')}
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saveState === 'saving'}
+                  className={cn(
+                    'h-9 px-5 rounded-lg text-sm font-medium border transition-colors',
+                    saveState === 'saving'
+                      ? 'border-theme-border text-theme-tertiary cursor-wait'
+                      : 'border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
+                  )}
+                >
+                  {saveState === 'saving' ? t('agency.saving') : t('agency.save')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
@@ -1212,6 +1420,7 @@ export default function SettingsPage() {
         {/* Tab content */}
         <div>
           {activeTab === 'profile' && <ProfileTab />}
+          {activeTab === 'appearance' && <AppearanceTab />}
           {activeTab === 'agency' && <AgencyTab />}
           {activeTab === 'team' && <TeamTab />}
           {activeTab === 'notifications' && <NotificationsTab />}
