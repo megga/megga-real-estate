@@ -8,7 +8,7 @@
     "notifications": "Notifications",
     "security": "Sécurité",
     "subscription": "Abonnement",
-    "integrations": "Intégrations",
+    "applications": "Applications",
     "appearance": "Apparence"
   },
   "appearance": {
@@ -421,6 +421,42 @@
         "teamAccess": "Accès partagé équipe"
       },
       "connectHint": "Connectez le drive de votre agence pour centraliser vos documents."
+    }
+  },
+  "apps": {
+    "filters": {
+      "all": "Tous",
+      "connected": "Connectés",
+      "calendar": "Calendrier",
+      "email": "Email",
+      "crm": "CRM",
+      "tools": "Outils",
+      "storage": "Stockage"
+    },
+    "status": {
+      "connected": "Connecté",
+      "notConnected": "Non connecté",
+      "comingSoon": "Bientôt",
+      "connect": "Connecter"
+    },
+    "empty": "Aucune application dans cette catégorie.",
+    "resend": { "name": "Email / Resend", "desc": "Relances, confirmations et présentations de biens" },
+    "google-calendar": { "name": "Google Calendar", "desc": "Synchronisation des visites et rendez-vous" },
+    "outlook-calendar": { "name": "Outlook Calendar", "desc": "Synchronisation des visites et rendez-vous" },
+    "salesforce": { "name": "Salesforce", "desc": "Import de vos contacts, comptes et opportunités" },
+    "hubspot": { "name": "HubSpot", "desc": "Import de vos contacts, entreprises et deals" },
+    "pipedrive": { "name": "Pipedrive", "desc": "Import de vos personnes, organisations et deals" },
+    "zoho": { "name": "Zoho CRM", "desc": "Import de vos contacts, comptes et potentiels" },
+    "freshsales": { "name": "Freshsales", "desc": "Import de vos contacts, comptes et deals" },
+    "csv-import": { "name": "Import / Export", "desc": "Importez vos données depuis un fichier CSV ou Excel" },
+    "posthog": { "name": "PostHog", "desc": "Analytics d'usage et adoption par votre équipe" },
+    "google-drive": { "name": "Google Drive", "desc": "Synchronisation documents KYC et mandats" },
+    "onedrive": { "name": "OneDrive", "desc": "Synchronisation documents KYC et mandats" },
+    "googleCalendar": {
+      "lastSync": "Dernière synchro : {{date}}",
+      "syncNow": "Sync",
+      "disconnect": "Délier",
+      "disconnectConfirm": "Voulez-vous déconnecter Google Calendar ?"
     }
   }
 }
