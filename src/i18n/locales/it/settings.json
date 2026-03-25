@@ -177,7 +177,11 @@
         "description": "Per agenti che vogliono andare oltre."
       },
       "agency": {
-        "name": "Agency",
+        "name": "Entreprise",
+        "description": "Per agenzie con un team."
+      },
+      "entreprise": {
+        "name": "Entreprise",
         "description": "Per agenzie con un team."
       }
     },

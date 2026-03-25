@@ -149,3 +149,15 @@ export const SANCTIONS_STATUS_LABELS: Record<SanctionsStatus, string> = {
   pending: 'Vérification en cours',
   not_checked: 'Non vérifié',
 }
+
+// Stripe Price IDs (from env vars, configured in Stripe Dashboard)
+export const STRIPE_PRICES = {
+  pro: {
+    monthly: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY as string,
+    yearly: import.meta.env.VITE_STRIPE_PRICE_PRO_YEARLY as string,
+  },
+  entreprise: {
+    monthly: import.meta.env.VITE_STRIPE_PRICE_ENTREPRISE_MONTHLY as string,
+    yearly: import.meta.env.VITE_STRIPE_PRICE_ENTREPRISE_YEARLY as string,
+  },
+} as const

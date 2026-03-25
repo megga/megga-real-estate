@@ -177,7 +177,11 @@
         "description": "Für Makler, die weiterkommen möchten."
       },
       "agency": {
-        "name": "Agency",
+        "name": "Entreprise",
+        "description": "Für Agenturen mit einem Team."
+      },
+      "entreprise": {
+        "name": "Entreprise",
         "description": "Für Agenturen mit einem Team."
       }
     },
