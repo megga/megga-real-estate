@@ -26,27 +26,26 @@ export default function AcceptInvitePage() {
 
   useEffect(() => {
     if (!token) return
-    loadInvitation()
-  }, [token])
+    const load = async () => {
+      setLoading(true)
+      const { data, error: err } = await supabase.functions.invoke('accept-team-invite', {
+        body: { token, action: 'preview' },
+      })
 
-  const loadInvitation = async () => {
-    setLoading(true)
-    const { data, error: err } = await supabase.functions.invoke('accept-team-invite', {
-      body: { token, action: 'preview' },
-    })
-
-    if (err || data?.error) {
-      const errCode = data?.error || 'unknown'
-      if (errCode === 'invitation_not_found') setError(t('team.acceptInvite.notFound'))
-      else if (errCode === 'invitation_expired') setError(t('team.acceptInvite.expired'))
-      else if (errCode === 'invitation_accepted') setError(t('team.acceptInvite.alreadyAccepted'))
-      else if (errCode === 'invitation_cancelled') setError(t('team.acceptInvite.cancelled'))
-      else setError(t('team.acceptInvite.error'))
-    } else {
-      setInvitation(data)
+      if (err || data?.error) {
+        const errCode = data?.error || 'unknown'
+        if (errCode === 'invitation_not_found') setError(t('team.acceptInvite.notFound'))
+        else if (errCode === 'invitation_expired') setError(t('team.acceptInvite.expired'))
+        else if (errCode === 'invitation_accepted') setError(t('team.acceptInvite.alreadyAccepted'))
+        else if (errCode === 'invitation_cancelled') setError(t('team.acceptInvite.cancelled'))
+        else setError(t('team.acceptInvite.error'))
+      } else {
+        setInvitation(data)
+      }
+      setLoading(false)
     }
-    setLoading(false)
-  }
+    load()
+  }, [token, t])
 
   const handleClaim = async () => {
     if (!token) return
