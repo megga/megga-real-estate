@@ -225,12 +225,16 @@
       "confirmHint": "Re-enter password",
       "minLength": "Password must be at least 6 characters.",
       "mismatch": "Passwords do not match.",
-      "update": "Update"
+      "update": "Update",
+      "changing": "Updating...",
+      "success": "Password updated successfully.",
+      "error": "Failed to update password."
     },
     "twoFactor": {
       "title": "Two-factor authentication",
       "enabled": "Enabled — your account is protected",
       "disabled": "Disabled — recommended for more security",
+      "comingSoon": "Coming soon",
       "recommendation": "We recommend enabling 2FA to protect your account, especially for an AML/KYC compliance tool."
     },
     "sessions": {
@@ -238,11 +242,14 @@
       "devicesConnected": "{{count}} connected devices",
       "disconnectAll": "Disconnect all",
       "current": "Current",
-      "revoke": "Revoke"
+      "revoke": "Revoke",
+      "comingSoon": "Coming soon"
     },
     "log": {
       "title": "Security log",
-      "subtitle": "Recent activity on your account"
+      "subtitle": "Recent activity on your account",
+      "loading": "Loading...",
+      "empty": "No security events recorded."
     },
     "connectedAccounts": {
       "title": "Connected accounts",
@@ -256,7 +263,9 @@
       "linkedAs": "Connected as {{email}}",
       "linkHint": "Sign in with one click using your Google account.",
       "unlinkConfirm": "You won't be able to sign in with Google anymore. Continue?",
-      "cannotUnlink": "You must set a password before unlinking Google."
+      "cannotUnlink": "You must set a password before unlinking Google.",
+      "linkError": "Failed to link Google account.",
+      "unlinkSuccess": "Google account unlinked successfully."
     }
   },
   "subscription": {
@@ -340,7 +349,16 @@
     },
     "googleCalendar": {
       "name": "Google Calendar",
+      "shortDesc": "Visit and appointment sync",
       "description": "Sync your visits and appointments with your Google calendar.",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect Google Calendar? Visits will no longer be synced.",
+      "syncNow": "Sync now",
+      "syncing": "Syncing...",
+      "lastSync": "Last sync: {{date}}",
+      "syncSuccess": "Sync successful",
+      "syncError": "Sync failed",
       "features": {
         "syncVisits": "Automatic visit synchronization",
         "twoWaySync": "Two-way synchronization",
@@ -349,7 +367,8 @@
       "connectHint": "Connect your Google account for automatic synchronization."
     },
     "email": {
-      "name": "Email (SMTP / Resend)",
+      "name": "Email / Resend",
+      "shortDesc": "Follow-ups, confirmations and presentations",
       "description": "Send follow-ups, confirmations and property presentations by email.",
       "features": {
         "autoFollowUp": "Automatic follow-ups",
@@ -360,6 +379,7 @@
     },
     "portals": {
       "name": "Property portals",
+      "shortDesc": "Immoscout24, Homegate, immobilier.ch",
       "description": "Publish your listings on Immoscout24, Homegate and immobilier.ch.",
       "features": {
         "autoPublish": "Automatic publishing",
@@ -369,7 +389,8 @@
       "connectHint": "Connect your portal accounts to publish in one click."
     },
     "crmImport": {
-      "name": "CRM Import / Export",
+      "name": "Import / Export",
+      "shortDesc": "CSV, Pipedrive, HubSpot",
       "description": "Import your contacts from another CRM or a CSV file. Export your data at any time.",
       "features": {
         "csvImport": "CSV / Excel import",
@@ -379,7 +400,8 @@
       "connectHint": "Import your existing contacts for a quick start."
     },
     "posthog": {
-      "name": "PostHog Analytics",
+      "name": "PostHog",
+      "shortDesc": "Team analytics and adoption",
       "description": "Analyze how your team uses MEGGA: pages visited, features used, adoption rates.",
       "features": {
         "pageViews": "Page view tracking",
@@ -389,7 +411,8 @@
       "connectHint": "Configure your PostHog key to enable analytics."
     },
     "cloudStorage": {
-      "name": "Google Drive / OneDrive",
+      "name": "Cloud Storage",
+      "shortDesc": "Google Drive, OneDrive",
       "description": "Sync your KYC documents and mandates with your agency's existing drive.",
       "features": {
         "docSync": "Document synchronization",

@@ -9,7 +9,8 @@ import LoginPage from '@/pages/public/LoginPage'
 import RegisterPage from '@/pages/public/RegisterPage'
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
-import PasswordGate from '@/components/layout/PasswordGate'
+// PasswordGate temporarily disabled for Google OAuth verification
+// import PasswordGate from '@/components/layout/PasswordGate'
 import AgentLayout from '@/components/layout/AgentLayout'
 import ActionBoardPage from '@/pages/agent/ActionBoardPage'
 
@@ -23,6 +24,7 @@ const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
 const PublierPage = lazy(() => import('@/pages/public/PublierPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
+const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 
 // Lazy-loaded agent pages (except ActionBoardPage which is static)
 const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
@@ -75,7 +77,6 @@ const queryClient = new QueryClient({
 
 export default function App() {
   return (
-    <PasswordGate>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
@@ -96,6 +97,7 @@ export default function App() {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/publier" element={<PublierPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
               {/* Portail vendeur — accès direct (dev/test) */}
@@ -157,6 +159,5 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
-    </PasswordGate>
   )
 }
