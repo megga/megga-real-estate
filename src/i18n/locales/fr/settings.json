@@ -225,12 +225,16 @@
       "confirmHint": "Retapez le mot de passe",
       "minLength": "Le mot de passe doit contenir au moins 6 caractères.",
       "mismatch": "Les mots de passe ne correspondent pas.",
-      "update": "Mettre à jour"
+      "update": "Mettre à jour",
+      "changing": "Modification...",
+      "success": "Mot de passe modifié avec succès.",
+      "error": "Erreur lors de la modification du mot de passe."
     },
     "twoFactor": {
       "title": "Authentification à deux facteurs",
       "enabled": "Activé — votre compte est protégé",
       "disabled": "Désactivé — recommandé pour plus de sécurité",
+      "comingSoon": "Bientôt disponible",
       "recommendation": "Nous recommandons d'activer la 2FA pour protéger votre compte, surtout pour un outil de conformité LAB/KYC."
     },
     "sessions": {
@@ -238,11 +242,14 @@
       "devicesConnected": "{{count}} appareils connectés",
       "disconnectAll": "Tout déconnecter",
       "current": "Actuel",
-      "revoke": "Révoquer"
+      "revoke": "Révoquer",
+      "comingSoon": "Bientôt disponible"
     },
     "log": {
       "title": "Journal de sécurité",
-      "subtitle": "Dernières activités sur votre compte"
+      "subtitle": "Dernières activités sur votre compte",
+      "loading": "Chargement...",
+      "empty": "Aucun événement de sécurité enregistré."
     },
     "connectedAccounts": {
       "title": "Comptes connectés",
@@ -256,7 +263,9 @@
       "linkedAs": "Connecté en tant que {{email}}",
       "linkHint": "Connectez-vous en un clic avec votre compte Google.",
       "unlinkConfirm": "Vous ne pourrez plus vous connecter avec Google. Continuer ?",
-      "cannotUnlink": "Vous devez avoir un mot de passe défini avant de délier Google."
+      "cannotUnlink": "Vous devez avoir un mot de passe défini avant de délier Google.",
+      "linkError": "Impossible de lier le compte Google.",
+      "unlinkSuccess": "Compte Google délié avec succès."
     }
   },
   "subscription": {
@@ -331,7 +340,8 @@
       "notConnected": "Non connecté",
       "configure": "Configurer",
       "disconnect": "Déconnecter",
-      "comingSoon": "Bientôt disponible"
+      "comingSoon": "Bientôt disponible",
+      "connectedDetail": "Actif — domaine megga.ch vérifié"
     },
     "categories": {
       "essential": "Essentiel",
@@ -340,7 +350,16 @@
     },
     "googleCalendar": {
       "name": "Google Calendar",
+      "shortDesc": "Synchronisation visites et rendez-vous",
       "description": "Synchronisez vos visites et rendez-vous avec votre agenda Google.",
+      "connect": "Connecter",
+      "disconnect": "Déconnecter",
+      "disconnectConfirm": "Voulez-vous déconnecter Google Calendar ? Les visites ne seront plus synchronisées.",
+      "syncNow": "Synchroniser",
+      "syncing": "Synchro...",
+      "lastSync": "Dernière synchro : {{date}}",
+      "syncSuccess": "Synchronisation réussie",
+      "syncError": "Erreur de synchronisation",
       "features": {
         "syncVisits": "Synchronisation automatique des visites",
         "twoWaySync": "Synchronisation bidirectionnelle",
@@ -349,7 +368,8 @@
       "connectHint": "Connectez votre compte Google pour synchroniser automatiquement."
     },
     "email": {
-      "name": "Email (SMTP / Resend)",
+      "name": "Email / Resend",
+      "shortDesc": "Relances, confirmations et présentations",
       "description": "Envoyez des relances, confirmations et présentations de biens par email.",
       "features": {
         "autoFollowUp": "Relances automatiques",
@@ -360,6 +380,7 @@
     },
     "portals": {
       "name": "Portails immobiliers",
+      "shortDesc": "Immoscout24, Homegate, immobilier.ch",
       "description": "Publiez vos annonces sur Immoscout24, Homegate et immobilier.ch.",
       "features": {
         "autoPublish": "Publication automatique",
@@ -369,7 +390,8 @@
       "connectHint": "Connectez vos comptes portails pour publier en un clic."
     },
     "crmImport": {
-      "name": "Import / Export CRM",
+      "name": "Import / Export",
+      "shortDesc": "CSV, Pipedrive, HubSpot",
       "description": "Importez vos contacts depuis un autre CRM ou un fichier CSV. Exportez vos données à tout moment.",
       "features": {
         "csvImport": "Import CSV / Excel",
@@ -379,7 +401,8 @@
       "connectHint": "Importez vos contacts existants pour démarrer rapidement."
     },
     "posthog": {
-      "name": "PostHog Analytics",
+      "name": "PostHog",
+      "shortDesc": "Analytics et adoption équipe",
       "description": "Analysez l'utilisation de MEGGA par votre équipe : pages visitées, fonctionnalités utilisées, adoption.",
       "features": {
         "pageViews": "Suivi des pages visitées",
@@ -389,7 +412,8 @@
       "connectHint": "Configurez votre clé PostHog pour activer les analytics."
     },
     "cloudStorage": {
-      "name": "Google Drive / OneDrive",
+      "name": "Cloud Storage",
+      "shortDesc": "Google Drive, OneDrive",
       "description": "Synchronisez vos documents KYC et mandats avec le drive existant de votre agence.",
       "features": {
         "docSync": "Synchronisation documents",

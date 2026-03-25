@@ -13,11 +13,12 @@ import { detectConflicts, expandRecurringEvents } from '@/lib/event-utils'
 import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
 import EventDetailSidebar from '@/components/calendar/EventDetailSidebar'
 import { useVisits } from '@/hooks/useVisits'
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 
 /** Event category config for MEGGA real estate */
 const EVENT_CATEGORIES: Record<EventColor, { label: string }> = {
   blue: { label: 'Visite' },
-  purple: { label: 'Rendez-vous' },
+  purple: { label: 'Google Calendar' },
   orange: { label: 'Relance' },
   green: { label: 'Signature' },
   red: { label: 'Échéance' },
@@ -37,16 +38,48 @@ export default function CalendarPage() {
   // When Supabase visits exist, mock visits are replaced by real ones.
   const [localEvents, setLocalEvents] = useState<CalendarEvent[]>(() => [...MOCK_EVENTS])
 
-  // Merge: Supabase visits replace mock visits, local events fill the rest
+  // Compute visible range for Google Calendar fetch
+  const gcalRange = useMemo(() => {
+    const start = addDays(currentDate, -7)
+    const end = addDays(currentDate, 35)
+    return { start, end }
+  }, [currentDate])
+
+  // Google Calendar integration
+  const {
+    isConnected: gcalConnected,
+    googleEvents,
+    syncVisitToGoogle,
+    updateVisitInGoogle,
+    removeFromGoogle,
+  } = useGoogleCalendar(gcalRange)
+
+  // Merge: Supabase visits + Google events + local events
   const events = useMemo(() => {
+    const merged: CalendarEvent[] = []
+
     if (supabaseVisits.length > 0) {
+      merged.push(...supabaseVisits)
       // Exclude mock visits (blue with visitStatus) — replaced by Supabase visits
       const nonVisitLocal = localEvents.filter((e) => !(e.color === 'blue' && e.visitStatus))
-      return [...supabaseVisits, ...nonVisitLocal]
+      merged.push(...nonVisitLocal)
+    } else {
+      merged.push(...localEvents)
     }
-    // No Supabase visits — use all local events (includes mock visits)
-    return localEvents
-  }, [supabaseVisits, localEvents])
+
+    // Add Google Calendar events (purple, read-only)
+    if (googleEvents.length > 0) {
+      // Exclude Google events that are already synced MEGGA visits (to avoid duplicates)
+      const meggaVisitIds = new Set(supabaseVisits.map(v => v.id))
+      const filteredGoogleEvents = googleEvents.filter(ge => {
+        // Google events have id like "gcal_xxx" — no overlap with MEGGA UUIDs
+        return !meggaVisitIds.has(ge.id)
+      })
+      merged.push(...filteredGoogleEvents)
+    }
+
+    return merged
+  }, [supabaseVisits, localEvents, googleEvents])
 
   const [selectedEventId, setSelectedEventId] = useState<string | undefined>()
   const [view, setView] = useState<ViewType>('week')
@@ -148,9 +181,11 @@ export default function CalendarPage() {
       if (updated.visitStatus === 'done' && oldVisit?.visitStatus !== 'done') {
         setFeedbackEvent(updated)
       }
-      updateVisit(updated).catch(() => {
-        // Silently handle — React Query will refetch
-      })
+      updateVisit(updated)
+        .then(() => {
+          if (gcalConnected) updateVisitInGoogle(updated.id).catch(() => {})
+        })
+        .catch(() => {})
     } else {
       // Local event — update in local state
       setLocalEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
@@ -159,7 +194,7 @@ export default function CalendarPage() {
         if (old?.visitStatus !== 'done') setFeedbackEvent(updated)
       }
     }
-  }, [supabaseVisits, localEvents, updateVisit])
+  }, [supabaseVisits, localEvents, updateVisit, gcalConnected, updateVisitInGoogle])
 
   const handleFeedbackSubmit = useCallback((event: CalendarEvent, feedback: { feedbackBuyer: string; feedbackAgent: string; rating: number }) => {
     const updated: CalendarEvent = {
@@ -206,14 +241,19 @@ export default function CalendarPage() {
     // If it's a visit with contact + property, persist to Supabase
     const isVisit = newEvent.color === 'blue' && newEvent.contactId && newEvent.propertyId
     if (isVisit) {
-      createVisit(newEvent).catch(() => {
-        // Fallback: add to local state if DB save fails
-        setLocalEvents((prev) => [...prev, newEvent])
-      })
+      createVisit(newEvent)
+        .then((created) => {
+          // Sync to Google Calendar if connected
+          if (gcalConnected && created?.id) syncVisitToGoogle(created.id).catch(() => {})
+        })
+        .catch(() => {
+          // Fallback: add to local state if DB save fails
+          setLocalEvents((prev) => [...prev, newEvent])
+        })
     } else {
       setLocalEvents((prev) => [...prev, newEvent])
     }
-  }, [createVisit])
+  }, [createVisit, gcalConnected, syncVisitToGoogle])
 
   // Duplicate event (1h later, new ID)
   const handleDuplicate = useCallback((event: CalendarEvent) => {
@@ -237,8 +277,13 @@ export default function CalendarPage() {
 
   // Delete event
   const handleDelete = useCallback((eventId: string) => {
+    // Don't allow deleting Google Calendar events
+    if (eventId.startsWith('gcal_')) return
+
     const isSupabaseVisit = !eventId.startsWith('evt-')
     if (isSupabaseVisit) {
+      // Remove from Google first, then delete locally
+      if (gcalConnected) removeFromGoogle(eventId).catch(() => {})
       deleteVisit(eventId).catch(() => {})
     } else {
       setLocalEvents((prev) => prev.filter((e) => e.id !== eventId))
@@ -248,7 +293,7 @@ export default function CalendarPage() {
       if (selectedEventId === eventId) return false
       return prev
     })
-  }, [selectedEventId, deleteVisit])
+  }, [selectedEventId, deleteVisit, gcalConnected, removeFromGoogle])
 
   // Computed selected event for sidebar
   const selectedEvent = useMemo(

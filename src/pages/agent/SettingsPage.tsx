@@ -4,18 +4,23 @@ import { useTranslation } from 'react-i18next'
 import {
   Camera,
   X,
-  Smartphone,
-  Monitor, KeyRound,
-  ShieldCheck, AlertTriangle,
   Loader2,
   MoreHorizontal,
+  Calendar,
+  Mail,
+  Globe,
+  Upload,
+  BarChart3,
+  Cloud,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import type { LucideIcon } from 'lucide-react'
+import { cn, formatRelativeDate } from '@/lib/utils'
 
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useAvatar } from '@/hooks/useAvatar'
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 import { STRIPE_PRICES } from '@/lib/constants'
 import AvatarCropModal from '@/components/profile/AvatarCropModal'
 import AppearanceTab from '@/components/settings/AppearanceTab'
@@ -1006,11 +1011,11 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean
       onClick={() => onChange(!enabled)}
       className={cn(
         'relative w-10 h-6 rounded-full transition-colors shrink-0',
-        enabled ? 'bg-emerald-500' : 'bg-theme-border'
+        enabled ? 'bg-theme-active' : 'bg-theme-border'
       )}
     >
       <div className={cn(
-        'absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform',
+        'absolute top-0.5 w-5 h-5 rounded-full bg-theme-elevated transition-transform',
         enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
       )} />
     </button>
@@ -1068,33 +1073,15 @@ function NotificationsTab() {
 interface SessionDevice {
   id: string
   device: string
-  icon: React.ElementType
   location: string
   lastActive: string
   isCurrent: boolean
 }
 
 const MOCK_SESSIONS: SessionDevice[] = [
-  { id: 's1', device: 'MacBook Pro — Chrome', icon: Monitor, location: 'Genève, Suisse', lastActive: 'Actif maintenant', isCurrent: true },
-  { id: 's2', device: 'iPhone 15 Pro — Safari', icon: Smartphone, location: 'Genève, Suisse', lastActive: 'Il y a 2 heures', isCurrent: false },
-  { id: 's3', device: 'iPad Air — Safari', icon: Monitor, location: 'Lausanne, Suisse', lastActive: 'Il y a 3 jours', isCurrent: false },
-]
-
-interface SecurityEvent {
-  id: string
-  action: string
-  detail: string
-  date: string
-  icon: React.ElementType
-  iconColor: string
-}
-
-const MOCK_SECURITY_LOG: SecurityEvent[] = [
-  { id: 'e1', action: 'Connexion réussie', detail: 'Chrome — MacBook Pro, Genève', date: "Aujourd'hui, 09:12", icon: ShieldCheck, iconColor: 'text-success bg-success/10' },
-  { id: 'e2', action: 'Mot de passe modifié', detail: 'Via les paramètres du compte', date: '15.03.2026, 14:30', icon: KeyRound, iconColor: 'text-accent bg-accent/10' },
-  { id: 'e3', action: 'Nouvelle session', detail: 'iPhone 15 Pro — Safari, Genève', date: '14.03.2026, 08:45', icon: Smartphone, iconColor: 'text-warning bg-warning/10' },
-  { id: 'e4', action: 'Tentative de connexion échouée', detail: 'Mot de passe incorrect — 2 tentatives', date: '12.03.2026, 22:10', icon: AlertTriangle, iconColor: 'text-danger bg-danger/10' },
-  { id: 'e5', action: 'Connexion réussie', detail: 'Safari — iPad Air, Lausanne', date: '10.03.2026, 11:00', icon: ShieldCheck, iconColor: 'text-success bg-success/10' },
+  { id: 's1', device: 'MacBook Pro — Chrome', location: 'Genève, Suisse', lastActive: 'Actif maintenant', isCurrent: true },
+  { id: 's2', device: 'iPhone 15 Pro — Safari', location: 'Genève, Suisse', lastActive: 'Il y a 2 heures', isCurrent: false },
+  { id: 's3', device: 'iPad Air — Safari', location: 'Lausanne, Suisse', lastActive: 'Il y a 3 jours', isCurrent: false },
 ]
 
 function SecurityTab() {
@@ -1103,8 +1090,12 @@ function SecurityTab() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [passwordChanging, setPasswordChanging] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [googleLinking, setGoogleLinking] = useState(false)
+  const [googleMessage, setGoogleMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [securityLog, setSecurityLog] = useState<{ id: string; action: string; detail: string; date: string }[]>([])
+  const [logLoading, setLogLoading] = useState(true)
 
   // Check if Google is linked by looking at user identities
   const googleIdentity = user?.identities?.find(id => id.provider === 'google')
@@ -1112,14 +1103,67 @@ function SecurityTab() {
   const googleEmail = googleIdentity?.identity_data?.email as string | undefined
   const hasPassword = user?.identities?.some(id => id.provider === 'email')
 
+  // Load security log from activity_events
+  useEffect(() => {
+    async function loadSecurityLog() {
+      if (!user?.id) return
+      const { data } = await supabase
+        .from('activity_events')
+        .select('id, action, metadata, created_at')
+        .or('entity_type.eq.auth,action.like.login%,action.like.password%,action.like.session%,action.like.google%')
+        .eq('actor_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (data && data.length > 0) {
+        setSecurityLog(data.map(e => ({
+          id: e.id,
+          action: e.action,
+          detail: (e.metadata as Record<string, string>)?.detail || '',
+          date: formatRelativeDate(e.created_at),
+        })))
+      } else {
+        setSecurityLog([])
+      }
+      setLogLoading(false)
+    }
+    loadSecurityLog()
+  }, [user?.id])
+
+  async function handleChangePassword() {
+    if (!newPassword || !passwordValid || !passwordMatch) return
+    setPasswordChanging(true)
+    setPasswordMessage(null)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordMessage({ type: 'success', text: t('security.password.success') })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('security.password.error')
+      setPasswordMessage({ type: 'error', text: message })
+    } finally {
+      setPasswordChanging(false)
+    }
+  }
+
   async function handleLinkGoogle() {
     setGoogleLinking(true)
+    setGoogleMessage(null)
     try {
-      await supabase.auth.linkIdentity({
+      const { error } = await supabase.auth.linkIdentity({
         provider: 'google',
         options: { redirectTo: window.location.href },
       })
-    } catch {
+      if (error) {
+        setGoogleMessage({ type: 'error', text: error.message })
+        setGoogleLinking(false)
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('security.connectedAccounts.linkError')
+      setGoogleMessage({ type: 'error', text: message })
       setGoogleLinking(false)
     }
   }
@@ -1131,7 +1175,13 @@ function SecurityTab() {
       return
     }
     if (!confirm(t('security.connectedAccounts.unlinkConfirm'))) return
-    await supabase.auth.unlinkIdentity(googleIdentity)
+    setGoogleMessage(null)
+    const { error } = await supabase.auth.unlinkIdentity(googleIdentity)
+    if (error) {
+      setGoogleMessage({ type: 'error', text: error.message })
+      return
+    }
+    setGoogleMessage({ type: 'success', text: t('security.connectedAccounts.unlinkSuccess') })
     window.location.reload()
   }
 
@@ -1165,11 +1215,18 @@ function SecurityTab() {
             )}
           </div>
 
+          {passwordMessage && (
+            <p className={cn('text-xs mt-1', passwordMessage.type === 'success' ? 'text-emerald-500' : 'text-red-500')}>
+              {passwordMessage.text}
+            </p>
+          )}
+
           <button
-            disabled={!currentPassword || !passwordValid || !passwordMatch}
+            onClick={handleChangePassword}
+            disabled={!currentPassword || !passwordValid || !passwordMatch || passwordChanging}
             className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t('security.password.update')}
+            {passwordChanging ? t('security.password.changing') : t('security.password.update')}
           </button>
         </div>
       </div>
@@ -1180,16 +1237,14 @@ function SecurityTab() {
           <div>
             <h2 className="text-base font-semibold text-theme-primary">{t('security.twoFactor.title')}</h2>
             <p className="text-sm text-theme-tertiary mt-0.5">
-              {twoFactorEnabled ? t('security.twoFactor.enabled') : t('security.twoFactor.disabled')}
+              {t('security.twoFactor.comingSoon')}
             </p>
           </div>
-          <Toggle enabled={twoFactorEnabled} onChange={setTwoFactorEnabled} />
+          <Toggle enabled={false} onChange={() => {}} />
         </div>
-        {!twoFactorEnabled && (
-          <p className="text-xs text-theme-tertiary mt-3 border-t border-theme-border pt-3">
-            {t('security.twoFactor.recommendation')}
-          </p>
-        )}
+        <p className="text-xs text-theme-tertiary mt-3 border-t border-theme-border pt-3">
+          {t('security.twoFactor.recommendation')}
+        </p>
       </div>
 
       {/* ── Connected Accounts ── */}
@@ -1223,7 +1278,7 @@ function SecurityTab() {
           {isGoogleLinked ? (
             <button
               onClick={handleUnlinkGoogle}
-              className="h-8 px-3 rounded-lg text-xs font-medium text-red-500 hover:bg-red-500/10 border border-theme-border hover:border-red-500/30 transition-colors"
+              className="h-8 px-3 rounded-lg text-xs font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors"
             >
               {t('security.connectedAccounts.unlink')}
             </button>
@@ -1237,6 +1292,12 @@ function SecurityTab() {
             </button>
           )}
         </div>
+
+        {googleMessage && (
+          <p className={cn('text-xs mt-3 pt-3 border-t border-theme-border', googleMessage.type === 'success' ? 'text-emerald-500' : 'text-red-500')}>
+            {googleMessage.text}
+          </p>
+        )}
       </div>
 
       {/* ── Active Sessions ── */}
@@ -1246,7 +1307,7 @@ function SecurityTab() {
             <h2 className="text-base font-semibold text-theme-primary">{t('security.sessions.title')}</h2>
             <p className="text-sm text-theme-tertiary mt-0.5">{t('security.sessions.devicesConnected', { count: MOCK_SESSIONS.length })}</p>
           </div>
-          <button className="text-xs font-medium text-theme-tertiary hover:text-danger transition-colors">
+          <button disabled className="text-xs font-medium text-theme-muted cursor-not-allowed" title={t('security.sessions.comingSoon')}>
             {t('security.sessions.disconnectAll')}
           </button>
         </div>
@@ -1260,13 +1321,13 @@ function SecurityTab() {
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-theme-primary truncate">{session.device}</p>
                 {session.isCurrent && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">{t('security.sessions.current')}</span>
+                  <span className="text-[10px] font-medium text-theme-secondary">{t('security.sessions.current')}</span>
                 )}
               </div>
               <p className="text-xs text-theme-tertiary mt-0.5">{session.location} · {session.lastActive}</p>
             </div>
             {!session.isCurrent && (
-              <button className="text-xs font-medium text-theme-tertiary hover:text-danger transition-colors">
+              <button disabled className="text-xs font-medium text-theme-muted cursor-not-allowed" title={t('security.sessions.comingSoon')}>
                 {t('security.sessions.revoke')}
               </button>
             )}
@@ -1279,14 +1340,18 @@ function SecurityTab() {
         <h2 className="text-base font-semibold text-theme-primary">{t('security.log.title')}</h2>
         <p className="text-sm text-theme-tertiary mt-0.5 mb-1">{t('security.log.subtitle')}</p>
 
-        {MOCK_SECURITY_LOG.map((event, i) => (
+        {logLoading ? (
+          <p className="text-sm text-theme-tertiary py-4">{t('security.log.loading')}</p>
+        ) : securityLog.length === 0 ? (
+          <p className="text-sm text-theme-tertiary py-4">{t('security.log.empty')}</p>
+        ) : securityLog.map((event, i) => (
           <div key={event.id} className={cn(
             'py-3.5 flex items-center gap-3',
-            i < MOCK_SECURITY_LOG.length - 1 && 'border-b border-theme-border'
+            i < securityLog.length - 1 && 'border-b border-theme-border'
           )}>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-theme-primary">{event.action}</p>
-              <p className="text-xs text-theme-tertiary mt-0.5">{event.detail}</p>
+              {event.detail && <p className="text-xs text-theme-tertiary mt-0.5">{event.detail}</p>}
             </div>
             <span className="text-xs text-theme-tertiary whitespace-nowrap shrink-0">{event.date}</span>
           </div>
@@ -1649,143 +1714,198 @@ function SubscriptionTab() {
 
 interface Integration {
   id: string
+  icon: LucideIcon
   nameKey: string
-  descriptionKey: string
-  featuresKeys: string[]
-  connectHintKey: string
+  shortDescKey: string
   isConnected: boolean
-  category: 'essential' | 'recommended' | 'upcoming'
+  comingSoon?: boolean
+  category: 'essential' | 'recommended'
 }
 
 const INTEGRATIONS: Integration[] = [
   {
-    id: 'google-calendar',
-    nameKey: 'integrations.googleCalendar.name',
-    descriptionKey: 'integrations.googleCalendar.description',
-    featuresKeys: [
-      'integrations.googleCalendar.features.syncVisits',
-      'integrations.googleCalendar.features.twoWaySync',
-      'integrations.googleCalendar.features.reminders',
-    ],
-    connectHintKey: 'integrations.googleCalendar.connectHint',
-    isConnected: false,
+    id: 'email',
+    icon: Mail,
+    nameKey: 'integrations.email.name',
+    shortDescKey: 'integrations.email.shortDesc',
+    isConnected: true,
     category: 'essential',
   },
   {
-    id: 'email',
-    nameKey: 'integrations.email.name',
-    descriptionKey: 'integrations.email.description',
-    featuresKeys: [
-      'integrations.email.features.autoFollowUp',
-      'integrations.email.features.visitConfirmation',
-      'integrations.email.features.propertyPresentation',
-    ],
-    connectHintKey: 'integrations.email.connectHint',
+    id: 'google-calendar',
+    icon: Calendar,
+    nameKey: 'integrations.googleCalendar.name',
+    shortDescKey: 'integrations.googleCalendar.shortDesc',
     isConnected: false,
     category: 'essential',
   },
   {
     id: 'portals',
+    icon: Globe,
     nameKey: 'integrations.portals.name',
-    descriptionKey: 'integrations.portals.description',
-    featuresKeys: [
-      'integrations.portals.features.autoPublish',
-      'integrations.portals.features.multiPortal',
-      'integrations.portals.features.syncStatus',
-    ],
-    connectHintKey: 'integrations.portals.connectHint',
+    shortDescKey: 'integrations.portals.shortDesc',
     isConnected: false,
+    comingSoon: true,
     category: 'essential',
   },
   {
     id: 'crm-import',
+    icon: Upload,
     nameKey: 'integrations.crmImport.name',
-    descriptionKey: 'integrations.crmImport.description',
-    featuresKeys: [
-      'integrations.crmImport.features.csvImport',
-      'integrations.crmImport.features.crmMigration',
-      'integrations.crmImport.features.dataExport',
-    ],
-    connectHintKey: 'integrations.crmImport.connectHint',
+    shortDescKey: 'integrations.crmImport.shortDesc',
     isConnected: false,
+    comingSoon: true,
     category: 'recommended',
   },
   {
     id: 'posthog',
+    icon: BarChart3,
     nameKey: 'integrations.posthog.name',
-    descriptionKey: 'integrations.posthog.description',
-    featuresKeys: [
-      'integrations.posthog.features.pageViews',
-      'integrations.posthog.features.featureAdoption',
-      'integrations.posthog.features.teamInsights',
-    ],
-    connectHintKey: 'integrations.posthog.connectHint',
+    shortDescKey: 'integrations.posthog.shortDesc',
     isConnected: false,
+    comingSoon: true,
     category: 'recommended',
   },
   {
     id: 'cloud-storage',
+    icon: Cloud,
     nameKey: 'integrations.cloudStorage.name',
-    descriptionKey: 'integrations.cloudStorage.description',
-    featuresKeys: [
-      'integrations.cloudStorage.features.docSync',
-      'integrations.cloudStorage.features.autoOrganize',
-      'integrations.cloudStorage.features.teamAccess',
-    ],
-    connectHintKey: 'integrations.cloudStorage.connectHint',
+    shortDescKey: 'integrations.cloudStorage.shortDesc',
     isConnected: false,
+    comingSoon: true,
     category: 'recommended',
   },
 ]
 
 function IntegrationCard({ integration }: { integration: Integration }) {
   const { t } = useTranslation('settings')
-  const [connected, setConnected] = useState(integration.isConnected)
+  const Icon = integration.icon
 
   return (
-    <div className={cn(cardClasses, 'p-5 group')}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2.5">
-            <h3 className="text-sm font-semibold text-theme-primary">{t(integration.nameKey)}</h3>
-            <span className={cn(
-              'w-2 h-2 rounded-full shrink-0',
-              connected ? 'bg-emerald-500' : 'bg-theme-tertiary'
-            )} />
-            <span className={cn(
-              'text-xs font-medium',
-              connected ? 'text-emerald-500' : 'text-theme-tertiary'
-            )}>
-              {connected ? t('integrations.status.connected') : t('integrations.status.notConnected')}
-            </span>
-          </div>
-          <p className="text-xs text-theme-tertiary mt-1">{t(integration.descriptionKey)}</p>
+    <div className={cn(
+      cardClasses, 'p-4 flex items-center gap-4 transition-colors',
+      integration.comingSoon && 'opacity-60',
+      integration.isConnected && 'border-l-2 border-l-emerald-500'
+    )}>
+      {/* Icon */}
+      <div className={cn(
+        'w-10 h-10 rounded-lg border border-theme-border flex items-center justify-center shrink-0',
+        integration.isConnected && 'border-emerald-500/30'
+      )}>
+        <Icon className={cn(
+          'w-5 h-5',
+          integration.isConnected ? 'text-emerald-500' : 'text-theme-secondary'
+        )} />
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-theme-primary truncate">{t(integration.nameKey)}</p>
+        <p className="text-xs text-theme-tertiary mt-0.5 truncate">{t(integration.shortDescKey)}</p>
+      </div>
+
+      {/* Status */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={cn(
+          'w-1.5 h-1.5 rounded-full',
+          integration.isConnected ? 'bg-emerald-500' : 'bg-theme-muted'
+        )} />
+        <span className={cn(
+          'text-xs font-medium',
+          integration.isConnected ? 'text-emerald-500' : 'text-theme-muted'
+        )}>
+          {integration.isConnected
+            ? t('integrations.status.connected')
+            : integration.comingSoon
+              ? t('integrations.status.comingSoon')
+              : t('integrations.status.notConnected')
+          }
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function GoogleCalendarCard() {
+  const { t } = useTranslation('settings')
+  const { isConnected, isLoading, googleEmail, connectGoogleCalendar, disconnectGoogleCalendar, isDisconnecting, syncAll, isSyncing, lastSyncAt } = useGoogleCalendar()
+
+  if (isLoading) {
+    return (
+      <div className={cn(cardClasses, 'p-4 flex items-center gap-4')}>
+        <div className="w-10 h-10 rounded-lg border border-theme-border flex items-center justify-center shrink-0">
+          <Loader2 className="w-4 h-4 animate-spin text-theme-muted" />
         </div>
-        <button
-          onClick={() => setConnected(!connected)}
-          className={cn(
-            'h-8 px-3 rounded-lg text-xs font-medium border transition-colors shrink-0',
-            connected
-              ? 'border-theme-border text-theme-tertiary hover:text-danger hover:border-danger/30'
-              : 'border-accent/30 text-accent hover:bg-accent/5'
-          )}
-        >
-          {connected ? t('integrations.status.disconnect') : t('integrations.status.configure')}
-        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-theme-primary">Google Calendar</p>
+          <p className="text-xs text-theme-tertiary mt-0.5">...</p>
+        </div>
       </div>
+    )
+  }
 
-      {/* Features */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {integration.featuresKeys.map((fk) => (
-          <span key={fk} className="text-xs text-theme-secondary px-2.5 py-1 rounded-lg border border-theme-border">
-            {t(fk)}
+  return (
+    <div className={cn(
+      cardClasses, 'p-4 transition-colors',
+      isConnected && 'border-l-2 border-l-emerald-500'
+    )}>
+      <div className="flex items-center gap-4">
+        <div className={cn(
+          'w-10 h-10 rounded-lg border border-theme-border flex items-center justify-center shrink-0',
+          isConnected && 'border-emerald-500/30'
+        )}>
+          <Calendar className={cn('w-5 h-5', isConnected ? 'text-emerald-500' : 'text-theme-secondary')} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-theme-primary truncate">Google Calendar</p>
+          <p className="text-xs text-theme-tertiary mt-0.5 truncate">
+            {isConnected && googleEmail
+              ? googleEmail
+              : t('integrations.googleCalendar.shortDesc')
+            }
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={cn('w-1.5 h-1.5 rounded-full', isConnected ? 'bg-emerald-500' : 'bg-theme-muted')} />
+          <span className={cn('text-xs font-medium', isConnected ? 'text-emerald-500' : 'text-theme-muted')}>
+            {isConnected ? t('integrations.status.connected') : t('integrations.status.notConnected')}
           </span>
-        ))}
+        </div>
       </div>
 
-      {/* Hint */}
-      <p className="text-xs text-theme-tertiary mt-3">{t(integration.connectHintKey)}</p>
-
+      {/* Actions */}
+      {isConnected ? (
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-theme-border">
+          {lastSyncAt && (
+            <span className="text-[10px] text-theme-muted flex-1">
+              {t('integrations.googleCalendar.lastSync', { date: formatRelativeDate(lastSyncAt) })}
+            </span>
+          )}
+          <button
+            onClick={() => syncAll()}
+            disabled={isSyncing}
+            className="h-7 px-2.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+          >
+            {isSyncing ? t('integrations.googleCalendar.syncing') : t('integrations.googleCalendar.syncNow')}
+          </button>
+          <button
+            onClick={() => { if (confirm(t('integrations.googleCalendar.disconnectConfirm'))) disconnectGoogleCalendar() }}
+            disabled={isDisconnecting}
+            className="h-7 px-2.5 rounded-lg text-xs font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors disabled:opacity-50"
+          >
+            {t('integrations.googleCalendar.disconnect')}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-3 pt-3 border-t border-theme-border">
+          <button
+            onClick={connectGoogleCalendar}
+            className="h-7 px-2.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+          >
+            {t('integrations.googleCalendar.connect')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -1793,28 +1913,28 @@ function IntegrationCard({ integration }: { integration: Integration }) {
 function IntegrationsTab() {
   const { t } = useTranslation('settings')
 
+  const essential = INTEGRATIONS.filter(i => i.category === 'essential')
+  const recommended = INTEGRATIONS.filter(i => i.category === 'recommended')
+
   return (
     <div className="space-y-6">
+      {/* Essential */}
       <div>
-        <h2 className="text-lg font-semibold text-theme-primary">{t('integrations.title')}</h2>
-        <p className="text-sm text-theme-muted mt-1">{t('integrations.subtitle')}</p>
-      </div>
-
-      {/* Essential integrations */}
-      <div>
-        <p className="text-xs font-medium text-theme-tertiary uppercase tracking-wider mb-3">{t('integrations.categories.essential')}</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {INTEGRATIONS.filter(i => i.category === 'essential').map(integration => (
-            <IntegrationCard key={integration.id} integration={integration} />
-          ))}
+        <p className="text-xs font-medium text-theme-tertiary mb-3">{t('integrations.categories.essential')}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {essential.map(integration =>
+            integration.id === 'google-calendar'
+              ? <GoogleCalendarCard key={integration.id} />
+              : <IntegrationCard key={integration.id} integration={integration} />
+          )}
         </div>
       </div>
 
-      {/* Recommended integrations */}
+      {/* Recommended */}
       <div>
-        <p className="text-xs font-medium text-theme-tertiary uppercase tracking-wider mb-3">{t('integrations.categories.recommended')}</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {INTEGRATIONS.filter(i => i.category === 'recommended').map(integration => (
+        <p className="text-xs font-medium text-theme-tertiary mb-3">{t('integrations.categories.recommended')}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          {recommended.map(integration => (
             <IntegrationCard key={integration.id} integration={integration} />
           ))}
         </div>

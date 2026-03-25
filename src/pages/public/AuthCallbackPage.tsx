@@ -17,6 +17,30 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     async function handleRedirect(userId: string, user: { user_metadata?: Record<string, string> }) {
+      // ── Google Calendar OAuth callback ──
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('gcal') === '1') {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.provider_token && session?.provider_refresh_token) {
+          try {
+            await supabase.functions.invoke('google-calendar-sync', {
+              body: {
+                action: 'save_tokens',
+                access_token: session.provider_token,
+                refresh_token: session.provider_refresh_token,
+                expires_in: 3600,
+                google_email: user.user_metadata?.email ?? null,
+              },
+            })
+          } catch {
+            // Token save failed — user can retry from Settings
+          }
+        }
+        navigate('/app/settings?tab=integrations&gcal=success', { replace: true })
+        return
+      }
+
+      // ── Normal OAuth redirect ──
       // Check if there's a pending OAuth role from Google sign-in
       const pendingRole = localStorage.getItem('megga_oauth_role')
       localStorage.removeItem('megga_oauth_role')

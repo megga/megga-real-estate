@@ -225,12 +225,16 @@
       "confirmHint": "Passwort erneut eingeben",
       "minLength": "Das Passwort muss mindestens 6 Zeichen enthalten.",
       "mismatch": "Die Passwörter stimmen nicht überein.",
-      "update": "Aktualisieren"
+      "update": "Aktualisieren",
+      "changing": "Wird geändert...",
+      "success": "Passwort erfolgreich geändert.",
+      "error": "Fehler beim Ändern des Passworts."
     },
     "twoFactor": {
       "title": "Zwei-Faktor-Authentifizierung",
       "enabled": "Aktiviert — Ihr Konto ist geschützt",
       "disabled": "Deaktiviert — für mehr Sicherheit empfohlen",
+      "comingSoon": "Demnächst verfügbar",
       "recommendation": "Wir empfehlen die Aktivierung der 2FA zum Schutz Ihres Kontos, insbesondere für ein GwG/KYC-Compliance-Tool."
     },
     "sessions": {
@@ -238,11 +242,14 @@
       "devicesConnected": "{{count}} verbundene Geräte",
       "disconnectAll": "Alle abmelden",
       "current": "Aktuell",
-      "revoke": "Widerrufen"
+      "revoke": "Widerrufen",
+      "comingSoon": "Demnächst verfügbar"
     },
     "log": {
       "title": "Sicherheitsprotokoll",
-      "subtitle": "Letzte Aktivitäten auf Ihrem Konto"
+      "subtitle": "Letzte Aktivitäten auf Ihrem Konto",
+      "loading": "Laden...",
+      "empty": "Keine Sicherheitsereignisse aufgezeichnet."
     },
     "connectedAccounts": {
       "title": "Verknüpfte Konten",
@@ -256,7 +263,9 @@
       "linkedAs": "Verbunden als {{email}}",
       "linkHint": "Melden Sie sich mit einem Klick über Ihr Google-Konto an.",
       "unlinkConfirm": "Sie können sich nicht mehr mit Google anmelden. Fortfahren?",
-      "cannotUnlink": "Sie müssen ein Passwort festlegen, bevor Sie Google trennen können."
+      "cannotUnlink": "Sie müssen ein Passwort festlegen, bevor Sie Google trennen können.",
+      "linkError": "Google-Konto konnte nicht verknüpft werden.",
+      "unlinkSuccess": "Google-Konto erfolgreich getrennt."
     }
   },
   "subscription": {
@@ -340,7 +349,16 @@
     },
     "googleCalendar": {
       "name": "Google Calendar",
+      "shortDesc": "Besichtigungen und Termine synchronisieren",
       "description": "Synchronisieren Sie Ihre Besichtigungen und Termine mit Ihrem Google-Kalender.",
+      "connect": "Verbinden",
+      "disconnect": "Trennen",
+      "disconnectConfirm": "Google Calendar trennen? Besichtigungen werden nicht mehr synchronisiert.",
+      "syncNow": "Synchronisieren",
+      "syncing": "Synchro...",
+      "lastSync": "Letzte Synchro: {{date}}",
+      "syncSuccess": "Synchronisation erfolgreich",
+      "syncError": "Synchronisationsfehler",
       "features": {
         "syncVisits": "Automatische Besichtigungs-Synchronisation",
         "twoWaySync": "Bidirektionale Synchronisation",
@@ -349,7 +367,8 @@
       "connectHint": "Verbinden Sie Ihr Google-Konto für automatische Synchronisation."
     },
     "email": {
-      "name": "E-Mail (SMTP / Resend)",
+      "name": "E-Mail / Resend",
+      "shortDesc": "Nachfassungen, Bestätigungen, Präsentationen",
       "description": "Senden Sie Nachfassungen, Bestätigungen und Objektpräsentationen per E-Mail.",
       "features": {
         "autoFollowUp": "Automatische Nachfassungen",
@@ -360,6 +379,7 @@
     },
     "portals": {
       "name": "Immobilienportale",
+      "shortDesc": "Immoscout24, Homegate, immobilier.ch",
       "description": "Veröffentlichen Sie Ihre Inserate auf Immoscout24, Homegate und immobilier.ch.",
       "features": {
         "autoPublish": "Automatische Veröffentlichung",
@@ -369,7 +389,8 @@
       "connectHint": "Verbinden Sie Ihre Portalkonten für die Veröffentlichung mit einem Klick."
     },
     "crmImport": {
-      "name": "CRM Import / Export",
+      "name": "Import / Export",
+      "shortDesc": "CSV, Pipedrive, HubSpot",
       "description": "Importieren Sie Ihre Kontakte aus einem anderen CRM oder einer CSV-Datei. Exportieren Sie Ihre Daten jederzeit.",
       "features": {
         "csvImport": "CSV / Excel Import",
@@ -379,7 +400,8 @@
       "connectHint": "Importieren Sie Ihre bestehenden Kontakte für einen schnellen Start."
     },
     "posthog": {
-      "name": "PostHog Analytics",
+      "name": "PostHog",
+      "shortDesc": "Team-Analytics und Adoption",
       "description": "Analysieren Sie die Nutzung von MEGGA durch Ihr Team: besuchte Seiten, genutzte Funktionen, Adoption.",
       "features": {
         "pageViews": "Seitenaufrufe verfolgen",
@@ -389,7 +411,8 @@
       "connectHint": "Konfigurieren Sie Ihren PostHog-Schlüssel, um Analytics zu aktivieren."
     },
     "cloudStorage": {
-      "name": "Google Drive / OneDrive",
+      "name": "Cloud Storage",
+      "shortDesc": "Google Drive, OneDrive",
       "description": "Synchronisieren Sie Ihre KYC-Dokumente und Mandate mit dem bestehenden Drive Ihrer Agentur.",
       "features": {
         "docSync": "Dokumentensynchronisation",
