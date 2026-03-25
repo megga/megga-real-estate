@@ -1738,30 +1738,42 @@ const APPS: AppIntegration[] = [
 function AppLogo({ id, className }: { id: string; className?: string }) {
   const size = className ?? 'w-8 h-8'
   switch (id) {
+    // Resend — official "R" mark: bold geometric R with notch
     case 'resend':
-      return <svg className={size} viewBox="0 0 24 24" fill="none"><path d="M3 6.5h9.5a5.5 5.5 0 0 1 0 11H9v-5h3.5a2 2 0 0 0 0-4H5.5v12" stroke="currentColor" strokeWidth="1.8" className="text-theme-primary" /></svg>
+      return <svg className={size} viewBox="0 0 24 24" fill="none"><path d="M5 3h8.5a5.5 5.5 0 0 1 3.83 9.45L21 21h-4.5l-3.6-7.5H9V21H5V3zm4 3.5v4h4.5a2 2 0 1 0 0-4H9z" fill="currentColor" className="text-theme-primary"/></svg>
+    // Google Calendar — multicolor calendar icon (blue/green/yellow/red)
     case 'google-calendar':
-      return <svg className={size} viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#fff" stroke="#4285F4" strokeWidth="1.5"/><rect x="3" y="3" width="18" height="5" rx="2" fill="#4285F4"/><text x="12" y="17" textAnchor="middle" fontSize="8" fontWeight="700" fill="#4285F4">31</text></svg>
+      return <svg className={size} viewBox="0 0 24 24"><path d="M18 3h-1V1.5h-2V3H9V1.5H7V3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" fill="#fff"/><path d="M6 3h12a2 2 0 0 1 2 2v2H4V5a2 2 0 0 1 2-2z" fill="#4285F4"/><rect x="4" y="7" width="16" height="14" rx="0" fill="#fff" stroke="#E0E0E0" strokeWidth="0.3"/><rect x="6" y="9" width="3" height="2.5" rx="0.5" fill="#EA4335" opacity="0.8"/><rect x="10.5" y="9" width="3" height="2.5" rx="0.5" fill="#FBBC04" opacity="0.8"/><rect x="15" y="9" width="3" height="2.5" rx="0.5" fill="#34A853" opacity="0.8"/><rect x="6" y="13" width="3" height="2.5" rx="0.5" fill="#4285F4" opacity="0.8"/><rect x="10.5" y="13" width="3" height="2.5" rx="0.5" fill="#EA4335" opacity="0.6"/><rect x="15" y="13" width="3" height="2.5" rx="0.5" fill="#FBBC04" opacity="0.6"/><rect x="6" y="17" width="3" height="2.5" rx="0.5" fill="#34A853" opacity="0.6"/><rect x="10.5" y="17" width="3" height="2.5" rx="0.5" fill="#4285F4" opacity="0.6"/></svg>
+    // Outlook — blue envelope with "O" shield
     case 'outlook-calendar':
-      return <svg className={size} viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="#0078D4"/><rect x="5" y="8" width="14" height="11" rx="1" fill="#fff"/><text x="12" y="17" textAnchor="middle" fontSize="7" fontWeight="700" fill="#0078D4">31</text></svg>
+      return <svg className={size} viewBox="0 0 24 24"><path d="M22 7.5v9a1.5 1.5 0 0 1-1.5 1.5H10V6h10.5A1.5 1.5 0 0 1 22 7.5z" fill="#0078D4"/><path d="M10 6l6 4.5L10 18V6z" fill="#0A5EB5"/><path d="M22 7.5L16 12l-6-4.5V6h10.5A1.5 1.5 0 0 1 22 7.5z" fill="#28A8EA"/><path d="M22 7.5L16 12l6 4.5V7.5z" fill="#0364B8"/><rect x="2" y="5" width="10" height="14" rx="1.5" fill="#0078D4"/><ellipse cx="7" cy="12" rx="3" ry="3.5" fill="none" stroke="#fff" strokeWidth="1.5"/></svg>
+    // Salesforce — cloud logo
     case 'salesforce':
-      return <svg className={size} viewBox="0 0 24 24"><path d="M10 5.5a4 4 0 0 1 7.2 1.3 3.5 3.5 0 0 1 2.3 6.2 3.5 3.5 0 0 1-4.5 3.5 4 4 0 0 1-6.5.5 3.5 3.5 0 0 1-5-3.5A3.5 3.5 0 0 1 6 7a4 4 0 0 1 4-1.5z" fill="#00A1E0"/></svg>
+      return <svg className={size} viewBox="0 0 24 24"><path d="M10.2 5.8a4.3 4.3 0 0 1 4 .2 3.8 3.8 0 0 1 5.6 2 3.2 3.2 0 0 1-.4 6.3H17a3.5 3.5 0 0 1-2.1 2.5 4.2 4.2 0 0 1-3.8-.1 4 4 0 0 1-3.5 1.3 3.8 3.8 0 0 1-3.4-4.5A3.5 3.5 0 0 1 6 7.2a4.3 4.3 0 0 1 4.2-1.4z" fill="#00A1E0"/></svg>
+    // HubSpot — sprocket gear icon (official orange)
     case 'hubspot':
-      return <svg className={size} viewBox="0 0 24 24"><circle cx="12" cy="10" r="3" fill="none" stroke="#FF7A59" strokeWidth="1.8"/><circle cx="12" cy="10" r="1" fill="#FF7A59"/><line x1="12" y1="13" x2="12" y2="17" stroke="#FF7A59" strokeWidth="1.8"/><circle cx="12" cy="19" r="1.5" fill="none" stroke="#FF7A59" strokeWidth="1.5"/><line x1="17" y1="7" x2="14.5" y2="8.5" stroke="#FF7A59" strokeWidth="1.5"/><circle cx="18" cy="6" r="1.2" fill="#FF7A59"/></svg>
+      return <svg className={size} viewBox="0 0 24 24"><path d="M16.5 8.2V5.5a1.5 1.5 0 1 0-1.5-1.5 1.5 1.5 0 0 0 .3.9v2.5a5 5 0 0 0-3.3 1.8l-5-3.2a2 2 0 1 0-1 1.6l4.8 3.1a5 5 0 0 0 0 3.6l-4.8 3.1A2 2 0 1 0 8 19a2 2 0 0 0-.1-.6l4.9-3.1a5 5 0 1 0 3.7-7.1zM15 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" fill="#FF7A59"/></svg>
+    // Pipedrive — green "speech bubble" / droplet mark
     case 'pipedrive':
-      return <svg className={size} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#017737" strokeWidth="2"/><path d="M12 7v6l4 2" stroke="#017737" strokeWidth="2" strokeLinecap="round"/></svg>
+      return <svg className={size} viewBox="0 0 24 24"><path d="M12 2C7.6 2 4 5.4 4 9.6c0 2.5 1.3 4.8 3.3 6.2l-.3 4.1a.5.5 0 0 0 .8.4l3.5-2.5c.2 0 .5.1.7.1 4.4 0 8-3.4 8-7.7S16.4 2 12 2z" fill="#017737"/><circle cx="9.5" cy="9.5" r="1.5" fill="#fff"/><circle cx="14.5" cy="9.5" r="1.5" fill="#fff"/></svg>
+    // Zoho — stylized "Z" on red background (rounded rect)
     case 'zoho':
-      return <svg className={size} viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3" fill="#E42527"/><text x="12" y="15.5" textAnchor="middle" fontSize="7" fontWeight="700" fill="#fff" fontFamily="sans-serif">Z</text></svg>
+      return <svg className={size} viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="4" fill="#E42527"/><path d="M7 8h10l-6 8h6" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+    // Freshsales/Freshworks — green circle with "F" cutout
     case 'freshsales':
-      return <svg className={size} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#05B2DC"/><path d="M8 14c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="#fff" strokeWidth="1.5" fill="none"/><circle cx="12" cy="8" r="2" fill="#fff"/></svg>
+      return <svg className={size} viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="#12AF6A"/><path d="M8 7h8v2h-5.5v2.5H15v2h-4.5V17H8V7z" fill="#fff"/></svg>
+    // CSV Import — spreadsheet/table icon (theme-aware)
     case 'csv-import':
-      return <svg className={size} viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-theme-secondary"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" className="text-theme-muted"/></svg>
+      return <svg className={size} viewBox="0 0 24 24" fill="none"><path d="M4 4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" stroke="currentColor" strokeWidth="1.5" className="text-theme-secondary"/><path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="text-theme-secondary"/><path d="M8 13h8M8 16h8M8 13v6M12 13v6M16 13v6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="text-theme-muted"/></svg>
+    // PostHog — hedgehog mark (official: yellow hedgehog on dark blue)
     case 'posthog':
-      return <svg className={size} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#1D4AFF"/><text x="12" y="16" textAnchor="middle" fontSize="10" fill="#F9BD2B">🦔</text></svg>
+      return <svg className={size} viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1D4AFF"/><path d="M7 16l2-3.5 2 1.5 2-4 2 2.5 2-3" stroke="#F9BD2B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="17" cy="8" r="1.5" fill="#F9BD2B"/></svg>
+    // Google Drive — official triangle logo (yellow, green, blue)
     case 'google-drive':
-      return <svg className={size} viewBox="0 0 24 24"><path d="M8.5 4h7l5.5 9.5H14L8.5 4z" fill="#FBBC05"/><path d="M3 13.5L8.5 4l5.5 9.5H3z" fill="#34A853"/><path d="M3 13.5h11l2.5 4.5H5.5L3 13.5z" fill="#4285F4"/></svg>
+      return <svg className={size} viewBox="0 0 24 24"><path d="M8.6 3.5h6.8l6.1 10.5h-6.8L8.6 3.5z" fill="#FBBC04"/><path d="M2.5 14L8.6 3.5l3.4 5.9L5.9 20 2.5 14z" fill="#34A853"/><path d="M5.9 20h13.6l3.1-6H8.6L5.9 20z" fill="#4285F4"/><path d="M12 9.4l2.4 4.6H8.6L12 9.4z" fill="#EA4335" opacity="0.25"/></svg>
+    // OneDrive — official double-cloud icon (two-tone blue)
     case 'onedrive':
-      return <svg className={size} viewBox="0 0 24 24"><path d="M9.5 14.5l3-5a5 5 0 0 1 8.5 3.5h.5a3 3 0 0 1 0 6H5a4 4 0 0 1-.5-8l2-1" fill="none" stroke="#0078D4" strokeWidth="1.5"/><path d="M5 19a4 4 0 0 1-.5-8 5 5 0 0 1 8-3" fill="none" stroke="#0364B8" strokeWidth="1.5"/></svg>
+      return <svg className={size} viewBox="0 0 24 24"><path d="M19.5 16.5h.5a3 3 0 0 0 0-6h-.2a4.5 4.5 0 0 0-8.3-2A3.5 3.5 0 0 0 8 9a3.5 3.5 0 0 0-3.4 2.7A3 3 0 0 0 5 17.5h14.5z" fill="#0364B8"/><path d="M9 16.5h10.5a3 3 0 0 0 .3-6A4.5 4.5 0 0 0 11.5 8.5 3.5 3.5 0 0 0 8 9a3.5 3.5 0 0 0-2 .8" fill="#0078D4"/></svg>
     default:
       return <div className={cn(size, 'rounded bg-theme-hover')} />
   }
