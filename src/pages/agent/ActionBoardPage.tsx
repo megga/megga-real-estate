@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useActionBoard, type ActionItem } from '@/hooks/useActionBoard'
 import ActionCard from '@/components/action-board/ActionCard'
+import PipelineHealth from '@/components/action-board/PipelineHealth'
+import MarketRadar from '@/components/action-board/MarketRadar'
 import PageTransition from '@/components/layout/PageTransition'
 
 // ── Section config ───────────────────────────────────────────────────────────
@@ -182,6 +184,12 @@ export default function ActionBoardPage() {
               <> · <span className="text-theme-secondary">{summaryParts.join(', ')}</span></>
             )}
           </p>
+        </div>
+
+        {/* ── Market Radar + Pipeline Health ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <MarketRadar />
+          <PipelineHealth />
         </div>
 
         {/* ── Sections ── */}

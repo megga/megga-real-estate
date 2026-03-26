@@ -5,6 +5,10 @@ import { cn } from '@/lib/utils'
 import { useCopilot } from '@/hooks/useCopilot'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { useContactMemory } from '@/hooks/useContactMemory'
+import { buildContactContext, getContextSummary, enrichWithScores } from '@/lib/copilotContext'
+import { useContactScore } from '@/hooks/useScoreEngine'
+import { fetchMarketComparables } from '@/lib/marketContext'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -124,8 +128,10 @@ export default function CopilotPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const handleSendRef = useRef<(text?: string) => void>(null)
-  const { sendMessageStream } = useCopilot()
+  const { sendMessageStream, detectAction } = useCopilot()
   const { activeContact } = useCopilotContext()
+  const { memory: contactMemory } = useContactMemory(activeContact?.id)
+  const { score: contactScore } = useContactScore(activeContact?.id)
 
   // Speech recognition — auto-sends when agent stops speaking
   const handleVoiceTranscript = useCallback((transcript: string) => {
@@ -157,7 +163,7 @@ export default function CopilotPanel() {
         `Résume-moi ${name}`,
         `Rédige une relance pour ${name}`,
         `Quels biens proposer à ${name} ?`,
-        'Quelles sont les prochaines actions ?',
+        `Analyse le positionnement marché pour ${name}`,
       ]
     }
     return [
@@ -199,13 +205,31 @@ export default function CopilotPanel() {
     setStreamingContent('')
 
     try {
-      const context: Record<string, unknown> = {}
-      if (activeContact) {
-        context.contact = {
-          name: `${activeContact.firstName} ${activeContact.lastName}`,
-          type: activeContact.type,
-          email: activeContact.email,
-          phone: activeContact.phone,
+      // Build enriched context from contact memory (interactions, visits, matches, transactions)
+      const context: Record<string, unknown> = contactMemory?.contact
+        ? buildContactContext(contactMemory)
+        : activeContact
+          ? { contact: { name: `${activeContact.firstName} ${activeContact.lastName}`, type: activeContact.type, email: activeContact.email, phone: activeContact.phone } }
+          : {}
+
+      // Enrich with Score Engine data
+      enrichWithScores(context, contactScore ?? null)
+
+      // Enrich with market data if the action is market analysis
+      const action = detectAction(query)
+      if (action === 'analyze_market') {
+        try {
+          const criteria = contactMemory?.contact?.search_criteria as Record<string, unknown> | null
+          const { context: marketCtx } = await fetchMarketComparables({
+            city: (criteria?.city as string) ?? contactMemory?.contact?.search_zones?.[0],
+            canton: contactMemory?.contact?.search_zones?.[0],
+            type: criteria?.type as string,
+            rooms: criteria?.rooms_min as number,
+            price: contactMemory?.contact?.budget_announced ?? contactMemory?.contact?.budget_estimated_ai ?? undefined,
+          })
+          context.market_analysis = marketCtx
+        } catch {
+          context.market_analysis = 'Données marché indisponibles.'
         }
       }
 
@@ -234,7 +258,7 @@ export default function CopilotPanel() {
       setIsTyping(false)
       setStreamingContent(null)
     }
-  }, [input, isTyping, sendMessageStream, activeContact])
+  }, [input, isTyping, sendMessageStream, activeContact, contactMemory, contactScore])
 
   // Keep ref in sync for voice callback
   handleSendRef.current = handleSend
@@ -297,7 +321,9 @@ export default function CopilotPanel() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-theme-primary">MEGGA AI</h3>
-                  {activeContact ? (
+                  {contactMemory?.contact ? (
+                    <p className="text-[11px] text-accent truncate max-w-[250px]">{getContextSummary(contactMemory)}</p>
+                  ) : activeContact ? (
                     <p className="text-[11px] text-accent">Contexte : {activeContact.firstName} {activeContact.lastName}</p>
                   ) : (
                     <p className="text-[11px] text-theme-tertiary">Votre assistant intelligent</p>
