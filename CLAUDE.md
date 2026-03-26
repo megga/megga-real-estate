@@ -278,6 +278,7 @@ megga-real-estate/
 │       ├── ai-scoring/          # Buyer/seller intelligence (Phase 2)
 │       ├── ai-negotiation/      # Copilote négociation (Phase 2)
 │       ├── ai-listing-gen/      # Génération annonces multi-versions (Phase 2)
+│       ├── score-engine/        # ✅ DÉPLOYÉ — Scoring comportemental contacts + propriétés
 │       ├── automation-engine/   # Moteur de relances automatiques (Phase 2)
 │       └── webhooks/            # Stripe, Resend... (Phase 2)
 ```
@@ -1403,13 +1404,33 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - Remplacé par `market-scraper` v4 (API JSON + tranches de prix)
 - Gardé pour compatibilité (MatchingPage onglet "Marché" temps réel)
 
-#### MEGGA AI (Copilote IA)
+#### MEGGA AI (Copilote IA) — enrichi 26 mars 2026
 - **Edge Function** `ai-copilot` déployée — Claude Sonnet 4
-- Chat libre + actions prédéfinies (résumé client, relance, KYC)
+- Chat libre + actions prédéfinies (résumé client, relance, KYC, analyse marché)
 - System prompt spécialisé immobilier suisse (LAB, KYC, droit foncier)
-- Contexte CRM injecté (contact, bien, deal actif)
+- Contexte CRM injecté (contact, bien, deal actif, scores comportementaux, mémoire contact)
+- **Streaming naturel** : animation de typing mot par mot avec délais variables (30-80ms)
+- **Contact Memory** : `fetchContactMemory()` — charge interactions, matchs, visites, transactions pour injecter le contexte complet dans chaque requête IA
+- **Context Builder** : `buildContactContext()` + `buildMarketContext()` — construit le prompt enrichi avec données CRM + marché
 - Panel slide-in depuis bouton ✨ (bas à droite du dashboard)
 - **Coût** : ~$0.01/requête, $5 de crédits = ~500 requêtes
+
+#### MEGGA Score Engine v1 — 26 mars 2026
+- **Edge Function** `score-engine` — algorithme de scoring comportemental
+- **Migration SQL** : `20260326_002_score_engine.sql` — tables `contact_scores`, `property_scores`, `scoring_signals`, `market_changes`
+- **Scoring contact (Buyer Score 0-100)** : 5 facteurs pondérés :
+  - Réactivité (20%) : temps de réponse moyen aux interactions
+  - Engagement (25%) : fréquence et tendance des interactions
+  - Cohérence budget (20%) : budget déclaré vs biens visités (détecte budget réel)
+  - Qualité visites (20%) : fiabilité (show-up rate), feedbacks, patterns de rejet
+  - Conversion (15%) : progression pipeline, offres soumises, timing
+- **Scoring propriété (Heat Score 0-100)** : position marché, intérêt, stagnation
+- **Pipeline Health** : `usePipelineHealth` — détecte deals stagnants, leads inactifs, KYC incomplets
+- **Market Radar** : `MarketRadar.tsx` — nouveaux biens, baisses de prix, retraits (basé sur `market_changes`)
+- **Intent Detection** : `useIntentDetection` — analyse les messages entrants (intérêt fort, objection, urgence, désintérêt)
+- **Smart Replies** : `SmartReplies.tsx` — 3 suggestions de réponse contextuelles par thread
+- **Composants UI** : `ContactScoreBar`, `PropertyHeatBadge`, `MessageIntentBadge`, `PipelineHealth`
+- **scrape-delta enrichi** : log les changements de prix et nouveaux biens dans `market_changes`
 
 #### Portail vendeur (6/6 pages)
 - **Accès tokénisé** : URL unique `/portail/:token` (pas de login)
@@ -1489,7 +1510,7 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 - **Project ref** : eayczugyrvmtqnnmvjod
 - **Region** : eu-west-1 (Ireland)
 - **Plan** : Nano (gratuit)
-- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync
+- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync, contact_scores, property_scores, scoring_signals, market_changes
 
 ### DB — Corrections RLS appliquées (2026-03-23)
 - Récursion infinie `profiles` → fixée avec `get_my_agency_id()` SECURITY DEFINER
@@ -1500,10 +1521,16 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 ### Prochaines priorités
 1. **Google Calendar** — configurer Google Cloud Console (mode Testing) + tester OAuth flow
 2. **Outlook Calendar** — tester le flow OAuth Azure complet (bouton Connecter → sync)
-3. **Import/Export CSV** — connecter l'app Import/Export pour permettre la migration depuis Pipedrive/HubSpot/Excel
-4. **ListingPage connectée** — remplacer getListingById(mockData) par useMarketListing(supabase)
-5. **PipelinePage connectée** — remplacer MOCK_DEALS par useTransactions() (garder le Kanban tel quel)
-6. **Matching externe enrichi** — scoring client_searches × market_listings (38K biens)
-7. **Matching interne connecté** — scoring client_searches × properties (mandats agence)
-8. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action
-9. **i18n pages agent** — ContactsPage, ContactDetailPage, Navbar (texte français hardcodé)
+3. **Score Engine v2 — Location Intelligence** — enrichir les scores avec données externes suisses :
+   - Swisstopo (exposition solaire, altitude)
+   - transport.opendata.ch (gares, temps de trajet)
+   - OpenStreetMap (commerces, écoles, parcs à proximité)
+   - sonBASE (carte de bruit)
+   - OFS (démographie, revenus par commune)
+4. **Market Radar temps réel** — notifications instantanées quand un bien avant-première matche un client
+5. **Matching enrichi par Score Engine** — scoring client_searches × market_listings + comportement (refus, budget réel)
+6. **Import/Export CSV** — migration depuis Pipedrive/HubSpot/Excel
+7. **ListingPage connectée** — remplacer getListingById(mockData) par useMarketListing(supabase)
+8. **PipelinePage connectée** — remplacer MOCK_DEALS par useTransactions()
+9. **Briefing matinal IA** — résumé narratif quotidien des mouvements marché + actions prioritaires
+10. **i18n pages agent** — ContactsPage, ContactDetailPage, Navbar (texte français hardcodé)
