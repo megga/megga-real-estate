@@ -1,77 +1,68 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
-type FieldType = 'text' | 'number' | 'date' | 'select' | 'textarea'
-
-interface CustomTemplateField {
+interface TemplateField {
   label: string
-  type: FieldType
+  type: 'text' | 'number' | 'date' | 'select' | 'textarea'
   required: boolean
-  placeholder: string
-  hint: string
+  placeholder?: string
+  hint?: string
   options?: { value: string; label: string }[]
 }
 
-interface CustomTemplateSection {
+interface TemplateSection {
   name: string
-  fields: CustomTemplateField[]
+  fields: TemplateField[]
 }
 
-export interface StoredCustomTemplate {
+export interface CustomTemplate {
   id: string
   name: string
   description: string
   category: string
-  sections: CustomTemplateSection[]
+  sections: TemplateSection[]
   createdAt: string
   usageCount: number
 }
 
+interface AddTemplateInput {
+  name: string
+  description: string
+  category: string
+  sections: TemplateSection[]
+}
+
+// ─── STORAGE KEY ────────────────────────────────────────────────────────────
+
 const STORAGE_KEY = 'megga-custom-templates'
 
-function loadTemplates(): StoredCustomTemplate[] {
+function loadTemplates(): CustomTemplate[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as StoredCustomTemplate[]
+    return JSON.parse(raw) as CustomTemplate[]
   } catch {
     return []
   }
 }
 
-function saveTemplates(templates: StoredCustomTemplate[]) {
+function saveTemplates(templates: CustomTemplate[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(templates))
 }
 
 // ─── HOOK ───────────────────────────────────────────────────────────────────
 
 export function useCustomTemplates() {
-  const [templates, setTemplates] = useState<StoredCustomTemplate[]>(loadTemplates)
+  const [templates, setTemplates] = useState<CustomTemplate[]>(loadTemplates)
 
-  // Sync across tabs
-  useEffect(() => {
-    function handleStorage(e: StorageEvent) {
-      if (e.key === STORAGE_KEY) {
-        setTemplates(loadTemplates())
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [])
-
-  const addTemplate = useCallback((data: {
-    name: string
-    description: string
-    category: string
-    sections: CustomTemplateSection[]
-  }) => {
-    const newTemplate: StoredCustomTemplate = {
-      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      name: data.name,
-      description: data.description,
-      category: data.category,
-      sections: data.sections,
+  const addTemplate = useCallback((input: AddTemplateInput) => {
+    const newTemplate: CustomTemplate = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: input.name,
+      description: input.description,
+      category: input.category,
+      sections: input.sections,
       createdAt: new Date().toISOString(),
       usageCount: 0,
     }
@@ -80,7 +71,7 @@ export function useCustomTemplates() {
       saveTemplates(updated)
       return updated
     })
-    return newTemplate.id
+    return newTemplate
   }, [])
 
   const removeTemplate = useCallback((id: string) => {
@@ -93,7 +84,9 @@ export function useCustomTemplates() {
 
   const incrementUsage = useCallback((id: string) => {
     setTemplates(prev => {
-      const updated = prev.map(t => t.id === id ? { ...t, usageCount: t.usageCount + 1 } : t)
+      const updated = prev.map(t =>
+        t.id === id ? { ...t, usageCount: t.usageCount + 1 } : t
+      )
       saveTemplates(updated)
       return updated
     })
