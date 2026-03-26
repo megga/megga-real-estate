@@ -4,33 +4,42 @@ import {
   Search, Plus, ChevronLeft, ChevronRight, ChevronDown,
 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
-import { MOCK_CONTACTS, type MockContact } from '@/lib/mockData'
+import { useContacts } from '@/hooks/useContacts'
+import type { Contact, ContactType } from '@/types/contact'
+import type { ContactScore } from '@/lib/constants'
 import PageTransition from '@/components/layout/PageTransition'
 import NewContactDialog from '@/components/contacts/NewContactDialog'
 
 type SortField = 'name' | 'last_activity' | 'score'
 type SortDir = 'asc' | 'desc'
 
-const SCORE_ORDER = { hot: 0, warm: 1, cold: 2 }
+const SCORE_ORDER: Record<string, number> = { hot: 0, warm: 1, cold: 2 }
 const ITEMS_PER_PAGE = 10
 
-const SCORE_DOT: Record<MockContact['score'], string> = {
+const SCORE_DOT: Record<string, string> = {
   hot: 'bg-red-400',
   warm: 'bg-amber-400',
   cold: 'bg-blue-400',
 }
 
-const SCORE_LABEL: Record<MockContact['score'], string> = {
+const SCORE_LABEL: Record<string, string> = {
   hot: 'Hot',
   warm: 'Warm',
   cold: 'Cold',
 }
 
-const TYPE_LABEL: Record<MockContact['type'], string> = {
+const TYPE_LABEL: Record<string, string> = {
   buyer: 'Acheteur',
   seller: 'Vendeur',
+  investor: 'Investisseur',
+  tenant: 'Locataire',
+  landlord: 'Bailleur',
   both: 'Acheteur/Vendeur',
   lead: 'Lead',
+}
+
+function getLastActivity(contact: Contact): string {
+  return contact.last_interaction_at ?? contact.updated_at ?? contact.created_at
 }
 
 function ContactAvatar({ name }: { name: string }) {
@@ -55,27 +64,33 @@ export default function ContactsPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(1)
 
+  const { contacts, isLoading } = useContacts()
+
   const filtered = useMemo(() => {
-    let list = [...MOCK_CONTACTS]
+    let list = [...contacts]
     if (search) {
       const q = search.toLowerCase()
       list = list.filter((c) =>
         `${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q)
+        (c.email ?? '').toLowerCase().includes(q)
       )
     }
-    if (typeFilter) list = list.filter((c) => c.type === typeFilter)
-    if (scoreFilter) list = list.filter((c) => c.score === scoreFilter)
+    if (typeFilter) list = list.filter((c) => c.type === (typeFilter as ContactType))
+    if (scoreFilter) list = list.filter((c) => c.score === (scoreFilter as ContactScore))
 
     list.sort((a, b) => {
       let cmp = 0
       if (sortField === 'name') cmp = `${a.last_name}`.localeCompare(`${b.last_name}`)
-      else if (sortField === 'last_activity') cmp = new Date(a.last_activity).getTime() - new Date(b.last_activity).getTime()
-      else if (sortField === 'score') cmp = SCORE_ORDER[a.score] - SCORE_ORDER[b.score]
+      else if (sortField === 'last_activity') {
+        cmp = new Date(getLastActivity(a)).getTime() - new Date(getLastActivity(b)).getTime()
+      }
+      else if (sortField === 'score') {
+        cmp = (SCORE_ORDER[a.score ?? ''] ?? 99) - (SCORE_ORDER[b.score ?? ''] ?? 99)
+      }
       return sortDir === 'asc' ? cmp : -cmp
     })
     return list
-  }, [search, typeFilter, scoreFilter, sortField, sortDir])
+  }, [contacts, search, typeFilter, scoreFilter, sortField, sortDir])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
   const safePage = Math.min(page, totalPages)
@@ -96,7 +111,9 @@ export default function ContactsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-theme-primary">Contacts</h1>
-            <p className="text-sm text-theme-tertiary mt-0.5">{MOCK_CONTACTS.length} contacts</p>
+            <p className="text-sm text-theme-tertiary mt-0.5">
+              {isLoading ? 'Chargement…' : `${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`}
+            </p>
           </div>
           <button
             onClick={() => setShowNewContact(true)}
@@ -155,7 +172,11 @@ export default function ContactsPage() {
 
         {/* Mobile: cards empilées */}
         <div className="md:hidden space-y-2">
-          {paginated.length === 0 ? (
+          {isLoading ? (
+            <div className="px-4 py-12 text-center">
+              <p className="text-sm text-theme-tertiary">Chargement…</p>
+            </div>
+          ) : paginated.length === 0 ? (
             <div className="px-4 py-12 text-center">
               <p className="text-sm text-theme-tertiary">Aucun contact trouvé</p>
             </div>
@@ -172,12 +193,13 @@ export default function ContactsPage() {
                     {contact.first_name} {contact.last_name}
                   </p>
                   <p className="text-xs text-theme-tertiary mt-0.5">
-                    {TYPE_LABEL[contact.type]} · {SCORE_LABEL[contact.score]}
+                    {TYPE_LABEL[contact.type] ?? contact.type}
+                    {contact.score ? ` · ${SCORE_LABEL[contact.score] ?? contact.score}` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <div className={cn('h-2 w-2 rounded-full', SCORE_DOT[contact.score])} />
-                  <span className="text-xs text-theme-tertiary">{formatRelativeDate(contact.last_activity)}</span>
+                  {contact.score && <div className={cn('h-2 w-2 rounded-full', SCORE_DOT[contact.score])} />}
+                  <span className="text-xs text-theme-tertiary">{formatRelativeDate(getLastActivity(contact))}</span>
                 </div>
               </Link>
             ))
@@ -224,7 +246,11 @@ export default function ContactsPage() {
           </div>
 
           {/* Rows */}
-          {paginated.length === 0 ? (
+          {isLoading ? (
+            <div className="px-4 py-12 text-center">
+              <p className="text-sm text-theme-tertiary">Chargement…</p>
+            </div>
+          ) : paginated.length === 0 ? (
             <div className="px-4 py-12 text-center">
               <p className="text-sm text-theme-tertiary">Aucun contact trouvé</p>
             </div>
@@ -246,25 +272,27 @@ export default function ContactsPage() {
                       {contact.first_name} {contact.last_name}
                     </p>
                     <p className="text-xs text-theme-tertiary truncate md:hidden">
-                      {TYPE_LABEL[contact.type]}
+                      {TYPE_LABEL[contact.type] ?? contact.type}
                     </p>
                   </div>
                 </div>
 
                 {/* Type */}
                 <span className="w-32 text-xs text-theme-secondary hidden md:block">
-                  {TYPE_LABEL[contact.type]}
+                  {TYPE_LABEL[contact.type] ?? contact.type}
                 </span>
 
                 {/* Score */}
                 <div className="w-20 flex items-center gap-1.5">
-                  <div className={cn('h-1.5 w-1.5 rounded-full', SCORE_DOT[contact.score])} />
-                  <span className="text-xs text-theme-secondary">{SCORE_LABEL[contact.score]}</span>
+                  {contact.score && <div className={cn('h-1.5 w-1.5 rounded-full', SCORE_DOT[contact.score])} />}
+                  <span className="text-xs text-theme-secondary">
+                    {contact.score ? (SCORE_LABEL[contact.score] ?? contact.score) : '—'}
+                  </span>
                 </div>
 
                 {/* Activity */}
                 <span className="w-24 text-xs text-theme-tertiary text-right">
-                  {formatRelativeDate(contact.last_activity)}
+                  {formatRelativeDate(getLastActivity(contact))}
                 </span>
               </Link>
             ))

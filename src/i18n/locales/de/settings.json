@@ -187,6 +187,7 @@
     "subtitle": "Wählen Sie, wie und wann Sie benachrichtigt werden möchten.",
     "email": "E-Mail",
     "push": "Push",
+    "enableAll": "Alle aktivieren",
     "categories": {
       "leads": {
         "label": "Neue Leads",

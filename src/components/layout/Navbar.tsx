@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Plus, Menu, X, LogOut, LayoutDashboard, HelpCircle, User } from 'lucide-react'
+import { Plus, Menu, X, LogOut, LayoutDashboard, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
@@ -136,7 +136,7 @@ export default function Navbar() {
                   {/* Menu items — role-aware */}
                   <div className="py-1">
                     <Link
-                      to={isAgent ? '/dashboard' : '/portal'}
+                      to={isAgent ? '/dashboard' : '/portail'}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
@@ -146,14 +146,6 @@ export default function Navbar() {
                         <User className="h-4 w-4 text-muted-foreground" />
                       )}
                       {isAgent ? 'Dashboard' : 'Mon espace'}
-                    </Link>
-                    <Link
-                      to="/aide"
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary-700 hover:bg-section transition-colors"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                      Aide
                     </Link>
                   </div>
 
@@ -223,7 +215,7 @@ export default function Navbar() {
                     </div>
                   </div>
                   <Link
-                    to={isAgent ? '/dashboard' : '/portal'}
+                    to={isAgent ? '/dashboard' : '/portail'}
                     className="px-3 py-2 text-sm font-medium text-primary-700 hover:bg-section rounded-md"
                     onClick={() => setMobileOpen(false)}
                   >

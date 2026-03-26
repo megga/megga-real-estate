@@ -5,6 +5,7 @@ import { Search, Send, ArrowLeft, Plus, Paperclip, X, FileText, ChevronDown, Pin
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useMessaging, type MessageThread } from '@/hooks/useMessaging'
 import { useAuth } from '@/hooks/useAuth'
+import { useContacts } from '@/hooks/useContacts'
 
 type FilterType = 'all' | 'unread' | 'buyer' | 'seller' | 'archived'
 
@@ -21,24 +22,13 @@ function ThreadAvatar({ initials, type }: { initials: string; type: 'buyer' | 's
 
 // ── Compose New Message Modal ───────────────────────────────────────────────
 
-const MOCK_CONTACTS_LIST = [
-  { id: 'c1', name: 'Marie Dupont', type: 'buyer' as const },
-  { id: 'c2', name: 'Pierre Müller', type: 'seller' as const },
-  { id: 'c3', name: 'Sophie Favre', type: 'buyer' as const },
-  { id: 'c4', name: 'Hans Zimmermann', type: 'buyer' as const },
-  { id: 'c5', name: 'Isabelle Rochat', type: 'both' as const },
-  { id: 'c6', name: 'Jean-Marc Bonvin', type: 'buyer' as const },
-  { id: 'c7', name: 'Nathalie Schmid', type: 'buyer' as const },
-  { id: 'c8', name: 'Thomas Wenger', type: 'buyer' as const },
-  { id: 'c9', name: 'Claudine Thévenaz', type: 'seller' as const },
-  { id: 'c10', name: 'Marc Delarue', type: 'buyer' as const },
-]
+type ComposeContact = { id: string; name: string; type: string }
 
-function ComposeModal({ onClose, onSend }: { onClose: () => void; onSend: (contactName: string, message: string) => void }) {
+function ComposeModal({ onClose, onSend, contacts }: { onClose: () => void; onSend: (contactName: string, message: string) => void; contacts: ComposeContact[] }) {
   const [contactId, setContactId] = useState('')
   const [message, setMessage] = useState('')
 
-  const selectedContact = MOCK_CONTACTS_LIST.find(c => c.id === contactId)
+  const selectedContact = contacts.find(c => c.id === contactId)
   const isValid = contactId && message.trim()
 
   return createPortal(
@@ -61,7 +51,7 @@ function ComposeModal({ onClose, onSend }: { onClose: () => void; onSend: (conta
                 className="w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none"
               >
                 <option value="">Sélectionner un contact...</option>
-                {MOCK_CONTACTS_LIST.map(c => (
+                {contacts.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
@@ -147,6 +137,12 @@ export default function MessagesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { threads, messages: threadMessages, sendMessage, isSending, markAsRead } = useMessaging(selectedThreadId)
+  const { contacts: rawContacts } = useContacts()
+  const composeContacts = rawContacts.map(c => ({
+    id: c.id,
+    name: [c.first_name, c.last_name].filter(Boolean).join(' '),
+    type: c.type,
+  }))
 
   // Auto-select first thread when threads load
   useEffect(() => {
@@ -231,48 +227,50 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="mb-4 flex-shrink-0 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-theme-primary">Messages</h1>
-          <p className="text-sm text-theme-tertiary mt-0.5">
-            {threads.length} conversation{threads.length > 1 ? 's' : ''} · {threads.filter((t) => t.unread_count > 0).length} non lue{threads.filter((t) => t.unread_count > 0).length > 1 ? 's' : ''}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCompose(true)}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Nouveau
-        </button>
-      </div>
+    <div className="flex justify-center px-4 py-4">
+      <div className="w-full max-w-5xl h-[calc(100vh-8rem)] flex gap-0 rounded-2xl overflow-hidden">
 
-      {/* Inbox */}
-      <div className="flex-1 rounded-xl border border-theme-border overflow-hidden flex min-h-0 max-h-[calc(100vh-12rem)]">
-
-        {/* ── Thread list (left) ── */}
+        {/* ── Thread list (left) — solid sidebar bg ── */}
         <div className={cn(
-          'w-full md:w-72 lg:w-80 border-r border-theme-border flex-shrink-0 flex flex-col',
+          'w-full md:w-80 flex-shrink-0 flex flex-col bg-theme-sidebar rounded-l-2xl',
           selectedThreadId !== null ? 'hidden md:flex' : 'flex'
         )}>
+          {/* Header */}
+          <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-theme-primary">Messages</h1>
+              <p className="text-xs text-theme-muted mt-0.5">
+                {threads.filter(t => t.unread_count > 0).length > 0
+                  ? `${threads.filter(t => t.unread_count > 0).length} non lu${threads.filter(t => t.unread_count > 0).length > 1 ? 's' : ''}`
+                  : 'Tout est lu'
+                }
+              </p>
+            </div>
+            <button
+              onClick={() => setShowCompose(true)}
+              className="h-8 w-8 rounded-lg bg-theme-card flex items-center justify-center text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
+              title="Nouveau message"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
           {/* Search */}
-          <div className="p-3 border-b border-theme-border">
+          <div className="px-5 pb-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-muted" />
               <input
                 type="text"
-                placeholder="Rechercher..."
+                placeholder="Rechercher une conversation..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-8 pl-8 pr-3 bg-transparent border border-theme-border rounded-lg text-sm text-theme-primary placeholder:text-theme-tertiary outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                className="w-full h-9 pl-9 pr-3 bg-theme-card border border-theme-border rounded-lg text-sm text-theme-primary placeholder:text-theme-muted outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
               />
             </div>
           </div>
 
           {/* Filters */}
-          <div className="flex gap-0.5 px-3 py-2 border-b border-theme-border">
+          <div className="flex gap-1 px-5 pb-3">
             {([
               { value: 'all' as FilterType, label: 'Tous' },
               { value: 'unread' as FilterType, label: 'Non lus' },
@@ -284,8 +282,8 @@ export default function MessagesPage() {
                 key={f.value}
                 onClick={() => setFilter(f.value)}
                 className={cn(
-                  'text-[11px] font-medium px-2 py-1 rounded-md transition-colors',
-                  filter === f.value ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
+                  'text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors',
+                  filter === f.value ? 'bg-theme-card text-theme-primary border border-theme-border' : 'text-theme-muted hover:text-theme-secondary'
                 )}
               >
                 {f.label}
@@ -294,60 +292,58 @@ export default function MessagesPage() {
           </div>
 
           {/* Threads */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
             {filteredThreads.length === 0 && (
-              <div className="p-6 text-center text-xs text-theme-tertiary">Aucune conversation.</div>
+              <div className="p-8 text-center text-xs text-theme-muted">Aucune conversation.</div>
             )}
-            {filteredThreads.map((thread, i) => (
+            {filteredThreads.map((thread) => (
               <div
                 key={thread.id}
                 onClick={() => handleSelectThread(thread)}
                 className={cn(
-                  'w-full text-left px-3 py-3 flex gap-3 transition-colors hover:bg-theme-hover group cursor-pointer',
-                  selectedThreadId === thread.id && 'bg-theme-hover',
-                  i < filteredThreads.length - 1 && 'border-b border-theme-border'
+                  'w-full text-left px-5 py-3.5 flex gap-3 transition-all cursor-pointer group relative',
+                  selectedThreadId === thread.id
+                    ? 'bg-theme-card'
+                    : 'hover:bg-theme-section'
                 )}
               >
+                {/* Unread indicator — left edge accent bar */}
+                {thread.unread_count > 0 && (
+                  <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-accent" />
+                )}
                 <ThreadAvatar initials={thread.avatar_initials} type={thread.contact_type} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className={cn('text-sm truncate', thread.unread_count > 0 ? 'font-semibold text-theme-primary' : 'font-medium text-theme-secondary')}>
                       {thread.contact_name}
                     </span>
-                    <span className="text-[10px] text-theme-tertiary flex-shrink-0">
+                    <span className="text-[10px] text-theme-muted flex-shrink-0">
                       {formatRelativeDate(thread.last_message_at)}
                     </span>
                   </div>
-                  <p className="text-xs text-theme-tertiary truncate mt-0.5">{thread.last_message}</p>
+                  <p className="text-xs text-theme-muted truncate mt-1">{thread.last_message}</p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0 self-center">
-                  {thread.unread_count > 0 && (
-                    <span className="h-5 min-w-[20px] px-1 bg-accent text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
-                      {thread.unread_count}
-                    </span>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleArchive(thread.id) }}
-                    className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-theme-active transition-all"
-                    title={archivedThreadIds.has(thread.id) ? 'Désarchiver' : 'Archiver'}
-                  >
-                    <Archive className="w-3 h-3 text-theme-tertiary" />
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleArchive(thread.id) }}
+                  className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-theme-hover transition-all self-center shrink-0"
+                  title={archivedThreadIds.has(thread.id) ? 'Désarchiver' : 'Archiver'}
+                >
+                  <Archive className="w-3.5 h-3.5 text-theme-muted" />
+                </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── Conversation (right) ── */}
+        {/* ── Conversation (right) — card bg ── */}
         <div className={cn(
-          'flex-1 flex flex-col min-w-0',
+          'flex-1 flex flex-col min-w-0 bg-theme-card rounded-r-2xl border-l border-theme-border',
           selectedThreadId === null ? 'hidden md:flex' : 'flex'
         )}>
           {selectedThread ? (
             <>
-              {/* Conversation header — with link to contact */}
-              <div className="h-14 border-b border-theme-border flex items-center gap-3 px-4 flex-shrink-0">
+              {/* Conversation header */}
+              <div className="h-16 border-b border-theme-border flex items-center gap-3 px-5 flex-shrink-0">
                 <button onClick={() => setSelectedThreadId(null)} className="md:hidden p-1 -ml-1 rounded-md hover:bg-theme-hover">
                   <ArrowLeft className="h-4 w-4 text-theme-secondary" />
                 </button>
@@ -356,42 +352,42 @@ export default function MessagesPage() {
                   {selectedThread.contact_id ? (
                     <Link
                       to={`/dashboard/contacts/${selectedThread.contact_id}`}
-                      className="text-sm font-medium text-theme-primary hover:text-accent transition-colors"
+                      className="text-sm font-semibold text-theme-primary hover:text-accent transition-colors"
                     >
                       {selectedThread.contact_name}
                     </Link>
                   ) : (
-                    <p className="text-sm font-medium text-theme-primary">{selectedThread.contact_name}</p>
+                    <p className="text-sm font-semibold text-theme-primary">{selectedThread.contact_name}</p>
                   )}
                   {selectedThread.property_title && (
-                    <p className="text-[11px] text-theme-tertiary truncate">{selectedThread.property_title}</p>
+                    <p className="text-xs text-theme-muted truncate mt-0.5">{selectedThread.property_title}</p>
                   )}
                 </div>
                 <button
                   onClick={() => toggleArchive(selectedThread.id)}
-                  className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors shrink-0"
+                  className="p-2 rounded-lg hover:bg-theme-hover transition-colors shrink-0"
                   title={archivedThreadIds.has(selectedThread.id) ? 'Désarchiver' : 'Archiver'}
                 >
-                  <Archive className="w-4 h-4 text-theme-tertiary" />
+                  <Archive className="w-4 h-4 text-theme-muted" />
                 </button>
               </div>
 
               {/* Pinned message banner */}
               {selectedThreadId && pinnedMessages.has(selectedThreadId) && (
-                <div className="px-4 py-2 border-b border-theme-border-subtle flex items-center gap-2 bg-theme-hover/50">
-                  <Pin className="w-3 h-3 text-theme-tertiary rotate-45 shrink-0" />
+                <div className="px-5 py-2.5 border-b border-theme-border-subtle flex items-center gap-2 bg-theme-section">
+                  <Pin className="w-3.5 h-3.5 text-theme-muted rotate-45 shrink-0" />
                   <p className="text-xs text-theme-secondary truncate flex-1">{pinnedMessages.get(selectedThreadId)?.content}</p>
                   <button
                     onClick={() => { const next = new Map(pinnedMessages); next.delete(selectedThreadId!); setPinnedMessages(next) }}
                     className="p-0.5 rounded hover:bg-theme-active transition-colors shrink-0"
                   >
-                    <X className="w-3 h-3 text-theme-tertiary" />
+                    <X className="w-3 h-3 text-theme-muted" />
                   </button>
                 </div>
               )}
 
               {/* Messages — day grouped */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+              <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4 scrollbar-hide">
                 {threadMessages.map((msg, idx) => {
                   const isAgent = msg.sender_type === 'agent'
                   const msgDate = new Date(msg.created_at)
@@ -413,32 +409,31 @@ export default function MessagesPage() {
                     <div key={msg.id}>
                       {/* Day separator */}
                       {showDaySeparator && (
-                        <div className="flex items-center gap-3 py-2">
+                        <div className="flex items-center gap-4 py-3">
                           <div className="flex-1 h-px bg-theme-border-subtle" />
-                          <span className="text-[10px] text-theme-muted font-medium">{dayLabel}</span>
+                          <span className="text-[10px] text-theme-muted font-medium uppercase tracking-wider">{dayLabel}</span>
                           <div className="flex-1 h-px bg-theme-border-subtle" />
                         </div>
                       )}
 
                       {/* Message */}
                       <div className={cn('flex group/msg', isAgent ? 'justify-end' : 'justify-start')}>
-                        <div className={cn('max-w-[70%] relative')}>
+                        <div className={cn('max-w-[60%] relative')}>
                           <div
                             className={cn(
-                              'rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line',
+                              'rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line',
                               isAgent
-                                ? 'bg-accent/15 text-theme-primary border border-accent/20 rounded-br-md'
-                                : 'border border-theme-border text-theme-primary rounded-bl-md',
-                              isPinned && 'ring-1 ring-theme-tertiary/30'
+                                ? 'bg-accent/12 text-theme-primary rounded-br-sm'
+                                : 'bg-theme-section text-theme-primary rounded-bl-sm',
+                              isPinned && 'ring-1 ring-accent/30'
                             )}
                           >
                             {msg.content}
                           </div>
-                          <div className={cn('flex items-center gap-1 mt-1', isAgent ? 'justify-end' : 'justify-start')}>
-                            <span className="text-[10px] text-theme-tertiary">
+                          <div className={cn('flex items-center gap-1.5 mt-1.5 px-1', isAgent ? 'justify-end' : 'justify-start')}>
+                            <span className="text-[10px] text-theme-muted">
                               {msgDate.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                            {/* Read status — double check for agent messages */}
                             {isAgent && msg.read_at && (
                               <CheckCheck className="w-3 h-3 text-accent" />
                             )}
@@ -451,13 +446,13 @@ export default function MessagesPage() {
                           <button
                             onClick={() => selectedThreadId && togglePin(selectedThreadId, msg.id, msg.content)}
                             className={cn(
-                              'absolute -top-1 p-1 rounded-md hover:bg-theme-active transition-all',
-                              isAgent ? '-left-7' : '-right-7',
-                              isPinned ? 'opacity-100 text-theme-secondary' : 'opacity-0 group-hover/msg:opacity-100 text-theme-tertiary'
+                              'absolute -top-1 p-1 rounded-md hover:bg-theme-hover transition-all',
+                              isAgent ? '-left-8' : '-right-8',
+                              isPinned ? 'opacity-100 text-theme-secondary' : 'opacity-0 group-hover/msg:opacity-100 text-theme-muted'
                             )}
                             title={isPinned ? 'Désépingler' : 'Épingler'}
                           >
-                            <Pin className="w-3 h-3 rotate-45" />
+                            <Pin className="w-3.5 h-3.5 rotate-45" />
                           </button>
                         </div>
                       </div>
@@ -470,7 +465,7 @@ export default function MessagesPage() {
 
               {/* Attachments preview */}
               {attachments.length > 0 && (
-                <div className="px-3 pt-2 flex flex-wrap gap-1.5">
+                <div className="px-5 pt-2 flex flex-wrap gap-2">
                   {attachments.map((name, i) => (
                     <AttachmentBubble
                       key={i}
@@ -481,13 +476,12 @@ export default function MessagesPage() {
                 </div>
               )}
 
-              {/* Input bar */}
-              <div className="border-t border-theme-border p-3 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  {/* Attach button */}
+              {/* Input bar — elevated feel */}
+              <div className="px-5 py-4 flex-shrink-0">
+                <div className="flex items-center gap-3 bg-theme-section rounded-xl px-3 py-2 border border-theme-border">
                   <button
                     onClick={handleAttachFile}
-                    className="h-9 w-9 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover transition-colors"
+                    className="h-8 w-8 rounded-lg flex items-center justify-center text-theme-muted hover:text-theme-primary hover:bg-theme-hover transition-colors shrink-0"
                     title="Joindre un fichier"
                   >
                     <Paperclip className="h-4 w-4" />
@@ -500,21 +494,20 @@ export default function MessagesPage() {
                     onChange={handleFileSelected}
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   />
-
                   <input
                     type="text"
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                     placeholder="Écrire un message..."
-                    className="flex-1 h-9 px-3 bg-transparent border border-theme-border rounded-lg text-sm text-theme-primary placeholder:text-theme-tertiary outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+                    className="flex-1 h-8 bg-transparent text-sm text-theme-primary placeholder:text-theme-muted outline-none"
                   />
                   <button
                     onClick={handleSend}
                     disabled={isSending || !messageText.trim()}
                     className={cn(
-                      'h-9 w-9 rounded-lg flex items-center justify-center transition-colors border border-theme-border',
-                      messageText.trim() ? 'text-theme-primary hover:bg-theme-hover border-theme-active' : 'text-theme-tertiary'
+                      'h-8 w-8 rounded-lg flex items-center justify-center transition-colors shrink-0',
+                      messageText.trim() ? 'bg-accent/15 text-accent hover:bg-accent/25' : 'text-theme-muted'
                     )}
                   >
                     <Send className="h-4 w-4" />
@@ -523,8 +516,11 @@ export default function MessagesPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-theme-tertiary text-sm">Sélectionnez une conversation</p>
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-theme-section flex items-center justify-center">
+                <Send className="h-5 w-5 text-theme-muted" />
+              </div>
+              <p className="text-theme-muted text-sm">Sélectionnez une conversation</p>
             </div>
           )}
         </div>
@@ -533,6 +529,7 @@ export default function MessagesPage() {
       {/* Compose modal */}
       {showCompose && (
         <ComposeModal
+          contacts={composeContacts}
           onClose={() => setShowCompose(false)}
           onSend={() => {
             // Future: create thread + send first message

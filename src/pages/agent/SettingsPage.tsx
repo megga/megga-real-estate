@@ -1016,6 +1016,24 @@ function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean
   )
 }
 
+function Checkbox({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'w-4 h-4 rounded border transition-colors flex items-center justify-center',
+        checked ? 'bg-theme-primary border-theme-primary' : 'border-theme-border bg-transparent'
+      )}
+    >
+      {checked && (
+        <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 text-theme-inverse" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 6l3 3 5-5" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
 function NotificationsTab() {
   const { t } = useTranslation('settings')
 
@@ -1027,31 +1045,46 @@ function NotificationsTab() {
     setSettings(prev => ({ ...prev, [id]: { ...prev[id], [channel]: value } }))
   }
 
+  const allEmail = NOTIF_CATEGORY_KEYS.every(k => settings[k].email)
+  const allPush = NOTIF_CATEGORY_KEYS.every(k => settings[k].push)
+  const allEnabled = allEmail && allPush
+
+  const toggleAll = (value: boolean) => {
+    setSettings(Object.fromEntries(NOTIF_CATEGORY_KEYS.map(c => [c, { email: value, push: value }])))
+  }
+
   return (
     <div className="space-y-0">
       <div className={cn(cardClasses, 'p-6')}>
         <h2 className="text-base font-semibold text-theme-primary">{t('notifications.title')}</h2>
-        <p className="text-sm text-theme-tertiary mt-0.5 mb-1">{t('notifications.subtitle')}</p>
+        <p className="text-sm text-theme-tertiary mt-0.5 mb-5">{t('notifications.subtitle')}</p>
 
-        {NOTIF_CATEGORY_KEYS.map((catKey, i) => {
+        {/* Master toggle + column headers */}
+        <div className="flex items-center py-2 mb-1">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <Checkbox checked={allEnabled} onChange={toggleAll} />
+            <span className="text-xs font-medium text-theme-secondary">{t('notifications.enableAll')}</span>
+          </div>
+          <div className="flex items-center gap-8 shrink-0">
+            <span className="text-[11px] font-medium text-theme-muted uppercase tracking-wider w-10 text-center">{t('notifications.email')}</span>
+            <span className="text-[11px] font-medium text-theme-muted uppercase tracking-wider w-10 text-center">{t('notifications.push')}</span>
+          </div>
+        </div>
+
+        <div className="border-t border-theme-border-subtle" />
+
+        {/* Category rows */}
+        {NOTIF_CATEGORY_KEYS.map((catKey) => {
           const s = settings[catKey]
           return (
-            <div key={catKey} className={cn(
-              'py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6',
-              i < NOTIF_CATEGORY_KEYS.length - 1 && 'border-b border-theme-border'
-            )}>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-theme-primary">{t(`notifications.categories.${catKey}.label`)}</p>
-                <p className="text-xs text-theme-tertiary mt-0.5">{t(`notifications.categories.${catKey}.description`)}</p>
-              </div>
-              <div className="flex items-center gap-6 shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-theme-tertiary">{t('notifications.email')}</span>
-                  <Toggle enabled={s.email} onChange={v => updateSetting(catKey, 'email', v)} />
+            <div key={catKey} className="flex items-center py-2.5">
+              <p className="text-sm text-theme-primary flex-1 min-w-0">{t(`notifications.categories.${catKey}.label`)}</p>
+              <div className="flex items-center gap-8 shrink-0">
+                <div className="w-10 flex justify-center">
+                  <Checkbox checked={s.email} onChange={v => updateSetting(catKey, 'email', v)} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-theme-tertiary">{t('notifications.push')}</span>
-                  <Toggle enabled={s.push} onChange={v => updateSetting(catKey, 'push', v)} />
+                <div className="w-10 flex justify-center">
+                  <Checkbox checked={s.push} onChange={v => updateSetting(catKey, 'push', v)} />
                 </div>
               </div>
             </div>
