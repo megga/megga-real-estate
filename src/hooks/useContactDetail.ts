@@ -129,8 +129,8 @@ export function useContactDetail(contactId: string) {
     try {
       // Try real AI summary via Edge Function with enriched context
       const { buildContactContext } = await import('@/lib/copilotContext')
-      const { useContactMemoryDirect } = await import('@/hooks/useContactMemory')
-      const memory = await useContactMemoryDirect(contactId)
+      const { fetchContactMemory } = await import('@/hooks/useContactMemory')
+      const memory = await fetchContactMemory(contactId)
 
       if (memory.contact) {
         const context = buildContactContext(memory)

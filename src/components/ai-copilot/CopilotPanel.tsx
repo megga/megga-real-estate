@@ -258,7 +258,7 @@ export default function CopilotPanel() {
       setIsTyping(false)
       setStreamingContent(null)
     }
-  }, [input, isTyping, sendMessageStream, activeContact, contactMemory, contactScore])
+  }, [input, isTyping, sendMessageStream, detectAction, activeContact, contactMemory, contactScore])
 
   // Keep ref in sync for voice callback
   handleSendRef.current = handleSend
