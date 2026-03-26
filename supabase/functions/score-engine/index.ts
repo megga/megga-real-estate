@@ -158,7 +158,7 @@ async function calculateContactScores(agencyId?: string) {
         if (/vue|dégagement/i.test(feedbacks)) patterns.push('manque de vue')
 
         // Store rejection patterns
-        var rejectionPatterns = patterns
+        const rejectionPatterns = patterns
       }
 
       // 5. CONVERSION (15%) — Pipeline progress + offers

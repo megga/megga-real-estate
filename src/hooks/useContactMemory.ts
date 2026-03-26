@@ -185,7 +185,7 @@ export function useContactMemory(contactId: string | undefined) {
  * Direct (non-hook) fetch of contact memory.
  * Used in callbacks where hooks can't be called.
  */
-export async function useContactMemoryDirect(contactId: string): Promise<ContactMemoryData> {
+export async function fetchContactMemory(contactId: string): Promise<ContactMemoryData> {
   const [contactRes, interactionsRes, matchesRes, visitsRes, transactionsRes] = await Promise.all([
     supabase.from('contacts').select('*').eq('id', contactId).single(),
     supabase.from('activity_events').select('id, action, metadata, created_at').eq('entity_id', contactId).eq('entity_type', 'contact').order('created_at', { ascending: false }).limit(20),
