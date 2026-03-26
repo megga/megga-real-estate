@@ -126,6 +126,7 @@ export function usePipelineHealth() {
   const health = useMemo((): PipelineHealthScore => {
     const anomalies: PipelineAnomaly[] = []
     const unwrap = <T,>(v: T | T[] | null): T | null => Array.isArray(v) ? v[0] ?? null : v
+    // eslint-disable-next-line react-hooks/purity -- Date.now() is safe in useMemo (computed once per deps change)
     const daysBetween = (date: string) => Math.floor((Date.now() - new Date(date).getTime()) / (24 * 60 * 60 * 1000))
 
     // Stale deals
