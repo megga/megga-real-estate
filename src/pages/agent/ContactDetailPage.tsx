@@ -13,7 +13,7 @@ import MatchingPanel from '@/components/matching/MatchingPanel'
 import CopilotSummary from '@/components/ai-copilot/CopilotSummary'
 import BuyerIntelligence from '@/components/ai-copilot/BuyerIntelligence'
 import SellerIntelligence from '@/components/ai-copilot/SellerIntelligence'
-import { useContactDetail } from '@/hooks/useContactDetail'
+import { useContact } from '@/hooks/useContacts'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
 import { useExternalMatching, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
 import { useSellerPortals } from '@/hooks/useSellerPortal'
@@ -99,7 +99,30 @@ export default function ContactDetailPage() {
   const contact = getContactById(id || '')
   const { setActiveContact } = useCopilotContext()
   const [showEdit, setShowEdit] = useState(false)
-  const { aiSummary, nextAction, enrichedData, isRefreshingAi, refreshAiSummary } = useContactDetail(id || '')
+  const { data: supabaseContact } = useContact(id)
+
+  // AI enrichment data — inline defaults until ai-copilot Edge Function is wired
+  const aiSummary = supabaseContact
+    ? `${supabaseContact.first_name} ${supabaseContact.last_name} — ${supabaseContact.type === 'buyer' ? 'Acheteur' : supabaseContact.type === 'seller' ? 'Vendeur' : supabaseContact.type}. Contact créé dans le CRM.`
+    : 'Chargement du résumé IA...'
+  const nextAction = {
+    title: 'Prendre contact',
+    description: 'Planifier un premier échange pour qualifier le besoin.',
+    actionLabel: 'Appeler',
+    score: undefined as number | undefined,
+  }
+  const enrichedData = supabaseContact ? {
+    ai_seriousness_score: supabaseContact.ai_seriousness_score ?? null,
+    ai_purchase_probability: supabaseContact.ai_purchase_probability ?? null,
+    ai_timing: supabaseContact.ai_timing ?? null,
+    ai_engagement_level: supabaseContact.ai_engagement_level ?? null,
+    budget_announced: supabaseContact.budget_announced ?? null,
+    budget_estimated_ai: supabaseContact.budget_estimated_ai ?? null,
+    ai_tension_level: supabaseContact.ai_tension_level ?? null,
+    ai_price_reduction_probability: supabaseContact.ai_price_reduction_probability ?? null,
+  } : null
+  const isRefreshingAi = false
+  const refreshAiSummary = () => { /* TODO: connect to ai-copilot Edge Function */ }
   const [matchingTab, setMatchingTab] = useState<'internal' | 'external'>('internal')
   const { createPortal: createSellerPortal, getPortalForContact, getPortalUrl, markInviteSent } = useSellerPortals()
   const sendEmail = useSendPropertyEmail()

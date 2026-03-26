@@ -9,7 +9,7 @@ const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'man
 
 function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role)) return '/dashboard'
-  return '/portal'
+  return '/portail'
 }
 
 export default function AuthCallbackPage() {
@@ -36,7 +36,29 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/app/settings?tab=integrations&gcal=success', { replace: true })
+        navigate('/app/settings?tab=applications&gcal=success', { replace: true })
+        return
+      }
+
+      // ── Outlook Calendar OAuth callback ──
+      if (params.get('outlook') === '1') {
+        const { data: { session: outlookSession } } = await supabase.auth.getSession()
+        if (outlookSession?.provider_token && outlookSession?.provider_refresh_token) {
+          try {
+            await supabase.functions.invoke('outlook-calendar-sync', {
+              body: {
+                action: 'save_tokens',
+                access_token: outlookSession.provider_token,
+                refresh_token: outlookSession.provider_refresh_token,
+                expires_in: 3600,
+                outlook_email: user.user_metadata?.email ?? null,
+              },
+            })
+          } catch {
+            // Token save failed — user can retry from Settings
+          }
+        }
+        navigate('/app/settings?tab=applications&outlook=success', { replace: true })
         return
       }
 

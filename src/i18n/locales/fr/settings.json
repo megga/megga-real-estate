@@ -187,6 +187,7 @@
     "subtitle": "Choisissez comment et quand vous souhaitez être notifié.",
     "email": "Email",
     "push": "Push",
+    "enableAll": "Tout activer",
     "categories": {
       "leads": {
         "label": "Nouveaux leads",
@@ -428,7 +429,6 @@
       "all": "Tous",
       "connected": "Connectés",
       "calendar": "Calendrier",
-      "email": "Email",
       "crm": "CRM",
       "tools": "Outils",
       "storage": "Stockage"
@@ -440,14 +440,11 @@
       "connect": "Connecter"
     },
     "empty": "Aucune application dans cette catégorie.",
-    "resend": { "name": "Email / Resend", "desc": "Relances, confirmations et présentations de biens" },
     "google-calendar": { "name": "Google Calendar", "desc": "Synchronisation des visites et rendez-vous" },
     "outlook-calendar": { "name": "Outlook Calendar", "desc": "Synchronisation des visites et rendez-vous" },
     "salesforce": { "name": "Salesforce", "desc": "Import de vos contacts, comptes et opportunités" },
     "hubspot": { "name": "HubSpot", "desc": "Import de vos contacts, entreprises et deals" },
     "pipedrive": { "name": "Pipedrive", "desc": "Import de vos personnes, organisations et deals" },
-    "zoho": { "name": "Zoho CRM", "desc": "Import de vos contacts, comptes et potentiels" },
-    "freshsales": { "name": "Freshsales", "desc": "Import de vos contacts, comptes et deals" },
     "csv-import": { "name": "Import / Export", "desc": "Importez vos données depuis un fichier CSV ou Excel" },
     "posthog": { "name": "PostHog", "desc": "Analytics d'usage et adoption par votre équipe" },
     "google-drive": { "name": "Google Drive", "desc": "Synchronisation documents KYC et mandats" },
@@ -457,6 +454,12 @@
       "syncNow": "Sync",
       "disconnect": "Délier",
       "disconnectConfirm": "Voulez-vous déconnecter Google Calendar ?"
+    },
+    "outlookCalendar": {
+      "lastSync": "Dernière synchro : {{date}}",
+      "syncNow": "Sync",
+      "disconnect": "Délier",
+      "disconnectConfirm": "Voulez-vous déconnecter Outlook Calendar ?"
     }
   }
 }

@@ -187,6 +187,7 @@
     "subtitle": "Wählen Sie, wie und wann Sie benachrichtigt werden möchten.",
     "email": "E-Mail",
     "push": "Push",
+    "enableAll": "Alle aktivieren",
     "categories": {
       "leads": {
         "label": "Neue Leads",
@@ -423,21 +424,19 @@
     }
   },
   "apps": {
-    "filters": { "all": "Alle", "connected": "Verbunden", "calendar": "Kalender", "email": "E-Mail", "crm": "CRM", "tools": "Tools", "storage": "Speicher" },
+    "filters": { "all": "Alle", "connected": "Verbunden", "calendar": "Kalender", "crm": "CRM", "tools": "Tools", "storage": "Speicher" },
     "status": { "connected": "Verbunden", "notConnected": "Nicht verbunden", "comingSoon": "Bald", "connect": "Verbinden" },
     "empty": "Keine Anwendungen in dieser Kategorie.",
-    "resend": { "name": "E-Mail / Resend", "desc": "Nachfassungen, Bestätigungen und Präsentationen" },
     "google-calendar": { "name": "Google Calendar", "desc": "Besichtigungen und Termine synchronisieren" },
     "outlook-calendar": { "name": "Outlook Calendar", "desc": "Besichtigungen und Termine synchronisieren" },
     "salesforce": { "name": "Salesforce", "desc": "Kontakte, Konten und Opportunities importieren" },
     "hubspot": { "name": "HubSpot", "desc": "Kontakte, Unternehmen und Deals importieren" },
     "pipedrive": { "name": "Pipedrive", "desc": "Personen, Organisationen und Deals importieren" },
-    "zoho": { "name": "Zoho CRM", "desc": "Kontakte, Konten und Potenziale importieren" },
-    "freshsales": { "name": "Freshsales", "desc": "Kontakte, Konten und Deals importieren" },
     "csv-import": { "name": "Import / Export", "desc": "Daten aus CSV- oder Excel-Dateien importieren" },
     "posthog": { "name": "PostHog", "desc": "Nutzungsanalysen und Team-Adoption" },
     "google-drive": { "name": "Google Drive", "desc": "KYC-Dokumente und Mandate synchronisieren" },
     "onedrive": { "name": "OneDrive", "desc": "KYC-Dokumente und Mandate synchronisieren" },
-    "googleCalendar": { "lastSync": "Letzte Synchro: {{date}}", "syncNow": "Sync", "disconnect": "Trennen", "disconnectConfirm": "Google Calendar trennen?" }
+    "googleCalendar": { "lastSync": "Letzte Synchro: {{date}}", "syncNow": "Sync", "disconnect": "Trennen", "disconnectConfirm": "Google Calendar trennen?" },
+    "outlookCalendar": { "lastSync": "Letzte Synchro: {{date}}", "syncNow": "Sync", "disconnect": "Trennen", "disconnectConfirm": "Outlook Calendar trennen?" }
   }
 }

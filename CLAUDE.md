@@ -1360,7 +1360,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 25 mars 2026)
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 26 mars 2026)
 
 ### ✅ Fonctionnalités LIVE
 
@@ -1444,13 +1444,32 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - **Prérequis** : Google Cloud Console (Calendar API activée) + secrets `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`
 - **Statut** : code prêt, en attente de configuration Google Cloud Console (mode Testing)
 
-#### Settings — Audit Sécurité + Applications — 25 mars 2026
+#### Outlook Calendar Integration — 26 mars 2026
+- **Edge Function** `outlook-calendar-sync` déployée — Microsoft Graph API, 7 actions (save_tokens, list/create/update/delete events, sync_all, disconnect)
+- **Hook** `useOutlookCalendar` — même pattern que Google Calendar (React Query, mutations, OAuth Azure)
+- **Migration SQL** : tables `outlook_calendar_tokens` + `outlook_calendar_sync` avec RLS
+- **CalendarPage** : événements Outlook mergés, auto-sync au CRUD visites
+- **Auth callback** : capture `provider_token` + `provider_refresh_token` si `?outlook=1`
+- **Prérequis** : Microsoft Entra (Azure AD) app configurée + secrets `MICROSOFT_CLIENT_ID` + `MICROSOFT_CLIENT_SECRET`
+- **Statut** : code déployé, Azure configuré, provider Azure activé dans Supabase Auth
+
+#### Settings — Audit Sécurité + Applications — 26 mars 2026
 - **SecurityTab** : mot de passe connecté Supabase (`updateUser`), 2FA marqué "Bientôt disponible" (toggle désactivé), sessions marquées "Bientôt disponible" (boutons désactivés), journal de sécurité connecté `activity_events`, Google OAuth link/unlink avec feedback succès/erreur
-- **Applications** (ex-Intégrations) : refonte style Stripe Marketplace — 12 apps en grille 4 colonnes avec logos SVG, filtres par catégorie (Tous, Connectés, Calendrier, Email, CRM, Outils)
-  - **Connectés** : Email/Resend
-  - **Connectable** : Google Calendar (OAuth + sync)
-  - **Bientôt** : Outlook Calendar, Salesforce, HubSpot, Pipedrive, Zoho CRM, Freshsales, Import/Export CSV, PostHog, Google Drive, OneDrive
+- **Applications** : refonte style Stripe Marketplace — 9 apps en grille 3 colonnes avec logos SVG officiels, filtres par catégorie (Tous, Connectés, Calendrier, CRM, Outils)
+  - **Connectable** : Google Calendar (OAuth + sync), Outlook Calendar (OAuth Azure + sync)
+  - **Bientôt** : Salesforce, HubSpot, Pipedrive, Import/Export CSV, PostHog, Google Drive, OneDrive
+  - **Supprimés** : Resend (infrastructure interne, pas visible agent), Zoho CRM (rare en Suisse), Freshsales (inexistant sur ce marché)
+- **Notifications** : refonte compact — grille checkboxes avec colonnes Email/Push + "Tout activer"
 - **Portails immobiliers** supprimés (pas d'API publique — SMG/Homegate/ImmoScout24 = jardin fermé)
+
+#### Audit technique dashboard — 26 mars 2026
+- **Routes corrigées** : `/portal` → `/portail` (Navbar + AuthCallback), lien `/aide` mort supprimé
+- **ContactsPage** connectée à Supabase via `useContacts()` (était mock)
+- **MessagesPage** compose modal utilise vrais contacts Supabase (était hardcodé)
+- **ActionBoardPage** salutation dynamique via `useAuth().profile` (était "Gregory" hardcodé)
+- **Hooks dépréciés supprimés** : `useMatchingMock.ts`, `useContactDetail.ts`
+- **Button default variant** corrigé : `bg-accent text-white` → ghost style conforme design system
+- **MessagesPage redesign** : layout centré (max-w-5xl), fonds solides (bg-theme-sidebar / bg-theme-card), bulles modernisées, input bar élevée, indicateur non-lu en barre accent latérale
 
 #### Page Privacy — 25 mars 2026
 - Route `/privacy` — politique de confidentialité conforme LPD suisse (9 sections)
@@ -1459,16 +1478,18 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ### 🔑 Secrets Supabase configurés
 ```
-ANTHROPIC_API_KEY    → Claude API (Sonnet 4)
-RESEND_API_KEY       → Envoi email via megga.ch
-DILISENSE_API_KEY    → Screening PEP/Sanctions
+ANTHROPIC_API_KEY       → Claude API (Sonnet 4)
+RESEND_API_KEY          → Envoi email via megga.ch
+DILISENSE_API_KEY       → Screening PEP/Sanctions
+MICROSOFT_CLIENT_ID     → Azure AD OAuth (Outlook Calendar)
+MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 ```
 
 ### 📊 Supabase
 - **Project ref** : eayczugyrvmtqnnmvjod
 - **Region** : eu-west-1 (Ireland)
 - **Plan** : Nano (gratuit)
-- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync
+- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync
 
 ### DB — Corrections RLS appliquées (2026-03-23)
 - Récursion infinie `profiles` → fixée avec `get_my_agency_id()` SECURITY DEFINER
@@ -1477,10 +1498,12 @@ DILISENSE_API_KEY    → Screening PEP/Sanctions
 - **À nettoyer pour la prod** : supprimer les policies `anon` et forcer `authenticated` partout
 
 ### Prochaines priorités
-1. **Google Calendar** — configurer Google Cloud Console (mode Testing) + déployer Edge Function + appliquer migration SQL
-2. **Logos officiels Applications** — remplacer les 12 SVG approximatifs par les vrais logos officiels de chaque service
+1. **Google Calendar** — configurer Google Cloud Console (mode Testing) + tester OAuth flow
+2. **Outlook Calendar** — tester le flow OAuth Azure complet (bouton Connecter → sync)
 3. **Import/Export CSV** — connecter l'app Import/Export pour permettre la migration depuis Pipedrive/HubSpot/Excel
 4. **ListingPage connectée** — remplacer getListingById(mockData) par useMarketListing(supabase)
-5. **Matching externe enrichi** — scoring client_searches × market_listings (38K biens)
-6. **Matching interne connecté** — scoring client_searches × properties (mandats agence)
-7. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action
+5. **PipelinePage connectée** — remplacer MOCK_DEALS par useTransactions() (garder le Kanban tel quel)
+6. **Matching externe enrichi** — scoring client_searches × market_listings (38K biens)
+7. **Matching interne connecté** — scoring client_searches × properties (mandats agence)
+8. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action
+9. **i18n pages agent** — ContactsPage, ContactDetailPage, Navbar (texte français hardcodé)

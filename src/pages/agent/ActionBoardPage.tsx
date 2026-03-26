@@ -2,6 +2,7 @@ import { CheckCircle2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence } from 'motion/react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
 import { useActionBoard, type ActionItem } from '@/hooks/useActionBoard'
 import ActionCard from '@/components/action-board/ActionCard'
 import PipelineHealth from '@/components/action-board/PipelineHealth'
@@ -140,8 +141,9 @@ function ActionSection({
 export default function ActionBoardPage() {
   const { byCategory, markAsCompleted, isLoading } = useActionBoard()
   const { t } = useTranslation('dashboard')
+  const { profile } = useAuth()
 
-  const firstName = 'Gregory' // In production: from auth profile
+  const firstName = profile?.full_name?.split(' ')[0] ?? 'Agent'
 
   // Build contextual subtitle using translated day/month names
   const now = new Date()
