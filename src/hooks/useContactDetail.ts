@@ -126,11 +126,44 @@ export function useContactDetail(contactId: string) {
 
   const refreshAiSummary = useCallback(async () => {
     setIsRefreshingAi(true)
-    // Simulate AI processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1200))
+    try {
+      // Try real AI summary via Edge Function with enriched context
+      const { buildContactContext } = await import('@/lib/copilotContext')
+      const { useContactMemoryDirect } = await import('@/hooks/useContactMemory')
+      const memory = await useContactMemoryDirect(contactId)
+
+      if (memory.contact) {
+        const context = buildContactContext(memory)
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/ai-copilot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({
+            action: 'summarize_contact',
+            message: `Résume le profil de ${memory.contact.first_name} ${memory.contact.last_name}`,
+            context,
+            language: 'fr',
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setAiSummary(data.result)
+          return
+        }
+      }
+    } catch {
+      // Fallback to mock if Edge Function fails
+    } finally {
+      setIsRefreshingAi(false)
+    }
     setAiSummary(defaultSummary)
-    setIsRefreshingAi(false)
-  }, [defaultSummary])
+  }, [contactId, defaultSummary])
 
   return {
     contact,

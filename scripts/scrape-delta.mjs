@@ -225,6 +225,152 @@ function transformListing(item) {
   return listing
 }
 
+// ── Score Engine: Market Change Detection ───────────────
+
+async function detectMarketChanges(rows) {
+  // Fetch existing listings for these source_ids to compare prices
+  const sourceIds = rows.map(r => r.source_id)
+
+  // Batch fetch in chunks of 100
+  const existingMap = new Map()
+  for (let i = 0; i < sourceIds.length; i += 100) {
+    const chunk = sourceIds.slice(i, i + 100)
+    const resp = await fetch(
+      `${SUPABASE_URL}/rest/v1/market_listings?source_id=in.(${chunk.join(',')})&select=id,source_id,price,title,city,canton,type,rooms`,
+      {
+        headers: {
+          'apikey': ANON_KEY,
+          'Authorization': `Bearer ${SERVICE_KEY}`,
+        },
+      }
+    )
+    if (resp.ok) {
+      const data = await resp.json()
+      for (const item of data) {
+        existingMap.set(item.source_id, item)
+      }
+    }
+  }
+
+  const changes = []
+
+  for (const row of rows) {
+    const existing = existingMap.get(row.source_id)
+
+    if (!existing) {
+      // New listing — never seen before
+      changes.push({
+        change_type: 'new',
+        old_price: null,
+        new_price: row.price,
+        change_pct: null,
+        listing_title: row.title,
+        listing_city: row.city,
+        listing_canton: row.canton,
+        listing_type: row.type,
+        listing_rooms: row.rooms,
+      })
+    } else if (existing.price && row.price && Math.abs(existing.price - row.price) > 1) {
+      const pct = ((row.price - existing.price) / existing.price) * 100
+      changes.push({
+        market_listing_id: existing.id,
+        change_type: pct < 0 ? 'price_drop' : 'price_increase',
+        old_price: existing.price,
+        new_price: row.price,
+        change_pct: Math.round(pct * 100) / 100,
+        listing_title: row.title || existing.title,
+        listing_city: row.city || existing.city,
+        listing_canton: row.canton || existing.canton,
+        listing_type: row.type || existing.type,
+        listing_rooms: row.rooms || existing.rooms,
+      })
+    }
+  }
+
+  // Insert changes
+  if (changes.length > 0) {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/market_changes`, {
+      method: 'POST',
+      headers: {
+        'apikey': ANON_KEY,
+        'Authorization': `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify(changes),
+    })
+    if (resp.ok) {
+      const newCount = changes.filter(c => c.change_type === 'new').length
+      const dropCount = changes.filter(c => c.change_type === 'price_drop').length
+      const upCount = changes.filter(c => c.change_type === 'price_increase').length
+      if (newCount + dropCount + upCount > 0) {
+        console.log(`  📡 Radar: ${newCount} nouveaux, ${dropCount} baisses, ${upCount} hausses`)
+      }
+    }
+  }
+}
+
+async function detectRemovedListings() {
+  // Listings not seen in 48h that are still 'active' → mark as removed
+  const threshold = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  const resp = await fetch(
+    `${SUPABASE_URL}/rest/v1/market_listings?status=eq.active&last_seen_at=lt.${threshold}&select=id,title,city,canton,type,rooms,price&limit=100`,
+    {
+      headers: {
+        'apikey': ANON_KEY,
+        'Authorization': `Bearer ${SERVICE_KEY}`,
+      },
+    }
+  )
+  if (!resp.ok) return
+
+  const stale = await resp.json()
+  if (stale.length === 0) return
+
+  // Log as removed
+  const changes = stale.map(l => ({
+    market_listing_id: l.id,
+    change_type: 'removed',
+    old_price: l.price,
+    new_price: null,
+    change_pct: null,
+    listing_title: l.title,
+    listing_city: l.city,
+    listing_canton: l.canton,
+    listing_type: l.type,
+    listing_rooms: l.rooms,
+  }))
+
+  await fetch(`${SUPABASE_URL}/rest/v1/market_changes`, {
+    method: 'POST',
+    headers: {
+      'apikey': ANON_KEY,
+      'Authorization': `Bearer ${SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify(changes),
+  })
+
+  // Update status to 'removed'
+  const ids = stale.map(l => l.id)
+  await fetch(
+    `${SUPABASE_URL}/rest/v1/market_listings?id=in.(${ids.join(',')})`,
+    {
+      method: 'PATCH',
+      headers: {
+        'apikey': ANON_KEY,
+        'Authorization': `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ status: 'removed' }),
+    }
+  )
+
+  console.log(`  📡 Radar: ${stale.length} biens retirés du marché`)
+}
+
 // ── Process one price range (max 2-3 pages, newest first) ───
 
 let stats = { fetched: 0, upserted: 0, errors: 0, pagesTotal: 0, rangesWithData: 0 }
@@ -271,6 +417,11 @@ async function processRange(priceMin, priceMax, rangeIndex, totalRanges) {
 
     stats.fetched += rows.length
 
+    // ── Score Engine: detect market changes before upsert ──
+    if (!DRY_RUN && rows.length > 0) {
+      await detectMarketChanges(rows)
+    }
+
     // Batch upsert
     if (!DRY_RUN && rows.length > 0) {
       for (let i = 0; i < rows.length; i += 200) {
@@ -314,6 +465,11 @@ async function main() {
     const [min, max] = ranges[i]
     await processRange(min, max, i + 1, ranges.length)
     await new Promise(r => setTimeout(r, DELAY_MS))
+  }
+
+  // Detect removed listings (not seen in 48h)
+  if (!DRY_RUN) {
+    await detectRemovedListings()
   }
 
   const finalCount = DRY_RUN ? stats.upserted : await getDbCount()

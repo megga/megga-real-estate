@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 
-type CopilotAction = 'chat' | 'summarize_contact' | 'suggest_next_action' | 'draft_email' | 'draft_description' | 'analyze_kyc' | 'score_lead'
+type CopilotAction = 'chat' | 'summarize_contact' | 'suggest_next_action' | 'draft_email' | 'draft_description' | 'analyze_kyc' | 'score_lead' | 'analyze_market' | 'detect_intent'
 
 interface CopilotResponse {
   result: string
@@ -23,6 +23,7 @@ function detectAction(message: string): CopilotAction {
   if (/kyc|conformité|dossier|lab|blanchiment/.test(lower)) return 'analyze_kyc'
   if (/score|qualif|lead|chaud|froid|sérieux/.test(lower)) return 'score_lead'
   if (/actions|prochaines|priorité|que faire|next/.test(lower)) return 'suggest_next_action'
+  if (/marché|positionnement|comparable|prix.*m2|prix.*m²|concurrence|stagnation/.test(lower)) return 'analyze_market'
   return 'chat'
 }
 
@@ -107,12 +108,24 @@ export function useCopilot() {
       const assistantMsg: ChatMessage = { role: 'assistant', content: result }
       historyRef.current = [...historyRef.current, userMsg, assistantMsg].slice(-20)
 
-      // Stream word by word for smooth UX
+      // Stream word by word — natural typing rhythm
       const words = result.split(' ')
       for (let i = 0; i < words.length; i++) {
         const word = (i === 0 ? '' : ' ') + words[i]
         onChunk(word)
-        await new Promise(resolve => setTimeout(resolve, 15 + Math.random() * 10))
+
+        // Variable delay for natural feel
+        let delay = 30 + Math.random() * 25 // base: 30-55ms per word
+        // Longer pause after punctuation (sentence ends)
+        if (/[.!?:]\s*$/.test(word)) delay += 120 + Math.random() * 80
+        // Medium pause after commas
+        else if (/,\s*$/.test(word)) delay += 40 + Math.random() * 30
+        // Slight pause after line breaks
+        else if (word.includes('\n')) delay += 60
+        // Faster for short common words
+        else if (word.trim().length <= 2) delay = 20 + Math.random() * 15
+
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue'

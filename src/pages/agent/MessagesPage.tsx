@@ -5,6 +5,8 @@ import { Search, Send, ArrowLeft, Plus, Paperclip, X, FileText, ChevronDown, Pin
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useMessaging, type MessageThread } from '@/hooks/useMessaging'
 import { useAuth } from '@/hooks/useAuth'
+import MessageIntentBadge from '@/components/messaging/MessageIntentBadge'
+import SmartReplies from '@/components/messaging/SmartReplies'
 
 type FilterType = 'all' | 'unread' | 'buyer' | 'seller' | 'archived'
 
@@ -446,6 +448,10 @@ export default function MessagesPage() {
                               <CheckCheck className="w-3 h-3 text-theme-muted" />
                             )}
                           </div>
+                          {/* Intent detection badge for client messages */}
+                          {!isAgent && msg.content.length > 10 && (
+                            <MessageIntentBadge messageContent={msg.content} className="mt-1" />
+                          )}
 
                           {/* Pin action on hover */}
                           <button
@@ -480,6 +486,20 @@ export default function MessagesPage() {
                   ))}
                 </div>
               )}
+
+              {/* Smart reply suggestions */}
+              {(() => {
+                const clientMsgs = threadMessages.filter(m => m.sender_type !== 'agent')
+                const lastClientMsg = clientMsgs.length > 0 ? clientMsgs[clientMsgs.length - 1] : null
+                const thread = threads.find(t => t.id === selectedThreadId)
+                return lastClientMsg ? (
+                  <SmartReplies
+                    lastClientMessage={lastClientMsg.content}
+                    contactName={thread?.contact_name?.split(' ')[0] ?? 'Client'}
+                    onSelect={(text) => setMessageText(text)}
+                  />
+                ) : null
+              })()}
 
               {/* Input bar */}
               <div className="border-t border-theme-border p-3 flex-shrink-0">
