@@ -136,6 +136,7 @@ async function calculateContactScores(agencyId?: string) {
         .limit(20)
 
       let visitQualityScore = 30
+      let rejectionPatterns: string[] = []
       const visitsCount = visits?.length ?? 0
 
       if (visits && visits.length > 0) {
@@ -157,8 +158,7 @@ async function calculateContactScores(agencyId?: string) {
         if (/travaux|rénov/i.test(feedbacks)) patterns.push('travaux nécessaires')
         if (/vue|dégagement/i.test(feedbacks)) patterns.push('manque de vue')
 
-        // Store rejection patterns
-        const rejectionPatterns = patterns
+        rejectionPatterns = patterns
       }
 
       // 5. CONVERSION (15%) — Pipeline progress + offers
