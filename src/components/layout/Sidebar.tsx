@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { useAvatar } from '@/hooks/useAvatar'
 import { usePreferences } from '@/hooks/usePreferences'
+import { useMessaging } from '@/hooks/useMessaging'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,7 @@ const NAV_SECTIONS: NavSection[] = [
     { labelKey: 'nav.createListing', href: '/dashboard/listings/new', icon: Plus, isCreateAction: true },
   ]},
   { labelKey: 'sections.communication', items: [
-    { labelKey: 'nav.messages', href: '/dashboard/messages', icon: MessageSquare, badge: 4 },
+    { labelKey: 'nav.chat', href: '/dashboard/messages', icon: MessageSquare },
     { labelKey: 'nav.calendar', href: '/dashboard/calendar', icon: Calendar },
   ]},
   { labelKey: 'sections.compliance', items: [
@@ -96,8 +97,10 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const { t } = useTranslation('common')
   const { avatarUrl } = useAvatar()
   const { preferences } = usePreferences()
+  const { threads } = useMessaging(null)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const isMinimalSidebar = preferences.sidebarStyle === 'minimal'
+  const unreadCount = (threads || []).reduce((sum, t) => sum + (t.unread_count || 0), 0)
 
   function isActive(href: string) {
     if (href === '/dashboard') return location.pathname === '/dashboard'
@@ -226,28 +229,17 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                     >
                       <div className="relative flex-shrink-0">
                         <item.icon className="w-[18px] h-[18px] stroke-[1.8]" />
-                        {item.badge && item.badge > 0 && (
-                          <span className={cn(
-                            'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 transition-opacity duration-200',
-                            isCol ? 'opacity-100' : 'opacity-0'
-                          )} />
+                        {item.href === '/dashboard/messages' && unreadCount > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
                         )}
                       </div>
 
                       <span className={fadeLabel(isCol)}>{label}</span>
-
-                      {/* Badge dot — expanded mode, right side */}
-                      {item.badge && item.badge > 0 && (
-                        <span className={cn(
-                          'ml-auto w-2 h-2 rounded-full bg-red-500 shrink-0 transition-opacity duration-200',
-                          isCol ? 'opacity-0 absolute' : 'opacity-100'
-                        )} />
-                      )}
                     </Link>
 
                     <CollapsedTooltip show={isCol && hoveredItem === item.href}>
                       {label}
-                      {item.badge && item.badge > 0 && <span className="ml-1.5 text-theme-tertiary">({item.badge})</span>}
+                      {item.href === '/dashboard/messages' && unreadCount > 0 && <span className="ml-1.5 text-red-500">({unreadCount})</span>}
                     </CollapsedTooltip>
                   </div>
                 )

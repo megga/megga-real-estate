@@ -13,6 +13,13 @@ export interface Property {
   bedrooms: number
   bathrooms: number
   surface_m2: number
+  floor?: number
+  total_floors?: number
+  year_built?: number
+  charges_monthly?: number
+  mandate_type?: string
+  condition?: string
+  availability_date?: string
   address: string
   city: string
   canton: string
@@ -24,6 +31,7 @@ export interface Property {
   created_by: string
   created_at: string
   published_at: string | null
+  updated_at?: string
 }
 
 export interface Listing {

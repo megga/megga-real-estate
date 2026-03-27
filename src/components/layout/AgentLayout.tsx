@@ -6,7 +6,6 @@ import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import Sidebar from '@/components/layout/Sidebar'
 import CommandPalette from '@/components/layout/CommandPalette'
 import Breadcrumb from '@/components/layout/Breadcrumb'
-import CopilotPanel from '@/components/ai-copilot/CopilotPanel'
 import NewContactDialog from '@/components/contacts/NewContactDialog'
 import BottomTabBar from '@/components/layout/BottomTabBar'
 
@@ -79,9 +78,6 @@ function AgentLayoutInner() {
 
       {/* Quick Contact Creation — accessible globalement via ⌘⇧C */}
       <NewContactDialog open={quickContactOpen} onClose={closeQuickContact} />
-
-      {/* Copilot IA — bouton flottant accessible depuis toute page agent */}
-      <CopilotPanel />
 
       {/* Mobile bottom tab bar */}
       <BottomTabBar />
