@@ -210,7 +210,7 @@ export default function PromptInputBar({
     setTriggerPos(-1)
   }
 
-  useEffect(() => { detectAutocomplete() }, [input]) // eslint-disable-line react-hooks/exhaustive-deps
+  // detectAutocomplete is called from handleChange, not from an effect
 
   // ─── Select autocomplete item ────────────────────────────────────────────
 
@@ -383,7 +383,7 @@ export default function PromptInputBar({
         <textarea
           ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => { setInput(e.target.value); requestAnimationFrame(detectAutocomplete) }}
           onKeyDown={handleKeyDown}
           placeholder={activeContact ? `Demandez à propos de ${activeContact.firstName}...` : placeholder}
           disabled={disabled || isLoading}

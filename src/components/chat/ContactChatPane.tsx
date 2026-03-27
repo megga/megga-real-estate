@@ -109,15 +109,13 @@ function MessageContextMenu({ state, onClose, onReply, onCopy, onPin, onTransfer
     return () => { document.removeEventListener('mousedown', handleClick); document.removeEventListener('keydown', handleKey) }
   }, [onClose])
 
-  // Adjust position so menu doesn't overflow viewport
-  const [pos, setPos] = useState({ x: state.x, y: state.y })
-  useEffect(() => {
-    const el = menuRef.current
+  // Adjust position via callback ref to avoid setState in effect
+  const adjustPosition = useCallback((el: HTMLDivElement | null) => {
     if (!el) return
+    menuRef.current = el
     const rect = el.getBoundingClientRect()
-    const nx = rect.right > window.innerWidth ? state.x - rect.width : state.x
-    const ny = rect.bottom > window.innerHeight ? state.y - rect.height : state.y
-    setPos({ x: Math.max(4, nx), y: Math.max(4, ny) })
+    if (rect.right > window.innerWidth) el.style.left = `${Math.max(4, state.x - rect.width)}px`
+    if (rect.bottom > window.innerHeight) el.style.top = `${Math.max(4, state.y - rect.height)}px`
   }, [state.x, state.y])
 
   const items = [
@@ -130,9 +128,9 @@ function MessageContextMenu({ state, onClose, onReply, onCopy, onPin, onTransfer
 
   return createPortal(
     <div
-      ref={menuRef}
+      ref={adjustPosition}
       className="fixed z-[110] min-w-[180px] rounded-xl border border-theme-border bg-theme-card py-1 overflow-hidden"
-      style={{ left: pos.x, top: pos.y }}
+      style={{ left: state.x, top: state.y }}
     >
       {items.map((item, i) => (
         <button
@@ -187,12 +185,10 @@ export default function ContactChatPane({
   const { matches: allMatches = [], sent: sentMatches = [] } = useMatching(showInfoPanel && thread.contact_id ? thread.contact_id : undefined)
   const updateContact = useUpdateContact()
 
-  // Sync notes draft when contact data loads
-  useEffect(() => {
-    if (contactData && noteDraft === null) {
-      setNoteDraft(contactData.notes || '')
-    }
-  }, [contactData, noteDraft])
+  // Sync notes draft when contact data loads — derive initial value
+  if (contactData && noteDraft === null) {
+    setNoteDraft(contactData.notes || '')
+  }
 
   const saveNote = useCallback(async () => {
     if (!thread.contact_id || noteDraft === null) return
