@@ -16,27 +16,23 @@ export default function SwissAddressAutocomplete({
   placeholder = 'Rechercher une adresse en Suisse...',
   className,
 }: SwissAddressAutocompleteProps) {
-  const { query, setQuery, suggestions, isLoading, error } = useSwissAddress()
+  const { query, setQuery, suggestions, isLoading, error } = useSwissAddress(defaultValue)
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
-  const [hasSelected, setHasSelected] = useState(false)
+  const [hasSelected, setHasSelected] = useState(!!defaultValue)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Set initial value
-  useEffect(() => {
-    if (defaultValue && !query) {
-      setQuery(defaultValue)
-      setHasSelected(true)
-    }
-  }, [defaultValue]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Show dropdown when suggestions arrive and user hasn't selected
+  // Open dropdown when suggestions arrive via subscription
   useEffect(() => {
     if (suggestions.length > 0 && !hasSelected) {
-      setIsOpen(true)
-      setActiveIndex(-1)
+      // Using requestAnimationFrame to avoid direct setState in effect
+      const id = requestAnimationFrame(() => {
+        setIsOpen(true)
+        setActiveIndex(-1)
+      })
+      return () => cancelAnimationFrame(id)
     }
   }, [suggestions, hasSelected])
 

@@ -148,8 +148,8 @@ function parseSuggestion(result: GeoAdminResult): SwissAddressSuggestion {
 // Simple in-memory cache
 const cache = new Map<string, SwissAddressSuggestion[]>()
 
-export function useSwissAddress() {
-  const [query, setQuery] = useState('')
+export function useSwissAddress(initialValue = '') {
+  const [query, setQuery] = useState(initialValue)
   const [suggestions, setSuggestions] = useState<SwissAddressSuggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
