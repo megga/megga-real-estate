@@ -9,7 +9,11 @@ import { buildContactContext, getContextSummary, enrichWithScores } from '@/lib/
 import { useContactScore } from '@/hooks/useScoreEngine'
 import { fetchMarketComparables } from '@/lib/marketContext'
 import { useAuth } from '@/hooks/useAuth'
-import { MessageContent, EmailBlock, isEmailResponse } from './AiMessageBubble'
+import { MessageContent, EmailBlock } from './AiMessageBubble'
+
+function isEmailResponse(content: string): boolean {
+  return content.includes('**Objet :**') || content.includes('**Objet:**')
+}
 import PromptInputBar from './PromptInputBar'
 
 // ─── Types & Storage ────────────────────────────────────────────────────────

@@ -41,12 +41,6 @@ export function MessageContent({ content }: { content: string }) {
   )
 }
 
-// ─── Email detection ────────────────────────────────────────────────────────
-
-export function isEmailResponse(content: string): boolean {
-  return content.includes('**Objet :**') || content.includes('**Objet:**')
-}
-
 // ─── Email block with copy button ───────────────────────────────────────────
 
 export function EmailBlock({ content }: { content: string }) {
