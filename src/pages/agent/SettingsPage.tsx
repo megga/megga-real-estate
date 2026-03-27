@@ -1753,7 +1753,6 @@ const APPS: AppIntegration[] = [
   { id: 'google-calendar', category: 'calendar', isConnected: false },
   { id: 'outlook-calendar', category: 'calendar', isConnected: false },
   // CRM
-  { id: 'salesforce', category: 'crm', isConnected: false, comingSoon: true },
   { id: 'hubspot', category: 'crm', isConnected: false, comingSoon: true },
   { id: 'pipedrive', category: 'crm', isConnected: false, comingSoon: true },
   // Tools
@@ -1774,9 +1773,6 @@ function AppLogo({ id, className }: { id: string; className?: string }) {
     // Outlook — blue envelope with "O" shield
     case 'outlook-calendar':
       return <svg className={size} viewBox="0 0 24 24"><path d="M22 7.5v9a1.5 1.5 0 0 1-1.5 1.5H10V6h10.5A1.5 1.5 0 0 1 22 7.5z" fill="#0078D4"/><path d="M10 6l6 4.5L10 18V6z" fill="#0A5EB5"/><path d="M22 7.5L16 12l-6-4.5V6h10.5A1.5 1.5 0 0 1 22 7.5z" fill="#28A8EA"/><path d="M22 7.5L16 12l6 4.5V7.5z" fill="#0364B8"/><rect x="2" y="5" width="10" height="14" rx="1.5" fill="#0078D4"/><ellipse cx="7" cy="12" rx="3" ry="3.5" fill="none" stroke="#fff" strokeWidth="1.5"/></svg>
-    // Salesforce — cloud logo
-    case 'salesforce':
-      return <svg className={size} viewBox="0 0 24 24"><path d="M10.2 5.8a4.3 4.3 0 0 1 4 .2 3.8 3.8 0 0 1 5.6 2 3.2 3.2 0 0 1-.4 6.3H17a3.5 3.5 0 0 1-2.1 2.5 4.2 4.2 0 0 1-3.8-.1 4 4 0 0 1-3.5 1.3 3.8 3.8 0 0 1-3.4-4.5A3.5 3.5 0 0 1 6 7.2a4.3 4.3 0 0 1 4.2-1.4z" fill="#00A1E0"/></svg>
     // HubSpot — sprocket gear icon (official orange)
     case 'hubspot':
       return <svg className={size} viewBox="0 0 24 24"><path d="M16.5 8.2V5.5a1.5 1.5 0 1 0-1.5-1.5 1.5 1.5 0 0 0 .3.9v2.5a5 5 0 0 0-3.3 1.8l-5-3.2a2 2 0 1 0-1 1.6l4.8 3.1a5 5 0 0 0 0 3.6l-4.8 3.1A2 2 0 1 0 8 19a2 2 0 0 0-.1-.6l4.9-3.1a5 5 0 1 0 3.7-7.1zM15 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" fill="#FF7A59"/></svg>

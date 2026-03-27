@@ -17,7 +17,7 @@ const TABS: TabItem[] = [
   { icon: Home, label: 'Accueil', path: '/dashboard' },
   { icon: GitBranch, label: 'Pipeline', path: '/dashboard/pipeline' },
   { icon: Users, label: 'Contacts', path: '/dashboard/contacts' },
-  { icon: MessageSquare, label: 'Messages', path: '/dashboard/messages' },
+  { icon: MessageSquare, label: 'Chat', path: '/dashboard/messages' },
 ]
 
 const MORE_ITEMS: TabItem[] = [

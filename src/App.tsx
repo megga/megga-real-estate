@@ -36,7 +36,7 @@ const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const KycListPage = lazy(() => import('@/pages/agent/KycListPage'))
 const KycDetailPage = lazy(() => import('@/pages/agent/KycDetailPage'))
-const MessagesPage = lazy(() => import('@/pages/agent/MessagesPage'))
+const ChatPage = lazy(() => import('@/pages/agent/ChatPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const AutomationPage = lazy(() => import('@/pages/agent/AutomationPage'))
 const TemplatesPage = lazy(() => import('@/pages/agent/TemplatesPage'))
@@ -142,7 +142,7 @@ export default function App() {
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="kyc" element={<KycListPage />} />
                 <Route path="kyc/:id" element={<KycDetailPage />} />
-                <Route path="messages" element={<MessagesPage />} />
+                <Route path="messages" element={<ChatPage />} />
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="automation" element={<AutomationPage />} />
                 <Route path="documents" element={<TemplatesPage />} />

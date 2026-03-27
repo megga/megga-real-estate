@@ -1,15 +1,15 @@
 import { useState, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
   Search, Plus, LayoutGrid, List, ChevronLeft, ChevronRight, ChevronDown,
+  Loader2, Trash2, Pencil,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, PROPERTY_STATUS_LABELS } from '@/lib/constants'
 import type { PropertyStatus } from '@/lib/constants'
-import { MOCK_AGENT_LISTINGS, type MockAgentListing } from '@/lib/mockData'
-import { useAgencyListings } from '@/hooks/useListings'
+import { useAgencyProperties, useDeleteProperty } from '@/hooks/useProperties'
 import PageTransition from '@/components/layout/PageTransition'
-import ListingDetailModal from '@/components/listings/ListingDetailModal'
 
 const ITEMS_PER_PAGE = 9
 
@@ -21,6 +21,26 @@ const STATUS_DOT: Record<PropertyStatus, string> = {
   archived: 'bg-gray-400',
 }
 
+interface AgentListing {
+  id: string
+  title: string
+  type: PropertyStatus extends string ? string : string
+  status: PropertyStatus
+  price: number
+  address: string
+  city: string
+  canton: string
+  rooms: number
+  bedrooms: number
+  surface_m2: number
+  photo: string
+  views_count: number
+  favorites_count: number
+  created_at: string
+  published_at: string | null
+  updated_at: string
+}
+
 const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
 
 export default function ListingsPage() {
@@ -29,25 +49,36 @@ export default function ListingsPage() {
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [page, setPage] = useState(1)
-  const [selectedListing, setSelectedListing] = useState<MockAgentListing | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const { data: properties, isLoading } = useAgencyProperties()
+  const deleteProperty = useDeleteProperty()
 
-  const { data: realListings } = useAgencyListings()
-  const dataSource: MockAgentListing[] = (realListings && realListings.length > 0)
-    ? realListings.map(l => {
-        const prop = l.property as unknown as Record<string, unknown> | undefined
-        return {
-          id: l.id, title: l.title,
-          type: (prop?.type as MockAgentListing['type']) ?? 'apartment',
-          status: (prop?.status as MockAgentListing['status']) ?? 'draft',
-          price: (prop?.price as number) ?? 0,
-          address: (prop?.address as string) ?? '', city: (prop?.city as string) ?? '', canton: (prop?.canton as string) ?? '',
-          rooms: (prop?.rooms as number) ?? 0, bedrooms: (prop?.bedrooms as number) ?? 0, surface_m2: (prop?.surface_m2 as number) ?? 0,
-          photo: ((prop?.photos as string[]) ?? [])[0] ?? '',
-          views_count: l.views_count, favorites_count: l.favorites_count,
-          created_at: l.published_at ?? '', published_at: l.published_at, updated_at: l.published_at ?? '',
-        }
-      })
-    : MOCK_AGENT_LISTINGS
+  // Map properties to flat listing objects
+  const dataSource: AgentListing[] = useMemo(() => {
+    if (!properties) return []
+    return properties.map(p => {
+      const listing = p.listing?.[0]
+      return {
+        id: p.id,
+        title: p.title,
+        type: p.type,
+        status: p.status as PropertyStatus,
+        price: p.price ?? 0,
+        address: p.address ?? '',
+        city: p.city ?? '',
+        canton: p.canton ?? '',
+        rooms: p.rooms ?? 0,
+        bedrooms: p.bedrooms ?? 0,
+        surface_m2: p.surface_m2 ?? 0,
+        photo: (p.photos ?? [])[0] ?? '',
+        views_count: listing?.views_count ?? 0,
+        favorites_count: listing?.favorites_count ?? 0,
+        created_at: p.created_at ?? '',
+        published_at: p.published_at ?? null,
+        updated_at: p.updated_at ?? p.created_at ?? '',
+      }
+    })
+  }, [properties])
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: dataSource.length }
@@ -72,6 +103,21 @@ export default function ListingsPage() {
 
   const hasFilters = search || statusFilter || typeFilter
 
+  function handleDelete() {
+    if (!deleteId) return
+    deleteProperty.mutate(deleteId, { onSuccess: () => setDeleteId(null) })
+  }
+
+  if (isLoading) {
+    return (
+      <PageTransition>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-theme-muted" />
+        </div>
+      </PageTransition>
+    )
+  }
+
   return (
     <PageTransition>
       <div className="space-y-5">
@@ -92,7 +138,6 @@ export default function ListingsPage() {
 
         {/* Status tabs + filters */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Status pills */}
           <div className="flex items-center border border-theme-border rounded-lg p-0.5">
             {[
               { key: '', label: 'Tous', count: statusCounts.all },
@@ -163,24 +208,57 @@ export default function ListingsPage() {
           )}
         </div>
 
-        {/* Empty */}
+        {/* Empty state */}
         {filtered.length === 0 && (
-          <div className="text-center py-12 rounded-xl border border-theme-border">
-            <p className="text-sm text-theme-tertiary">Aucun bien trouvé</p>
+          <div className="text-center py-16 rounded-xl border border-theme-border">
+            <p className="text-sm text-theme-tertiary mb-4">
+              {dataSource.length === 0 ? 'Vous n\'avez pas encore ajouté de bien' : 'Aucun bien trouvé'}
+            </p>
+            {dataSource.length === 0 && (
+              <Link
+                to="/dashboard/listings/new"
+                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ajouter un bien
+              </Link>
+            )}
           </div>
         )}
 
-        {/* Grid view — 3 columns */}
+        {/* Grid view */}
         {filtered.length > 0 && viewMode === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {paginated.map((listing) => (
-              <div key={listing.id} onClick={() => setSelectedListing(listing)} className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors cursor-pointer">
+              <div key={listing.id} className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors">
                 {/* Photo */}
                 <div className="relative aspect-[4/3] overflow-hidden">
-                  <img src={listing.photo} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
+                  {listing.photo ? (
+                    <img src={listing.photo} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="w-full h-full bg-theme-section flex items-center justify-center">
+                      <span className="text-xs text-theme-muted">Pas de photo</span>
+                    </div>
+                  )}
                   <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white text-[11px] font-medium px-2 py-1 rounded-md">
                     <div className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[listing.status])} />
                     {PROPERTY_STATUS_LABELS[listing.status]}
+                  </div>
+                  {/* Hover actions */}
+                  <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link
+                      to={`/dashboard/listings/${listing.id}/edit`}
+                      className="h-7 w-7 rounded-md bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Link>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteId(listing.id) }}
+                      className="h-7 w-7 rounded-md bg-black/50 backdrop-blur-sm text-white flex items-center justify-center hover:bg-red-500/80 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
 
@@ -188,7 +266,7 @@ export default function ListingsPage() {
                 <div className="p-4">
                   <p className="text-lg font-semibold text-theme-primary">{formatCHF(listing.price)}</p>
                   <p className="text-sm font-medium text-theme-primary mt-1 truncate">{listing.title}</p>
-                  <p className="text-xs text-theme-tertiary mt-0.5 truncate">{listing.address}, {listing.city}</p>
+                  <p className="text-xs text-theme-tertiary mt-0.5 truncate">{listing.address}{listing.city ? `, ${listing.city}` : ''}</p>
 
                   {listing.rooms > 0 && (
                     <p className="text-xs text-theme-tertiary mt-2">
@@ -197,7 +275,7 @@ export default function ListingsPage() {
                   )}
 
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-theme-border text-xs text-theme-tertiary">
-                    <span>{PROPERTY_TYPE_LABELS[listing.type]}</span>
+                    <span>{PROPERTY_TYPE_LABELS[listing.type as keyof typeof PROPERTY_TYPE_LABELS] ?? listing.type}</span>
                     <span>{formatRelativeDate(listing.updated_at)}</span>
                   </div>
                 </div>
@@ -206,7 +284,7 @@ export default function ListingsPage() {
           </div>
         )}
 
-        {/* List view — transparent bento */}
+        {/* List view */}
         {filtered.length > 0 && viewMode === 'list' && (
           <div className="rounded-xl border border-theme-border">
             <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
@@ -215,29 +293,47 @@ export default function ListingsPage() {
               <span className="w-24">Statut</span>
               <span className="w-28 text-right">Prix</span>
               <span className="w-24 text-right hidden sm:block">Activité</span>
+              <span className="w-16" />
             </div>
 
             {paginated.map((listing, i) => (
               <div
                 key={listing.id}
-                onClick={() => setSelectedListing(listing)}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-3 hover:bg-theme-hover transition-colors cursor-pointer group',
+                  'flex items-center gap-3 px-4 py-3 hover:bg-theme-hover transition-colors group',
                   i < paginated.length - 1 && 'border-b border-theme-border'
                 )}
               >
-                <img src={listing.photo} alt={listing.title} className="h-10 w-10 rounded-lg object-cover shrink-0" loading="lazy" decoding="async" />
+                {listing.photo ? (
+                  <img src={listing.photo} alt={listing.title} className="h-10 w-10 rounded-lg object-cover shrink-0" loading="lazy" decoding="async" />
+                ) : (
+                  <div className="h-10 w-10 rounded-lg bg-theme-section shrink-0" />
+                )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">{listing.title}</p>
-                  <p className="text-xs text-theme-tertiary truncate">{listing.address}, {listing.city}</p>
+                  <p className="text-sm font-medium text-theme-primary truncate">{listing.title}</p>
+                  <p className="text-xs text-theme-tertiary truncate">{listing.address}{listing.city ? `, ${listing.city}` : ''}</p>
                 </div>
-                <span className="w-24 text-xs text-theme-secondary hidden md:block">{PROPERTY_TYPE_LABELS[listing.type]}</span>
+                <span className="w-24 text-xs text-theme-secondary hidden md:block">{PROPERTY_TYPE_LABELS[listing.type as keyof typeof PROPERTY_TYPE_LABELS] ?? listing.type}</span>
                 <div className="w-24 flex items-center gap-1.5">
                   <div className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[listing.status])} />
                   <span className="text-xs text-theme-secondary">{PROPERTY_STATUS_LABELS[listing.status]}</span>
                 </div>
                 <span className="w-28 text-sm font-medium text-theme-primary text-right">{formatCHF(listing.price)}</span>
                 <span className="w-24 text-xs text-theme-tertiary text-right hidden sm:block">{formatRelativeDate(listing.updated_at)}</span>
+                <div className="w-16 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Link
+                    to={`/dashboard/listings/${listing.id}/edit`}
+                    className="h-7 w-7 rounded-md text-theme-secondary hover:text-theme-primary flex items-center justify-center transition-colors"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Link>
+                  <button
+                    onClick={() => setDeleteId(listing.id)}
+                    className="h-7 w-7 rounded-md text-theme-secondary hover:text-red-500 flex items-center justify-center transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -264,23 +360,29 @@ export default function ListingsPage() {
             </div>
           </div>
         )}
-        {selectedListing && (
-          <ListingDetailModal
-            listing={{
-              id: selectedListing.id,
-              title: selectedListing.title,
-              price: selectedListing.price,
-              address: selectedListing.address,
-              city: selectedListing.city,
-              canton: selectedListing.canton,
-              rooms: selectedListing.rooms,
-              surface: selectedListing.surface_m2,
-              type: selectedListing.type,
-              status: selectedListing.status,
-              created_at: selectedListing.created_at,
-            }}
-            onClose={() => setSelectedListing(null)}
-          />
+
+        {/* Delete confirmation modal */}
+        {deleteId && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
+            <div className="relative bg-theme-card rounded-xl border border-theme-border p-6 max-w-sm w-full mx-4">
+              <h3 className="text-base font-semibold text-theme-primary">Supprimer ce bien ?</h3>
+              <p className="text-sm text-theme-secondary mt-2">Cette action est irréversible. Le bien et son annonce seront supprimés définitivement.</p>
+              <div className="flex justify-end gap-3 mt-6">
+                <button onClick={() => setDeleteId(null)} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
+                  Annuler
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteProperty.isPending}
+                  className="h-9 px-4 text-sm font-medium border border-red-300 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-50"
+                >
+                  {deleteProperty.isPending ? 'Suppression...' : 'Supprimer'}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
       </div>
     </PageTransition>
