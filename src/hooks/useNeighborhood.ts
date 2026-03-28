@@ -160,6 +160,102 @@ export function useNeighborhood(lat?: number, lng?: number) {
   } satisfies NeighborhoodData
 }
 
+// ─── Walk Score calculation ──────────────────────────────────────────────
+
+export interface WalkScore {
+  /** Score global 0-100 */
+  score: number
+  /** Label humain */
+  label: string
+  /** Couleur CSS pour le badge */
+  color: string
+  /** Scores par catégorie (0-100 chacun) */
+  breakdown: {
+    transport: number
+    commerce: number
+    ecole: number
+    sante: number
+    loisir: number
+  }
+}
+
+/**
+ * Calcule un score de walkabilité 0-100 basé sur la proximité des POIs.
+ *
+ * Pondération :
+ * - Transport (gare) : 30% — critère #1 en Suisse
+ * - Commerces : 25% — supermarché, pharmacie, boulangerie
+ * - Écoles : 20% — familles
+ * - Santé : 15% — médecin, hôpital
+ * - Loisirs : 10% — restaurants, parcs, sport
+ *
+ * Chaque sous-score est basé sur la distance du POI le plus proche :
+ * - < 300m = 100, < 500m = 85, < 800m = 65, < 1200m = 40, < 2000m = 20, > 2000m = 5
+ * - 0 POIs dans la catégorie = 0
+ */
+export function calculateWalkScore(
+  categories: Record<PoiCategory, CategorySummary>,
+  station: StationInfo | null
+): WalkScore {
+  function distanceToScore(distanceM: number): number {
+    if (distanceM <= 300) return 100
+    if (distanceM <= 500) return 85
+    if (distanceM <= 800) return 65
+    if (distanceM <= 1200) return 40
+    if (distanceM <= 2000) return 20
+    return 5
+  }
+
+  // Transport : basé sur la gare la plus proche
+  const transportScore = station
+    ? distanceToScore(station.distanceM)
+    : (categories.transport.nearest ? distanceToScore(categories.transport.nearest.distanceM) : 0)
+
+  // Autres catégories : basé sur le POI le plus proche
+  const commerceScore = categories.commerce.nearest ? distanceToScore(categories.commerce.nearest.distanceM) : 0
+  const ecoleScore = categories.ecole.nearest ? distanceToScore(categories.ecole.nearest.distanceM) : 0
+  const santeScore = categories.sante.nearest ? distanceToScore(categories.sante.nearest.distanceM) : 0
+  const loisirScore = categories.loisir.nearest ? distanceToScore(categories.loisir.nearest.distanceM) : 0
+
+  // Bonus densité : +5 par catégorie ayant 3+ POIs (max +15)
+  let densityBonus = 0
+  for (const cat of Object.values(categories)) {
+    if (cat.count >= 3) densityBonus += 5
+  }
+
+  const weightedScore = Math.round(
+    transportScore * 0.30 +
+    commerceScore * 0.25 +
+    ecoleScore * 0.20 +
+    santeScore * 0.15 +
+    loisirScore * 0.10 +
+    Math.min(densityBonus, 15) * 0.1 // Bonus densité plafonné
+  )
+
+  const score = Math.min(100, Math.max(0, weightedScore))
+
+  let label: string
+  let color: string
+  if (score >= 90) { label = 'Tout à pied'; color = 'text-green-600' }
+  else if (score >= 70) { label = 'Très pratique'; color = 'text-green-500' }
+  else if (score >= 50) { label = 'Correct'; color = 'text-yellow-600' }
+  else if (score >= 25) { label = 'Dépendant voiture'; color = 'text-orange-500' }
+  else { label = 'Isolé'; color = 'text-red-500' }
+
+  return {
+    score,
+    label,
+    color,
+    breakdown: {
+      transport: transportScore,
+      commerce: commerceScore,
+      ecole: ecoleScore,
+      sante: santeScore,
+      loisir: loisirScore,
+    },
+  }
+}
+
 // ─── AI Summary hook (separate, depends on POI data) ────────────────────
 
 export function useNeighborhoodSummary(

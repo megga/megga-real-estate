@@ -20,6 +20,7 @@ import NaturalHazardBadge from '@/components/listings/NaturalHazardBadge'
 import { useMarketTemperature } from '@/hooks/useMarketInsights'
 import { estimatePropertyTax, estimateMonthlyCost, CANTONAL_TAX_RATES, ENERGY_LABEL_COLORS, type EnergyLabel } from '@/lib/cantonalTaxRates'
 import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
+import { useNeighborhood, calculateWalkScore } from '@/hooks/useNeighborhood'
 import MapGL, { Marker, NavigationControl } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -475,6 +476,10 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
 
   const { data: marketTemp } = useMarketTemperature(listing?.canton, listing?.city)
 
+  // Walk score
+  const { categories: poiCategories, station: nearestStation } = useNeighborhood(listing?.lat, listing?.lng)
+  const walkScore = (listing?.lat && listing?.lng) ? calculateWalkScore(poiCategories, nearestStation) : null
+
   // Similar listings
   const similarFilters = listing ? {
     context: 'buy' as const,
@@ -871,6 +876,56 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         {listing.charges_monthly > 0 && (
                           <span>Charges : {formatCHF(listing.charges_monthly)}/mois</span>
                         )}
+                      </div>
+                    )}
+
+                    {/* Walk Score + Monthly cost */}
+                    {(walkScore || listing.canton) && (
+                      <div className="flex flex-wrap items-center gap-4 mt-4">
+                        {/* Walk Score */}
+                        {walkScore && walkScore.score > 0 && (
+                          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                            <div className="relative w-11 h-11">
+                              <svg viewBox="0 0 36 36" className="w-11 h-11 -rotate-90">
+                                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                                <circle
+                                  cx="18" cy="18" r="15.5" fill="none"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeDasharray={`${walkScore.score * 0.975} 100`}
+                                  className={
+                                    walkScore.score >= 70 ? 'stroke-green-500' :
+                                    walkScore.score >= 50 ? 'stroke-yellow-500' :
+                                    walkScore.score >= 25 ? 'stroke-orange-500' : 'stroke-red-500'
+                                  }
+                                />
+                              </svg>
+                              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-900">
+                                {walkScore.score}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-900">Walkabilité</p>
+                              <p className={cn('text-[11px] font-medium', walkScore.color)}>{walkScore.label}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Monthly cost estimate */}
+                        {listing.canton && listing.price > 0 && (() => {
+                          const cost = estimateMonthlyCost(listing.price, listing.canton, listing.charges_monthly)
+                          return (
+                            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                              <div className="w-11 h-11 rounded-full bg-accent/10 flex items-center justify-center">
+                                <span className="text-accent text-sm font-bold">CHF</span>
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-gray-900">{formatCHF(cost.totalMonthly)}/mois</p>
+                                <p className="text-[11px] text-gray-400">Coût mensuel estimé</p>
+                              </div>
+                            </div>
+                          )
+                        })()}
                       </div>
                     )}
 
