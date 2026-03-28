@@ -10,7 +10,7 @@ import {
   LayoutGrid,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
-import { useMarketListing } from '@/hooks/useMarketListings'
+import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { applyPlaceholders } from '@/lib/placeholderData'
@@ -18,6 +18,7 @@ import MarketTemperatureBadge from '@/components/listings/MarketTemperatureBadge
 import PriceHistoryChart from '@/components/listings/PriceHistoryChart'
 import NaturalHazardBadge from '@/components/listings/NaturalHazardBadge'
 import { useMarketTemperature } from '@/hooks/useMarketInsights'
+import { estimatePropertyTax, estimateMonthlyCost, CANTONAL_TAX_RATES, ENERGY_LABEL_COLORS, type EnergyLabel } from '@/lib/cantonalTaxRates'
 import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
 import MapGL, { Marker, NavigationControl } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -61,6 +62,8 @@ interface TransformedListing {
   condition: string
   has_parking: boolean
   has_outdoor: boolean
+  energy_label: string
+  minergie_label: string
 }
 
 // ─── Transform helpers ──────────────────────────────────────────────────
@@ -97,6 +100,8 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     condition: (data.condition as string) || '',
     has_parking: !!data.has_parking,
     has_outdoor: !!data.has_outdoor,
+    energy_label: (data.energy_label as string) || '',
+    minergie_label: (data.minergie_label as string) || '',
   }
 }
 
@@ -161,7 +166,92 @@ const SECTIONS = [
   { id: 'preview-map', label: 'Localisation' },
   { id: 'preview-quartier', label: 'Quartier' },
   { id: 'preview-market', label: 'Marché' },
+  { id: 'preview-similaires', label: 'Similaires' },
 ]
+
+// ─── Urgency badge logic ────────────────────────────────────────────────
+
+function getUrgencyBadge(daysOnMarket: number, isHot: boolean, isNew: boolean): { label: string; className: string } | null {
+  if (isNew || daysOnMarket <= 3) return { label: 'Nouveau', className: 'bg-accent/10 text-accent' }
+  if (isHot) return { label: 'Forte demande', className: 'bg-red-50 text-red-600' }
+  if (daysOnMarket > 90) return { label: `${daysOnMarket}j en ligne — Négociable ?`, className: 'bg-amber-50 text-amber-700' }
+  if (daysOnMarket > 30) return { label: `${daysOnMarket}j en ligne`, className: 'bg-gray-100 text-gray-600' }
+  return null
+}
+
+// ─── Energy label component ─────────────────────────────────────────────
+
+function EnergyLabelBadge({ label, minergie }: { label?: string; minergie?: string }) {
+  if (!label && !minergie) return null
+  const upperLabel = (label || '').toUpperCase() as EnergyLabel
+  const colorClass = ENERGY_LABEL_COLORS[upperLabel] || 'bg-gray-400'
+
+  return (
+    <div className="flex items-center gap-2">
+      {label && (
+        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold text-white', colorClass)}>
+          CECB {upperLabel}
+        </span>
+      )}
+      {minergie && (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-green-600 text-white">
+          {minergie}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// ─── Property tax estimate component ────────────────────────────────────
+
+function PropertyTaxSection({ price, canton, chargesMonthly }: { price: number; canton: string; chargesMonthly: number }) {
+  const taxInfo = CANTONAL_TAX_RATES[canton.toUpperCase()]
+  const annualTax = estimatePropertyTax(price, canton)
+  const monthlyCost = estimateMonthlyCost(price, canton, chargesMonthly)
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Estimation fiscale</p>
+      <div className="space-y-2">
+        {/* Monthly cost */}
+        <div className="flex justify-between items-baseline">
+          <span className="text-sm text-gray-500">Coût mensuel estimé</span>
+          <span className="text-base font-bold text-gray-900">{formatCHF(monthlyCost.totalMonthly)}/mois</span>
+        </div>
+        {/* Breakdown */}
+        <div className="text-xs text-gray-400 space-y-1">
+          <div className="flex justify-between">
+            <span>Hypothèque (taux imputé 5%)</span>
+            <span>{formatCHF(monthlyCost.monthlyMortgageCost)}</span>
+          </div>
+          {monthlyCost.monthlyCharges > 0 && (
+            <div className="flex justify-between">
+              <span>Charges</span>
+              <span>{formatCHF(monthlyCost.monthlyCharges)}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span>Impôt foncier ({taxInfo?.name || canton})</span>
+            <span>{annualTax !== null ? `${formatCHF(monthlyCost.monthlyPropertyTax)}` : 'Aucun'}</span>
+          </div>
+        </div>
+        {/* Canton info */}
+        <div className="pt-1">
+          {taxInfo?.hasPropertyTax ? (
+            <p className="text-[10px] text-gray-400">
+              Taux : {taxInfo.ratePerMille}‰ ({taxInfo.level === 'communal' ? 'variable par commune' : 'taux cantonal'}) — {annualTax !== null ? `${formatCHF(annualTax)}/an` : ''}
+            </p>
+          ) : (
+            <p className="text-[10px] text-green-600 font-medium">
+              Pas d'impôt foncier dans le canton de {taxInfo?.name || canton}
+            </p>
+          )}
+        </div>
+      </div>
+      <p className="text-[10px] text-gray-300 italic">Estimation indicative — valeur fiscale ≈ 70% du prix marché</p>
+    </div>
+  )
+}
 
 function SectionNav({ activeId, onNavigate }: { activeId: string; onNavigate: (id: string) => void }) {
   return (
@@ -381,6 +471,19 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
   })()
 
   const { data: marketTemp } = useMarketTemperature(listing?.canton, listing?.city)
+
+  // Similar listings
+  const similarFilters = listing ? {
+    context: 'buy' as const,
+    canton: listing.canton,
+    types: [listing.type],
+    minPrice: Math.round(listing.price * 0.7),
+    maxPrice: Math.round(listing.price * 1.3),
+  } : {}
+  const { data: similarData } = useMarketListings(listing ? similarFilters : {})
+  const similarListings = (similarData?.pages.flatMap(p => p.listings) ?? [])
+    .filter(l => l.id !== listingId)
+    .slice(0, 6)
 
   // Reset state when listing changes — intentional setState on prop change
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -711,27 +814,35 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                       )}
                     </div>
 
-                    {/* Engagement stats */}
-                    <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-400">
-                      {listing.days_on_market > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          {listing.days_on_market}j en ligne
+                    {/* Urgency badges + Energy label */}
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      {(() => {
+                        const badge = getUrgencyBadge(listing.days_on_market, listing.is_hot, listing.is_new)
+                        return badge ? (
+                          <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-md', badge.className)}>
+                            {badge.label}
+                          </span>
+                        ) : null
+                      })()}
+                      {listing.is_hot && !listing.is_new && listing.days_on_market <= 90 && (
+                        <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-red-50 text-red-600">
+                          Baisse de prix
                         </span>
                       )}
-                      {listing.charges_monthly > 0 && (
-                        <span>Charges : {formatCHF(listing.charges_monthly)}/mois</span>
-                      )}
+                      <EnergyLabelBadge label={listing.energy_label} minergie={listing.minergie_label} />
                     </div>
 
-                    {/* Other badges */}
-                    {(listing.is_hot || listing.is_new) && (
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {listing.is_hot && (
-                          <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-red-50 text-red-600">Hot price</span>
+                    {/* Engagement stats */}
+                    {(listing.days_on_market > 3 || listing.charges_monthly > 0) && (
+                      <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-400">
+                        {listing.days_on_market > 3 && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            {listing.days_on_market}j en ligne
+                          </span>
                         )}
-                        {listing.is_new && (
-                          <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-blue-50 text-accent">Nouveau</span>
+                        {listing.charges_monthly > 0 && (
+                          <span>Charges : {formatCHF(listing.charges_monthly)}/mois</span>
                         )}
                       </div>
                     )}
@@ -853,6 +964,61 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                     </div>
                   </div>
 
+                  {/* ── SECTION: Similar listings ── */}
+                  {similarListings.length > 0 && (
+                    <div id="preview-similaires" className="mt-8 pt-6 border-t border-gray-100 pb-6">
+                      <h3 className="text-base font-semibold text-gray-900 mb-4">Biens similaires</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {similarListings.slice(0, 4).map((sl) => {
+                          const photo = sl.photos?.[0]
+                          return (
+                            <button
+                              key={sl.id}
+                              onClick={() => {
+                                // Navigate to this listing within the preview panel
+                                const el = scrollRef.current
+                                if (el) el.scrollTop = 0
+                                // Trigger re-render by changing URL param
+                                const params = new URLSearchParams(window.location.search)
+                                params.set('listing', sl.id)
+                                window.history.replaceState(null, '', `?${params.toString()}`)
+                                window.dispatchEvent(new PopStateEvent('popstate'))
+                              }}
+                              className="rounded-xl border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors text-left group"
+                            >
+                              <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                                {photo ? (
+                                  <img
+                                    src={photo}
+                                    alt={sl.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Building2 className="h-8 w-8 text-gray-300" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="p-3">
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {formatCHF(sl.price)}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate mt-0.5">{sl.address}, {sl.city}</p>
+                                <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                                  {sl.rooms > 0 && <span>{sl.rooms} pièces</span>}
+                                  {sl.rooms > 0 && sl.surface_m2 > 0 && <span className="text-gray-300">·</span>}
+                                  {sl.surface_m2 > 0 && <span>{formatSurface(sl.surface_m2)}</span>}
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
 
                 {/* ── RIGHT: Sticky CTA sidebar (desktop) ── */}
@@ -916,6 +1082,18 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                     )}
 
                     <div className="border-t border-gray-100 my-2" />
+
+                    {/* Property tax estimate */}
+                    {listing.canton && (
+                      <>
+                        <PropertyTaxSection
+                          price={listing.price}
+                          canton={listing.canton}
+                          chargesMonthly={listing.charges_monthly}
+                        />
+                        <div className="border-t border-gray-100 my-2" />
+                      </>
+                    )}
 
                     {/* Full page link */}
                     <Link
