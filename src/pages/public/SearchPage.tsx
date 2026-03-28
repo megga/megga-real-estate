@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import {
   Search,
   ChevronDown,
@@ -24,6 +24,9 @@ import Navbar from '@/components/layout/Navbar'
 import MapView from '@/components/map/MapView'
 // import ChatSearch from '@/components/search/ChatSearch'
 import CompareDrawer from '@/components/listings/CompareDrawer'
+import ListingPreviewPanel from '@/components/listing/ListingPreviewPanel'
+import SaveSearchDialog from '@/components/search/SaveSearchDialog'
+import SavedSearchesList from '@/components/search/SavedSearchesList'
 import { useMarketListings, useMapPoints, type MarketFilters } from '@/hooks/useMarketListings'
 import { useFavorites } from '@/hooks/useFavorites'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
@@ -485,6 +488,7 @@ function ListingCardHorizontal({
   isCompared = false,
   onToggleCompare,
   medianPricePerM2 = 0,
+  onPreview,
 }: {
   listing: ListingCardData
   onHover?: (id: string | undefined) => void
@@ -494,8 +498,9 @@ function ListingCardHorizontal({
   isCompared?: boolean
   onToggleCompare?: () => void
   medianPricePerM2?: number
+  onPreview?: (id: string) => void
 }) {
-  const cardRef = useRef<HTMLAnchorElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const photos = listing.photos?.length ? listing.photos : []
 
@@ -509,11 +514,11 @@ function ListingCardHorizontal({
   const badge = getSmartBadge(listing, medianPricePerM2)
 
   return (
-    <Link
+    <div
       ref={cardRef}
-      to={`/listing/${listing.id}`}
+      onClick={() => onPreview?.(listing.id)}
       className={cn(
-        'flex flex-col sm:flex-row bg-white border rounded-xl transition-all duration-200 overflow-hidden group',
+        'flex flex-col sm:flex-row bg-white border rounded-xl transition-all duration-200 overflow-hidden group cursor-pointer',
         isHovered
           ? 'border-accent/40 shadow-md ring-1 ring-accent/20'
           : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
@@ -685,7 +690,7 @@ function ListingCardHorizontal({
           )}
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 
@@ -700,6 +705,7 @@ function ListingCardGrid({
   isCompared = false,
   onToggleCompare,
   medianPricePerM2 = 0,
+  onPreview,
 }: {
   listing: ListingCardData
   onHover?: (id: string | undefined) => void
@@ -709,8 +715,9 @@ function ListingCardGrid({
   isCompared?: boolean
   onToggleCompare?: () => void
   medianPricePerM2?: number
+  onPreview?: (id: string) => void
 }) {
-  const cardRef = useRef<HTMLAnchorElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const photos = listing.photos?.length ? listing.photos : []
 
@@ -723,11 +730,11 @@ function ListingCardGrid({
   const badge = getSmartBadge(listing, medianPricePerM2)
 
   return (
-    <Link
+    <div
       ref={cardRef}
-      to={`/listing/${listing.id}`}
+      onClick={() => onPreview?.(listing.id)}
       className={cn(
-        'block bg-white border rounded-xl transition-all duration-200 overflow-hidden group',
+        'block bg-white border rounded-xl transition-all duration-200 overflow-hidden group cursor-pointer',
         isHovered
           ? 'border-accent/40 shadow-md ring-1 ring-accent/20'
           : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
@@ -840,7 +847,7 @@ function ListingCardGrid({
           </span>
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 
@@ -860,7 +867,10 @@ export default function SearchPage() {
   const [compareIds, setCompareIds] = useState<string[]>([])
   const [showCompare, setShowCompare] = useState(false)
   const [savedSearchToast, setSavedSearchToast] = useState(false)
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [savedListOpen, setSavedListOpen] = useState(false)
   const { isFavorite, toggleFavorite } = useFavorites()
+  const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get('listing'))
 
   // Market temperature for current location filter
   const { data: marketTemp } = useMarketTemperature(filters.canton || undefined, filters.city || undefined)
@@ -890,6 +900,20 @@ export default function SearchPage() {
     const params = filtersToParams(filters)
     setSearchParams(params, { replace: true })
   }, [filters, setSearchParams])
+
+  const openPreview = useCallback((id: string) => {
+    setPreviewId(id)
+    const params = new URLSearchParams(window.location.search)
+    params.set('listing', id)
+    window.history.replaceState(null, '', `?${params.toString()}`)
+  }, [])
+  const closePreview = useCallback(() => {
+    setPreviewId(null)
+    const params = new URLSearchParams(window.location.search)
+    params.delete('listing')
+    const qs = params.toString()
+    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
+  }, [])
 
   const updateFilter = useCallback(
     (patch: Partial<Filters>) => {
@@ -992,23 +1016,9 @@ export default function SearchPage() {
   }
   const compareListings = allListings.filter((l) => compareIds.includes(l.id))
 
-  // Save search (GC5 — localStorage for now, Supabase later)
+  // Save search — opens dialog with alert config
   function saveCurrentSearch() {
-    try {
-      const saved = JSON.parse(localStorage.getItem('megga-saved-searches') || '[]')
-      const searchEntry = {
-        id: Date.now().toString(),
-        filters: { ...filters },
-        label: [filters.city, filters.canton, filters.types[0], filters.rooms ? `${filters.rooms}p` : ''].filter(Boolean).join(' · ') || 'Recherche',
-        createdAt: new Date().toISOString(),
-        totalCount,
-      }
-      saved.unshift(searchEntry)
-      if (saved.length > 10) saved.pop()
-      localStorage.setItem('megga-saved-searches', JSON.stringify(saved))
-      setSavedSearchToast(true)
-      setTimeout(() => setSavedSearchToast(false), 3000)
-    } catch { /* ignore */ }
+    setSaveDialogOpen(true)
   }
 
   const priceRanges = filters.context === 'rent' ? PRICE_RANGES_RENT : PRICE_RANGES_BUY
@@ -1364,6 +1374,12 @@ export default function SearchPage() {
                   Sauvegarder
                 </button>
               )}
+              <button
+                onClick={() => setSavedListOpen(true)}
+                className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-full hover:text-accent hover:border-accent/30 transition-colors cursor-pointer"
+              >
+                Mes recherches
+              </button>
             </div>
 
             <div className="flex items-center">
@@ -1452,6 +1468,7 @@ export default function SearchPage() {
                     isCompared={compareIds.includes(listing.id)}
                     onToggleCompare={() => toggleCompare(listing.id)}
                     medianPricePerM2={medianPricePerM2}
+                    onPreview={openPreview}
                   />
                 ))}
               </div>
@@ -1468,6 +1485,7 @@ export default function SearchPage() {
                     isCompared={compareIds.includes(listing.id)}
                     onToggleCompare={() => toggleCompare(listing.id)}
                     medianPricePerM2={medianPricePerM2}
+                    onPreview={openPreview}
                   />
                 ))}
               </div>
@@ -1567,6 +1585,31 @@ export default function SearchPage() {
           Recherche sauvegardee
         </div>
       )}
+
+      {/* ─── Listing preview panel (Zillow-style) ─── */}
+      <ListingPreviewPanel listingId={previewId} onClose={closePreview} />
+
+      {/* ─── Save search dialog ─── */}
+      <SaveSearchDialog
+        open={saveDialogOpen}
+        onClose={() => setSaveDialogOpen(false)}
+        filters={filters}
+        resultsCount={totalCount}
+      />
+
+      {/* ─── Saved searches list ─── */}
+      <SavedSearchesList
+        open={savedListOpen}
+        onClose={() => setSavedListOpen(false)}
+        onApplyFilters={(savedFilters) => {
+          setFilters(prev => ({
+            ...prev,
+            ...savedFilters,
+            sort: prev.sort,
+            view: prev.view,
+          }))
+        }}
+      />
     </div>
   )
 }
