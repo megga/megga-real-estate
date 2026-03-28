@@ -518,7 +518,7 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
           <Source
             id="isochrone"
             type="geojson"
-            data={isochrone.geojson}
+            data={isochrone.geojson as GeoJSON.FeatureCollection}
           >
             <Layer
               id="isochrone-fill"
