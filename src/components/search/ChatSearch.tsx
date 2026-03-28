@@ -164,7 +164,7 @@ export default function ChatSearch({
     const query = (text || input).trim()
     if (!query || isTyping) return
 
-    const now = Date.now()
+    const now = Date.now() // eslint-disable-line react-hooks/purity -- called from event handler, not render
     const userMsg: ChatMessage = {
       id: `user-${now}`,
       role: 'user',
@@ -242,7 +242,7 @@ export default function ChatSearch({
     }
 
     const assistantMsg: ChatMessage = {
-      id: `assistant-${Date.now()}`,
+      id: `assistant-${Date.now()}`, // eslint-disable-line react-hooks/purity -- called from event handler
       role: 'assistant',
       content: aiResponse,
       listings: matchingListings.length > 0 ? matchingListings : undefined,
