@@ -382,7 +382,8 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
 
   const { data: marketTemp } = useMarketTemperature(listing?.canton, listing?.city)
 
-  // Reset state when listing changes
+  // Reset state when listing changes — intentional setState on prop change
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setPhotoIndex(0)
     setMobilePhotoIndex(0)
@@ -391,6 +392,7 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
     setShowDatePicker(false)
     setLightboxOpen(false)
   }, [listingId])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Escape key + body scroll lock
   useEffect(() => {
