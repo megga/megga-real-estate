@@ -1361,6 +1361,114 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - Historique de prix externe (tracker les baisses)
 - Templates de messages intelligents (relances pré-remplies contextualisées)
 
+### Calculateur accessibilité inline (planifié — à implémenter)
+
+**Objectif :** Transformer le calculateur hypothécaire (actuellement en modal séparé `AffordabilityCalculator.tsx`) en un funnel de conversion intégré directement dans la fiche bien et le preview panel.
+
+**3 niveaux d'intégration :**
+
+#### Niveau 1 — Estimation mensualité visible partout
+- Sous chaque prix de listing (cards, preview panel, fiche bien), afficher : `~CHF 2'831/mois`
+- Calcul automatique : prix × 80% hypothèque × taux 1.5% / 12 mois + charges
+- Un clic ouvre le détail (niveau 2)
+- Fonction utilitaire : `estimateMonthly(price, rate?, downPct?)` dans `src/lib/utils.ts`
+- Affichage : `<span className="text-xs text-gray-500">~{formatCHF(monthly)}/mois</span>` sous le prix
+
+#### Niveau 2 — Calculateur inline dans la fiche
+- Remplace le modal actuel par un composant inline dans le preview panel (section dédiée) et la fiche bien (sidebar)
+- Champs : Revenu brut annuel + Fonds propres disponibles (sliders + inputs)
+- Résultat temps réel avec badge couleur :
+  - 🟢 Vert (`text-emerald-600`) : ratio charges < 33% ET fonds propres ≥ 20% → "Vous pouvez acheter ce bien"
+  - 🟠 Orange (`text-amber-600`) : ratio 33-38% OU fonds propres 15-20% → "Accessible avec conditions"
+  - 🔴 Rouge (`text-red-600`) : ratio > 38% OU fonds propres < 15% → "Budget insuffisant"
+- Détail breakdown : fonds propres min requis (20%), hypothèque estimée, charges annuelles (7% = 5% intérêts imputés + 1% amortissement + 1% entretien), charges max autorisées (33% revenu), prix max accessible
+- CTA contextuel selon résultat :
+  - Vert → "Planifier une visite" (bouton accent)
+  - Orange → "Contacter un conseiller" (bouton outline)
+  - Rouge → "Voir des biens dans votre budget" (lien vers `/acheter?maxPrice={prixMax}`)
+- Règles suisses intégrées : règle des 33% du revenu brut, 20% fonds propres minimum, taux de charge annuel 7%
+
+#### Niveau 3 — Intelligence CRM (côté agent)
+- Quand un acheteur utilise le calculateur → `activity_event` loggé avec `actor_id = 'buyer'`, `action = 'affordability_check'`, `metadata = { property_id, result: 'green'|'orange'|'red', income_range, funds_range }`
+- Le CRM agent affiche dans la fiche contact : "A vérifié son accessibilité pour [bien] — résultat : accessible"
+- Nourrit le scoring comportemental : un check vert = signal d'intention fort (+20 points buyer score)
+- Data anonymisée agrégée : MEGGA connaît le pouvoir d'achat moyen de ses utilisateurs par canton/ville
+
+#### Fichiers concernés :
+- `src/lib/utils.ts` — ajouter `estimateMonthly(price, rate?, downPct?)`
+- `src/components/listing/ListingPreviewPanel.tsx` — section calculateur inline
+- `src/components/listing/ListingSidebar.tsx` — calculateur inline (remplace le bouton modal)
+- `src/components/listings/AffordabilityCalculator.tsx` — refactorer en composant inline (garder le modal comme fallback mobile)
+- `src/components/listings/ListingCard.tsx` — afficher estimation mensualité sous le prix
+- `src/pages/public/SearchPage.tsx` — afficher estimation mensualité dans les cards
+
+#### Données stratégiques :
+- **Rétention ×3** — les pages avec calculateur inline gardent l'utilisateur 3× plus longtemps
+- **Qualification automatique** — l'acheteur se qualifie avant de contacter l'agent → leads plus chauds
+- **Différenciateur Suisse** — Homegate et ImmoScout24.ch n'ont PAS de calculateur inline
+- **Monétisation future** — partenariats bancaires ("X utilisateurs ont vérifié leur accessibilité → devenez partenaire hypothécaire recommandé")
+
+### MEGGA Staging — Virtual Staging IA (planifié — à implémenter)
+
+**Objectif :** Permettre à l'agent de meubler virtuellement les photos de pièces vides directement dans le formulaire de création de bien, avant publication. L'acheteur voit les photos déjà stagées — il ne sait pas que c'est de l'IA.
+
+**Scénario :** Agent uniquement (Scénario A). L'acheteur ne trigger pas le staging lui-même.
+
+**Fournisseur API :** Nano Banana 2 (Google Gemini 3.1 Flash Image)
+- Coût : CHF 0.034/image (Batch API, 1024px) — CHF 0.067/image (Standard, temps réel ~5 sec)
+- Résolution : 1024px (standard), 2048px (CHF 0.05), 4096px (CHF 0.15)
+- Styles supportés : prompt-based (Moderne, Scandinave, Luxe, Minimaliste, Familial, Classique suisse)
+- Input : photo JPG/PNG d'une pièce vide
+- Output : même photo avec meubles ajoutés par IA
+
+**Pricing MEGGA (marge > 95%) :**
+| | Coût API | Prix client | Marge |
+|---|---|---|---|
+| 1 photo temps réel | CHF 0.067 | CHF 2.90 | 98% |
+| Pack 5 photos | CHF 0.34 | CHF 9.90 | 97% |
+| Pack 10 photos | CHF 0.67 | CHF 14.90 | 95% |
+| Plan Pro (20 inclus/mois) | CHF 1.34 | Inclus CHF 89/mois | ~0% du coût abo |
+| Plan Agency (illimité) | ~CHF 5-7/mois | Inclus CHF 249/mois | ~0% du coût abo |
+
+**UX dans le formulaire de création de bien :**
+1. L'agent upload ses photos dans `ListingFormPage`
+2. Sur chaque photo de pièce vide, bouton "Meubler avec l'IA"
+3. Sélecteur de style : 6 pills (Moderne, Scandinave, Luxe, Minimaliste, Familial, Classique)
+4. Résultat en 5-15 secondes (progress bar ou skeleton)
+5. Before/After slider pour comparer (composant `BeforeAfterSlider.tsx`)
+6. L'agent choisit : publier l'original, le stagé, ou les deux
+7. Badge discret "Staging virtuel" sur la photo publiée (transparence pour l'acheteur)
+
+**Pièces supportées (intérieur uniquement) :**
+- Salon / Séjour
+- Chambre à coucher
+- Cuisine
+- Salle à manger
+- Bureau / Home office
+- PAS d'extérieur (jardin, terrasse, façade — l'IA est moins bonne et le ROI est faible)
+
+**Implémentation technique :**
+- Edge Function `virtual-staging/index.ts` : reçoit image + style → appelle Nano Banana 2 API → retourne image stagée
+- Secret requis : `GOOGLE_AI_KEY` (Gemini API key)
+- Storage : images stagées dans bucket Supabase `staging-results` (privé)
+- Table : `staging_jobs` (id, property_id, photo_url, style, status, result_url, cost, created_at)
+- Composant : `StagingButton.tsx` dans `ListingFormPage` — bouton + sélecteur style + before/after
+- Composant : `BeforeAfterSlider.tsx` — slider horizontal drag pour comparer original vs stagé
+- Hook : `useVirtualStaging(propertyId)` — CRUD staging jobs + appel Edge Function
+
+**Fichiers concernés :**
+- `supabase/functions/virtual-staging/index.ts` — Edge Function (appel Nano Banana 2)
+- `src/hooks/useVirtualStaging.ts` — hook React Query
+- `src/components/listings/StagingButton.tsx` — bouton + style picker + résultat
+- `src/components/listings/BeforeAfterSlider.tsx` — comparaison visuelle
+- `src/pages/agent/ListingFormPage.tsx` — intégration dans le formulaire
+
+**Compteur crédits (côté agent) :**
+- Plan Starter : 0 staging inclus → pay-per-use CHF 2.90/photo
+- Plan Pro : 20 stagings/mois inclus
+- Plan Agency : illimité
+- Compteur visible dans Settings > Abonnement
+
 ---
 
 ## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 27 mars 2026)
@@ -1596,3 +1704,6 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 10. **Alertes push** — pg_cron quotidien : nouveaux biens vs saved_searches → email via send-email
 11. **Virtual staging IA** — Nano Banana 2 API (CHF 0.034/image batch) dans formulaire création bien
 12. **Calculateur fiscal cantonal** — impôt revenu + fortune + valeur locative par commune
+13. **Calculateur accessibilité inline** — estimation mensualité sous chaque prix + calculateur inline dans fiche bien (voir spécification complète section 12 "Phase 2")
+14. **Insights quartier IA** — POIs Mapbox + résumé Claude + gare la plus proche + catégories (transports, commerces, écoles, santé, loisirs)
+15. **Alertes recherche intelligentes** — saved_searches Supabase + pg_cron quotidien + email Resend avec nouveaux biens matchés
