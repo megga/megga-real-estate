@@ -437,6 +437,11 @@ function VisitDatePicker({ onCancel }: { onCancel: () => void }) {
 
 // ─── Ask MEGGA AI — inline chat contextuel ──────────────────────────────
 
+// Icons for AI suggestions
+import { TrendingDown, AlertTriangle, HandshakeIcon, Receipt } from 'lucide-react'
+
+const AI_SUGGESTION_ICONS = [TrendingDown, AlertTriangle, HandshakeIcon, Receipt]
+
 const AI_SUGGESTIONS: Record<string, Array<{ label: string; prompt: string }>> = {
   fr: [
     { label: 'Bon prix ?', prompt: 'Est-ce que ce bien est à un bon prix par rapport au marché ?' },
@@ -464,17 +469,18 @@ const AI_SUGGESTIONS: Record<string, Array<{ label: string; prompt: string }>> =
   ],
 }
 
-const AI_LANG_LABELS: Record<string, { placeholder: string; intro: string; langInstruction: string }> = {
-  fr: { placeholder: 'Votre question...', intro: 'Que voulez-vous savoir sur ce bien ?', langInstruction: 'Réponds en français.' },
-  de: { placeholder: 'Ihre Frage...', intro: 'Was möchten Sie über diese Immobilie wissen?', langInstruction: 'Antworte auf Deutsch.' },
-  en: { placeholder: 'Your question...', intro: 'What would you like to know about this property?', langInstruction: 'Reply in English.' },
-  it: { placeholder: 'La tua domanda...', intro: 'Cosa vorresti sapere su questo immobile?', langInstruction: 'Rispondi in italiano.' },
+const AI_LANG_LABELS: Record<string, { placeholder: string; welcome: string; langInstruction: string }> = {
+  fr: { placeholder: 'Posez votre question...', welcome: 'Je connais ce bien en détail. Posez-moi vos questions !', langInstruction: 'Réponds en français.' },
+  de: { placeholder: 'Stellen Sie Ihre Frage...', welcome: 'Ich kenne diese Immobilie im Detail. Stellen Sie mir Ihre Fragen!', langInstruction: 'Antworte auf Deutsch.' },
+  en: { placeholder: 'Ask your question...', welcome: 'I know this property in detail. Ask me anything!', langInstruction: 'Reply in English.' },
+  it: { placeholder: 'Fai la tua domanda...', welcome: 'Conosco questo immobile in dettaglio. Chiedetemi tutto!', langInstruction: 'Rispondi in italiano.' },
 }
 
-function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
+function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
   listing: TransformedListing
   walkScore: { score: number; label: string } | null
   marketTemp: { score: number; label: string; avgDaysOnMarket: number; priceDropPct: number; medianPricePerM2: number } | null
+  isMobile?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
@@ -485,13 +491,13 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
-  // Detect language from localStorage or browser
+  // Detect language
   const lang = (localStorage.getItem('megga-language') || navigator.language.split('-')[0] || 'fr').slice(0, 2)
   const validLang = ['fr', 'de', 'en', 'it'].includes(lang) ? lang : 'fr'
   const suggestions = AI_SUGGESTIONS[validLang] || AI_SUGGESTIONS.fr
   const labels = AI_LANG_LABELS[validLang] || AI_LANG_LABELS.fr
 
-  // Build context string from listing data
+  // Build context
   const context = [
     `Bien : ${listing.title}`,
     `Prix : ${formatCHF(listing.price)}`,
@@ -512,7 +518,6 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
 
   async function sendMessage(text: string) {
     if (!text.trim() || isLoading) return
-
     const userMsg = { role: 'user' as const, content: text }
     setMessages(prev => [...prev, userMsg])
     setInput('')
@@ -521,10 +526,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
     try {
       const res = await fetch(`${supabaseUrl}/functions/v1/ai-copilot`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
         body: JSON.stringify({
           action: 'chat',
           message: text,
@@ -534,7 +536,6 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
           conversation_history: messages.slice(-6),
         }),
       })
-
       if (!res.ok) throw new Error('Erreur API')
       const data = await res.json()
       const reply = (data.response || data.message || 'Désolé, je n\'ai pas pu répondre.') as string
@@ -544,58 +545,94 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
     } finally {
       setIsLoading(false)
     }
-
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
+  // ── Closed state: premium button ──
   if (!isOpen) {
+    if (isMobile) {
+      // FAB for mobile
+      return (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-20 left-4 z-50 w-12 h-12 rounded-full bg-accent shadow-lg hover:shadow-xl flex items-center justify-center transition-all hover:scale-105"
+          aria-label="MEGGA AI"
+        >
+          <Sparkles className="w-5 h-5 text-white" />
+        </button>
+      )
+    }
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+        className="w-full h-12 bg-gradient-to-r from-accent to-indigo-600 hover:from-accent/90 hover:to-indigo-500 text-white font-semibold rounded-xl flex items-center justify-center gap-2.5 transition-all text-sm shadow-sm hover:shadow-md"
       >
-        <Sparkles className="w-4 h-4" />
-        Poser une question sur ce bien
+        <Sparkles className="w-4.5 h-4.5" />
+        Demandez à MEGGA AI
       </button>
     )
   }
 
-  return (
-    <div className="rounded-xl border border-gray-200 overflow-hidden">
+  // ── Open state: chat panel ──
+  const chatPanel = (
+    <div className={cn(
+      'rounded-xl border border-accent/20 overflow-hidden bg-white',
+      isMobile && 'fixed bottom-0 left-0 right-0 z-50 rounded-b-none max-h-[70vh] shadow-[0_-8px_30px_rgba(0,0,0,0.12)]'
+    )}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-accent to-indigo-600">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-accent" />
-          <span className="text-xs font-semibold text-gray-700">MEGGA AI</span>
+          <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="text-sm font-semibold text-white">MEGGA AI</span>
         </div>
-        <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-600">
-          <X className="w-3.5 h-3.5" />
+        <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white transition-colors">
+          <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Messages */}
-      <div className="max-h-[240px] overflow-y-auto scrollbar-hide p-3 space-y-3">
+      <div className={cn('overflow-y-auto scrollbar-hide p-4 space-y-3', isMobile ? 'max-h-[50vh]' : 'max-h-[320px]')}>
         {messages.length === 0 && (
-          <div className="space-y-2">
-            <p className="text-xs text-gray-400 text-center">{labels.intro}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {suggestions.map((s) => (
-                <button
-                  key={s.label}
-                  onClick={() => sendMessage(s.prompt)}
-                  className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-100 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-                >
-                  {s.label}
-                </button>
-              ))}
+          <div className="space-y-3">
+            {/* Welcome message */}
+            <div className="flex gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Sparkles className="w-3.5 h-3.5 text-accent" />
+              </div>
+              <div className="bg-gray-50 px-3.5 py-2.5 rounded-xl rounded-bl-sm text-xs leading-relaxed text-gray-600">
+                {labels.welcome}
+              </div>
+            </div>
+            {/* Suggestion pills with icons */}
+            <div className="grid grid-cols-2 gap-2 pl-9">
+              {suggestions.map((s, i) => {
+                const Icon = AI_SUGGESTION_ICONS[i] || Sparkles
+                return (
+                  <button
+                    key={s.label}
+                    onClick={() => sendMessage(s.prompt)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-100 text-xs font-medium text-gray-600 hover:border-accent/30 hover:bg-accent/5 hover:text-accent transition-all text-left"
+                  >
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    {s.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+          <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'gap-2.5')}>
+            {msg.role === 'assistant' && (
+              <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Sparkles className="w-3.5 h-3.5 text-accent" />
+              </div>
+            )}
             <div className={cn(
-              'max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed',
+              'max-w-[80%] px-3.5 py-2.5 rounded-xl text-xs leading-relaxed',
               msg.role === 'user'
                 ? 'bg-accent text-white rounded-br-sm'
                 : 'bg-gray-50 text-gray-700 rounded-bl-sm'
@@ -606,8 +643,11 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
         ))}
 
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-50 px-3 py-2 rounded-xl rounded-bl-sm">
+          <div className="flex gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-accent animate-pulse" />
+            </div>
+            <div className="bg-gray-50 px-3.5 py-2.5 rounded-xl rounded-bl-sm">
               <div className="flex gap-1">
                 <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                 <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -620,24 +660,37 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-100 p-2 flex gap-2">
+      <div className="border-t border-gray-100 p-3 flex gap-2">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
           placeholder={labels.placeholder}
-          className="flex-1 h-8 px-3 text-xs bg-transparent border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-accent/30 focus:border-accent text-gray-700 placeholder:text-gray-400"
+          className="flex-1 h-9 px-3.5 text-sm bg-transparent border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-gray-700 placeholder:text-gray-400"
+          autoFocus
         />
         <button
           onClick={() => sendMessage(input)}
           disabled={!input.trim() || isLoading}
-          className="h-8 w-8 rounded-lg bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors disabled:opacity-40"
+          className="h-9 w-9 rounded-xl bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors disabled:opacity-40"
         >
-          <Send className="w-3.5 h-3.5" />
+          <Send className="w-4 h-4" />
         </button>
       </div>
     </div>
   )
+
+  // Mobile: render as bottom sheet with backdrop
+  if (isMobile) {
+    return (
+      <>
+        <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setIsOpen(false)} />
+        {chatPanel}
+      </>
+    )
+  }
+
+  return chatPanel
 }
 
 // ─── Main component ─────────────────────────────────────────────────────
@@ -1370,6 +1423,11 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
 
                     <div className="border-t border-gray-100 my-2" />
 
+                    {/* Ask MEGGA AI — positioned high for visibility */}
+                    <AskMeggaAI listing={listing} walkScore={walkScore} marketTemp={marketTemp ?? null} />
+
+                    <div className="border-t border-gray-100 my-2" />
+
                     {/* Agency info */}
                     {listing.agency_name && (
                       <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
@@ -1396,11 +1454,6 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         <div className="border-t border-gray-100 my-2" />
                       </>
                     )}
-
-                    {/* Ask MEGGA AI */}
-                    <AskMeggaAI listing={listing} walkScore={walkScore} marketTemp={marketTemp ?? null} />
-
-                    <div className="border-t border-gray-100 my-2" />
 
                     {/* Full page link */}
                     <Link
@@ -1432,6 +1485,11 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                 >
                   <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
                 </button>
+              </div>
+
+              {/* Mobile AI FAB */}
+              <div className="md:hidden">
+                <AskMeggaAI listing={listing} walkScore={walkScore} marketTemp={marketTemp ?? null} isMobile />
               </div>
             </>
           ) : (
