@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, BedDouble, DoorOpen, Maximize } from 'lucide-react'
+import { Heart, BedDouble, DoorOpen, Maximize, Building2 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 
 export interface ListingCardData {
@@ -38,6 +38,7 @@ export interface ListingCardData {
   agency_name?: string
   price_per_m2?: number
   days_on_market?: number
+  price_drop_pct?: number // % de baisse depuis le prix initial
 }
 
 interface ListingCardProps {
@@ -48,20 +49,28 @@ interface ListingCardProps {
 export default function ListingCard({ listing, className }: ListingCardProps) {
   const [isFavorite, setIsFavorite] = useState(false)
   const [currentPhoto, setCurrentPhoto] = useState(0)
+  const photos = listing.photos?.length ? listing.photos : []
 
   return (
-    <Link to={`/listing/${listing.id}`} className={cn('block bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow duration-200 overflow-hidden group', className)}>
+    <Link to={`/listing/${listing.id}`} className={cn('block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group', className)}>
       {/* Photo */}
       <div className="relative aspect-[4/3] overflow-hidden">
-        <img
-          src={listing.photos[currentPhoto]}
-          alt={listing.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {photos.length > 0 ? (
+          <img
+            src={photos[currentPhoto]}
+            alt={listing.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <Building2 className="h-12 w-12 text-gray-300" />
+          </div>
+        )}
 
         {/* Favorite button */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsFavorite(!isFavorite) }}
+          aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
           className="absolute top-3 right-3 h-9 w-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors"
         >
           <Heart
@@ -81,47 +90,53 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
         )}
 
         {/* Photo dots */}
-        {listing.photos.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {listing.photos.map((_, i) => (
-              <button
-                key={i}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(i) }}
-                className={cn(
-                  'h-1.5 rounded-full transition-all',
-                  currentPhoto === i
-                    ? 'w-4 bg-white'
-                    : 'w-1.5 bg-white/60 hover:bg-white/80'
-                )}
-              />
-            ))}
-          </div>
+        {photos.length > 1 && (
+          <>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {photos.slice(0, 5).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(i) }}
+                  className={cn(
+                    'h-1.5 rounded-full transition-all',
+                    currentPhoto === i
+                      ? 'w-4 bg-white'
+                      : 'w-1.5 bg-white/60 hover:bg-white/80'
+                  )}
+                />
+              ))}
+            </div>
+            <span className="absolute bottom-3 right-3 text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5">
+              {currentPhoto + 1}/{photos.length}
+            </span>
+          </>
         )}
       </div>
 
       {/* Info */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <span className="text-xl font-bold text-primary-900">
-            {formatCHF(listing.price)}
+          <span className="text-lg font-semibold text-gray-900">
+            <span className="text-sm font-normal text-gray-500">CHF </span>
+            {formatCHF(listing.price).replace('CHF ', '')}
           </span>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-2">
+        <p className="text-sm text-gray-600 mb-2">
           {listing.address}, {listing.city}
         </p>
 
-        <div className="flex items-center gap-3 text-sm text-primary-400">
+        <div className="flex items-center gap-3 text-sm text-gray-500">
           <span className="flex items-center gap-1">
             <DoorOpen className="h-3.5 w-3.5" />
             {listing.rooms} pièces
           </span>
-          <span className="text-primary-200">·</span>
+          <span className="text-gray-300">·</span>
           <span className="flex items-center gap-1">
             <BedDouble className="h-3.5 w-3.5" />
             {listing.bedrooms} ch.
           </span>
-          <span className="text-primary-200">·</span>
+          <span className="text-gray-300">·</span>
           <span className="flex items-center gap-1">
             <Maximize className="h-3.5 w-3.5" />
             {formatSurface(listing.surface_m2)}
