@@ -447,6 +447,7 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showStaged, setShowStaged] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
   const mobileCarouselRef = useRef<HTMLDivElement>(null)
 
   const rawId = listingId?.replace('market-', '').replace('internal-', '')
@@ -1142,9 +1143,25 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
                         {isFavorite ? 'Sauvegardé' : 'Sauvegarder'}
                       </button>
-                      <button className="flex-1 h-10 bg-white border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors">
-                        <Share2 className="w-4 h-4" />
-                        Partager
+                      <button
+                        onClick={async () => {
+                          const url = `${window.location.origin}/listing/${listingId}`
+                          const title = listing.title || 'Bien immobilier'
+                          const text = `${title} — ${formatCHF(listing.price)}`
+                          if (navigator.share) {
+                            try {
+                              await navigator.share({ title, text, url })
+                            } catch { /* user cancelled */ }
+                          } else {
+                            await navigator.clipboard.writeText(url)
+                            setShareCopied(true)
+                            setTimeout(() => setShareCopied(false), 2000)
+                          }
+                        }}
+                        className="flex-1 h-10 bg-white border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        {shareCopied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
+                        {shareCopied ? 'Copié' : 'Partager'}
                       </button>
                     </div>
 
