@@ -12,7 +12,7 @@ interface ListingHeaderProps {
     bedrooms: number
     bathrooms: number
     surface_m2: number
-    floor: number
+    floor: number | null
     is_hot?: boolean
     is_new?: boolean
     is_exclusive?: boolean
@@ -33,13 +33,22 @@ function Badge({ children, variant = 'default' }: { children: React.ReactNode; v
   )
 }
 
-const STATS = [
+interface StatDef {
+  key: string
+  icon: typeof DoorOpen
+  label: string
+  pluralLabel?: string
+  format?: boolean
+  suffix?: string
+}
+
+const STATS: StatDef[] = [
   { key: 'rooms', icon: DoorOpen, label: 'Pièces' },
   { key: 'bedrooms', icon: BedDouble, label: 'Chambres' },
   { key: 'bathrooms', icon: Bath, label: 'Salle de bain', pluralLabel: 'Salles de bain' },
   { key: 'surface_m2', icon: Maximize, label: 'Surface', format: true },
   { key: 'floor', icon: Building2, label: 'Étage', suffix: 'e' },
-] as const
+]
 
 export default function ListingHeader({ listing }: ListingHeaderProps) {
   return (

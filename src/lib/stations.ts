@@ -87,7 +87,7 @@ export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2
  * Find nearest station to a given coordinate.
  * Returns station name and distance in meters, or null if no coordinates.
  */
-export function findNearestStation(lat?: number, lng?: number): { name: string; distanceM: number } | null {
+export function findNearestStation(lat?: number, lng?: number): { name: string; distanceM: number; lat: number; lng: number } | null {
   if (!lat || !lng) return null
 
   let nearest: Station | null = null
@@ -102,7 +102,7 @@ export function findNearestStation(lat?: number, lng?: number): { name: string; 
   }
 
   if (!nearest || minDist > 5000) return null // Max 5km
-  return { name: nearest.name, distanceM: Math.round(minDist) }
+  return { name: nearest.name, distanceM: Math.round(minDist), lat: nearest.lat, lng: nearest.lng }
 }
 
 /**

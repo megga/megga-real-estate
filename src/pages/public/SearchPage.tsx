@@ -866,7 +866,7 @@ export default function SearchPage() {
   // const [showChat, setShowChat] = useState(false)
   const [compareIds, setCompareIds] = useState<string[]>([])
   const [showCompare, setShowCompare] = useState(false)
-  const [savedSearchToast, setSavedSearchToast] = useState(false)
+  const [savedSearchToast] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [savedListOpen, setSavedListOpen] = useState(false)
   const { isFavorite, toggleFavorite } = useFavorites()

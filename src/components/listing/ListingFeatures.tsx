@@ -4,7 +4,7 @@ interface ListingFeaturesProps {
 
 export default function ListingFeatures({ features }: ListingFeaturesProps) {
   const entries = Array.isArray(features)
-    ? features.map((f, i) => [f, ''] as [string, string])
+    ? features.map((f) => [f, ''] as [string, string])
     : Object.entries(features)
 
   if (!entries.length) return null
