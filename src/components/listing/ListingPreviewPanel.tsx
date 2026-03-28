@@ -166,10 +166,10 @@ function getFeatureIcon(feature: string) {
 const SECTIONS = [
   { id: 'preview-overview', label: 'Aperçu' },
   { id: 'preview-details', label: 'Détails' },
-  { id: 'preview-map', label: 'Localisation' },
+  { id: 'preview-map', label: 'Carte' },
   { id: 'preview-quartier', label: 'Quartier' },
   { id: 'preview-market', label: 'Marché' },
-  { id: 'preview-similaires', label: 'Similaires' },
+  { id: 'preview-similaires', label: 'Proches' },
 ]
 
 // ─── Urgency badge logic ────────────────────────────────────────────────
@@ -947,6 +947,10 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                       ))}
                       {photoCount > 7 && <div className="w-2 h-2 rounded-full bg-gray-300/60" />}
                     </div>
+                    {/* Photo counter mobile */}
+                    <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                      {mobilePhotoIndex + 1}/{photoCount}
+                    </div>
                   </>
                 ) : (
                   <div className="h-[200px] bg-gray-100 flex items-center justify-center">
@@ -1052,7 +1056,7 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                       )}
                     </div>
 
-                    {/* Urgency badges + Energy label */}
+                    {/* Badges row: urgency + energy + engagement stats */}
                     <div className="flex flex-wrap items-center gap-2 mt-3">
                       {(() => {
                         const badge = getUrgencyBadge(listing.days_on_market, listing.is_hot, listing.is_new)
@@ -1068,72 +1072,66 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         </span>
                       )}
                       <EnergyLabelBadge label={listing.energy_label} minergie={listing.minergie_label} />
+                      {listing.days_on_market > 3 && (
+                        <span className="flex items-center gap-1 text-xs text-gray-400">
+                          <Clock className="h-3 w-3" />
+                          {listing.days_on_market}j
+                        </span>
+                      )}
                     </div>
 
-                    {/* Engagement stats */}
-                    {(listing.days_on_market > 3 || listing.charges_monthly > 0) && (
-                      <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-400">
-                        {listing.days_on_market > 3 && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            {listing.days_on_market}j en ligne
-                          </span>
-                        )}
-                        {listing.charges_monthly > 0 && (
-                          <span>Charges : {formatCHF(listing.charges_monthly)}/mois</span>
-                        )}
-                      </div>
-                    )}
+                    {/* Walk Score + Monthly cost — compact row */}
+                    <div className="flex flex-wrap items-center gap-3 mt-4">
+                      {/* Walk Score */}
+                      {walkScore && walkScore.score > 0 && (
+                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100">
+                          <div className="relative w-9 h-9">
+                            <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
+                              <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                              <circle
+                                cx="18" cy="18" r="15.5" fill="none"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeDasharray={`${walkScore.score * 0.975} 100`}
+                                className={
+                                  walkScore.score >= 70 ? 'stroke-green-500' :
+                                  walkScore.score >= 50 ? 'stroke-yellow-500' :
+                                  walkScore.score >= 25 ? 'stroke-orange-500' : 'stroke-red-500'
+                                }
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-900">
+                              {walkScore.score}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-gray-900">Walkabilité</p>
+                            <p className={cn('text-[10px] font-medium', walkScore.color)}>{walkScore.label}</p>
+                          </div>
+                        </div>
+                      )}
 
-                    {/* Walk Score + Monthly cost */}
-                    {(walkScore || listing.canton) && (
-                      <div className="flex flex-wrap items-center gap-4 mt-4">
-                        {/* Walk Score */}
-                        {walkScore && walkScore.score > 0 && (
-                          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                            <div className="relative w-11 h-11">
-                              <svg viewBox="0 0 36 36" className="w-11 h-11 -rotate-90">
-                                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-                                <circle
-                                  cx="18" cy="18" r="15.5" fill="none"
-                                  strokeWidth="3"
-                                  strokeLinecap="round"
-                                  strokeDasharray={`${walkScore.score * 0.975} 100`}
-                                  className={
-                                    walkScore.score >= 70 ? 'stroke-green-500' :
-                                    walkScore.score >= 50 ? 'stroke-yellow-500' :
-                                    walkScore.score >= 25 ? 'stroke-orange-500' : 'stroke-red-500'
-                                  }
-                                />
-                              </svg>
-                              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-900">
-                                {walkScore.score}
-                              </span>
+                      {/* Monthly cost estimate */}
+                      {listing.canton && listing.price > 0 && (() => {
+                        const cost = estimateMonthlyCost(listing.price, listing.canton, listing.charges_monthly)
+                        return (
+                          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100">
+                            <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center">
+                              <span className="text-accent text-[10px] font-bold">CHF</span>
                             </div>
                             <div>
-                              <p className="text-xs font-semibold text-gray-900">Walkabilité</p>
-                              <p className={cn('text-[11px] font-medium', walkScore.color)}>{walkScore.label}</p>
+                              <p className="text-[11px] font-semibold text-gray-900">{formatCHF(cost.totalMonthly)}/mois</p>
+                              <p className="text-[10px] text-gray-400">Coût mensuel estimé</p>
                             </div>
                           </div>
-                        )}
+                        )
+                      })()}
 
-                        {/* Monthly cost estimate */}
-                        {listing.canton && listing.price > 0 && (() => {
-                          const cost = estimateMonthlyCost(listing.price, listing.canton, listing.charges_monthly)
-                          return (
-                            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                              <div className="w-11 h-11 rounded-full bg-accent/10 flex items-center justify-center">
-                                <span className="text-accent text-sm font-bold">CHF</span>
-                              </div>
-                              <div>
-                                <p className="text-xs font-semibold text-gray-900">{formatCHF(cost.totalMonthly)}/mois</p>
-                                <p className="text-[11px] text-gray-400">Coût mensuel estimé</p>
-                              </div>
-                            </div>
-                          )
-                        })()}
-                      </div>
-                    )}
+                      {/* Charges if applicable */}
+                      {listing.charges_monthly > 0 && (
+                        <span className="text-[11px] text-gray-400">Charges : {formatCHF(listing.charges_monthly)}/mois</span>
+                      )}
+                    </div>
 
                     <div className="border-t border-gray-100 my-6" />
 
@@ -1186,9 +1184,14 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                       </div>
                     )}
 
-                    {/* Agency */}
+                    {/* Agency card */}
                     {listing.agency_name && (
-                      <p className="text-xs text-gray-400 mt-5">{listing.agency_name}</p>
+                      <div className="flex items-center gap-3 mt-5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                          {listing.agency_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                        <p className="text-xs font-medium text-gray-600">{listing.agency_name}</p>
+                      </div>
                     )}
                   </div>
 
@@ -1197,7 +1200,7 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                     <h3 className="text-base font-semibold text-gray-900 mb-4">Caractéristiques</h3>
                     <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                       {characteristics.map(({ label, value }, i) => (
-                        <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50">
+                        <div key={i} className="flex items-center justify-between py-2.5 border-b border-gray-100">
                           <span className="text-sm text-gray-500">{label}</span>
                           <span className="text-sm font-medium text-gray-900">{value}</span>
                         </div>
@@ -1249,6 +1252,9 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                       {marketTemp && <MarketTemperatureBadge temperature={marketTemp} />}
                       {isMarket && rawId && <PriceHistoryChart marketListingId={rawId} />}
                       <NaturalHazardBadge lat={listing.lat} lng={listing.lng} />
+                      {!marketTemp && !(isMarket && rawId) && !listing.lat && (
+                        <p className="text-sm text-gray-400 py-4 text-center">Données marché non disponibles pour ce bien</p>
+                      )}
                     </div>
                   </div>
 
@@ -1272,7 +1278,7 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                                 window.history.replaceState(null, '', `?${params.toString()}`)
                                 window.dispatchEvent(new PopStateEvent('popstate'))
                               }}
-                              className="rounded-xl border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors text-left group"
+                              className="rounded-xl border border-gray-100 overflow-hidden hover:border-gray-200 hover:shadow-md transition-all text-left group"
                             >
                               <div className="aspect-[4/3] overflow-hidden bg-gray-100">
                                 {photo ? (
