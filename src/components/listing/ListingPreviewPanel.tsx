@@ -318,9 +318,9 @@ function Lightbox({
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 md:px-6 py-3">
         <span className="text-white/80 text-sm font-medium">{index + 1} / {photos.length}</span>
         <button
           onClick={onClose}
@@ -332,16 +332,17 @@ function Lightbox({
       </div>
 
       {/* Image */}
-      <div className="flex-1 flex items-center justify-center px-4 relative">
+      <div className="flex-1 flex items-center justify-center px-2 md:px-8 relative min-h-0">
         <img
           src={photos[index]}
           alt=""
-          className="max-h-full max-w-full object-contain"
+          className="max-h-[calc(100vh-160px)] max-w-full object-contain transition-opacity duration-200"
+          key={index}
         />
         {index > 0 && (
           <button
             onClick={goPrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
             aria-label="Photo précédente"
           >
             <ChevronLeft className="h-5 w-5 text-white" />
@@ -350,7 +351,7 @@ function Lightbox({
         {index < photos.length - 1 && (
           <button
             onClick={goNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
             aria-label="Photo suivante"
           >
             <ChevronRight className="h-5 w-5 text-white" />
@@ -359,14 +360,14 @@ function Lightbox({
       </div>
 
       {/* Thumbnails */}
-      <div className="flex justify-center gap-2 px-4 py-4 overflow-x-auto scrollbar-hide">
+      <div className="flex justify-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
         {photos.map((photo, i) => (
           <button
             key={i}
             onClick={() => onIndexChange(i)}
             className={cn(
-              'h-16 w-24 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all',
-              index === i ? 'border-white opacity-100' : 'border-transparent opacity-40 hover:opacity-70'
+              'h-20 w-28 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all',
+              index === i ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-40 hover:opacity-70'
             )}
           >
             <img src={photo} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -811,36 +812,23 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
               {/* Desktop gallery */}
               <div className="hidden md:block">
                 {photoCount > 0 ? (
-                  <div className="grid grid-cols-3 gap-1 h-[420px] rounded-t-2xl overflow-hidden">
+                  <div className="grid grid-cols-3 gap-1 h-[480px] rounded-t-2xl overflow-hidden">
                     {/* Main photo — 2/3 width */}
                     <div
                       className="col-span-2 h-full relative overflow-hidden cursor-pointer group"
-                      onClick={() => openLightbox(photoIndex)}
+                      onClick={() => openLightbox(0)}
                     >
                       <img
                         src={photos[photoIndex]}
                         alt={listing.title}
-                        className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-200"
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                       />
-                      {/* Navigation on main photo */}
-                      {photoIndex > 0 && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setPhotoIndex(photoIndex - 1) }}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          aria-label="Photo précédente"
-                        >
-                          <ChevronLeft className="h-5 w-5 text-gray-800" />
-                        </button>
-                      )}
-                      {photoIndex < photoCount - 1 && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setPhotoIndex(photoIndex + 1) }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          aria-label="Photo suivante"
-                        >
-                          <ChevronRight className="h-5 w-5 text-gray-800" />
-                        </button>
-                      )}
+                      {/* Gradient overlay bottom for UI readability */}
+                      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+                      {/* Photo counter */}
+                      <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        {photoCount} photos
+                      </div>
                       {/* MEGGA Staging toggle */}
                       {hasStagedPhotos && (
                         <button
@@ -873,7 +861,7 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         <img
                           src={photos[1] || photos[0]}
                           alt=""
-                          className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-200"
+                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                         />
                       </div>
                       <div
@@ -883,16 +871,16 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         <img
                           src={photos[2] || photos[0]}
                           alt=""
-                          className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-200"
+                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                         />
-                        {/* "Voir les X photos" overlay */}
-                        {photoCount > 3 && (
+                        {/* "Voir les X photos" overlay — always show if 2+ photos */}
+                        {photoCount >= 2 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openLightbox(0) }}
-                            className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-medium text-sm backdrop-blur-[2px] hover:bg-black/50 transition-colors"
+                            className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-white transition-colors flex items-center gap-1.5"
                           >
-                            <Images className="w-5 h-5 mr-2" />
-                            Voir les {photoCount} photos
+                            <Images className="w-3.5 h-3.5" />
+                            {photoCount} photos
                           </button>
                         )}
                       </div>
@@ -914,7 +902,8 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                   <>
                     <div
                       ref={mobileCarouselRef}
-                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-[280px]"
+                      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+                      style={{ height: 'min(55vw, 360px)' }}
                       onScroll={(e) => {
                         const el = e.currentTarget
                         const idx = Math.round(el.scrollLeft / el.offsetWidth)
@@ -934,23 +923,26 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         </div>
                       ))}
                     </div>
-                    {/* Dots */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {/* Dots with semi-transparent background */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/20 backdrop-blur-sm rounded-full px-2.5 py-1.5">
                       {photos.slice(0, 7).map((_, i) => (
                         <div
                           key={i}
                           className={cn(
                             'w-2 h-2 rounded-full transition-all',
-                            mobilePhotoIndex === i ? 'bg-gray-900' : 'bg-gray-300'
+                            mobilePhotoIndex === i ? 'bg-white' : 'bg-white/50'
                           )}
                         />
                       ))}
-                      {photoCount > 7 && <div className="w-2 h-2 rounded-full bg-gray-300/60" />}
+                      {photoCount > 7 && <div className="w-2 h-2 rounded-full bg-white/30" />}
                     </div>
-                    {/* Photo counter mobile */}
-                    <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                    {/* Photo counter — tap to open lightbox */}
+                    <button
+                      onClick={() => openLightbox(mobilePhotoIndex)}
+                      className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full"
+                    >
                       {mobilePhotoIndex + 1}/{photoCount}
-                    </div>
+                    </button>
                   </>
                 ) : (
                   <div className="h-[200px] bg-gray-100 flex items-center justify-center">
