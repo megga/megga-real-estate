@@ -436,12 +436,39 @@ function VisitDatePicker({ onCancel }: { onCancel: () => void }) {
 
 // ─── Ask MEGGA AI — inline chat contextuel ──────────────────────────────
 
-const AI_SUGGESTIONS = [
-  { label: 'Bon prix ?', prompt: 'Est-ce que ce bien est à un bon prix par rapport au marché ?' },
-  { label: 'Risques ?', prompt: 'Quels sont les risques potentiels de ce bien ?' },
-  { label: 'Négociation', prompt: 'Comment négocier le prix de ce bien ? Quelle offre serait raisonnable ?' },
-  { label: 'Frais à prévoir', prompt: 'Quels sont tous les frais à prévoir en plus du prix d\'achat ?' },
-]
+const AI_SUGGESTIONS: Record<string, Array<{ label: string; prompt: string }>> = {
+  fr: [
+    { label: 'Bon prix ?', prompt: 'Est-ce que ce bien est à un bon prix par rapport au marché ?' },
+    { label: 'Risques ?', prompt: 'Quels sont les risques potentiels de ce bien ?' },
+    { label: 'Négociation', prompt: 'Comment négocier le prix de ce bien ? Quelle offre serait raisonnable ?' },
+    { label: 'Frais à prévoir', prompt: 'Quels sont tous les frais à prévoir en plus du prix d\'achat ?' },
+  ],
+  de: [
+    { label: 'Guter Preis?', prompt: 'Ist diese Immobilie im Vergleich zum Markt gut bewertet?' },
+    { label: 'Risiken?', prompt: 'Welche potenziellen Risiken gibt es bei dieser Immobilie?' },
+    { label: 'Verhandlung', prompt: 'Wie kann ich den Preis verhandeln? Welches Angebot wäre angemessen?' },
+    { label: 'Nebenkosten', prompt: 'Welche zusätzlichen Kosten kommen zum Kaufpreis hinzu?' },
+  ],
+  en: [
+    { label: 'Good price?', prompt: 'Is this property well priced compared to the market?' },
+    { label: 'Risks?', prompt: 'What are the potential risks of this property?' },
+    { label: 'Negotiation', prompt: 'How should I negotiate the price? What would be a reasonable offer?' },
+    { label: 'Extra costs', prompt: 'What additional costs should I expect on top of the purchase price?' },
+  ],
+  it: [
+    { label: 'Buon prezzo?', prompt: 'Questo immobile ha un buon prezzo rispetto al mercato?' },
+    { label: 'Rischi?', prompt: 'Quali sono i rischi potenziali di questo immobile?' },
+    { label: 'Negoziazione', prompt: 'Come posso negoziare il prezzo? Quale offerta sarebbe ragionevole?' },
+    { label: 'Costi extra', prompt: 'Quali costi aggiuntivi devo prevedere oltre al prezzo di acquisto?' },
+  ],
+}
+
+const AI_LANG_LABELS: Record<string, { placeholder: string; intro: string; langInstruction: string }> = {
+  fr: { placeholder: 'Votre question...', intro: 'Que voulez-vous savoir sur ce bien ?', langInstruction: 'Réponds en français.' },
+  de: { placeholder: 'Ihre Frage...', intro: 'Was möchten Sie über diese Immobilie wissen?', langInstruction: 'Antworte auf Deutsch.' },
+  en: { placeholder: 'Your question...', intro: 'What would you like to know about this property?', langInstruction: 'Reply in English.' },
+  it: { placeholder: 'La tua domanda...', intro: 'Cosa vorresti sapere su questo immobile?', langInstruction: 'Rispondi in italiano.' },
+}
 
 function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
   listing: TransformedListing
@@ -456,6 +483,12 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+  // Detect language from localStorage or browser
+  const lang = (localStorage.getItem('megga-language') || navigator.language.split('-')[0] || 'fr').slice(0, 2)
+  const validLang = ['fr', 'de', 'en', 'it'].includes(lang) ? lang : 'fr'
+  const suggestions = AI_SUGGESTIONS[validLang] || AI_SUGGESTIONS.fr
+  const labels = AI_LANG_LABELS[validLang] || AI_LANG_LABELS.fr
 
   // Build context string from listing data
   const context = [
@@ -495,7 +528,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
           action: 'chat',
           message: text,
           context: {
-            system_context: `Tu es l'assistant immobilier MEGGA. Un acheteur te pose une question sur un bien spécifique. Voici les données du bien :\n\n${context}\n\nRéponds de manière concise (max 150 mots), factuelle et utile. Utilise les données fournies. Format : texte simple, pas de markdown. Langue : français.`,
+            system_context: `Tu es l'assistant immobilier MEGGA. Un acheteur te pose une question sur un bien spécifique. Voici les données du bien :\n\n${context}\n\nRéponds de manière concise (max 150 mots), factuelle et utile. Utilise les données fournies. Format : texte simple, pas de markdown. ${labels.langInstruction}`,
           },
           conversation_history: messages.slice(-6),
         }),
@@ -543,9 +576,9 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
       <div className="max-h-[240px] overflow-y-auto scrollbar-hide p-3 space-y-3">
         {messages.length === 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-gray-400 text-center">Que voulez-vous savoir sur ce bien ?</p>
+            <p className="text-xs text-gray-400 text-center">{labels.intro}</p>
             <div className="flex flex-wrap gap-1.5">
-              {AI_SUGGESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <button
                   key={s.label}
                   onClick={() => sendMessage(s.prompt)}
@@ -591,7 +624,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
-          placeholder="Votre question..."
+          placeholder={labels.placeholder}
           className="flex-1 h-8 px-3 text-xs bg-transparent border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-accent/30 focus:border-accent text-gray-700 placeholder:text-gray-400"
         />
         <button
