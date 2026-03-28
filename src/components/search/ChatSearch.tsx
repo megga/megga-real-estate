@@ -12,6 +12,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -33,22 +34,54 @@ interface ChatSearchProps {
   className?: string
 }
 
-// ─── MOCK AI RESPONSES ──────────────────────────────────────────────────────
+// ─── SEARCH SYSTEM PROMPT ───────────────────────────────────────────────────
 
-interface ParsedIntent {
+const SEARCH_SYSTEM_PROMPT = `Tu es l'assistant de recherche immobilière de MEGGA, un portail immobilier suisse premium.
+
+TON RÔLE :
+Tu aides les ACHETEURS à trouver le bien idéal parmi les annonces disponibles. Tu es expert du marché immobilier suisse.
+
+TON STYLE :
+- Chaleureux, bienveillant, concis — comme un ami qui connaît le marché
+- Toujours en français
+- Markdown : **gras** pour les chiffres clés, listes à puces pour structurer
+- Monnaie : CHF avec apostrophe suisse (CHF 720'000)
+- Quand tu trouves des biens, décris brièvement pourquoi ils correspondent
+- Si le budget est serré, suggère des alternatives (quartier voisin, type différent)
+
+CAPACITÉS :
+- Tu comprends les demandes en langage naturel ("lumineux près de Cornavin", "comme Champel mais moins cher")
+- Tu extrais les filtres : ville, type, prix, pièces, surface, chambres
+- Tu donnes des conseils sur les quartiers suisses et les prix du marché
+- Tu expliques le prix/m² et compares aux médianes
+
+CONTEXTE MARCHÉ :
+- Tu as accès aux listings actifs. Le contexte te fournira un résumé des biens disponibles.
+- Prix médians approximatifs Genève : CHF 12'000-15'000/m² (centre), CHF 9'000-12'000/m² (périphérie)
+- Prix médians approximatifs Lausanne : CHF 10'000-13'000/m², Zurich : CHF 12'000-16'000/m²
+
+RÈGLES :
+- Maximum 150 mots par réponse. Sois concis et actionnable.
+- Après 8 échanges, suggère de contacter un agent MEGGA
+- Si la demande est hors sujet (pas immobilier), recentre poliment
+- Disclaimer : tes informations sont indicatives
+- IMPORTANT : Après ton analyse textuelle, tu DOIS terminer ta réponse avec un bloc JSON sur une ligne séparée commençant par "FILTERS:" suivi du JSON des filtres extraits. Exemple :
+FILTERS:{"city":"Genève","rooms":"3","maxPrice":"800000","types":["apartment"]}
+- N'inclus que les filtres que tu as pu extraire de la demande. Clés possibles : city, canton, rooms, bedrooms, minPrice, maxPrice, minSurface, types (array), context ("buy"|"rent")`
+
+// ─── LOCAL FALLBACK PARSER ──────────────────────────────────────────────────
+
+function parseUserQueryLocal(query: string, listings: ListingCardData[]): {
   response: string
-  filters: Record<string, string | number | string[]>
-  matchingIds?: string[]
-}
-
-function parseUserQuery(query: string, listings: ListingCardData[]): ParsedIntent {
+  filters: Record<string, string | string[]>
+  matchingIds: string[]
+} {
   const q = query.toLowerCase()
   let filtered = [...listings]
   const appliedFilters: string[] = []
-  const filters: Record<string, string | number | string[]> = {}
+  const filters: Record<string, string | string[]> = {}
 
-  // City detection
-  const cities = ['genève', 'geneve', 'lausanne', 'zurich', 'zürich', 'berne', 'bern', 'bâle', 'basel', 'lugano', 'montreux', 'nyon', 'morges', 'vevey', 'sion', 'fribourg', 'neuchâtel', 'neuchatel', 'lucerne', 'luzern', 'champel', 'eaux-vives', 'carouge', 'plainpalais', 'pâquis']
+  const cities = ['genève', 'geneve', 'lausanne', 'zurich', 'berne', 'lugano', 'montreux', 'nyon', 'vevey', 'sion', 'fribourg', 'champel', 'eaux-vives', 'carouge', 'plainpalais']
   const foundCity = cities.find(c => q.includes(c))
   if (foundCity) {
     const cityNorm = foundCity.charAt(0).toUpperCase() + foundCity.slice(1)
@@ -57,7 +90,6 @@ function parseUserQuery(query: string, listings: ListingCardData[]): ParsedInten
     filters.city = cityNorm
   }
 
-  // Room count
   const roomMatch = q.match(/(\d+)\s*(?:pièces?|pi[eè]ces?|p\b|rooms?)/)
   if (roomMatch) {
     const rooms = parseInt(roomMatch[1])
@@ -66,17 +98,7 @@ function parseUserQuery(query: string, listings: ListingCardData[]): ParsedInten
     filters.rooms = rooms.toString()
   }
 
-  // Bedroom count
-  const bedMatch = q.match(/(\d+)\s*(?:chambres?|ch\b|bedrooms?)/)
-  if (bedMatch) {
-    const beds = parseInt(bedMatch[1])
-    filtered = filtered.filter(l => l.bedrooms >= beds)
-    appliedFilters.push(`${beds}+ chambres`)
-    filters.bedrooms = beds.toString()
-  }
-
-  // Price range
-  const priceMatch = q.match(/(?:max|maximum|moins de|under|budget|<)\s*(?:chf\s*)?(\d[\d'\s]*)/i)
+  const priceMatch = q.match(/(?:max|maximum|moins de|budget|<)\s*(?:chf\s*)?(\d[\d'\s]*)/i)
   if (priceMatch) {
     const price = parseInt(priceMatch[1].replace(/['\s]/g, ''))
     filtered = filtered.filter(l => l.price <= price)
@@ -84,69 +106,40 @@ function parseUserQuery(query: string, listings: ListingCardData[]): ParsedInten
     filters.maxPrice = price.toString()
   }
 
-  const priceMinMatch = q.match(/(?:min|minimum|plus de|above|>)\s*(?:chf\s*)?(\d[\d'\s]*)/i)
-  if (priceMinMatch) {
-    const price = parseInt(priceMinMatch[1].replace(/['\s]/g, ''))
-    filtered = filtered.filter(l => l.price >= price)
-    appliedFilters.push(`à partir de ${formatCHF(price)}`)
-    filters.minPrice = price.toString()
-  }
+  if (/appartement|appart/i.test(q)) { filters.types = ['apartment']; appliedFilters.push('appartement') }
+  else if (/maison|house/i.test(q)) { filters.types = ['house']; appliedFilters.push('maison') }
+  else if (/villa/i.test(q)) { filters.types = ['villa']; appliedFilters.push('villa') }
 
-  // Property type
-  if (/appartement|appart|flat/i.test(q)) {
-    filtered = filtered.filter(l => l.type === 'apartment')
-    appliedFilters.push('appartement')
-    filters.types = ['apartment']
-  } else if (/maison|house/i.test(q)) {
-    filtered = filtered.filter(l => l.type === 'house')
-    appliedFilters.push('maison')
-    filters.types = ['house']
-  } else if (/villa/i.test(q)) {
-    filtered = filtered.filter(l => l.type === 'villa')
-    appliedFilters.push('villa')
-    filters.types = ['villa']
-  }
-
-  // Surface
-  const surfMatch = q.match(/(\d+)\s*(?:m2|m²|mètres?\s*carrés?)/)
-  if (surfMatch) {
-    const surf = parseInt(surfMatch[1])
-    filtered = filtered.filter(l => l.surface_m2 >= surf)
-    appliedFilters.push(`${surf}+ m²`)
-    filters.minSurface = surf.toString()
-  }
-
-  // Context
-  if (/louer|location|à louer|rent/i.test(q)) {
-    filtered = filtered.filter(l => l.context === 'rent')
-    appliedFilters.push('location')
-    filters.context = 'rent'
-  } else if (/acheter|achat|à vendre|buy/i.test(q)) {
-    filtered = filtered.filter(l => l.context === 'buy')
-    appliedFilters.push('achat')
-    filters.context = 'buy'
-  }
-
-  // Build response
   const count = filtered.length
-  let response: string
+  const response = appliedFilters.length === 0
+    ? `Pourriez-vous préciser ? Par exemple : **ville**, **pièces**, **budget**, **type de bien**.`
+    : count === 0
+      ? `Aucun bien pour ${appliedFilters.join(', ')}. Essayez d'élargir vos critères.`
+      : `**${count} biens** trouvés (${appliedFilters.join(', ')}). Voici les plus pertinents :`
 
-  if (appliedFilters.length === 0) {
-    response = `Je comprends votre recherche. Pourriez-vous préciser ce que vous cherchez ? Par exemple :\n\n- **Ville ou quartier** : "à Champel", "près de Lausanne"\n- **Taille** : "3 pièces", "2 chambres"\n- **Budget** : "max CHF 800'000"\n- **Type** : "appartement", "villa", "maison"\n\nVous pouvez aussi combiner : "appartement 4 pièces à Genève, max CHF 1'200'000"`
-  } else if (count === 0) {
-    response = `Aucun bien ne correspond exactement à votre recherche (${appliedFilters.join(', ')}). Essayez d'élargir vos critères — par exemple un budget plus élevé ou une zone plus large.`
-  } else if (count <= 3) {
-    response = `J'ai trouvé **${count} bien${count > 1 ? 's' : ''}** correspondant à votre recherche (${appliedFilters.join(', ')}). ${count === 1 ? "C'est une belle opportunité" : 'Voici les résultats'} :`
-  } else if (count <= 10) {
-    response = `**${count} biens** correspondent à vos critères (${appliedFilters.join(', ')}). Voici les plus pertinents :`
-  } else {
-    response = `J'ai trouvé **${count} biens** pour votre recherche (${appliedFilters.join(', ')}). Je vous montre les 5 premiers — vous pouvez affiner avec plus de détails.`
-  }
+  return { response, filters, matchingIds: filtered.slice(0, 5).map(l => l.id) }
+}
 
-  return {
-    response,
-    filters,
-    matchingIds: filtered.slice(0, 5).map(l => l.id),
+// ─── EXTRACT FILTERS FROM AI RESPONSE ───────────────────────────────────────
+
+function extractFiltersFromResponse(text: string): {
+  cleanText: string
+  filters: Record<string, string | string[]>
+} {
+  const filterMatch = text.match(/FILTERS:\s*(\{[^}]+\})\s*$/)
+  if (!filterMatch) return { cleanText: text, filters: {} }
+
+  const cleanText = text.replace(/\n?FILTERS:\s*\{[^}]+\}\s*$/, '').trim()
+  try {
+    const raw = JSON.parse(filterMatch[1])
+    const filters: Record<string, string | string[]> = {}
+    for (const [k, v] of Object.entries(raw)) {
+      if (Array.isArray(v)) filters[k] = v as string[]
+      else if (v != null) filters[k] = String(v)
+    }
+    return { cleanText, filters }
+  } catch {
+    return { cleanText: text, filters: {} }
   }
 }
 
@@ -155,9 +148,9 @@ function parseUserQuery(query: string, listings: ListingCardData[]): ParsedInten
 const SUGGESTIONS = [
   'Appartement 3 pièces à Genève, max CHF 800\'000',
   'Villa avec jardin à Lausanne',
-  'Studio à louer près de la gare',
-  '4 chambres, lumineux, Champel',
-  'Maison familiale, budget CHF 1\'500\'000',
+  'Quelque chose de lumineux à Champel',
+  'Maison familiale, 5 pièces, budget 1.5M',
+  'Qu\'est-ce que je peux trouver à Carouge pour 500K ?',
 ]
 
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
@@ -176,14 +169,13 @@ export default function ChatSearch({
   const [turnCount, setTurnCount] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages, scrollToBottom])
+  useEffect(() => { scrollToBottom() }, [messages, scrollToBottom])
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -191,26 +183,23 @@ export default function ChatSearch({
     }
   }, [isOpen])
 
-  // Welcome message on first open
+  // Welcome message
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      setMessages([
-        {
-          id: 'welcome',
-          role: 'assistant',
-          content:
-            'Bonjour ! Je suis votre assistant de recherche immobilière. Décrivez-moi le bien que vous cherchez en langage naturel.\n\nPar exemple : *"3 pièces lumineux à Champel, max CHF 800\'000"*',
-          timestamp: new Date(),
-        },
-      ])
+      setMessages([{
+        id: 'welcome',
+        role: 'assistant',
+        content: 'Bonjour ! Je suis votre assistant de recherche immobilière. Decrivez-moi le bien que vous cherchez en langage naturel.\n\nPar exemple : *"3 pièces lumineux à Champel, max CHF 800\'000"*',
+        timestamp: new Date(),
+      }])
     }
   }, [isOpen, messages.length])
 
-  function handleSend(text?: string) {
+  async function handleSend(text?: string) {
     const query = (text || input).trim()
-    if (!query) return
+    if (!query || isTyping) return
 
-    const now = Date.now() // eslint-disable-line react-hooks/purity
+    const now = Date.now()
     const userMsg: ChatMessage = {
       id: `user-${now}`,
       role: 'user',
@@ -223,54 +212,92 @@ export default function ChatSearch({
     setIsTyping(true)
     setTurnCount(prev => prev + 1)
 
-    // Simulate AI processing
-    const delay = 600 + Math.random() * 800 // eslint-disable-line react-hooks/purity
-    setTimeout(() => {
-      const parsed = parseUserQuery(query, allListings)
+    // Build context summary of available listings
+    const statsContext = (() => {
+      const total = allListings.length
+      const cities = [...new Set(allListings.map(l => l.city).filter(Boolean))]
+      const priceRange = allListings.length > 0
+        ? { min: Math.min(...allListings.map(l => l.price)), max: Math.max(...allListings.map(l => l.price)) }
+        : { min: 0, max: 0 }
+      return `${total} biens disponibles. Villes principales : ${cities.slice(0, 10).join(', ')}. Prix : ${formatCHF(priceRange.min)} à ${formatCHF(priceRange.max)}.`
+    })()
 
-      // Find matching listings
-      const matchingListings = parsed.matchingIds
-        ? allListings.filter(l => parsed.matchingIds!.includes(l.id))
-        : []
+    let aiResponse: string | null = null
+    let aiFilters: Record<string, string | string[]> = {}
 
-      let content = parsed.response
+    // Try live Claude API via Edge Function
+    try {
+      historyRef.current.push({ role: 'user', content: query })
 
-      // After 8 turns, suggest contacting an agent
-      if (turnCount >= 7) {
-        content +=
-          '\n\n---\n\nVous avez exploré plusieurs options. Pour une recherche plus ciblée, je vous recommande de **contacter un agent MEGGA** qui pourra vous accompagner personnellement.'
+      const { data, error } = await supabase.functions.invoke('ai-copilot', {
+        body: {
+          action: 'chat',
+          message: query,
+          context: { listings_summary: statsContext, search_mode: 'public_buyer' },
+          history: historyRef.current.slice(-8),
+          language: 'fr',
+        },
+      })
+
+      if (!error && data?.result) {
+        const { cleanText, filters } = extractFiltersFromResponse(data.result)
+        aiResponse = cleanText
+        aiFilters = filters
+        historyRef.current.push({ role: 'assistant', content: cleanText })
       }
+    } catch {
+      // Fallback to local parser
+    }
 
-      const assistantMsg: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content,
-        listings: matchingListings.length > 0 ? matchingListings : undefined,
-        timestamp: new Date(),
-      }
+    // Fallback: local mock parser
+    if (!aiResponse) {
+      const parsed = parseUserQueryLocal(query, allListings)
+      aiResponse = parsed.response
+      aiFilters = parsed.filters
+    }
 
-      setMessages(prev => [...prev, assistantMsg])
-      setIsTyping(false)
+    // Find matching listings from filters
+    let matchingListings: ListingCardData[] = []
+    if (Object.keys(aiFilters).length > 0) {
+      let matches = [...allListings]
+      if (aiFilters.city) matches = matches.filter(l => l.city.toLowerCase().includes((aiFilters.city as string).toLowerCase()) || l.address.toLowerCase().includes((aiFilters.city as string).toLowerCase()))
+      if (aiFilters.canton) matches = matches.filter(l => l.canton === aiFilters.canton)
+      if (aiFilters.rooms) matches = matches.filter(l => l.rooms >= Number(aiFilters.rooms))
+      if (aiFilters.bedrooms) matches = matches.filter(l => l.bedrooms >= Number(aiFilters.bedrooms))
+      if (aiFilters.maxPrice) matches = matches.filter(l => l.price <= Number(aiFilters.maxPrice))
+      if (aiFilters.minPrice) matches = matches.filter(l => l.price >= Number(aiFilters.minPrice))
+      if (aiFilters.minSurface) matches = matches.filter(l => l.surface_m2 >= Number(aiFilters.minSurface))
+      if (Array.isArray(aiFilters.types) && aiFilters.types.length > 0) matches = matches.filter(l => (aiFilters.types as string[]).includes(l.type || ''))
+      matchingListings = matches.slice(0, 5)
+    }
 
-      // Apply filters to search page
-      if (onApplyFilters && Object.keys(parsed.filters).length > 0) {
-        const stringFilters: Record<string, string | string[]> = {}
-        for (const [k, v] of Object.entries(parsed.filters)) {
-          if (Array.isArray(v)) {
-            stringFilters[k] = v
-          } else {
-            stringFilters[k] = String(v)
-          }
-        }
-        onApplyFilters(stringFilters)
-      }
-    }, delay)
+    // Add agent suggestion after 8 turns
+    if (turnCount >= 7) {
+      aiResponse += '\n\n---\n\nVous avez explore plusieurs options. Pour une recherche plus ciblee, je vous recommande de **contacter un agent MEGGA**.'
+    }
+
+    const assistantMsg: ChatMessage = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: aiResponse,
+      listings: matchingListings.length > 0 ? matchingListings : undefined,
+      timestamp: new Date(),
+    }
+
+    setMessages(prev => [...prev, assistantMsg])
+    setIsTyping(false)
+
+    // Apply filters to search page
+    if (onApplyFilters && Object.keys(aiFilters).length > 0) {
+      onApplyFilters(aiFilters)
+    }
   }
 
   function handleReset() {
     setMessages([])
     setTurnCount(0)
     setInput('')
+    historyRef.current = []
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -299,8 +326,8 @@ export default function ChatSearch({
             <Sparkles className="w-4 h-4 text-accent" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Recherche assistée</h3>
-            <p className="text-[11px] text-gray-400">Décrivez le bien que vous cherchez</p>
+            <h3 className="text-sm font-semibold text-gray-900">Recherche assistee</h3>
+            <p className="text-[11px] text-gray-400">Propulse par Claude AI</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -335,7 +362,6 @@ export default function ChatSearch({
                   <div className="bg-gray-50 rounded-2xl rounded-tl-md px-4 py-3 text-sm text-gray-700 leading-relaxed">
                     {msg.content.split('\n').map((line, i) => {
                       if (line === '---') return <hr key={i} className="my-2 border-gray-200" />
-                      // Bold text
                       const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
                       return (
                         <p key={i} className={cn(i > 0 && 'mt-1.5')}>
@@ -346,7 +372,6 @@ export default function ChatSearch({
                             if (part.startsWith('*') && part.endsWith('*')) {
                               return <em key={j} className="text-gray-500">{part.slice(1, -1)}</em>
                             }
-                            // List items
                             if (part.startsWith('- ')) {
                               return <span key={j} className="block ml-2">{'•'} {part.slice(2)}</span>
                             }
@@ -367,7 +392,7 @@ export default function ChatSearch({
                           className="w-full flex gap-3 p-2.5 bg-white rounded-xl border border-gray-100 hover:border-accent/30 hover:shadow-sm transition-all text-left cursor-pointer group"
                         >
                           <div className="w-20 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                            {listing.photos[0] && (
+                            {listing.photos?.[0] && (
                               <img
                                 src={listing.photos[0]}
                                 alt={listing.title}
@@ -425,7 +450,7 @@ export default function ChatSearch({
             <div className="bg-gray-50 rounded-2xl rounded-tl-md px-4 py-3">
               <div className="flex items-center gap-1.5">
                 <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
-                <span className="text-xs text-gray-400">Analyse en cours...</span>
+                <span className="text-xs text-gray-400">Claude reflechit...</span>
               </div>
             </div>
           </div>
@@ -455,7 +480,7 @@ export default function ChatSearch({
       {/* ─── Disclaimer ─── */}
       <div className="px-4 py-1">
         <p className="text-[10px] text-gray-300 text-center">
-          Informations fournies à titre indicatif. Consultez un agent pour des conseils personnalisés.
+          Propulse par Claude AI. Informations indicatives — consultez un agent pour des conseils personnalises.
         </p>
       </div>
 
@@ -468,7 +493,7 @@ export default function ChatSearch({
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Décrivez ce que vous cherchez..."
+            placeholder="Decrivez ce que vous cherchez..."
             className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400"
             disabled={isTyping}
           />

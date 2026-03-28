@@ -2,11 +2,20 @@ import { useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   MapPin, DoorOpen, BedDouble, Bath, Maximize, Building2, Heart, Share2,
-  Phone, Mail, CalendarDays, ChevronLeft, ChevronRight, X, Images,
+  Phone, Mail, CalendarDays, ChevronLeft, ChevronRight, X, Images, Calculator,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/layout/Navbar'
+import AffordabilityCalculator from '@/components/listings/AffordabilityCalculator'
+import PriceHistoryChart from '@/components/listings/PriceHistoryChart'
+import MarketTemperatureBadge from '@/components/listings/MarketTemperatureBadge'
+import NaturalHazardBadge from '@/components/listings/NaturalHazardBadge'
+import RequestVisitModal from '@/components/listings/RequestVisitModal'
+import { supabase } from '@/lib/supabase'
+import { useQuery } from '@tanstack/react-query'
+import { useMarketListings, useMarketListing } from '@/hooks/useMarketListings'
+import { useMarketTemperature } from '@/hooks/useMarketInsights'
 import { getListingById } from '@/lib/mockData'
 
 function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'hot' | 'new' | 'exclusive' | 'default' }) {
@@ -25,22 +34,121 @@ function Badge({ children, variant = 'default' }: { children: React.ReactNode; v
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>()
-  const listing = getListingById(id || '')
+  const rawId = id?.replace('market-', '').replace('internal-', '')
+  const isMarketListing = id?.startsWith('market-')
+  const isInternalListing = id?.startsWith('internal-')
+
+  // Fetch from Supabase for market listings
+  const { data: marketData, isLoading: isLoadingMarket } = useMarketListing(isMarketListing ? rawId : undefined)
+
+  // Fetch from Supabase for internal listings (properties table)
+  const { data: internalData, isLoading: isLoadingInternal } = useQuery({
+    queryKey: ['internal-listing', rawId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', rawId!)
+        .single()
+      if (error) throw error
+      return data
+    },
+    enabled: !!isInternalListing && !!rawId,
+    staleTime: 10 * 60 * 1000,
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function transformSupabaseToListing(data: Record<string, any>, source: 'market' | 'internal') {
+    return {
+      id: data.id,
+      title: data.title || 'Bien immobilier',
+      price: Number(data.current_price ?? data.price ?? 0),
+      address: data.address || '',
+      city: data.city || '',
+      canton: data.canton || '',
+      postal_code: data.postal_code || '',
+      rooms: Number(data.rooms) || 0,
+      bedrooms: Number(data.bedrooms) || 0,
+      bathrooms: Number(data.bathrooms) || 0,
+      surface_m2: Number(data.surface_m2) || 0,
+      floor: Number(data.floor) || 0,
+      total_floors: 0,
+      photos: (data.photos as string[]) || [],
+      description: (data.description as string) || '',
+      features: (data.features as string[]) || [],
+      type: (data.type as string) || 'apartment',
+      price_per_m2: source === 'market' ? Number(data.price_per_m2) || 0 : 0,
+      days_on_market: source === 'market' ? Number(data.days_on_market) || 0 : 0,
+      charges_monthly: Number(data.charges_monthly) || 0,
+      is_hot: source === 'market' ? data.status === 'price_reduced' : false,
+      is_new: source === 'market' ? Number(data.days_on_market) <= 3 : false,
+      is_exclusive: source === 'internal',
+      lat: data.lat as number | undefined,
+      lng: data.lng as number | undefined,
+      agency_name: source === 'market' ? ((data.agency_name as string) || '') : 'MEGGA Real Estate',
+      agent: {
+        name: source === 'market' ? ((data.agency_name as string) || 'Agent') : 'Agent MEGGA',
+        agency: 'MEGGA Real Estate',
+        phone: '+41 22 000 00 00',
+        email: 'contact@megga.ch',
+        photo: '/megga-gg.svg',
+      },
+    }
+  }
+
+  // Transform Supabase data to listing format, fallback to mockData
+  const isLoadingData = (isMarketListing && isLoadingMarket) || (isInternalListing && isLoadingInternal)
+  const listing = (() => {
+    if (isMarketListing && marketData) return transformSupabaseToListing(marketData, 'market')
+    if (isInternalListing && internalData) return transformSupabaseToListing(internalData, 'internal')
+    return getListingById(id || '')
+  })()
+
   const [isFavorite, setIsFavorite] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [showCalculator, setShowCalculator] = useState(false)
+  const [showVisitModal, setShowVisitModal] = useState(false)
+
+  // Market insights
+  const { data: marketTemp } = useMarketTemperature(listing?.canton, listing?.city)
+
+  // Similar listings: same canton + same type + price ±30%
+  const similarFilters = listing ? {
+    context: 'buy' as const,
+    canton: listing.canton,
+    types: [listing.type],
+    minPrice: Math.round(listing.price * 0.7),
+    maxPrice: Math.round(listing.price * 1.3),
+  } : {}
+  const { data: similarData } = useMarketListings(listing ? similarFilters : {})
+  const similarListings = (similarData?.pages.flatMap(p => p.listings) ?? [])
+    .filter(l => l.id !== `market-${id}` && l.id !== `internal-${id}`)
+    .slice(0, 6)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [mobilePhotoIndex, setMobilePhotoIndex] = useState(0)
   const carouselRef = useRef<HTMLDivElement>(null)
+
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center h-[60vh]">
+          <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
+          <p className="text-sm text-gray-500">Chargement du bien...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!listing) {
     return (
       <div className="min-h-screen bg-white">
         <Navbar />
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <p className="text-xl font-semibold text-primary-900 mb-2">Bien non trouvé</p>
-          <p className="text-sm text-muted-foreground mb-6">Ce bien n'existe pas ou a été retiré.</p>
+          <p className="text-xl font-semibold text-primary-900 mb-2">Bien non trouve</p>
+          <p className="text-sm text-muted-foreground mb-6">Ce bien n'existe pas ou a ete retire.</p>
           <Link to="/search">
-            <Button>Retour à la recherche</Button>
+            <Button>Retour a la recherche</Button>
           </Link>
         </div>
       </div>
@@ -281,7 +389,27 @@ export default function ListingPage() {
                     <Share2 className="h-4 w-4" />
                   </button>
                 </div>
+                <button
+                  onClick={() => setShowCalculator(true)}
+                  className="w-full h-10 mt-3 flex items-center justify-center gap-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:text-accent hover:border-accent/30 transition-colors cursor-pointer"
+                >
+                  <Calculator className="h-4 w-4" />
+                  Puis-je acheter ce bien ?
+                </button>
               </div>
+
+              {/* Price history chart */}
+              {isMarketListing && rawId && (
+                <PriceHistoryChart marketListingId={rawId} />
+              )}
+
+              {/* Market temperature */}
+              {marketTemp && (
+                <MarketTemperatureBadge temperature={marketTemp} />
+              )}
+
+              {/* Natural hazards */}
+              <NaturalHazardBadge lat={listing.lat} lng={listing.lng} />
 
               {/* Agent card */}
               <div className="bg-white rounded-card border border-border p-6 shadow-card">
@@ -311,10 +439,13 @@ export default function ListingPage() {
                     <Mail className="h-4 w-4" />
                     Contacter l'agent
                   </Button>
-                  <Button variant="outline" className="w-full h-11 rounded-button gap-2">
+                  <button
+                    onClick={() => setShowVisitModal(true)}
+                    className="w-full h-11 flex items-center justify-center gap-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:border-accent hover:text-accent transition-colors cursor-pointer"
+                  >
                     <CalendarDays className="h-4 w-4" />
                     Planifier une visite
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>
@@ -399,6 +530,65 @@ export default function ListingPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* === SIMILAR LISTINGS === */}
+      {similarListings.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-12 mb-20 lg:mb-0">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Biens similaires</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {similarListings.map((sl) => {
+              const photo = sl.photos?.[0]
+              return (
+                <Link
+                  key={sl.id}
+                  to={`/listing/${sl.id}`}
+                  className="block bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow group"
+                >
+                  <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                    {photo ? (
+                      <img src={photo} alt={sl.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Building2 className="h-10 w-10 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <p className="text-lg font-semibold text-gray-900">
+                      <span className="text-sm font-normal text-gray-500">CHF </span>
+                      {formatCHF(sl.price).replace('CHF ', '')}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-0.5">{sl.address}, {sl.city}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mt-1.5">
+                      {sl.rooms > 0 && <span>{sl.rooms} pièces</span>}
+                      {sl.rooms > 0 && sl.surface_m2 > 0 && <span className="text-gray-300">·</span>}
+                      {sl.surface_m2 > 0 && <span>{formatSurface(sl.surface_m2)}</span>}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Affordability calculator */}
+      {listing && (
+        <AffordabilityCalculator
+          price={listing.price}
+          open={showCalculator}
+          onClose={() => setShowCalculator(false)}
+        />
+      )}
+
+      {/* Request visit modal */}
+      {listing && (
+        <RequestVisitModal
+          listingAddress={`${listing.address}, ${listing.city}`}
+          open={showVisitModal}
+          onClose={() => setShowVisitModal(false)}
+        />
       )}
     </div>
   )

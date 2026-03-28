@@ -256,20 +256,21 @@
   }
 }
 
-/* ─── Mapbox control overrides ─── */
+/* ─── Mapbox control overrides — always light (map is always on light background) ─── */
 .mapboxgl-ctrl-group {
-  background: rgb(var(--color-bg-card)) !important;
-  border: 1px solid rgb(var(--color-border)) !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
   border-radius: 12px !important;
-  box-shadow: var(--shadow-card) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
   overflow: hidden !important;
 }
 
 .mapboxgl-ctrl-group button {
   width: 36px !important;
   height: 36px !important;
+  background-color: #ffffff !important;
   border: none !important;
-  border-bottom: 1px solid rgb(var(--color-border-subtle)) !important;
+  border-bottom: 1px solid #f3f4f6 !important;
 }
 
 .mapboxgl-ctrl-group button:last-child {
@@ -277,15 +278,16 @@
 }
 
 .mapboxgl-ctrl-group button:hover {
-  background-color: rgb(var(--color-bg-hover)) !important;
+  background-color: #f3f4f6 !important;
 }
 
 .mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
-  opacity: 0.5;
+  filter: none !important;
+  opacity: 0.45;
 }
 
 .mapboxgl-ctrl-group button:hover .mapboxgl-ctrl-icon {
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
 /* ─── Density + Font size (single zoom on main, set via --content-zoom in JS) ─── */

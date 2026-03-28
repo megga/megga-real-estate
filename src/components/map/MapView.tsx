@@ -12,7 +12,8 @@ import MapGL, {
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
 import Supercluster from 'supercluster'
-import { LocateFixed, PenTool, X } from 'lucide-react'
+import { LocateFixed, PenTool, X, Clock, MapPinPlus, Car, Footprints, Bike } from 'lucide-react'
+import { useIsochrone } from '@/hooks/useIsochrone'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import type { MapPoint } from '@/hooks/useMarketListings'
@@ -71,6 +72,52 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
   const [drawPoints, setDrawPoints] = useState<[number, number][]>([])
   const [closedPolygon, setClosedPolygon] = useState<[number, number][] | null>(null)
   const [cursorPos, setCursorPos] = useState<[number, number] | null>(null)
+
+  // Isochrone (commute time)
+  const { isochrone, isLoading: isoLoading, error: isoError, fetchIsochrone, clearIsochrone } = useIsochrone()
+  const [isoMode, setIsoMode] = useState(false)
+  const [isoMinutes, setIsoMinutes] = useState(30)
+  const [isoProfile, setIsoProfile] = useState<'driving' | 'walking' | 'cycling'>('driving')
+  const [isoPin, setIsoPin] = useState<[number, number] | null>(null)
+
+  // Extract isochrone polygon coords for point-in-polygon filtering
+  const isoPolygonCoords = useMemo<[number, number][] | null>(() => {
+    if (!isochrone?.geojson?.features?.[0]?.geometry?.coordinates?.[0]) return null
+    return isochrone.geojson.features[0].geometry.coordinates[0] as [number, number][]
+  }, [isochrone])
+
+  // Count biens inside isochrone — use mapPoints (stable, not filtered)
+  const isoListingCount = useMemo(() => {
+    if (!isoPolygonCoords || !mapPoints) return 0
+    return mapPoints.filter(p => pointInPolygon([p.lng, p.lat], isoPolygonCoords)).length
+  }, [isoPolygonCoords, mapPoints])
+
+  // Filter listings when isochrone is active — use mapPoints (stable) to avoid infinite loop
+  const prevIsoFilterRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isoPolygonCoords || !mapPoints) {
+      if (prevIsoFilterRef.current !== null) {
+        prevIsoFilterRef.current = null
+        // Don't call onZoneFilter(null) here — let the clear button handle it
+      }
+      return
+    }
+    const insideIds = mapPoints
+      .filter(p => pointInPolygon([p.lng, p.lat], isoPolygonCoords))
+      .map(p => p.id)
+    const key = insideIds.join(',')
+    if (key !== prevIsoFilterRef.current) {
+      prevIsoFilterRef.current = key
+      onZoneFilter?.(insideIds)
+    }
+  }, [isoPolygonCoords, mapPoints, onZoneFilter])
+
+  // Profile labels
+  const PROFILE_LABELS = {
+    driving: { label: 'en voiture', icon: Car },
+    walking: { label: 'a pied', icon: Footprints },
+    cycling: { label: 'a velo', icon: Bike },
+  } as const
 
   // Build GeoJSON points — use mapPoints (lightweight, all 38K) if available, otherwise listings
   const points: ListingPoint[] = useMemo(() => {
@@ -232,11 +279,11 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
     onZoneFilter?.(insideIds)
   }
 
-  // Change cursor when drawing
+  // Change cursor when drawing or placing isochrone pin
   useEffect(() => {
     const map = mapRef.current?.getMap()
     if (!map) return
-    if (isDrawing) {
+    if (isDrawing || isoMode) {
       map.getCanvas().style.cursor = 'crosshair'
     } else {
       map.getCanvas().style.cursor = ''
@@ -244,7 +291,7 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
     return () => {
       map.getCanvas().style.cursor = ''
     }
-  }, [isDrawing])
+  }, [isDrawing, isoMode])
 
   // ─── GeoJSON for draw polygon ───
   const drawGeoJSON = useMemo(() => {
@@ -391,8 +438,9 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
           const listing = cluster.properties.listing
           const isHovered = hoveredId === listing.id
           const isSelected = selectedListing?.id === listing.id
-          const isInZone = closedPolygon
-            ? listing.lat && listing.lng && pointInPolygon([listing.lng, listing.lat], closedPolygon)
+          const activePolygon = closedPolygon || isoPolygonCoords
+          const isInZone = activePolygon
+            ? listing.lat && listing.lng && pointInPolygon([listing.lng, listing.lat], activePolygon)
             : true
 
           return (
@@ -464,10 +512,46 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
             </Link>
           </Popup>
         )}
+
+        {/* Isochrone layer */}
+        {isochrone && isochrone.geojson && (
+          <Source
+            id="isochrone"
+            type="geojson"
+            data={isochrone.geojson}
+          >
+            <Layer
+              id="isochrone-fill"
+              type="fill"
+              paint={{ 'fill-color': '#2563EB', 'fill-opacity': 0.15 }}
+            />
+            <Layer
+              id="isochrone-line"
+              type="line"
+              paint={{ 'line-color': '#2563EB', 'line-width': 2.5 }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            />
+          </Source>
+        )}
+
+        {/* Isochrone pin */}
+        {isoPin && (
+          <Marker longitude={isoPin[0]} latitude={isoPin[1]} anchor="center" style={{ zIndex: 100 }}>
+            <div className="relative flex items-center justify-center">
+              <div className="absolute h-11 w-11 rounded-full border-2 border-accent/40 animate-pulse" />
+              <div className="relative h-8 w-8 bg-accent rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                {(() => {
+                  const ProfileIcon = PROFILE_LABELS[isoProfile].icon
+                  return <ProfileIcon className="h-3.5 w-3.5 text-white" />
+                })()}
+              </div>
+            </div>
+          </Marker>
+        )}
       </MapGL>
 
       {/* Top-left buttons */}
-      <div className="absolute top-3 left-3 flex items-center gap-2">
+      <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
         <button
           onClick={fitToListings}
           className="bg-white text-gray-700 text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
@@ -476,7 +560,8 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
           Recentrer
         </button>
 
-        {!isDrawing && !closedPolygon && (
+        {/* Draw zone — hidden when isochrone is active */}
+        {!isDrawing && !closedPolygon && !isochrone && !isoMode && !isoLoading && (
           <button
             onClick={startDrawing}
             className="bg-white text-gray-700 text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
@@ -495,7 +580,137 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
             {zoneCount} bien{zoneCount !== 1 ? 's' : ''} dans la zone
           </button>
         )}
+
+        {/* Isochrone — button to start */}
+        {!isoMode && !isochrone && !isoLoading && !isDrawing && !closedPolygon && (
+          <button
+            onClick={() => setIsoMode(true)}
+            className="bg-white text-gray-700 text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <Clock className="h-3.5 w-3.5" />
+            Temps de trajet
+          </button>
+        )}
+
+        {/* Isochrone — loading */}
+        {isoLoading && (
+          <div className="bg-white text-gray-500 text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm border border-gray-200 flex items-center gap-1.5 animate-pulse">
+            <Clock className="h-3.5 w-3.5" />
+            Calcul en cours...
+          </div>
+        )}
+
+        {/* Isochrone — error */}
+        {isoError && !isochrone && !isoLoading && (
+          <div className="flex items-center gap-1.5">
+            <div className="bg-red-50 text-red-600 text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm border border-red-200">
+              Erreur — reessayez
+            </div>
+            <button
+              onClick={() => { clearIsochrone(); setIsoPin(null); onZoneFilter?.(null) }}
+              className="h-7 w-7 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5 text-gray-500" />
+            </button>
+          </div>
+        )}
+
+        {/* Isochrone — active controls */}
+        {isochrone && (
+          <div className="flex items-center gap-1.5">
+            {/* Badge with count */}
+            <div className="bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5">
+              {(() => { const Icon = PROFILE_LABELS[isoProfile].icon; return <Icon className="h-3.5 w-3.5" /> })()}
+              {isochrone.minutes} min {PROFILE_LABELS[isoProfile].label}
+              {isoListingCount > 0 && (
+                <span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded text-[10px]">
+                  {isoListingCount} bien{isoListingCount !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            {/* Duration pills */}
+            <div className="flex bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              {[15, 30, 45, 60].map((mins) => (
+                <button
+                  key={mins}
+                  onClick={() => {
+                    setIsoMinutes(mins)
+                    if (isoPin) fetchIsochrone(isoPin[0], isoPin[1], mins, isoProfile)
+                  }}
+                  className={cn(
+                    'px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer',
+                    isoMinutes === mins ? 'bg-accent text-white' : 'text-gray-600 hover:bg-gray-50'
+                  )}
+                >
+                  {mins}′
+                </button>
+              ))}
+            </div>
+
+            {/* Transport mode pills */}
+            <div className="flex bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              {(['driving', 'walking', 'cycling'] as const).map((profile) => {
+                const { icon: Icon } = PROFILE_LABELS[profile]
+                return (
+                  <button
+                    key={profile}
+                    onClick={() => {
+                      setIsoProfile(profile)
+                      if (isoPin) fetchIsochrone(isoPin[0], isoPin[1], isoMinutes, profile)
+                    }}
+                    className={cn(
+                      'p-1.5 transition-colors cursor-pointer',
+                      isoProfile === profile ? 'bg-accent text-white' : 'text-gray-500 hover:bg-gray-50'
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Close */}
+            <button
+              onClick={() => { clearIsochrone(); setIsoPin(null); onZoneFilter?.(null) }}
+              className="h-7 w-7 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5 text-gray-500" />
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Isochrone placement overlay — captures all clicks above markers */}
+      {isoMode && (
+        <>
+          <div
+            className="absolute inset-0 z-[5] cursor-crosshair"
+            onClick={(e) => {
+              const map = mapRef.current?.getMap()
+              if (!map) return
+              const rect = (e.target as HTMLElement).getBoundingClientRect()
+              const x = e.clientX - rect.left
+              const y = e.clientY - rect.top
+              const lngLat = map.unproject([x, y])
+              const pin: [number, number] = [lngLat.lng, lngLat.lat]
+              setIsoPin(pin)
+              setIsoMode(false)
+              fetchIsochrone(pin[0], pin[1], isoMinutes, isoProfile)
+            }}
+          />
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[6] bg-gray-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+            <MapPinPlus className="h-3.5 w-3.5" />
+            Cliquez pour placer votre point de depart
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsoMode(false) }}
+              className="ml-2 text-white/60 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Drawing instructions */}
       {isDrawing && (

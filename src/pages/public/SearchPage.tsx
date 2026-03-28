@@ -15,20 +15,32 @@ import {
   SlidersHorizontal,
   Sparkles,
   MessageCircle,
+  Building2,
+  TrendingDown,
+  Clock,
+  Bath,
+  Train,
+  Bookmark,
+  GitCompareArrows,
+  Check,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import MapView from '@/components/map/MapView'
-import ChatSearch from '@/components/search/ChatSearch'
+// import ChatSearch from '@/components/search/ChatSearch'
+import CompareDrawer from '@/components/listings/CompareDrawer'
 import { useMarketListings, useMapPoints, type MarketFilters } from '@/hooks/useMarketListings'
+import { useFavorites } from '@/hooks/useFavorites'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
 import type { ListingCardData } from '@/components/listings/ListingCard'
+import { findNearestStation, formatStationDistance } from '@/lib/stations'
+import { useMarketTemperature } from '@/hooks/useMarketInsights'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
 type Context = 'buy' | 'rent'
 type ViewMode = 'list' | 'grid'
-type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc'
+type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc' | 'best_deals'
 
 interface Filters {
   context: Context
@@ -39,6 +51,7 @@ interface Filters {
   rooms: string
   minSurface: string
   bedrooms: string
+  bathrooms: string
   city: string
   canton: string
   lifestyleTags: string[]
@@ -54,7 +67,10 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'price_desc', label: 'Prix décroissant' },
   { value: 'newest', label: 'Plus récent' },
   { value: 'surface_desc', label: 'Surface décroissante' },
+  { value: 'best_deals', label: 'Meilleures affaires' },
 ]
+
+const BATHROOM_OPTIONS = ['1', '2', '3+']
 
 const ROOM_OPTIONS = ['1', '2', '3', '4', '5+']
 const BEDROOM_OPTIONS = ['1', '2', '3', '4+']
@@ -96,6 +112,37 @@ const PRICE_RANGES_RENT = [
   { min: '2500', max: '4000', label: "CHF 2'500 – 4'000/mois" },
   { min: '4000', max: '', label: "Dès CHF 4'000/mois" },
 ]
+
+// ─── SMART BADGE HELPER ──────────────────────────────────────────────────────
+
+function getSmartBadge(listing: ListingCardData, medianPricePerM2?: number): { label: string; bg: string } | null {
+  // Priority: price drop > new > hot demand > hot price > exclusive > stale
+  if (listing.price_drop_pct && listing.price_drop_pct >= 1) {
+    return { label: `Baisse -${listing.price_drop_pct}%`, bg: 'bg-emerald-600/90' }
+  }
+  if (listing.days_on_market !== undefined && listing.days_on_market <= 3) {
+    return { label: 'Nouveau', bg: 'bg-accent/90' }
+  }
+  // Hot score: attractive price + fresh
+  if (medianPricePerM2 && listing.price_per_m2 && listing.price_per_m2 < medianPricePerM2 * 0.88 && listing.days_on_market !== undefined && listing.days_on_market <= 14) {
+    return { label: 'Forte demande', bg: 'bg-orange-500/90' }
+  }
+  if (listing.is_hot) {
+    return { label: 'Prix reduit', bg: 'bg-emerald-600/90' }
+  }
+  if (listing.is_exclusive) {
+    return { label: 'MEGGA', bg: 'bg-gray-900' }
+  }
+  if (listing.days_on_market !== undefined && listing.days_on_market >= 45) {
+    return { label: `${listing.days_on_market}j en ligne`, bg: 'bg-gray-500/80' }
+  }
+  return null
+}
+
+function formatPricePerM2(value: number): string {
+  if (value >= 1000) return `${Math.round(value / 100) / 10}K/m²`
+  return `${Math.round(value)}/m²`
+}
 
 // ─── AI QUERY PARSER ────────────────────────────────────────────────────────
 
@@ -292,6 +339,7 @@ function parseFiltersFromParams(params: URLSearchParams): Filters {
     rooms: params.get('rooms') || '',
     minSurface: params.get('minSurface') || '',
     bedrooms: params.get('bedrooms') || '',
+    bathrooms: params.get('bathrooms') || '',
     city: params.get('city') || '',
     canton: params.get('canton') || '',
     lifestyleTags: params.get('lifestyle')?.split(',').filter(Boolean) || [],
@@ -310,6 +358,7 @@ function filtersToParams(filters: Filters): Record<string, string> {
   if (filters.rooms) p.rooms = filters.rooms
   if (filters.minSurface) p.minSurface = filters.minSurface
   if (filters.bedrooms) p.bedrooms = filters.bedrooms
+  if (filters.bathrooms) p.bathrooms = filters.bathrooms
   if (filters.city) p.city = filters.city
   if (filters.canton) p.canton = filters.canton
   if (filters.lifestyleTags.length) p.lifestyle = filters.lifestyleTags.join(',')
@@ -345,6 +394,13 @@ function toServerFilters(filters: Filters): MarketFilters {
       ? Number(filters.bedrooms.replace('+', ''))
       : Number(filters.bedrooms)
     sf.minBedrooms = minBed
+  }
+
+  if (filters.bathrooms) {
+    const minBath = filters.bathrooms.endsWith('+')
+      ? Number(filters.bathrooms.replace('+', ''))
+      : Number(filters.bathrooms)
+    sf.minBathrooms = minBath
   }
 
   return sf
@@ -386,12 +442,9 @@ function FilterPill({ label, active, children }: FilterPillProps) {
         <ChevronDown className={cn('w-3 h-3 ml-1 transition-transform', active ? 'text-white/70' : 'text-gray-400', open && 'rotate-180')} />
       </button>
       {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-lg shadow-dropdown border border-gray-100 z-20 py-1 max-h-60 overflow-y-auto">
-            {children}
-          </div>
-        </>
+        <div className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-lg shadow-dropdown border border-gray-100 z-50 py-1 max-h-60 overflow-y-auto">
+          {children}
+        </div>
       )}
     </div>
   )
@@ -431,14 +484,24 @@ function ListingCardHorizontal({
   listing,
   onHover,
   isHovered,
+  isFavorite: isFav = false,
+  onToggleFavorite,
+  isCompared = false,
+  onToggleCompare,
+  medianPricePerM2 = 0,
 }: {
   listing: ListingCardData
   onHover?: (id: string | undefined) => void
   isHovered?: boolean
+  isFavorite?: boolean
+  onToggleFavorite?: () => void
+  isCompared?: boolean
+  onToggleCompare?: () => void
+  medianPricePerM2?: number
 }) {
   const cardRef = useRef<HTMLAnchorElement>(null)
   const [currentPhoto, setCurrentPhoto] = useState(0)
-  const [isFavorite, setIsFavorite] = useState(false)
+  const photos = listing.photos?.length ? listing.photos : []
 
   // Scroll into view when hovered from map
   useEffect(() => {
@@ -447,18 +510,7 @@ function ListingCardHorizontal({
     }
   }, [isHovered])
 
-  const badge = listing.is_new
-    ? { label: 'Nouveau', bg: 'bg-accent/90' }
-    : listing.is_hot
-      ? { label: 'Hot price', bg: 'bg-red-500/90' }
-      : listing.is_exclusive
-        ? { label: 'MEGGA', bg: 'bg-gray-900' }
-        : listing.is_3d
-          ? { label: '3D', bg: 'bg-purple-500' }
-          : null
-
-  const priceLabel =
-    listing.context === 'rent' ? `${formatCHF(listing.price)}/mois` : formatCHF(listing.price)
+  const badge = getSmartBadge(listing, medianPricePerM2)
 
   return (
     <Link
@@ -467,19 +519,25 @@ function ListingCardHorizontal({
       className={cn(
         'flex flex-col sm:flex-row bg-white border rounded-xl transition-all duration-200 overflow-hidden group',
         isHovered
-          ? 'border-accent/40 shadow-card-hover ring-1 ring-accent/20'
-          : 'border-gray-100 hover:border-gray-200 hover:shadow-card-hover'
+          ? 'border-accent/40 shadow-md ring-1 ring-accent/20'
+          : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
       )}
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
       {/* Photo */}
       <div className="relative w-full sm:w-56 lg:w-64 shrink-0 aspect-[4/3] overflow-hidden sm:rounded-l-xl">
-        <img
-          src={listing.photos[currentPhoto]}
-          alt={listing.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {photos.length > 0 ? (
+          <img
+            src={photos[currentPhoto]}
+            alt={listing.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <Building2 className="h-12 w-12 text-gray-300" />
+          </div>
+        )}
 
         {/* Gradient for dot visibility */}
         <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
@@ -496,51 +554,70 @@ function ListingCardHorizontal({
           </div>
         )}
 
-        {/* Favorite */}
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setIsFavorite(!isFavorite)
-          }}
-          className="absolute top-3 right-3 h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
-        >
-          <Heart
+        {/* Favorite + Compare */}
+        <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.() }}
+            aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            className="h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
+          >
+            <Heart className={cn('h-4 w-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+          </button>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare?.() }}
+            aria-label={isCompared ? 'Retirer de la comparaison' : 'Comparer'}
             className={cn(
-              'h-4 w-4 transition-colors',
-              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'
+              'h-8 w-8 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 cursor-pointer',
+              isCompared ? 'bg-accent text-white' : 'bg-white/90 backdrop-blur-sm text-gray-400 hover:bg-white hover:scale-110'
             )}
-          />
-        </button>
+          >
+            {isCompared ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+          </button>
+        </div>
 
-        {/* Photo dots */}
-        {listing.photos.length > 1 && (
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
-            {listing.photos.slice(0, 5).map((_, i) => (
-              <button
-                key={i}
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setCurrentPhoto(i)
-                }}
-                className={cn(
-                  'rounded-full transition-all cursor-pointer',
-                  currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
-                )}
-              />
-            ))}
-          </div>
+        {/* Photo dots + counter */}
+        {photos.length > 1 && (
+          <>
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
+              {photos.slice(0, 5).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setCurrentPhoto(i)
+                  }}
+                  className={cn(
+                    'rounded-full transition-all cursor-pointer',
+                    currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                  )}
+                />
+              ))}
+            </div>
+            <span className="absolute bottom-2.5 right-2.5 text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5 z-[1]">
+              {currentPhoto + 1}/{photos.length}
+            </span>
+          </>
         )}
       </div>
 
       {/* Info — compact layout with gap-1, agent at bottom via mt-auto */}
       <div className="flex-1 p-4 flex flex-col min-w-0">
         <div className="flex flex-col gap-1">
-          <span className="text-lg font-bold text-primary-900">{priceLabel}</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-semibold text-gray-900">
+              <span className="text-sm font-normal text-gray-500">CHF </span>
+              {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? '/mois' : ''}
+            </span>
+            {listing.price_per_m2 && listing.price_per_m2 > 0 && (
+              <span className="text-xs text-gray-400">
+                {formatPricePerM2(listing.price_per_m2)}
+              </span>
+            )}
+          </div>
 
           <p className="flex items-center gap-1 text-sm text-gray-500">
-            <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+            <MapPin className="h-3.5 w-3.5 text-gray-500 shrink-0" />
             <span className="truncate">
               {listing.address}, {listing.city}
             </span>
@@ -549,39 +626,62 @@ function ListingCardHorizontal({
           <div className="flex items-center text-sm text-gray-500">
             {listing.rooms > 0 && (
               <span className="flex items-center gap-1">
-                <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
+                <DoorOpen className="h-3.5 w-3.5 text-gray-500" />
                 {listing.rooms} pièces
               </span>
             )}
             {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-300 mx-1.5">·</span>}
             {listing.bedrooms > 0 && (
               <span className="flex items-center gap-1">
-                <BedDouble className="h-3.5 w-3.5 text-gray-400" />
+                <BedDouble className="h-3.5 w-3.5 text-gray-500" />
                 {listing.bedrooms} ch.
               </span>
             )}
             {(listing.rooms > 0 || listing.bedrooms > 0) && <span className="text-gray-300 mx-1.5">·</span>}
             <span className="flex items-center gap-1">
-              <Maximize className="h-3.5 w-3.5 text-gray-400" />
+              <Maximize className="h-3.5 w-3.5 text-gray-500" />
               {formatSurface(listing.surface_m2)}
             </span>
           </div>
+
+          {/* Description preview */}
+          {listing.description && (
+            <p className="text-xs text-gray-400 line-clamp-2 mt-0.5">
+              {listing.description}
+            </p>
+          )}
+
+          {/* Nearest station */}
+          {(() => {
+            const station = findNearestStation(listing.lat, listing.lng)
+            if (!station) return null
+            return (
+              <p className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                <Train className="h-3 w-3 text-gray-400 shrink-0" />
+                {station.name} · {formatStationDistance(station.distanceM)}
+              </p>
+            )
+          })()}
         </div>
 
-        {/* Agent line — pushed to bottom */}
+        {/* Bottom line — agency + date */}
         <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
-          {listing.agent && (
-            <div className="flex items-center gap-1.5 min-w-0">
-              <img
-                src={listing.agent.photo}
-                alt={listing.agent.name}
-                className="h-5 w-5 rounded-full object-cover shrink-0"
-              />
-              <span className="text-xs text-gray-400 truncate">
-                {listing.agent.name} · {listing.agent.agency}
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 min-w-0">
+            {listing.agent ? (
+              <>
+                <img
+                  src={listing.agent.photo}
+                  alt={listing.agent.name}
+                  className="h-5 w-5 rounded-full object-cover shrink-0"
+                />
+                <span className="text-xs text-gray-400 truncate">
+                  {listing.agent.name} · {listing.agent.agency}
+                </span>
+              </>
+            ) : listing.agency_name ? (
+              <span className="text-xs text-gray-400 truncate">{listing.agency_name}</span>
+            ) : null}
+          </div>
           {listing.published_at && (
             <span className="text-xs text-gray-400 shrink-0">
               {formatRelativeDate(listing.published_at)}
@@ -599,14 +699,24 @@ function ListingCardGrid({
   listing,
   onHover,
   isHovered,
+  isFavorite: isFav = false,
+  onToggleFavorite,
+  isCompared = false,
+  onToggleCompare,
+  medianPricePerM2 = 0,
 }: {
   listing: ListingCardData
   onHover?: (id: string | undefined) => void
   isHovered?: boolean
+  isFavorite?: boolean
+  onToggleFavorite?: () => void
+  isCompared?: boolean
+  onToggleCompare?: () => void
+  medianPricePerM2?: number
 }) {
   const cardRef = useRef<HTMLAnchorElement>(null)
   const [currentPhoto, setCurrentPhoto] = useState(0)
-  const [isFavorite, setIsFavorite] = useState(false)
+  const photos = listing.photos?.length ? listing.photos : []
 
   useEffect(() => {
     if (isHovered && cardRef.current) {
@@ -614,18 +724,7 @@ function ListingCardGrid({
     }
   }, [isHovered])
 
-  const badge = listing.is_new
-    ? { label: 'Nouveau', bg: 'bg-accent/90' }
-    : listing.is_hot
-      ? { label: 'Hot price', bg: 'bg-red-500/90' }
-      : listing.is_exclusive
-        ? { label: 'MEGGA', bg: 'bg-gray-900' }
-        : listing.is_3d
-          ? { label: '3D', bg: 'bg-purple-500' }
-          : null
-
-  const priceLabel =
-    listing.context === 'rent' ? `${formatCHF(listing.price)}/mois` : formatCHF(listing.price)
+  const badge = getSmartBadge(listing, medianPricePerM2)
 
   return (
     <Link
@@ -634,18 +733,24 @@ function ListingCardGrid({
       className={cn(
         'block bg-white border rounded-xl transition-all duration-200 overflow-hidden group',
         isHovered
-          ? 'border-accent/40 shadow-card-hover ring-1 ring-accent/20'
-          : 'border-gray-100 hover:border-gray-200 hover:shadow-card-hover'
+          ? 'border-accent/40 shadow-md ring-1 ring-accent/20'
+          : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
       )}
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
-        <img
-          src={listing.photos[currentPhoto]}
-          alt={listing.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {photos.length > 0 ? (
+          <img
+            src={photos[currentPhoto]}
+            alt={listing.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <Building2 className="h-12 w-12 text-gray-300" />
+          </div>
+        )}
         {/* Gradient for dot visibility */}
         <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
         {badge && (
@@ -658,64 +763,83 @@ function ListingCardGrid({
             {badge.label}
           </div>
         )}
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setIsFavorite(!isFavorite)
-          }}
-          className="absolute top-3 right-3 h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
-        >
-          <Heart
+        <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.() }}
+            aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            className="h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
+          >
+            <Heart className={cn('h-4 w-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+          </button>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare?.() }}
+            aria-label={isCompared ? 'Retirer de la comparaison' : 'Comparer'}
             className={cn(
-              'h-4 w-4 transition-colors',
-              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'
+              'h-8 w-8 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 cursor-pointer',
+              isCompared ? 'bg-accent text-white' : 'bg-white/90 backdrop-blur-sm text-gray-400 hover:bg-white hover:scale-110'
             )}
-          />
-        </button>
-        {listing.photos.length > 1 && (
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
-            {listing.photos.slice(0, 5).map((_, i) => (
-              <button
-                key={i}
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setCurrentPhoto(i)
-                }}
-                className={cn(
-                  'rounded-full transition-all cursor-pointer',
-                  currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
-                )}
-              />
-            ))}
-          </div>
+          >
+            {isCompared ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+        {photos.length > 1 && (
+          <>
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
+              {photos.slice(0, 5).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setCurrentPhoto(i)
+                  }}
+                  className={cn(
+                    'rounded-full transition-all cursor-pointer',
+                    currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                  )}
+                />
+              ))}
+            </div>
+            <span className="absolute bottom-2.5 right-2.5 text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5 z-[1]">
+              {currentPhoto + 1}/{photos.length}
+            </span>
+          </>
         )}
       </div>
       <div className="p-4">
-        <span className="text-xl font-bold text-primary-900">{priceLabel}</span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-lg font-semibold text-gray-900">
+            <span className="text-sm font-normal text-gray-500">CHF </span>
+            {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? '/mois' : ''}
+          </span>
+          {listing.price_per_m2 && listing.price_per_m2 > 0 && (
+            <span className="text-xs text-gray-400">
+              {formatPricePerM2(listing.price_per_m2)}
+            </span>
+          )}
+        </div>
         <p className="text-sm text-gray-500 mt-1">
           {listing.address}, {listing.city}
         </p>
         <div className="flex items-center text-sm text-gray-500 mt-2">
           {listing.rooms > 0 && (
             <span className="flex items-center gap-1">
-              <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
-              {listing.rooms} p.
+              <DoorOpen className="h-3.5 w-3.5 text-gray-500" />
+              {listing.rooms} pièces
             </span>
           )}
           {listing.bedrooms > 0 && (
             <>
               <span className="text-gray-300 mx-1.5">·</span>
               <span className="flex items-center gap-1">
-                <BedDouble className="h-3.5 w-3.5 text-gray-400" />
+                <BedDouble className="h-3.5 w-3.5 text-gray-500" />
                 {listing.bedrooms} ch.
               </span>
             </>
           )}
           <span className="text-gray-300 mx-1.5">·</span>
           <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5 text-gray-400" />
+            <Maximize className="h-3.5 w-3.5 text-gray-500" />
             {formatSurface(listing.surface_m2)}
           </span>
         </div>
@@ -736,7 +860,15 @@ export default function SearchPage() {
   const [aiUnderstood, setAiUnderstood] = useState<string[]>([])
   const [showAiBanner, setShowAiBanner] = useState(false)
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
-  const [showChat, setShowChat] = useState(false)
+  // const [showChat, setShowChat] = useState(false)
+  const [compareIds, setCompareIds] = useState<string[]>([])
+  const [showCompare, setShowCompare] = useState(false)
+  const [savedSearchToast, setSavedSearchToast] = useState(false)
+  const { isFavorite, toggleFavorite } = useFavorites()
+
+  // Market temperature for current location filter
+  const { data: marketTemp } = useMarketTemperature(filters.canton || undefined, filters.city || undefined)
+  const medianPricePerM2 = marketTemp?.medianPricePerM2 || 0
 
   // Convertir filtres UI → filtres serveur
   const serverFilters = toServerFilters(filters)
@@ -805,6 +937,7 @@ export default function SearchPage() {
       maxPrice: '',
       rooms: '',
       bedrooms: '',
+      bathrooms: '',
       minSurface: '',
       city: '',
       canton: '',
@@ -849,6 +982,37 @@ export default function SearchPage() {
       setShowAiBanner(false)
       setAiUnderstood([])
     }
+  }
+
+  // Compare helpers
+  function toggleCompare(id: string) {
+    setCompareIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : prev.length < 3
+          ? [...prev, id]
+          : prev
+    )
+  }
+  const compareListings = allListings.filter((l) => compareIds.includes(l.id))
+
+  // Save search (GC5 — localStorage for now, Supabase later)
+  function saveCurrentSearch() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('megga-saved-searches') || '[]')
+      const searchEntry = {
+        id: Date.now().toString(),
+        filters: { ...filters },
+        label: [filters.city, filters.canton, filters.types[0], filters.rooms ? `${filters.rooms}p` : ''].filter(Boolean).join(' · ') || 'Recherche',
+        createdAt: new Date().toISOString(),
+        totalCount,
+      }
+      saved.unshift(searchEntry)
+      if (saved.length > 10) saved.pop()
+      localStorage.setItem('megga-saved-searches', JSON.stringify(saved))
+      setSavedSearchToast(true)
+      setTimeout(() => setSavedSearchToast(false), 3000)
+    } catch { /* ignore */ }
   }
 
   const priceRanges = filters.context === 'rent' ? PRICE_RANGES_RENT : PRICE_RANGES_BUY
@@ -906,6 +1070,7 @@ export default function SearchPage() {
               />
               <button
                 type="submit"
+                aria-label="Rechercher"
                 className="w-8 h-8 bg-accent hover:bg-accent/90 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
               >
                 <Search className="w-3.5 h-3.5 text-white" />
@@ -1037,6 +1202,22 @@ export default function SearchPage() {
                     onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })}
                   >
                     {b} chambres
+                  </FilterOption>
+                ))}
+              </FilterPill>
+
+              {/* Bathrooms */}
+              <FilterPill
+                label={filters.bathrooms ? `${filters.bathrooms} sdb` : 'Sdb'}
+                active={!!filters.bathrooms}
+              >
+                {BATHROOM_OPTIONS.map((b) => (
+                  <FilterOption
+                    key={b}
+                    selected={filters.bathrooms === b}
+                    onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })}
+                  >
+                    {b} salle{b !== '1' ? 's' : ''} de bain
                   </FilterOption>
                 ))}
               </FilterPill>
@@ -1173,10 +1354,21 @@ export default function SearchPage() {
 
           {/* ─── ZONE 3: Results bar ─── */}
           <div className="px-4 md:px-6 py-2.5 flex items-center justify-between border-b border-gray-100">
-            <span className="text-sm text-gray-500">
-              <span className="font-semibold text-primary-900">{totalCount > 0 ? totalCount.toLocaleString('fr-CH') : filtered.length}</span> bien{(totalCount || filtered.length) !== 1 ? 's' : ''} trouvé{(totalCount || filtered.length) !== 1 ? 's' : ''}
-              {filters.city ? ` à ${filters.city}` : filters.canton ? ` (${filters.canton})` : ''}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">
+                <span className="font-semibold text-primary-900">{totalCount > 0 ? totalCount.toLocaleString('fr-CH') : filtered.length}</span> bien{(totalCount || filtered.length) !== 1 ? 's' : ''} trouvé{(totalCount || filtered.length) !== 1 ? 's' : ''}
+                {filters.city ? ` à ${filters.city}` : filters.canton ? ` (${filters.canton})` : ''}
+              </span>
+              {hasActiveFilters && (
+                <button
+                  onClick={saveCurrentSearch}
+                  className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-full hover:text-accent hover:border-accent/30 transition-colors cursor-pointer"
+                >
+                  <Bookmark className="h-3 w-3" />
+                  Sauvegarder
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center">
               {/* Sort */}
@@ -1225,9 +1417,17 @@ export default function SearchPage() {
           {/* ─── ZONE 4: Listing cards ─── */}
           <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
             {isLoadingListings ? (
-              <div className="flex flex-col items-center justify-center h-64">
-                <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
-                <p className="text-sm text-gray-500">Chargement des biens...</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+                    <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
+                    <div className="p-4 space-y-3">
+                      <div className="h-5 bg-gray-100 rounded animate-pulse w-2/3" />
+                      <div className="h-4 bg-gray-100 rounded animate-pulse w-4/5" />
+                      <div className="h-4 bg-gray-100 rounded animate-pulse w-1/2" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -1244,13 +1444,18 @@ export default function SearchPage() {
                 </button>
               </div>
             ) : filters.view === 'grid' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {visible.map((listing) => (
                   <ListingCardGrid
                     key={listing.id}
                     listing={listing}
                     onHover={setHoveredListing}
                     isHovered={hoveredListing === listing.id}
+                    isFavorite={isFavorite(listing.id)}
+                    onToggleFavorite={() => toggleFavorite(listing.id)}
+                    isCompared={compareIds.includes(listing.id)}
+                    onToggleCompare={() => toggleCompare(listing.id)}
+                    medianPricePerM2={medianPricePerM2}
                   />
                 ))}
               </div>
@@ -1262,6 +1467,11 @@ export default function SearchPage() {
                     listing={listing}
                     onHover={setHoveredListing}
                     isHovered={hoveredListing === listing.id}
+                    isFavorite={isFavorite(listing.id)}
+                    onToggleFavorite={() => toggleFavorite(listing.id)}
+                    isCompared={compareIds.includes(listing.id)}
+                    onToggleCompare={() => toggleCompare(listing.id)}
+                    medianPricePerM2={medianPricePerM2}
                   />
                 ))}
               </div>
@@ -1323,40 +1533,44 @@ export default function SearchPage() {
       )}
 
 
-      {/* ─── Floating AI Chat Button ─── */}
-      {!showChat && (
-        <button
-          onClick={() => setShowChat(true)}
-          className="fixed bottom-6 right-6 z-40 h-14 bg-accent hover:bg-accent/90 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2.5 px-5 cursor-pointer group"
-        >
-          <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-medium hidden sm:inline">Recherche assistée</span>
-          <MessageCircle className="w-5 h-5 sm:hidden" />
-        </button>
+      {/* ─── Compare floating bar ─── */}
+      {compareIds.length > 0 && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 h-12 px-5 bg-gray-900 text-white text-sm font-medium rounded-full shadow-lg">
+          <GitCompareArrows className="h-4 w-4" />
+          <span>{compareIds.length} bien{compareIds.length > 1 ? 's' : ''} selectionne{compareIds.length > 1 ? 's' : ''}</span>
+          <button
+            onClick={() => setShowCompare(true)}
+            className="h-8 px-3 bg-accent rounded-full text-xs font-medium hover:bg-accent/90 transition-colors"
+          >
+            Comparer
+          </button>
+          <button
+            onClick={() => setCompareIds([])}
+            className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )}
 
-      {/* AI Chat Panel */}
-      <ChatSearch
-        isOpen={showChat}
-        onClose={() => setShowChat(false)}
-        allListings={allListings}
-        onHighlightListing={(id) => {
-          setHoveredListing(id)
-          setTimeout(() => setHoveredListing(undefined), 3000)
-        }}
-        onApplyFilters={(chatFilters) => {
-          const patch: Partial<Filters> = {}
-          if (chatFilters.context) patch.context = chatFilters.context as Context
-          if (chatFilters.city) patch.city = chatFilters.city as string
-          if (chatFilters.maxPrice) patch.maxPrice = chatFilters.maxPrice as string
-          if (chatFilters.minPrice) patch.minPrice = chatFilters.minPrice as string
-          if (chatFilters.rooms) patch.rooms = chatFilters.rooms as string
-          if (chatFilters.bedrooms) patch.bedrooms = chatFilters.bedrooms as string
-          if (chatFilters.minSurface) patch.minSurface = chatFilters.minSurface as string
-          if (Array.isArray(chatFilters.types)) patch.types = chatFilters.types as string[]
-          updateFilter(patch)
+      {/* Compare drawer */}
+      <CompareDrawer
+        listings={compareListings}
+        open={showCompare}
+        onClose={() => setShowCompare(false)}
+        onRemove={(id) => {
+          setCompareIds((prev) => prev.filter((x) => x !== id))
+          if (compareIds.length <= 1) setShowCompare(false)
         }}
       />
+
+      {/* ─── Save search toast ─── */}
+      {savedSearchToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 h-10 px-4 bg-gray-900 text-white text-sm font-medium rounded-full shadow-lg animate-in slide-in-from-top duration-200">
+          <Check className="h-4 w-4 text-emerald-400" />
+          Recherche sauvegardee
+        </div>
+      )}
     </div>
   )
 }

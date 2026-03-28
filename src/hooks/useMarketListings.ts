@@ -14,9 +14,10 @@ export interface MarketFilters {
   minRooms?: number
   maxRooms?: number
   minBedrooms?: number
+  minBathrooms?: number
   minSurface?: number
   maxSurface?: number
-  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc'
+  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc' | 'best_deals'
   q?: string
 }
 
@@ -48,6 +49,7 @@ function applyFilters(query: any, filters: MarketFilters) {
   if (filters.minRooms) q = q.gte('rooms', filters.minRooms)
   if (filters.maxRooms) q = q.lte('rooms', filters.maxRooms)
   if (filters.minBedrooms) q = q.gte('bedrooms', filters.minBedrooms)
+  if (filters.minBathrooms) q = q.gte('bathrooms', filters.minBathrooms)
   if (filters.minSurface) q = q.gte('surface_m2', filters.minSurface)
   if (filters.maxSurface) q = q.lte('surface_m2', filters.maxSurface)
   if (filters.q) {
@@ -63,6 +65,7 @@ function applySorting(query: any, sort: MarketFilters['sort']) {
     case 'price_desc': return query.order('price', { ascending: false, nullsFirst: false })
     case 'newest': return query.order('first_seen_at', { ascending: false })
     case 'surface_desc': return query.order('surface_m2', { ascending: false, nullsFirst: false })
+    case 'best_deals': return query.order('price_per_m2', { ascending: true, nullsFirst: false })
     default: return query.order('created_at', { ascending: false })
   }
 }
@@ -116,6 +119,14 @@ function transformToCardData(
     agency_name: ml.agency_name as string | undefined,
     price_per_m2: ml.price_per_m2 as number | undefined,
     days_on_market: ml.days_on_market as number | undefined,
+    price_drop_pct: (() => {
+      const initial = Number(ml.price_at_first_seen || ml.price)
+      const current = Number(ml.current_price ?? ml.price ?? 0)
+      if (initial > 0 && current > 0 && current < initial) {
+        return Math.round(((initial - current) / initial) * 100)
+      }
+      return undefined
+    })(),
   }
 }
 
@@ -136,7 +147,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
       let marketQuery = supabase
         .from('market_listings')
         .select(
-          'id, title, price, current_price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, lat, lng, source_portal, source_url, agency_name, price_per_m2, days_on_market, status, first_seen_at, created_at',
+          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, lat, lng, source_portal, source_url, agency_name, price_per_m2, days_on_market, status, first_seen_at, created_at',
           { count: 'exact' }
         )
 

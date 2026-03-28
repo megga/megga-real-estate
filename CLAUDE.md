@@ -1520,6 +1520,18 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 - Policies ouvertes temp sur `kyc_cases`, `kyc_checklist_items`, `contacts` (anon read)
 - **À nettoyer pour la prod** : supprimer les policies `anon` et forcer `authenticated` partout
 
+#### Refonte page Acheter — 28 mars 2026
+- **Navbar** : transparente sur hero (glass au scroll), logo h-7, CTA hierarchy (Publier = outline, Se connecter = accent), liens 15px, underline actif, aria-labels, mobile slide-down
+- **Audit visuel SearchPage** : grille xl:grid-cols-3, skeleton loading 6 cards, fallback Building2, typographie prix CHF séparé, contraste WCAG AA, photo counter, filtres dropdown absolut z-50
+- **Features cards** : prix/m² contextuel, badges fraîcheur intelligents (Baisse -X%, Nouveau, Forte demande, Xj en ligne), description preview (line-clamp-2), gare la plus proche (60 gares suisses), agence affichée
+- **Filtres** : salles de bain (pill Sdb), tri "Meilleures affaires" (prix/m² asc)
+- **Engagement acheteur** : favoris persistants localStorage (hook singleton useFavorites), comparateur côte à côte 2-3 biens (CompareDrawer), sauvegarder recherche localStorage + toast, calculateur accessibilité suisse (33% rule, 20% fonds propres)
+- **Carte isochrone** : Mapbox Isochrone API, 3 modes transport (voiture/pied/vélo), pills durée (15/30/45/60 min), filtrage biens dans zone, compteur, overlay transparent pour placement pin, grisage hors zone, contrôles zoom/fullscreen en blanc
+- **IA** : ChatSearch connecté à Claude Sonnet 4 via Edge Function ai-copilot (system prompt acheteur), extraction filtres FILTERS:{}, fallback parser local
+- **Page détail (ListingPage)** : 100% connectée Supabase (market_listings + properties), plus de mockData. Sidebar enrichie : historique prix (graphique SVG), température du marché (gauge 0-100), risques naturels (API swisstopo OFEV), calendrier visites (modal date/créneau), calculateur accessibilité
+- **Biens similaires** : même canton + type + prix ±30%, max 6 biens en grid
+- **Nouveaux fichiers** : AffordabilityCalculator, CompareDrawer, MarketTemperatureBadge, NaturalHazardBadge, PriceHistoryChart, RequestVisitModal, useFavorites, useIsochrone, useMarketInsights, useNaturalHazards, stations.ts
+
 #### Chat & Messagerie — refonte complète 27-28 mars 2026
 - **ChatPage** : layout thread list + conversation, remplacement de MessagesPage
 - **ChatThreadList** : threads avec avatars uniformes (`bg-theme-hover`), MEGGA AI pinné en premier, filtres (Tous/Non lus/Acheteurs/Vendeurs), recherche, compose modal
@@ -1579,5 +1591,8 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 5. **Déployer Edge Functions** — extract-property-pdf + extract-property-url
 6. **Google Calendar** — configurer Google Cloud Console (mode Testing) + tester OAuth flow
 7. **Score Engine v2 — Location Intelligence** — données externes suisses
-8. **ListingPage connectée** — remplacer getListingById(mockData) par useMarketListing(supabase)
+8. ~~**ListingPage connectée**~~ → ✅ FAIT (28 mars 2026)
 9. **Briefing matinal IA** — résumé narratif quotidien des mouvements marché + actions prioritaires
+10. **Alertes push** — pg_cron quotidien : nouveaux biens vs saved_searches → email via send-email
+11. **Virtual staging IA** — Nano Banana 2 API (CHF 0.034/image batch) dans formulaire création bien
+12. **Calculateur fiscal cantonal** — impôt revenu + fortune + valeur locative par commune
