@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Search, Plus, ChevronLeft, ChevronRight, ChevronDown,
+  Search, Plus, Upload, ChevronLeft, ChevronRight, ChevronDown,
+  FileSpreadsheet, MessageSquareText, Users as UsersIcon, PenLine,
 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useContacts } from '@/hooks/useContacts'
@@ -103,6 +104,71 @@ export default function ContactsPage() {
 
   const hasFilters = search || typeFilter || scoreFilter
   const [showNewContact, setShowNewContact] = useState(false)
+  const [skipImport, setSkipImport] = useState(false)
+
+  // Empty state — show import options when no contacts exist
+  if (!isLoading && contacts.length === 0 && !skipImport) {
+    const importMethods = [
+      { icon: FileSpreadsheet, title: 'CSV / Excel', desc: 'Importer depuis un fichier .csv ou .tsv', href: '/dashboard/contacts/import?method=csv' },
+      { icon: UsersIcon, title: 'vCard (.vcf)', desc: 'Depuis iPhone, Android, Outlook, Gmail', href: '/dashboard/contacts/import?method=vcard' },
+      { icon: MessageSquareText, title: 'Texte libre (IA)', desc: 'Coller un email ou message, MEGGA AI extrait les infos', href: '/dashboard/contacts/import?method=text' },
+      { icon: PenLine, title: 'Saisie manuelle', desc: 'Ajouter un contact à la main', action: () => setShowNewContact(true) },
+    ]
+
+    return (
+      <PageTransition>
+        <div className="max-w-3xl mx-auto">
+          <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+            <h1 className="text-xl font-semibold text-theme-primary mb-1">Ajouter des contacts</h1>
+            <p className="text-sm text-theme-muted mb-8">Comment souhaitez-vous ajouter vos contacts ?</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+              {importMethods.map((m, i) => (
+                m.action ? (
+                  <button
+                    key={i}
+                    onClick={m.action}
+                    className="text-left px-5 py-4 rounded-xl border border-theme-border hover:border-accent/40 transition-colors group"
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <m.icon className="w-5 h-5 mt-0.5 flex-shrink-0 text-theme-muted group-hover:text-theme-secondary transition-colors" />
+                      <div>
+                        <p className="text-sm font-medium text-theme-primary">{m.title}</p>
+                        <p className="text-[12px] text-theme-muted mt-0.5 leading-relaxed">{m.desc}</p>
+                      </div>
+                    </div>
+                  </button>
+                ) : (
+                  <Link
+                    key={i}
+                    to={m.href!}
+                    className="text-left px-5 py-4 rounded-xl border border-theme-border hover:border-accent/40 transition-colors group"
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <m.icon className="w-5 h-5 mt-0.5 flex-shrink-0 text-theme-muted group-hover:text-theme-secondary transition-colors" />
+                      <div>
+                        <p className="text-sm font-medium text-theme-primary">{m.title}</p>
+                        <p className="text-[12px] text-theme-muted mt-0.5 leading-relaxed">{m.desc}</p>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              ))}
+            </div>
+
+            <button
+              onClick={() => setSkipImport(true)}
+              className="mt-6 text-[13px] text-theme-muted hover:text-theme-secondary transition-colors"
+            >
+              Passer
+            </button>
+          </div>
+
+          <NewContactDialog open={showNewContact} onClose={() => setShowNewContact(false)} />
+        </div>
+      </PageTransition>
+    )
+  }
 
   return (
     <PageTransition>
@@ -115,13 +181,22 @@ export default function ContactsPage() {
               {isLoading ? 'Chargement…' : `${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`}
             </p>
           </div>
-          <button
-            onClick={() => setShowNewContact(true)}
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Ajouter un contact
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/dashboard/contacts/import"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-muted hover:text-theme-secondary border border-theme-border hover:border-theme-active transition-colors"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Importer
+            </Link>
+            <button
+              onClick={() => setShowNewContact(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Ajouter
+            </button>
+          </div>
         </div>
 
         <NewContactDialog open={showNewContact} onClose={() => setShowNewContact(false)} />

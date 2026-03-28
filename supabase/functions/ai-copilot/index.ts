@@ -16,6 +16,8 @@ type CopilotAction =
   | 'draft_description'
   | 'analyze_kyc'
   | 'score_lead'
+  | 'analyze_market'
+  | 'detect_intent'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -54,7 +56,15 @@ RÈGLES :
 - Tu ne valides JAMAIS un dossier KYC — tu analyses et recommandes, l'humain valide.
 - Tu ne contactes JAMAIS un client directement — tu prépares, l'agent envoie.
 - Tes scores et estimations sont indicatifs — toujours mentionner "estimation IA".
-- Si on te demande quelque chose hors immobilier suisse, tu restes poli mais tu recentres.`
+- Si on te demande quelque chose hors immobilier suisse, tu restes poli mais tu recentres.
+
+MÉMOIRE CONTEXTUELLE :
+Tu reçois le contexte CRM complet du client actif (profil, interactions, biens envoyés, visites, feedbacks, transactions, notes).
+- UTILISE ces données pour personnaliser chaque réponse. Mentionne des détails spécifiques (dates, biens, feedbacks).
+- Pour un résumé : base-toi sur les VRAIES interactions, pas des généralités.
+- Pour une relance : référence la dernière visite ou le dernier bien envoyé. Propose 1-2 biens du matching si disponibles.
+- Pour une suggestion : prends en compte l'historique complet (refus, préférences implicites, timing).
+- Si le contexte est vide ou absent, réponds de manière générale mais signale que tu manques de données.`
 
 const MEGGA_SEARCH_SYSTEM = `Tu es l'assistant de recherche immobilière de MEGGA, un portail immobilier suisse premium.
 
@@ -86,14 +96,19 @@ Clés possibles : city, canton, rooms, bedrooms, minPrice, maxPrice, minSurface,
 N'inclus que les filtres que tu as extraits de la demande.`
 
 const ACTION_PROMPTS: Record<string, string> = {
-  summarize_contact: `Résume le profil et l'historique de ce contact en 3-5 points clés.
-Mentionne : intérêt principal, budget estimé, dernière interaction, niveau d'engagement, action recommandée.`,
+  summarize_contact: `Résume le profil et l'historique de ce contact en 3-5 points clés basés sur les VRAIES données CRM fournies.
+Mentionne : intérêt principal, budget (annoncé vs estimé), dernière interaction avec date, biens envoyés/visités, niveau d'engagement, action recommandée.
+Si des visites ont eu des feedbacks négatifs, mentionne les objections. Si des biens ont été refusés, note les patterns.`,
 
-  suggest_next_action: `Analyse le contexte et suggère la prochaine action optimale.
-Donne 1 action prioritaire + 2 alternatives. Considère : pipeline, timing, intérêt, documents.`,
+  suggest_next_action: `Analyse le contexte CRM complet et suggère la prochaine action optimale.
+Donne 1 action prioritaire + 2 alternatives. Base-toi sur : dernière interaction, biens envoyés non répondus, visites sans suite, deals en cours, timing du client.
+Sois spécifique : mentionne le nom du bien, la date, le contexte.`,
 
-  draft_email: `Rédige un email professionnel immobilier suisse.
-Ton : courtois, vouvoiement, formules suisses. Adapte au contexte fourni.`,
+  draft_email: `Rédige un email professionnel immobilier suisse PERSONNALISÉ basé sur l'historique CRM.
+Ton : courtois, vouvoiement, formules suisses.
+IMPORTANT : Référence la dernière interaction (visite, bien envoyé, appel) avec le détail exact (date, bien concerné).
+Si des biens du matching sont disponibles, propose-en 1-2 avec prix et caractéristiques.
+L'email doit donner l'impression que le courtier connaît parfaitement le dossier du client.`,
 
   draft_description: `Rédige une description d'annonce immobilière attractive et honnête.
 2-3 paragraphes, 150-250 mots. Mets en avant les points forts sans exagérer.`,
@@ -103,6 +118,26 @@ IMPORTANT : Tu assistes l'agent, tu ne valides PAS. La validation finale est hum
 
   score_lead: `Évalue la qualité de ce lead : Chaud/Tiède/Froid avec score 0-100.
 Critères : budget, timeline, engagement, correspondance offre/demande. Justifie en 2-3 phrases.`,
+
+  analyze_market: `Analyse le positionnement du bien par rapport aux données marché fournies.
+Structure ta réponse :
+1. **Positionnement prix** : le bien est-il au-dessus, dans la moyenne, ou en-dessous du marché ? De combien en % ?
+2. **Prix au m²** : compare avec la moyenne du quartier/canton.
+3. **Concurrence** : combien de biens similaires sont actuellement en vente ? Le marché est-il saturé ou porteur ?
+4. **Recommandation** : faut-il ajuster le prix ? Mettre en avant certains atouts ? Attendre ?
+5. **Risque de stagnation** : basé sur le nombre de biens comparables et la fourchette de prix, estime le temps de vente probable.
+Sois précis avec les chiffres fournis dans le contexte marché.`,
+
+  detect_intent: `Analyse le message du client ci-dessous et détecte l'intention principale.
+Réponds en JSON strict avec ce format :
+{
+  "intent": "strong_interest" | "objection" | "urgency" | "disinterest" | "question" | "neutral",
+  "confidence": 0-100,
+  "summary": "résumé en 1 phrase de l'intention détectée",
+  "suggested_action": "action recommandée pour l'agent (appeler, relancer, proposer visite, ajuster prix, etc.)",
+  "keywords": ["mots-clés détectés"]
+}
+Sois factuel et base-toi uniquement sur le contenu du message.`,
 }
 
 serve(async (req: Request) => {
@@ -176,7 +211,7 @@ serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
+        max_tokens: 2000,
         system: systemPrompt,
         messages,
       }),

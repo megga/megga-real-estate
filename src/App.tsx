@@ -28,6 +28,7 @@ const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 // Lazy-loaded agent pages (except ActionBoardPage which is static)
 const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
 const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
+const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
 const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
@@ -36,7 +37,7 @@ const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const KycListPage = lazy(() => import('@/pages/agent/KycListPage'))
 const KycDetailPage = lazy(() => import('@/pages/agent/KycDetailPage'))
-const MessagesPage = lazy(() => import('@/pages/agent/MessagesPage'))
+const ChatPage = lazy(() => import('@/pages/agent/ChatPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const AutomationPage = lazy(() => import('@/pages/agent/AutomationPage'))
 const TemplatesPage = lazy(() => import('@/pages/agent/TemplatesPage'))
@@ -70,6 +71,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5,
       retry: 1,
+      refetchOnWindowFocus: false,
     },
   },
 })
@@ -133,6 +135,7 @@ export default function App() {
                 <Route index element={<ActionBoardPage />} />
                 <Route path="analytics" element={<DashboardPage />} />
                 <Route path="contacts" element={<ContactsPage />} />
+                <Route path="contacts/import" element={<ContactImportPage />} />
                 <Route path="contacts/:id" element={<ContactDetailPage />} />
                 <Route path="pipeline" element={<PipelinePage />} />
                 <Route path="matching" element={<MatchingPage />} />
@@ -142,7 +145,7 @@ export default function App() {
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="kyc" element={<KycListPage />} />
                 <Route path="kyc/:id" element={<KycDetailPage />} />
-                <Route path="messages" element={<MessagesPage />} />
+                <Route path="messages" element={<ChatPage />} />
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="automation" element={<AutomationPage />} />
                 <Route path="documents" element={<TemplatesPage />} />

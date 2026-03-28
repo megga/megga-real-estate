@@ -278,6 +278,9 @@ megga-real-estate/
 │       ├── ai-scoring/          # Buyer/seller intelligence (Phase 2)
 │       ├── ai-negotiation/      # Copilote négociation (Phase 2)
 │       ├── ai-listing-gen/      # Génération annonces multi-versions (Phase 2)
+│       ├── score-engine/        # ✅ DÉPLOYÉ — Scoring comportemental contacts + propriétés
+│       ├── extract-property-pdf/ # ✅ — Extraction données bien depuis PDF (Claude Sonnet 4)
+│       ├── extract-property-url/ # ✅ — Extraction données bien depuis URL portail (Claude Sonnet 4)
 │       ├── automation-engine/   # Moteur de relances automatiques (Phase 2)
 │       └── webhooks/            # Stripe, Resend... (Phase 2)
 ```
@@ -589,7 +592,7 @@ Sidebar width :    w-64 (256px)
 - **Notifications** : toggles email/push par type, toggles en gris moyen en dark mode (pas blanc)
 - **Sécurité** : mot de passe (connecté Supabase), 2FA (bientôt disponible), Google OAuth link/unlink avec feedback, sessions (bientôt disponible), journal de sécurité (connecté activity_events)
 - **Abonnement** : toggle mensuel/annuel (-20%), 3 plans (Starter gratuit, Pro CHF 89, Agency CHF 249), prix barré en annuel, CTA "Besoin d'un plan sur mesure ?"
-- **Applications** : style Stripe Marketplace — 12 apps en grille 4 colonnes avec logos SVG officiels, filtres par catégorie (Tous, Connectés, Calendrier, Email, CRM, Outils). Apps : Email/Resend (connecté), Google Calendar (connectable avec sync), Outlook Calendar, Salesforce, HubSpot, Pipedrive, Zoho CRM, Freshsales, Import/Export CSV, PostHog, Google Drive, OneDrive
+- **Applications** : style Stripe Marketplace — 12 apps en grille 4 colonnes avec logos SVG officiels, filtres par catégorie (Tous, Connectés, Calendrier, Email, CRM, Outils). Apps : Email/Resend (connecté), Google Calendar (connectable avec sync), Outlook Calendar, HubSpot, Pipedrive, Import/Export CSV, PostHog, Google Drive, OneDrive
 
 ---
 
@@ -1360,7 +1363,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 26 mars 2026)
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 27 mars 2026)
 
 ### ✅ Fonctionnalités LIVE
 
@@ -1403,13 +1406,33 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - Remplacé par `market-scraper` v4 (API JSON + tranches de prix)
 - Gardé pour compatibilité (MatchingPage onglet "Marché" temps réel)
 
-#### MEGGA AI (Copilote IA)
+#### MEGGA AI (Copilote IA) — enrichi 26 mars 2026
 - **Edge Function** `ai-copilot` déployée — Claude Sonnet 4
-- Chat libre + actions prédéfinies (résumé client, relance, KYC)
+- Chat libre + actions prédéfinies (résumé client, relance, KYC, analyse marché)
 - System prompt spécialisé immobilier suisse (LAB, KYC, droit foncier)
-- Contexte CRM injecté (contact, bien, deal actif)
+- Contexte CRM injecté (contact, bien, deal actif, scores comportementaux, mémoire contact)
+- **Streaming naturel** : animation de typing mot par mot avec délais variables (30-80ms)
+- **Contact Memory** : `fetchContactMemory()` — charge interactions, matchs, visites, transactions pour injecter le contexte complet dans chaque requête IA
+- **Context Builder** : `buildContactContext()` + `buildMarketContext()` — construit le prompt enrichi avec données CRM + marché
 - Panel slide-in depuis bouton ✨ (bas à droite du dashboard)
 - **Coût** : ~$0.01/requête, $5 de crédits = ~500 requêtes
+
+#### MEGGA Score Engine v1 — 26 mars 2026
+- **Edge Function** `score-engine` — algorithme de scoring comportemental
+- **Migration SQL** : `20260326_002_score_engine.sql` — tables `contact_scores`, `property_scores`, `scoring_signals`, `market_changes`
+- **Scoring contact (Buyer Score 0-100)** : 5 facteurs pondérés :
+  - Réactivité (20%) : temps de réponse moyen aux interactions
+  - Engagement (25%) : fréquence et tendance des interactions
+  - Cohérence budget (20%) : budget déclaré vs biens visités (détecte budget réel)
+  - Qualité visites (20%) : fiabilité (show-up rate), feedbacks, patterns de rejet
+  - Conversion (15%) : progression pipeline, offres soumises, timing
+- **Scoring propriété (Heat Score 0-100)** : position marché, intérêt, stagnation
+- **Pipeline Health** : `usePipelineHealth` — détecte deals stagnants, leads inactifs, KYC incomplets
+- **Market Radar** : `MarketRadar.tsx` — nouveaux biens, baisses de prix, retraits (basé sur `market_changes`)
+- **Intent Detection** : `useIntentDetection` — analyse les messages entrants (intérêt fort, objection, urgence, désintérêt)
+- **Smart Replies** : `SmartReplies.tsx` — 3 suggestions de réponse contextuelles par thread
+- **Composants UI** : `ContactScoreBar`, `PropertyHeatBadge`, `MessageIntentBadge`, `PipelineHealth`
+- **scrape-delta enrichi** : log les changements de prix et nouveaux biens dans `market_changes`
 
 #### Portail vendeur (6/6 pages)
 - **Accès tokénisé** : URL unique `/portail/:token` (pas de login)
@@ -1457,7 +1480,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - **SecurityTab** : mot de passe connecté Supabase (`updateUser`), 2FA marqué "Bientôt disponible" (toggle désactivé), sessions marquées "Bientôt disponible" (boutons désactivés), journal de sécurité connecté `activity_events`, Google OAuth link/unlink avec feedback succès/erreur
 - **Applications** : refonte style Stripe Marketplace — 9 apps en grille 3 colonnes avec logos SVG officiels, filtres par catégorie (Tous, Connectés, Calendrier, CRM, Outils)
   - **Connectable** : Google Calendar (OAuth + sync), Outlook Calendar (OAuth Azure + sync)
-  - **Bientôt** : Salesforce, HubSpot, Pipedrive, Import/Export CSV, PostHog, Google Drive, OneDrive
+  - **Bientôt** : HubSpot, Pipedrive, Import/Export CSV, PostHog, Google Drive, OneDrive
   - **Supprimés** : Resend (infrastructure interne, pas visible agent), Zoho CRM (rare en Suisse), Freshsales (inexistant sur ce marché)
 - **Notifications** : refonte compact — grille checkboxes avec colonnes Email/Push + "Tout activer"
 - **Portails immobiliers** supprimés (pas d'API publique — SMG/Homegate/ImmoScout24 = jardin fermé)
@@ -1470,6 +1493,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - **Hooks dépréciés supprimés** : `useMatchingMock.ts`, `useContactDetail.ts`
 - **Button default variant** corrigé : `bg-accent text-white` → ghost style conforme design system
 - **MessagesPage redesign** : layout centré (max-w-5xl), fonds solides (bg-theme-sidebar / bg-theme-card), bulles modernisées, input bar élevée, indicateur non-lu en barre accent latérale
+
 
 #### Page Privacy — 25 mars 2026
 - Route `/privacy` — politique de confidentialité conforme LPD suisse (9 sections)
@@ -1489,8 +1513,7 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 - **Project ref** : eayczugyrvmtqnnmvjod
 - **Region** : eu-west-1 (Ireland)
 - **Plan** : Nano (gratuit)
-- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync
-
+- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync, contact_scores, property_scores, scoring_signals, market_changes
 ### DB — Corrections RLS appliquées (2026-03-23)
 - Récursion infinie `profiles` → fixée avec `get_my_agency_id()` SECURITY DEFINER
 - Policies `contacts`, `documents`, `activity_events` → migrées vers `get_my_agency_id()`
@@ -1509,16 +1532,67 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 - **Biens similaires** : même canton + type + prix ±30%, max 6 biens en grid
 - **Nouveaux fichiers** : AffordabilityCalculator, CompareDrawer, MarketTemperatureBadge, NaturalHazardBadge, PriceHistoryChart, RequestVisitModal, useFavorites, useIsochrone, useMarketInsights, useNaturalHazards, stations.ts
 
+#### Chat & Messagerie — refonte complète 27-28 mars 2026
+- **ChatPage** : layout thread list + conversation, remplacement de MessagesPage
+- **ChatThreadList** : threads avec avatars uniformes (`bg-theme-hover`), MEGGA AI pinné en premier, filtres (Tous/Non lus/Acheteurs/Vendeurs), recherche, compose modal
+- **AiChatPane** : welcome screen responsive (salutation + 4 suggestions métier avec icônes), conversation streaming, bulles agent `bg-accent text-white`, message d'accueil "copilote immobilier"
+- **ContactChatPane** : bulles Messenger-style responsive (`max-w-[85%] sm:max-w-[75%] md:max-w-[65%]`), reply avec citation visuelle, pin messages, menu contextuel clic droit (Répondre, Copier, Épingler, Transférer à MEGGA AI, Supprimer), info panel slide-in w-72 (12 sections contact), empty state conversation
+- **PromptInputBar** : autocomplete `/commandes` (8 commandes métier), `@contact` (CRM Supabase basé sur position curseur), `#bien` (propriétés agence), context pill contact actif, hints inline, drag & drop fichiers (image/pdf/doc), micro (prêt pour Phase 2), feedback erreur fichier >10MB, focus border accent/60
+- **"Demander à MEGGA AI"** : bouton dégradé bleu→indigo dans le profil contact → bascule vers AI avec injection contexte + prompt auto-envoyé
+- **Notification sidebar** : dot rouge dynamique synchronisé avec `unread_count` des threads Supabase (plus de hardcodé)
+- **Read receipts** : double check bleu (`text-accent`) quand lu, gris quand non lu — `markAsRead()` appelé à l'ouverture du thread via Supabase
+- **Accessibilité complète** : `aria-label` sur tous les boutons icônes (28 corrigés), `role="button"` + `tabIndex` + `onKeyDown` sur les threads, `aria-modal` + `aria-labelledby` sur le modal compose, `aria-pressed` sur le micro
+- **Typographie standardisée** : toutes les tailles custom (`text-[11px]`, `text-[13px]`, `text-[14px]`) remplacées par `text-xs`, `text-sm`
+- **Animations consistantes** : messages 0.25s, welcome items 0.35s, cursor blink 0.5s, info panel 0.25s
+- **Viewport mobile** : `h-dvh` au lieu de `h-[calc(100vh-0px)]`, textarea `max-h-[120px] md:max-h-[200px]`
+
+#### Import de biens multi-sources — 27 mars 2026
+- **Écran de sélection** : 4 méthodes d'import avant le formulaire (Saisie manuelle, Dupliquer, URL, PDF)
+- **Duplication de bien** : sélecteur avec recherche, photo, adresse, prix. Masqué si aucun bien. Pré-remplit avec "(copie)" dans le titre. Crée un NOUVEAU bien.
+- **Import depuis PDF** : Edge Function `extract-property-pdf` — upload PDF → Claude Sonnet 4 extrait titre, description, type, prix, pièces, surface, adresse complète (rue/ville/canton/NPA), caractéristiques, état, mandat. Score de confiance 0-100. Drop zone avec drag & drop.
+- **Import depuis URL** : Edge Function `extract-property-url` — coller un lien d'annonce → fetch HTML + JSON-LD → Claude extrait toutes les données + URLs photos. Whitelist 8 portails suisses (Homegate, ImmoScout24, RealAdvisor, Comparis, Immomig, Acheter-louer, Flatfox, Newhome). Photos extraites passées au formulaire.
+- **Hooks** : `useExtractPropertyPdf`, `useExtractPropertyUrl` — appels Edge Functions via `supabase.functions.invoke`
+- **Secrets requis** : `ANTHROPIC_API_KEY` (déjà configuré)
+- **Déploiement** : `supabase functions deploy extract-property-pdf` + `supabase functions deploy extract-property-url`
+
+#### Import de contacts multi-sources — 28 mars 2026
+- **Page dédiée** `/dashboard/contacts/import` avec 4 méthodes :
+  - **CSV/Excel** : drop zone drag & drop → parse → mapping colonnes auto-détecté (prénom/nom/email/tel) → preview → import batch Supabase
+  - **vCard (.vcf)** : parse standard vCard → preview avec avatars initiales → import. Compatible iPhone, Android, Outlook, Gmail
+  - **Texte libre IA** : textarea → Claude API (`ai-copilot`) extrait nom, email, tel, type → preview → import
+  - **Saisie manuelle** : redirige vers NewContactDialog
+- **Empty state ContactsPage** : quand aucun contact, affiche les 4 options d'import directement + bouton "Passer"
+- **Composant** : `ContactImportPage.tsx` (page pleine) + `ContactImportDialog.tsx` (modal legacy)
+
+#### Optimisation performance — 28 mars 2026
+- **`refetchOnWindowFocus: false`** ajouté dans QueryClient global
+- **`select('*')` remplacé par colonnes spécifiques** dans 7 hooks : useMessaging, useAuth, useProperties, useScoreEngine (3 queries), useKyc (2 queries)
+- **`decoding="async"`** ajouté sur toutes les images avec `loading="lazy"` (10 fichiers)
+
+#### Favicon — 28 mars 2026
+- **Design** : cercle bleu accent `#2563EB` avec GG blanc centré (32x32)
+- **Fichier** : `public/favicon.svg`, référencé dans `index.html`
+- **Visible** sur tous les fonds d'onglets (dark et light)
+
+#### Salesforce retiré — 28 mars 2026
+- Edge Function, tables, secrets, documentation retirés (payant, hors scope MVP)
+
+#### C2PA / MEGGA Shield — exploration en cours
+- **Objectif** : certifier l'authenticité des photos immobilières (badge "Photos vérifiées C2PA")
+- **3 niveaux planifiés** : Badge vérification (L1), Détection IA/retouche à l'upload (L2), Signature à la source (L3)
+- **Statut** : en discussion avec partenaire Thomas pour l'API/SDK
+- **Différenciateur** : aucun portail suisse ne certifie les photos aujourd'hui
+
 ### Prochaines priorités
-1. **Google Calendar** — configurer Google Cloud Console (mode Testing) + tester OAuth flow
-2. **Outlook Calendar** — tester le flow OAuth Azure complet (bouton Connecter → sync)
-3. **Import/Export CSV** — connecter l'app Import/Export pour permettre la migration depuis Pipedrive/HubSpot/Excel
-4. ~~**ListingPage connectée**~~ → ✅ FAIT (28 mars 2026)
-5. **PipelinePage connectée** — remplacer MOCK_DEALS par useTransactions() (garder le Kanban tel quel)
-6. **Matching externe enrichi** — scoring client_searches × market_listings (38K biens)
-7. **Matching interne connecté** — scoring client_searches × properties (mandats agence)
-8. **AI Copilot connecté au contexte CRM** (Sprint 5) — résumés, next-best-action
-9. **i18n pages agent** — ContactsPage, ContactDetailPage, Navbar (texte français hardcodé)
+1. **C2PA / MEGGA Shield** — intégration badge photos vérifiées (en attente API partenaire)
+2. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
+3. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
+4. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
+5. **Déployer Edge Functions** — extract-property-pdf + extract-property-url
+6. **Google Calendar** — configurer Google Cloud Console (mode Testing) + tester OAuth flow
+7. **Score Engine v2 — Location Intelligence** — données externes suisses
+8. ~~**ListingPage connectée**~~ → ✅ FAIT (28 mars 2026)
+9. **Briefing matinal IA** — résumé narratif quotidien des mouvements marché + actions prioritaires
 10. **Alertes push** — pg_cron quotidien : nouveaux biens vs saved_searches → email via send-email
 11. **Virtual staging IA** — Nano Banana 2 API (CHF 0.034/image batch) dans formulaire création bien
 12. **Calculateur fiscal cantonal** — impôt revenu + fortune + valeur locative par commune

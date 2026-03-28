@@ -104,3 +104,20 @@ export function useUpdateListing() {
     },
   })
 }
+
+export function useDeleteListing() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('listings')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listings'] })
+      queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
+    },
+  })
+}

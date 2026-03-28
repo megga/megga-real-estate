@@ -429,7 +429,6 @@
     "empty": "No applications in this category.",
     "google-calendar": { "name": "Google Calendar", "desc": "Visit and appointment sync" },
     "outlook-calendar": { "name": "Outlook Calendar", "desc": "Visit and appointment sync" },
-    "salesforce": { "name": "Salesforce", "desc": "Import contacts, accounts and opportunities" },
     "hubspot": { "name": "HubSpot", "desc": "Import contacts, companies and deals" },
     "pipedrive": { "name": "Pipedrive", "desc": "Import persons, organizations and deals" },
     "csv-import": { "name": "Import / Export", "desc": "Import data from CSV or Excel files" },

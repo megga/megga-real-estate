@@ -197,7 +197,7 @@ export default function ExternalListingDetailPage() {
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
             {photos.map((url, i) => (
               <button key={i} onClick={() => setPhotoIdx(i)} className={cn('shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-colors', i === photoIdx ? 'border-accent' : 'border-transparent opacity-60 hover:opacity-100')}>
-                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               </button>
             ))}
           </div>
