@@ -23,7 +23,7 @@ function saveFavorites(favorites: Set<string>) {
 }
 
 // Singleton state to share across components
-let globalFavorites = loadFavorites()
+const globalFavorites = loadFavorites()
 const listeners = new Set<() => void>()
 
 function notifyListeners() {
