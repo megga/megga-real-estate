@@ -31,7 +31,7 @@ export function useAgencyProperties() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('properties')
-        .select('*, listing:listings(*)')
+        .select('id, title, type, status, price, rooms, bedrooms, surface_m2, address, city, canton, postal_code, photos, created_at, updated_at, listing:listings(id, views_count, favorites_count, published_at)')
         .order('created_at', { ascending: false })
       if (error) throw error
       return data as (Property & { listing: Array<{ id: string; views_count: number; favorites_count: number; published_at: string }> })[]

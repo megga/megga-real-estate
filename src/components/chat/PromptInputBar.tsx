@@ -78,8 +78,8 @@ function AutocompleteDropdown({ items, selectedIndex, onSelect }: {
              <Building2 className="w-3.5 h-3.5" />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-medium text-theme-primary truncate">{item.label}</p>
-            <p className="text-[11px] text-theme-muted truncate">{item.sub}</p>
+            <p className="text-sm font-medium text-theme-primary truncate">{item.label}</p>
+            <p className="text-xs text-theme-muted truncate">{item.sub}</p>
           </div>
         </button>
       ))}
@@ -91,10 +91,10 @@ function AutocompleteDropdown({ items, selectedIndex, onSelect }: {
 
 function ContextPill({ label, onClear }: { label: string; onClear: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-md bg-theme-hover text-[11px] text-theme-secondary">
+    <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-md bg-theme-hover text-xs text-theme-secondary">
       <User className="w-3 h-3 text-theme-muted" />
       <span className="truncate max-w-[140px]">{label}</span>
-      <button onClick={onClear} className="h-4 w-4 rounded flex items-center justify-center hover:bg-theme-card transition-colors">
+      <button onClick={onClear} aria-label="Retirer le contexte" className="h-4 w-4 rounded flex items-center justify-center hover:bg-theme-card transition-colors">
         <X className="w-2.5 h-2.5 text-theme-muted" />
       </button>
     </span>
@@ -336,7 +336,7 @@ export default function PromptInputBar({
       <div
         className={cn(
           'rounded-2xl border border-theme-border bg-theme-card p-2 transition-colors',
-          'focus-within:border-accent/40',
+          'focus-within:border-accent/60',
           className
         )}
         onDragOver={(e) => e.preventDefault()}
@@ -358,13 +358,14 @@ export default function PromptInputBar({
                     <img src={filePreviews[file.name]} alt={file.name} className="h-full w-full object-cover" />
                   </div>
                 ) : (
-                  <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-md bg-theme-hover text-[11px] text-theme-secondary">
+                  <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-md bg-theme-hover text-xs text-theme-secondary">
                     <Paperclip className="h-3 w-3 text-theme-muted" />
                     <span className="truncate max-w-[100px]">{file.name}</span>
                   </span>
                 )}
                 <button
                   onClick={() => { setFiles([]); setFilePreviews({}) }}
+                  aria-label="Retirer le fichier"
                   className="absolute -top-1 -right-1 rounded-full bg-theme-card border border-theme-border p-0.5"
                 >
                   <X className="h-2.5 w-2.5 text-theme-muted" />
@@ -376,7 +377,7 @@ export default function PromptInputBar({
 
         {/* File size error */}
         {fileSizeError && (
-          <p className="text-[11px] text-red-500 px-2 pb-1">Fichier trop volumineux (max 10 Mo)</p>
+          <p className="text-xs text-red-500 px-2 pb-1">Fichier trop volumineux (max 10 Mo)</p>
         )}
 
         {/* Textarea */}
@@ -386,9 +387,10 @@ export default function PromptInputBar({
           onChange={(e) => { setInput(e.target.value); requestAnimationFrame(detectAutocomplete) }}
           onKeyDown={handleKeyDown}
           placeholder={activeContact ? `Demandez à propos de ${activeContact.firstName}...` : placeholder}
+          aria-label="Message"
           disabled={disabled || isLoading}
           rows={1}
-          className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none resize-none min-h-[36px] max-h-[200px] scrollbar-hide"
+          className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none resize-none min-h-[36px] max-h-[120px] md:max-h-[200px] scrollbar-hide"
         />
 
         {/* Actions bar */}
@@ -397,6 +399,7 @@ export default function PromptInputBar({
           <div className="flex items-center gap-1">
             <button
               onClick={() => fileInputRef.current?.click()}
+              aria-label="Joindre un fichier"
               className="h-7 w-7 rounded-full flex items-center justify-center text-theme-muted hover:text-theme-secondary hover:bg-theme-hover transition-colors"
             >
               <Paperclip className="h-4 w-4" />
@@ -424,6 +427,8 @@ export default function PromptInputBar({
             {/* Mic */}
             <button
               onClick={() => setIsRecording(p => !p)}
+              aria-label={isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrement vocal'}
+              aria-pressed={isRecording}
               className={cn(
                 'h-7 w-7 rounded-full flex items-center justify-center transition-colors',
                 isRecording ? 'text-red-500' : 'text-theme-muted hover:text-theme-secondary'
@@ -434,6 +439,7 @@ export default function PromptInputBar({
 
             {/* Send / Stop */}
             <button
+              aria-label="Envoyer"
               onClick={() => {
                 if (isLoading) return
                 if (hasContent) handleSubmit()

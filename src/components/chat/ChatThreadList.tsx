@@ -41,7 +41,7 @@ function ThreadAvatar({ initials, isActive }: {
 }) {
   return (
     <div className={cn(
-      'h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-semibold bg-theme-hover text-theme-secondary transition-all',
+      'h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold bg-theme-hover text-theme-secondary transition-all',
       isActive && 'ring-1.5 ring-theme-primary/30'
     )}>
       {initials}
@@ -91,6 +91,7 @@ export default function ChatThreadList({
         </div>
         <button
           onClick={onCompose}
+          aria-label="Nouveau message"
           className="h-8 w-8 rounded-lg bg-theme-card flex items-center justify-center text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
           title="Nouveau message"
         >
@@ -105,6 +106,7 @@ export default function ChatThreadList({
           <input
             type="text"
             placeholder="Rechercher..."
+            aria-label="Rechercher une conversation"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-9 pl-9 pr-3 bg-theme-card border border-theme-border rounded-lg text-sm text-theme-primary placeholder:text-theme-muted outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -113,7 +115,7 @@ export default function ChatThreadList({
       </div>
 
       {/* Filters */}
-      <div className="flex gap-1 px-5 pb-3 flex-shrink-0">
+      <div className="flex gap-1.5 px-5 pb-3 flex-shrink-0">
         {([
           { value: 'all' as FilterType, label: 'Tous' },
           { value: 'unread' as FilterType, label: 'Non lus' },
@@ -124,7 +126,7 @@ export default function ChatThreadList({
             key={f.value}
             onClick={() => setFilter(f.value)}
             className={cn(
-              'text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors',
+              'text-xs font-medium px-2.5 py-1.5 rounded-lg transition-colors',
               filter === f.value ? 'bg-theme-active text-theme-primary' : 'text-theme-muted hover:text-theme-secondary'
             )}
           >
@@ -137,7 +139,11 @@ export default function ChatThreadList({
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {/* MEGGA AI — pinned first */}
         <div
+          role="button"
+          tabIndex={0}
           onClick={() => onSelectThread(AI_THREAD_ID)}
+          onKeyDown={(e) => e.key === 'Enter' && onSelectThread(AI_THREAD_ID)}
+          aria-label="MEGGA AI"
           className={cn(
             'w-full text-left px-5 py-3 flex gap-3 transition-all cursor-pointer relative',
             isAiActive ? 'bg-theme-active' : 'hover:bg-theme-hover'
@@ -177,7 +183,11 @@ export default function ChatThreadList({
           return (
             <div
               key={thread.id}
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectThread(thread.id)}
+              onKeyDown={(e) => e.key === 'Enter' && onSelectThread(thread.id)}
+              aria-label={`Conversation avec ${thread.contact_name}`}
               className={cn(
                 'w-full text-left px-5 py-3 flex gap-3 transition-all cursor-pointer group relative',
                 isActive ? 'bg-theme-active' : 'hover:bg-theme-hover'
@@ -225,6 +235,7 @@ export default function ChatThreadList({
               {/* Archive button on hover */}
               <button
                 onClick={(e) => { e.stopPropagation(); onArchive(thread.id) }}
+                aria-label={archivedThreadIds.has(thread.id) ? 'Désarchiver' : 'Archiver'}
                 className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-theme-section transition-all self-center shrink-0"
                 title={archivedThreadIds.has(thread.id) ? 'Désarchiver' : 'Archiver'}
               >

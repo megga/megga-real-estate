@@ -47,7 +47,7 @@ function saveHistory(messages: CopilotMessage[]) {
 
 const messageVariants: Variants = {
   hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
 }
 
 const staggerContainer: Variants = {
@@ -57,7 +57,7 @@ const staggerContainer: Variants = {
 
 const welcomeItem: Variants = {
   hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
 }
 
 // ─── AI Chat Pane ───────────────────────────────────────────────────────────
@@ -194,15 +194,15 @@ export default function AiChatPane({ pendingPrompt, onPromptConsumed }: { pendin
             <div>
               <h3 className="text-sm font-semibold text-theme-primary">MEGGA AI</h3>
               {contactMemory?.contact ? (
-                <p className="text-[11px] text-accent truncate max-w-[300px]">{getContextSummary(contactMemory)}</p>
+                <p className="text-xs text-accent truncate max-w-[300px]">{getContextSummary(contactMemory)}</p>
               ) : activeContact ? (
-                <p className="text-[11px] text-accent">Contexte : {activeContact.firstName} {activeContact.lastName}</p>
+                <p className="text-xs text-accent">Contexte : {activeContact.firstName} {activeContact.lastName}</p>
               ) : (
-                <p className="text-[11px] text-theme-tertiary">Votre assistant intelligent</p>
+                <p className="text-xs text-theme-tertiary">Votre assistant intelligent</p>
               )}
             </div>
           </div>
-          <button onClick={handleReset} className="w-8 h-8 rounded-lg hover:bg-theme-hover flex items-center justify-center transition-colors" title="Nouvelle conversation">
+          <button onClick={handleReset} aria-label="Nouvelle conversation" className="w-8 h-8 rounded-lg hover:bg-theme-hover flex items-center justify-center transition-colors" title="Nouvelle conversation">
             <RotateCcw className="w-3.5 h-3.5 text-theme-tertiary" />
           </button>
         </motion.div>
@@ -222,15 +222,15 @@ export default function AiChatPane({ pendingPrompt, onPromptConsumed }: { pendin
               className="flex flex-col items-center justify-center h-full px-6"
             >
               {/* Greeting */}
-              <motion.h1 variants={welcomeItem} className="text-[22px] font-semibold text-theme-primary text-center tracking-tight">
+              <motion.h1 variants={welcomeItem} className="text-xl md:text-[22px] font-semibold text-theme-primary text-center tracking-tight">
                 Bonjour {firstName}
               </motion.h1>
-              <motion.p variants={welcomeItem} className="text-[13px] text-theme-muted mt-1.5 text-center max-w-sm leading-relaxed">
+              <motion.p variants={welcomeItem} className="text-sm text-theme-muted mt-1.5 text-center max-w-sm leading-relaxed">
                 Je suis MEGGA AI, votre copilote immobilier. Clients, biens, conformité, marché suisse. Je suis là pour vous accompagner.
               </motion.p>
 
               {/* Suggestion cards */}
-              <motion.div variants={welcomeItem} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-7 w-full max-w-lg">
+              <motion.div variants={welcomeItem} className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 mt-6 w-full max-w-sm sm:max-w-lg">
                 {suggestions.map((s, i) => (
                   <motion.button
                     key={i}
@@ -241,8 +241,8 @@ export default function AiChatPane({ pendingPrompt, onPromptConsumed }: { pendin
                   >
                     <s.icon className="w-4 h-4 text-theme-muted mt-0.5 flex-shrink-0 group-hover:text-theme-secondary transition-colors" />
                     <div className="min-w-0">
-                      <p className="text-[13px] font-medium text-theme-primary leading-tight">{s.label}</p>
-                      <p className="text-[11px] text-theme-muted mt-0.5 leading-tight">{s.desc}</p>
+                      <p className="text-sm font-medium text-theme-primary leading-tight">{s.label}</p>
+                      <p className="text-xs text-theme-muted mt-0.5 leading-tight">{s.desc}</p>
                     </div>
                   </motion.button>
                 ))}
@@ -280,7 +280,7 @@ export default function AiChatPane({ pendingPrompt, onPromptConsumed }: { pendin
                     </div>
                   ) : (
                     <div className="flex justify-end">
-                      <div className="bg-accent text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm max-w-[80%]">
+                      <div className="bg-accent text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-sm max-w-[90%] sm:max-w-[80%] md:max-w-[70%]">
                         {msg.content}
                       </div>
                     </div>
@@ -301,7 +301,7 @@ export default function AiChatPane({ pendingPrompt, onPromptConsumed }: { pendin
                           <MessageContent content={streamingContent} />
                           <motion.span
                             animate={{ opacity: [1, 0] }}
-                            transition={{ duration: 0.8, repeat: Infinity }}
+                            transition={{ duration: 0.5, repeat: Infinity }}
                             className="inline-block w-0.5 h-4 bg-accent ml-0.5 align-middle"
                           />
                         </>

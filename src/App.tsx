@@ -28,6 +28,7 @@ const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 // Lazy-loaded agent pages (except ActionBoardPage which is static)
 const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
 const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
+const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
 const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
@@ -70,6 +71,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5,
       retry: 1,
+      refetchOnWindowFocus: false,
     },
   },
 })
@@ -133,6 +135,7 @@ export default function App() {
                 <Route index element={<ActionBoardPage />} />
                 <Route path="analytics" element={<DashboardPage />} />
                 <Route path="contacts" element={<ContactsPage />} />
+                <Route path="contacts/import" element={<ContactImportPage />} />
                 <Route path="contacts/:id" element={<ContactDetailPage />} />
                 <Route path="pipeline" element={<PipelinePage />} />
                 <Route path="matching" element={<MatchingPage />} />
