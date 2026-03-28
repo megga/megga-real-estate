@@ -24,6 +24,18 @@ export interface CantonTaxInfo {
 // Facteur de conversion prix marché → valeur fiscale estimée (70%)
 export const FISCAL_VALUE_FACTOR = 0.70
 
+// Sources croisées :
+// - ESTV 2024 : https://www.estv2.admin.ch/stp/ds/d-liegenschaftssteuer-fr.pdf
+// - immoverkauf24 : https://immoverkauf24.ch/immobilienverkauf/immobilienverkauf-a-z/liegenschaftssteuer/
+// - Crowdhouse : https://crowdhouse.com/ch/blog/immobiliensteuern-schweiz/
+// - HEV Schweiz : https://www.hev-schweiz.ch/eigentum/steuern-abgaben/liegenschaftssteuer
+//
+// Classification :
+// - 7 cantons SANS impôt foncier : ZH, SZ, GL, ZG, SO, BL, AG
+// - 6 cantons avec impôt MINIMAL (Minimalsteuer) : AR, BS, LU, NW, OW, SH
+//   → S'applique uniquement si > impôt revenu/fortune. On affiche le taux quand même.
+// - 13 cantons avec impôt foncier standard : AI, BE, FR, GE, GR, JU, NE, SG, TG, TI, UR, VD, VS
+
 export const CANTONAL_TAX_RATES: Record<string, CantonTaxInfo> = {
   ZH: {
     canton: 'ZH', name: 'Zürich', nameDe: 'Zürich',
@@ -34,19 +46,19 @@ export const CANTONAL_TAX_RATES: Record<string, CantonTaxInfo> = {
   BE: {
     canton: 'BE', name: 'Berne', nameDe: 'Bern',
     hasPropertyTax: true, ratePerMille: 1.5, level: 'communal',
-    notes: 'Optionnel, fixé par les communes. Taux moyen 1.0-2.0‰.',
+    notes: 'Facultatif, fixé par les communes. Taux max. 1.5‰.',
     energyLabelSystem: 'both',
   },
   LU: {
     canton: 'LU', name: 'Lucerne', nameDe: 'Luzern',
-    hasPropertyTax: true, ratePerMille: 0.5, level: 'communal',
-    notes: 'Taux communal variable, généralement 0.3-0.8‰.',
+    hasPropertyTax: true, ratePerMille: 0.5, level: 'cantonal',
+    notes: 'Impôt minimal (Minimalsteuer) de 0.5‰. S\'applique si > impôt revenu/fortune.',
     energyLabelSystem: 'CECB',
   },
   UR: {
     canton: 'UR', name: 'Uri', nameDe: 'Uri',
     hasPropertyTax: true, ratePerMille: 1.0, level: 'communal',
-    notes: 'Taux communal, généralement autour de 1.0‰.',
+    notes: 'Impôt minimal (Minimalsteuer). Taux communal variable.',
     energyLabelSystem: 'CECB',
   },
   SZ: {
@@ -57,14 +69,14 @@ export const CANTONAL_TAX_RATES: Record<string, CantonTaxInfo> = {
   },
   OW: {
     canton: 'OW', name: 'Obwald', nameDe: 'Obwalden',
-    hasPropertyTax: true, ratePerMille: 1.0, level: 'communal',
-    notes: 'Taux communal variable.',
+    hasPropertyTax: true, ratePerMille: 0.5, level: 'communal',
+    notes: 'Impôt minimal (Minimalsteuer). S\'applique si > impôt revenu/fortune.',
     energyLabelSystem: 'CECB',
   },
   NW: {
     canton: 'NW', name: 'Nidwald', nameDe: 'Nidwalden',
     hasPropertyTax: true, ratePerMille: 0.5, level: 'communal',
-    notes: 'Taux communal faible.',
+    notes: 'Impôt minimal (Minimalsteuer). Taux faible.',
     energyLabelSystem: 'CECB',
   },
   GL: {
@@ -81,8 +93,8 @@ export const CANTONAL_TAX_RATES: Record<string, CantonTaxInfo> = {
   },
   FR: {
     canton: 'FR', name: 'Fribourg', nameDe: 'Freiburg',
-    hasPropertyTax: true, ratePerMille: 1.5, level: 'communal',
-    notes: 'Optionnel, fixé par les communes. Taux moyen 1.0-2.0‰.',
+    hasPropertyTax: true, ratePerMille: 3.0, level: 'communal',
+    notes: 'Facultatif, fixé par les communes. Taux max. 3.0‰.',
     energyLabelSystem: 'both',
   },
   SO: {
@@ -94,7 +106,7 @@ export const CANTONAL_TAX_RATES: Record<string, CantonTaxInfo> = {
   BS: {
     canton: 'BS', name: 'Bâle-Ville', nameDe: 'Basel-Stadt',
     hasPropertyTax: true, ratePerMille: 0.8, level: 'cantonal',
-    notes: 'Taux cantonal fixe.',
+    notes: 'Impôt minimal (Minimalsteuer). Taux cantonal 0.8‰.',
     energyLabelSystem: 'both',
   },
   BL: {
@@ -105,32 +117,32 @@ export const CANTONAL_TAX_RATES: Record<string, CantonTaxInfo> = {
   },
   SH: {
     canton: 'SH', name: 'Schaffhouse', nameDe: 'Schaffhausen',
-    hasPropertyTax: true, ratePerMille: 1.0, level: 'communal',
-    notes: 'Taux communal variable.',
+    hasPropertyTax: true, ratePerMille: 0.8, level: 'communal',
+    notes: 'Impôt minimal (Minimalsteuer). Taux communal variable.',
     energyLabelSystem: 'CECB',
   },
   AR: {
     canton: 'AR', name: 'Appenzell Rh.-Ext.', nameDe: 'Appenzell Ausserrhoden',
-    hasPropertyTax: true, ratePerMille: 1.0, level: 'communal',
-    notes: 'Taux communal variable.',
+    hasPropertyTax: true, ratePerMille: 0.8, level: 'communal',
+    notes: 'Impôt minimal (Minimalsteuer). Taux communal variable.',
     energyLabelSystem: 'CECB',
   },
   AI: {
     canton: 'AI', name: 'Appenzell Rh.-Int.', nameDe: 'Appenzell Innerrhoden',
-    hasPropertyTax: true, ratePerMille: 1.0, level: 'cantonal',
-    notes: 'Taux cantonal fixe de 1.0‰.',
+    hasPropertyTax: true, ratePerMille: 1.0, level: 'communal',
+    notes: 'Facultatif pour les communes. Taux max. 1.0‰.',
     energyLabelSystem: 'CECB',
   },
   SG: {
     canton: 'SG', name: 'Saint-Gall', nameDe: 'St. Gallen',
-    hasPropertyTax: true, ratePerMille: 1.0, level: 'communal',
-    notes: 'Taux communal, généralement 0.5-1.5‰.',
+    hasPropertyTax: true, ratePerMille: 0.5, level: 'cantonal',
+    notes: 'Obligatoire. Taux cantonal 0.2-0.8‰ selon commune.',
     energyLabelSystem: 'CECB',
   },
   GR: {
     canton: 'GR', name: 'Grisons', nameDe: 'Graubünden',
-    hasPropertyTax: true, ratePerMille: 1.0, level: 'communal',
-    notes: 'Optionnel, fixé par les communes. Taux moyen 0.5-1.5‰.',
+    hasPropertyTax: true, ratePerMille: 1.5, level: 'communal',
+    notes: 'Facultatif, fixé par les communes. Taux max. 2.0‰.',
     energyLabelSystem: 'CECB',
   },
   AG: {
@@ -141,44 +153,44 @@ export const CANTONAL_TAX_RATES: Record<string, CantonTaxInfo> = {
   },
   TG: {
     canton: 'TG', name: 'Thurgovie', nameDe: 'Thurgau',
-    hasPropertyTax: true, ratePerMille: 2.0, level: 'cantonal',
-    notes: 'Taux cantonal de 2.0‰ sur la valeur fiscale.',
+    hasPropertyTax: true, ratePerMille: 0.5, level: 'cantonal',
+    notes: 'Obligatoire. Taux cantonal fixe de 0.5‰.',
     energyLabelSystem: 'CECB',
   },
   TI: {
     canton: 'TI', name: 'Tessin', nameDe: 'Ticino',
-    hasPropertyTax: true, ratePerMille: 2.0, level: 'communal',
-    notes: 'Taux communal, généralement 1.5-2.5‰.',
+    hasPropertyTax: true, ratePerMille: 2.0, level: 'cantonal',
+    notes: 'Taux cantonal 2.0‰ + option communale 1.0‰.',
     energyLabelSystem: 'both',
   },
   VD: {
     canton: 'VD', name: 'Vaud', nameDe: 'Waadt',
-    hasPropertyTax: true, ratePerMille: 1.5, level: 'cantonal',
-    notes: 'Taux cantonal de 1.5‰ de la valeur fiscale.',
+    hasPropertyTax: true, ratePerMille: 1.0, level: 'cantonal',
+    notes: 'Taux cantonal 1.0‰. Communes peuvent ajouter max. 1.5‰.',
     energyLabelSystem: 'both',
   },
   VS: {
     canton: 'VS', name: 'Valais', nameDe: 'Wallis',
-    hasPropertyTax: true, ratePerMille: 2.0, level: 'communal',
-    notes: 'Taux communal, généralement 1.5-3.0‰.',
+    hasPropertyTax: true, ratePerMille: 1.0, level: 'communal',
+    notes: 'Obligatoire. Taux communal 0.8-1.25‰.',
     energyLabelSystem: 'both',
   },
   NE: {
     canton: 'NE', name: 'Neuchâtel', nameDe: 'Neuenburg',
-    hasPropertyTax: true, ratePerMille: 1.5, level: 'communal',
-    notes: 'Taux communal variable, environ 1.0-2.0‰.',
+    hasPropertyTax: true, ratePerMille: 2.4, level: 'cantonal',
+    notes: 'Taux cantonal 2.4‰. Communes peuvent ajouter max. 1.6‰.',
     energyLabelSystem: 'CECB',
   },
   GE: {
     canton: 'GE', name: 'Genève', nameDe: 'Genf',
     hasPropertyTax: true, ratePerMille: 1.0, level: 'cantonal',
-    notes: 'Taux cantonal de 1.0‰. Centimes additionnels communaux possibles.',
+    notes: 'Taux cantonal 1.0-2.0‰. Centimes additionnels communaux possibles.',
     energyLabelSystem: 'both',
   },
   JU: {
     canton: 'JU', name: 'Jura', nameDe: 'Jura',
-    hasPropertyTax: true, ratePerMille: 1.5, level: 'cantonal',
-    notes: 'Taux cantonal de 1.5‰.',
+    hasPropertyTax: true, ratePerMille: 1.0, level: 'cantonal',
+    notes: 'Taux cantonal 0.5-1.5‰ selon commune.',
     energyLabelSystem: 'CECB',
   },
 }
