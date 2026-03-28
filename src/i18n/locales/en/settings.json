@@ -325,6 +325,9 @@
       "apiIntegrations": "API & integrations",
       "customBranding": "Custom branding",
       "dataExport": "Data export",
+      "staging": "MEGGA Staging (AI virtual staging)",
+      "staging50": "MEGGA Staging — 50 images/month",
+      "staging200": "MEGGA Staging — 200 images/month",
       "support247": "Priority support 24/7"
     },
     "custom": {

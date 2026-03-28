@@ -64,6 +64,7 @@ interface TransformedListing {
   has_outdoor: boolean
   energy_label: string
   minergie_label: string
+  staged_photos: string[]
 }
 
 // ─── Transform helpers ──────────────────────────────────────────────────
@@ -102,6 +103,7 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     has_outdoor: !!data.has_outdoor,
     energy_label: (data.energy_label as string) || '',
     minergie_label: (data.minergie_label as string) || '',
+    staged_photos: (data.staged_photos as string[]) || [],
   }
 }
 
@@ -443,6 +445,7 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showStaged, setShowStaged] = useState(false)
   const mobileCarouselRef = useRef<HTMLDivElement>(null)
 
   const rawId = listingId?.replace('market-', '').replace('internal-', '')
@@ -531,7 +534,10 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
 
   if (!listingId) return null
 
-  const photos = listing?.photos || []
+  const originalPhotos = listing?.photos || []
+  const stagedPhotos = listing?.staged_photos || []
+  const hasStagedPhotos = stagedPhotos.length > 0
+  const photos = showStaged && hasStagedPhotos ? stagedPhotos : originalPhotos
   const features = listing?.features || []
   const photoCount = photos.length
   const pricePerM2 = listing ? (listing.price_per_m2 > 0 ? listing.price_per_m2 : (listing.surface_m2 > 0 ? Math.round(listing.price / listing.surface_m2) : 0)) : 0
@@ -623,6 +629,27 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         >
                           <ChevronRight className="h-5 w-5 text-gray-800" />
                         </button>
+                      )}
+                      {/* MEGGA Staging toggle */}
+                      {hasStagedPhotos && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setShowStaged(!showStaged) }}
+                          className={cn(
+                            'absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition-colors z-10',
+                            showStaged
+                              ? 'bg-accent/90 text-white'
+                              : 'bg-white/90 text-gray-700 hover:bg-white'
+                          )}
+                        >
+                          <span className="text-sm">✨</span>
+                          {showStaged ? 'Voir original' : 'Voir meublé'}
+                        </button>
+                      )}
+                      {/* Staged badge */}
+                      {showStaged && hasStagedPhotos && (
+                        <div className="absolute top-4 left-4 bg-accent/80 text-white text-[10px] font-semibold px-2 py-0.5 rounded z-10">
+                          MEGGA Staging
+                        </div>
                       )}
                     </div>
 

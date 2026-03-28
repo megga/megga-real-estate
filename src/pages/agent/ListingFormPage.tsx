@@ -4,7 +4,7 @@ import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 import {
   ArrowLeft, ArrowRight, Check, Save, Send,
-  Upload, X, GripVertical, Loader2,
+  Upload, X, GripVertical, Loader2, ChevronDown,
   Minus, Plus, MapPin, PenLine, Copy, Link2, FileText,
   Building2, Home as HomeIcon, Castle, Store, Mountain,
 } from 'lucide-react'
@@ -28,6 +28,7 @@ import { useExtractPropertyPdf, type ExtractedPropertyData } from '@/hooks/useEx
 import { useExtractPropertyUrl } from '@/hooks/useExtractPropertyUrl'
 import { useCreateListing } from '@/hooks/useListings'
 import { useAuth } from '@/hooks/useAuth'
+import { useVirtualStaging, STAGING_STYLES, ROOM_TYPES, type StagingStyle, type RoomType } from '@/hooks/useVirtualStaging'
 
 // ─── Zod schemas per step ───
 
@@ -1028,6 +1029,177 @@ function Step4({ form, pendingFiles, setPendingFiles }: {
             </div>
           </SortableContext>
         </DndContext>
+      )}
+
+      {/* MEGGA Staging — Virtual Staging IA */}
+      {allPhotos.length > 0 && <StagingSection photos={allPhotos} propertyId="draft" onStagedPhoto={(url) => {
+        const currentPhotos = form.getValues('photos') || []
+        form.setValue('photos', [...currentPhotos, url])
+      }} />}
+    </div>
+  )
+}
+
+// ─── MEGGA Staging Section ───
+
+function StagingSection({ photos, propertyId, onStagedPhoto }: {
+  photos: string[]
+  propertyId: string
+  onStagedPhoto: (url: string) => void
+}) {
+  const { generateStaging, isGenerating, error, result, reset } = useVirtualStaging()
+  const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null)
+  const [style, setStyle] = useState<StagingStyle>('modern')
+  const [roomType, setRoomType] = useState<RoomType>('salon')
+  const [isOpen, setIsOpen] = useState(false)
+
+  async function handleGenerate() {
+    if (selectedPhoto === null) return
+    const photoUrl = photos[selectedPhoto]
+    if (!photoUrl) return
+
+    const res = await generateStaging(photoUrl, propertyId, style, roomType)
+    if (res?.staged_url) {
+      onStagedPhoto(res.staged_url)
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-xl border border-theme-border overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 hover:bg-theme-hover transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+            <span className="text-sm">✨</span>
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-theme-primary">MEGGA Staging</p>
+            <p className="text-xs text-theme-tertiary">Meublez vos pièces vides avec l'IA</p>
+          </div>
+        </div>
+        <ChevronDown className={cn('w-4 h-4 text-theme-muted transition-transform', isOpen && 'rotate-180')} />
+      </button>
+
+      {isOpen && (
+        <div className="px-4 pb-4 space-y-4 border-t border-theme-border pt-4">
+          {/* Photo selection */}
+          <div>
+            <p className="text-xs font-medium text-theme-secondary mb-2">Sélectionnez une photo à meubler</p>
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+              {photos.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setSelectedPhoto(i); reset() }}
+                  className={cn(
+                    'w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all',
+                    selectedPhoto === i ? 'border-accent' : 'border-transparent opacity-60 hover:opacity-90'
+                  )}
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {selectedPhoto !== null && (
+            <>
+              {/* Style selection */}
+              <div>
+                <p className="text-xs font-medium text-theme-secondary mb-2">Style</p>
+                <div className="flex flex-wrap gap-2">
+                  {STAGING_STYLES.map((s) => (
+                    <button
+                      key={s.value}
+                      onClick={() => setStyle(s.value)}
+                      className={cn(
+                        'h-8 px-3 rounded-lg text-xs font-medium transition-colors',
+                        style === s.value
+                          ? 'bg-theme-active text-theme-primary'
+                          : 'text-theme-secondary hover:text-theme-primary'
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Room type */}
+              <div>
+                <p className="text-xs font-medium text-theme-secondary mb-2">Type de pièce</p>
+                <div className="flex flex-wrap gap-2">
+                  {ROOM_TYPES.map((r) => (
+                    <button
+                      key={r.value}
+                      onClick={() => setRoomType(r.value)}
+                      className={cn(
+                        'h-8 px-3 rounded-lg text-xs font-medium transition-colors',
+                        roomType === r.value
+                          ? 'bg-theme-active text-theme-primary'
+                          : 'text-theme-secondary hover:text-theme-primary'
+                      )}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Generate button */}
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="w-full h-10 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Génération en cours...
+                  </>
+                ) : (
+                  'Générer la version meublée'
+                )}
+              </button>
+
+              {/* Error */}
+              {error && (
+                <p className="text-xs text-red-500">
+                  {error.error}
+                  {error.upgrade_required && ' — Passez au plan Pro pour débloquer.'}
+                </p>
+              )}
+
+              {/* Result preview */}
+              {result && (
+                <div className="rounded-lg border border-theme-border overflow-hidden">
+                  <div className="grid grid-cols-2 gap-px bg-theme-border">
+                    <div className="relative bg-theme-card">
+                      <img src={photos[selectedPhoto]} alt="Original" className="w-full aspect-[4/3] object-cover" />
+                      <span className="absolute bottom-2 left-2 text-[10px] font-medium bg-black/50 text-white px-2 py-0.5 rounded">Original</span>
+                    </div>
+                    <div className="relative bg-theme-card">
+                      <img src={result.staged_url} alt="Meublé" className="w-full aspect-[4/3] object-cover" />
+                      <span className="absolute bottom-2 left-2 text-[10px] font-medium bg-accent/80 text-white px-2 py-0.5 rounded">MEGGA Staging</span>
+                    </div>
+                  </div>
+                  <div className="p-3 flex items-center justify-between">
+                    <span className="text-xs text-theme-muted">
+                      {result.usage.remaining} images restantes ce mois
+                    </span>
+                    <button
+                      onClick={() => { reset(); setSelectedPhoto(null) }}
+                      className="text-xs text-accent hover:underline"
+                    >
+                      Meubler une autre photo
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   )
