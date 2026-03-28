@@ -3,11 +3,10 @@ import { Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
   X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  MapPin, BedDouble, Bath, Maximize2, Heart, Share2,
-  Phone, CalendarDays, Building2, Home,
+  MapPin, Maximize2, Heart, Share2,
+  Phone, CalendarDays, Building2, Home, Calendar, Eye,
   Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check,
-  LayoutGrid,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
@@ -1029,75 +1028,81 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                     )}
 
                     {/* Price */}
-                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
                       {formatCHF(listing.price)}
-                      {pricePerM2 > 0 && (
-                        <span className="text-sm text-gray-400 font-normal ml-2">
-                          {formatCHF(pricePerM2)}/m²
-                        </span>
-                      )}
                     </h2>
 
-                    {/* Specs inline with icons */}
-                    <div className="flex flex-wrap items-center gap-4 mt-2 text-gray-600 text-sm">
-                      {listing.rooms > 0 && (
-                        <span className="flex items-center gap-1.5">
-                          <LayoutGrid className="w-4 h-4 text-gray-400" />
-                          {listing.rooms} pièces
-                        </span>
-                      )}
-                      {listing.bedrooms > 0 && (
-                        <>
-                          <span className="w-1 h-1 rounded-full bg-gray-300" />
-                          <span className="flex items-center gap-1.5">
-                            <BedDouble className="w-4 h-4 text-gray-400" />
-                            {listing.bedrooms} chambres
-                          </span>
-                        </>
-                      )}
-                      {listing.bathrooms > 0 && (
-                        <>
-                          <span className="w-1 h-1 rounded-full bg-gray-300" />
-                          <span className="flex items-center gap-1.5">
-                            <Bath className="w-4 h-4 text-gray-400" />
-                            {listing.bathrooms} sdb
-                          </span>
-                        </>
-                      )}
-                      {listing.surface_m2 > 0 && (
-                        <>
-                          <span className="w-1 h-1 rounded-full bg-gray-300" />
-                          <span className="flex items-center gap-1.5">
-                            <Maximize2 className="w-4 h-4 text-gray-400" />
-                            {formatSurface(listing.surface_m2)}
-                          </span>
-                        </>
-                      )}
-                    </div>
-
                     {/* Address */}
-                    <p className="flex items-center gap-1.5 mt-2 text-gray-500 text-sm">
-                      <MapPin className="w-4 h-4 text-gray-400" />
+                    <p className="flex items-center gap-1.5 mt-1.5 text-gray-500 text-base">
+                      <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       {listing.address}, {listing.postal_code} {listing.city} ({listing.canton})
                     </p>
 
-                    {/* Type + floor badges */}
-                    <div className="flex items-center gap-2 mt-3">
+                    {/* Specs grid cards — Zillow style */}
+                    <div className="grid grid-cols-4 gap-3 mt-5 py-5 border-y border-gray-100">
+                      {listing.rooms > 0 && (
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-gray-900">{listing.rooms}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">pièces</p>
+                        </div>
+                      )}
+                      {listing.bedrooms > 0 && (
+                        <div className="text-center border-l border-gray-100">
+                          <p className="text-2xl font-bold text-gray-900">{listing.bedrooms}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">chambres</p>
+                        </div>
+                      )}
+                      {listing.bathrooms > 0 && (
+                        <div className="text-center border-l border-gray-100">
+                          <p className="text-2xl font-bold text-gray-900">{listing.bathrooms}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">sdb</p>
+                        </div>
+                      )}
+                      {listing.surface_m2 > 0 && (
+                        <div className="text-center border-l border-gray-100">
+                          <p className="text-2xl font-bold text-gray-900">{listing.surface_m2.toLocaleString('fr-CH')}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">m²</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Property details grid — type, year, price/m², floor */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                       {listing.type && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium">
-                          <Home className="w-3.5 h-3.5" />
-                          {TYPE_LABELS[listing.type] || listing.type}
-                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <Home className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-700">{TYPE_LABELS[listing.type] || listing.type}</span>
+                        </div>
+                      )}
+                      {listing.year_built > 0 && (
+                        <div className="flex items-center gap-2.5">
+                          <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-700">Construit en {listing.year_built}</span>
+                        </div>
+                      )}
+                      {pricePerM2 > 0 && (
+                        <div className="flex items-center gap-2.5">
+                          <Maximize2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-700">{formatCHF(pricePerM2)}/m²</span>
+                        </div>
                       )}
                       {listing.floor > 0 && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium">
-                          {listing.floor}e étage
-                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-700">{listing.floor}e étage</span>
+                        </div>
                       )}
                       {listing.condition && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium">
-                          {CONDITION_LABELS[listing.condition] || listing.condition}
-                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <Eye className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-700">{CONDITION_LABELS[listing.condition] || listing.condition}</span>
+                        </div>
+                      )}
+                      {listing.charges_monthly > 0 && (
+                        <div className="flex items-center gap-2.5">
+                          <Receipt className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-700">{formatCHF(listing.charges_monthly)}/mois</span>
+                        </div>
                       )}
                     </div>
 
