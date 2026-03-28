@@ -1043,27 +1043,6 @@ export default function SearchPage() {
       <div className="sticky top-16 z-40 bg-white border-b border-gray-100">
         <div className="max-w-[1800px] mx-auto px-4 md:px-6 py-2.5">
           <div className="flex items-center gap-3">
-            {/* Context tabs */}
-            <div className="hidden sm:flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => updateFilter({ context: 'buy' })}
-                className={cn(
-                  'px-4 py-1.5 text-sm rounded-full font-medium transition-colors cursor-pointer',
-                  filters.context === 'buy'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-500 hover:bg-gray-100'
-                )}
-              >
-                Acheter
-              </button>
-              <button
-                onClick={() => window.location.href = '/vendre'}
-                className="px-4 py-1.5 text-sm rounded-full font-medium transition-colors cursor-pointer text-gray-500 hover:bg-gray-100"
-              >
-                Vendre
-              </button>
-            </div>
-
             {/* Search bar with IA integration */}
             <form onSubmit={handleSearch} className="flex items-center gap-2.5 bg-white rounded-full px-3 py-1.5 border border-gray-200 shadow-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/20 transition-all max-w-md w-full">
               <Sparkles className="h-4 w-4 text-accent/60 shrink-0" />
@@ -1292,12 +1271,6 @@ export default function SearchPage() {
 
           {/* Mobile: filter button */}
           <div className="md:hidden px-4 py-3 border-b border-gray-100 flex items-center gap-3">
-            <button
-              onClick={() => {/* MEGGA = achat uniquement */}}
-              className="px-3 py-1.5 text-sm rounded-full bg-gray-900 text-white font-medium cursor-pointer"
-            >
-              Acheter
-            </button>
             <button
               onClick={() => setShowMobileFilters(!showMobileFilters)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border border-gray-200 text-gray-700 cursor-pointer"
