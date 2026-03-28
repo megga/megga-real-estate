@@ -5,7 +5,7 @@ import {
   X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   MapPin, BedDouble, Bath, Maximize2, Heart, Share2,
   Phone, CalendarDays, Building2, Home,
-  Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse,
+  Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check,
   LayoutGrid,
 } from 'lucide-react'
@@ -428,6 +428,178 @@ function VisitDatePicker({ onCancel }: { onCancel: () => void }) {
         </button>
         <button className="flex-1 h-10 text-sm font-semibold bg-accent text-white rounded-xl hover:bg-accent/90 transition-colors">
           Confirmer
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Ask MEGGA AI — inline chat contextuel ──────────────────────────────
+
+const AI_SUGGESTIONS = [
+  { label: 'Bon prix ?', prompt: 'Est-ce que ce bien est à un bon prix par rapport au marché ?' },
+  { label: 'Risques ?', prompt: 'Quels sont les risques potentiels de ce bien ?' },
+  { label: 'Négociation', prompt: 'Comment négocier le prix de ce bien ? Quelle offre serait raisonnable ?' },
+  { label: 'Frais à prévoir', prompt: 'Quels sont tous les frais à prévoir en plus du prix d\'achat ?' },
+]
+
+function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt }: {
+  listing: TransformedListing
+  walkScore: { score: number; label: string } | null
+  marketTemp: { score: number; label: string; avgDaysOnMarket: number; priceDropPct: number; medianPricePerM2: number } | null
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+  // Build context string from listing data
+  const context = [
+    `Bien : ${listing.title}`,
+    `Prix : ${formatCHF(listing.price)}`,
+    listing.surface_m2 > 0 ? `Surface : ${listing.surface_m2} m²` : '',
+    listing.price > 0 && listing.surface_m2 > 0 ? `Prix/m² : ${formatCHF(Math.round(listing.price / listing.surface_m2))}` : '',
+    `Type : ${TYPE_LABELS[listing.type] || listing.type}, ${listing.rooms} pièces, ${listing.bedrooms} chambres`,
+    `Adresse : ${listing.address}, ${listing.postal_code} ${listing.city} (${listing.canton})`,
+    listing.floor > 0 ? `Étage : ${listing.floor}e` : '',
+    listing.condition ? `État : ${CONDITION_LABELS[listing.condition] || listing.condition}` : '',
+    listing.charges_monthly > 0 ? `Charges : ${formatCHF(listing.charges_monthly)}/mois` : '',
+    listing.days_on_market > 0 ? `En ligne depuis : ${listing.days_on_market} jours` : '',
+    listing.is_hot ? 'Le prix a été réduit récemment' : '',
+    ws ? `Walk Score : ${ws.score}/100 (${ws.label})` : '',
+    mt ? `Température marché ${listing.canton} : ${mt.score}/100 (${mt.label}), médiane ${formatCHF(mt.medianPricePerM2)}/m², ${mt.priceDropPct}% de baisses` : '',
+    listing.features.length > 0 ? `Points forts : ${listing.features.join(', ')}` : '',
+    listing.description ? `Description : ${listing.description.slice(0, 300)}` : '',
+  ].filter(Boolean).join('\n')
+
+  async function sendMessage(text: string) {
+    if (!text.trim() || isLoading) return
+
+    const userMsg = { role: 'user' as const, content: text }
+    setMessages(prev => [...prev, userMsg])
+    setInput('')
+    setIsLoading(true)
+
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/ai-copilot`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          action: 'chat',
+          message: text,
+          context: {
+            system_context: `Tu es l'assistant immobilier MEGGA. Un acheteur te pose une question sur un bien spécifique. Voici les données du bien :\n\n${context}\n\nRéponds de manière concise (max 150 mots), factuelle et utile. Utilise les données fournies. Format : texte simple, pas de markdown. Langue : français.`,
+          },
+          conversation_history: messages.slice(-6),
+        }),
+      })
+
+      if (!res.ok) throw new Error('Erreur API')
+      const data = await res.json()
+      const reply = (data.response || data.message || 'Désolé, je n\'ai pas pu répondre.') as string
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur de connexion. Réessayez.' }])
+    } finally {
+      setIsLoading(false)
+    }
+
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  }
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+      >
+        <Sparkles className="w-4 h-4" />
+        Poser une question sur ce bien
+      </button>
+    )
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-accent" />
+          <span className="text-xs font-semibold text-gray-700">MEGGA AI</span>
+        </div>
+        <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-600">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="max-h-[240px] overflow-y-auto scrollbar-hide p-3 space-y-3">
+        {messages.length === 0 && (
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400 text-center">Que voulez-vous savoir sur ce bien ?</p>
+            <div className="flex flex-wrap gap-1.5">
+              {AI_SUGGESTIONS.map((s) => (
+                <button
+                  key={s.label}
+                  onClick={() => sendMessage(s.prompt)}
+                  className="text-[11px] font-medium px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-100 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+            <div className={cn(
+              'max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed',
+              msg.role === 'user'
+                ? 'bg-accent text-white rounded-br-sm'
+                : 'bg-gray-50 text-gray-700 rounded-bl-sm'
+            )}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-gray-50 px-3 py-2 rounded-xl rounded-bl-sm">
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-gray-100 p-2 flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
+          placeholder="Votre question..."
+          className="flex-1 h-8 px-3 text-xs bg-transparent border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-accent/30 focus:border-accent text-gray-700 placeholder:text-gray-400"
+        />
+        <button
+          onClick={() => sendMessage(input)}
+          disabled={!input.trim() || isLoading}
+          className="h-8 w-8 rounded-lg bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors disabled:opacity-40"
+        >
+          <Send className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -1193,6 +1365,11 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         <div className="border-t border-gray-100 my-2" />
                       </>
                     )}
+
+                    {/* Ask MEGGA AI */}
+                    <AskMeggaAI listing={listing} walkScore={walkScore} marketTemp={marketTemp ?? null} />
+
+                    <div className="border-t border-gray-100 my-2" />
 
                     {/* Full page link */}
                     <Link
