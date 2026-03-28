@@ -547,7 +547,7 @@ export default function ContactDetailPage() {
                           className="flex items-center gap-3 py-2 border-b border-theme-border-subtle last:border-0 group cursor-pointer hover:bg-theme-hover rounded-lg px-1 -mx-1 transition-colors"
                         >
                           {listing.photo_url ? (
-                            <img src={listing.photo_url} alt="" className="h-12 w-16 rounded-lg object-cover shrink-0" loading="lazy" />
+                            <img src={listing.photo_url} alt="" className="h-12 w-16 rounded-lg object-cover shrink-0" loading="lazy" decoding="async" />
                           ) : (
                             <div className="h-12 w-16 rounded-lg bg-theme-section shrink-0" />
                           )}

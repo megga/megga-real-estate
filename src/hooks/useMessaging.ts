@@ -86,10 +86,10 @@ export function useMessaging(threadId: string | null) {
       if (DEV_BYPASS) { await mockReady; return MOCK_THREADS }
       const { data, error } = await supabase
         .from('message_threads')
-        .select('*')
+        .select('id, agency_id, contact_id, contact_name, contact_type, property_id, property_title, channel, last_message_at, unread_count')
         .order('last_message_at', { ascending: false })
       if (error) throw error
-      return (data as Array<Omit<MessageThread, 'avatar_initials'>>).map((t) => ({
+      return (data as unknown as Array<Omit<MessageThread, 'avatar_initials'>>).map((t) => ({
         ...t,
         avatar_initials: t.contact_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2),
       }))
@@ -104,7 +104,7 @@ export function useMessaging(threadId: string | null) {
       if (DEV_BYPASS) { await mockReady; return MOCK_MESSAGES[threadId!] ?? [] }
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select('id, thread_id, sender_id, sender_type, sender_name, content, read_at, created_at')
         .eq('thread_id', threadId!)
         .order('created_at', { ascending: true })
       if (error) throw error

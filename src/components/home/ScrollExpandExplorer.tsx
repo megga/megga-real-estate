@@ -454,6 +454,7 @@ export default function ScrollExpandExplorer() {
           y: bgParallaxY,
         }}
         loading="lazy"
+        decoding="async"
       />
 
       {/* ─── Parallax Layer 1: Subtle grain texture ─── */}

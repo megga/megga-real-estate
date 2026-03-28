@@ -56,7 +56,7 @@ export function useKycDocuments(kycCaseId: string | undefined) {
       if (!kycCaseId) throw new Error('No KYC case ID')
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
+        .select('id, kyc_case_id, name, type, storage_path, size_bytes, status, document_category, issued_at, expires_at, uploaded_by, created_at')
         .eq('kyc_case_id', kycCaseId)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -75,7 +75,7 @@ export function useKycAuditEvents(kycCaseId: string | undefined) {
       if (!kycCaseId) throw new Error('No KYC case ID')
       const { data, error } = await supabase
         .from('activity_events')
-        .select('*')
+        .select('id, actor_id, action, entity_type, entity_id, metadata, created_at')
         .eq('entity_type', 'kyc')
         .eq('entity_id', kycCaseId)
         .order('created_at', { ascending: false })

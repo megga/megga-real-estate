@@ -253,6 +253,7 @@ export default function WhyMegga() {
                       alt={feature.label}
                       className="absolute inset-0 w-full h-full object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
 
                     {/* Gradient overlay */}

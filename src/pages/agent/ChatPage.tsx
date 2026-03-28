@@ -21,11 +21,11 @@ function ComposeModal({ onClose, onSend, contacts }: { onClose: () => void; onSe
   const isValid = contactId && message.trim()
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="compose-title" onClick={onClose}>
       <div className="bg-theme-card border border-theme-border rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <h3 className="text-base font-semibold text-theme-primary">Nouveau message</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
+          <h3 id="compose-title" className="text-base font-semibold text-theme-primary">Nouveau message</h3>
+          <button onClick={onClose} aria-label="Fermer" className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
             <X className="w-4 h-4 text-theme-tertiary" />
           </button>
         </div>
@@ -148,7 +148,7 @@ export default function ChatPage() {
   const showMobileList = selectedThreadId === null
 
   return (
-    <div className="-m-4 md:-m-6 lg:-m-8 -mb-20 md:-mb-4 flex h-[calc(100vh-0px)] overflow-hidden">
+    <div className="-m-4 md:-m-6 lg:-m-8 -mb-20 md:-mb-4 flex h-dvh overflow-hidden">
 
       {/* Thread list (left) — flush, no rounded */}
       <div className={cn(

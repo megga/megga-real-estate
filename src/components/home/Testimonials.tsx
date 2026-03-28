@@ -166,6 +166,7 @@ export default function Testimonials() {
                   alt={t.name}
                   className="w-10 h-10 rounded-full object-cover"
                   loading="lazy"
+                  decoding="async"
                 />
                 <div>
                   <p className="text-sm font-semibold text-primary">{t.name}</p>

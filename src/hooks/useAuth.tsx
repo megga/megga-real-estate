@@ -51,7 +51,7 @@ async function fetchProfile(userId: string, user?: User | null, retry = true): P
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, agency_id, email, full_name, avatar_url, role, phone, created_at')
       .eq('id', userId)
       .single()
     if (error || !data) {

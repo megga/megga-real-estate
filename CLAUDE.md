@@ -279,7 +279,6 @@ megga-real-estate/
 │       ├── ai-negotiation/      # Copilote négociation (Phase 2)
 │       ├── ai-listing-gen/      # Génération annonces multi-versions (Phase 2)
 │       ├── score-engine/        # ✅ DÉPLOYÉ — Scoring comportemental contacts + propriétés
-│       ├── salesforce-sync/     # ✅ — Import CRM Salesforce (OAuth + contacts/opportunities/notes)
 │       ├── extract-property-pdf/ # ✅ — Extraction données bien depuis PDF (Claude Sonnet 4)
 │       ├── extract-property-url/ # ✅ — Extraction données bien depuis URL portail (Claude Sonnet 4)
 │       ├── automation-engine/   # Moteur de relances automatiques (Phase 2)
@@ -593,7 +592,7 @@ Sidebar width :    w-64 (256px)
 - **Notifications** : toggles email/push par type, toggles en gris moyen en dark mode (pas blanc)
 - **Sécurité** : mot de passe (connecté Supabase), 2FA (bientôt disponible), Google OAuth link/unlink avec feedback, sessions (bientôt disponible), journal de sécurité (connecté activity_events)
 - **Abonnement** : toggle mensuel/annuel (-20%), 3 plans (Starter gratuit, Pro CHF 89, Agency CHF 249), prix barré en annuel, CTA "Besoin d'un plan sur mesure ?"
-- **Applications** : style Stripe Marketplace — 12 apps en grille 4 colonnes avec logos SVG officiels, filtres par catégorie (Tous, Connectés, Calendrier, Email, CRM, Outils). Apps : Email/Resend (connecté), Google Calendar (connectable avec sync), Outlook Calendar, Salesforce, HubSpot, Pipedrive, Zoho CRM, Freshsales, Import/Export CSV, PostHog, Google Drive, OneDrive
+- **Applications** : style Stripe Marketplace — 12 apps en grille 4 colonnes avec logos SVG officiels, filtres par catégorie (Tous, Connectés, Calendrier, Email, CRM, Outils). Apps : Email/Resend (connecté), Google Calendar (connectable avec sync), Outlook Calendar, HubSpot, Pipedrive, Import/Export CSV, PostHog, Google Drive, OneDrive
 
 ---
 
@@ -1480,7 +1479,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 #### Settings — Audit Sécurité + Applications — 26 mars 2026
 - **SecurityTab** : mot de passe connecté Supabase (`updateUser`), 2FA marqué "Bientôt disponible" (toggle désactivé), sessions marquées "Bientôt disponible" (boutons désactivés), journal de sécurité connecté `activity_events`, Google OAuth link/unlink avec feedback succès/erreur
 - **Applications** : refonte style Stripe Marketplace — 9 apps en grille 3 colonnes avec logos SVG officiels, filtres par catégorie (Tous, Connectés, Calendrier, CRM, Outils)
-  - **Connectable** : Google Calendar (OAuth + sync), Outlook Calendar (OAuth Azure + sync), Salesforce (OAuth + import contacts/deals/notes)
+  - **Connectable** : Google Calendar (OAuth + sync), Outlook Calendar (OAuth Azure + sync)
   - **Bientôt** : HubSpot, Pipedrive, Import/Export CSV, PostHog, Google Drive, OneDrive
   - **Supprimés** : Resend (infrastructure interne, pas visible agent), Zoho CRM (rare en Suisse), Freshsales (inexistant sur ce marché)
 - **Notifications** : refonte compact — grille checkboxes avec colonnes Email/Push + "Tout activer"
@@ -1495,18 +1494,6 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 - **Button default variant** corrigé : `bg-accent text-white` → ghost style conforme design system
 - **MessagesPage redesign** : layout centré (max-w-5xl), fonds solides (bg-theme-sidebar / bg-theme-card), bulles modernisées, input bar élevée, indicateur non-lu en barre accent latérale
 
-#### Salesforce CRM Integration — 27 mars 2026
-- **Edge Function** `salesforce-sync` — OAuth 2.0 + import contacts, opportunities, notes
-- **Tables** : `salesforce_tokens` (OAuth tokens par user), `salesforce_id_map` (dedup Salesforce→MEGGA)
-- **Hook** `useSalesforce` — connexion OAuth, sync, import individuel, déconnexion
-- **7 actions** : save_tokens, import_contacts, import_opportunities, import_notes, sync_all, get_status, disconnect
-- **Mapping champs** : Contact→contacts, Opportunity→transactions (avec mapping stages), Task→activity_events
-- **Dedup** : salesforce_id_map évite les doublons à chaque re-sync (upsert par salesforce_id)
-- **UI** : SalesforceAppCard dans Settings→Applications (Connecter, Sync, Import contacts/deals, Délier)
-- **AuthCallback** : gère `?salesforce=1&code=XXX` pour exchange code→tokens
-- **i18n** : FR/EN/DE/IT complet
-- **Prérequis** : Salesforce Connected App + secrets `SALESFORCE_CLIENT_ID` + `SALESFORCE_CLIENT_SECRET`
-- **Statut** : code prêt, en attente de configuration Salesforce Connected App
 
 #### Page Privacy — 25 mars 2026
 - Route `/privacy` — politique de confidentialité conforme LPD suisse (9 sections)
@@ -1520,30 +1507,32 @@ RESEND_API_KEY          → Envoi email via megga.ch
 DILISENSE_API_KEY       → Screening PEP/Sanctions
 MICROSOFT_CLIENT_ID     → Azure AD OAuth (Outlook Calendar)
 MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
-SALESFORCE_CLIENT_ID     → Salesforce Connected App (OAuth)
-SALESFORCE_CLIENT_SECRET → Salesforce Connected App (OAuth)
 ```
 
 ### 📊 Supabase
 - **Project ref** : eayczugyrvmtqnnmvjod
 - **Region** : eu-west-1 (Ireland)
 - **Plan** : Nano (gratuit)
-- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync, contact_scores, property_scores, scoring_signals, market_changes, salesforce_tokens, salesforce_id_map
-
+- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync, contact_scores, property_scores, scoring_signals, market_changes
 ### DB — Corrections RLS appliquées (2026-03-23)
 - Récursion infinie `profiles` → fixée avec `get_my_agency_id()` SECURITY DEFINER
 - Policies `contacts`, `documents`, `activity_events` → migrées vers `get_my_agency_id()`
 - Policies ouvertes temp sur `kyc_cases`, `kyc_checklist_items`, `contacts` (anon read)
 - **À nettoyer pour la prod** : supprimer les policies `anon` et forcer `authenticated` partout
 
-#### Chat & Messagerie — refonte complète 27 mars 2026
+#### Chat & Messagerie — refonte complète 27-28 mars 2026
 - **ChatPage** : layout thread list + conversation, remplacement de MessagesPage
 - **ChatThreadList** : threads avec avatars uniformes (`bg-theme-hover`), MEGGA AI pinné en premier, filtres (Tous/Non lus/Acheteurs/Vendeurs), recherche, compose modal
-- **AiChatPane** : welcome screen (salutation + 4 suggestions métier avec icônes), conversation streaming, bulles agent `bg-accent text-white`, message d'accueil "copilote immobilier"
-- **ContactChatPane** : bulles Messenger-style (grouping, radius adaptatif), reply avec citation visuelle, pin messages, menu contextuel clic droit (Répondre, Copier, Épingler, Transférer à MEGGA AI, Supprimer), info panel slide-in 320px (12 sections contact)
-- **PromptInputBar** : autocomplete `/commandes` (8 commandes métier), `@contact` (CRM Supabase), `#bien` (propriétés agence), context pill contact actif, hints inline, drag & drop fichiers (image/pdf/doc), micro (prêt pour Phase 2), feedback erreur fichier >10MB
+- **AiChatPane** : welcome screen responsive (salutation + 4 suggestions métier avec icônes), conversation streaming, bulles agent `bg-accent text-white`, message d'accueil "copilote immobilier"
+- **ContactChatPane** : bulles Messenger-style responsive (`max-w-[85%] sm:max-w-[75%] md:max-w-[65%]`), reply avec citation visuelle, pin messages, menu contextuel clic droit (Répondre, Copier, Épingler, Transférer à MEGGA AI, Supprimer), info panel slide-in w-72 (12 sections contact), empty state conversation
+- **PromptInputBar** : autocomplete `/commandes` (8 commandes métier), `@contact` (CRM Supabase basé sur position curseur), `#bien` (propriétés agence), context pill contact actif, hints inline, drag & drop fichiers (image/pdf/doc), micro (prêt pour Phase 2), feedback erreur fichier >10MB, focus border accent/60
 - **"Demander à MEGGA AI"** : bouton dégradé bleu→indigo dans le profil contact → bascule vers AI avec injection contexte + prompt auto-envoyé
 - **Notification sidebar** : dot rouge dynamique synchronisé avec `unread_count` des threads Supabase (plus de hardcodé)
+- **Read receipts** : double check bleu (`text-accent`) quand lu, gris quand non lu — `markAsRead()` appelé à l'ouverture du thread via Supabase
+- **Accessibilité complète** : `aria-label` sur tous les boutons icônes (28 corrigés), `role="button"` + `tabIndex` + `onKeyDown` sur les threads, `aria-modal` + `aria-labelledby` sur le modal compose, `aria-pressed` sur le micro
+- **Typographie standardisée** : toutes les tailles custom (`text-[11px]`, `text-[13px]`, `text-[14px]`) remplacées par `text-xs`, `text-sm`
+- **Animations consistantes** : messages 0.25s, welcome items 0.35s, cursor blink 0.5s, info panel 0.25s
+- **Viewport mobile** : `h-dvh` au lieu de `h-[calc(100vh-0px)]`, textarea `max-h-[120px] md:max-h-[200px]`
 
 #### Import de biens multi-sources — 27 mars 2026
 - **Écran de sélection** : 4 méthodes d'import avant le formulaire (Saisie manuelle, Dupliquer, URL, PDF)
@@ -1553,6 +1542,28 @@ SALESFORCE_CLIENT_SECRET → Salesforce Connected App (OAuth)
 - **Hooks** : `useExtractPropertyPdf`, `useExtractPropertyUrl` — appels Edge Functions via `supabase.functions.invoke`
 - **Secrets requis** : `ANTHROPIC_API_KEY` (déjà configuré)
 - **Déploiement** : `supabase functions deploy extract-property-pdf` + `supabase functions deploy extract-property-url`
+
+#### Import de contacts multi-sources — 28 mars 2026
+- **Page dédiée** `/dashboard/contacts/import` avec 4 méthodes :
+  - **CSV/Excel** : drop zone drag & drop → parse → mapping colonnes auto-détecté (prénom/nom/email/tel) → preview → import batch Supabase
+  - **vCard (.vcf)** : parse standard vCard → preview avec avatars initiales → import. Compatible iPhone, Android, Outlook, Gmail
+  - **Texte libre IA** : textarea → Claude API (`ai-copilot`) extrait nom, email, tel, type → preview → import
+  - **Saisie manuelle** : redirige vers NewContactDialog
+- **Empty state ContactsPage** : quand aucun contact, affiche les 4 options d'import directement + bouton "Passer"
+- **Composant** : `ContactImportPage.tsx` (page pleine) + `ContactImportDialog.tsx` (modal legacy)
+
+#### Optimisation performance — 28 mars 2026
+- **`refetchOnWindowFocus: false`** ajouté dans QueryClient global
+- **`select('*')` remplacé par colonnes spécifiques** dans 7 hooks : useMessaging, useAuth, useProperties, useScoreEngine (3 queries), useKyc (2 queries)
+- **`decoding="async"`** ajouté sur toutes les images avec `loading="lazy"` (10 fichiers)
+
+#### Favicon — 28 mars 2026
+- **Design** : cercle bleu accent `#2563EB` avec GG blanc centré (32x32)
+- **Fichier** : `public/favicon.svg`, référencé dans `index.html`
+- **Visible** sur tous les fonds d'onglets (dark et light)
+
+#### Salesforce retiré — 28 mars 2026
+- Edge Function, tables, secrets, documentation retirés (payant, hors scope MVP)
 
 #### C2PA / MEGGA Shield — exploration en cours
 - **Objectif** : certifier l'authenticité des photos immobilières (badge "Photos vérifiées C2PA")
@@ -1569,5 +1580,4 @@ SALESFORCE_CLIENT_SECRET → Salesforce Connected App (OAuth)
 6. **Google Calendar** — configurer Google Cloud Console (mode Testing) + tester OAuth flow
 7. **Score Engine v2 — Location Intelligence** — données externes suisses
 8. **ListingPage connectée** — remplacer getListingById(mockData) par useMarketListing(supabase)
-9. **Import/Export CSV** — migration depuis Pipedrive/HubSpot/Excel
-10. **Briefing matinal IA** — résumé narratif quotidien des mouvements marché + actions prioritaires
+9. **Briefing matinal IA** — résumé narratif quotidien des mouvements marché + actions prioritaires

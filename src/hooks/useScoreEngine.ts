@@ -61,18 +61,19 @@ export function useContactScore(contactId: string | undefined) {
     queryFn: async (): Promise<ContactScore | null> => {
       const { data, error } = await supabase
         .from('contact_scores')
-        .select('*')
+        .select('contact_id, overall_score, reactivity_score, engagement_score, budget_coherence_score, visit_quality_score, conversion_score, estimated_budget, rejection_patterns, intent_signals, updated_at')
         .eq('contact_id', contactId!)
         .single()
       if (error || !data) return null
+      const d = data as Record<string, unknown>
       return {
-        ...data,
-        rejection_patterns: typeof data.rejection_patterns === 'string'
-          ? JSON.parse(data.rejection_patterns)
-          : (data.rejection_patterns ?? []),
-        intent_signals: typeof data.intent_signals === 'string'
-          ? JSON.parse(data.intent_signals)
-          : (data.intent_signals ?? {}),
+        ...d,
+        rejection_patterns: typeof d.rejection_patterns === 'string'
+          ? JSON.parse(d.rejection_patterns)
+          : (d.rejection_patterns ?? []),
+        intent_signals: typeof d.intent_signals === 'string'
+          ? JSON.parse(d.intent_signals)
+          : (d.intent_signals ?? {}),
       } as ContactScore
     },
     enabled: !!contactId,
@@ -89,12 +90,12 @@ export function usePropertyScore(propertyId: string | undefined, source: 'intern
       const column = source === 'internal' ? 'property_id' : 'market_listing_id'
       const { data, error } = await supabase
         .from('property_scores')
-        .select('*')
+        .select('property_id, market_listing_id, source, heat_score, interest_level, stagnation_risk, price_position, days_on_market, views_trend, updated_at')
         .eq(column, propertyId!)
         .eq('source', source)
         .single()
       if (error || !data) return null
-      return data as PropertyScore
+      return data as unknown as PropertyScore
     },
     enabled: !!propertyId,
     staleTime: 10 * 60 * 1000,
@@ -112,11 +113,11 @@ export function useMarketRadar(limit = 20) {
       const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
       const { data } = await supabase
         .from('market_changes')
-        .select('*')
+        .select('id, change_type, title, city, canton, price, previous_price, price_change_pct, detected_at')
         .gte('detected_at', since)
         .order('detected_at', { ascending: false })
         .limit(limit)
-      return (data ?? []) as MarketChange[]
+      return (data ?? []) as unknown as MarketChange[]
     },
     enabled: !!profile,
     staleTime: 5 * 60 * 1000,
