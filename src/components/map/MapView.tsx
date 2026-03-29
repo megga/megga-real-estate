@@ -12,7 +12,7 @@ import MapGL, {
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
 import Supercluster from 'supercluster'
-import { LocateFixed, PenTool, X, Clock, MapPinPlus, Car, Footprints, Bike, Layers, Mountain, Satellite, Moon, Sun } from 'lucide-react'
+import { LocateFixed, PenTool, X, Clock, MapPinPlus, Car, Footprints, Bike, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler } from 'lucide-react'
 import { useIsochrone } from '@/hooks/useIsochrone'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
@@ -91,6 +91,31 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     pitch: mapStyleId === 'standard' ? 45 : 0,
   })
   const [selectedListing, setSelectedListing] = useState<ListingCardData | null>(null)
+
+  // Fullscreen detection — immersive features only in fullscreen
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  useEffect(() => {
+    function handleFs() { setIsFullscreen(!!document.fullscreenElement) }
+    document.addEventListener('fullscreenchange', handleFs)
+    return () => document.removeEventListener('fullscreenchange', handleFs)
+  }, [])
+
+  // Immersive features (fullscreen only)
+  const [lightPreset, setLightPreset] = useState<'day' | 'dusk' | 'dawn' | 'night'>('day')
+  const [showHeatmap, setShowHeatmap] = useState(false)
+  const [showGeoSearch, setShowGeoSearch] = useState(false)
+  const [geoSearchQuery, setGeoSearchQuery] = useState('')
+  const [geoResults, setGeoResults] = useState<Array<{ place_name: string; center: [number, number] }>>([])
+
+  // Apply light preset to Standard style
+  useEffect(() => {
+    if (mapStyleId !== 'standard') return
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    try {
+      map.setConfigProperty('basemap', 'lightPreset', lightPreset)
+    } catch { /* style not loaded yet */ }
+  }, [lightPreset, mapStyleId])
 
   // Draw zone state
   const [isDrawing, setIsDrawing] = useState(false)
@@ -606,6 +631,42 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             </div>
           </Marker>
         )}
+
+        {/* Price heatmap layer (fullscreen only) */}
+        {showHeatmap && isFullscreen && points.length > 0 && (
+          <Source
+            id="price-heatmap"
+            type="geojson"
+            data={{
+              type: 'FeatureCollection',
+              features: points.map(p => ({
+                type: 'Feature' as const,
+                geometry: p.geometry,
+                properties: { price: p.properties.listing.price },
+              })),
+            }}
+          >
+            <Layer
+              id="heatmap-layer"
+              type="heatmap"
+              paint={{
+                'heatmap-weight': ['interpolate', ['linear'], ['get', 'price'], 200000, 0, 5000000, 1],
+                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 8, 1, 15, 3],
+                'heatmap-color': [
+                  'interpolate', ['linear'], ['heatmap-density'],
+                  0, 'rgba(0,0,255,0)',
+                  0.2, 'rgb(0,150,255)',
+                  0.4, 'rgb(0,200,150)',
+                  0.6, 'rgb(255,220,0)',
+                  0.8, 'rgb(255,140,0)',
+                  1, 'rgb(255,40,40)',
+                ],
+                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 8, 15, 15, 25],
+                'heatmap-opacity': 0.6,
+              }}
+            />
+          </Source>
+        )}
       </MapGL>
 
       {/* Top-left buttons */}
@@ -832,6 +893,130 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           )}
         </div>
       </div>
+
+      {/* ── Immersive controls (fullscreen only) ── */}
+      {isFullscreen && (
+        <>
+          {/* Top-right: Light presets + Heatmap + Geocoding */}
+          <div className="absolute top-3 right-3 z-[5] flex flex-col gap-2">
+            {/* Light presets (Standard 3D only) */}
+            {mapStyleId === 'standard' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-2.5 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Lumière</div>
+                {(['day', 'dawn', 'dusk', 'night'] as const).map(preset => (
+                  <button
+                    key={preset}
+                    onClick={() => setLightPreset(preset)}
+                    className={cn(
+                      'w-full px-3 py-1.5 text-xs font-medium text-left transition-colors cursor-pointer',
+                      lightPreset === preset ? 'bg-accent/10 text-accent' : 'text-gray-700 hover:bg-gray-50'
+                    )}
+                  >
+                    {{ day: 'Jour', dawn: 'Aube', dusk: 'Crépuscule', night: 'Nuit' }[preset]}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Heatmap toggle */}
+            <button
+              onClick={() => setShowHeatmap(v => !v)}
+              className={cn(
+                'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
+                showHeatmap
+                  ? 'bg-accent text-white border-accent'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              )}
+            >
+              <Thermometer className="h-3.5 w-3.5" />
+              Prix/m²
+            </button>
+
+            {/* Geocoding search */}
+            <div className="relative">
+              <button
+                onClick={() => setShowGeoSearch(v => !v)}
+                className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Rechercher un lieu
+              </button>
+
+              {showGeoSearch && (
+                <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                  <div className="p-2">
+                    <input
+                      type="text"
+                      value={geoSearchQuery}
+                      onChange={async (e) => {
+                        const q = e.target.value
+                        setGeoSearchQuery(q)
+                        if (q.length < 3) { setGeoResults([]); return }
+                        try {
+                          const resp = await fetch(
+                            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=ch&language=fr&limit=5&access_token=${MAPBOX_TOKEN}`
+                          )
+                          const data = await resp.json()
+                          setGeoResults(data.features?.map((f: Record<string, unknown>) => ({
+                            place_name: f.place_name as string,
+                            center: f.center as [number, number],
+                          })) || [])
+                        } catch { setGeoResults([]) }
+                      }}
+                      placeholder="Adresse, ville, quartier..."
+                      className="w-full h-8 px-3 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                      autoFocus
+                    />
+                  </div>
+                  {geoResults.length > 0 && (
+                    <div className="border-t border-gray-100 max-h-48 overflow-y-auto">
+                      {geoResults.map((r, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            mapRef.current?.flyTo({ center: r.center, zoom: 14, duration: 1200 })
+                            setShowGeoSearch(false)
+                            setGeoSearchQuery('')
+                            setGeoResults([])
+                          }}
+                          className="w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 text-left cursor-pointer truncate"
+                        >
+                          {r.place_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom-center: Zone area measurement */}
+          {closedPolygon && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[5] bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 px-4 py-2 flex items-center gap-2">
+              <Ruler className="h-3.5 w-3.5 text-gray-500" />
+              <span className="text-xs font-medium text-gray-700">
+                Surface : {(() => {
+                  // Shoelace formula for polygon area in m²
+                  const coords = closedPolygon
+                  const R = 6371000 // Earth radius in meters
+                  const toRad = (d: number) => d * Math.PI / 180
+                  let area = 0
+                  for (let i = 0; i < coords.length; i++) {
+                    const j = (i + 1) % coords.length
+                    area += toRad(coords[j][0] - coords[i][0]) *
+                      (2 + Math.sin(toRad(coords[i][1])) + Math.sin(toRad(coords[j][1])))
+                  }
+                  area = Math.abs(area * R * R / 2)
+                  if (area > 1000000) return `${(area / 1000000).toFixed(1)} km²`
+                  if (area > 10000) return `${(area / 10000).toFixed(1)} ha`
+                  return `${Math.round(area).toLocaleString('fr-CH')} m²`
+                })()}
+              </span>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 })
