@@ -13,6 +13,8 @@ import {
   Maximize,
   Map,
   SlidersHorizontal,
+  PanelLeft,
+  Columns2,
   Sparkles,
   Building2,
   Train,
@@ -1027,6 +1029,7 @@ export default function SearchPage() {
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get('listing'))
   const mapViewRef = useRef<MapViewHandle>(null)
   const [mapImmersive, setMapImmersive] = useState(false)
+  const [layoutMode, setLayoutMode] = useState<'split' | 'list' | 'map'>('split')
   const [viewedIds, setViewedIds] = useState<string[]>([])
 
   // Market temperature for current location filter
@@ -1418,6 +1421,19 @@ export default function SearchPage() {
               </button>
             </div>
 
+            {/* Layout toggle (list / split / map) — desktop only */}
+            <div className="hidden lg:flex items-center gap-0.5 ml-1 border-l border-gray-200 pl-2">
+              <button onClick={() => setLayoutMode('list')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')} title="Liste uniquement">
+                <PanelLeft className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setLayoutMode('split')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'split' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')} title="Liste + Carte">
+                <Columns2 className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => setLayoutMode('map')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'map' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')} title="Carte large">
+                <Map className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
             {/* Result count */}
             <span className="text-xs font-bold text-gray-400 tabular-nums whitespace-nowrap">
               {totalCount > 0 ? totalCount.toLocaleString('fr-CH') : filtered.length} biens
@@ -1458,7 +1474,13 @@ export default function SearchPage() {
       {/* ─── MAIN CONTENT ─── */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left panel: filters + results — hidden in immersive mode */}
-        <div className={cn('w-full lg:w-[55%] flex flex-col overflow-hidden', mapImmersive && 'hidden')}>
+        <div className={cn(
+          'w-full flex flex-col overflow-hidden',
+          mapImmersive && 'hidden',
+          !mapImmersive && layoutMode === 'list' && 'lg:w-full',
+          !mapImmersive && layoutMode === 'split' && 'lg:w-[55%]',
+          !mapImmersive && layoutMode === 'map' && 'lg:w-[280px] lg:min-w-[280px]',
+        )}>
           {/* ─── AI Understanding Banner ─── */}
           {showAiBanner && aiUnderstood.length > 0 && (
             <div className="px-4 md:px-6 py-2 bg-accent/5 border-b border-accent/10 flex items-center gap-2 flex-wrap">
@@ -1621,7 +1643,12 @@ export default function SearchPage() {
           'border-l border-gray-200',
           mapImmersive
             ? 'block flex-1 border-l-0 h-screen'
-            : 'hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)]'
+            : cn(
+              'sticky top-32 h-[calc(100vh-8rem)]',
+              layoutMode === 'list' ? 'hidden' : 'hidden lg:block',
+              layoutMode === 'split' && 'lg:w-[45%]',
+              layoutMode === 'map' && 'lg:flex-1',
+            )
         )}>
           <MapView
             ref={mapViewRef}
@@ -1631,6 +1658,7 @@ export default function SearchPage() {
             onHover={setHoveredListing}
             onZoneFilter={setZoneFilterIds}
             onImmersiveChange={setMapImmersive}
+            onSelectListing={openPreview}
             onQuickFilter={(qf) => {
               updateFilter({
                 types: qf.type ? [qf.type] : [],
@@ -1660,6 +1688,7 @@ export default function SearchPage() {
             hoveredId={hoveredListing}
             onHover={setHoveredListing}
             onZoneFilter={setZoneFilterIds}
+            onSelectListing={openPreview}
           />
           <button
             onClick={() => setShowMobileMap(false)}

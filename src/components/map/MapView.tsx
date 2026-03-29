@@ -74,6 +74,7 @@ interface MapViewProps {
   onZoneFilter?: (listingIds: string[] | null) => void
   onImmersiveChange?: (isImmersive: boolean) => void
   onQuickFilter?: (filters: QuickFilters) => void
+  onSelectListing?: (id: string) => void
   className?: string
 }
 
@@ -114,7 +115,7 @@ const MAP_STYLES = [
 
 type MapStyleId = typeof MAP_STYLES[number]['id']
 
-const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, className }, ref) {
+const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onSelectListing, className }, ref) {
   const mapRef = useRef<MapRef>(null)
   const [mapStyleId, setMapStyleId] = useState<MapStyleId>('standard')
   const [showStylePicker, setShowStylePicker] = useState(false)
@@ -569,6 +570,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   function handlePinClick(listing: ListingCardData) {
     setSelectedListing(listing)
+    // Open preview panel if callback provided — prefix with market- for ListingPreviewPanel
+    onSelectListing?.(`market-${listing.id}`)
     // FlyTo animation to center on selected listing
     if (listing.lat && listing.lng) {
       mapRef.current?.flyTo({
@@ -754,7 +757,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   return (
     <div ref={containerRef} className={cn(
-      'relative w-full h-full [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden',
+      'relative w-full h-full [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden [&_.mapboxgl-canvas-container]:bg-[#e8e0d8]',
       isImmersive && '[&_.mapboxgl-ctrl-group]:bg-gray-900/70 [&_.mapboxgl-ctrl-group]:backdrop-blur-xl [&_.mapboxgl-ctrl-group]:border-white/10 [&_.mapboxgl-ctrl-group_button]:!text-white/70 [&_.mapboxgl-ctrl-group_button:hover]:!bg-white/10 [&_.mapboxgl-ctrl-group_.mapboxgl-ctrl-icon]:!filter [&_.mapboxgl-ctrl-group_.mapboxgl-ctrl-icon]:!invert',
       className
     )}>
