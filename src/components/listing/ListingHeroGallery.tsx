@@ -1,23 +1,35 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Images, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { buildGalleryMedia } from '@/lib/galleryMedia'
 import VideoPlayer from '@/components/listing/VideoPlayer'
+import type { PhotoTag } from '@/types/floorPlan'
 
 interface ListingHeroGalleryProps {
   photos: string[]
   videoUrl?: string
   title: string
   onOpenLightbox: (index: number) => void
+  activeRoom?: string | null
+  photoTags?: PhotoTag[]
 }
 
-export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLightbox }: ListingHeroGalleryProps) {
+export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLightbox, activeRoom, photoTags }: ListingHeroGalleryProps) {
   const [heroIndex, setHeroIndex] = useState(0)
   const [mobileIndex, setMobileIndex] = useState(0)
   const carouselRef = useRef<HTMLDivElement>(null)
-  const media = buildGalleryMedia(photos, videoUrl)
 
-  const photoCount = photos.length
+  // Filter photos by active room if set
+  const filteredPhotos = useMemo(() => {
+    if (!activeRoom || !photoTags?.length) return photos
+    const roomUrls = new Set(photoTags.filter(t => t.room === activeRoom).map(t => t.url))
+    const filtered = photos.filter(p => roomUrls.has(p))
+    return filtered.length > 0 ? filtered : photos
+  }, [photos, activeRoom, photoTags])
+
+  const media = buildGalleryMedia(filteredPhotos, videoUrl)
+
+  const photoCount = filteredPhotos.length
   const hasPhotos = photoCount > 0
 
   if (!hasPhotos) {

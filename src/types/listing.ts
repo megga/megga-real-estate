@@ -29,6 +29,9 @@ export interface Property {
   lng: number
   photos: string[]
   video_url?: string
+  photo_quality_scores?: Array<{ url: string; overall: number; flags: string[] }>
+  c2pa_verified?: boolean
+  c2pa_verified_at?: string
   features: string[]
   floor_plan_url?: string | null
   floor_plan_hotspots?: FloorPlanHotspot[]

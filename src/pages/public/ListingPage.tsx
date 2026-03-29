@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useMarketListings, useMarketListing } from '@/hooks/useMarketListings'
@@ -127,9 +127,12 @@ export default function ListingPage() {
   )
 
   // ── State ──
+  const [searchParams] = useSearchParams()
+  const photoParam = searchParams.get('photo')
+  const initialPhotoIdx = photoParam ? parseInt(photoParam, 10) : -1
   const [isFavorite, setIsFavorite] = useState(false)
-  const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(initialPhotoIdx >= 0)
+  const [lightboxIndex, setLightboxIndex] = useState(initialPhotoIdx >= 0 ? initialPhotoIdx : 0)
   const [showCalculator, setShowCalculator] = useState(false)
   const [showVisitModal, setShowVisitModal] = useState(false)
   const [floorPlanRoom, setFloorPlanRoom] = useState<string | null>(null)
@@ -186,6 +189,8 @@ export default function ListingPage() {
         photos={listing.photos}
         title={listing.title}
         onOpenLightbox={openLightbox}
+        activeRoom={floorPlanRoom}
+        photoTags={(listingAny?.photo_tags as import('@/types/floorPlan').PhotoTag[]) ?? []}
       />
 
       {/* ── Sticky Section Navigation ── */}
@@ -267,15 +272,16 @@ export default function ListingPage() {
 
       {/* ── Overlays ── */}
       <ListingLightbox
-        photos={(() => {
-          if (!floorPlanRoom) return listing.photos
-          const hs = floorPlanHotspots.find((h: FloorPlanHotspot) => h.roomKey === floorPlanRoom)
-          return hs && hs.photoUrls.length > 0 ? hs.photoUrls.filter((u: string) => listing.photos.includes(u)) : listing.photos
-        })()}
+        photos={listing.photos}
         open={lightboxOpen}
         index={lightboxIndex}
         onClose={() => { setLightboxOpen(false); setFloorPlanRoom(null) }}
         onIndexChange={setLightboxIndex}
+        photoTags={(listingAny?.photo_tags as import('@/types/floorPlan').PhotoTag[]) ?? []}
+        floorPlanUrl={floorPlanUrl || undefined}
+        floorPlanHotspots={floorPlanHotspots}
+        stagedPhotos={(listingAny?.staged_photos as string[]) ?? undefined}
+        listingId={id}
       />
       <AffordabilityCalculator
         price={listing.price}

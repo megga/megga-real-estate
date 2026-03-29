@@ -1,15 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
-  X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+  X, ChevronDown, ChevronUp,
   MapPin, Maximize2, Heart, Share2,
   Phone, CalendarDays, Building2, Home, Calendar, Eye,
   Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check, GitCompareArrows,
 } from 'lucide-react'
-import { useSwipeNavigation } from '@/hooks/useSwipeNavigation'
-import { useZoomPan } from '@/hooks/useZoomPan'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
 import { useQuery } from '@tanstack/react-query'
@@ -22,6 +20,8 @@ import { useMarketTemperature } from '@/hooks/useMarketInsights'
 import { estimatePropertyTax, estimateMonthlyCost, CANTONAL_TAX_RATES, ENERGY_LABEL_COLORS, type EnergyLabel } from '@/lib/cantonalTaxRates'
 import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
 import InteractiveFloorPlan from '@/components/listing/InteractiveFloorPlan'
+import ListingLightbox from '@/components/listing/ListingLightbox'
+import C2PaBadge from '@/components/listing/C2PaBadge'
 import RequestVisitModal from '@/components/listings/RequestVisitModal'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 import { useNeighborhood, calculateWalkScore } from '@/hooks/useNeighborhood'
@@ -75,6 +75,8 @@ interface TransformedListing {
   floor_plan_url: string | null
   floor_plan_hotspots: FloorPlanHotspot[]
   photo_tags: PhotoTag[]
+  c2pa_verified: boolean
+  c2pa_verified_at?: string
 }
 
 // ─── Transform helpers ──────────────────────────────────────────────────
@@ -117,6 +119,8 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     floor_plan_url: (data.floor_plan_url as string) || null,
     floor_plan_hotspots: (data.floor_plan_hotspots as FloorPlanHotspot[]) || [],
     photo_tags: (data.photo_tags as PhotoTag[]) || [],
+    c2pa_verified: !!data.c2pa_verified,
+    c2pa_verified_at: (data.c2pa_verified_at as string) || undefined,
   }
 }
 
@@ -299,133 +303,7 @@ function SectionNav({ activeId, onNavigate, sections }: { activeId: string; onNa
 
 // ─── Lightbox ───────────────────────────────────────────────────────────
 
-function Lightbox({
-  photos, open, index, onClose, onIndexChange, roomFilter, onClearRoomFilter,
-}: {
-  photos: string[]
-  open: boolean
-  index: number
-  onClose: () => void
-  onIndexChange: (i: number) => void
-  roomFilter?: string | null
-  onClearRoomFilter?: () => void
-}) {
-  const goNext = useCallback(() => {
-    if (index < photos.length - 1) onIndexChange(index + 1)
-  }, [index, photos.length, onIndexChange])
-
-  const goPrev = useCallback(() => {
-    if (index > 0) onIndexChange(index - 1)
-  }, [index, onIndexChange])
-
-  const { isZoomed, style: zoomStyle, containerRef, handlers: zoomHandlers } = useZoomPan({
-    index,
-    enabled: open,
-  })
-
-  const { onTouchStart: swipeTouchStart, onTouchEnd: swipeTouchEnd } = useSwipeNavigation({
-    onSwipeLeft: goNext,
-    onSwipeRight: goPrev,
-    enabled: open && !isZoomed,
-  })
-
-  useEffect(() => {
-    if (!open) return
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowRight') goNext()
-      if (e.key === 'ArrowLeft') goPrev()
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [open, onClose, goNext, goPrev])
-
-  if (!open) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-3">
-        <div className="flex items-center gap-3">
-          <span className="text-white/80 text-sm font-medium">{index + 1} / {photos.length}</span>
-          {roomFilter && onClearRoomFilter && (
-            <button
-              onClick={onClearRoomFilter}
-              className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white/80 text-xs transition-colors"
-            >
-              Toutes les photos
-              <X className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-        <button
-          onClick={onClose}
-          className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-          aria-label="Fermer"
-        >
-          <X className="h-5 w-5 text-white" />
-        </button>
-      </div>
-
-      {/* Image with swipe + zoom */}
-      <div
-        ref={containerRef}
-        className="flex-1 flex items-center justify-center px-2 md:px-8 relative min-h-0 overflow-hidden"
-        onTouchStart={(e) => { zoomHandlers.onTouchStart(e); swipeTouchStart(e) }}
-        onTouchMove={zoomHandlers.onTouchMove}
-        onTouchEnd={(e) => { zoomHandlers.onTouchEnd(); swipeTouchEnd(e) }}
-        onMouseDown={zoomHandlers.onMouseDown}
-        onMouseMove={zoomHandlers.onMouseMove}
-        onMouseUp={zoomHandlers.onMouseUp}
-        onMouseLeave={zoomHandlers.onMouseUp}
-      >
-        <img
-          src={photos[index]}
-          alt=""
-          className="max-h-[calc(100vh-160px)] max-w-full object-contain select-none"
-          style={zoomStyle}
-          draggable={false}
-          key={index}
-        />
-        {index > 0 && !isZoomed && (
-          <button
-            onClick={goPrev}
-            className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-            aria-label="Photo précédente"
-          >
-            <ChevronLeft className="h-5 w-5 text-white" />
-          </button>
-        )}
-        {index < photos.length - 1 && !isZoomed && (
-          <button
-            onClick={goNext}
-            className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-            aria-label="Photo suivante"
-          >
-            <ChevronRight className="h-5 w-5 text-white" />
-          </button>
-        )}
-      </div>
-
-      {/* Thumbnails */}
-      <div className="flex justify-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
-        {photos.map((photo, i) => (
-          <button
-            key={i}
-            onClick={() => onIndexChange(i)}
-            className={cn(
-              'h-20 w-28 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all',
-              index === i ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-40 hover:opacity-70'
-            )}
-          >
-            <img src={photo} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-          </button>
-        ))}
-      </div>
-    </div>,
-    document.body
-  )
-}
+// Lightbox interne supprimée — utilise ListingLightbox importé
 
 // ─── Visit date picker (hidden by default, shown on CTA click) ──────────
 
@@ -1024,13 +902,16 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   {/* ── SECTION: Overview ── */}
                   <div id="preview-overview">
 
-                    {/* Exclusive badge */}
-                    {listing.is_exclusive && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide uppercase mb-3">
-                        <Star className="w-3.5 h-3.5 fill-accent" />
-                        Exclusif MEGGA
-                      </span>
-                    )}
+                    {/* Exclusive badge + C2PA */}
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      {listing.is_exclusive && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide uppercase">
+                          <Star className="w-3.5 h-3.5 fill-accent" />
+                          Exclusif MEGGA
+                        </span>
+                      )}
+                      <C2PaBadge verified={listing.c2pa_verified || false} verifiedAt={listing.c2pa_verified_at} />
+                    </div>
 
                     {/* Price */}
                     <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
@@ -1553,26 +1434,20 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
       </div>
 
       {/* Lightbox */}
-      {listing && (() => {
-        // Filter photos by room if a floor plan room is selected
-        const activeHotspot = floorPlanRoom
-          ? listing.floor_plan_hotspots.find(h => h.roomKey === floorPlanRoom)
-          : null
-        const lightboxPhotos = activeHotspot && activeHotspot.photoUrls.length > 0
-          ? activeHotspot.photoUrls.filter(u => photos.includes(u))
-          : photos
-        return (
-          <Lightbox
-            photos={lightboxPhotos}
-            open={lightboxOpen}
-            index={Math.min(lightboxIndex, lightboxPhotos.length - 1)}
-            onClose={() => { setLightboxOpen(false); setFloorPlanRoom(null) }}
-            onIndexChange={setLightboxIndex}
-            roomFilter={activeHotspot ? floorPlanRoom : null}
-            onClearRoomFilter={() => { setFloorPlanRoom(null) }}
-          />
-        )
-      })()}
+      {listing && (
+        <ListingLightbox
+          photos={photos}
+          open={lightboxOpen}
+          index={Math.min(lightboxIndex, photos.length - 1)}
+          onClose={() => { setLightboxOpen(false); setFloorPlanRoom(null) }}
+          onIndexChange={setLightboxIndex}
+          photoTags={listing.photo_tags}
+          floorPlanUrl={listing.floor_plan_url || undefined}
+          floorPlanHotspots={listing.floor_plan_hotspots}
+          stagedPhotos={listing.staged_photos.length > 0 ? listing.staged_photos : undefined}
+          listingId={listingId}
+        />
+      )}
     </div>,
     document.body
   )
