@@ -19,6 +19,19 @@ export interface VisitRow {
   ai_objections: Record<string, unknown> | null
   rating: number | null
   created_at: string
+  // Visit enhancements
+  manage_token: string | null
+  qualification: Record<string, unknown> | null
+  buyer_name: string | null
+  buyer_email: string | null
+  buyer_phone: string | null
+  buyer_message: string | null
+  visit_type: 'sur_place' | 'video' | null
+  video_platform: 'google_meet' | 'facetime' | null
+  video_link: string | null
+  reminder_sent: boolean
+  feedback_sent: boolean
+  group_id: string | null
   // Joined data
   contact?: { first_name: string; last_name: string } | { first_name: string; last_name: string }[] | null
   property?: { title: string; address: string; city: string } | { title: string; address: string; city: string }[] | null
@@ -194,4 +207,227 @@ export function useVisits() {
     isCreating: createVisitMutation.isPending,
     isUpdating: updateVisitMutation.isPending,
   }
+}
+
+// ── Public visit booking (no auth required) ─────────────────────────────────
+
+export interface VisitBookingInput {
+  propertyId: string
+  agencyId: string
+  scheduledAt: string // ISO string
+  buyerName: string
+  buyerEmail: string
+  buyerPhone?: string
+  buyerMessage?: string
+  visitType?: 'sur_place' | 'video'
+  videoPlatform?: 'google_meet' | 'facetime'
+  qualification?: {
+    budget?: string
+    financing?: string
+    firstVisit?: boolean
+  }
+}
+
+export function useBookVisit() {
+  return useMutation({
+    mutationFn: async (input: VisitBookingInput) => {
+      // 1. Upsert contact by email
+      const { data: existingContacts } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('email', input.buyerEmail)
+        .eq('agency_id', input.agencyId)
+        .limit(1)
+
+      let contactId: string
+      if (existingContacts && existingContacts.length > 0) {
+        contactId = existingContacts[0].id
+      } else {
+        const nameParts = input.buyerName.trim().split(/\s+/)
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.slice(1).join(' ') || ''
+        const { data: newContact, error: contactError } = await supabase
+          .from('contacts')
+          .insert({
+            agency_id: input.agencyId,
+            first_name: firstName,
+            last_name: lastName,
+            email: input.buyerEmail,
+            phone: input.buyerPhone || null,
+            type: 'buyer',
+            source: 'website',
+            score: 'warm',
+          })
+          .select('id')
+          .single()
+        if (contactError) throw contactError
+        contactId = newContact.id
+      }
+
+      // 2. Generate video link if needed
+      let videoLink: string | null = null
+      if (input.visitType === 'video' && input.videoPlatform === 'facetime') {
+        // Fetch agent email for FaceTime link
+        const { data: agents } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('agency_id', input.agencyId)
+          .limit(1)
+        const agentEmail = agents?.[0]?.email
+        if (agentEmail) {
+          videoLink = `facetime:${agentEmail}`
+        }
+      }
+      // Google Meet link will be generated server-side via Calendar API when agent confirms
+
+      // 3. Create visit
+      const { data: visit, error: visitError } = await supabase
+        .from('visits')
+        .insert({
+          agency_id: input.agencyId,
+          property_id: input.propertyId,
+          contact_id: contactId,
+          scheduled_at: input.scheduledAt,
+          status: 'planned',
+          buyer_name: input.buyerName,
+          buyer_email: input.buyerEmail,
+          buyer_phone: input.buyerPhone || null,
+          buyer_message: input.buyerMessage || null,
+          qualification: input.qualification || {},
+          visit_type: input.visitType || 'sur_place',
+          video_platform: input.visitType === 'video' ? (input.videoPlatform || 'google_meet') : null,
+          video_link: videoLink,
+        })
+        .select('id, manage_token')
+        .single()
+      if (visitError) throw visitError
+
+      // 4. Send confirmation email via Edge Function
+      try {
+        await supabase.functions.invoke('send-visit-email', {
+          body: {
+            type: 'confirmation_buyer',
+            visit_id: visit.id,
+            agency_id: input.agencyId,
+          },
+        })
+        // Also notify agent
+        await supabase.functions.invoke('send-visit-email', {
+          body: {
+            type: 'notification_agent',
+            visit_id: visit.id,
+            agency_id: input.agencyId,
+          },
+        })
+      } catch {
+        // Email failure shouldn't block the visit creation
+      }
+
+      // 5. Log activity
+      await supabase.from('activity_events').insert({
+        agency_id: input.agencyId,
+        action: 'visit_requested',
+        entity_type: 'visit',
+        entity_id: visit.id,
+        metadata: {
+          buyer_name: input.buyerName,
+          buyer_email: input.buyerEmail,
+          property_id: input.propertyId,
+          scheduled_at: input.scheduledAt,
+        },
+      })
+
+      return { visitId: visit.id, manageToken: visit.manage_token }
+    },
+  })
+}
+
+// ── Public visit lookup by manage token ──────────────────────────────────────
+
+export interface PublicVisitData {
+  id: string
+  scheduled_at: string
+  status: VisitStatus
+  buyer_name: string | null
+  buyer_email: string | null
+  manage_token: string
+  property: { title: string; address: string; city: string; photos: string[] } | null
+}
+
+export function usePublicVisit(token: string | undefined) {
+  return useQuery({
+    queryKey: ['public-visit', token],
+    queryFn: async (): Promise<PublicVisitData | null> => {
+      if (!token) return null
+      const { data, error } = await supabase
+        .from('visits')
+        .select('id, scheduled_at, status, buyer_name, buyer_email, manage_token, property:properties(title, address, city, photos)')
+        .eq('manage_token', token)
+        .single()
+      if (error) return null
+      const property = Array.isArray(data.property) ? data.property[0] : data.property
+      return { ...data, property } as PublicVisitData
+    },
+    enabled: !!token,
+  })
+}
+
+// ── Public visit reschedule/cancel ──────────────────────────────────────────
+
+export function useRescheduleVisit() {
+  return useMutation({
+    mutationFn: async ({ token, newDate }: { token: string; newDate: string }) => {
+      const { error } = await supabase
+        .from('visits')
+        .update({ scheduled_at: newDate, status: 'planned' })
+        .eq('manage_token', token)
+      if (error) throw error
+    },
+  })
+}
+
+export function useCancelVisit() {
+  return useMutation({
+    mutationFn: async (token: string) => {
+      const { error } = await supabase
+        .from('visits')
+        .update({ status: 'cancelled' })
+        .eq('manage_token', token)
+      if (error) throw error
+    },
+  })
+}
+
+// ── Public visit feedback ───────────────────────────────────────────────────
+
+export interface VisitFeedbackInput {
+  token: string
+  rating: number
+  strengths: string[]
+  objections: string[]
+  comment: string
+  offerInterest: 'yes' | 'maybe' | 'no'
+}
+
+export function useSubmitFeedback() {
+  return useMutation({
+    mutationFn: async (input: VisitFeedbackInput) => {
+      const { error } = await supabase
+        .from('visits')
+        .update({
+          rating: input.rating,
+          feedback_buyer: input.comment || null,
+          ai_objections: {
+            strengths: input.strengths,
+            objections: input.objections,
+            offer_interest: input.offerInterest,
+          },
+          status: 'done',
+          completed_at: new Date().toISOString(),
+          feedback_sent: true,
+        })
+        .eq('manage_token', input.token)
+      if (error) throw error
+    },
+  })
 }

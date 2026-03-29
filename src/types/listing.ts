@@ -1,4 +1,5 @@
 import type { PropertyType, PropertyStatus } from '@/lib/constants'
+import type { FloorPlanHotspot, PhotoTag } from './floorPlan'
 
 export interface Property {
   id: string
@@ -28,6 +29,9 @@ export interface Property {
   lng: number
   photos: string[]
   features: string[]
+  floor_plan_url?: string | null
+  floor_plan_hotspots?: FloorPlanHotspot[]
+  photo_tags?: PhotoTag[]
   created_by: string
   created_at: string
   published_at: string | null

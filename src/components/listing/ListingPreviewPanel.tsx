@@ -6,7 +6,7 @@ import {
   MapPin, Maximize2, Heart, Share2,
   Phone, CalendarDays, Building2, Home, Calendar, Eye,
   Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
-  ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check,
+  ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check, GitCompareArrows,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
@@ -19,6 +19,9 @@ import NaturalHazardBadge from '@/components/listings/NaturalHazardBadge'
 import { useMarketTemperature } from '@/hooks/useMarketInsights'
 import { estimatePropertyTax, estimateMonthlyCost, CANTONAL_TAX_RATES, ENERGY_LABEL_COLORS, type EnergyLabel } from '@/lib/cantonalTaxRates'
 import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
+import InteractiveFloorPlan from '@/components/listing/InteractiveFloorPlan'
+import RequestVisitModal from '@/components/listings/RequestVisitModal'
+import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 import { useNeighborhood, calculateWalkScore } from '@/hooks/useNeighborhood'
 import MapGL, { Marker, NavigationControl } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -30,6 +33,8 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 interface ListingPreviewPanelProps {
   listingId: string | null
   onClose: () => void
+  isCompared?: boolean
+  onToggleCompare?: () => void
 }
 
 interface TransformedListing {
@@ -65,6 +70,9 @@ interface TransformedListing {
   energy_label: string
   minergie_label: string
   staged_photos: string[]
+  floor_plan_url: string | null
+  floor_plan_hotspots: FloorPlanHotspot[]
+  photo_tags: PhotoTag[]
 }
 
 // ─── Transform helpers ──────────────────────────────────────────────────
@@ -104,6 +112,9 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     energy_label: (data.energy_label as string) || '',
     minergie_label: (data.minergie_label as string) || '',
     staged_photos: (data.staged_photos as string[]) || [],
+    floor_plan_url: (data.floor_plan_url as string) || null,
+    floor_plan_hotspots: (data.floor_plan_hotspots as FloorPlanHotspot[]) || [],
+    photo_tags: (data.photo_tags as PhotoTag[]) || [],
   }
 }
 
@@ -162,7 +173,7 @@ function getFeatureIcon(feature: string) {
 
 // ─── Section tabs ───────────────────────────────────────────────────────
 
-const SECTIONS = [
+const BASE_SECTIONS = [
   { id: 'preview-overview', label: 'Aperçu' },
   { id: 'preview-details', label: 'Détails' },
   { id: 'preview-map', label: 'Carte' },
@@ -255,11 +266,11 @@ function PropertyTaxSection({ price, canton, chargesMonthly }: { price: number; 
   )
 }
 
-function SectionNav({ activeId, onNavigate }: { activeId: string; onNavigate: (id: string) => void }) {
+function SectionNav({ activeId, onNavigate, sections }: { activeId: string; onNavigate: (id: string) => void; sections: typeof BASE_SECTIONS }) {
   return (
     <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
       <div className="flex gap-1 px-6 overflow-x-auto scrollbar-hide -mb-px">
-        {SECTIONS.map((s) => (
+        {sections.map((s) => (
           <button
             key={s.id}
             onClick={() => onNavigate(s.id)}
@@ -287,13 +298,15 @@ function SectionNav({ activeId, onNavigate }: { activeId: string; onNavigate: (i
 // ─── Lightbox ───────────────────────────────────────────────────────────
 
 function Lightbox({
-  photos, open, index, onClose, onIndexChange,
+  photos, open, index, onClose, onIndexChange, roomFilter, onClearRoomFilter,
 }: {
   photos: string[]
   open: boolean
   index: number
   onClose: () => void
   onIndexChange: (i: number) => void
+  roomFilter?: string | null
+  onClearRoomFilter?: () => void
 }) {
   const goNext = useCallback(() => {
     if (index < photos.length - 1) onIndexChange(index + 1)
@@ -320,7 +333,18 @@ function Lightbox({
     <div className="fixed inset-0 z-[100] bg-black flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 md:px-6 py-3">
-        <span className="text-white/80 text-sm font-medium">{index + 1} / {photos.length}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-white/80 text-sm font-medium">{index + 1} / {photos.length}</span>
+          {roomFilter && onClearRoomFilter && (
+            <button
+              onClick={onClearRoomFilter}
+              className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white/80 text-xs transition-colors"
+            >
+              Toutes les photos
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
         <button
           onClick={onClose}
           className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
@@ -380,59 +404,7 @@ function Lightbox({
 
 // ─── Visit date picker (hidden by default, shown on CTA click) ──────────
 
-function VisitDatePicker({ onCancel }: { onCancel: () => void }) {
-  const [selectedDay, setSelectedDay] = useState(0)
-  const days = Array.from({ length: 5 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() + i + 1)
-    return d
-  })
-  const dayNames = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM']
-  const monthNames = ['jan', 'fév', 'mar', 'avr', 'mai', 'jun', 'jul', 'aoû', 'sep', 'oct', 'nov', 'déc']
-
-  return (
-    <div className="space-y-3">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Prochaines disponibilités</p>
-      <div className="grid grid-cols-3 gap-2">
-        {days.slice(0, 3).map((d, i) => (
-          <button
-            key={i}
-            onClick={() => setSelectedDay(i)}
-            className={cn(
-              'flex flex-col items-center py-2.5 rounded-xl border text-center transition-all',
-              selectedDay === i
-                ? 'border-accent bg-accent/5 text-accent'
-                : 'border-gray-200 hover:border-gray-300 text-gray-600'
-            )}
-          >
-            <span className="text-[10px] font-medium uppercase">{dayNames[d.getDay()]}</span>
-            <span className="text-lg font-bold">{d.getDate()}</span>
-            <span className="text-[10px] text-gray-400">{monthNames[d.getMonth()]}</span>
-          </button>
-        ))}
-      </div>
-      <select className="w-full h-10 px-3 text-sm border border-gray-200 rounded-xl bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent">
-        <option>10:00</option>
-        <option>11:00</option>
-        <option>14:00</option>
-        <option>15:00</option>
-        <option>16:00</option>
-        <option>17:00</option>
-      </select>
-      <div className="flex gap-2">
-        <button
-          onClick={onCancel}
-          className="flex-1 h-10 text-sm font-medium border border-gray-200 text-gray-600 rounded-xl hover:border-gray-300 transition-colors"
-        >
-          Annuler
-        </button>
-        <button className="flex-1 h-10 text-sm font-semibold bg-accent text-white rounded-xl hover:bg-accent/90 transition-colors">
-          Confirmer
-        </button>
-      </div>
-    </div>
-  )
-}
+// VisitDatePicker removed — replaced by RequestVisitModal (connected to Supabase)
 
 // ─── Ask MEGGA AI — inline chat contextuel ──────────────────────────────
 
@@ -694,18 +666,19 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
 
 // ─── Main component ─────────────────────────────────────────────────────
 
-export default function ListingPreviewPanel({ listingId, onClose }: ListingPreviewPanelProps) {
+export default function ListingPreviewPanel({ listingId, onClose, isCompared, onToggleCompare }: ListingPreviewPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [mobilePhotoIndex, setMobilePhotoIndex] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
-  const [activeSection, setActiveSection] = useState(SECTIONS[0].id)
+  const [activeSection, setActiveSection] = useState(BASE_SECTIONS[0].id)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showStaged, setShowStaged] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const [floorPlanRoom, setFloorPlanRoom] = useState<string | null>(null)
   const mobileCarouselRef = useRef<HTMLDivElement>(null)
 
   const rawId = listingId?.replace('market-', '').replace('internal-', '')
@@ -758,9 +731,10 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
     setPhotoIndex(0)
     setMobilePhotoIndex(0)
     setDescExpanded(false)
-    setActiveSection(SECTIONS[0].id)
+    setActiveSection(BASE_SECTIONS[0].id)
     setShowDatePicker(false)
     setLightboxOpen(false)
+    setFloorPlanRoom(null)
   }, [listingId])
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -797,6 +771,11 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
   }, [listingId, listing])
 
   if (!listingId) return null
+
+  // Build sections dynamically (add Plan tab if floor plan exists)
+  const SECTIONS = listing?.floor_plan_url
+    ? [BASE_SECTIONS[0], { id: 'preview-plan', label: 'Plan' }, ...BASE_SECTIONS.slice(1)]
+    : BASE_SECTIONS
 
   const originalPhotos = listing?.photos || []
   const stagedPhotos = listing?.staged_photos || []
@@ -1006,7 +985,7 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
               {/* ════════════════════════════════════════════════════════════
                   SECTION NAV TABS
                   ════════════════════════════════════════════════════════════ */}
-              <SectionNav activeId={activeSection} onNavigate={scrollToSection} />
+              <SectionNav activeId={activeSection} onNavigate={scrollToSection} sections={SECTIONS} />
 
               {/* ════════════════════════════════════════════════════════════
                   CONTENT: 2 columns (scrollable left + sticky CTA right)
@@ -1245,6 +1224,29 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                     )}
                   </div>
 
+                  {/* ── SECTION: Floor Plan Interactif ── */}
+                  {listing.floor_plan_url && listing.floor_plan_hotspots.length > 0 && (
+                    <div id="preview-plan" className="mt-8 pt-6 border-t border-gray-100">
+                      <h3 className="text-base font-semibold text-gray-900 mb-4">Plan interactif</h3>
+                      <InteractiveFloorPlan
+                        floorPlanUrl={listing.floor_plan_url}
+                        hotspots={listing.floor_plan_hotspots}
+                        activeRoom={floorPlanRoom}
+                        onRoomClick={(roomKey, photoUrls) => {
+                          if (!roomKey || roomKey === floorPlanRoom) {
+                            setFloorPlanRoom(null)
+                          } else {
+                            setFloorPlanRoom(roomKey)
+                            if (photoUrls.length > 0) {
+                              setLightboxIndex(0)
+                              setLightboxOpen(true)
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {/* ── SECTION: Details / Caractéristiques ── */}
                   <div id="preview-details" className="mt-8 pt-6 border-t border-gray-100">
                     <h3 className="text-base font-semibold text-gray-900 mb-4">Caractéristiques</h3>
@@ -1369,26 +1371,31 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                 <div className="hidden md:block w-[340px] flex-shrink-0 border-l border-gray-100">
                   <div className="sticky top-[49px] p-6 space-y-4 max-h-[calc(92vh-420px)] overflow-y-auto scrollbar-hide">
 
-                    {showDatePicker ? (
-                      <VisitDatePicker onCancel={() => setShowDatePicker(false)} />
-                    ) : (
-                      <>
-                        {/* Primary CTA */}
-                        <button
-                          onClick={() => setShowDatePicker(true)}
-                          className="w-full h-12 bg-accent hover:bg-accent/90 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
-                        >
-                          <CalendarDays className="w-5 h-5" />
-                          Planifier une visite
-                        </button>
+                    {/* Primary CTA */}
+                    <button
+                      onClick={() => setShowDatePicker(true)}
+                      className="w-full h-12 bg-accent hover:bg-accent/90 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+                    >
+                      <CalendarDays className="w-5 h-5" />
+                      Planifier une visite
+                    </button>
 
-                        {/* Secondary CTA */}
-                        <button className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-gray-900 font-medium rounded-xl flex items-center justify-center gap-2 transition-colors">
-                          <Phone className="w-5 h-5" />
-                          Contacter l'agent
-                        </button>
-                      </>
-                    )}
+                    {/* Secondary CTA */}
+                    <button className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-gray-900 font-medium rounded-xl flex items-center justify-center gap-2 transition-colors">
+                      <Phone className="w-5 h-5" />
+                      Contacter l'agent
+                    </button>
+
+                    {/* Visit modal (opens via showDatePicker state) */}
+                    <RequestVisitModal
+                      listingAddress={`${listing.address}, ${listing.city}`}
+                      propertyId={listing.id}
+                      agencyId=""
+                      listingPhoto={photos[0]}
+                      listingPrice={formatCHF(listing.price)}
+                      open={showDatePicker}
+                      onClose={() => setShowDatePicker(false)}
+                    />
 
                     {/* Tertiary actions */}
                     <div className="flex gap-2">
@@ -1404,6 +1411,20 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
                         <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
                         {isFavorite ? 'Sauvegardé' : 'Sauvegarder'}
                       </button>
+                      {onToggleCompare && (
+                        <button
+                          onClick={onToggleCompare}
+                          className={cn(
+                            'h-10 w-10 border rounded-xl flex items-center justify-center transition-colors flex-shrink-0',
+                            isCompared
+                              ? 'bg-accent border-accent text-white'
+                              : 'bg-white border-gray-200 hover:border-gray-300 text-gray-600'
+                          )}
+                          aria-label={isCompared ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
+                        >
+                          {isCompared ? <Check className="w-4 h-4" /> : <GitCompareArrows className="w-4 h-4" />}
+                        </button>
+                      )}
                       <button
                         onClick={async () => {
                           const url = `${window.location.origin}/listing/${listingId}`
@@ -1506,15 +1527,26 @@ export default function ListingPreviewPanel({ listingId, onClose }: ListingPrevi
       </div>
 
       {/* Lightbox */}
-      {listing && (
-        <Lightbox
-          photos={photos}
-          open={lightboxOpen}
-          index={lightboxIndex}
-          onClose={() => setLightboxOpen(false)}
-          onIndexChange={setLightboxIndex}
-        />
-      )}
+      {listing && (() => {
+        // Filter photos by room if a floor plan room is selected
+        const activeHotspot = floorPlanRoom
+          ? listing.floor_plan_hotspots.find(h => h.roomKey === floorPlanRoom)
+          : null
+        const lightboxPhotos = activeHotspot && activeHotspot.photoUrls.length > 0
+          ? activeHotspot.photoUrls.filter(u => photos.includes(u))
+          : photos
+        return (
+          <Lightbox
+            photos={lightboxPhotos}
+            open={lightboxOpen}
+            index={Math.min(lightboxIndex, lightboxPhotos.length - 1)}
+            onClose={() => { setLightboxOpen(false); setFloorPlanRoom(null) }}
+            onIndexChange={setLightboxIndex}
+            roomFilter={activeHotspot ? floorPlanRoom : null}
+            onClearRoomFilter={() => { setFloorPlanRoom(null) }}
+          />
+        )
+      })()}
     </div>,
     document.body
   )

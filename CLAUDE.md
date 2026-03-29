@@ -1778,14 +1778,52 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 - **3 méthodes exposées** : `fitToListings()`, `startDrawing()`, `startIsochrone()`
 - **Outils carte** restent dans la carte (Recentrer, Dessiner zone, Temps de trajet) — retirés de la barre de filtres (redondant)
 
+#### Floor Plan Interactif (Zillow Showcase style) — 30 mars 2026
+- **Migration SQL** : `floor_plan_url TEXT`, `floor_plan_hotspots JSONB`, `photo_tags JSONB` sur `properties` + `market_listings`
+- **FloorPlanEditor.tsx** (agent) : upload plan, clic pour placer hotspots, Popover Radix pour configurer pièce + associer photos, drag pour repositionner, touch support mobile, keyboard accessibility, auto-cleanup photos supprimées
+- **InteractiveFloorPlan.tsx** (public) : hotspot dots cliquables avec tooltips, room pills, clic → lightbox filtrée par pièce, pinch-to-zoom mobile
+- **Photo tagging** : dropdown "Pièce" sous chaque photo dans Step 4 du formulaire, compteur "X/Y photos taguées"
+- **Feature premium** : `floorPlan: boolean` dans plans.ts (starter: false, pro/entreprise: true), UpgradePrompt pour Starter
+- **Intégrations** : ListingFormPage (Step 4), ListingPreviewPanel (tab "Plan" dynamique + lightbox filtré par pièce), ListingPage (section plan + lightbox filtré)
+- **Fichiers** : `src/types/floorPlan.ts`, `src/components/listings/FloorPlanEditor.tsx`, `src/components/listing/InteractiveFloorPlan.tsx`
+
+#### Comparateur de biens enrichi — 30 mars 2026
+- **CompareDrawer redesigné** : photo carousel par bien (flèches prev/next + compteur), 9 métriques (+ description, type traduit, canton, jours en ligne optimisé), highlighting intelligent par type (lower/higher/none), accessibility (role=dialog, aria-modal, Escape, focus trap)
+- **Persistance** : localStorage + URL params (`?compare=id1,id2,id3`), restauré au refresh
+- **Toast feedback** : "Maximum 3 biens en comparaison" quand limite atteinte (2.5s, amber)
+- **Bouton comparer dans PreviewPanel** : icône GitCompareArrows à côté de Sauvegarder/Partager
+- **Icônes glass** : `bg-black/20 backdrop-blur-md text-white/90` → transparent sur les photos, `h-7 w-7` (grille) / `h-6 w-6` (liste), masquées par défaut sauf état actif
+
+#### Planification de visite — Niveau 2 — 30 mars 2026
+- **RequestVisitModal réécrit** : 2 étapes (Date/créneau/type → Coordonnées/pré-qualification), header photo du bien + prix, créneaux matin/après-midi séparés, toggle Sur place / Vidéo (Google Meet + FaceTime), pré-qualification (budget, financement, première visite), barre de réassurance, bouton ghost, labels accessibles, textarea compact, résumé inline dans bouton Continuer
+- **Connecté Supabase** : upsert contact (email + agency), insert visit avec toutes les colonnes, appel Edge Function send-visit-email, activity_events logging
+- **Migration SQL** : 12 colonnes ajoutées sur `visits` (manage_token, qualification JSONB, buyer_*, visit_type, video_platform, video_link, reminder_sent, feedback_sent, group_id)
+- **Edge Function `send-visit-email`** : 3 types email (confirmation_buyer, notification_agent, reminder J-1) via Resend, template HTML MEGGA, lien gestion + lien feedback dans chaque email
+- **pg_cron `visit-reminders-j1`** : toutes les heures, scanne visites de demain, envoie rappel si reminder_sent=false
+- **Google Meet auto** : `conferenceData` ajouté dans `google-calendar-sync` quand visit_type='video' + video_platform='google_meet', `conferenceDataVersion=1`, hangoutLink sauvegardé dans visits.video_link
+- **FaceTime** : lien `facetime:{agent_email}` généré depuis profil agent
+- **VisitManagePage** : `/visite/:id/modifier?token=` — report (nouveau créneau) ou annulation, token sécurisé UUID
+- **VisitFeedbackPage** : `/visite/:id/feedback?token=` — étoiles 1-5, points forts (8 options), objections (8 options), intérêt offre (oui/peut-être/non), stocké dans ai_objections JSONB
+- **Hooks** : useBookVisit, usePublicVisit, useRescheduleVisit, useCancelVisit, useSubmitFeedback
+- **VisitRow type** : 25 champs (tous les nouveaux champs inclus)
+- **PreviewPanel** : VisitDatePicker stub remplacé par RequestVisitModal connecté
+
+#### Cards listing améliorées — 30 mars 2026
+- **Icônes glass transparentes** : `bg-black/20 backdrop-blur-md`, icônes `text-white/90`, masquées au repos, visibles au hover, toujours visibles si actives
+- **Flèches navigation photo** : ChevronLeft/ChevronRight au hover, `h-7 w-7` (grille) / `h-6 w-6` (liste)
+- **Mode liste optimisé** : icônes en ligne horizontale (pas colonne), badge compact `text-[10px]`, compteur photo seul (dots retirés — trop petit), flèches `h-6 w-6`
+- **Mode grille enrichi** : description preview 1 ligne (`line-clamp-1`), prix/m² affiché, agence + date en bas avec séparateur `border-t`
+- **Animation zoom retirée** : plus de `group-hover:scale` sur les photos
+- **Barre filtres** : spacer flex-1 retiré → bloc Pertinence/grid/list/compteur aligné à gauche après les filtres
+
 ### Prochaines priorités
-1. **Floor plan interactif (Zillow Showcase style)** — agent uploade plan, tagge photos par pièce, acheteur clique sur les pièces du plan. Composants : `FloorPlanEditor.tsx` (agent), `InteractiveFloorPlan.tsx` (public). Colonnes : `floor_plan_url`, `floor_plan_hotspots JSONB`, `photo_tags JSONB` sur `properties`. Feature premium Pro/Agency.
-2. **Virtual Staging côté acheteur** — exposer bouton "Voir meublé" dans la fiche publique (actuellement agent-only). L'acheteur choisit son style (7 styles) et voit la pièce meublée en temps réel.
-3. **C2PA / MEGGA Shield** — intégration badge photos vérifiées (en attente API partenaire)
-4. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
-5. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
-6. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
-7. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
-8. **Photo category tabs** — onglets sous la galerie (Photos, Plan, Staging, Carte)
-9. **Staging modal avec slider avant/après** — style Zillow "Stage this space"
-10. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
+1. **Virtual Staging côté acheteur** — exposer bouton "Voir meublé" dans la fiche publique (actuellement agent-only). L'acheteur choisit son style (7 styles) et voit la pièce meublée en temps réel.
+2. **C2PA / MEGGA Shield** — intégration badge photos vérifiées (en attente API partenaire)
+3. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
+4. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
+5. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
+6. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
+7. **Photo category tabs** — onglets sous la galerie (Photos, Plan, Staging, Carte)
+8. **Staging modal avec slider avant/après** — style Zillow "Stage this space"
+9. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
+10. **Lightbox photo enrichie** — audit features game-changer à faire (voir instruction session suivante)

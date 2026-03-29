@@ -120,23 +120,38 @@ function visitToGoogleEvent(visit: Record<string, unknown>) {
   const contactName = contact ? `${contact.first_name} ${contact.last_name}` : ''
   const propertyTitle = property?.title ?? ''
   const scheduledAt = visit.scheduled_at as string
+  const isVideoMeet = visit.visit_type === 'video' && visit.video_platform === 'google_meet'
 
   // Default 1h duration
   const start = new Date(scheduledAt)
   const end = new Date(start.getTime() + 60 * 60 * 1000)
 
-  return {
-    summary: `Visite — ${propertyTitle}${contactName ? ` (${contactName})` : ''}`,
-    location: property ? `${property.address ?? ''}, ${property.city ?? ''}`.replace(/^, |, $/g, '') : undefined,
+  const event: Record<string, unknown> = {
+    summary: `${isVideoMeet ? '📹 ' : ''}Visite — ${propertyTitle}${contactName ? ` (${contactName})` : ''}`,
+    location: isVideoMeet ? undefined : (property ? `${property.address ?? ''}, ${property.city ?? ''}`.replace(/^, |, $/g, '') : undefined),
     start: { dateTime: start.toISOString(), timeZone: 'Europe/Zurich' },
     end: { dateTime: end.toISOString(), timeZone: 'Europe/Zurich' },
     description: [
-      'Visite planifiée via MEGGA Real Estate',
+      isVideoMeet ? 'Visite vidéo via Google Meet — planifiée via MEGGA' : 'Visite planifiée via MEGGA Real Estate',
       contactName ? `Contact : ${contactName}` : null,
       propertyTitle ? `Bien : ${propertyTitle}` : null,
+      visit.buyer_email ? `Email : ${visit.buyer_email}` : null,
+      visit.buyer_phone ? `Tél : ${visit.buyer_phone}` : null,
     ].filter(Boolean).join('\n'),
     extendedProperties: { private: { megga_visit_id: visit.id as string } },
   }
+
+  // Add Google Meet conference data for video visits
+  if (isVideoMeet) {
+    event.conferenceData = {
+      createRequest: {
+        requestId: `megga-${visit.id}`,
+        conferenceSolutionKey: { type: 'hangoutsMeet' },
+      },
+    }
+  }
+
+  return event
 }
 
 serve(async (req: Request) => {
@@ -228,14 +243,29 @@ serve(async (req: Request) => {
           .select('*, contact:contacts(first_name, last_name), property:properties(title, address, city)')
           .eq('id', body.visit_id)
           .single()
+        // Note: visit_type, video_platform, buyer_email, buyer_phone are included via '*'
 
         if (!visit) throw new Error('Visit not found')
 
         const googleEvent = visitToGoogleEvent(visit)
-        const created = await gcalFetch(accessToken, '/calendars/primary/events', {
+        const isVideoMeet = visit.visit_type === 'video' && visit.video_platform === 'google_meet'
+
+        // conferenceDataVersion=1 tells Google to auto-generate a Meet link
+        const endpoint = isVideoMeet
+          ? '/calendars/primary/events?conferenceDataVersion=1'
+          : '/calendars/primary/events'
+
+        const created = await gcalFetch(accessToken, endpoint, {
           method: 'POST',
           body: JSON.stringify(googleEvent),
         })
+
+        // If Google Meet link was generated, save it to the visit
+        if (created.hangoutLink) {
+          await db.from('visits')
+            .update({ video_link: created.hangoutLink })
+            .eq('id', body.visit_id)
+        }
 
         // Save mapping
         await db.from('calendar_sync').insert({
@@ -250,7 +280,11 @@ serve(async (req: Request) => {
           .update({ last_sync_at: new Date().toISOString() })
           .eq('user_id', userId)
 
-        return new Response(JSON.stringify({ success: true, event_id: created.id }), {
+        return new Response(JSON.stringify({
+          success: true,
+          event_id: created.id,
+          meet_link: created.hangoutLink || null,
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }

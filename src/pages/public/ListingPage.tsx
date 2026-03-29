@@ -23,10 +23,12 @@ import ListingSidebar from '@/components/listing/ListingSidebar'
 import ListingLightbox from '@/components/listing/ListingLightbox'
 import ListingMobileBar from '@/components/listing/ListingMobileBar'
 import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
+import InteractiveFloorPlan from '@/components/listing/InteractiveFloorPlan'
+import type { FloorPlanHotspot } from '@/types/floorPlan'
 
 // ─── Section definitions for sticky nav ─────────────────────────────────
 
-const SECTIONS: SectionDef[] = [
+const BASE_SECTIONS: SectionDef[] = [
   { id: 'description', label: 'Description' },
   { id: 'caracteristiques', label: 'Caractéristiques' },
   { id: 'localisation', label: 'Localisation' },
@@ -73,6 +75,8 @@ function transformSupabaseToListing(data: Record<string, any>, source: 'market' 
       email: 'contact@megga.ch',
       photo: '/megga-gg.svg',
     },
+    floor_plan_url: (data.floor_plan_url as string) || null,
+    floor_plan_hotspots: (data.floor_plan_hotspots as FloorPlanHotspot[]) || [],
   }
 }
 
@@ -128,6 +132,18 @@ export default function ListingPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showCalculator, setShowCalculator] = useState(false)
   const [showVisitModal, setShowVisitModal] = useState(false)
+  const [floorPlanRoom, setFloorPlanRoom] = useState<string | null>(null)
+
+  // Floor plan data (safely access — mock listings won't have these)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listingAny = listing as Record<string, any> | null
+  const floorPlanUrl = listingAny?.floor_plan_url as string | null ?? null
+  const floorPlanHotspots = (listingAny?.floor_plan_hotspots as FloorPlanHotspot[]) ?? []
+
+  // Dynamic sections (add Plan tab if floor plan exists)
+  const SECTIONS: SectionDef[] = floorPlanUrl
+    ? [BASE_SECTIONS[0], BASE_SECTIONS[1], { id: 'plan', label: 'Plan' }, ...BASE_SECTIONS.slice(2)]
+    : BASE_SECTIONS
 
   // ── Loading state ──
   if (isLoadingData) {
@@ -183,6 +199,29 @@ export default function ListingPage() {
             <ListingHeader listing={listing} />
             <ListingDescription description={listing.description} />
             <ListingFeatures features={listing.features} />
+
+            {/* Floor Plan Interactif */}
+            {floorPlanUrl && floorPlanHotspots.length > 0 && (
+              <div id="plan" className="scroll-mt-28 mt-10 pt-8 border-t border-gray-100">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Plan interactif</h2>
+                <InteractiveFloorPlan
+                  floorPlanUrl={floorPlanUrl}
+                  hotspots={floorPlanHotspots}
+                  activeRoom={floorPlanRoom}
+                  onRoomClick={(roomKey, photoUrls) => {
+                    if (!roomKey || roomKey === floorPlanRoom) {
+                      setFloorPlanRoom(null)
+                    } else {
+                      setFloorPlanRoom(roomKey)
+                      if (photoUrls.length > 0) {
+                        setLightboxIndex(0)
+                        setLightboxOpen(true)
+                      }
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Right: Sidebar (desktop) */}
@@ -228,10 +267,14 @@ export default function ListingPage() {
 
       {/* ── Overlays ── */}
       <ListingLightbox
-        photos={listing.photos}
+        photos={(() => {
+          if (!floorPlanRoom) return listing.photos
+          const hs = floorPlanHotspots.find((h: FloorPlanHotspot) => h.roomKey === floorPlanRoom)
+          return hs && hs.photoUrls.length > 0 ? hs.photoUrls.filter((u: string) => listing.photos.includes(u)) : listing.photos
+        })()}
         open={lightboxOpen}
         index={lightboxIndex}
-        onClose={() => setLightboxOpen(false)}
+        onClose={() => { setLightboxOpen(false); setFloorPlanRoom(null) }}
         onIndexChange={setLightboxIndex}
       />
       <AffordabilityCalculator
@@ -241,6 +284,10 @@ export default function ListingPage() {
       />
       <RequestVisitModal
         listingAddress={`${listing.address}, ${listing.city}`}
+        propertyId={rawId || ''}
+        agencyId={listingAny?.agency_id as string || ''}
+        listingPhoto={listing.photos?.[0]}
+        listingPrice={listing.price ? `CHF ${listing.price.toLocaleString('fr-CH').replace(/\s/g, "'")}` : undefined}
         open={showVisitModal}
         onClose={() => setShowVisitModal(false)}
       />

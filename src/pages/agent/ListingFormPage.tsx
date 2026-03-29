@@ -23,12 +23,17 @@ import type { PropertyType } from '@/lib/constants'
 import ListingGenerator from '@/components/ai-copilot/ListingGenerator'
 import SwissAddressAutocomplete from '@/components/listings/SwissAddressAutocomplete'
 import type { SwissAddressSuggestion } from '@/hooks/useSwissAddress'
-import { useProperty, useAgencyProperties, useCreateProperty, useUpdateProperty, useUploadPropertyPhotos } from '@/hooks/useProperties'
+import { useProperty, useAgencyProperties, useCreateProperty, useUpdateProperty, useUploadPropertyPhotos, useUploadFloorPlan } from '@/hooks/useProperties'
 import { useExtractPropertyPdf, type ExtractedPropertyData } from '@/hooks/useExtractPropertyPdf'
 import { useExtractPropertyUrl } from '@/hooks/useExtractPropertyUrl'
 import { useCreateListing } from '@/hooks/useListings'
 import { useAuth } from '@/hooks/useAuth'
 import { useVirtualStaging, STAGING_STYLES, ROOM_TYPES, type StagingStyle, type RoomType } from '@/hooks/useVirtualStaging'
+import FloorPlanEditor from '@/components/listings/FloorPlanEditor'
+import UpgradePrompt from '@/components/ui/UpgradePrompt'
+import { usePlanLimits } from '@/hooks/usePlanLimits'
+import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
+import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 
 // ─── Zod schemas per step ───
 
@@ -825,11 +830,13 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
 
 // ─── Sortable Photo item for dnd-kit ───
 
-function SortablePhoto({ id, url, index, onRemove }: {
+function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
   id: string
   url: string
   index: number
   onRemove: () => void
+  roomTag?: string
+  onRoomTagChange?: (room: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
@@ -845,37 +852,53 @@ function SortablePhoto({ id, url, index, onRemove }: {
       ref={setNodeRef}
       style={style}
       className={cn(
-        'relative group aspect-[4/3] rounded-lg overflow-hidden border border-theme-border',
+        'relative group rounded-lg overflow-hidden border border-theme-border',
         isDragging && 'ring-2 ring-accent'
       )}
     >
-      <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-      {/* Overlay on hover */}
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-            <GripVertical className="h-5 w-5 text-white drop-shadow-md" />
+      <div className="aspect-[4/3]">
+        <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+        {/* Overlay on hover */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity">
+            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+              <GripVertical className="h-5 w-5 text-white drop-shadow-md" />
+            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRemove() }}
+              className="h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onRemove() }}
-            className="h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
+        {/* Badge for first photo */}
+        {index === 0 && (
+          <span className="absolute top-2 left-2 text-[10px] font-semibold bg-theme-primary text-theme-inverse px-2 py-0.5 rounded-full">
+            Couverture
+          </span>
+        )}
+        {/* Index badge */}
+        {index > 0 && (
+          <span className="absolute top-2 left-2 text-[10px] font-medium bg-black/40 text-white px-1.5 py-0.5 rounded-full">
+            {index + 1}
+          </span>
+        )}
       </div>
-      {/* Badge for first photo */}
-      {index === 0 && (
-        <span className="absolute top-2 left-2 text-[10px] font-semibold bg-theme-primary text-theme-inverse px-2 py-0.5 rounded-full">
-          Couverture
-        </span>
-      )}
-      {/* Index badge */}
-      {index > 0 && (
-        <span className="absolute top-2 left-2 text-[10px] font-medium bg-black/40 text-white px-1.5 py-0.5 rounded-full">
-          {index + 1}
-        </span>
+      {/* Room tag selector */}
+      {onRoomTagChange && (
+        <select
+          value={roomTag || ''}
+          onChange={e => onRoomTagChange(e.target.value)}
+          onClick={e => e.stopPropagation()}
+          className="w-full h-7 px-2 text-[11px] bg-theme-card border-t border-theme-border text-theme-secondary focus:outline-none focus:text-theme-primary"
+        >
+          <option value="">— Pièce —</option>
+          {FLOOR_PLAN_ROOMS.map(r => (
+            <option key={r.key} value={r.key}>{r.label}</option>
+          ))}
+        </select>
       )}
     </div>
   )
@@ -883,10 +906,21 @@ function SortablePhoto({ id, url, index, onRemove }: {
 
 // ─── Step 4: Photos (refonte drag-and-drop) ───
 
-function Step4({ form, pendingFiles, setPendingFiles }: {
+function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps }: {
   form: UseFormReturn<ListingFormData>
   pendingFiles: File[]
   setPendingFiles: React.Dispatch<React.SetStateAction<File[]>>
+  floorPlanProps?: {
+    floorPlanUrl: string | null
+    hotspots: FloorPlanHotspot[]
+    photoTags: PhotoTag[]
+    onFloorPlanChange: (url: string | null) => void
+    onHotspotsChange: (hotspots: FloorPlanHotspot[]) => void
+    onPhotoTagsChange: (tags: PhotoTag[]) => void
+    onUploadFloorPlan: (file: File) => Promise<string>
+    isUploading: boolean
+    canAccess: boolean
+  }
 }) {
   const { watch, setValue } = form
   const rawPhotos = watch('photos')
@@ -1024,6 +1058,21 @@ function Step4({ form, pendingFiles, setPendingFiles }: {
                   url={url}
                   index={idx}
                   onRemove={() => removePhoto(idx)}
+                  roomTag={floorPlanProps?.photoTags.find(t => t.url === url)?.room}
+                  onRoomTagChange={floorPlanProps?.canAccess ? (room) => {
+                    const tags = [...(floorPlanProps.photoTags || [])]
+                    const existing = tags.findIndex(t => t.url === url)
+                    if (room) {
+                      if (existing >= 0) {
+                        tags[existing] = { ...tags[existing], room }
+                      } else {
+                        tags.push({ url, room, isPrimary: false })
+                      }
+                    } else if (existing >= 0) {
+                      tags.splice(existing, 1)
+                    }
+                    floorPlanProps.onPhotoTagsChange(tags)
+                  } : undefined}
                 />
               ))}
             </div>
@@ -1036,6 +1085,28 @@ function Step4({ form, pendingFiles, setPendingFiles }: {
         const currentPhotos = form.getValues('photos') || []
         form.setValue('photos', [...currentPhotos, url])
       }} />}
+
+      {/* Floor Plan Interactif */}
+      {floorPlanProps && !floorPlanProps.canAccess && (
+        <UpgradePrompt
+          title="Plan interactif"
+          description="Ajoutez un plan d'étage cliquable pour permettre aux acheteurs de naviguer les photos pièce par pièce."
+          className="mt-6"
+        />
+      )}
+      {floorPlanProps?.canAccess && (
+        <FloorPlanEditor
+          floorPlanUrl={floorPlanProps.floorPlanUrl}
+          hotspots={floorPlanProps.hotspots}
+          photos={allPhotos}
+          photoTags={floorPlanProps.photoTags}
+          onFloorPlanChange={floorPlanProps.onFloorPlanChange}
+          onHotspotsChange={floorPlanProps.onHotspotsChange}
+          onPhotoTagsChange={floorPlanProps.onPhotoTagsChange}
+          onUploadFloorPlan={floorPlanProps.onUploadFloorPlan}
+          isUploading={floorPlanProps.isUploading}
+        />
+      )}
     </div>
   )
 }
@@ -1678,13 +1749,18 @@ export default function ListingFormPage() {
   const createProperty = useCreateProperty()
   const updateProperty = useUpdateProperty()
   const uploadPhotos = useUploadPropertyPhotos()
+  const uploadFloorPlan = useUploadFloorPlan()
   const createListing = useCreateListing()
+  const { canAccess } = usePlanLimits()
 
   const [currentStep, setCurrentStep] = useState(1)
   const [completedSteps, setCompletedSteps] = useState<number[]>(
     isEditMode ? [1, 2, 3, 4, 5] : []
   )
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [floorPlanUrl, setFloorPlanUrl] = useState<string | null>(null)
+  const [floorPlanHotspots, setFloorPlanHotspots] = useState<FloorPlanHotspot[]>([])
+  const [photoTags, setPhotoTags] = useState<PhotoTag[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
@@ -1788,6 +1864,15 @@ export default function ListingFormPage() {
       form.reset(existingData)
     }
   }, [existingData, form])
+
+  // Populate floor plan state from existing property
+  useEffect(() => {
+    if (existingProperty) {
+      setFloorPlanUrl(existingProperty.floor_plan_url ?? null)
+      setFloorPlanHotspots(existingProperty.floor_plan_hotspots ?? [])
+      setPhotoTags(existingProperty.photo_tags ?? [])
+    }
+  }, [existingProperty])
 
   // Redirect if edit mode but property not found (after loading)
   useEffect(() => {
@@ -1894,6 +1979,9 @@ export default function ListingFormPage() {
       lat: values.lat,
       lng: values.lng,
       features: values.features,
+      floor_plan_url: floorPlanUrl,
+      floor_plan_hotspots: floorPlanHotspots,
+      photo_tags: photoTags,
       published_at: status === 'active' ? new Date().toISOString() : undefined,
     }
   }
@@ -2113,7 +2201,25 @@ export default function ListingFormPage() {
           {currentStep === 1 && <Step1 form={form} />}
           {currentStep === 2 && <Step2 form={form} />}
           {currentStep === 3 && <Step3 form={form} />}
-          {currentStep === 4 && <Step4 form={form} pendingFiles={pendingFiles} setPendingFiles={setPendingFiles} />}
+          {currentStep === 4 && <Step4
+            form={form}
+            pendingFiles={pendingFiles}
+            setPendingFiles={setPendingFiles}
+            floorPlanProps={{
+              floorPlanUrl,
+              hotspots: floorPlanHotspots,
+              photoTags,
+              onFloorPlanChange: setFloorPlanUrl,
+              onHotspotsChange: setFloorPlanHotspots,
+              onPhotoTagsChange: setPhotoTags,
+              onUploadFloorPlan: async (file) => {
+                const propId = isEditMode ? id! : autoSavePropertyId.current ?? 'draft'
+                return uploadFloorPlan.mutateAsync({ propertyId: propId, file })
+              },
+              isUploading: uploadFloorPlan.isPending,
+              canAccess: canAccess('floorPlan'),
+            }}
+          />}
           {currentStep === 5 && <Step5 form={form} />}
         </form>
       </div>

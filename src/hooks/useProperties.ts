@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Property } from '@/types/listing'
 import type { PropertyStatus } from '@/lib/constants'
+import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 
 // ── Query single property (for edit mode) ──
 
@@ -62,6 +63,9 @@ interface CreatePropertyInput {
   postal_code: string
   photos?: string[]
   features?: string[]
+  floor_plan_url?: string | null
+  floor_plan_hotspots?: FloorPlanHotspot[]
+  photo_tags?: PhotoTag[]
   published_at?: string
 }
 
@@ -164,6 +168,32 @@ export function useUpdatePropertyStatus() {
       queryClient.invalidateQueries({ queryKey: ['property', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
       queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
+    },
+  })
+}
+
+// ── Upload floor plan image to Supabase Storage ──
+
+export function useUploadFloorPlan() {
+  const { profile } = useAuth()
+
+  return useMutation({
+    mutationFn: async ({ propertyId, file }: { propertyId: string; file: File }) => {
+      const agencyId = profile?.agency_id ?? 'default'
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const filePath = `${agencyId}/properties/${propertyId}/floor-plan/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('property-photos')
+        .upload(filePath, file, { contentType: file.type })
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('property-photos')
+        .getPublicUrl(filePath)
+
+      return urlData.publicUrl
     },
   })
 }
