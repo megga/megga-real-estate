@@ -30,27 +30,6 @@ function formatTimeFR(isoDate: string): string {
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
-function generateICS(visit: Record<string, unknown>, property: Record<string, unknown>): string {
-  const start = new Date(visit.scheduled_at as string)
-  const end = new Date(start.getTime() + 60 * 60 * 1000)
-  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  const address = `${property.address || ''}, ${property.city || ''}`
-  return [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//MEGGA//Visit//FR',
-    'BEGIN:VEVENT',
-    `DTSTART:${fmt(start)}`,
-    `DTEND:${fmt(end)}`,
-    `SUMMARY:Visite — ${property.title || property.address || 'Bien immobilier'}`,
-    `LOCATION:${address}`,
-    `DESCRIPTION:Visite planifiée via MEGGA Real Estate`,
-    `UID:${visit.id}@megga.ch`,
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].join('\r\n')
-}
-
 function buildHTML(subject: string, bodyParagraphs: string[]): string {
   return `<!DOCTYPE html>
 <html>
@@ -104,7 +83,7 @@ serve(async (req) => {
     const dateFR = formatDateFR(visit.scheduled_at)
     const timeFR = formatTimeFR(visit.scheduled_at)
     const manageUrl = `https://megga.ch/visite/${visit.id}/modifier?token=${visit.manage_token}`
-    const feedbackUrl = `https://megga.ch/visite/${visit.id}/feedback?token=${visit.manage_token}`
+    // feedbackUrl used in post-visit reminder (sent separately via pg_cron)
     const isVideo = visit.visit_type === 'video'
     const videoLabel = visit.video_platform === 'facetime' ? 'FaceTime' : 'Google Meet'
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { Star, Check, Loader2, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePublicVisit, useSubmitFeedback } from '@/hooks/useVisits'
@@ -14,7 +14,7 @@ const OBJECTIONS = [
 ]
 
 export default function VisitFeedbackPage() {
-  const { id: _visitId } = useParams<{ id: string }>()
+  // Visit ID from URL (used for display, token used for auth)
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || undefined
 

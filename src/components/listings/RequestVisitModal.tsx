@@ -23,6 +23,25 @@ const FINANCING_OPTIONS = ['Pas encore', 'En cours', 'Pré-approuvé']
 type VisitType = 'sur_place' | 'video'
 type VideoPlatform = 'google_meet' | 'facetime'
 
+// ── Pill helper (must be outside component to avoid re-creation on render) ──
+function Pill({ selected, onClick, children, className }: {
+  selected: boolean; onClick: () => void; children: React.ReactNode; className?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'px-3 py-1.5 rounded-lg border text-xs transition-colors',
+        selected ? 'border-accent bg-accent/5 text-accent font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300',
+        className
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 function isTomorrow(date: Date): boolean {
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -113,25 +132,6 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
 
     setSubmitted(true)
     setTimeout(() => { onClose(); setSubmitted(false); resetForm() }, 2500)
-  }
-
-  // ── Pill helper ──
-  function Pill({ selected, onClick, children, className }: {
-    selected: boolean; onClick: () => void; children: React.ReactNode; className?: string
-  }) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          'px-3 py-1.5 rounded-lg border text-xs transition-colors',
-          selected ? 'border-accent bg-accent/5 text-accent font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300',
-          className
-        )}
-      >
-        {children}
-      </button>
-    )
   }
 
   return createPortal(

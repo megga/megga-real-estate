@@ -699,12 +699,18 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
   const isLoading = (isMarket && loadingMarket) || (isInternal && loadingInternal)
 
+  // Build listing object
   const listing = (() => {
     const numId = parseInt(rawId || '0', 10) || 0
     if (isMarket && marketData) return applyPlaceholders(transformListing(marketData, 'market'), numId) as TransformedListing
     if (isInternal && internalData) return applyPlaceholders(transformListing(internalData, 'internal'), numId) as TransformedListing
     return null
   })()
+
+  // Build sections dynamically (add Plan tab if floor plan exists) — must be before scroll spy useEffect
+  const SECTIONS = listing?.floor_plan_url
+    ? [BASE_SECTIONS[0], { id: 'preview-plan', label: 'Plan' }, ...BASE_SECTIONS.slice(1)]
+    : BASE_SECTIONS
 
   const { data: marketTemp } = useMarketTemperature(listing?.canton, listing?.city)
 
@@ -771,11 +777,6 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
   }, [listingId, listing])
 
   if (!listingId) return null
-
-  // Build sections dynamically (add Plan tab if floor plan exists)
-  const SECTIONS = listing?.floor_plan_url
-    ? [BASE_SECTIONS[0], { id: 'preview-plan', label: 'Plan' }, ...BASE_SECTIONS.slice(1)]
-    : BASE_SECTIONS
 
   const originalPhotos = listing?.photos || []
   const stagedPhotos = listing?.staged_photos || []

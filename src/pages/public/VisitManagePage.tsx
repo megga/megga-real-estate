@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { CalendarDays, MapPin, Check, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePublicVisit, useRescheduleVisit, useCancelVisit } from '@/hooks/useVisits'
@@ -8,7 +8,7 @@ import Navbar from '@/components/layout/Navbar'
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
 
 export default function VisitManagePage() {
-  const { id: _visitId } = useParams<{ id: string }>()
+  // Visit ID from URL (used for display, token used for auth)
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || undefined
 
