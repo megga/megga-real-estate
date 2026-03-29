@@ -929,7 +929,7 @@ export default function SearchPage() {
   const { isFavorite, toggleFavorite, favoriteIds } = useFavorites()
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get('listing'))
   const mapViewRef = useRef<MapViewHandle>(null)
-  const viewedIdsRef = useRef<Set<string>>(new Set())
+  const [viewedIds, setViewedIds] = useState<string[]>([])
 
   // Market temperature for current location filter
   const { data: marketTemp } = useMarketTemperature(filters.canton || undefined, filters.city || undefined)
@@ -965,7 +965,7 @@ export default function SearchPage() {
 
   const openPreview = useCallback((id: string) => {
     setPreviewId(id)
-    viewedIdsRef.current.add(id)
+    setViewedIds(prev => prev.includes(id) ? prev : [...prev, id])
     const params = new URLSearchParams(window.location.search)
     params.set('listing', id)
     window.history.replaceState(null, '', `?${params.toString()}`)
@@ -994,7 +994,7 @@ export default function SearchPage() {
   const visible = filters.sort === 'recommended'
     ? sortByRecommendation(filtered, {
         favoriteIds,
-        viewedIds: [...viewedIdsRef.current],
+        viewedIds,
         savedSearchFilters: [],
       }, medianPricePerM2)
     : filtered
