@@ -12,7 +12,7 @@ import MapGL, {
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
 import Supercluster from 'supercluster'
-import { LocateFixed, PenTool, X, Clock, MapPinPlus, Car, Footprints, Bike, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler } from 'lucide-react'
+import { LocateFixed, PenTool, X, Clock, MapPinPlus, Car, Footprints, Bike, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, RotateCcw, Pause, Play, Briefcase, Loader2 } from 'lucide-react'
 import { useIsochrone } from '@/hooks/useIsochrone'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
@@ -106,6 +106,88 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [showGeoSearch, setShowGeoSearch] = useState(false)
   const [geoSearchQuery, setGeoSearchQuery] = useState('')
   const [geoResults, setGeoResults] = useState<Array<{ place_name: string; center: [number, number] }>>([])
+
+  // Orbit 3D
+  const [isOrbiting, setIsOrbiting] = useState(false)
+  const orbitAnimRef = useRef<number | null>(null)
+  const orbitBearingRef = useRef(0)
+
+  const startOrbit = useCallback(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    setIsOrbiting(true)
+    // Zoom in with cinematic pitch
+    const center = map.getCenter()
+    map.flyTo({ center, zoom: Math.max(map.getZoom(), 15), pitch: 65, duration: 1500 })
+    setTimeout(() => {
+      function animate() {
+        orbitBearingRef.current = (orbitBearingRef.current + 0.3) % 360
+        map?.rotateTo(orbitBearingRef.current, { duration: 0 })
+        orbitAnimRef.current = requestAnimationFrame(animate)
+      }
+      orbitAnimRef.current = requestAnimationFrame(animate)
+    }, 1700)
+  }, [])
+
+  const stopOrbit = useCallback(() => {
+    setIsOrbiting(false)
+    if (orbitAnimRef.current) {
+      cancelAnimationFrame(orbitAnimRef.current)
+      orbitAnimRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => { if (orbitAnimRef.current) cancelAnimationFrame(orbitAnimRef.current) }
+  }, [])
+
+  // Directions (commute calculator)
+  const [showCommute, setShowCommute] = useState(false)
+  const [commuteAddress, setCommuteAddress] = useState('')
+  const [commuteGeoResults, setCommuteGeoResults] = useState<Array<{ place_name: string; center: [number, number] }>>([])
+  const [commuteProfile, setCommuteProfile] = useState<'driving' | 'walking' | 'cycling'>('driving')
+  const [commuteRoute, setCommuteRoute] = useState<GeoJSON.FeatureCollection | null>(null)
+  const [commuteDuration, setCommuteDuration] = useState<number | null>(null)
+  const [commuteDistance, setCommuteDistance] = useState<number | null>(null)
+  const [commuteLoading, setCommuteLoading] = useState(false)
+  const [commuteOrigin, setCommuteOrigin] = useState<[number, number] | null>(null)
+  const [commutePickMode, setCommutePickMode] = useState(false)
+
+  const searchCommuteAddr = useCallback(async (q: string) => {
+    setCommuteAddress(q)
+    if (q.length < 3) { setCommuteGeoResults([]); return }
+    try {
+      const resp = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?country=ch&language=fr&limit=5&access_token=${MAPBOX_TOKEN}`)
+      const data = await resp.json()
+      setCommuteGeoResults(data.features?.map((f: Record<string, unknown>) => ({ place_name: f.place_name as string, center: f.center as [number, number] })) || [])
+    } catch { setCommuteGeoResults([]) }
+  }, [])
+
+  const fetchCommuteRoute = useCallback(async (dest: [number, number]) => {
+    if (!commuteOrigin) return
+    setCommuteLoading(true)
+    setCommuteGeoResults([])
+    try {
+      const resp = await fetch(`https://api.mapbox.com/directions/v5/mapbox/${commuteProfile}/${commuteOrigin[0]},${commuteOrigin[1]};${dest[0]},${dest[1]}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`)
+      const data = await resp.json()
+      const route = data.routes?.[0]
+      if (!route) throw new Error('No route')
+      setCommuteDuration(Math.round(route.duration / 60))
+      setCommuteDistance(Math.round(route.distance / 100) / 10)
+      setCommuteRoute({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: route.geometry, properties: {} }] })
+      const coords = route.geometry.coordinates as [number, number][]
+      const lngs = coords.map(c => c[0])
+      const lats = coords.map(c => c[1])
+      mapRef.current?.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 80, duration: 1000, pitch: 30 })
+    } catch { setCommuteRoute(null); setCommuteDuration(null) }
+    finally { setCommuteLoading(false) }
+  }, [commuteOrigin, commuteProfile])
+
+  const clearCommute = useCallback(() => {
+    setCommuteRoute(null); setCommuteDuration(null); setCommuteDistance(null)
+    setCommuteAddress(''); setCommuteGeoResults([]); setCommuteOrigin(null)
+    setCommutePickMode(false)
+  }, [])
 
   // Apply light preset to Standard style
   useEffect(() => {
@@ -246,7 +328,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   const handleMove = useCallback((evt: ViewStateChangeEvent) => {
     setViewState(evt.viewState)
-  }, [])
+    if (isOrbiting) stopOrbit()
+  }, [isOrbiting, stopOrbit])
 
   function handleClusterClick(clusterId: number, lng: number, lat: number) {
     const zoom = supercluster.getClusterExpansionZoom(clusterId)
@@ -300,6 +383,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   }
 
   function handleMapClick(e: MapMouseEvent) {
+    // Commute: pick origin point on map
+    if (commutePickMode) {
+      setCommuteOrigin([e.lngLat.lng, e.lngLat.lat])
+      setCommutePickMode(false)
+      return
+    }
     if (!isDrawing) return
 
     const newPoint: [number, number] = [e.lngLat.lng, e.lngLat.lat]
@@ -667,6 +756,23 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             />
           </Source>
         )}
+
+        {/* Commute route line */}
+        {commuteRoute && (
+          <Source id="commute-route" type="geojson" data={commuteRoute}>
+            <Layer id="commute-line-bg" type="line" paint={{ 'line-color': '#2563EB', 'line-width': 6, 'line-opacity': 0.3 }} />
+            <Layer id="commute-line" type="line" paint={{ 'line-color': '#2563EB', 'line-width': 3, 'line-opacity': 0.9 }} />
+          </Source>
+        )}
+
+        {/* Commute origin marker */}
+        {commuteOrigin && (
+          <Marker latitude={commuteOrigin[1]} longitude={commuteOrigin[0]} anchor="bottom">
+            <div className="h-6 w-6 bg-accent rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+              <Briefcase className="h-3 w-3 text-white" />
+            </div>
+          </Marker>
+        )}
       </MapGL>
 
       {/* Top-left buttons */}
@@ -932,6 +1038,37 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               Prix/m²
             </button>
 
+            {/* Orbit 3D */}
+            <button
+              onClick={isOrbiting ? stopOrbit : startOrbit}
+              className={cn(
+                'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
+                isOrbiting
+                  ? 'bg-accent text-white border-accent'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              )}
+            >
+              {isOrbiting ? <Pause className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              {isOrbiting ? 'Arrêter' : 'Orbit 3D'}
+            </button>
+
+            {/* Commute calculator */}
+            <button
+              onClick={() => {
+                if (showCommute) { setShowCommute(false); clearCommute() }
+                else { setShowCommute(true); setCommutePickMode(true) }
+              }}
+              className={cn(
+                'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
+                showCommute
+                  ? 'bg-accent text-white border-accent'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              )}
+            >
+              <Briefcase className="h-3.5 w-3.5" />
+              Mon trajet
+            </button>
+
             {/* Geocoding search */}
             <div className="relative">
               <button
@@ -997,9 +1134,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               <Ruler className="h-3.5 w-3.5 text-gray-500" />
               <span className="text-xs font-medium text-gray-700">
                 Surface : {(() => {
-                  // Shoelace formula for polygon area in m²
                   const coords = closedPolygon
-                  const R = 6371000 // Earth radius in meters
+                  const R = 6371000
                   const toRad = (d: number) => d * Math.PI / 180
                   let area = 0
                   for (let i = 0; i < coords.length; i++) {
@@ -1013,6 +1149,87 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   return `${Math.round(area).toLocaleString('fr-CH')} m²`
                 })()}
               </span>
+            </div>
+          )}
+
+          {/* Orbit active indicator */}
+          {isOrbiting && (
+            <div className="absolute bottom-4 right-4 z-[5] bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-pulse">
+              <Play className="h-3 w-3 fill-white" />
+              Vue orbitale
+            </div>
+          )}
+
+          {/* Commute pick mode instruction */}
+          {commutePickMode && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[6] bg-gray-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+              <Briefcase className="h-3.5 w-3.5" />
+              Cliquez sur la carte pour placer votre point de départ
+              <button onClick={() => { setCommutePickMode(false); setShowCommute(false) }} className="ml-2 text-white/60 hover:text-white transition-colors cursor-pointer">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Commute panel (after origin is placed) */}
+          {showCommute && commuteOrigin && !commutePickMode && (
+            <div className="absolute top-3 left-3 z-[5] w-72 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <div className="p-3 border-b border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-gray-900">Temps de trajet</span>
+                  <button onClick={() => { setShowCommute(false); clearCommute() }} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="flex gap-1 mb-2">
+                  {(['driving', 'walking', 'cycling'] as const).map(p => {
+                    const icons = { driving: Car, walking: Footprints, cycling: Bike }
+                    const labels = { driving: 'Voiture', walking: 'À pied', cycling: 'Vélo' }
+                    const Icon = icons[p]
+                    return (
+                      <button key={p} onClick={() => setCommuteProfile(p)} className={cn('flex-1 h-7 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer', commuteProfile === p ? 'bg-accent/10 text-accent' : 'text-gray-500 hover:bg-gray-50')}>
+                        <Icon className="h-3 w-3" />
+                        {labels[p]}
+                      </button>
+                    )
+                  })}
+                </div>
+                <input
+                  type="text"
+                  value={commuteAddress}
+                  onChange={(e) => searchCommuteAddr(e.target.value)}
+                  placeholder="Destination (adresse, lieu)..."
+                  className="w-full h-8 px-3 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  autoFocus
+                />
+              </div>
+              {commuteGeoResults.length > 0 && (
+                <div className="max-h-40 overflow-y-auto border-b border-gray-100">
+                  {commuteGeoResults.map((r, i) => (
+                    <button key={i} onClick={() => fetchCommuteRoute(r.center)} className="w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 text-left cursor-pointer truncate">
+                      {r.place_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {commuteLoading && (
+                <div className="p-3 flex items-center justify-center gap-2 text-xs text-gray-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Calcul...
+                </div>
+              )}
+              {commuteDuration !== null && !commuteLoading && (
+                <div className="p-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-gray-900">{commuteDuration}</span>
+                    <span className="text-xs text-gray-500">min</span>
+                    <span className="text-xs text-gray-400">· {commuteDistance} km</span>
+                  </div>
+                  <button onClick={clearCommute} className="mt-2 w-full h-7 rounded-lg text-[10px] text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                    Effacer
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </>
