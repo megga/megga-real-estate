@@ -62,6 +62,7 @@ interface CreatePropertyInput {
   canton: string
   postal_code: string
   photos?: string[]
+  video_url?: string
   features?: string[]
   floor_plan_url?: string | null
   floor_plan_hotspots?: FloorPlanHotspot[]

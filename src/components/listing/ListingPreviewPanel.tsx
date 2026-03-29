@@ -8,6 +8,8 @@ import {
   Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check, GitCompareArrows,
 } from 'lucide-react'
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation'
+import { useZoomPan } from '@/hooks/useZoomPan'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
 import { useQuery } from '@tanstack/react-query'
@@ -316,6 +318,17 @@ function Lightbox({
     if (index > 0) onIndexChange(index - 1)
   }, [index, onIndexChange])
 
+  const { isZoomed, style: zoomStyle, containerRef, handlers: zoomHandlers } = useZoomPan({
+    index,
+    enabled: open,
+  })
+
+  const { onTouchStart: swipeTouchStart, onTouchEnd: swipeTouchEnd } = useSwipeNavigation({
+    onSwipeLeft: goNext,
+    onSwipeRight: goPrev,
+    enabled: open && !isZoomed,
+  })
+
   useEffect(() => {
     if (!open) return
     function handleKey(e: KeyboardEvent) {
@@ -354,15 +367,27 @@ function Lightbox({
         </button>
       </div>
 
-      {/* Image */}
-      <div className="flex-1 flex items-center justify-center px-2 md:px-8 relative min-h-0">
+      {/* Image with swipe + zoom */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center px-2 md:px-8 relative min-h-0 overflow-hidden"
+        onTouchStart={(e) => { zoomHandlers.onTouchStart(e); swipeTouchStart(e) }}
+        onTouchMove={zoomHandlers.onTouchMove}
+        onTouchEnd={(e) => { zoomHandlers.onTouchEnd(); swipeTouchEnd(e) }}
+        onMouseDown={zoomHandlers.onMouseDown}
+        onMouseMove={zoomHandlers.onMouseMove}
+        onMouseUp={zoomHandlers.onMouseUp}
+        onMouseLeave={zoomHandlers.onMouseUp}
+      >
         <img
           src={photos[index]}
           alt=""
-          className="max-h-[calc(100vh-160px)] max-w-full object-contain transition-opacity duration-200"
+          className="max-h-[calc(100vh-160px)] max-w-full object-contain select-none"
+          style={zoomStyle}
+          draggable={false}
           key={index}
         />
-        {index > 0 && (
+        {index > 0 && !isZoomed && (
           <button
             onClick={goPrev}
             className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
@@ -371,7 +396,7 @@ function Lightbox({
             <ChevronLeft className="h-5 w-5 text-white" />
           </button>
         )}
-        {index < photos.length - 1 && (
+        {index < photos.length - 1 && !isZoomed && (
           <button
             onClick={goNext}
             className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"

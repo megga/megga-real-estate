@@ -1,17 +1,21 @@
 import { useState, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Images, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { buildGalleryMedia } from '@/lib/galleryMedia'
+import VideoPlayer from '@/components/listing/VideoPlayer'
 
 interface ListingHeroGalleryProps {
   photos: string[]
+  videoUrl?: string
   title: string
   onOpenLightbox: (index: number) => void
 }
 
-export default function ListingHeroGallery({ photos, title, onOpenLightbox }: ListingHeroGalleryProps) {
+export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLightbox }: ListingHeroGalleryProps) {
   const [heroIndex, setHeroIndex] = useState(0)
   const [mobileIndex, setMobileIndex] = useState(0)
   const carouselRef = useRef<HTMLDivElement>(null)
+  const media = buildGalleryMedia(photos, videoUrl)
 
   const photoCount = photos.length
   const hasPhotos = photoCount > 0
@@ -80,16 +84,20 @@ export default function ListingHeroGallery({ photos, title, onOpenLightbox }: Li
             />
           </button>
 
-          {/* Bottom-right photo */}
+          {/* Bottom-right photo or video */}
           <div
             className="col-span-2 row-span-1 relative overflow-hidden group cursor-pointer"
             onClick={() => onOpenLightbox(2)}
           >
-            <img
-              src={photo3}
-              alt=""
-              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-            />
+            {videoUrl ? (
+              <VideoPlayer src={videoUrl} mode="thumbnail" className="w-full h-full" onClick={() => onOpenLightbox(media.findIndex(m => m.type === 'video'))} />
+            ) : (
+              <img
+                src={photo3}
+                alt=""
+                className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              />
+            )}
             {/* "See all photos" overlay */}
             <div className="absolute bottom-4 right-4">
               <button
