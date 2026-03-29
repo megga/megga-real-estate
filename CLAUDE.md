@@ -1893,8 +1893,81 @@ supabase/migrations/20260330_004_c2pa_shield.sql
 - **Optimisations perf** : debounce geocoding 350ms, clusters via onMoveEnd (pas 60x/sec), heatmap GeoJSON memoizé, radius slider debounced 200ms, backdrop-blur réduit
 - **Fichiers** : `MapView.tsx` (~1600 lignes), `NeighborhoodOverlay.tsx` (150 lignes)
 
+#### Split 3 modes Zillow-style — 29 mars 2026
+- **3 modes unifiés** : Grille (plein écran 3 cols) / Split (grid 2 cols + carte 65%) / Carte (mini-list + carte plein écran). Mode Liste supprimé.
+- **Toggle unifié** : 3 boutons (LayoutGrid / Columns2 / Map) dans la barre de filtres, persisté dans `localStorage` clé `megga-layout-mode`
+- **Split mode grid 2 colonnes** : style Zillow — photos hero, 4 biens visibles, ratio 35%/65% listings/carte par défaut
+- **Séparateur draggable** : poignée 4px entre les panels, drag via `pointer-events` natif (min 20% / max 80%), ratio persisté dans `megga-split-ratio`
+- **Transitions animées** : `transition-[width,min-width] duration-300 ease-out` sur les panels
+- **Mode carte mini-list** : composant `ListingCardCompact` — thumbnail 72px + prix bold + adresse + pièces/m²
+- **Filtres non contraints** : `max-width` dynamique via inline style, appliqué uniquement en split avec le ratio actuel
+- **Scrollbar cachée** : `.scrollbar-hide` sur la zone des listing cards
+- **Compteur adaptatif** : masqué en mode carte (la carte a son propre compteur viewport)
+
+#### Pins Zillow-style + clustering intelligent — 29 mars 2026
+- **Prix individuels sur chaque pin** : fond sombre `bg-gray-900`, texte blanc, bordure blanche — lisible sur tous les fonds
+- **Format compact** : `1.2M` pour millions, `530K` pour milliers via `formatPricePin()`
+- **Clustering léger** : `Supercluster` radius 35, maxZoom 14, `map/reduce` pour calculer le prix minimum du cluster
+- **Clusters avec prix** : affichent le prix le plus bas + compteur `648K +19` (pas juste un chiffre)
+- **Hover pulse** : pin pulse bleu `animate-ping` + z-index 50 quand survolé depuis la liste
+- **Hover tooltip** : mini popup photo+prix+adresse au survol d'un pin (sans cliquer), `pointer-events-none`
+- **Max 500 pins** rendus pour la performance (`.slice(0, 500)`)
+
+#### Améliorations carte visibilité — 29 mars 2026
+- **Light preset forcé jour** : `setConfigProperty('basemap', 'lightPreset', 'day')` au `onLoad` + `style.load` — empêche le mode nuit automatique
+- **Glow blanc sur tous les overlays** : chaque ligne (dessin zone, isochrone, trajet, rayon) a un layer blanc 5-8px 40-50% opacité en dessous pour visibilité sur fond sombre
+- **Fills renforcés** : opacité augmentée (8% → 15-18%) pour meilleure visibilité
+- **Points de dessin agrandis** : 5px → 6px, stroke 2 → 2.5
+- **`MapView.resize()`** : méthode exposée via `useImperativeHandle`, appelée après changement de layout (350ms delay) et après fin du drag séparateur
+
+#### Split mode améliorations UX — 29 mars 2026
+- **"Lier à la carte"** : toggle checkbox dans la barre de filtres — filtre les listings pour ne montrer que ceux dans le viewport carte
+- **Compteur viewport** : badge "X biens" en bas de la carte à côté de Outils/Immersif, mis à jour à chaque `onMoveEnd`
+- **`onViewportChange` callback** : MapView envoie les bounds `{west, south, east, north}` à SearchPage à chaque pan/zoom
+- **Filtre viewport gracieux** : si aucun listing ne match dans le viewport, affiche quand même tous les listings (pas d'empty state frustrant)
+
+### Stratégie vendeur (décidée — 29 mars 2026)
+
+**Modèle validé : Lead Generation avec hook estimation IA**
+
+Basé sur l'analyse des géants mondiaux (Zillow $2.2B, RealAdvisor $31M, MeilleursAgents racheté €200M, REA Group AUD $2B) :
+- Le vendeur NE publie PAS directement — il DEMANDE à vendre
+- L'estimation gratuite est le HOOK (comme Zestimate/RealAdvisor)
+- Le lead qualifié arrive dans le CRM de l'agent avec toutes les données pré-remplies
+- L'agent prend le mandat, professionnalise, publie
+- Le vendeur suit via le portail vendeur (déjà construit)
+
+**Différenciateur vs RealAdvisor :** RealAdvisor = lead-gen pur. MEGGA = lead-gen + operating system agent (CRM + KYC + pipeline + matching + portail vendeur). Le lead arrive ET les outils pour le closer sont intégrés.
+
+**3 phases :**
+1. **Phase 1 (maintenant)** : Page `/vendre` wizard estimation IA → lead vendeur dans CRM agent
+2. **Phase 2 (20+ agences)** : Matching agent — proposer les agents partenaires dans la zone du bien
+3. **Phase 3 (100+ agences)** : Network effect — estimation premium, partenariats bancaires, data insights
+
+**Flow vendeur Phase 1 :**
+```
+/vendre → Étape 1 (adresse autocomplete)
+        → Étape 2 (type, pièces, surface, état, année)
+        → Étape 3 (photos drag & drop, min 3)
+        → Estimation IA instantanée (basée sur market_listings prix/m² canton + comparables)
+        → Étape 4 (coordonnées vendeur : nom, tel, email, motivation)
+        → Lead créé dans CRM (contact type:'seller' + property status:'draft' + estimation)
+        → Email confirmation vendeur + notification agent Action Board
+```
+
+**Tables :**
+- `seller_leads` : id, property_data (JSONB), estimation_min, estimation_max, estimation_method, contact_name, contact_email, contact_phone, motivation, assigned_agency_id, status (new/contacted/mandate/lost), created_at
+- Réutilise `contacts` (type: 'seller') + `properties` (status: 'draft') existants
+
+**Estimation IA :**
+- Fonction `estimatePropertyPrice(canton, city, type, rooms, surface)`
+- Basée sur `market_listings` : prix/m² médian par canton/ville/type + écart-type
+- Fourchette min-max (±15% autour de la médiane)
+- 5 biens comparables affichés (même canton + type + surface ±30%)
+- Score de confiance (basé sur nombre de comparables trouvés)
+
 ### Prochaines priorités
-1. **Améliorer Split 3 modes** — cards compactes en mode carte (photo+prix seulement), transition animée, scroll sync liste↔carte, filtres non contraints à 55%, fusionner toggles view/layout, séparateur draggable
+1. **Page `/vendre` — wizard estimation IA + lead CRM** (stratégie vendeur Phase 1)
 2. **"Mes lieux" multi-POI** — poser travail+école+sport sur la carte, chaque bien affiche le trajet vers tous les POIs (Rightmove-style, personne en Suisse ne l'a)
 3. **Carte des prix temporelle** — overlay prix/m² par quartier avec slider 12 mois (basé sur market_price_history)
 4. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()

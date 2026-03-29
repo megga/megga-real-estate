@@ -51,6 +51,7 @@ export interface MapViewHandle {
   startIsochrone: () => void
   enterImmersive: () => void
   exitImmersive: () => void
+  resize: () => void
   /** Whether draw zone or isochrone is currently active */
   hasActiveZone: boolean
   isDrawing: boolean
@@ -75,6 +76,7 @@ interface MapViewProps {
   onImmersiveChange?: (isImmersive: boolean) => void
   onQuickFilter?: (filters: QuickFilters) => void
   onSelectListing?: (id: string) => void
+  onViewportChange?: (bounds: { west: number; south: number; east: number; north: number }) => void
   className?: string
 }
 
@@ -115,7 +117,7 @@ const MAP_STYLES = [
 
 type MapStyleId = typeof MAP_STYLES[number]['id']
 
-const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onSelectListing, className }, ref) {
+const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onSelectListing, onViewportChange, className }, ref) {
   const mapRef = useRef<MapRef>(null)
   const [mapStyleId, setMapStyleId] = useState<MapStyleId>('standard')
   const [showStylePicker, setShowStylePicker] = useState(false)
@@ -128,6 +130,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     bearing: 0,
   })
   const [selectedListing, setSelectedListing] = useState<ListingCardData | null>(null)
+  const [hoveredPin, setHoveredPin] = useState<ListingCardData | null>(null)
+  const [viewportCount, setViewportCount] = useState(0)
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
@@ -473,6 +477,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     startIsochrone: () => setIsoMode(true),
     enterImmersive,
     exitImmersive,
+    resize: () => mapRef.current?.resize(),
     get hasActiveZone() { return !!closedPolygon || !!isochrone },
     get isDrawing() { return isDrawing },
     get isIsoMode() { return isoMode },
@@ -528,11 +533,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       }))
   }, [mapPoints, listings])
 
-  // Build supercluster index
+  // Build supercluster index — light clustering at low zoom, individual prices at high zoom
   const supercluster = useMemo(() => {
     const sc = new Supercluster<{ listing: ListingCardData }>({
-      radius: 60,
-      maxZoom: 16,
+      radius: 35,
+      maxZoom: 14,
+      map: (props) => ({ minPrice: props.listing.price }),
+      reduce: (acc, props) => { acc.minPrice = Math.min(acc.minPrice, props.minPrice) },
     })
     sc.load(points)
     return sc
@@ -552,11 +559,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     if (!map) return
     const b = map.getBounds()
     if (!b) return
-    setClusterBounds({
-      zoom: map.getZoom(),
-      bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
-    })
-  }, [])
+    const bounds: [number, number, number, number] = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+    setClusterBounds({ zoom: map.getZoom(), bounds })
+    // Count points in viewport
+    const allInView = supercluster.getClusters(bounds, 20) // zoom 20 = no clustering = individual count
+    setViewportCount(allInView.length)
+    // Notify parent of viewport bounds
+    onViewportChange?.({ west: bounds[0], south: bounds[1], east: bounds[2], north: bounds[3] })
+  }, [supercluster, onViewportChange])
 
   const handleMove = useCallback((evt: ViewStateChangeEvent) => {
     setViewState(evt.viewState)
@@ -788,6 +798,15 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           const map = e.target
           // Initialize cluster bounds
           updateClusterBounds()
+          // Force light preset on load (Standard auto-detects local time which makes the map dark at night)
+          if (mapStyleId === 'standard') {
+            const applyLight = () => {
+              try { map.setConfigProperty('basemap', 'lightPreset', lightPreset) } catch { /* not ready */ }
+            }
+            applyLight()
+            // Also retry after style is fully loaded (config properties may not be ready on first load)
+            map.once('style.load', applyLight)
+          }
           // Add terrain DEM source for 3D terrain (Standard style)
           if (mapStyleId === 'standard' && !map.getSource('mapbox-dem')) {
             map.addSource('mapbox-dem', {
@@ -811,17 +830,28 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               filter={['==', '$type', 'Polygon']}
               paint={{
                 'fill-color': '#2563EB',
-                'fill-opacity': 0.08,
+                'fill-opacity': 0.15,
               }}
             />
-            {/* Polygon outline */}
+            {/* Polygon outline — white glow for visibility on dark backgrounds */}
+            <Layer
+              id="draw-line-glow"
+              type="line"
+              filter={['==', '$type', 'LineString']}
+              paint={{
+                'line-color': '#FFFFFF',
+                'line-width': 5,
+                'line-opacity': 0.5,
+              }}
+            />
+            {/* Polygon outline — accent line on top */}
             <Layer
               id="draw-line"
               type="line"
               filter={['==', '$type', 'LineString']}
               paint={{
                 'line-color': '#2563EB',
-                'line-width': 2,
+                'line-width': 2.5,
                 'line-dasharray': closedPolygon ? [1] : [2, 2],
               }}
             />
@@ -831,23 +861,24 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               type="circle"
               filter={['==', '$type', 'Point']}
               paint={{
-                'circle-radius': 5,
+                'circle-radius': 6,
                 'circle-color': '#FFFFFF',
                 'circle-stroke-color': '#2563EB',
-                'circle-stroke-width': 2,
+                'circle-stroke-width': 2.5,
               }}
             />
           </Source>
         )}
 
-        {/* Render clusters and individual pins */}
-        {clusters.map((cluster) => {
+        {/* Render price pins — Zillow-style: clusters show "from X" price, individuals show exact price */}
+        {clusters.slice(0, 500).map((cluster) => {
           const [lng, lat] = cluster.geometry.coordinates
           const props = cluster.properties as Record<string, unknown>
           const isCluster = props.cluster
 
           if (isCluster) {
             const pointCount = props.point_count as number
+            const minPrice = props.minPrice as number
             return (
               <Marker key={`cluster-${cluster.id}`} longitude={lng} latitude={lat} anchor="center">
                 <button
@@ -856,15 +887,16 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                     e.stopPropagation()
                     handleClusterClick(cluster.id as number, lng, lat)
                   }}
-                  className="w-10 h-10 bg-accent text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md border-2 border-white hover:scale-110 transition-transform cursor-pointer"
+                  className="rounded-full text-[11px] font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2 bg-gray-900 text-white border-white/80 hover:scale-110 hover:bg-gray-800 flex items-center gap-1"
                 >
-                  {pointCount}
+                  {formatPricePin(minPrice)}
+                  <span className="text-[9px] font-normal text-white/60">+{pointCount}</span>
                 </button>
               </Marker>
             )
           }
 
-          // Individual pin
+          // Individual pin — dark pill with price (Zillow-style)
           const listing = cluster.properties.listing
           const isHovered = hoveredId === listing.id
           const isSelected = selectedListing?.id === listing.id
@@ -879,29 +911,69 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               longitude={lng}
               latitude={lat}
               anchor="center"
+              style={{ zIndex: isHovered || isSelected ? 50 : 1 }}
             >
-              <button
-                onClick={(e) => {
-                  if (isDrawing) return
-                  e.stopPropagation()
-                  handlePinClick(listing)
-                }}
-                onMouseEnter={() => onHover?.(listing.id)}
-                onMouseLeave={() => onHover?.(undefined)}
-                className={cn(
-                  'rounded-full text-[11px] font-bold px-2.5 py-1 border shadow-sm whitespace-nowrap transition-all duration-200 cursor-pointer',
-                  isHovered || isSelected
-                    ? 'bg-accent text-white border-accent shadow-md scale-110 z-10'
-                    : isInZone
-                      ? 'bg-white text-gray-900 border-gray-200 hover:scale-110 hover:shadow-md'
-                      : 'bg-gray-100 text-gray-400 border-gray-200 opacity-50'
+              <div className="relative">
+                {/* Pulse ring when hovered from list */}
+                {isHovered && !isSelected && (
+                  <span className="absolute inset-0 rounded-full border-2 border-accent animate-ping opacity-40 pointer-events-none" />
                 )}
-              >
-                {formatPricePin(listing.price, listing.context)}
-              </button>
+                <button
+                  onClick={(e) => {
+                    if (isDrawing) return
+                    e.stopPropagation()
+                    handlePinClick(listing)
+                  }}
+                  onMouseEnter={() => { onHover?.(listing.id); setHoveredPin(listing) }}
+                  onMouseLeave={() => { onHover?.(undefined); setHoveredPin(null) }}
+                  className={cn(
+                    'relative rounded-full text-[11px] font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2',
+                    isHovered || isSelected
+                      ? 'bg-accent text-white border-white shadow-xl scale-110'
+                      : isInZone
+                        ? 'bg-gray-900 text-white border-white/80 hover:scale-110 hover:bg-gray-800'
+                        : 'bg-gray-400 text-white/70 border-white/50 opacity-60'
+                  )}
+                >
+                  {formatPricePin(listing.price, listing.context)}
+                </button>
+              </div>
             </Marker>
           )
         })}
+
+        {/* Hover tooltip — mini preview on pin hover (without clicking) */}
+        {hoveredPin && hoveredPin.lat && hoveredPin.lng && !selectedListing && !isDrawing && (
+          <Popup
+            longitude={hoveredPin.lng}
+            latitude={hoveredPin.lat}
+            anchor="bottom"
+            closeButton={false}
+            closeOnClick={false}
+            offset={16}
+            maxWidth="180px"
+            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-lg [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-lg pointer-events-none"
+          >
+            <div className="w-[170px]">
+              {hoveredPin.photos?.[0] ? (
+                <img src={hoveredPin.photos[0]} alt="" className="w-full h-20 object-cover" />
+              ) : (
+                <div className="w-full h-20 bg-gray-100 flex items-center justify-center">
+                  <Building2 className="h-6 w-6 text-gray-300" />
+                </div>
+              )}
+              <div className="p-2">
+                <p className="text-xs font-bold text-gray-900">{formatCHF(hoveredPin.price)}</p>
+                <p className="text-[10px] text-gray-500 truncate mt-0.5">{hoveredPin.address}, {hoveredPin.city}</p>
+                {hoveredPin.rooms > 0 && (
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {hoveredPin.rooms}p. · {hoveredPin.surface_m2 > 0 ? formatSurface(hoveredPin.surface_m2) : ''}
+                  </p>
+                )}
+              </div>
+            </div>
+          </Popup>
+        )}
 
         {/* Popup — Rich card in immersive mode, compact otherwise */}
         {selectedListing && selectedListing.lat && selectedListing.lng && !isDrawing && (
@@ -972,7 +1044,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <Layer
               id="isochrone-fill"
               type="fill"
-              paint={{ 'fill-color': '#2563EB', 'fill-opacity': 0.15 }}
+              paint={{ 'fill-color': '#2563EB', 'fill-opacity': 0.18 }}
+            />
+            {/* White glow for visibility on dark backgrounds */}
+            <Layer
+              id="isochrone-line-glow"
+              type="line"
+              paint={{ 'line-color': '#FFFFFF', 'line-width': 6, 'line-opacity': 0.5 }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             />
             <Layer
               id="isochrone-line"
@@ -1030,6 +1109,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         {/* Commute route line */}
         {commuteRoute && (
           <Source id="commute-route" type="geojson" data={commuteRoute}>
+            <Layer id="commute-line-glow" type="line" paint={{ 'line-color': '#FFFFFF', 'line-width': 8, 'line-opacity': 0.4 }} />
             <Layer id="commute-line-bg" type="line" paint={{ 'line-color': '#2563EB', 'line-width': 6, 'line-opacity': 0.3 }} />
             <Layer id="commute-line" type="line" paint={{ 'line-color': '#2563EB', 'line-width': 3, 'line-opacity': 0.9 }} />
           </Source>
@@ -1089,7 +1169,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               <Layer
                 id="search-radius-fill"
                 type="fill"
-                paint={{ 'fill-color': '#2563EB', 'fill-opacity': 0.08 }}
+                paint={{ 'fill-color': '#2563EB', 'fill-opacity': 0.15 }}
+              />
+              {/* White glow for visibility on dark backgrounds */}
+              <Layer
+                id="search-radius-line-glow"
+                type="line"
+                paint={{ 'line-color': '#FFFFFF', 'line-width': 5, 'line-opacity': 0.4 }}
               />
               <Layer
                 id="search-radius-line"
@@ -1611,6 +1697,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               )}
             </div>
           </>
+        )}
+
+        {/* Viewport counter */}
+        {!isImmersive && viewportCount > 0 && (
+          <span className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-500 text-xs font-medium flex items-center tabular-nums">
+            {viewportCount.toLocaleString('fr-CH')} biens
+          </span>
         )}
       </div>
 

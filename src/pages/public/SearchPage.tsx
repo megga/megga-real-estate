@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Search,
@@ -7,13 +7,11 @@ import {
   MapPin,
   Heart,
   LayoutGrid,
-  List,
   DoorOpen,
   BedDouble,
   Maximize,
   Map,
   SlidersHorizontal,
-  PanelLeft,
   Columns2,
   Sparkles,
   Building2,
@@ -43,7 +41,7 @@ import { useMarketTemperature } from '@/hooks/useMarketInsights'
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
 type Context = 'buy' | 'rent'
-type ViewMode = 'list' | 'grid'
+type LayoutMode = 'grid' | 'split' | 'map'
 type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc' | 'best_deals' | 'recommended'
 
 interface Filters {
@@ -61,7 +59,6 @@ interface Filters {
   lifestyleTags: string[]
   energyLabel: string
   sort: SortOption
-  view: ViewMode
 }
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
@@ -395,7 +392,6 @@ function parseFiltersFromParams(params: URLSearchParams): Filters {
     lifestyleTags: params.get('lifestyle')?.split(',').filter(Boolean) || [],
     energyLabel: params.get('energyLabel') || '',
     sort: (params.get('sort') as SortOption) || 'relevance',
-    view: (params.get('view') as ViewMode) || 'list',
   }
 }
 
@@ -415,7 +411,6 @@ function filtersToParams(filters: Filters): Record<string, string> {
   if (filters.lifestyleTags.length) p.lifestyle = filters.lifestyleTags.join(',')
   if (filters.energyLabel) p.energyLabel = filters.energyLabel
   if (filters.sort !== 'relevance') p.sort = filters.sort
-  if (filters.view !== 'list') p.view = filters.view
   return p
 }
 
@@ -458,6 +453,74 @@ function toServerFilters(filters: Filters): MarketFilters {
   if (filters.energyLabel) sf.energyLabel = filters.energyLabel
 
   return sf
+}
+
+// ─── LISTING CARD COMPACT (map mode mini-list) ─────────────────────────────
+
+function ListingCardCompact({
+  listing,
+  onHover,
+  isHovered,
+  isActive,
+  onPreview,
+}: {
+  listing: ListingCardData
+  onHover?: (id: string | undefined) => void
+  isHovered?: boolean
+  isActive?: boolean
+  onPreview?: (id: string) => void
+}) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const photos = listing.photos?.length ? listing.photos : []
+
+  useEffect(() => {
+    if ((isHovered || isActive) && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [isHovered, isActive])
+
+  return (
+    <div
+      ref={cardRef}
+      data-listing-id={listing.id}
+      onClick={() => onPreview?.(listing.id)}
+      className={cn(
+        'flex items-center gap-2.5 p-2 rounded-lg transition-all duration-150 cursor-pointer',
+        isActive
+          ? 'bg-accent/10 ring-1 ring-accent/30'
+          : isHovered
+            ? 'bg-gray-100'
+            : 'hover:bg-gray-50'
+      )}
+      onMouseEnter={() => onHover?.(listing.id)}
+      onMouseLeave={() => onHover?.(undefined)}
+    >
+      {/* Thumbnail */}
+      <div className="w-[72px] h-[72px] rounded-md overflow-hidden shrink-0 bg-gray-100">
+        {photos.length > 0 ? (
+          <img src={photos[0]} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Building2 className="h-6 w-6 text-gray-300" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 truncate">
+          {formatCHF(listing.price)}
+        </p>
+        <p className="text-xs text-gray-500 truncate mt-0.5">
+          {listing.address}, {listing.city}
+        </p>
+        <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+          {listing.rooms > 0 && <span>{listing.rooms}p.</span>}
+          {listing.surface_m2 > 0 && <span>{formatSurface(listing.surface_m2)}</span>}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── FILTER PILL DROPDOWN ───────────────────────────────────────────────────
@@ -1009,6 +1072,8 @@ export default function SearchPage() {
   const [aiUnderstood, setAiUnderstood] = useState<string[]>([])
   const [showAiBanner, setShowAiBanner] = useState(false)
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
+  const [mapBounds, setMapBounds] = useState<{ west: number; south: number; east: number; north: number } | null>(null)
+  const [filterByMap, setFilterByMap] = useState(false) // "Search as I move the map" — off by default
   const [showChat, setShowChat] = useState(false)
   const [plusOpen, setPlusOpen] = useState(false)
   const [compareIds, setCompareIds] = useState<string[]>(() => {
@@ -1029,8 +1094,31 @@ export default function SearchPage() {
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get('listing'))
   const mapViewRef = useRef<MapViewHandle>(null)
   const [mapImmersive, setMapImmersive] = useState(false)
-  const [layoutMode, setLayoutMode] = useState<'split' | 'list' | 'map'>('split')
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
+    const stored = localStorage.getItem('megga-layout-mode')
+    if (stored && ['grid', 'split', 'map'].includes(stored)) return stored as LayoutMode
+    return 'split'
+  })
+  const [splitRatio, setSplitRatio] = useState(() => {
+    const stored = localStorage.getItem('megga-split-ratio')
+    return stored ? Math.max(20, Math.min(80, Number(stored))) : 35
+  })
+  const [isDragging, setIsDragging] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [viewedIds, setViewedIds] = useState<string[]>([])
+
+  // Persist layout mode + resize map after transition
+  useEffect(() => {
+    localStorage.setItem('megga-layout-mode', layoutMode)
+    // Mapbox needs resize() after the CSS transition completes (300ms)
+    const timer = setTimeout(() => mapViewRef.current?.resize(), 350)
+    return () => clearTimeout(timer)
+  }, [layoutMode])
+
+  // Persist split ratio + resize map
+  useEffect(() => {
+    localStorage.setItem('megga-split-ratio', String(splitRatio))
+  }, [splitRatio])
 
   // Market temperature for current location filter
   const { data: marketTemp } = useMarketTemperature(filters.canton || undefined, filters.city || undefined)
@@ -1079,6 +1167,31 @@ export default function SearchPage() {
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
   }, [])
 
+  // Draggable separator handler
+  const onSeparatorPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+    const el = e.currentTarget as HTMLElement
+    el.setPointerCapture(e.pointerId)
+  }, [])
+
+  useEffect(() => {
+    if (!isDragging) return
+    const onMove = (e: PointerEvent) => {
+      if (!containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const pct = ((e.clientX - rect.left) / rect.width) * 100
+      setSplitRatio(Math.max(20, Math.min(80, pct)))
+    }
+    const onUp = () => { setIsDragging(false); mapViewRef.current?.resize() }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [isDragging])
+
   const updateFilter = useCallback(
     (patch: Partial<Filters>) => {
       setFilters((prev) => ({ ...prev, ...patch }))
@@ -1086,10 +1199,22 @@ export default function SearchPage() {
     []
   )
 
-  // Zone filter (polygon drawn on map)
-  const filtered = zoneFilterIds
-    ? allListings.filter((l) => zoneFilterIds.includes(l.id))
-    : allListings
+  // Zone filter (polygon drawn on map) + viewport filter ("search as I move")
+  const filtered = useMemo(() => {
+    let result = allListings
+    if (zoneFilterIds) {
+      result = result.filter((l) => zoneFilterIds.includes(l.id))
+    } else if (filterByMap && mapBounds && (layoutMode === 'split' || layoutMode === 'map')) {
+      const inViewport = result.filter((l) => {
+        if (!l.lat || !l.lng) return false
+        return l.lng >= mapBounds.west && l.lng <= mapBounds.east &&
+               l.lat >= mapBounds.south && l.lat <= mapBounds.north
+      })
+      // Only apply filter if some listings match — don't show empty state
+      if (inViewport.length > 0) result = inViewport
+    }
+    return result
+  }, [allListings, zoneFilterIds, filterByMap, mapBounds, layoutMode])
 
   // Recommendation sorting (client-side)
   const visible = filters.sort === 'recommended'
@@ -1240,7 +1365,7 @@ export default function SearchPage() {
         <div className="px-4 md:px-6">
 
           {/* Desktop: single unified row — constrained to left panel width */}
-          <div className="hidden md:flex items-center gap-1.5 h-12 lg:max-w-[55%]">
+          <div className="hidden md:flex items-center gap-1.5 h-12" style={layoutMode === 'split' ? { maxWidth: `${splitRatio}%` } : undefined}>
             {/* Search input — flexible width */}
             <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-1 min-w-[160px] max-w-[320px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
               <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
@@ -1411,33 +1536,42 @@ export default function SearchPage() {
               ))}
             </FilterPill>
 
-            {/* View toggle */}
-            <div className="flex items-center gap-0.5">
-              <button onClick={() => updateFilter({ view: 'list' })} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', filters.view === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')}>
-                <List className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => updateFilter({ view: 'grid' })} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', filters.view === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')}>
+            {/* Unified layout toggle: Grille | Split | Carte */}
+            <div className="hidden lg:flex items-center gap-0.5 bg-gray-50 rounded-lg p-0.5">
+              <button onClick={() => setLayoutMode('grid')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600')} title="Grille">
                 <LayoutGrid className="h-3.5 w-3.5" />
               </button>
-            </div>
-
-            {/* Layout toggle (list / split / map) — desktop only */}
-            <div className="hidden lg:flex items-center gap-0.5 ml-1 border-l border-gray-200 pl-2">
-              <button onClick={() => setLayoutMode('list')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')} title="Liste uniquement">
-                <PanelLeft className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => setLayoutMode('split')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'split' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')} title="Liste + Carte">
+              <button onClick={() => setLayoutMode('split')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'split' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600')} title="Split">
                 <Columns2 className="h-3.5 w-3.5" />
               </button>
-              <button onClick={() => setLayoutMode('map')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'map' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')} title="Carte large">
+              <button onClick={() => setLayoutMode('map')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600')} title="Carte">
                 <Map className="h-3.5 w-3.5" />
               </button>
             </div>
 
+            {/* "Search as I move" toggle — only in split/map modes */}
+            {(layoutMode === 'split' || layoutMode === 'map') && (
+              <button
+                onClick={() => setFilterByMap(v => !v)}
+                className={cn(
+                  'hidden lg:flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap',
+                  filterByMap ? 'bg-accent/10 text-accent' : 'text-gray-400 hover:text-gray-600'
+                )}
+                title="Filtrer les résultats selon la zone visible sur la carte"
+              >
+                <div className={cn('w-3 h-3 rounded-sm border transition-colors', filterByMap ? 'bg-accent border-accent' : 'border-gray-300')}>
+                  {filterByMap && <Check className="h-3 w-3 text-white" />}
+                </div>
+                Lier à la carte
+              </button>
+            )}
+
             {/* Result count */}
-            <span className="text-xs font-bold text-gray-400 tabular-nums whitespace-nowrap">
-              {totalCount > 0 ? totalCount.toLocaleString('fr-CH') : filtered.length} biens
-            </span>
+            {layoutMode !== 'map' && (
+              <span className="text-xs font-bold text-gray-400 tabular-nums whitespace-nowrap">
+                {filtered.length.toLocaleString('fr-CH')} biens
+              </span>
+            )}
           </div>
 
           {/* Mobile: search + filter button */}
@@ -1472,15 +1606,18 @@ export default function SearchPage() {
       </div>
 
       {/* ─── MAIN CONTENT ─── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div ref={containerRef} className={cn('flex-1 flex overflow-hidden', isDragging && 'select-none cursor-col-resize')}>
         {/* Left panel: filters + results — hidden in immersive mode */}
-        <div className={cn(
-          'w-full flex flex-col overflow-hidden',
-          mapImmersive && 'hidden',
-          !mapImmersive && layoutMode === 'list' && 'lg:w-full',
-          !mapImmersive && layoutMode === 'split' && 'lg:w-[55%]',
-          !mapImmersive && layoutMode === 'map' && 'lg:w-[280px] lg:min-w-[280px]',
-        )}>
+        <div
+          className={cn(
+            'flex flex-col overflow-hidden transition-[width,min-width] duration-300 ease-out',
+            mapImmersive && 'hidden',
+            !mapImmersive && layoutMode === 'grid' && 'w-full',
+            !mapImmersive && layoutMode === 'split' && 'w-full lg:shrink-0',
+            !mapImmersive && layoutMode === 'map' && 'w-full lg:w-[280px] lg:min-w-[280px] lg:shrink-0',
+          )}
+          style={!mapImmersive && layoutMode === 'split' ? { width: `${splitRatio}%` } : undefined}
+        >
           {/* ─── AI Understanding Banner ─── */}
           {showAiBanner && aiUnderstood.length > 0 && (
             <div className="px-4 md:px-6 py-2 bg-accent/5 border-b border-accent/10 flex items-center gap-2 flex-wrap">
@@ -1559,20 +1696,34 @@ export default function SearchPage() {
           {/* Old ZONE 3 results bar removed — sort/view/count merged into unified bar */}
 
           {/* ─── ZONE 4: Listing cards ─── */}
-          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
+          <div className={cn('flex-1 overflow-y-auto scrollbar-hide', layoutMode === 'map' ? 'px-2 py-2' : 'px-4 md:px-6 py-4')}>
             {isLoadingListings ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-                    <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
-                    <div className="p-4 space-y-3">
-                      <div className="h-5 bg-gray-100 rounded animate-pulse w-2/3" />
-                      <div className="h-4 bg-gray-100 rounded animate-pulse w-4/5" />
-                      <div className="h-4 bg-gray-100 rounded animate-pulse w-1/2" />
+              layoutMode === 'map' ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-2.5 p-2 rounded-lg">
+                      <div className="w-[72px] h-[72px] rounded-md bg-gray-100 animate-pulse shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-100 rounded animate-pulse w-2/3" />
+                        <div className="h-3 bg-gray-100 rounded animate-pulse w-4/5" />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+                      <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
+                      <div className="p-4 space-y-3">
+                        <div className="h-5 bg-gray-100 rounded animate-pulse w-2/3" />
+                        <div className="h-4 bg-gray-100 rounded animate-pulse w-4/5" />
+                        <div className="h-4 bg-gray-100 rounded animate-pulse w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
                 <Search className="h-12 w-12 text-gray-200 mb-4" />
@@ -1587,8 +1738,26 @@ export default function SearchPage() {
                   Effacer tous les filtres
                 </button>
               </div>
-            ) : filters.view === 'grid' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            ) : layoutMode === 'map' ? (
+              /* Compact mini-cards for map mode */
+              <div className="space-y-0.5">
+                {visible.map((listing) => (
+                  <ListingCardCompact
+                    key={listing.id}
+                    listing={listing}
+                    onHover={setHoveredListing}
+                    isHovered={hoveredListing === listing.id}
+                    isActive={previewId === listing.id}
+                    onPreview={openPreview}
+                  />
+                ))}
+              </div>
+            ) : layoutMode === 'grid' || layoutMode === 'split' ? (
+              /* Grid cards — 2 cols in split, 2-3 cols in grid full width */
+              <div className={cn(
+                'grid gap-4',
+                layoutMode === 'split' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
+              )}>
                 {visible.map((listing) => (
                   <ListingCardGrid
                     key={listing.id}
@@ -1604,24 +1773,7 @@ export default function SearchPage() {
                   />
                 ))}
               </div>
-            ) : (
-              <div className="space-y-4">
-                {visible.map((listing) => (
-                  <ListingCardHorizontal
-                    key={listing.id}
-                    listing={listing}
-                    onHover={setHoveredListing}
-                    isHovered={hoveredListing === listing.id}
-                    isFavorite={isFavorite(listing.id)}
-                    onToggleFavorite={() => toggleFavorite(listing.id)}
-                    isCompared={compareIds.includes(listing.id)}
-                    onToggleCompare={() => toggleCompare(listing.id)}
-                    medianPricePerM2={medianPricePerM2}
-                    onPreview={openPreview}
-                  />
-                ))}
-              </div>
-            )}
+            ) : null}
 
             {/* Load more */}
             {hasMore && (
@@ -1638,18 +1790,32 @@ export default function SearchPage() {
           </div>
         </div>
 
+        {/* ─── Draggable separator (split mode only) ─── */}
+        {!mapImmersive && layoutMode === 'split' && (
+          <div
+            className="hidden lg:flex items-center justify-center w-1 hover:w-1.5 cursor-col-resize group shrink-0 transition-all"
+            onPointerDown={onSeparatorPointerDown}
+          >
+            <div className={cn(
+              'w-0.5 h-12 rounded-full transition-colors',
+              isDragging ? 'bg-accent' : 'bg-gray-200 group-hover:bg-gray-400'
+            )} />
+          </div>
+        )}
+
         {/* ─── ZONE 5: Map (desktop) ─── */}
-        <div className={cn(
-          'border-l border-gray-200',
-          mapImmersive
-            ? 'block flex-1 border-l-0 h-screen'
-            : cn(
-              'sticky top-32 h-[calc(100vh-8rem)]',
-              layoutMode === 'list' ? 'hidden' : 'hidden lg:block',
-              layoutMode === 'split' && 'lg:w-[45%]',
-              layoutMode === 'map' && 'lg:flex-1',
-            )
-        )}>
+        <div
+          className={cn(
+            'border-l border-gray-200 transition-[width,flex] duration-300 ease-out overflow-hidden',
+            mapImmersive
+              ? 'block flex-1 border-l-0 h-screen'
+              : cn(
+                'sticky top-32 h-[calc(100vh-8rem)]',
+                layoutMode === 'grid' ? 'hidden' : 'hidden lg:block lg:flex-1',
+              )
+          )}
+          style={!mapImmersive && layoutMode === 'split' ? { width: `${100 - splitRatio}%` } : undefined}
+        >
           <MapView
             ref={mapViewRef}
             listings={allListings}
@@ -1659,6 +1825,7 @@ export default function SearchPage() {
             onZoneFilter={setZoneFilterIds}
             onImmersiveChange={setMapImmersive}
             onSelectListing={openPreview}
+            onViewportChange={setMapBounds}
             onQuickFilter={(qf) => {
               updateFilter({
                 types: qf.type ? [qf.type] : [],
@@ -1772,7 +1939,6 @@ export default function SearchPage() {
             ...prev,
             ...savedFilters,
             sort: prev.sort,
-            view: prev.view,
           }))
         }}
       />
