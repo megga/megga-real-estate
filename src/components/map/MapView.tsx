@@ -12,7 +12,7 @@ import MapGL, {
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
 import Supercluster from 'supercluster'
-import { LocateFixed, PenTool, X, Clock, MapPinPlus, Car, Footprints, Bike } from 'lucide-react'
+import { LocateFixed, PenTool, X, Clock, MapPinPlus, Car, Footprints, Bike, Layers, Mountain, Satellite, Moon, Sun } from 'lucide-react'
 import { useIsochrone } from '@/hooks/useIsochrone'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
@@ -70,12 +70,25 @@ function pointInPolygon(point: [number, number], polygon: [number, number][]): b
 
 type ListingPoint = Supercluster.PointFeature<{ listing: ListingCardData }>
 
+const MAP_STYLES = [
+  { id: 'standard', label: '3D', icon: Mountain, url: 'mapbox://styles/mapbox/standard' },
+  { id: 'satellite', label: 'Satellite', icon: Satellite, url: 'mapbox://styles/mapbox/satellite-streets-v12' },
+  { id: 'light', label: 'Clair', icon: Sun, url: 'mapbox://styles/mapbox/light-v11' },
+  { id: 'dark', label: 'Sombre', icon: Moon, url: 'mapbox://styles/mapbox/dark-v11' },
+] as const
+
+type MapStyleId = typeof MAP_STYLES[number]['id']
+
 const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, className }, ref) {
   const mapRef = useRef<MapRef>(null)
+  const [mapStyleId, setMapStyleId] = useState<MapStyleId>('standard')
+  const [showStylePicker, setShowStylePicker] = useState(false)
+  const currentStyle = MAP_STYLES.find(s => s.id === mapStyleId) || MAP_STYLES[0]
   const [viewState, setViewState] = useState({
     longitude: 6.1432,
     latitude: 46.2044,
     zoom: 11.5,
+    pitch: mapStyleId === 'standard' ? 45 : 0,
   })
   const [selectedListing, setSelectedListing] = useState<ListingCardData | null>(null)
 
@@ -217,6 +230,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   function handlePinClick(listing: ListingCardData) {
     setSelectedListing(listing)
+    // FlyTo animation to center on selected listing
+    if (listing.lat && listing.lng) {
+      mapRef.current?.flyTo({
+        center: [listing.lng, listing.lat],
+        zoom: Math.max(viewState.zoom, 14),
+        duration: 800,
+      })
+    }
   }
 
   // Fit bounds to all listings
@@ -385,12 +406,25 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         onDblClick={handleMapDoubleClick}
         onMouseMove={isDrawing ? handleMapMouseMove : undefined}
         mapboxAccessToken={MAPBOX_TOKEN}
-        mapStyle="mapbox://styles/mapbox/light-v11"
+        mapStyle={currentStyle.url}
         style={{ width: '100%', height: '100%' }}
         attributionControl={false}
         doubleClickZoom={!isDrawing}
         dragPan={!isDrawing}
         reuseMaps
+        terrain={mapStyleId === 'standard' ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined}
+        onLoad={(e) => {
+          const map = e.target
+          // Add terrain DEM source for 3D terrain (Standard style)
+          if (mapStyleId === 'standard' && !map.getSource('mapbox-dem')) {
+            map.addSource('mapbox-dem', {
+              type: 'raster-dem',
+              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+              tileSize: 512,
+              maxzoom: 14,
+            })
+          }
+        }}
       >
         <NavigationControl position="bottom-right" showCompass={false} />
         <FullscreenControl position="bottom-right" />
@@ -753,6 +787,51 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </button>
         </div>
       )}
+
+      {/* Style switcher — bottom-left */}
+      <div className="absolute bottom-4 left-3 z-[5]">
+        <div className="relative">
+          <button
+            onClick={() => setShowStylePicker(v => !v)}
+            className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
+            aria-label="Changer le style de carte"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            {currentStyle.label}
+          </button>
+
+          {showStylePicker && (
+            <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden min-w-[140px]">
+              {MAP_STYLES.map(s => {
+                const Icon = s.icon
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      setMapStyleId(s.id)
+                      setShowStylePicker(false)
+                      // Adjust pitch for 3D mode
+                      setViewState(v => ({
+                        ...v,
+                        pitch: s.id === 'standard' ? 45 : 0,
+                      }))
+                    }}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
+                      mapStyleId === s.id
+                        ? 'bg-accent/10 text-accent'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {s.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 })
