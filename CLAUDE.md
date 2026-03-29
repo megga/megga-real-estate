@@ -282,6 +282,7 @@ megga-real-estate/
 │       ├── extract-property-pdf/ # ✅ — Extraction données bien depuis PDF (Claude Sonnet 4)
 │       ├── extract-property-url/ # ✅ — Extraction données bien depuis URL portail (Claude Sonnet 4)
 │       ├── automation-engine/   # Moteur de relances automatiques (Phase 2)
+│       ├── search-alert/        # ✅ DÉPLOYÉ — Alertes email recherches sauvegardées (pg_cron 30min)
 │       └── webhooks/            # Stripe, Resend... (Phase 2)
 ```
 
@@ -1471,7 +1472,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 29 mars 2026)
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 30 mars 2026)
 
 ### ✅ Fonctionnalités LIVE
 
@@ -1727,22 +1728,64 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 - **Mobile** : hamburger gauche, logo centré, avatar/connexion droite
 - "Estimations" et "Services" déplacés dans le menu mobile uniquement
 
-#### Barre de recherche unifiée — 29 mars 2026
+#### Barre de recherche unifiée — refonte 29 mars 2026
 - **Fusion** de 3 zones (search bar + filter pills + results header) en une seule ligne sticky h-12
-- **Gain** : ~88px de hauteur en moins (192px → 104px avant le contenu)
-- **Desktop** : input search compact | Type ▾ | Prix ▾ | Pièces ▾ | Plus ▾ | Tri ▾ | Vue ≡⊞ | 32K biens
-- **"Plus"** regroupe : Surface, Chambres, Sdb, Localisation, Style de vie
+- **Barre contrainte à `lg:max-w-[55%]`** — alignée avec le panel listings, pas la carte
+- **Desktop** : `[🔍 Ville, quartier, canton... ✨] [Type ▾] [Prix ▾] [Pièces ▾] [Plus ▾] [Pertinence ▾] ≡⊞ 32K biens`
+- **Search input flex** : s'agrandit naturellement (min-w-160, max-w-320), icône Sparkles IA intégrée dedans
+- **"Plus" refait en panel grille** : dropdown 420px, 2 colonnes (gauche: Surface/Chambres/Sdb/Énergie, droite: Style de vie), pills au lieu de liste scrollable, plus d'emojis (texte-only)
+- **Filtres énergie CECB** dans Plus : Minergie, Classe A, B, C, D+
+- **Canton/Ville** : détection NLP dans la barre de recherche (pas de pill séparé), `CANTON_SEARCH_ALIASES` + `CANTON_LABELS` pour parser "genève" → GE
+- **Bouton MEGGA AI** : sparkle gris subtil dans le search input, ouvre ChatSearch conversationnel
+- **Save + Clear** : icônes compacts (Bookmark + X) visibles quand filtres actifs
 - **Style cohérent navbar** : pills `bg-gray-100` inactif, `bg-gray-900 text-white` actif
 - **Mobile** : input search + bouton "Filtres" (dark quand actif, badge compteur)
 
+#### Recherche sauvegardée Supabase + Alertes email — 29 mars 2026
+- **`useSavedSearches.ts` réécrit** : double backend Supabase (authentifié) + localStorage (anonyme)
+- **Migration one-shot** : si localStorage a des recherches et Supabase vide → upsert puis clear
+- **Table `saved_searches`** : RLS activé (user CRUD + service_role read), index sur `alert_enabled`
+- **Edge Function `search-alert`** déployée : scanne les recherches sauvegardées, compare avec `first_seen_at > last_alerted_at`, envoie email Resend avec max 5 property cards
+- **pg_cron** `search-alerts-30min` : appelle Edge Function toutes les 30 min
+- **Fréquences** : instant (30 min), daily (24h), weekly (7j)
+- **Template email** : sujet "N nouveaux biens | Votre recherche {name}", cards propriété, CTA "Voir tous les résultats"
+
+#### Recherche conversationnelle multi-tour — 29 mars 2026
+- **ChatSearch ré-activé** dans SearchPage (était commenté)
+- **Bouton sparkle** dans le search input → ouvre ChatSearch slide-in
+- **`handleChatFilters`** callback : les filtres extraits par l'IA (FILTERS:{}) sont appliqués directement à la page
+- **Connexion** à l'Edge Function `ai-copilot` en mode `search_mode: 'public_buyer'`
+
+#### Tri "Recommandé pour vous" — 29 mars 2026
+- **Nouveau fichier** `src/lib/recommendationScore.ts` : scoring client-side 0-100
+- **4 facteurs** : compétitivité prix (30%), fraîcheur (20%), match préférences utilisateur (30%), opportunité/baisse de prix (20%)
+- **`sortByRecommendation(listings, prefs, median)`** : tri côté client sur les données déjà chargées
+- **Préférences utilisateur** : favoris + biens vus (session) + recherches sauvegardées
+- **Sort option** : "Recommandé pour vous" ajouté dans SORT_OPTIONS
+
+#### Filtre énergie CECB/Minergie — 29 mars 2026
+- **Colonne `energy_label TEXT`** ajoutée sur `market_listings` + index partiel
+- **`MarketFilters.energyLabel`** : filtrage côté serveur (eq/in selon valeur)
+- **5 options** dans le dropdown Plus : Minergie, Classe A, B, C, D+
+
+#### RPC localisation dynamique — 29 mars 2026
+- **`get_cities_by_canton(canton, context)`** : retourne villes avec compteur, trié par count DESC
+- **`useCitiesByCanton(canton, context)`** : hook React Query (staleTime 30 min)
+- **`useMarketStats(context)`** : compteurs par canton utilisés dans le filtre mobile
+
+#### Outils carte dans MapView — 29 mars 2026
+- **MapView converti en `forwardRef`** avec `MapViewHandle` exporté
+- **3 méthodes exposées** : `fitToListings()`, `startDrawing()`, `startIsochrone()`
+- **Outils carte** restent dans la carte (Recentrer, Dessiner zone, Temps de trajet) — retirés de la barre de filtres (redondant)
+
 ### Prochaines priorités
-1. **C2PA / MEGGA Shield** — intégration badge photos vérifiées (en attente API partenaire)
-2. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
-3. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
-4. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
-5. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel (photo, nom, étoiles, avis)
-6. **Photo category tabs** — onglets sous la galerie (Photos, Plan, Staging, Carte)
-7. **Staging modal avec slider avant/après** — style Zillow "Stage this space"
-8. **Carte isochrone dans le modal** — pills 15/30/45 min, voiture/pied/vélo
-9. **Score compétitivité prix** — badge "Bon prix" / "Prix marché" / "Au-dessus" dans la fiche
+1. **Floor plan interactif (Zillow Showcase style)** — agent uploade plan, tagge photos par pièce, acheteur clique sur les pièces du plan. Composants : `FloorPlanEditor.tsx` (agent), `InteractiveFloorPlan.tsx` (public). Colonnes : `floor_plan_url`, `floor_plan_hotspots JSONB`, `photo_tags JSONB` sur `properties`. Feature premium Pro/Agency.
+2. **Virtual Staging côté acheteur** — exposer bouton "Voir meublé" dans la fiche publique (actuellement agent-only). L'acheteur choisit son style (7 styles) et voit la pièce meublée en temps réel.
+3. **C2PA / MEGGA Shield** — intégration badge photos vérifiées (en attente API partenaire)
+4. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
+5. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
+6. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
+7. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
+8. **Photo category tabs** — onglets sous la galerie (Photos, Plan, Staging, Carte)
+9. **Staging modal avec slider avant/après** — style Zillow "Stage this space"
 10. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
