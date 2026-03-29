@@ -1872,12 +1872,34 @@ supabase/migrations/20260330_003_photo_quality.sql
 supabase/migrations/20260330_004_c2pa_shield.sql
 ```
 
+#### Carte immersive plein écran — 29 mars 2026
+- **Mode immersif** : bouton "Immersif" → navbar/filtres masqués, carte 100% viewport, fullscreen navigateur
+- **Toolbar flottante dark glass** en 2 barres : filtres rapides (Type/Prix/Pièces) + outils groupés (VUE/DONNEES/EXPLORER)
+- **Tour cinématique auto-play** : survol 50 biens, flyTo zoom 17 pitch 65°, bearing rotatif, timer 5s, navigation prev/next, pause/play
+- **Score quartier** : Walk Score 0-100 (5 catégories POIs Mapbox + 60 gares suisses), panel dark glass overlay, marqueur émeraude
+- **Geocoding + rayon** : recherche lieu Mapbox, marqueur + cercle rayon 250m-5km (slider), filtre listings par distance haversine
+- **Heatmap prix/m²** : layer Mapbox bleu→rouge, pondéré par prix, toggle on/off
+- **Orbit 3D** : rotation cinématique 0.3°/frame, zoom 15, pitch 65°, stop au touch
+- **POI layers** : toggles Ecoles/Transports/Commerces/Parcs (labels Standard style)
+- **Light presets** : Jour/Aube/Crépuscule/Nuit (Standard 3D uniquement, icônes Lucide)
+- **Compass reset** : flyTo bearing 0 pitch 0
+- **Property cards enrichies** : 300px en immersif (photo h-44, prix/m², compteur photos) vs 200px normal
+- **Compteur contextuel** : "1'855 / 32'881 biens" (viewport/total)
+- **NavigationControl dark** en immersif (CSS invert)
+- **Fond carte beige** `#e8e0d8` sur canvas container (plus de blanc pendant chargement tiles)
+- **Fix rotation clic droit** : `bearing: 0` ajouté dans viewState initial
+- **Preview panel au clic pin** : `onSelectListing` → `openPreview` → ListingPreviewPanel modal
+- **Split 3 modes** : toggle Liste/Split/Carte dans barre filtres (PanelLeft/Columns2/Map icons)
+- **Optimisations perf** : debounce geocoding 350ms, clusters via onMoveEnd (pas 60x/sec), heatmap GeoJSON memoizé, radius slider debounced 200ms, backdrop-blur réduit
+- **Fichiers** : `MapView.tsx` (~1600 lignes), `NeighborhoodOverlay.tsx` (150 lignes)
+
 ### Prochaines priorités
-1. **Carte fullscreen immersive** — reproduire les features de https://www.mapbox.com/real-estate (vue immersive plein écran avec navigation 3D complète, clic droit rotation, overlays données)
-2. **Clic droit rotation carte** — actuellement dragRotate activé mais ne fonctionne pas côté utilisateur, investiguer pourquoi
-3. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
-4. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
-5. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
-6. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
-7. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
-8. **Edge Functions à déployer** : `photo-labeler`, `public-staging` (code prêt, pas encore déployé)
+1. **Améliorer Split 3 modes** — cards compactes en mode carte (photo+prix seulement), transition animée, scroll sync liste↔carte, filtres non contraints à 55%, fusionner toggles view/layout, séparateur draggable
+2. **"Mes lieux" multi-POI** — poser travail+école+sport sur la carte, chaque bien affiche le trajet vers tous les POIs (Rightmove-style, personne en Suisse ne l'a)
+3. **Carte des prix temporelle** — overlay prix/m² par quartier avec slider 12 mois (basé sur market_price_history)
+4. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
+5. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
+6. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
+7. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
+8. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
+9. **Edge Functions à déployer** : `photo-labeler`, `public-staging` (code prêt, pas encore déployé)
