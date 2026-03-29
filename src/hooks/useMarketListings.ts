@@ -18,8 +18,10 @@ export interface MarketFilters {
   minBathrooms?: number
   minSurface?: number
   maxSurface?: number
-  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc' | 'best_deals'
+  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc' | 'best_deals' | 'recommended'
   q?: string
+  energyLabel?: string
+  maxDaysOnMarket?: number
 }
 
 export interface MapPoint {
@@ -53,6 +55,16 @@ function applyFilters(query: any, filters: MarketFilters) {
   if (filters.minBathrooms) q = q.gte('bathrooms', filters.minBathrooms)
   if (filters.minSurface) q = q.gte('surface_m2', filters.minSurface)
   if (filters.maxSurface) q = q.lte('surface_m2', filters.maxSurface)
+  if (filters.energyLabel) {
+    if (filters.energyLabel === 'minergie') {
+      q = q.eq('energy_label', 'minergie')
+    } else if (filters.energyLabel === 'D+') {
+      q = q.in('energy_label', ['D', 'E', 'F', 'G'])
+    } else {
+      q = q.eq('energy_label', filters.energyLabel)
+    }
+  }
+  if (filters.maxDaysOnMarket) q = q.lte('days_on_market', filters.maxDaysOnMarket)
   if (filters.q) {
     q = q.or(`title.ilike.%${filters.q}%,city.ilike.%${filters.q}%,address.ilike.%${filters.q}%,canton.ilike.%${filters.q}%`)
   }
@@ -67,6 +79,7 @@ function applySorting(query: any, sort: MarketFilters['sort']) {
     case 'newest': return query.order('first_seen_at', { ascending: false })
     case 'surface_desc': return query.order('surface_m2', { ascending: false, nullsFirst: false })
     case 'best_deals': return query.order('price_per_m2', { ascending: true, nullsFirst: false })
+    case 'recommended': return query.order('created_at', { ascending: false }) // client-side re-sort
     default: return query.order('created_at', { ascending: false })
   }
 }
@@ -338,6 +351,24 @@ export function useMarketStats(context: 'buy' | 'rent' = 'buy') {
 }
 
 // ─── HOOK 4 : Détail d'un bien du marché ────────────────────────────────────
+
+// ─── HOOK 5 : Villes par canton (pour le filtre localisation) ────────────
+
+export function useCitiesByCanton(canton: string | undefined, context: 'buy' | 'rent' = 'buy') {
+  return useQuery({
+    queryKey: ['cities-by-canton', canton, context],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_cities_by_canton', { p_canton: canton!, p_context: context })
+      if (error) throw error
+      return (data as Array<{ city: string; count: number }>) || []
+    },
+    enabled: !!canton,
+    staleTime: 30 * 60 * 1000,
+  })
+}
+
+// ─── HOOK 6 : Détail d'un bien du marché ────────────────────────────────────
 
 export function useMarketListing(id: string | undefined) {
   return useQuery({

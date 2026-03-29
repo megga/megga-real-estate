@@ -18,15 +18,17 @@ import {
   Train,
   GitCompareArrows,
   Check,
+  Bookmark,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
-import MapView from '@/components/map/MapView'
-// import ChatSearch from '@/components/search/ChatSearch'
+import MapView, { type MapViewHandle } from '@/components/map/MapView'
+import ChatSearch from '@/components/search/ChatSearch'
 import CompareDrawer from '@/components/listings/CompareDrawer'
 import ListingPreviewPanel from '@/components/listing/ListingPreviewPanel'
 import SaveSearchDialog from '@/components/search/SaveSearchDialog'
 import SavedSearchesList from '@/components/search/SavedSearchesList'
-import { useMarketListings, useMapPoints, type MarketFilters } from '@/hooks/useMarketListings'
+import { useMarketListings, useMapPoints, useMarketStats, type MarketFilters } from '@/hooks/useMarketListings'
+import { sortByRecommendation } from '@/lib/recommendationScore'
 import { useFavorites } from '@/hooks/useFavorites'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
@@ -38,7 +40,7 @@ import { useMarketTemperature } from '@/hooks/useMarketInsights'
 
 type Context = 'buy' | 'rent'
 type ViewMode = 'list' | 'grid'
-type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc' | 'best_deals'
+type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc' | 'best_deals' | 'recommended'
 
 interface Filters {
   context: Context
@@ -53,6 +55,7 @@ interface Filters {
   city: string
   canton: string
   lifestyleTags: string[]
+  energyLabel: string
   sort: SortOption
   view: ViewMode
 }
@@ -61,6 +64,7 @@ interface Filters {
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'relevance', label: 'Pertinence' },
+  { value: 'recommended', label: 'Recommandé pour vous' },
   { value: 'price_asc', label: 'Prix croissant' },
   { value: 'price_desc', label: 'Prix décroissant' },
   { value: 'newest', label: 'Plus récent' },
@@ -73,28 +77,52 @@ const BATHROOM_OPTIONS = ['1', '2', '3+']
 const ROOM_OPTIONS = ['1', '2', '3', '4', '5+']
 const BEDROOM_OPTIONS = ['1', '2', '3', '4+']
 
-const LIFESTYLE_TAGS: { value: string; label: string; icon: string }[] = [
-  { value: 'vue_lac', label: 'Vue lac', icon: '🌊' },
-  { value: 'vue_montagne', label: 'Vue montagne', icon: '⛰️' },
-  { value: 'lumineux', label: 'Lumineux', icon: '☀️' },
-  { value: 'quartier_calme', label: 'Quartier calme', icon: '🤫' },
-  { value: 'proche_transports', label: 'Transports', icon: '🚆' },
-  { value: 'proche_ecoles', label: 'Écoles', icon: '🎓' },
-  { value: 'terrasse', label: 'Terrasse', icon: '🌿' },
-  { value: 'balcon', label: 'Balcon', icon: '🏗️' },
-  { value: 'jardin', label: 'Jardin', icon: '🌳' },
-  { value: 'parking', label: 'Parking', icon: '🅿️' },
-  { value: 'piscine', label: 'Piscine', icon: '🏊' },
-  { value: 'dernier_etage', label: 'Dernier étage', icon: '🔝' },
-  { value: 'ascenseur', label: 'Ascenseur', icon: '🛗' },
-  { value: 'meuble', label: 'Meublé', icon: '🛋️' },
-  { value: 'centre_ville', label: 'Centre-ville', icon: '🏙️' },
+const LIFESTYLE_TAGS: { value: string; label: string }[] = [
+  { value: 'vue_lac', label: 'Vue lac' },
+  { value: 'vue_montagne', label: 'Vue montagne' },
+  { value: 'lumineux', label: 'Lumineux' },
+  { value: 'quartier_calme', label: 'Quartier calme' },
+  { value: 'proche_transports', label: 'Transports' },
+  { value: 'proche_ecoles', label: 'Écoles' },
+  { value: 'terrasse', label: 'Terrasse' },
+  { value: 'balcon', label: 'Balcon' },
+  { value: 'jardin', label: 'Jardin' },
+  { value: 'parking', label: 'Parking' },
+  { value: 'piscine', label: 'Piscine' },
+  { value: 'dernier_etage', label: 'Dernier étage' },
+  { value: 'ascenseur', label: 'Ascenseur' },
+  { value: 'meuble', label: 'Meublé' },
+  { value: 'centre_ville', label: 'Centre-ville' },
 ]
 
-const CITIES = [
-  'Genève', 'Carouge', 'Lancy', 'Vernier', 'Meyrin', 'Cologny', 'Veyrier', 'Vandoeuvres',
-  'Lausanne', 'Nyon', 'Montreux', 'Vevey',
+const ENERGY_OPTIONS = [
+  { value: 'minergie', label: 'Minergie' },
+  { value: 'A', label: 'Classe A' },
+  { value: 'B', label: 'Classe B' },
+  { value: 'C', label: 'Classe C' },
+  { value: 'D+', label: 'Classe D et plus' },
 ]
+
+const CANTON_LABELS: Record<string, string> = {
+  GE: 'Genève', VD: 'Vaud', VS: 'Valais', NE: 'Neuchâtel', FR: 'Fribourg',
+  BE: 'Berne', JU: 'Jura', BS: 'Bâle-Ville', BL: 'Bâle-Campagne', AG: 'Argovie',
+  SO: 'Soleure', ZH: 'Zurich', LU: 'Lucerne', ZG: 'Zoug', SZ: 'Schwyz',
+  NW: 'Nidwald', OW: 'Obwald', UR: 'Uri', GL: 'Glaris', SH: 'Schaffhouse',
+  TG: 'Thurgovie', AR: 'Appenzell RE', AI: 'Appenzell RI', SG: 'Saint-Gall',
+  GR: 'Grisons', TI: 'Tessin',
+}
+
+const CANTON_SEARCH_ALIASES: Record<string, string> = {
+  'geneve': 'GE', 'genève': 'GE', 'vaud': 'VD', 'valais': 'VS',
+  'zurich': 'ZH', 'zürich': 'ZH', 'berne': 'BE', 'bern': 'BE',
+  'tessin': 'TI', 'ticino': 'TI', 'fribourg': 'FR', 'neuchatel': 'NE',
+  'neuchâtel': 'NE', 'jura': 'JU', 'bâle': 'BS', 'basel': 'BS',
+  'lucerne': 'LU', 'luzern': 'LU', 'st-gall': 'SG', 'grisons': 'GR',
+  'graubünden': 'GR', 'argovie': 'AG', 'aargau': 'AG', 'thurgovie': 'TG',
+  'schaffhouse': 'SH', 'soleure': 'SO', 'zoug': 'ZG', 'zug': 'ZG',
+  'schwyz': 'SZ', 'nidwald': 'NW', 'obwald': 'OW', 'uri': 'UR',
+  'glaris': 'GL', 'appenzell': 'AR',
+}
 
 const PRICE_RANGES_BUY = [
   { min: '', max: '500000', label: "Jusqu'à CHF 500'000" },
@@ -265,6 +293,26 @@ function parseNaturalLanguageQuery(query: string): ParsedQuery {
     }
   }
 
+  // Canton detection (if no city was found)
+  if (!filters.city) {
+    // Check canton aliases ("genève" → GE, "vaud" → VD)
+    for (const [alias, code] of Object.entries(CANTON_SEARCH_ALIASES)) {
+      if (q.includes(alias)) {
+        filters.canton = code
+        understood.push(CANTON_LABELS[code] || code)
+        break
+      }
+    }
+    // Check direct 2-letter canton codes (e.g., "GE", "VD")
+    if (!filters.canton) {
+      const cantonMatch = original.match(/\b([A-Z]{2})\b/)
+      if (cantonMatch && CANTON_LABELS[cantonMatch[1]]) {
+        filters.canton = cantonMatch[1]
+        understood.push(CANTON_LABELS[cantonMatch[1]])
+      }
+    }
+  }
+
   // Property type detection
   for (const [alias, type] of Object.entries(TYPE_ALIASES)) {
     if (original.includes(alias)) {
@@ -341,6 +389,7 @@ function parseFiltersFromParams(params: URLSearchParams): Filters {
     city: params.get('city') || '',
     canton: params.get('canton') || '',
     lifestyleTags: params.get('lifestyle')?.split(',').filter(Boolean) || [],
+    energyLabel: params.get('energyLabel') || '',
     sort: (params.get('sort') as SortOption) || 'relevance',
     view: (params.get('view') as ViewMode) || 'list',
   }
@@ -360,6 +409,7 @@ function filtersToParams(filters: Filters): Record<string, string> {
   if (filters.city) p.city = filters.city
   if (filters.canton) p.canton = filters.canton
   if (filters.lifestyleTags.length) p.lifestyle = filters.lifestyleTags.join(',')
+  if (filters.energyLabel) p.energyLabel = filters.energyLabel
   if (filters.sort !== 'relevance') p.sort = filters.sort
   if (filters.view !== 'list') p.view = filters.view
   return p
@@ -400,6 +450,8 @@ function toServerFilters(filters: Filters): MarketFilters {
       : Number(filters.bathrooms)
     sf.minBathrooms = minBath
   }
+
+  if (filters.energyLabel) sf.energyLabel = filters.energyLabel
 
   return sf
 }
@@ -867,18 +919,24 @@ export default function SearchPage() {
   const [aiUnderstood, setAiUnderstood] = useState<string[]>([])
   const [showAiBanner, setShowAiBanner] = useState(false)
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
-  // const [showChat, setShowChat] = useState(false)
+  const [showChat, setShowChat] = useState(false)
+  const [plusOpen, setPlusOpen] = useState(false)
   const [compareIds, setCompareIds] = useState<string[]>([])
   const [showCompare, setShowCompare] = useState(false)
   const [savedSearchToast] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [savedListOpen, setSavedListOpen] = useState(false)
-  const { isFavorite, toggleFavorite } = useFavorites()
+  const { isFavorite, toggleFavorite, favoriteIds } = useFavorites()
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get('listing'))
+  const mapViewRef = useRef<MapViewHandle>(null)
+  const viewedIdsRef = useRef<Set<string>>(new Set())
 
   // Market temperature for current location filter
   const { data: marketTemp } = useMarketTemperature(filters.canton || undefined, filters.city || undefined)
   const medianPricePerM2 = marketTemp?.medianPricePerM2 || 0
+
+  // Canton stats for mobile filter
+  const { data: marketStats } = useMarketStats(filters.context)
 
   // Convertir filtres UI → filtres serveur
   const serverFilters = toServerFilters(filters)
@@ -907,6 +965,7 @@ export default function SearchPage() {
 
   const openPreview = useCallback((id: string) => {
     setPreviewId(id)
+    viewedIdsRef.current.add(id)
     const params = new URLSearchParams(window.location.search)
     params.set('listing', id)
     window.history.replaceState(null, '', `?${params.toString()}`)
@@ -930,7 +989,15 @@ export default function SearchPage() {
   const filtered = zoneFilterIds
     ? allListings.filter((l) => zoneFilterIds.includes(l.id))
     : allListings
-  const visible = filtered
+
+  // Recommendation sorting (client-side)
+  const visible = filters.sort === 'recommended'
+    ? sortByRecommendation(filtered, {
+        favoriteIds,
+        viewedIds: [...viewedIdsRef.current],
+        savedSearchFilters: [],
+      }, medianPricePerM2)
+    : filtered
   const hasMore = hasNextPage ?? false
 
   const hasActiveFilters =
@@ -942,7 +1009,8 @@ export default function SearchPage() {
     filters.minSurface !== '' ||
     filters.city !== '' ||
     filters.canton !== '' ||
-    filters.lifestyleTags.length > 0
+    filters.lifestyleTags.length > 0 ||
+    filters.energyLabel !== ''
 
   const activeFilterCount = [
     filters.types.length > 0,
@@ -952,6 +1020,7 @@ export default function SearchPage() {
     filters.minSurface,
     filters.city || filters.canton,
     filters.lifestyleTags.length > 0,
+    filters.energyLabel,
   ].filter(Boolean).length
 
   function clearAllFilters() {
@@ -966,6 +1035,7 @@ export default function SearchPage() {
       city: '',
       canton: '',
       lifestyleTags: [],
+      energyLabel: '',
       q: '',
     })
     setSearchInput('')
@@ -1008,6 +1078,21 @@ export default function SearchPage() {
     }
   }
 
+  // Chat AI filter callback
+  const handleChatFilters = useCallback((chatFilters: Record<string, string | string[]>) => {
+    const patch: Partial<Filters> = {}
+    if (chatFilters.city) patch.city = chatFilters.city as string
+    if (chatFilters.canton) patch.canton = chatFilters.canton as string
+    if (chatFilters.rooms) patch.rooms = chatFilters.rooms as string
+    if (chatFilters.maxPrice) patch.maxPrice = chatFilters.maxPrice as string
+    if (chatFilters.minPrice) patch.minPrice = chatFilters.minPrice as string
+    if (chatFilters.minSurface) patch.minSurface = chatFilters.minSurface as string
+    if (chatFilters.bedrooms) patch.bedrooms = chatFilters.bedrooms as string
+    if (Array.isArray(chatFilters.types)) patch.types = chatFilters.types
+    if (chatFilters.context === 'rent') patch.context = 'rent'
+    updateFilter(patch)
+  }, [updateFilter])
+
   // Compare helpers
   function toggleCompare(id: string) {
     setCompareIds((prev) =>
@@ -1038,20 +1123,20 @@ export default function SearchPage() {
     <div className="h-screen flex flex-col bg-white">
       <Navbar />
 
-      {/* ─── UNIFIED STICKY BAR: Search + Filters + Map tools ─── */}
+      {/* ─── UNIFIED STICKY BAR: Search + Filters ─── */}
       <div className="sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-[1800px] mx-auto px-4 md:px-6">
+        <div className="px-4 md:px-6">
 
-          {/* Desktop: single unified row */}
-          <div className="hidden md:flex items-center gap-2 h-12">
-            {/* Search input — compact, no border */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 min-w-[200px] max-w-[260px] w-full transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
+          {/* Desktop: single unified row — constrained to left panel width */}
+          <div className="hidden md:flex items-center gap-1.5 h-12 lg:max-w-[55%]">
+            {/* Search input — flexible width */}
+            <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-1 min-w-[160px] max-w-[320px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
               <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Ville, quartier..."
+                placeholder="Ville, quartier, canton..."
                 className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
               />
               {searchInput && (
@@ -1059,12 +1144,18 @@ export default function SearchPage() {
                   <X className="h-3 w-3" />
                 </button>
               )}
+              {/* AI search button */}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowChat(true) }}
+                className="text-gray-300 hover:text-gray-500 transition-colors cursor-pointer shrink-0"
+                title="Recherche assistée par IA"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+              </button>
             </form>
 
-            {/* Separator */}
-            <div className="h-5 border-l border-gray-200" />
-
-            {/* Primary filters — dark when active */}
+            {/* Type */}
             <FilterPill
               label={filters.types.length ? filters.types.map((t) => PROPERTY_TYPE_LABELS[t as keyof typeof PROPERTY_TYPE_LABELS] || t).join(', ') : 'Type'}
               active={filters.types.length > 0}
@@ -1078,6 +1169,7 @@ export default function SearchPage() {
               ))}
             </FilterPill>
 
+            {/* Prix */}
             <FilterPill label={pricePillLabel} active={!!filters.minPrice || !!filters.maxPrice} dark>
               {priceRanges.map((range) => (
                 <FilterOption key={range.label} selected={filters.minPrice === range.min && filters.maxPrice === range.max} onClick={() => updateFilter({ minPrice: range.min, maxPrice: range.max })}>{range.label}</FilterOption>
@@ -1085,65 +1177,133 @@ export default function SearchPage() {
               <FilterOption selected={!filters.minPrice && !filters.maxPrice} onClick={() => updateFilter({ minPrice: '', maxPrice: '' })}>Tous les prix</FilterOption>
             </FilterPill>
 
+            {/* Pièces */}
             <FilterPill label={filters.rooms ? `${filters.rooms} pièces` : 'Pièces'} active={!!filters.rooms} dark>
               {ROOM_OPTIONS.map((r) => (
                 <FilterOption key={r} selected={filters.rooms === r} onClick={() => updateFilter({ rooms: filters.rooms === r ? '' : r })}>{r} pièces</FilterOption>
               ))}
             </FilterPill>
 
-            {/* "Plus" filter — groups secondary filters */}
-            <FilterPill label={(() => {
-              const count = [filters.minSurface, filters.bedrooms, filters.bathrooms, filters.city || filters.canton, filters.lifestyleTags.length > 0].filter(Boolean).length
-              return count > 0 ? `Plus (${count})` : 'Plus'
-            })()} active={!!(filters.minSurface || filters.bedrooms || filters.bathrooms || filters.city || filters.canton || filters.lifestyleTags.length)} dark>
-              <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Surface</div>
-              {['30', '50', '80', '100', '150', '200'].map((s) => (
-                <FilterOption key={s} selected={filters.minSurface === s} onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })}>Dès {s} m²</FilterOption>
-              ))}
-              <div className="border-t border-gray-100 mt-1 pt-1 px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Chambres</div>
-              {BEDROOM_OPTIONS.map((b) => (
-                <FilterOption key={`bed-${b}`} selected={filters.bedrooms === b} onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })}>{b} chambres</FilterOption>
-              ))}
-              <div className="border-t border-gray-100 mt-1 pt-1 px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Salles de bain</div>
-              {BATHROOM_OPTIONS.map((b) => (
-                <FilterOption key={`bath-${b}`} selected={filters.bathrooms === b} onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })}>{b} sdb</FilterOption>
-              ))}
-              <div className="border-t border-gray-100 mt-1 pt-1 px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Localisation</div>
-              {CITIES.map((c) => (
-                <FilterOption key={c} selected={filters.city === c} onClick={() => updateFilter({ city: filters.city === c ? '' : c, canton: '' })}>{c}</FilterOption>
-              ))}
-              <div className="border-t border-gray-100 mt-1 pt-1 px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Style de vie</div>
-              {LIFESTYLE_TAGS.map((tag) => (
-                <FilterOption key={tag.value} selected={filters.lifestyleTags.includes(tag.value)} onClick={() => {
-                  const next = filters.lifestyleTags.includes(tag.value) ? filters.lifestyleTags.filter((t) => t !== tag.value) : [...filters.lifestyleTags, tag.value]
-                  updateFilter({ lifestyleTags: next })
-                }}><span className="mr-1">{tag.icon}</span> {tag.label}</FilterOption>
-              ))}
-            </FilterPill>
+            {/* "Plus" filter — wide panel with grid layout */}
+            {(() => {
+              const plusCount = [filters.minSurface, filters.bedrooms, filters.bathrooms, filters.lifestyleTags.length > 0, filters.energyLabel].filter(Boolean).length
+              const plusActive = !!(filters.minSurface || filters.bedrooms || filters.bathrooms || filters.lifestyleTags.length || filters.energyLabel)
+              return (
+                <div className="relative" ref={(el) => {
+                  // Close on outside click — reuse FilterPill pattern inline
+                  if (!el) return
+                  const handler = (e: MouseEvent) => {
+                    if (!el.contains(e.target as Node)) setPlusOpen(false)
+                  }
+                  if (plusOpen) document.addEventListener('mousedown', handler)
+                  return () => document.removeEventListener('mousedown', handler)
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setPlusOpen(!plusOpen)}
+                    className={cn(
+                      'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+                      plusActive ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    )}
+                  >
+                    {plusCount > 0 ? `Plus (${plusCount})` : 'Plus'}
+                    <ChevronDown className={cn('w-3 h-3 transition-transform', plusActive ? 'text-white/60' : 'text-gray-400', plusOpen && 'rotate-180')} />
+                  </button>
+                  {plusOpen && (
+                    <div className="absolute top-full left-0 mt-1.5 w-[420px] bg-white rounded-xl shadow-lg border border-gray-100 z-50 p-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Left column */}
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Surface min.</p>
+                          <div className="flex flex-wrap gap-1 mb-4">
+                            {['30', '50', '80', '100', '150', '200'].map((s) => (
+                              <button key={s} type="button" onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.minSurface === s ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
+                                {s} m²
+                              </button>
+                            ))}
+                          </div>
 
-            {/* Clear filters */}
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Chambres</p>
+                          <div className="flex gap-1 mb-4">
+                            {BEDROOM_OPTIONS.map((b) => (
+                              <button key={`bed-${b}`} type="button" onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.bedrooms === b ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
+                                {b}
+                              </button>
+                            ))}
+                          </div>
+
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Salles de bain</p>
+                          <div className="flex gap-1 mb-4">
+                            {BATHROOM_OPTIONS.map((b) => (
+                              <button key={`bath-${b}`} type="button" onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.bathrooms === b ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
+                                {b}
+                              </button>
+                            ))}
+                          </div>
+
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Énergie</p>
+                          <div className="flex flex-wrap gap-1">
+                            {ENERGY_OPTIONS.map((e) => (
+                              <button key={e.value} type="button" onClick={() => updateFilter({ energyLabel: filters.energyLabel === e.value ? '' : e.value })} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.energyLabel === e.value ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
+                                {e.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Right column — lifestyle tags */}
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Style de vie</p>
+                          <div className="flex flex-wrap gap-1">
+                            {LIFESTYLE_TAGS.map((tag) => (
+                              <button key={tag.value} type="button" onClick={() => {
+                                const next = filters.lifestyleTags.includes(tag.value) ? filters.lifestyleTags.filter((t) => t !== tag.value) : [...filters.lifestyleTags, tag.value]
+                                updateFilter({ lifestyleTags: next })
+                              }} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.lifestyleTags.includes(tag.value) ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
+                                {tag.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Clear filters + Save search */}
             {hasActiveFilters && (
-              <button onClick={clearAllFilters} className="text-xs text-gray-400 hover:text-gray-700 transition-colors cursor-pointer whitespace-nowrap">
-                Effacer
+              <button onClick={clearAllFilters} className="h-7 w-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shrink-0" title="Effacer les filtres">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {hasActiveFilters && (
+              <button
+                onClick={() => setSaveDialogOpen(true)}
+                className="h-8 w-8 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
+                title="Sauvegarder cette recherche"
+              >
+                <Bookmark className="h-3.5 w-3.5" />
               </button>
             )}
 
-            {/* Spacer */}
+            {/* Spacer — pushes right items to the end of the constrained width */}
             <div className="flex-1" />
 
-            {/* Sort */}
-            <select
-              value={filters.sort}
-              onChange={(e) => updateFilter({ sort: e.target.value as SortOption })}
-              className="text-xs text-gray-500 bg-transparent border-none outline-none cursor-pointer pr-4"
+            {/* Sort pill */}
+            <FilterPill
+              label={SORT_OPTIONS.find(o => o.value === filters.sort)?.label || 'Pertinence'}
+              active={filters.sort !== 'relevance'}
+              dark
             >
               {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <FilterOption key={opt.value} selected={filters.sort === opt.value} onClick={() => updateFilter({ sort: opt.value })}>{opt.label}</FilterOption>
               ))}
-            </select>
+            </FilterPill>
 
             {/* View toggle */}
-            <div className="flex items-center gap-0.5 border-l border-gray-200 pl-2 ml-1">
+            <div className="flex items-center gap-0.5">
               <button onClick={() => updateFilter({ view: 'list' })} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', filters.view === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')}>
                 <List className="h-3.5 w-3.5" />
               </button>
@@ -1152,8 +1312,8 @@ export default function SearchPage() {
               </button>
             </div>
 
-            {/* Result count badge */}
-            <span className="text-xs font-semibold text-gray-400 tabular-nums whitespace-nowrap">
+            {/* Result count */}
+            <span className="text-xs font-bold text-gray-400 tabular-nums whitespace-nowrap">
               {totalCount > 0 ? totalCount.toLocaleString('fr-CH') : filtered.length} biens
             </span>
           </div>
@@ -1252,10 +1412,10 @@ export default function SearchPage() {
                     </FilterOption>
                   ))}
                 </FilterPill>
-                <FilterPill label={filters.city || 'Ville'} active={!!filters.city}>
-                  {CITIES.map((c) => (
-                    <FilterOption key={c} selected={filters.city === c} onClick={() => updateFilter({ city: filters.city === c ? '' : c })}>
-                      {c}
+                <FilterPill label={filters.canton ? (CANTON_LABELS[filters.canton] || filters.canton) : 'Canton'} active={!!filters.canton}>
+                  {(marketStats?.cantonCounts || []).slice(0, 10).map(({ canton: c, count: cnt }) => (
+                    <FilterOption key={c} selected={filters.canton === c} onClick={() => updateFilter({ canton: filters.canton === c ? '' : c, city: '' })}>
+                      {CANTON_LABELS[c] || c} ({cnt})
                     </FilterOption>
                   ))}
                 </FilterPill>
@@ -1353,6 +1513,7 @@ export default function SearchPage() {
         {/* ─── ZONE 5: Map (desktop) ─── */}
         <div className="hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)] border-l border-gray-200">
           <MapView
+            ref={mapViewRef}
             listings={allListings}
             mapPoints={mapPoints}
             hoveredId={hoveredListing}
@@ -1453,6 +1614,15 @@ export default function SearchPage() {
             view: prev.view,
           }))
         }}
+      />
+
+      {/* ─── Conversational search (MEGGA AI) ─── */}
+      <ChatSearch
+        isOpen={showChat}
+        onClose={() => setShowChat(false)}
+        onApplyFilters={handleChatFilters}
+        onHighlightListing={(id) => openPreview(id)}
+        allListings={allListings}
       />
     </div>
   )

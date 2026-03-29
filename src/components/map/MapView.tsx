@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { Link } from 'react-router-dom'
 import MapGL, {
   Marker,
@@ -20,6 +20,18 @@ import type { MapPoint } from '@/hooks/useMarketListings'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
+
+export interface MapViewHandle {
+  fitToListings: () => void
+  startDrawing: () => void
+  startIsochrone: () => void
+  /** Whether draw zone or isochrone is currently active */
+  hasActiveZone: boolean
+  isDrawing: boolean
+  isIsoMode: boolean
+  hasIsochrone: boolean
+  hasPolygon: boolean
+}
 
 interface MapViewProps {
   listings: ListingCardData[]
@@ -58,7 +70,7 @@ function pointInPolygon(point: [number, number], polygon: [number, number][]): b
 
 type ListingPoint = Supercluster.PointFeature<{ listing: ListingCardData }>
 
-export default function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, className }: MapViewProps) {
+const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, className }, ref) {
   const mapRef = useRef<MapRef>(null)
   const [viewState, setViewState] = useState({
     longitude: 6.1432,
@@ -111,6 +123,18 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
       onZoneFilter?.(insideIds)
     }
   }, [isoPolygonCoords, mapPoints, onZoneFilter])
+
+  // Expose imperative methods to parent
+  useImperativeHandle(ref, () => ({
+    fitToListings,
+    startDrawing,
+    startIsochrone: () => setIsoMode(true),
+    get hasActiveZone() { return !!closedPolygon || !!isochrone },
+    get isDrawing() { return isDrawing },
+    get isIsoMode() { return isoMode },
+    get hasIsochrone() { return !!isochrone },
+    get hasPolygon() { return !!closedPolygon },
+  }))
 
   // Profile labels
   const PROFILE_LABELS = {
@@ -731,4 +755,6 @@ export default function MapView({ listings, mapPoints, hoveredId, onHover, onZon
       )}
     </div>
   )
-}
+})
+
+export default MapView
