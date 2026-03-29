@@ -24,6 +24,8 @@ const PublierPage = lazy(() => import('@/pages/public/PublierPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
+const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
+const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
 
 // Lazy-loaded agent pages (except ActionBoardPage which is static)
 const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
@@ -100,6 +102,8 @@ export default function App() {
               <Route path="/publier" element={<PublierPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/visite/:id/modifier" element={<VisitManagePage />} />
+              <Route path="/visite/:id/feedback" element={<VisitFeedbackPage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
               {/* Portail vendeur — accès direct (dev/test) */}
