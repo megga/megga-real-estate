@@ -1471,7 +1471,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 27 mars 2026)
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 29 mars 2026)
 
 ### ✅ Fonctionnalités LIVE
 
@@ -1691,19 +1691,58 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 - **Statut** : en discussion avec partenaire Thomas pour l'API/SDK
 - **Différenciateur** : aucun portail suisse ne certifie les photos aujourd'hui
 
+#### Fiche bien premium (ListingPreviewPanel) — 28-29 mars 2026
+- **Redesign complet** du modal de preview : galerie 3 colonnes + lightbox clavier, layout 2 colonnes (scroll + sticky CTA)
+- **4 features game-changers** : projection fiscale cantonale (26 cantons), badges urgence (Nouveau/Forte demande/Xj en ligne), biens similaires inline (grille 2x2), label énergétique CECB/Minergie
+- **Walk Score 0-100** : premier portail suisse — calcul basé sur POIs Mapbox + stations.ts (transport 30%, commerces 25%, écoles 20%, santé 15%, loisirs 10%)
+- **Coût mensuel estimé** : CHF/mois affiché dans la fiche (hypothèque taux imputé 5% + charges + impôt foncier cantonal)
+- **Compétitivité prix** : badge "Bon prix" / "Prix marché" / "Au-dessus du marché" basé sur prix/m² vs médiane canton
+- **Ask MEGGA AI** : chat IA contextuel dans la sidebar — 4 suggestions (Bon prix ? / Risques ? / Négociation / Frais), contexte complet du bien injecté, 4 langues FR/DE/EN/IT, mobile FAB + bottom sheet
+- **Partage fonctionnel** : Web Share API (mobile natif) + clipboard fallback (desktop) avec feedback "Copié"
+- **Specs grid cards Zillow-style** : gros chiffres bold (pièces/chambres/sdb/m²) + détails grille (type, année, prix/m², étage, état, charges)
+- **Galerie premium** : h-480px desktop, gradient overlay, compteur mobile, dots avec fond, lightbox plein écran (bg-black, thumbnails h-20 w-28)
+- **Fichiers** : `cantonalTaxRates.ts` (26 cantons + estimatePropertyTax + estimateMonthlyCost), `useNeighborhood.ts` (calculateWalkScore)
+
+#### MEGGA Staging — Virtual Staging IA — 29 mars 2026
+- **Edge Function** `virtual-staging` déployée — Google Gemini 2.0 Flash (Nano Banana 2)
+- **5 styles** : Moderne, Classique, Luxe, Scandinave, Minimal
+- **6 types de pièces** : Salon, Chambre, Cuisine, Salle à manger, Bureau, Autre
+- **Quotas par plan** : Starter=0 (upsell), Pro=50 images/mois, Agency=200 images/mois
+- **Coût** : ~CHF 0.034/image batch (marge 93%+ sur dépassements à CHF 0.50/image)
+- **UI formulaire** : section accordéon dans ListingFormPage (sélection photo → style → type → générer → preview avant/après)
+- **UI fiche publique** : toggle "Voir meublé/original" sur la photo principale + badge "MEGGA Staging"
+- **Plans mis à jour** : SettingsPage + i18n 4 langues (FR/DE/EN/IT)
+- **DB** : colonnes `staged_photos text[]`, `energy_label text`, `minergie_label text` ajoutées sur `properties` et `market_listings`
+- **Secret requis** : `GOOGLE_AI_API_KEY` (configuré dans Supabase)
+- **Bucket** : `property-photos` (public, existait déjà)
+- **Hook** : `useVirtualStaging.ts` — generateStaging(), STAGING_STYLES, ROOM_TYPES, STAGING_QUOTAS
+
+#### Refonte Navbar — 29 mars 2026
+- **Logo MEGGA centré** (absolute left-1/2 -translate-x-1/2) — h-8
+- **3 liens gauche** : Acheter, Louer, Vendre (pills bg-gray-100 hover, bg-gray-100 active)
+- **Actions droite** : "+ Publier" (compact texte+icône), "Se connecter" (bg-gray-900)
+- **Hauteur** : h-16 → h-14 (56px)
+- **Glass effect** : bg-white/80 backdrop-blur-xl au scroll
+- **Homepage** : navbar transparente, texte blanc, transition au scroll
+- **Mobile** : hamburger gauche, logo centré, avatar/connexion droite
+- "Estimations" et "Services" déplacés dans le menu mobile uniquement
+
+#### Barre de recherche unifiée — 29 mars 2026
+- **Fusion** de 3 zones (search bar + filter pills + results header) en une seule ligne sticky h-12
+- **Gain** : ~88px de hauteur en moins (192px → 104px avant le contenu)
+- **Desktop** : input search compact | Type ▾ | Prix ▾ | Pièces ▾ | Plus ▾ | Tri ▾ | Vue ≡⊞ | 32K biens
+- **"Plus"** regroupe : Surface, Chambres, Sdb, Localisation, Style de vie
+- **Style cohérent navbar** : pills `bg-gray-100` inactif, `bg-gray-900 text-white` actif
+- **Mobile** : input search + bouton "Filtres" (dark quand actif, badge compteur)
+
 ### Prochaines priorités
 1. **C2PA / MEGGA Shield** — intégration badge photos vérifiées (en attente API partenaire)
 2. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
 3. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
 4. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
-5. **Déployer Edge Functions** — extract-property-pdf + extract-property-url
-6. **Google Calendar** — configurer Google Cloud Console (mode Testing) + tester OAuth flow
-7. **Score Engine v2 — Location Intelligence** — données externes suisses
-8. ~~**ListingPage connectée**~~ → ✅ FAIT (28 mars 2026)
-9. **Briefing matinal IA** — résumé narratif quotidien des mouvements marché + actions prioritaires
-10. **Alertes push** — pg_cron quotidien : nouveaux biens vs saved_searches → email via send-email
-11. **Virtual staging IA** — Nano Banana 2 API (CHF 0.034/image batch) dans formulaire création bien
-12. **Calculateur fiscal cantonal** — impôt revenu + fortune + valeur locative par commune
-13. **Calculateur accessibilité inline** — estimation mensualité sous chaque prix + calculateur inline dans fiche bien (voir spécification complète section 12 "Phase 2")
-14. **Insights quartier IA** — POIs Mapbox + résumé Claude + gare la plus proche + catégories (transports, commerces, écoles, santé, loisirs)
-15. **Alertes recherche intelligentes** — saved_searches Supabase + pg_cron quotidien + email Resend avec nouveaux biens matchés
+5. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel (photo, nom, étoiles, avis)
+6. **Photo category tabs** — onglets sous la galerie (Photos, Plan, Staging, Carte)
+7. **Staging modal avec slider avant/après** — style Zillow "Stage this space"
+8. **Carte isochrone dans le modal** — pills 15/30/45 min, voiture/pied/vélo
+9. **Score compétitivité prix** — badge "Bon prix" / "Prix marché" / "Au-dessus" dans la fiche
+10. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
