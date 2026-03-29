@@ -1026,6 +1026,7 @@ export default function SearchPage() {
   const { isFavorite, toggleFavorite, favoriteIds } = useFavorites()
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get('listing'))
   const mapViewRef = useRef<MapViewHandle>(null)
+  const [mapImmersive, setMapImmersive] = useState(false)
   const [viewedIds, setViewedIds] = useState<string[]>([])
 
   // Market temperature for current location filter
@@ -1229,10 +1230,10 @@ export default function SearchPage() {
 
   return (
     <div className="h-screen flex flex-col bg-white">
-      <Navbar />
+      {!mapImmersive && <Navbar />}
 
       {/* ─── UNIFIED STICKY BAR: Search + Filters ─── */}
-      <div className="sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100">
+      <div className={cn('sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100', mapImmersive && 'hidden')}>
         <div className="px-4 md:px-6">
 
           {/* Desktop: single unified row — constrained to left panel width */}
@@ -1456,8 +1457,8 @@ export default function SearchPage() {
 
       {/* ─── MAIN CONTENT ─── */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left panel: filters + results */}
-        <div className="w-full lg:w-[55%] flex flex-col overflow-hidden">
+        {/* Left panel: filters + results — hidden in immersive mode */}
+        <div className={cn('w-full lg:w-[55%] flex flex-col overflow-hidden', mapImmersive && 'hidden')}>
           {/* ─── AI Understanding Banner ─── */}
           {showAiBanner && aiUnderstood.length > 0 && (
             <div className="px-4 md:px-6 py-2 bg-accent/5 border-b border-accent/10 flex items-center gap-2 flex-wrap">
@@ -1616,7 +1617,12 @@ export default function SearchPage() {
         </div>
 
         {/* ─── ZONE 5: Map (desktop) ─── */}
-        <div className="hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)] border-l border-gray-200">
+        <div className={cn(
+          'border-l border-gray-200',
+          mapImmersive
+            ? 'block flex-1 border-l-0 h-screen'
+            : 'hidden lg:block lg:w-[45%] sticky top-32 h-[calc(100vh-8rem)]'
+        )}>
           <MapView
             ref={mapViewRef}
             listings={allListings}
@@ -1624,6 +1630,14 @@ export default function SearchPage() {
             hoveredId={hoveredListing}
             onHover={setHoveredListing}
             onZoneFilter={setZoneFilterIds}
+            onImmersiveChange={setMapImmersive}
+            onQuickFilter={(qf) => {
+              updateFilter({
+                types: qf.type ? [qf.type] : [],
+                maxPrice: qf.maxPrice ? String(qf.maxPrice) : '',
+                rooms: qf.minRooms ? String(qf.minRooms) : '',
+              })
+            }}
           />
         </div>
       </div>
