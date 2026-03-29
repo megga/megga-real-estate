@@ -2,8 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Search,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   X,
   MapPin,
@@ -21,6 +19,8 @@ import {
   GitCompareArrows,
   Check,
   Bookmark,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import MapView, { type MapViewHandle } from '@/components/map/MapView'
@@ -590,7 +590,9 @@ function ListingCardHorizontal({
           <img
             src={photos[currentPhoto]}
             alt={listing.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
@@ -598,65 +600,83 @@ function ListingCardHorizontal({
           </div>
         )}
 
-        {/* Gradient for dot visibility */}
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+        {/* Gradient */}
+        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
 
-        {/* Badge */}
+        {/* Badge — compact in list mode */}
         {badge && (
-          <div
-            className={cn(
-              badge.bg,
-              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md'
-            )}
-          >
+          <div className={cn(badge.bg, 'absolute top-2 left-2 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm')}>
             {badge.label}
           </div>
         )}
 
-        {/* Favorite + Compare */}
-        <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+        {/* Favorite + Compare — horizontal row, smaller in list mode */}
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.() }}
             aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-            className="h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
+            className={cn(
+              'h-6 w-6 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
+              isFav ? 'bg-white/95' : 'bg-black/15 hover:bg-black/25'
+            )}
           >
-            <Heart className={cn('h-4 w-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            <Heart className={cn('h-3 w-3 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-white/90')} />
           </button>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare?.() }}
             aria-label={isCompared ? 'Retirer de la comparaison' : 'Comparer'}
             className={cn(
-              'h-8 w-8 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 cursor-pointer',
-              isCompared ? 'bg-accent text-white' : 'bg-white/90 backdrop-blur-sm text-gray-400 hover:bg-white hover:scale-110'
+              'h-6 w-6 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
+              isCompared ? 'bg-white/95 ring-1 ring-accent/40' : 'bg-black/15 hover:bg-black/25'
             )}
           >
-            {isCompared ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+            {isCompared ? <Check className="h-2.5 w-2.5 text-accent" /> : <GitCompareArrows className="h-2.5 w-2.5 text-white/90" />}
           </button>
         </div>
+        {/* Always show active icons */}
+        {(isFav || isCompared) && (
+          <div className="absolute top-2 right-2 flex gap-1 group-hover:hidden">
+            {isFav && (
+              <div className="h-6 w-6 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center">
+                <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+              </div>
+            )}
+            {isCompared && (
+              <div className="h-6 w-6 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center ring-1 ring-accent/40">
+                <Check className="h-2.5 w-2.5 text-accent" />
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Photo dots + counter */}
+        {/* Photo arrows — smaller for list mode */}
         {photos.length > 1 && (
           <>
-            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
-              {photos.slice(0, 5).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setCurrentPhoto(i)
-                  }}
-                  className={cn(
-                    'rounded-full transition-all cursor-pointer',
-                    currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
-                  )}
-                />
-              ))}
-            </div>
-            <span className="absolute bottom-2.5 right-2.5 text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5 z-[1]">
-              {currentPhoto + 1}/{photos.length}
-            </span>
+            {currentPhoto > 0 && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p - 1) }}
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
+                aria-label="Photo précédente"
+              >
+                <ChevronLeft className="h-3.5 w-3.5 text-white" />
+              </button>
+            )}
+            {currentPhoto < photos.length - 1 && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p + 1) }}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
+                aria-label="Photo suivante"
+              >
+                <ChevronRight className="h-3.5 w-3.5 text-white" />
+              </button>
+            )}
           </>
+        )}
+        {/* Photo counter only (no dots in list mode — too small) */}
+        {photos.length > 1 && (
+          <span className="absolute bottom-2 left-2 text-[10px] font-medium text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2 py-0.5 z-[1]">
+            {currentPhoto + 1}/{photos.length}
+          </span>
         )}
       </div>
 
@@ -776,7 +796,6 @@ function ListingCardGrid({
   onPreview?: (id: string) => void
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const carouselRef = useRef<HTMLDivElement>(null)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const photos = listing.photos?.length ? listing.photos : []
 
@@ -785,18 +804,6 @@ function ListingCardGrid({
       cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }, [isHovered])
-
-  const handleScroll = useCallback(() => {
-    const el = carouselRef.current
-    if (!el) return
-    const idx = Math.round(el.scrollLeft / el.offsetWidth)
-    if (idx !== currentPhoto) setCurrentPhoto(idx)
-  }, [currentPhoto])
-
-  const scrollToPhoto = useCallback((idx: number, e?: React.MouseEvent) => {
-    if (e) { e.preventDefault(); e.stopPropagation() }
-    carouselRef.current?.scrollTo({ left: idx * (carouselRef.current.offsetWidth), behavior: 'smooth' })
-  }, [])
 
   const badge = getSmartBadge(listing, medianPricePerM2)
 
@@ -807,147 +814,182 @@ function ListingCardGrid({
       className={cn(
         'block bg-white border rounded-xl transition-all duration-200 overflow-hidden group cursor-pointer',
         isHovered
-          ? 'border-accent/40 shadow-md ring-1 ring-accent/20'
-          : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
+          ? 'border-accent/40 ring-1 ring-accent/20'
+          : 'border-gray-100 hover:border-gray-200'
       )}
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
-      <div className="relative aspect-[4/3] overflow-hidden group/photo">
+      <div className="relative aspect-[4/3] overflow-hidden">
         {photos.length > 0 ? (
-          <div
-            ref={carouselRef}
-            className="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide"
-            onScroll={handleScroll}
-          >
-            {photos.map((photo, i) => (
-              <div key={i} className="w-full h-full flex-shrink-0 snap-center">
-                <img
-                  src={photo}
-                  alt={i === 0 ? listing.title : ''}
-                  className="w-full h-full object-cover"
-                  loading={i > 0 ? 'lazy' : undefined}
-                  decoding="async"
-                />
-              </div>
-            ))}
-          </div>
+          <img
+            src={photos[currentPhoto]}
+            alt={listing.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
             <Building2 className="h-12 w-12 text-gray-300" />
           </div>
         )}
-        {/* Gradient for dot visibility */}
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-        {/* Navigation arrows (desktop hover) */}
-        {photos.length > 1 && (
-          <>
-            {currentPhoto > 0 && (
-              <button
-                onClick={(e) => scrollToPhoto(currentPhoto - 1, e)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity z-[2]"
-                aria-label="Photo précédente"
-              >
-                <ChevronLeft className="h-4 w-4 text-gray-800" />
-              </button>
-            )}
-            {currentPhoto < photos.length - 1 && (
-              <button
-                onClick={(e) => scrollToPhoto(currentPhoto + 1, e)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity z-[2]"
-                aria-label="Photo suivante"
-              >
-                <ChevronRight className="h-4 w-4 text-gray-800" />
-              </button>
-            )}
-          </>
-        )}
+        {/* Gradient for dot/counter visibility */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+        {/* Badge */}
         {badge && (
           <div
             className={cn(
               badge.bg,
-              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md z-[1]'
+              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md backdrop-blur-sm'
             )}
           >
             {badge.label}
           </div>
         )}
-        <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-[1]">
+        {/* Favorite + Compare — smaller, more subtle */}
+        <div className="absolute top-3 right-3 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.() }}
             aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-            className="h-8 w-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:scale-110 transition-all duration-200 cursor-pointer"
+            className={cn(
+              'h-7 w-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
+              isFav ? 'bg-white/95' : 'bg-black/15 hover:bg-black/25'
+            )}
           >
-            <Heart className={cn('h-4 w-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            <Heart className={cn('h-3.5 w-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-white/90')} />
           </button>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare?.() }}
             aria-label={isCompared ? 'Retirer de la comparaison' : 'Comparer'}
             className={cn(
-              'h-8 w-8 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 cursor-pointer',
-              isCompared ? 'bg-accent text-white' : 'bg-white/90 backdrop-blur-sm text-gray-400 hover:bg-white hover:scale-110'
+              'h-7 w-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
+              isCompared ? 'bg-white/95 ring-1 ring-accent/40' : 'bg-black/15 hover:bg-black/25'
             )}
           >
-            {isCompared ? <Check className="h-3.5 w-3.5" /> : <GitCompareArrows className="h-3.5 w-3.5" />}
+            {isCompared ? <Check className="h-3 w-3 text-accent" /> : <GitCompareArrows className="h-3 w-3 text-white/90" />}
           </button>
         </div>
+        {/* Always show if active (even without hover) */}
+        {(isFav || isCompared) && (
+          <div className="absolute top-3 right-3 flex flex-col gap-1.5 group-hover:hidden">
+            {isFav && (
+              <div className="h-7 w-7 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center">
+                <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+              </div>
+            )}
+            {isCompared && (
+              <div className="h-7 w-7 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center ring-1 ring-accent/40">
+                <Check className="h-3 w-3 text-accent" />
+              </div>
+            )}
+          </div>
+        )}
+        {/* Photo arrows */}
         {photos.length > 1 && (
           <>
-            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-[1]">
+            {currentPhoto > 0 && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p - 1) }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
+                aria-label="Photo précédente"
+              >
+                <ChevronLeft className="h-4 w-4 text-white" />
+              </button>
+            )}
+            {currentPhoto < photos.length - 1 && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p + 1) }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
+                aria-label="Photo suivante"
+              >
+                <ChevronRight className="h-4 w-4 text-white" />
+              </button>
+            )}
+          </>
+        )}
+        {/* Photo dots + counter */}
+        {photos.length > 1 && (
+          <>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-[1]">
               {photos.slice(0, 5).map((_, i) => (
                 <button
                   key={i}
-                  onClick={(e) => scrollToPhoto(i, e)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setCurrentPhoto(i)
+                  }}
                   className={cn(
                     'rounded-full transition-all cursor-pointer',
-                    currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
+                    currentPhoto === i ? 'w-2 h-2 bg-white' : 'w-1.5 h-1.5 bg-white/60 hover:bg-white/90'
                   )}
                 />
               ))}
             </div>
-            <span className="absolute bottom-2.5 right-2.5 text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5 z-[1]">
+            <span className="absolute bottom-3 right-3 text-[10px] font-medium text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2 py-0.5 z-[1]">
               {currentPhoto + 1}/{photos.length}
             </span>
           </>
         )}
       </div>
       <div className="p-4">
+        {/* Price + price/m² */}
         <div className="flex items-baseline gap-2">
-          <span className="text-lg font-semibold text-gray-900">
-            <span className="text-sm font-normal text-gray-500">CHF </span>
+          <span className="text-lg font-bold text-gray-900">
+            <span className="text-sm font-normal text-gray-400">CHF </span>
             {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? '/mois' : ''}
           </span>
-          {listing.price_per_m2 && listing.price_per_m2 > 0 && (
-            <span className="text-xs text-gray-400">
-              {formatPricePerM2(listing.price_per_m2)}
+          {listing.price_per_m2 && listing.price_per_m2 > 0 && listing.surface_m2 > 0 && (
+            <span className="text-[11px] text-gray-400">
+              CHF {Math.round(listing.price_per_m2).toLocaleString('fr-CH')}/m²
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-500 mt-1">
+        {/* Address */}
+        <p className="text-sm text-gray-500 mt-1 truncate">
           {listing.address}, {listing.city}
         </p>
-        <div className="flex items-center text-sm text-gray-500 mt-2">
+        {/* Specs row */}
+        <div className="flex items-center text-[13px] text-gray-500 mt-2 gap-1">
           {listing.rooms > 0 && (
             <span className="flex items-center gap-1">
-              <DoorOpen className="h-3.5 w-3.5 text-gray-500" />
+              <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
               {listing.rooms} pièces
             </span>
           )}
           {listing.bedrooms > 0 && (
             <>
-              <span className="text-gray-300 mx-1.5">·</span>
+              <span className="text-gray-300 mx-0.5">·</span>
               <span className="flex items-center gap-1">
-                <BedDouble className="h-3.5 w-3.5 text-gray-500" />
+                <BedDouble className="h-3.5 w-3.5 text-gray-400" />
                 {listing.bedrooms} ch.
               </span>
             </>
           )}
-          <span className="text-gray-300 mx-1.5">·</span>
+          <span className="text-gray-300 mx-0.5">·</span>
           <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5 text-gray-500" />
+            <Maximize className="h-3.5 w-3.5 text-gray-400" />
             {formatSurface(listing.surface_m2)}
           </span>
         </div>
+        {/* Description preview */}
+        {listing.description && (
+          <p className="text-xs text-gray-400 mt-2 line-clamp-1">{listing.description}</p>
+        )}
+        {/* Agency + freshness */}
+        {(listing.agency_name || listing.days_on_market !== undefined) && (
+          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-50">
+            {listing.agency_name && (
+              <span className="text-[11px] text-gray-400 truncate max-w-[60%]">{listing.agency_name}</span>
+            )}
+            {listing.days_on_market !== undefined && (
+              <span className="text-[11px] text-gray-400">
+                {listing.days_on_market <= 1 ? "Aujourd'hui" : listing.days_on_market <= 7 ? `il y a ${listing.days_on_market}j` : `${listing.days_on_market}j`}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -967,8 +1009,17 @@ export default function SearchPage() {
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
   const [showChat, setShowChat] = useState(false)
   const [plusOpen, setPlusOpen] = useState(false)
-  const [compareIds, setCompareIds] = useState<string[]>([])
+  const [compareIds, setCompareIds] = useState<string[]>(() => {
+    // Restore from URL params first, then localStorage
+    const urlCompare = searchParams.get('compare')
+    if (urlCompare) return urlCompare.split(',').filter(Boolean).slice(0, 3)
+    try {
+      const stored = localStorage.getItem('megga-compare')
+      return stored ? JSON.parse(stored).slice(0, 3) : []
+    } catch { return [] }
+  })
   const [showCompare, setShowCompare] = useState(false)
+  const [compareToast, setCompareToast] = useState<string | null>(null)
   const [savedSearchToast] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [savedListOpen, setSavedListOpen] = useState(false)
@@ -1139,15 +1190,26 @@ export default function SearchPage() {
     updateFilter(patch)
   }, [updateFilter])
 
-  // Compare helpers
+  // Compare helpers — persist to localStorage + URL
+  useEffect(() => {
+    try { localStorage.setItem('megga-compare', JSON.stringify(compareIds)) } catch { /* ignore storage errors */ }
+    // Update URL param
+    const sp = new URLSearchParams(searchParams)
+    if (compareIds.length > 0) sp.set('compare', compareIds.join(','))
+    else sp.delete('compare')
+    setSearchParams(sp, { replace: true })
+  }, [compareIds]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function toggleCompare(id: string) {
-    setCompareIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : prev.length < 3
-          ? [...prev, id]
-          : prev
-    )
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id)
+      if (prev.length >= 3) {
+        setCompareToast('Maximum 3 biens en comparaison')
+        setTimeout(() => setCompareToast(null), 2500)
+        return prev
+      }
+      return [...prev, id]
+    })
   }
   const compareListings = allListings.filter((l) => compareIds.includes(l.id))
 
@@ -1333,9 +1395,6 @@ export default function SearchPage() {
                 <Bookmark className="h-3.5 w-3.5" />
               </button>
             )}
-
-            {/* Spacer — pushes right items to the end of the constrained width */}
-            <div className="flex-1" />
 
             {/* Sort pill */}
             <FilterPill
@@ -1637,8 +1696,21 @@ export default function SearchPage() {
         </div>
       )}
 
+      {/* Compare limit toast */}
+      {compareToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 h-10 px-4 bg-gray-900 text-white text-sm font-medium rounded-full shadow-lg animate-in slide-in-from-top duration-200">
+          <GitCompareArrows className="h-4 w-4 text-amber-400" />
+          {compareToast}
+        </div>
+      )}
+
       {/* ─── Listing preview panel (Zillow-style) ─── */}
-      <ListingPreviewPanel listingId={previewId} onClose={closePreview} />
+      <ListingPreviewPanel
+        listingId={previewId}
+        onClose={closePreview}
+        isCompared={previewId ? compareIds.includes(previewId) : false}
+        onToggleCompare={previewId ? () => toggleCompare(previewId) : undefined}
+      />
 
       {/* ─── Save search dialog ─── */}
       <SaveSearchDialog
