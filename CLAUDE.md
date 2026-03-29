@@ -1816,14 +1816,68 @@ MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
 - **Animation zoom retirée** : plus de `group-hover:scale` sur les photos
 - **Barre filtres** : spacer flex-1 retiré → bloc Pertinence/grid/list/compteur aligné à gauche après les filtres
 
+#### Galerie photo — MUST-HAVE — 30 mars 2026
+- **Swipe tactile lightbox** : hook `useSwipeNavigation` (50px threshold, 400ms), intégré dans ListingLightbox + PreviewPanel
+- **Pinch-to-zoom + scroll-zoom** : hook `useZoomPan` — pinch 2 doigts, double-tap toggle 1x/2.5x, scroll wheel desktop, pan quand zoomé, scale [1.0, 5.0]
+- **Carrousel multi-photos dans cards** : snap CSS natif dans ListingCard + SearchPage ListingCardGrid, flèches hover, lazy loading, dots
+- **Vidéo intégrée galerie** : composant `VideoPlayer` (thumbnail + lightbox), `galleryMedia.ts` utilitaire, migration `video_url TEXT` sur properties + market_listings
+
+#### Galerie photo — RECOMMANDÉ — 30 mars 2026
+- **Onglets par pièce lightbox** : pills filtrants basés sur `photo_tags` (Toutes / Salon / Cuisine / Chambres...), thumbnails filtrées, compteur adapté
+- **Photo + Plan côte à côte** (Rightmove-style) : toggle split-screen dans lightbox (photo 60% + InteractiveFloorPlan 40%), hotspot clic → filtre par pièce, raccourci clavier `P`
+- **Before/After slider staging** : composant `BeforeAfterSlider` (Pointer Events API, handle draggable, labels), bouton "Comparer" dans lightbox header
+- **Partage photo spécifique** : bouton "Partager" dans lightbox, URL `?photo={index}`, Web Share API + clipboard, ListingPage lit `?photo=X` au chargement
+
+#### Galerie photo — GAME-CHANGER — 30 mars 2026
+- **Floor plan cliquable complet** : `activeRoom` + `photoTags` props dans ListingHeroGallery, filtrage hero gallery par pièce active
+- **Virtual staging côté acheteur** : `BuyerStagingPanel` (5 styles, 3 essais gratuits/session), Edge Function `public-staging` (Gemini 2.0 Flash, rate limit IP 5/h), bouton "Essayer meublé" dans lightbox
+- **AI auto-labeling photos** : Edge Function `photo-labeler` (Claude Sonnet 4 vision, 10 types pièces), hook `usePhotoLabeler`, confidence scores
+- **AI quality scoring** : 4 métriques (sharpness, lighting, composition, overall 0-100) + flags (blur, overexposed, dark...), migration `photo_quality_scores JSONB`
+- **C2PA / MEGGA Shield** (préparé, en attente API) : composant `C2PaBadge`, colonnes `c2pa_verified BOOLEAN` + `c2pa_verified_at`, intégré PreviewPanel + ListingPage
+
+#### Mapbox 3D — MUST-HAVE — 30 mars 2026
+- **Style Standard 3D** : buildings 3D, landmarks, ombres, terrain (exaggeration 1.5)
+- **Style switcher** : 4 styles (3D / Satellite / Clair / Sombre), bottom-left
+- **FlyTo animation** au clic sur listing (800ms, zoom 14+)
+- **Compass + pitch** : NavigationControl avec compass visible, visualizePitch
+
+#### Mapbox — RECOMMANDÉ — 30 mars 2026
+- **Bouton Outils** : toggle affiche/masque tous les outils avancés (bottom-left à côté du style switcher)
+- **Light presets** : Jour / Aube / Crépuscule / Nuit via `setConfigProperty('basemap', 'lightPreset', ...)` (Standard 3D uniquement)
+- **Heat map prix/m²** : couche heatmap colorée bleu→rouge basée sur les prix des 38K biens
+- **Geocoding autocomplete** : Mapbox Geocoding API v5, country=ch, language=fr, 5 résultats, flyTo
+- **Mesure de surface** : Shoelace formula sur zones dessinées, affichage km²/ha/m²
+
+#### Mapbox — GAME-CHANGER — 30 mars 2026
+- **Orbit 3D** : rotation cinématique via requestAnimationFrame, zoom 15/17 + pitch 65°, bouton play/pause, stop au user interaction. Disponible sur carte `/acheter` (via Outils) + fiche bien (`ListingMap`)
+- **Trajet domicile-travail** : Mapbox Directions API, geocoding destination, 3 profils (voiture/pied/vélo), route overlay bleue, durée min + distance km. Disponible sur carte `/acheter` (clic pose point départ) + fiche bien (`ListingMap`)
+- **Globe Hero** : composant `GlobeHero` — projection globe avec animation flyTo terre→Suisse (6s), étoiles, fog atmosphérique. Prêt à intégrer sur homepage
+- **Navigation 3D manuelle** : dragRotate, touchPitch, touchZoomRotate activés sur MapView
+
+#### Nouveaux fichiers créés cette session
+```
+src/hooks/useSwipeNavigation.ts          — Hook swipe tactile
+src/hooks/useZoomPan.ts                  — Hook pinch-to-zoom + scroll-zoom
+src/hooks/usePhotoLabeler.ts             — Hook AI auto-labeling
+src/lib/galleryMedia.ts                  — Utilitaire buildGalleryMedia
+src/components/listing/VideoPlayer.tsx   — Player vidéo (thumbnail + lightbox)
+src/components/listing/BeforeAfterSlider.tsx — Slider avant/après staging
+src/components/listing/BuyerStagingPanel.tsx — Panel staging acheteur (5 styles)
+src/components/listing/C2PaBadge.tsx     — Badge photos vérifiées C2PA
+src/components/home/GlobeHero.tsx        — Globe terrestre → Suisse animation
+supabase/functions/photo-labeler/        — Edge Function AI vision (Claude Sonnet 4)
+supabase/functions/public-staging/       — Edge Function staging public (Gemini 2.0)
+supabase/migrations/20260329_002_video_gallery_support.sql
+supabase/migrations/20260330_003_photo_quality.sql
+supabase/migrations/20260330_004_c2pa_shield.sql
+```
+
 ### Prochaines priorités
-1. **Virtual Staging côté acheteur** — exposer bouton "Voir meublé" dans la fiche publique (actuellement agent-only). L'acheteur choisit son style (7 styles) et voit la pièce meublée en temps réel.
-2. **C2PA / MEGGA Shield** — intégration badge photos vérifiées (en attente API partenaire)
+1. **Carte fullscreen immersive** — reproduire les features de https://www.mapbox.com/real-estate (vue immersive plein écran avec navigation 3D complète, clic droit rotation, overlays données)
+2. **Clic droit rotation carte** — actuellement dragRotate activé mais ne fonctionne pas côté utilisateur, investiguer pourquoi
 3. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
 4. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
 5. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
 6. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
-7. **Photo category tabs** — onglets sous la galerie (Photos, Plan, Staging, Carte)
-8. **Staging modal avec slider avant/après** — style Zillow "Stage this space"
-9. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
-10. **Lightbox photo enrichie** — audit features game-changer à faire (voir instruction session suivante)
+7. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
+8. **Edge Functions à déployer** : `photo-labeler`, `public-staging` (code prêt, pas encore déployé)
