@@ -1192,7 +1192,7 @@ export default function SearchPage() {
 
   // Compare helpers — persist to localStorage + URL
   useEffect(() => {
-    try { localStorage.setItem('megga-compare', JSON.stringify(compareIds)) } catch {}
+    try { localStorage.setItem('megga-compare', JSON.stringify(compareIds)) } catch { /* ignore storage errors */ }
     // Update URL param
     const sp = new URLSearchParams(searchParams)
     if (compareIds.length > 0) sp.set('compare', compareIds.join(','))
