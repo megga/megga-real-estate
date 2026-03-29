@@ -1,9 +1,11 @@
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Home, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'motion/react'
-import { cn } from '@/lib/utils'
+import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useActionBoard, type ActionItem } from '@/hooks/useActionBoard'
+import { useSellerLeads, type SellerLeadRow } from '@/hooks/useSellerLeads'
 import ActionCard from '@/components/action-board/ActionCard'
 import PipelineHealth from '@/components/action-board/PipelineHealth'
 import MarketRadar from '@/components/action-board/MarketRadar'
@@ -136,12 +138,62 @@ function ActionSection({
   )
 }
 
+// ── Seller Leads Section ────────────────────────────────────────────────────
+
+function SellerLeadsSection({ leads }: { leads: SellerLeadRow[] }) {
+  const navigate = useNavigate()
+  if (leads.length === 0) return null
+
+  return (
+    <div className="rounded-xl px-5 py-4 border border-purple-500/40">
+      <div className="flex items-center gap-2.5 mb-3">
+        <h2 className="text-[11px] uppercase tracking-[0.08em] font-semibold text-purple-400">
+          Nouveaux leads vendeurs
+        </h2>
+        <span className="ml-1 text-xs font-semibold px-2 py-0.5 rounded-full min-w-[22px] text-center bg-purple-500/15 text-purple-400">
+          {leads.length}
+        </span>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        {leads.map((lead) => {
+          const pd = lead.property_data
+          return (
+            <div
+              key={lead.id}
+              className="flex items-center gap-3 rounded-lg border border-theme-border p-3 hover:border-theme-active transition-colors group cursor-pointer"
+              onClick={() => {
+                if (lead.contact_id) navigate(`/dashboard/contacts/${lead.contact_id}`)
+              }}
+            >
+              <div className="h-9 w-9 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                <Home className="h-4 w-4 text-purple-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-theme-primary truncate">{lead.contact_name}</p>
+                <p className="text-xs text-theme-tertiary truncate">
+                  {pd?.city || pd?.canton} — {pd?.type === 'apartment' ? 'Appt' : pd?.type === 'house' ? 'Maison' : pd?.type === 'villa' ? 'Villa' : pd?.type || 'Bien'} {pd?.rooms}p. {pd?.surface} m²
+                  {lead.estimation_median ? ` — ${formatCHF(lead.estimation_median)}` : ''}
+                </p>
+              </div>
+              <span className="text-[11px] text-theme-muted flex-shrink-0">
+                {formatRelativeDate(lead.created_at)}
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 text-theme-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ActionBoardPage() {
   const { byCategory, markAsCompleted, isLoading } = useActionBoard()
   const { t } = useTranslation('dashboard')
   const { profile } = useAuth()
+  const { data: sellerLeads = [] } = useSellerLeads('new')
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Agent'
 
@@ -191,6 +243,9 @@ export default function ActionBoardPage() {
           <MarketRadar />
           <PipelineHealth />
         </div>
+
+        {/* ── Seller Leads ── */}
+        <SellerLeadsSection leads={sellerLeads} />
 
         {/* ── Sections ── */}
         <div className="space-y-4">

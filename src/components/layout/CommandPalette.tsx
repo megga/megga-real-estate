@@ -6,7 +6,7 @@ import {
   Zap, Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MOCK_CONTACTS } from '@/lib/mockData'
+import { useContacts } from '@/hooks/useContacts'
 
 interface CommandItem {
   id: string
@@ -39,20 +39,19 @@ const actionItems: CommandItem[] = [
   { id: 'a-deal', label: 'Nouvelle transaction', category: 'actions', icon: Plus, href: '/dashboard/pipeline' },
 ]
 
-const contactItems: CommandItem[] = MOCK_CONTACTS.slice(0, 8).map((c) => ({
-  id: `c-${c.id}`,
-  label: `${c.first_name} ${c.last_name}`,
-  category: 'contacts' as const,
-  icon: Users,
-  href: `/dashboard/contacts/${c.id}`,
-  subtitle: c.type === 'buyer' ? 'Acheteur' : c.type === 'seller' ? 'Vendeur' : c.type === 'both' ? 'Acheteur/Vendeur' : 'Lead',
-}))
-
-const allItems = [...pageItems, ...contactItems, ...actionItems]
+const TYPE_LABELS: Record<string, string> = {
+  buyer: 'Acheteur',
+  seller: 'Vendeur',
+  both: 'Acheteur/Vendeur',
+  investor: 'Investisseur',
+  tenant: 'Locataire',
+  landlord: 'Bailleur',
+  lead: 'Lead',
+}
 
 const categoryLabels: Record<string, string> = {
   pages: 'Pages',
-  contacts: 'Contacts récents',
+  contacts: 'Contacts',
   biens: 'Biens',
   actions: 'Actions rapides',
 }
@@ -70,6 +69,24 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
   const listRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
+  // Fetch contacts from Supabase (search filter applied server-side when query has 2+ chars)
+  const { contacts } = useContacts(query.length >= 2 ? { search: query } : undefined)
+
+  // Map contacts to CommandItems
+  const contactItems: CommandItem[] = useMemo(() =>
+    contacts.slice(0, 8).map((c) => ({
+      id: `c-${c.id}`,
+      label: `${c.first_name} ${c.last_name}`,
+      category: 'contacts' as const,
+      icon: Users,
+      href: `/dashboard/contacts/${c.id}`,
+      subtitle: TYPE_LABELS[c.type] || 'Contact',
+    })),
+    [contacts]
+  )
+
+  const allItems = useMemo(() => [...pageItems, ...contactItems, ...actionItems], [contactItems])
+
   // Filter results
   const filtered = useMemo(() => {
     if (!query.trim()) return allItems
@@ -79,7 +96,7 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
         item.label.toLowerCase().includes(q) ||
         (item.subtitle && item.subtitle.toLowerCase().includes(q))
     )
-  }, [query])
+  }, [query, allItems])
 
   // Group by category
   const grouped = useMemo(() => {

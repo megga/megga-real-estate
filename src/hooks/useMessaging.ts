@@ -3,8 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
-const DEV_BYPASS = import.meta.env.DEV
-
 export interface MessageThread {
   id: string
   agency_id: string
@@ -31,50 +29,6 @@ export interface Message {
   created_at: string
 }
 
-// Import mock data dynamically to avoid circular deps
-let MOCK_THREADS: MessageThread[] = []
-let MOCK_MESSAGES: Record<string, Message[]> = {}
-
-async function loadMockData() {
-  const mod = await import('@/pages/agent/messagingMockData')
-  if ('MESSAGE_THREADS' in mod && 'MESSAGES' in mod) {
-    MOCK_THREADS = (mod.MESSAGE_THREADS as unknown as Array<Record<string, unknown>>).map((t) => ({
-      id: t.id as string,
-      agency_id: 'dev-mock-agency',
-      property_id: t.property_id as string | null,
-      property_title: t.property_title as string | null,
-      contact_id: null,
-      contact_name: t.contact_name as string,
-      contact_type: t.contact_type as 'buyer' | 'seller',
-      last_message: t.last_message as string,
-      last_message_at: t.last_message_at as string,
-      unread_count: (t.unread_count as number) ?? 0,
-      avatar_initials: (t.avatar_initials as string) ?? (t.contact_name as string).split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-      created_at: t.last_message_at as string,
-    }))
-
-    const allMsgs = mod.MESSAGES as unknown as Array<Record<string, unknown>>
-    MOCK_MESSAGES = {}
-    for (const m of allMsgs) {
-      const tid = m.thread_id as string
-      if (!MOCK_MESSAGES[tid]) MOCK_MESSAGES[tid] = []
-      MOCK_MESSAGES[tid].push({
-        id: m.id as string,
-        thread_id: tid,
-        sender_id: 'dev-mock-user',
-        sender_type: m.sender as 'agent' | 'contact',
-        sender_name: m.sender_name as string,
-        content: m.content as string,
-        read_at: null,
-        created_at: m.timestamp as string,
-      })
-    }
-  }
-}
-
-// Pre-load mock data
-const mockReady = DEV_BYPASS ? loadMockData() : Promise.resolve()
-
 export function useMessaging(threadId: string | null) {
   const { user, profile } = useAuth()
   const queryClient = useQueryClient()
@@ -83,25 +37,23 @@ export function useMessaging(threadId: string | null) {
   const threadsQuery = useQuery({
     queryKey: ['threads', profile?.agency_id],
     queryFn: async () => {
-      if (DEV_BYPASS) { await mockReady; return MOCK_THREADS }
       const { data, error } = await supabase
         .from('message_threads')
-        .select('id, agency_id, contact_id, contact_name, contact_type, property_id, property_title, channel, last_message_at, unread_count')
+        .select('id, agency_id, contact_id, contact_name, contact_type, property_id, property_title, channel, last_message_at, unread_count, last_message, created_at')
         .order('last_message_at', { ascending: false })
       if (error) throw error
-      return (data as unknown as Array<Omit<MessageThread, 'avatar_initials'>>).map((t) => ({
+      return (data ?? []).map((t) => ({
         ...t,
-        avatar_initials: t.contact_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2),
-      }))
+        avatar_initials: (t.contact_name || '').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+      })) as MessageThread[]
     },
-    enabled: DEV_BYPASS || !!user,
+    enabled: !!user,
   })
 
   // Fetch messages for selected thread
   const messagesQuery = useQuery({
     queryKey: ['messages', threadId],
     queryFn: async () => {
-      if (DEV_BYPASS) { await mockReady; return MOCK_MESSAGES[threadId!] ?? [] }
       const { data, error } = await supabase
         .from('messages')
         .select('id, thread_id, sender_id, sender_type, sender_name, content, read_at, created_at')
@@ -122,26 +74,6 @@ export function useMessaging(threadId: string | null) {
     }) => {
       if (!threadId) throw new Error('No thread selected')
 
-      const newMessage: Message = {
-        id: DEV_BYPASS ? crypto.randomUUID() : '',
-        thread_id: threadId,
-        sender_id: user?.id ?? 'dev-mock-user',
-        sender_type: senderType,
-        sender_name: senderName,
-        content,
-        read_at: null,
-        created_at: new Date().toISOString(),
-      }
-
-      if (DEV_BYPASS) {
-        // Optimistic update for dev mode
-        queryClient.setQueryData<Message[]>(['messages', threadId], (old) => [
-          ...(old ?? []),
-          newMessage,
-        ])
-        return newMessage
-      }
-
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -157,6 +89,7 @@ export function useMessaging(threadId: string | null) {
       return data as Message
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', threadId] })
       queryClient.invalidateQueries({ queryKey: ['threads'] })
     },
   })
@@ -164,7 +97,7 @@ export function useMessaging(threadId: string | null) {
   // Mark messages as read
   const markAsReadMutation = useMutation({
     mutationFn: async () => {
-      if (!threadId || DEV_BYPASS) return
+      if (!threadId) return
       await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
@@ -184,7 +117,7 @@ export function useMessaging(threadId: string | null) {
 
   // Realtime subscription for new messages
   useEffect(() => {
-    if (!threadId || DEV_BYPASS) return
+    if (!threadId) return
 
     const channel = supabase
       .channel(`messages:${threadId}`)

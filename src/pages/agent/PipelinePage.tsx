@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import NewTransactionDialog from '@/components/transactions/NewTransactionDialog'
 import {
@@ -18,17 +18,56 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  Plus, Kanban, List, Search, ChevronDown, AlertTriangle,
+  Plus, Kanban, List, Search, ChevronDown, AlertTriangle, Loader2,
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
-import { MOCK_DEALS, type MockDeal } from '@/lib/mockData'
+import { useTransactions, useUpdateTransactionStage } from '@/hooks/useTransactions'
 import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
 import PageTransition from '@/components/layout/PageTransition'
 import DealDetailModal from '@/components/transactions/DealDetailModal'
 
+// ── Pipeline Deal shape (derived from Supabase Transaction + joins) ────────
+
+interface PipelineDeal {
+  id: string
+  contact_name: string
+  property_title: string
+  price: number
+  stage: TransactionStage
+  agent: string
+  updated_at: string
+  has_overdue_reminder: boolean
+  contact_id?: string
+}
+
+function transactionToDeal(t: Record<string, unknown>): PipelineDeal {
+  const buyer = t.buyer as { first_name?: string; last_name?: string } | null
+  const seller = t.seller as { first_name?: string; last_name?: string } | null
+  const property = t.property as { title?: string; address?: string; city?: string; price?: number; photos?: string[] } | null
+  const agent = t.agent as { full_name?: string } | null
+
+  const contactName = buyer
+    ? `${buyer.first_name || ''} ${buyer.last_name || ''}`.trim()
+    : seller
+      ? `${seller.first_name || ''} ${seller.last_name || ''}`.trim()
+      : 'Contact'
+
+  return {
+    id: t.id as string,
+    contact_name: contactName || 'Contact',
+    property_title: property?.title || property?.address || 'Bien',
+    price: (t.price_offered as number) || (t.price_final as number) || property?.price || 0,
+    stage: t.stage as TransactionStage,
+    agent: agent?.full_name || 'Agent',
+    updated_at: t.updated_at as string,
+    has_overdue_reminder: false,
+    contact_id: (t.contact_buyer_id as string) || (t.contact_seller_id as string) || undefined,
+  }
+}
+
 // ── Column config — all 14 columns ──────────────────────────────────────────
 
-const PIPELINE_COLUMNS: { stage: MockDeal['stage']; dotColor: string; isArchive?: boolean }[] = [
+const PIPELINE_COLUMNS: { stage: TransactionStage; dotColor: string; isArchive?: boolean }[] = [
   { stage: 'new_lead',            dotColor: 'bg-gray-400' },
   { stage: 'to_qualify',          dotColor: 'bg-gray-500' },
   { stage: 'active_search',       dotColor: 'bg-blue-500' },
@@ -44,8 +83,6 @@ const PIPELINE_COLUMNS: { stage: MockDeal['stage']; dotColor: string; isArchive?
   { stage: 'lost',                dotColor: 'bg-red-500', isArchive: true },
   { stage: 'to_recontact',        dotColor: 'bg-yellow-500', isArchive: true },
 ]
-
-const AGENTS = ['Gregory L.', 'Sophie M.']
 
 const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
 
@@ -69,7 +106,7 @@ function DealAvatar({ name, size = 'default' }: { name: string; size?: 'default'
 
 // ── Deal Card — minimal Lovable style ───────────────────────────────────────
 
-function DealCardContent({ deal, onSelect }: { deal: MockDeal; onSelect?: (deal: MockDeal) => void }) {
+function DealCardContent({ deal, onSelect }: { deal: PipelineDeal; onSelect?: (deal: PipelineDeal) => void }) {
   return (
     <div
       className="rounded-lg border border-theme-border p-3 cursor-grab active:cursor-grabbing hover:border-theme-active hover:bg-theme-hover transition-all group"
@@ -100,7 +137,7 @@ function DealCardContent({ deal, onSelect }: { deal: MockDeal; onSelect?: (deal:
 
 // ── Sortable wrapper ────────────────────────────────────────────────────────
 
-function SortableDealCard({ deal }: { deal: MockDeal }) {
+function SortableDealCard({ deal }: { deal: PipelineDeal }) {
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging,
   } = useSortable({ id: deal.id, data: { deal } })
@@ -120,12 +157,12 @@ function SortableDealCard({ deal }: { deal: MockDeal }) {
 // ── Kanban Column ───────────────────────────────────────────────────────────
 
 function KanbanColumn({ stage, dotColor, deals, isArchive }: {
-  stage: MockDeal['stage']
+  stage: TransactionStage
   dotColor: string
-  deals: MockDeal[]
+  deals: PipelineDeal[]
   isArchive?: boolean
 }) {
-  const label = TRANSACTION_STAGE_LABELS[stage as TransactionStage]
+  const label = TRANSACTION_STAGE_LABELS[stage]
   const totalValue = deals.reduce((sum, d) => sum + d.price, 0)
 
   return (
@@ -239,16 +276,31 @@ export default function PipelinePage() {
     }
   }, [])
 
-  const [deals, setDeals] = useState<MockDeal[]>(MOCK_DEALS)
+  // Supabase data
+  const { data: transactions = [], isLoading } = useTransactions()
+  const updateStage = useUpdateTransactionStage()
+
+  // Map transactions to pipeline deals
+  const deals = useMemo(
+    () => (transactions as unknown as Record<string, unknown>[]).map(transactionToDeal),
+    [transactions]
+  )
+
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const [view, setView] = useState<'kanban' | 'list'>(isMobile ? 'list' : 'kanban')
   const [search, setSearch] = useState('')
   const [agentFilter, setAgentFilter] = useState('')
   const [stageFilter, setStageFilter] = useState('')
-  const [activeDeal, setActiveDeal] = useState<MockDeal | null>(null)
+  const [activeDeal, setActiveDeal] = useState<PipelineDeal | null>(null)
   const [showNewTransaction, setShowNewTransaction] = useState(false)
-  const [selectedDeal, setSelectedDeal] = useState<MockDeal | null>(null)
+  const [selectedDeal, setSelectedDeal] = useState<PipelineDeal | null>(null)
   const [lostConfirm, setLostConfirm] = useState<{ dealId: string; dealName: string } | null>(null)
+
+  // Unique agents from real data
+  const agents = useMemo(() => {
+    const set = new Set(deals.map(d => d.agent).filter(a => a !== 'Agent'))
+    return [...set].sort()
+  }, [deals])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -271,7 +323,7 @@ export default function PipelinePage() {
   )
 
   // ── Pipeline KPIs ──
-  const activeDeals = useMemo(() => deals.filter((d) => !['lost', 'signed', 'closed'].includes(d.stage)), [deals])
+  const activeDeals = useMemo(() => deals.filter((d) => !['lost', 'signed'].includes(d.stage)), [deals])
   const pipelineValue = useMemo(() => activeDeals.reduce((sum, d) => sum + d.price, 0), [activeDeals])
   const atRiskCount = useMemo(() => deals.filter((d) => d.has_overdue_reminder).length, [deals])
   const conversionRate = useMemo(() => {
@@ -283,10 +335,12 @@ export default function PipelinePage() {
     setActiveDeal(deals.find((d) => d.id === event.active.id) || null)
   }
 
-  function handleDragEnd(event: DragEndEvent) {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActiveDeal(null)
     const { active, over } = event
     if (!over) return
+
+    // Find the target stage — either from the over deal or from the column container
     const overDeal = deals.find((d) => d.id === over.id)
     if (!overDeal) return
 
@@ -300,30 +354,14 @@ export default function PipelinePage() {
       return
     }
 
-    setDeals((prev) => prev.map((d) => d.id === active.id ? { ...d, stage: targetStage, updated_at: new Date().toISOString() } : d))
-  }
-
-  function handleDragOver(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over) return
-    const activeDealObj = deals.find((d) => d.id === active.id)
-    const overDealObj = deals.find((d) => d.id === over.id)
-    if (activeDealObj && overDealObj && activeDealObj.stage !== overDealObj.stage) {
-      // Don't auto-move to 'lost' — wait for confirmation in dragEnd
-      if (overDealObj.stage === 'lost') return
-      setDeals((prev) => prev.map((d) => d.id === active.id ? { ...d, stage: overDealObj.stage } : d))
-    }
-  }
+    // Update in Supabase
+    updateStage.mutate({ id: activeDealObj.id, stage: targetStage })
+  }, [deals, updateStage])
 
   function confirmLost(reason: string) {
     if (!lostConfirm) return
-    // Future: save reason to transactions.notes + activity_event
-    void reason
-    setDeals((prev) => prev.map((d) =>
-      d.id === lostConfirm.dealId
-        ? { ...d, stage: 'lost' as MockDeal['stage'], updated_at: new Date().toISOString() }
-        : d
-    ))
+    void reason // TODO: save reason to transactions.notes + activity_event
+    updateStage.mutate({ id: lostConfirm.dealId, stage: 'lost' })
     setLostConfirm(null)
   }
 
@@ -332,6 +370,14 @@ export default function PipelinePage() {
   // Check if archive separator is needed
   const mainColumns = columns.filter((c) => !c.isArchive)
   const archiveColumns = columns.filter((c) => c.isArchive)
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin text-theme-tertiary" />
+      </div>
+    )
+  }
 
   return (
     <PageTransition>
@@ -415,7 +461,7 @@ export default function PipelinePage() {
           <div className="relative">
             <select value={agentFilter} onChange={(e) => setAgentFilter(e.target.value)} className={selectClasses}>
               <option value="">Agent</option>
-              {AGENTS.map((a) => <option key={a} value={a}>{a}</option>)}
+              {agents.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
           </div>
@@ -424,7 +470,7 @@ export default function PipelinePage() {
             <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={selectClasses}>
               <option value="">Étape</option>
               {PIPELINE_COLUMNS.map((col) => (
-                <option key={col.stage} value={col.stage}>{TRANSACTION_STAGE_LABELS[col.stage as TransactionStage]}</option>
+                <option key={col.stage} value={col.stage}>{TRANSACTION_STAGE_LABELS[col.stage]}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
@@ -445,7 +491,6 @@ export default function PipelinePage() {
               collisionDetection={closestCorners}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
             >
               <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
                 {/* Main columns */}
@@ -512,7 +557,7 @@ export default function PipelinePage() {
                   <span className="w-28 text-sm font-medium text-theme-primary">{formatCHF(deal.price)}</span>
                   <div className="w-28 flex items-center gap-1.5">
                     <div className={cn('h-1.5 w-1.5 rounded-full', STAGE_DOTS[deal.stage] || 'bg-gray-400')} />
-                    <span className="text-xs text-theme-secondary">{TRANSACTION_STAGE_LABELS[deal.stage as TransactionStage] || deal.stage}</span>
+                    <span className="text-xs text-theme-secondary">{TRANSACTION_STAGE_LABELS[deal.stage] || deal.stage}</span>
                   </div>
                   <span className="w-24 text-xs text-theme-tertiary text-right hidden sm:block">{formatRelativeDate(deal.updated_at)}</span>
                 </div>
