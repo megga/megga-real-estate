@@ -16,7 +16,6 @@ import {
   Sparkles,
   Building2,
   Train,
-  Bookmark,
   GitCompareArrows,
   Check,
 } from 'lucide-react'
@@ -30,7 +29,7 @@ import SavedSearchesList from '@/components/search/SavedSearchesList'
 import { useMarketListings, useMapPoints, type MarketFilters } from '@/hooks/useMarketListings'
 import { useFavorites } from '@/hooks/useFavorites'
 import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
-import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
+import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import { findNearestStation, formatStationDistance } from '@/lib/stations'
 import { useMarketTemperature } from '@/hooks/useMarketInsights'
@@ -410,10 +409,11 @@ function toServerFilters(filters: Filters): MarketFilters {
 interface FilterPillProps {
   label: string
   active: boolean
+  dark?: boolean
   children: React.ReactNode
 }
 
-function FilterPill({ label, active, children }: FilterPillProps) {
+function FilterPill({ label, active, dark, children }: FilterPillProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -426,22 +426,26 @@ function FilterPill({ label, active, children }: FilterPillProps) {
   }, [open])
 
   return (
-    <div className="relative flex-1" ref={ref}>
+    <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center justify-center w-full px-3 py-1.5 text-xs rounded-full border transition-all duration-150 whitespace-nowrap cursor-pointer',
-          active
-            ? 'bg-accent text-white border-accent font-medium'
-            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+          'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+          dark
+            ? active
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            : active
+              ? 'bg-accent text-white'
+              : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
         )}
       >
         {label}
-        <ChevronDown className={cn('w-3 h-3 ml-1 transition-transform', active ? 'text-white/70' : 'text-gray-400', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-3 h-3 transition-transform', active ? (dark ? 'text-white/60' : 'text-white/70') : 'text-gray-400', open && 'rotate-180')} />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 min-w-[180px] bg-white rounded-lg shadow-dropdown border border-gray-100 z-50 py-1 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1.5 min-w-[200px] bg-white rounded-xl shadow-lg border border-gray-100 z-50 py-1.5 max-h-72 overflow-y-auto scrollbar-hide">
           {children}
         </div>
       )}
@@ -1016,11 +1020,6 @@ export default function SearchPage() {
   }
   const compareListings = allListings.filter((l) => compareIds.includes(l.id))
 
-  // Save search — opens dialog with alert config
-  function saveCurrentSearch() {
-    setSaveDialogOpen(true)
-  }
-
   const priceRanges = filters.context === 'rent' ? PRICE_RANGES_RENT : PRICE_RANGES_BUY
 
   // Price pill label
@@ -1039,28 +1038,153 @@ export default function SearchPage() {
     <div className="h-screen flex flex-col bg-white">
       <Navbar />
 
-      {/* ─── ZONE 1: Sticky search bar ─── */}
-      <div className="sticky top-16 z-40 bg-white border-b border-gray-100">
-        <div className="max-w-[1800px] mx-auto px-4 md:px-6 py-2.5">
-          <div className="flex items-center gap-3">
-            {/* Search bar with IA integration */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2.5 bg-white rounded-full px-3 py-1.5 border border-gray-200 shadow-sm focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/20 transition-all max-w-md w-full">
-              <Sparkles className="h-4 w-4 text-accent/60 shrink-0" />
+      {/* ─── UNIFIED STICKY BAR: Search + Filters + Map tools ─── */}
+      <div className="sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-[1800px] mx-auto px-4 md:px-6">
+
+          {/* Desktop: single unified row */}
+          <div className="hidden md:flex items-center gap-2 h-12">
+            {/* Search input — compact, no border */}
+            <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 min-w-[200px] max-w-[260px] w-full transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
+              <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Rechercher un bien, une ville..."
+                placeholder="Ville, quartier..."
                 className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
               />
-              <button
-                type="submit"
-                aria-label="Rechercher"
-                className="w-8 h-8 bg-accent hover:bg-accent/90 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer"
-              >
-                <Search className="w-3.5 h-3.5 text-white" />
-              </button>
+              {searchInput && (
+                <button type="button" onClick={() => { setSearchInput(''); clearAllFilters() }} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
             </form>
+
+            {/* Separator */}
+            <div className="h-5 border-l border-gray-200" />
+
+            {/* Primary filters — dark when active */}
+            <FilterPill
+              label={filters.types.length ? filters.types.map((t) => PROPERTY_TYPE_LABELS[t as keyof typeof PROPERTY_TYPE_LABELS] || t).join(', ') : 'Type'}
+              active={filters.types.length > 0}
+              dark
+            >
+              {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => (
+                <FilterOption key={value} selected={filters.types.includes(value)} onClick={() => {
+                  const next = filters.types.includes(value) ? filters.types.filter((t) => t !== value) : [...filters.types, value]
+                  updateFilter({ types: next })
+                }}>{label}</FilterOption>
+              ))}
+            </FilterPill>
+
+            <FilterPill label={pricePillLabel} active={!!filters.minPrice || !!filters.maxPrice} dark>
+              {priceRanges.map((range) => (
+                <FilterOption key={range.label} selected={filters.minPrice === range.min && filters.maxPrice === range.max} onClick={() => updateFilter({ minPrice: range.min, maxPrice: range.max })}>{range.label}</FilterOption>
+              ))}
+              <FilterOption selected={!filters.minPrice && !filters.maxPrice} onClick={() => updateFilter({ minPrice: '', maxPrice: '' })}>Tous les prix</FilterOption>
+            </FilterPill>
+
+            <FilterPill label={filters.rooms ? `${filters.rooms} pièces` : 'Pièces'} active={!!filters.rooms} dark>
+              {ROOM_OPTIONS.map((r) => (
+                <FilterOption key={r} selected={filters.rooms === r} onClick={() => updateFilter({ rooms: filters.rooms === r ? '' : r })}>{r} pièces</FilterOption>
+              ))}
+            </FilterPill>
+
+            {/* "Plus" filter — groups secondary filters */}
+            <FilterPill label={(() => {
+              const count = [filters.minSurface, filters.bedrooms, filters.bathrooms, filters.city || filters.canton, filters.lifestyleTags.length > 0].filter(Boolean).length
+              return count > 0 ? `Plus (${count})` : 'Plus'
+            })()} active={!!(filters.minSurface || filters.bedrooms || filters.bathrooms || filters.city || filters.canton || filters.lifestyleTags.length)} dark>
+              <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Surface</div>
+              {['30', '50', '80', '100', '150', '200'].map((s) => (
+                <FilterOption key={s} selected={filters.minSurface === s} onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })}>Dès {s} m²</FilterOption>
+              ))}
+              <div className="border-t border-gray-100 mt-1 pt-1 px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Chambres</div>
+              {BEDROOM_OPTIONS.map((b) => (
+                <FilterOption key={`bed-${b}`} selected={filters.bedrooms === b} onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })}>{b} chambres</FilterOption>
+              ))}
+              <div className="border-t border-gray-100 mt-1 pt-1 px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Salles de bain</div>
+              {BATHROOM_OPTIONS.map((b) => (
+                <FilterOption key={`bath-${b}`} selected={filters.bathrooms === b} onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })}>{b} sdb</FilterOption>
+              ))}
+              <div className="border-t border-gray-100 mt-1 pt-1 px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Localisation</div>
+              {CITIES.map((c) => (
+                <FilterOption key={c} selected={filters.city === c} onClick={() => updateFilter({ city: filters.city === c ? '' : c, canton: '' })}>{c}</FilterOption>
+              ))}
+              <div className="border-t border-gray-100 mt-1 pt-1 px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Style de vie</div>
+              {LIFESTYLE_TAGS.map((tag) => (
+                <FilterOption key={tag.value} selected={filters.lifestyleTags.includes(tag.value)} onClick={() => {
+                  const next = filters.lifestyleTags.includes(tag.value) ? filters.lifestyleTags.filter((t) => t !== tag.value) : [...filters.lifestyleTags, tag.value]
+                  updateFilter({ lifestyleTags: next })
+                }}><span className="mr-1">{tag.icon}</span> {tag.label}</FilterOption>
+              ))}
+            </FilterPill>
+
+            {/* Clear filters */}
+            {hasActiveFilters && (
+              <button onClick={clearAllFilters} className="text-xs text-gray-400 hover:text-gray-700 transition-colors cursor-pointer whitespace-nowrap">
+                Effacer
+              </button>
+            )}
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Sort */}
+            <select
+              value={filters.sort}
+              onChange={(e) => updateFilter({ sort: e.target.value as SortOption })}
+              className="text-xs text-gray-500 bg-transparent border-none outline-none cursor-pointer pr-4"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+
+            {/* View toggle */}
+            <div className="flex items-center gap-0.5 border-l border-gray-200 pl-2 ml-1">
+              <button onClick={() => updateFilter({ view: 'list' })} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', filters.view === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')}>
+                <List className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => updateFilter({ view: 'grid' })} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', filters.view === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600')}>
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Result count badge */}
+            <span className="text-xs font-semibold text-gray-400 tabular-nums whitespace-nowrap">
+              {totalCount > 0 ? totalCount.toLocaleString('fr-CH') : filtered.length} biens
+            </span>
+          </div>
+
+          {/* Mobile: search + filter button */}
+          <div className="md:hidden flex items-center gap-2 h-12">
+            <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-1">
+              <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Rechercher..."
+                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
+              />
+            </form>
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className={cn(
+                'flex items-center gap-1.5 h-9 px-3 text-sm font-medium rounded-lg transition-colors cursor-pointer',
+                hasActiveFilters ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filtres
+              {activeFilterCount > 0 && (
+                <span className="h-4 w-4 bg-white text-gray-900 text-[10px] rounded-full flex items-center justify-center font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -1096,194 +1220,7 @@ export default function SearchPage() {
             </div>
           )}
 
-          {/* ─── ZONE 2: Filter pills (desktop) ─── */}
-          <div className="hidden md:block px-4 md:px-6 py-3 border-b border-gray-100 bg-white">
-            <div className="flex items-center gap-2">
-              {/* Type */}
-              <FilterPill
-                label={
-                  filters.types.length
-                    ? filters.types.map((t) => PROPERTY_TYPE_LABELS[t as keyof typeof PROPERTY_TYPE_LABELS] || t).join(', ')
-                    : 'Type de bien'
-                }
-                active={filters.types.length > 0}
-              >
-                {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => (
-                  <FilterOption
-                    key={value}
-                    selected={filters.types.includes(value)}
-                    onClick={() => {
-                      const next = filters.types.includes(value)
-                        ? filters.types.filter((t) => t !== value)
-                        : [...filters.types, value]
-                      updateFilter({ types: next })
-                    }}
-                  >
-                    {label}
-                  </FilterOption>
-                ))}
-              </FilterPill>
-
-              {/* Price */}
-              <FilterPill label={pricePillLabel} active={!!filters.minPrice || !!filters.maxPrice}>
-                {priceRanges.map((range) => (
-                  <FilterOption
-                    key={range.label}
-                    selected={filters.minPrice === range.min && filters.maxPrice === range.max}
-                    onClick={() => updateFilter({ minPrice: range.min, maxPrice: range.max })}
-                  >
-                    {range.label}
-                  </FilterOption>
-                ))}
-                <FilterOption
-                  selected={!filters.minPrice && !filters.maxPrice}
-                  onClick={() => updateFilter({ minPrice: '', maxPrice: '' })}
-                >
-                  Tous les prix
-                </FilterOption>
-              </FilterPill>
-
-              {/* Rooms */}
-              <FilterPill
-                label={filters.rooms ? `${filters.rooms} pièces` : 'Pièces'}
-                active={!!filters.rooms}
-              >
-                {ROOM_OPTIONS.map((r) => (
-                  <FilterOption
-                    key={r}
-                    selected={filters.rooms === r}
-                    onClick={() => updateFilter({ rooms: filters.rooms === r ? '' : r })}
-                  >
-                    {r} pièces
-                  </FilterOption>
-                ))}
-              </FilterPill>
-
-              {/* Surface */}
-              <FilterPill
-                label={filters.minSurface ? `Dès ${filters.minSurface} m²` : 'Surface min'}
-                active={!!filters.minSurface}
-              >
-                {['30', '50', '80', '100', '150', '200'].map((s) => (
-                  <FilterOption
-                    key={s}
-                    selected={filters.minSurface === s}
-                    onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })}
-                  >
-                    Dès {s} m²
-                  </FilterOption>
-                ))}
-              </FilterPill>
-
-              {/* Bedrooms */}
-              <FilterPill
-                label={filters.bedrooms ? `${filters.bedrooms} ch.` : 'Chambres'}
-                active={!!filters.bedrooms}
-              >
-                {BEDROOM_OPTIONS.map((b) => (
-                  <FilterOption
-                    key={b}
-                    selected={filters.bedrooms === b}
-                    onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })}
-                  >
-                    {b} chambres
-                  </FilterOption>
-                ))}
-              </FilterPill>
-
-              {/* Bathrooms */}
-              <FilterPill
-                label={filters.bathrooms ? `${filters.bathrooms} sdb` : 'Sdb'}
-                active={!!filters.bathrooms}
-              >
-                {BATHROOM_OPTIONS.map((b) => (
-                  <FilterOption
-                    key={b}
-                    selected={filters.bathrooms === b}
-                    onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })}
-                  >
-                    {b} salle{b !== '1' ? 's' : ''} de bain
-                  </FilterOption>
-                ))}
-              </FilterPill>
-
-              {/* City / Canton */}
-              <FilterPill
-                label={filters.city || filters.canton || 'Localisation'}
-                active={!!filters.city || !!filters.canton}
-              >
-                <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase">Villes</div>
-                {CITIES.map((c) => (
-                  <FilterOption
-                    key={c}
-                    selected={filters.city === c}
-                    onClick={() => updateFilter({ city: filters.city === c ? '' : c, canton: '' })}
-                  >
-                    {c}
-                  </FilterOption>
-                ))}
-                <div className="border-t border-gray-100 mt-1 pt-1">
-                  <div className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase">Cantons</div>
-                  {CANTONS.slice(0, 8).map((canton) => (
-                    <FilterOption
-                      key={canton}
-                      selected={filters.canton === canton}
-                      onClick={() => updateFilter({ canton: filters.canton === canton ? '' : canton, city: '' })}
-                    >
-                      {canton}
-                    </FilterOption>
-                  ))}
-                </div>
-              </FilterPill>
-
-              {/* Lifestyle tags */}
-              <FilterPill
-                label={filters.lifestyleTags.length ? `Style de vie (${filters.lifestyleTags.length})` : 'Style de vie'}
-                active={filters.lifestyleTags.length > 0}
-              >
-                {LIFESTYLE_TAGS.map((tag) => (
-                  <FilterOption
-                    key={tag.value}
-                    selected={filters.lifestyleTags.includes(tag.value)}
-                    onClick={() => {
-                      const next = filters.lifestyleTags.includes(tag.value)
-                        ? filters.lifestyleTags.filter((t) => t !== tag.value)
-                        : [...filters.lifestyleTags, tag.value]
-                      updateFilter({ lifestyleTags: next })
-                    }}
-                  >
-                    <span className="mr-0.5 text-sm">{tag.icon}</span> {tag.label}
-                  </FilterOption>
-                ))}
-              </FilterPill>
-
-              {/* Clear all */}
-              {hasActiveFilters && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-sm text-gray-400 hover:text-primary-900 transition-colors cursor-pointer ml-2 whitespace-nowrap"
-                >
-                  Effacer tout
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Mobile: filter button */}
-          <div className="md:hidden px-4 py-3 border-b border-gray-100 flex items-center gap-3">
-            <button
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border border-gray-200 text-gray-700 cursor-pointer"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              Filtres
-              {activeFilterCount > 0 && (
-                <span className="h-5 w-5 bg-accent text-white text-xs rounded-full flex items-center justify-center">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          </div>
+          {/* Old ZONE 2 + mobile filter button removed — merged into unified bar above */}
 
           {/* Mobile filters drawer */}
           {showMobileFilters && (
@@ -1331,73 +1268,7 @@ export default function SearchPage() {
             </div>
           )}
 
-          {/* ─── ZONE 3: Results bar ─── */}
-          <div className="px-4 md:px-6 py-2.5 flex items-center justify-between border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500">
-                <span className="font-semibold text-primary-900">{totalCount > 0 ? totalCount.toLocaleString('fr-CH') : filtered.length}</span> bien{(totalCount || filtered.length) !== 1 ? 's' : ''} trouvé{(totalCount || filtered.length) !== 1 ? 's' : ''}
-                {filters.city ? ` à ${filters.city}` : filters.canton ? ` (${filters.canton})` : ''}
-              </span>
-              {hasActiveFilters && (
-                <button
-                  onClick={saveCurrentSearch}
-                  className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-full hover:text-accent hover:border-accent/30 transition-colors cursor-pointer"
-                >
-                  <Bookmark className="h-3 w-3" />
-                  Sauvegarder
-                </button>
-              )}
-              <button
-                onClick={() => setSavedListOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-full hover:text-accent hover:border-accent/30 transition-colors cursor-pointer"
-              >
-                Mes recherches
-              </button>
-            </div>
-
-            <div className="flex items-center">
-              {/* Sort */}
-              <div className="hidden sm:block">
-                <select
-                  value={filters.sort}
-                  onChange={(e) => updateFilter({ sort: e.target.value as SortOption })}
-                  className="text-sm text-gray-600 bg-transparent border-none outline-none cursor-pointer pr-6"
-                >
-                  {SORT_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Separator */}
-              <div className="hidden md:block border-l border-gray-200 h-5 mx-3" />
-
-              {/* View toggle (desktop only) */}
-              <div className="hidden md:flex items-center gap-0.5">
-                <button
-                  onClick={() => updateFilter({ view: 'list' })}
-                  className={cn(
-                    'p-1.5 rounded-md transition-colors cursor-pointer',
-                    filters.view === 'list' ? 'bg-gray-100 text-primary-900' : 'text-gray-400 hover:text-gray-600'
-                  )}
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => updateFilter({ view: 'grid' })}
-                  className={cn(
-                    'p-1.5 rounded-md transition-colors cursor-pointer',
-                    filters.view === 'grid' ? 'bg-gray-100 text-primary-900' : 'text-gray-400 hover:text-gray-600'
-                  )}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </button>
-              </div>
-
-            </div>
-          </div>
+          {/* Old ZONE 3 results bar removed — sort/view/count merged into unified bar */}
 
           {/* ─── ZONE 4: Listing cards ─── */}
           <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
