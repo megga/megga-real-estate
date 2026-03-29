@@ -92,13 +92,21 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   })
   const [selectedListing, setSelectedListing] = useState<ListingCardData | null>(null)
 
-  // Fullscreen detection — immersive features only in fullscreen
+  // Fullscreen detection
+  const containerRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   useEffect(() => {
-    function handleFs() { setIsFullscreen(!!document.fullscreenElement) }
+    function handleFs() {
+      // Check if any element in our container is fullscreen (Mapbox puts .mapboxgl-map in FS)
+      const fsEl = document.fullscreenElement
+      setIsFullscreen(!!fsEl && (containerRef.current?.contains(fsEl) || fsEl.contains(containerRef.current!)))
+    }
     document.addEventListener('fullscreenchange', handleFs)
     return () => document.removeEventListener('fullscreenchange', handleFs)
   }, [])
+
+  // Show immersive tools panel (always visible via toggle, expanded in fullscreen)
+  const [showTools, setShowTools] = useState(false)
 
   // Immersive features (fullscreen only)
   const [lightPreset, setLightPreset] = useState<'day' | 'dusk' | 'dawn' | 'night'>('day')
@@ -511,7 +519,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   }, [closedPolygon, listings])
 
   return (
-    <div className={cn('relative w-full h-full [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden', className)}>
+    <div ref={containerRef} className={cn('relative w-full h-full [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden', className)}>
       <MapGL
         ref={mapRef}
         {...viewState}
@@ -722,7 +730,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         )}
 
         {/* Price heatmap layer (fullscreen only) */}
-        {showHeatmap && isFullscreen && points.length > 0 && (
+        {showHeatmap && (isFullscreen || showTools) && points.length > 0 && (
           <Source
             id="price-heatmap"
             type="geojson"
@@ -955,8 +963,23 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         </div>
       )}
 
-      {/* Style switcher — bottom-left */}
-      <div className="absolute bottom-4 left-3 z-[5]">
+      {/* Style switcher + Tools toggle — bottom-left */}
+      <div className="absolute bottom-4 left-3 z-[5] flex gap-2">
+        {/* Tools toggle */}
+        <button
+          onClick={() => setShowTools(v => !v)}
+          className={cn(
+            'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
+            showTools
+              ? 'bg-accent text-white border-accent'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+          )}
+          aria-label="Outils avancés"
+        >
+          <Mountain className="h-3.5 w-3.5" />
+          Outils
+        </button>
+
         <div className="relative">
           <button
             onClick={() => setShowStylePicker(v => !v)}
@@ -1001,7 +1024,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       </div>
 
       {/* ── Immersive controls (fullscreen only) ── */}
-      {isFullscreen && (
+      {(isFullscreen || showTools) && (
         <>
           {/* Top-right: Light presets + Heatmap + Geocoding */}
           <div className="absolute top-3 right-3 z-[5] flex flex-col gap-2">
