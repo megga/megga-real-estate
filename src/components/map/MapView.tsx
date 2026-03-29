@@ -534,6 +534,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         doubleClickZoom={!isDrawing}
         dragPan={!isDrawing}
         reuseMaps
+        dragRotate
+        touchPitch
+        touchZoomRotate
         terrain={mapStyleId === 'standard' ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined}
         onLoad={(e) => {
           const map = e.target
@@ -548,7 +551,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           }
         }}
       >
-        <NavigationControl position="bottom-right" showCompass={false} />
+        <NavigationControl position="bottom-right" showCompass visualizePitch />
         <FullscreenControl position="bottom-right" />
 
         {/* Draw polygon overlay */}
