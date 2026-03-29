@@ -4,7 +4,6 @@ import {
   Search,
   ChevronDown,
   X,
-  MapPin,
   Heart,
   LayoutGrid,
   DoorOpen,
@@ -15,7 +14,6 @@ import {
   Columns2,
   Sparkles,
   Building2,
-  Train,
   GitCompareArrows,
   Check,
   Bookmark,
@@ -32,10 +30,9 @@ import SavedSearchesList from '@/components/search/SavedSearchesList'
 import { useMarketListings, useMapPoints, useMarketStats, type MarketFilters } from '@/hooks/useMarketListings'
 import { sortByRecommendation } from '@/lib/recommendationScore'
 import { useFavorites } from '@/hooks/useFavorites'
-import { cn, formatCHF, formatSurface, formatRelativeDate } from '@/lib/utils'
+import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
 import type { ListingCardData } from '@/components/listings/ListingCard'
-import { findNearestStation, formatStationDistance } from '@/lib/stations'
 import { useMarketTemperature } from '@/hooks/useMarketInsights'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -164,11 +161,6 @@ function getSmartBadge(listing: ListingCardData, medianPricePerM2?: number): { l
     return { label: `${listing.days_on_market}j en ligne`, bg: 'bg-gray-500/80' }
   }
   return null
-}
-
-function formatPricePerM2(value: number): string {
-  if (value >= 1000) return `${Math.round(value / 100) / 10}K/m²`
-  return `${Math.round(value)}/m²`
 }
 
 // ─── AI QUERY PARSER ────────────────────────────────────────────────────────
@@ -597,243 +589,6 @@ function FilterOption({
         </svg>
       )}
     </button>
-  )
-}
-
-// ─── LISTING CARD (HORIZONTAL) ──────────────────────────────────────────────
-
-function ListingCardHorizontal({
-  listing,
-  onHover,
-  isHovered,
-  isFavorite: isFav = false,
-  onToggleFavorite,
-  isCompared = false,
-  onToggleCompare,
-  medianPricePerM2 = 0,
-  onPreview,
-}: {
-  listing: ListingCardData
-  onHover?: (id: string | undefined) => void
-  isHovered?: boolean
-  isFavorite?: boolean
-  onToggleFavorite?: () => void
-  isCompared?: boolean
-  onToggleCompare?: () => void
-  medianPricePerM2?: number
-  onPreview?: (id: string) => void
-}) {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const [currentPhoto, setCurrentPhoto] = useState(0)
-  const photos = listing.photos?.length ? listing.photos : []
-
-  // Scroll into view when hovered from map
-  useEffect(() => {
-    if (isHovered && cardRef.current) {
-      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }
-  }, [isHovered])
-
-  const badge = getSmartBadge(listing, medianPricePerM2)
-
-  return (
-    <div
-      ref={cardRef}
-      onClick={() => onPreview?.(listing.id)}
-      className={cn(
-        'flex flex-col sm:flex-row bg-white border rounded-xl transition-all duration-200 overflow-hidden group cursor-pointer',
-        isHovered
-          ? 'border-accent/40 shadow-md ring-1 ring-accent/20'
-          : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
-      )}
-      onMouseEnter={() => onHover?.(listing.id)}
-      onMouseLeave={() => onHover?.(undefined)}
-    >
-      {/* Photo */}
-      <div className="relative w-full sm:w-56 lg:w-64 shrink-0 aspect-[4/3] overflow-hidden sm:rounded-l-xl">
-        {photos.length > 0 ? (
-          <img
-            src={photos[currentPhoto]}
-            alt={listing.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <Building2 className="h-12 w-12 text-gray-300" />
-          </div>
-        )}
-
-        {/* Gradient */}
-        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />
-
-        {/* Badge — compact in list mode */}
-        {badge && (
-          <div className={cn(badge.bg, 'absolute top-2 left-2 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm')}>
-            {badge.label}
-          </div>
-        )}
-
-        {/* Favorite + Compare — horizontal row, smaller in list mode */}
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.() }}
-            aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-            className={cn(
-              'h-6 w-6 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
-              isFav ? 'bg-white/95' : 'bg-black/15 hover:bg-black/25'
-            )}
-          >
-            <Heart className={cn('h-3 w-3 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-white/90')} />
-          </button>
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare?.() }}
-            aria-label={isCompared ? 'Retirer de la comparaison' : 'Comparer'}
-            className={cn(
-              'h-6 w-6 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
-              isCompared ? 'bg-white/95 ring-1 ring-accent/40' : 'bg-black/15 hover:bg-black/25'
-            )}
-          >
-            {isCompared ? <Check className="h-2.5 w-2.5 text-accent" /> : <GitCompareArrows className="h-2.5 w-2.5 text-white/90" />}
-          </button>
-        </div>
-        {/* Always show active icons */}
-        {(isFav || isCompared) && (
-          <div className="absolute top-2 right-2 flex gap-1 group-hover:hidden">
-            {isFav && (
-              <div className="h-6 w-6 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center">
-                <Heart className="h-3 w-3 fill-red-500 text-red-500" />
-              </div>
-            )}
-            {isCompared && (
-              <div className="h-6 w-6 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center ring-1 ring-accent/40">
-                <Check className="h-2.5 w-2.5 text-accent" />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Photo arrows — smaller for list mode */}
-        {photos.length > 1 && (
-          <>
-            {currentPhoto > 0 && (
-              <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p - 1) }}
-                className="absolute left-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
-                aria-label="Photo précédente"
-              >
-                <ChevronLeft className="h-3.5 w-3.5 text-white" />
-              </button>
-            )}
-            {currentPhoto < photos.length - 1 && (
-              <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p + 1) }}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
-                aria-label="Photo suivante"
-              >
-                <ChevronRight className="h-3.5 w-3.5 text-white" />
-              </button>
-            )}
-          </>
-        )}
-        {/* Photo counter only (no dots in list mode — too small) */}
-        {photos.length > 1 && (
-          <span className="absolute bottom-2 left-2 text-[10px] font-medium text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2 py-0.5 z-[1]">
-            {currentPhoto + 1}/{photos.length}
-          </span>
-        )}
-      </div>
-
-      {/* Info — compact layout with gap-1, agent at bottom via mt-auto */}
-      <div className="flex-1 p-4 flex flex-col min-w-0">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-semibold text-gray-900">
-              <span className="text-sm font-normal text-gray-500">CHF </span>
-              {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? '/mois' : ''}
-            </span>
-            {listing.price_per_m2 && listing.price_per_m2 > 0 && (
-              <span className="text-xs text-gray-400">
-                {formatPricePerM2(listing.price_per_m2)}
-              </span>
-            )}
-          </div>
-
-          <p className="flex items-center gap-1 text-sm text-gray-500">
-            <MapPin className="h-3.5 w-3.5 text-gray-500 shrink-0" />
-            <span className="truncate">
-              {listing.address}, {listing.city}
-            </span>
-          </p>
-
-          <div className="flex items-center text-sm text-gray-500">
-            {listing.rooms > 0 && (
-              <span className="flex items-center gap-1">
-                <DoorOpen className="h-3.5 w-3.5 text-gray-500" />
-                {listing.rooms} pièces
-              </span>
-            )}
-            {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-300 mx-1.5">·</span>}
-            {listing.bedrooms > 0 && (
-              <span className="flex items-center gap-1">
-                <BedDouble className="h-3.5 w-3.5 text-gray-500" />
-                {listing.bedrooms} ch.
-              </span>
-            )}
-            {(listing.rooms > 0 || listing.bedrooms > 0) && <span className="text-gray-300 mx-1.5">·</span>}
-            <span className="flex items-center gap-1">
-              <Maximize className="h-3.5 w-3.5 text-gray-500" />
-              {formatSurface(listing.surface_m2)}
-            </span>
-          </div>
-
-          {/* Description preview */}
-          {listing.description && (
-            <p className="text-xs text-gray-400 line-clamp-2 mt-0.5">
-              {listing.description}
-            </p>
-          )}
-
-          {/* Nearest station */}
-          {(() => {
-            const station = findNearestStation(listing.lat, listing.lng)
-            if (!station) return null
-            return (
-              <p className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                <Train className="h-3 w-3 text-gray-400 shrink-0" />
-                {station.name} · {formatStationDistance(station.distanceM)}
-              </p>
-            )
-          })()}
-        </div>
-
-        {/* Bottom line — agency + date */}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {listing.agent ? (
-              <>
-                <img
-                  src={listing.agent.photo}
-                  alt={listing.agent.name}
-                  className="h-5 w-5 rounded-full object-cover shrink-0"
-                />
-                <span className="text-xs text-gray-400 truncate">
-                  {listing.agent.name} · {listing.agent.agency}
-                </span>
-              </>
-            ) : listing.agency_name ? (
-              <span className="text-xs text-gray-400 truncate">{listing.agency_name}</span>
-            ) : null}
-          </div>
-          {listing.published_at && (
-            <span className="text-xs text-gray-400 shrink-0">
-              {formatRelativeDate(listing.published_at)}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
   )
 }
 
