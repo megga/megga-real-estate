@@ -43,15 +43,18 @@ const MOCK_PROFILE: UserProfile = {
   role: 'agent',
   avatar_url: null,
   phone: null,
+  canton: 'GE',
   agency_id: 'dev-mock-agency',
   created_at: '2026-01-01T00:00:00Z',
+  onboarding_completed: true,
+  onboarding_step: 3,
 }
 
 async function fetchProfile(userId: string, user?: User | null, retry = true): Promise<UserProfile | null> {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, agency_id, email, full_name, avatar_url, role, phone, created_at')
+      .select('id, agency_id, email, full_name, avatar_url, role, phone, canton, created_at, onboarding_completed, onboarding_step')
       .eq('id', userId)
       .single()
     if (error || !data) {
@@ -71,8 +74,11 @@ async function fetchProfile(userId: string, user?: User | null, retry = true): P
           role: (meta.role as UserProfile['role']) ?? 'particulier',
           avatar_url: meta.avatar_url ?? null,
           phone: null,
+          canton: null,
           agency_id: null,
           created_at: user.created_at ?? new Date().toISOString(),
+          onboarding_completed: false,
+          onboarding_step: 0,
         } as UserProfile
       }
       return null

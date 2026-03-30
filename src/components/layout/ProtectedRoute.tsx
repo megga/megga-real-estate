@@ -1,34 +1,18 @@
-import { Navigate, useLocation } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
+  skipOnboardingCheck?: boolean
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth()
-  const location = useLocation()
+export default function ProtectedRoute({ children, skipOnboardingCheck }: ProtectedRouteProps) {
+  const { profile } = useAuth()
 
-  // BYPASS: skip auth (demo mode)
-  return <>{children}</>
-
-  // TODO: re-enable auth when Supabase is connected
-  /* eslint-disable no-unreachable */
-  if (import.meta.env.DEV) {
-    return <>{children}</>
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
-    )
-  }
-
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+  // BYPASS: skip auth (demo mode) — keep onboarding redirect
+  // TODO: re-enable full auth (loading, user, Navigate to /login) when Supabase auth is production-ready
+  if (!skipOnboardingCheck && profile && profile.onboarding_completed === false) {
+    return <Navigate to="/dashboard/onboarding" replace />
   }
 
   return <>{children}</>

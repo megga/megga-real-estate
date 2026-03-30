@@ -93,3 +93,42 @@ export function useUpdateTransactionStage() {
     },
   })
 }
+
+export interface ContactTransaction {
+  id: string
+  stage: string
+  status: string
+  price_offered: number | null
+  price_final: number | null
+  updated_at: string
+  property: { title: string; address: string; city: string; price: number; photos: string[] } | null
+}
+
+export function useContactTransactions(contactId: string | undefined) {
+  return useQuery({
+    queryKey: ['transactions', 'contact', contactId],
+    queryFn: async (): Promise<ContactTransaction[]> => {
+      if (!contactId) return []
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, stage, status, price_offered, price_final, updated_at, property:properties(title, address, city, price, photos)')
+        .or(`contact_buyer_id.eq.${contactId},contact_seller_id.eq.${contactId}`)
+        .order('updated_at', { ascending: false })
+      if (error) throw error
+      return (data || []).map((row) => {
+        const prop = Array.isArray(row.property) ? row.property[0] ?? null : row.property ?? null
+        return {
+          id: row.id as string,
+          stage: row.stage as string,
+          status: row.status as string,
+          price_offered: row.price_offered as number | null,
+          price_final: row.price_final as number | null,
+          updated_at: row.updated_at as string,
+          property: prop,
+        }
+      })
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  })
+}

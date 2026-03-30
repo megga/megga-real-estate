@@ -524,9 +524,12 @@ export default function AutomationPage() {
             )}
 
             {active.length === 0 && (
-              <div className="text-center py-12 rounded-xl border border-theme-border">
-                <Clock className="h-8 w-8 text-theme-tertiary mx-auto mb-2" />
-                <p className="text-sm text-theme-muted">Aucune relance en attente</p>
+              <div className="text-center py-16 rounded-xl border border-theme-border">
+                <div className="h-12 w-12 rounded-full bg-theme-active flex items-center justify-center mx-auto mb-3">
+                  <Clock className="h-6 w-6 text-theme-tertiary" />
+                </div>
+                <p className="text-sm font-medium text-theme-secondary">Aucune relance en attente</p>
+                <p className="text-xs text-theme-tertiary mt-1">Configurez des règles d'automatisation pour ne plus oublier de suivre vos clients.</p>
               </div>
             )}
           </div>

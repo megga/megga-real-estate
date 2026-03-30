@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  Plus, Kanban, List, Search, ChevronDown, AlertTriangle, Loader2,
+  Plus, Kanban, List, Search, ChevronDown, AlertTriangle, Loader2, ArrowRight,
 } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { useTransactions, useUpdateTransactionStage } from '@/hooks/useTransactions'
@@ -532,8 +532,12 @@ export default function PipelinePage() {
             </div>
 
             {filtered.length === 0 ? (
-              <div className="px-4 py-12 text-center">
-                <p className="text-sm text-theme-tertiary">Aucun deal trouvé</p>
+              <div className="px-4 py-16 text-center">
+                <div className="h-12 w-12 rounded-full bg-theme-active flex items-center justify-center mx-auto mb-3">
+                  <ArrowRight className="h-6 w-6 text-theme-tertiary" />
+                </div>
+                <p className="text-sm font-medium text-theme-secondary">Créez votre premier deal pour suivre vos transactions</p>
+                <p className="text-xs text-theme-tertiary mt-1">Chaque transaction suit un pipeline de 14 étapes.</p>
               </div>
             ) : (
               filtered.map((deal, i) => (

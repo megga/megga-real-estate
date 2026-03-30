@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { MockContact } from '@/lib/mockData'
+import type { Contact, ContactType } from '@/types/contact'
 import type { ContactScore } from '@/lib/constants'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog'
-
-type ContactType = MockContact['type']
 
 const TYPE_OPTIONS: { value: ContactType; label: string }[] = [
   { value: 'buyer', label: 'Acheteur' },
@@ -36,28 +34,28 @@ const selectClasses = cn(inputClasses, 'appearance-none')
 interface EditContactDialogProps {
   open: boolean
   onClose: () => void
-  contact: MockContact
+  contact: Contact
 }
 
 export default function EditContactDialog({ open, onClose, contact }: EditContactDialogProps) {
   const [firstName, setFirstName] = useState(contact.first_name)
   const [lastName, setLastName] = useState(contact.last_name)
-  const [email, setEmail] = useState(contact.email)
-  const [phone, setPhone] = useState(contact.phone)
+  const [email, setEmail] = useState(contact.email ?? '')
+  const [phone, setPhone] = useState(contact.phone ?? '')
   const [type, setType] = useState<ContactType>(contact.type)
-  const [score, setScore] = useState<ContactScore>(contact.score)
-  const [source, setSource] = useState(contact.source)
+  const [score, setScore] = useState<ContactScore>(contact.score ?? 'cold')
+  const [source, setSource] = useState(contact.source ?? 'manual')
   const [notes, setNotes] = useState(contact.notes || '')
 
   // Reset form when contact changes — setState in effect is intentional (sync with prop)
   useEffect(() => {
     setFirstName(contact.first_name) // eslint-disable-line react-hooks/set-state-in-effect
     setLastName(contact.last_name)
-    setEmail(contact.email)
-    setPhone(contact.phone)
+    setEmail(contact.email ?? '')
+    setPhone(contact.phone ?? '')
     setType(contact.type)
-    setScore(contact.score)
-    setSource(contact.source)
+    setScore(contact.score ?? 'cold')
+    setSource(contact.source ?? 'manual')
     setNotes(contact.notes || '')
   }, [contact])
 

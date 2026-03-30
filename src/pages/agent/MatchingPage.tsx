@@ -5,10 +5,10 @@ import { Search, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import { useExternalMatching, type ExternalListing, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
+import { useContacts } from '@/hooks/useContacts'
 import SendMatchDialog from '@/components/matching/SendMatchDialog'
 import PageTransition from '@/components/layout/PageTransition'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
-import { MOCK_CONTACTS } from '@/lib/mockData'
 
 // ── (Score utilities removed — breakdown now in preview modal) ───────────────
 
@@ -419,6 +419,8 @@ const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-
 export default function MatchingPage() {
   const navigate = useNavigate()
   const { suggested, sent, internalMatches, marketMatches, sendMatch, runMatching, isRunning } = useMatching()
+  const { contacts: allBuyerContacts } = useContacts({ type: 'buyer' })
+  const { contacts: bothContacts } = useContacts({ type: 'both' })
   const [search, setSearch] = useState('')
   const [filterBy, setFilterBy] = useState<'all' | 'suggested' | 'sent'>('all')
   const [sourceFilter, setSourceFilter] = useState<'all' | 'internal' | 'market'>('all')
@@ -429,28 +431,34 @@ export default function MatchingPage() {
   const [activeMainTab, setActiveMainTab] = useState<'internal' | 'external'>('internal')
   const [externalContactId, setExternalContactId] = useState('')
 
+  // Buyers for external tab selector (from Supabase)
+  const buyerContacts = useMemo(() => {
+    const buyers = [...allBuyerContacts, ...bothContacts]
+    return buyers
+      .filter(c => c.search_criteria || (c.search_zones && c.search_zones.length > 0))
+      .map(c => ({ id: c.id, name: `${c.first_name} ${c.last_name}`, search_criteria: c.search_criteria, search_zones: c.search_zones }))
+  }, [allBuyerContacts, bothContacts])
+
   // Derive external search criteria from selected contact
   const externalCriteria: ExternalSearchCriteria | null = useMemo(() => {
     if (!externalContactId) return null
-    const contact = MOCK_CONTACTS.find(c => c.id === externalContactId)
+    const contact = buyerContacts.find(c => c.id === externalContactId)
     if (!contact?.search_criteria) return null
     const sc = contact.search_criteria
-    // Map property type to RealAdvisor format
     const typeMap: Record<string, string> = {
-      'Appartement': 'APARTMENT',
-      'Maison': 'HOUSE',
-      'Villa': 'VILLA',
+      apartment: 'APARTMENT', house: 'HOUSE', villa: 'VILLA',
+      'Appartement': 'APARTMENT', 'Maison': 'HOUSE', 'Villa': 'VILLA',
     }
-    // Extract first zone from location
-    const zone = sc.location.split(',')[0].trim() || 'geneve'
+    const zone = sc.zones?.[0] ?? contact.search_zones?.[0] ?? 'geneve'
+    if (!sc.budget_max) return null
     return {
       zone,
-      type: typeMap[sc.property_type] || 'APARTMENT',
+      type: typeMap[sc.type ?? ''] ?? 'APARTMENT',
       budget_max: sc.budget_max,
       budget_min: sc.budget_min,
       rooms_min: sc.rooms_min,
     }
-  }, [externalContactId])
+  }, [externalContactId, buyerContacts])
 
   const {
     data: externalListings,
@@ -458,14 +466,6 @@ export default function MatchingPage() {
     error: externalError,
     refetch: refetchExternal,
   } = useExternalMatching(externalCriteria)
-
-  // Buyers for external tab selector
-  const buyerContacts = useMemo(() =>
-    MOCK_CONTACTS
-      .filter(c => (c.type === 'buyer' || c.type === 'both') && c.search_criteria)
-      .map(c => ({ id: c.id, name: `${c.first_name} ${c.last_name}` })),
-    []
-  )
 
   // All unique contacts for filter dropdown
   const allContacts = useMemo(() => {
@@ -671,8 +671,15 @@ export default function MatchingPage() {
 
         {/* Grouped by contact — card grid */}
         {groupedByContact.length === 0 ? (
-          <div className="text-center py-12 rounded-xl border border-theme-border">
-            <p className="text-sm text-theme-tertiary">Aucun match trouvé</p>
+          <div className="text-center py-16 rounded-xl border border-theme-border">
+            <div className="h-12 w-12 rounded-full bg-theme-active flex items-center justify-center mx-auto mb-3">
+              <Search className="h-6 w-6 text-theme-tertiary" />
+            </div>
+            <p className="text-sm font-medium text-theme-secondary">Ajoutez des critères de recherche à vos contacts</p>
+            <p className="text-xs text-theme-tertiary mt-1 mb-4">Le matching compare automatiquement les critères de vos acheteurs avec les biens disponibles.</p>
+            <a href="/dashboard/contacts" className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors inline-flex items-center">
+              Voir mes contacts
+            </a>
           </div>
         ) : (
           <div className="space-y-8">

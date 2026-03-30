@@ -47,6 +47,7 @@ const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
 const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
 const CustomTemplatePage = lazy(() => import('@/pages/agent/CustomTemplatePage'))
 const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
+const OnboardingWizardPage = lazy(() => import('@/pages/agent/OnboardingWizardPage'))
 
 // Lazy-loaded seller portal pages
 const SellerLayout = lazy(() => import('@/pages/particulier/SellerLayout'))
@@ -126,6 +127,16 @@ export default function App() {
                 <Route path="messages" element={<MesMessagesPage />} />
                 <Route path="analyse" element={<AnalysePage />} />
               </Route>
+
+              {/* Onboarding wizard (protected, no sidebar) */}
+              <Route
+                path="/dashboard/onboarding"
+                element={
+                  <ProtectedRoute skipOnboardingCheck>
+                    <OnboardingWizardPage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Agent dashboard (protected) */}
               <Route

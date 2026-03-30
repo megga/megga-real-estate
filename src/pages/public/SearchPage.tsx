@@ -1122,7 +1122,7 @@ export default function SearchPage() {
           {/* Desktop: single unified row — constrained to left panel width */}
           <div className="hidden md:flex items-center gap-1.5 h-12" style={layoutMode === 'split' ? { maxWidth: `${splitRatio}%` } : undefined}>
             {/* Search input — flexible width */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-1 min-w-[160px] max-w-[320px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
+            <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
               <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
               <input
                 type="text"

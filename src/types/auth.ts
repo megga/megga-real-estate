@@ -8,7 +8,10 @@ export interface UserProfile {
   avatar_url: string | null
   role: UserRole
   phone: string | null
+  canton: string | null
   created_at: string
+  onboarding_completed: boolean
+  onboarding_step: number
 }
 
 export const AGENT_ROLES: UserRole[] = ['agent', 'manager', 'admin', 'assistant']
