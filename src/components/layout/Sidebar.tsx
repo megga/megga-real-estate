@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
   MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
-  Moon, Sun, PanelLeftClose, PanelLeftOpen,
+  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -37,6 +37,7 @@ const NAV_SECTIONS: NavSection[] = [
   { labelKey: 'sections.communication', items: [
     { labelKey: 'nav.chat', href: '/dashboard/messages', icon: MessageSquare },
     { labelKey: 'nav.calendar', href: '/dashboard/calendar', icon: Calendar },
+    { labelKey: 'nav.support', href: '/dashboard/support', icon: HelpCircle },
   ]},
   { labelKey: 'sections.compliance', items: [
     { labelKey: 'nav.kyc', href: '/dashboard/kyc', icon: ShieldCheck },

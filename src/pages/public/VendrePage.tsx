@@ -16,7 +16,6 @@ import {
   Upload,
   X,
   Image as ImageIcon,
-  Check,
   Phone,
   Mail,
   User,
@@ -316,28 +315,76 @@ export default function VendrePage() {
 
   // Success screen
   if (submitted) {
+    const typeLabel = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.label || form.propertyType
+    const firstName = form.contactName.split(' ')[0] || form.contactName
+
     return (
       <div className="min-h-screen bg-white">
         <Navbar />
-        <div className="max-w-xl mx-auto px-4 py-20 text-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6">
-            <Check className="w-8 h-8 text-emerald-600" />
+        <div className="max-w-xl mx-auto px-4 py-16 text-center">
+          {/* Animated check */}
+          <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12l5 5L20 7" className="animate-[draw_0.5s_ease-out_0.3s_both]" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: 'draw 0.5s ease-out 0.3s forwards' }} />
+            </svg>
           </div>
-          <h1 className="text-2xl font-semibold text-gray-900">Merci, {form.contactName} !</h1>
-          <p className="text-gray-500 mt-3 leading-relaxed">
-            Votre demande d'estimation a bien été enregistrée. Un agent immobilier
-            vous contactera dans les prochaines heures pour affiner l'évaluation
-            et discuter de la suite.
+          <style>{`@keyframes draw { to { stroke-dashoffset: 0; } }`}</style>
+
+          <h1 className="text-2xl font-semibold text-gray-900">Merci {firstName} !</h1>
+          <p className="text-gray-500 mt-2">Votre demande a été envoyée avec succès.</p>
+
+          {/* Recap box */}
+          <div className="mt-6 rounded-xl border border-gray-200 p-5 text-left">
+            <div className="flex items-center gap-3 mb-3">
+              {form.photos[0] ? (
+                <img src={URL.createObjectURL(form.photos[0])} alt="" className="h-14 w-14 rounded-lg object-cover" />
+              ) : (
+                <div className="h-14 w-14 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-gray-400" />
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium text-gray-900">{typeLabel} {form.rooms}p</p>
+                <p className="text-xs text-gray-500">{form.address}, {form.city || form.canton}</p>
+              </div>
+            </div>
+            {estimation && (
+              <div className="bg-gray-50 rounded-lg p-4 mb-3">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Estimation</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {estimation.estimation_min && estimation.estimation_max
+                    ? `${formatCHF(estimation.estimation_min)} — ${formatCHF(estimation.estimation_max)}`
+                    : estimation.estimation ? formatCHF(estimation.estimation) : '—'
+                  }
+                </p>
+              </div>
+            )}
+            <p className="text-sm text-gray-600">Un agent de votre région vous contactera sous 24h.</p>
+          </div>
+
+          <p className="text-xs text-gray-400 mt-4">
+            Un email de confirmation a été envoyé à <strong>{form.contactEmail}</strong>
           </p>
-          <p className="text-sm text-gray-400 mt-4">
-            Un email de confirmation a été envoyé à {form.contactEmail}
+          <p className="text-xs text-gray-400 mt-2">
+            Dès que votre agent prendra en charge votre dossier, vous recevrez un accès
+            à votre espace vendeur pour suivre la vente en temps réel.
           </p>
-          <a
-            href="/"
-            className="inline-block mt-8 h-10 px-6 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors leading-10"
-          >
-            Retour à l'accueil
-          </a>
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-center gap-3 mt-8">
+            <a
+              href="/"
+              className="h-10 px-5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors inline-flex items-center"
+            >
+              Retour à l'accueil
+            </a>
+            <button
+              onClick={() => { setSubmitted(false); setStep(1); setForm(f => ({ ...f, contactName: '', contactEmail: '', contactPhone: '', motivation: '' as 'immediate', photos: [], address: '', city: '', canton: '', postalCode: '', lat: undefined, lng: undefined, propertyType: '', rooms: '', bedrooms: '', surface: '', condition: '', yearBuilt: '' })); setShowEstimation(false); setEstimationParams(null) }}
+              className="h-10 px-5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors"
+            >
+              Estimer un autre bien
+            </button>
+          </div>
         </div>
         <Footer />
       </div>

@@ -156,11 +156,20 @@ export function useSellerLead() {
 
       // 7. Send notification email to agent (fire & forget)
       try {
+        // Find an admin/agent to notify
+        const { data: agentProfile } = await supabase
+          .from('profiles')
+          .select('email')
+          .in('role', ['admin', 'manager', 'agent'])
+          .limit(1)
+          .single()
+
+        const agentEmail = agentProfile?.email || 'agent@megga.ch'
         const estMin = input.estimation.estimation_min ? `CHF ${Math.round(input.estimation.estimation_min / 1000)}K` : 'N/A'
         const estMax = input.estimation.estimation_max ? `CHF ${Math.round(input.estimation.estimation_max / 1000)}K` : 'N/A'
         await supabase.functions.invoke('send-email', {
           body: {
-            to: 'agent@megga.ch', // Default agent email — will be replaced by assigned agent
+            to: agentEmail,
             subject: `Nouveau lead vendeur — ${input.contactName}, ${pd.city || pd.canton}`,
             template: 'agent_new_seller_lead',
             data: {

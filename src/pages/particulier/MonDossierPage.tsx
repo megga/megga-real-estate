@@ -6,7 +6,8 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
-import { MOCK_SELLER_DATA, MANDATE_STEPS, getStepIndex } from '@/lib/mockSellerData'
+import { MANDATE_STEPS, getStepIndex } from '@/lib/mockSellerData'
+import { useSellerPortalData } from '@/hooks/useSellerPortalContext'
 
 // ── Pipeline step explanations ───────────────────────────────────────────
 
@@ -62,8 +63,7 @@ interface Notification {
   isNew: boolean
 }
 
-function getNotifications(): Notification[] {
-  const { visits, offers } = MOCK_SELLER_DATA
+function getNotifications(visits: { status: string; date: string }[], offers: { status: string; amount: number }[]): Notification[] {
   const notifs: Notification[] = []
 
   // Upcoming visits to confirm
@@ -120,10 +120,11 @@ function getNextAction(): { label: string; description: string; link: string; li
 }
 
 export default function MonDossierPage() {
-  const { property, kpis, activities } = MOCK_SELLER_DATA
+  const portalData = useSellerPortalData()
+  const { property, kpis, activities, visits, offers } = portalData
   const currentStepIdx = getStepIndex(kpis.current_step)
   const nextStepLabel = currentStepIdx < MANDATE_STEPS.length - 1 ? MANDATE_STEPS[currentStepIdx + 1].label : null
-  const notifications = getNotifications()
+  const notifications = getNotifications(visits, offers)
   const nextAction = getNextAction()
   const [showAllActivity, setShowAllActivity] = useState(false)
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all')

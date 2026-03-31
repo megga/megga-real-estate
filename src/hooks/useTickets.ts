@@ -1,0 +1,298 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+
+export interface TicketRow {
+  id: string
+  ticket_number: string
+  submitter_email: string
+  submitter_name: string
+  contact_id: string | null
+  subject: string
+  category: string
+  priority: string
+  status: string
+  assigned_to: string | null
+  sla_first_response_due: string | null
+  sla_resolution_due: string | null
+  first_responded_at: string | null
+  resolved_at: string | null
+  sla_breached: boolean
+  access_token: string
+  csat_rating: number | null
+  csat_comment: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TicketMessageRow {
+  id: string
+  ticket_id: string
+  author_type: 'customer' | 'agent' | 'system'
+  author_id: string | null
+  author_name: string
+  body: string
+  is_internal_note: boolean
+  created_at: string
+}
+
+// ── Agent-side: list tickets ─────────────────────────────────────
+
+export function useTickets(filters?: { status?: string; priority?: string; category?: string }) {
+  return useQuery({
+    queryKey: ['tickets', filters],
+    queryFn: async () => {
+      let query = supabase.from('support_tickets').select('*').order('created_at', { ascending: false })
+      if (filters?.status) query = query.eq('status', filters.status)
+      if (filters?.priority) query = query.eq('priority', filters.priority)
+      if (filters?.category) query = query.eq('category', filters.category)
+      const { data, error } = await query
+      if (error) throw error
+      return data as TicketRow[]
+    },
+    staleTime: 30_000,
+  })
+}
+
+// ── Agent-side: single ticket with messages ──────────────────────
+
+export function useTicket(id: string | undefined) {
+  return useQuery({
+    queryKey: ['ticket', id],
+    queryFn: async () => {
+      if (!id) return null
+      const [ticketRes, messagesRes] = await Promise.all([
+        supabase.from('support_tickets').select('*').eq('id', id).single(),
+        supabase.from('ticket_messages').select('*').eq('ticket_id', id).order('created_at', { ascending: true }),
+      ])
+      if (ticketRes.error) throw ticketRes.error
+      return {
+        ticket: ticketRes.data as TicketRow,
+        messages: (messagesRes.data || []) as TicketMessageRow[],
+      }
+    },
+    enabled: !!id,
+    staleTime: 15_000,
+  })
+}
+
+// ── Public: ticket by number + access token ──────────────────────
+
+export function useTicketByToken(ticketNumber: string | undefined, token: string | null) {
+  return useQuery({
+    queryKey: ['ticket-public', ticketNumber, token],
+    queryFn: async () => {
+      if (!ticketNumber || !token) return null
+      const { data: ticket, error } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .eq('ticket_number', ticketNumber)
+        .eq('access_token', token)
+        .single()
+      if (error || !ticket) return null
+
+      const { data: messages } = await supabase
+        .from('ticket_messages')
+        .select('*')
+        .eq('ticket_id', ticket.id)
+        .eq('is_internal_note', false)
+        .order('created_at', { ascending: true })
+
+      return {
+        ticket: ticket as TicketRow,
+        messages: (messages || []) as TicketMessageRow[],
+      }
+    },
+    enabled: !!ticketNumber && !!token,
+    staleTime: 30_000,
+  })
+}
+
+// ── Create ticket (public) ───────────────────────────────────────
+
+export function useCreateTicket() {
+  return useMutation({
+    mutationFn: async (input: {
+      name: string
+      email: string
+      subject: string
+      category: string
+      message: string
+    }) => {
+      // 1. Create ticket
+      const { data: ticket, error } = await supabase
+        .from('support_tickets')
+        .insert({
+          submitter_name: input.name,
+          submitter_email: input.email,
+          subject: input.subject,
+          category: input.category,
+          priority: 'medium',
+          status: 'new',
+        })
+        .select('id, ticket_number, access_token')
+        .single()
+
+      if (error) throw error
+
+      // 2. Create first message
+      await supabase.from('ticket_messages').insert({
+        ticket_id: ticket.id,
+        author_type: 'customer',
+        author_name: input.name,
+        body: input.message,
+      })
+
+      // 3. Send confirmation email (fire & forget)
+      const trackingUrl = `${window.location.origin}/support/${ticket.ticket_number}?token=${ticket.access_token}`
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            to: input.email,
+            template: 'ticket_confirmation',
+            data: {
+              name: input.name,
+              ticket_number: ticket.ticket_number,
+              subject: input.subject,
+              tracking_url: trackingUrl,
+            },
+          },
+        })
+      } catch { /* email failure non-blocking */ }
+
+      // 4. Notify admin (fire & forget)
+      try {
+        const { data: admin } = await supabase
+          .from('profiles')
+          .select('email')
+          .in('role', ['admin', 'manager'])
+          .limit(1)
+          .single()
+
+        if (admin?.email) {
+          await supabase.functions.invoke('send-email', {
+            body: {
+              to: admin.email,
+              template: 'ticket_notification_admin',
+              data: {
+                ticket_number: ticket.ticket_number,
+                subject: input.subject,
+                submitter_name: input.name,
+                submitter_email: input.email,
+                category: input.category,
+                message: input.message,
+                dashboard_url: `${window.location.origin}/dashboard/support`,
+              },
+            },
+          })
+        }
+      } catch { /* admin email failure non-blocking */ }
+
+      return { ticketNumber: ticket.ticket_number, accessToken: ticket.access_token }
+    },
+  })
+}
+
+// ── Update ticket (agent) ────────────────────────────────────────
+
+export function useUpdateTicket() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; status?: string; priority?: string; assigned_to?: string }) => {
+      const { error } = await supabase
+        .from('support_tickets')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tickets'] })
+      qc.invalidateQueries({ queryKey: ['ticket'] })
+    },
+  })
+}
+
+// ── Add message (agent or customer) ──────────────────────────────
+
+export function useAddMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      ticketId: string
+      authorType: 'customer' | 'agent'
+      authorName: string
+      authorId?: string
+      body: string
+      isInternalNote?: boolean
+    }) => {
+      const { error } = await supabase.from('ticket_messages').insert({
+        ticket_id: input.ticketId,
+        author_type: input.authorType,
+        author_id: input.authorId || null,
+        author_name: input.authorName,
+        body: input.body,
+        is_internal_note: input.isInternalNote || false,
+      })
+      if (error) throw error
+
+      // Auto-open if new
+      if (input.authorType === 'agent' && !input.isInternalNote) {
+        await supabase
+          .from('support_tickets')
+          .update({ status: 'open', updated_at: new Date().toISOString() })
+          .eq('id', input.ticketId)
+          .eq('status', 'new')
+      }
+
+      // Auto-reopen if customer replies to resolved
+      if (input.authorType === 'customer') {
+        await supabase
+          .from('support_tickets')
+          .update({ status: 'open', updated_at: new Date().toISOString() })
+          .eq('id', input.ticketId)
+          .eq('status', 'resolved')
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ticket'] })
+      qc.invalidateQueries({ queryKey: ['ticket-public'] })
+    },
+  })
+}
+
+// ── Submit CSAT ──────────────────────────────────────────────────
+
+export function useSubmitCsat() {
+  return useMutation({
+    mutationFn: async ({ ticketNumber, token, rating, comment }: {
+      ticketNumber: string
+      token: string
+      rating: number
+      comment?: string
+    }) => {
+      const { error } = await supabase
+        .from('support_tickets')
+        .update({ csat_rating: rating, csat_comment: comment || null })
+        .eq('ticket_number', ticketNumber)
+        .eq('access_token', token)
+      if (error) throw error
+    },
+  })
+}
+
+// ── Canned responses ─────────────────────────────────────────────
+
+export function useCannedResponses() {
+  return useQuery({
+    queryKey: ['canned-responses'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ticket_canned_responses')
+        .select('*')
+        .eq('is_active', true)
+        .order('title')
+      if (error) throw error
+      return data as { id: string; title: string; body: string; shortcut: string | null }[]
+    },
+    staleTime: 300_000,
+  })
+}

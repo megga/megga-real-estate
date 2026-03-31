@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
-import { Mail, Lock, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect } from 'react'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { isAgentRole, type UserRole } from '@/types/auth'
+
+// ── OAuth icons ──────────────────────────────────────────────────────────
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -16,31 +17,87 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="#1877F2">
+      <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.018 1.793-4.684 4.533-4.684 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.93-1.956 1.886v2.273h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073Z" />
+    </svg>
+  )
+}
+
+// ── Types ────────────────────────────────────────────────────────────────
+
+type Step = 'email' | 'login' | 'register' | 'forgot' | 'forgot-sent'
+
+// ── Background image ────────────────────────────────────────────────────
+
+const BG_IMAGE = 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&h=1600&fit=crop&q=80'
+
+// ── Main component ──────────────────────────────────────────────────────
+
 export default function LoginPage() {
-  const { user, profile, loading: authLoading, signInWithPassword, signInWithGoogle, resetPassword } = useAuth()
+  const { user, profile, loading: authLoading, signInWithPassword, signInWithGoogle, signUp, resetPassword } = useAuth()
+  const [searchParams] = useSearchParams()
+
+  // State
+  const [step, setStep] = useState<Step>('email')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [fbToast, setFbToast] = useState(false)
 
-  // Forgot password state
-  const [showForgotPassword, setShowForgotPassword] = useState(false)
-  const [resetEmail, setResetEmail] = useState('')
-  const [resetLoading, setResetLoading] = useState(false)
-  const [resetSent, setResetSent] = useState(false)
-  const [resetError, setResetError] = useState<string | null>(null)
+  const isAgentMode = searchParams.get('role') === 'agent'
 
-  // Redirect by role if already logged in
+  // Store redirect URL before auth
+  useEffect(() => {
+    const redirect = searchParams.get('redirect')
+    if (redirect) sessionStorage.setItem('megga_redirect', redirect)
+  }, [searchParams])
+
+  // Redirect if already logged in
   if (!authLoading && user && profile) {
+    const redirect = sessionStorage.getItem('megga_redirect')
+    if (redirect) {
+      sessionStorage.removeItem('megga_redirect')
+      return <Navigate to={redirect} replace />
+    }
     if (isAgentRole(profile.role)) return <Navigate to="/dashboard" replace />
-    return <Navigate to="/portal" replace />
+    return <Navigate to="/acheter" replace />
   }
   if (!authLoading && user && !profile) {
-    // Fallback: check user_metadata for role
     const metaRole = user.user_metadata?.role as string | undefined
     if (metaRole && isAgentRole(metaRole as UserRole)) return <Navigate to="/dashboard" replace />
-    return <Navigate to="/portal" replace />
+    return <Navigate to="/acheter" replace />
+  }
+
+  // ── Handlers ────────────────────────────────────────────────────────────
+
+  async function handleEmailContinue(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim()) return
+    setLoading(true)
+    setError(null)
+
+    // Try to sign in with empty password to detect if user exists
+    const { error: err } = await signInWithPassword(email.trim(), '__check_existence__')
+    setLoading(false)
+
+    if (err) {
+      // "Invalid login credentials" → user exists (wrong password)
+      if (err.toLowerCase().includes('invalid') || err.toLowerCase().includes('credentials')) {
+        setStep('login')
+        return
+      }
+      // Any other error (user not found, etc.) → show register
+      setStep('register')
+      return
+    }
+    // Unlikely: empty password worked — user is logged in (shouldn't happen)
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -48,163 +105,150 @@ export default function LoginPage() {
     if (!email.trim() || !password) return
     setLoading(true)
     setError(null)
+
     const { error: err } = await signInWithPassword(email.trim(), password)
     setLoading(false)
+
     if (err) {
       setError(err)
+      return
     }
+
+    // Redirect handled by Navigate above on re-render
+  }
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim() || !password || !firstName.trim()) return
+    if (password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères')
+      return
+    }
+    setLoading(true)
+    setError(null)
+
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim()
+    const role: UserRole = isAgentMode ? 'agent' : 'particulier'
+    const { error: err } = await signUp(email.trim(), password, fullName, role)
+    setLoading(false)
+
+    if (err) {
+      setError(err)
+      return
+    }
+
+    // After sign-up, Supabase may auto-login or require email confirmation
+    // The Navigate check above will handle redirect
   }
 
   async function handleGoogle() {
-    setGoogleLoading(true)
+    setOauthLoading('google')
     setError(null)
-    const { error: err } = await signInWithGoogle()
+    // Store redirect for after OAuth
+    const redirect = searchParams.get('redirect') || (isAgentMode ? '/dashboard' : '/acheter')
+    sessionStorage.setItem('megga_redirect', redirect)
+    if (isAgentMode) localStorage.setItem('megga_oauth_role', 'agent')
+
+    const { error: err } = await signInWithGoogle(isAgentMode ? 'agent' : undefined)
     if (err) {
       setError(err)
-      setGoogleLoading(false)
+      setOauthLoading(null)
     }
   }
 
-  async function handleResetPassword(e: React.FormEvent) {
+  function handleFacebook() {
+    // Facebook OAuth not yet configured — show toast
+    setFbToast(true)
+    setTimeout(() => setFbToast(false), 3000)
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault()
-    if (!resetEmail.trim()) return
-    setResetLoading(true)
-    setResetError(null)
-    const { error: err } = await resetPassword(resetEmail.trim())
-    setResetLoading(false)
+    setLoading(true)
+    setError(null)
+    const { error: err } = await resetPassword(email.trim())
+    setLoading(false)
     if (err) {
-      setResetError(err)
+      setError(err)
     } else {
-      setResetSent(true)
+      setStep('forgot-sent')
     }
   }
 
-  // ─── FORGOT PASSWORD VIEW ────────────────────────────────────────────
-  if (showForgotPassword) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <Link to="/" className="block text-center mb-10">
-            <span className="text-3xl font-bold tracking-tight text-primary-900">MEGGA</span>
+  function goBack() {
+    setStep('email')
+    setPassword('')
+    setError(null)
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left: Form */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white relative">
+        {/* Facebook toast */}
+        {fbToast && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            Facebook sera disponible prochainement
+          </div>
+        )}
+
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <Link to="/" className="block mb-10">
+            <img src="/megga-logo.svg" alt="MEGGA" className="h-7 mx-auto" />
           </Link>
 
-          <div className="bg-white rounded-xl border border-border p-8">
-            <button
-              onClick={() => { setShowForgotPassword(false); setResetSent(false); setResetError(null) }}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-accent mb-6 cursor-pointer transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour à la connexion
-            </button>
-
-            <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">
-              Mot de passe oublié
-            </h1>
-            <p className="text-sm text-muted-foreground text-center mb-8">
-              Entrez votre adresse e-mail pour recevoir un lien de réinitialisation.
-            </p>
-
-            {resetSent ? (
-              <div className="text-center py-4">
-                <CheckCircle className="h-10 w-10 text-success mx-auto mb-3" />
-                <p className="text-sm font-medium text-primary-900 mb-1">
-                  E-mail envoyé !
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Vérifiez votre boîte de réception à{' '}
-                  <span className="font-medium text-primary-700">{resetEmail}</span>.
-                  Cliquez sur le lien pour réinitialiser votre mot de passe.
+          {/* ── STEP: Email (identifier) ── */}
+          {step === 'email' && (
+            <>
+              <div className="text-center mb-8">
+                <h1 className="text-xl font-semibold text-gray-900">
+                  {isAgentMode ? 'Espace professionnel' : 'Bienvenue sur MEGGA'}
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Connectez-vous ou créez votre compte
                 </p>
               </div>
-            ) : (
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div>
-                  <label htmlFor="resetEmail" className="block text-sm font-medium text-primary-700 mb-1.5">
-                    Adresse e-mail
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <input
-                      id="resetEmail"
-                      type="email"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      placeholder="vous@exemple.ch"
-                      required
-                      className="w-full h-11 pl-10 pr-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
 
-                <Button
-                  type="submit"
-                  className="w-full h-11 rounded-button"
-                  disabled={resetLoading || !resetEmail.trim()}
+              {/* OAuth buttons */}
+              <div className="space-y-2.5 mb-6">
+                <button
+                  onClick={handleGoogle}
+                  disabled={!!oauthLoading}
+                  className="w-full h-11 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
                 >
-                  {resetLoading ? (
+                  {oauthLoading === 'google' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Envoyer le lien'
+                    <GoogleIcon className="h-5 w-5" />
                   )}
-                </Button>
-              </form>
-            )}
+                  Continuer avec Google
+                </button>
 
-            {resetError && (
-              <div className="mt-4 p-3 bg-danger-light rounded-lg">
-                <p className="text-xs text-danger">{resetError}</p>
+                <button
+                  onClick={handleFacebook}
+                  disabled={!!oauthLoading}
+                  className="w-full h-11 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  <FacebookIcon className="h-5 w-5" />
+                  Continuer avec Facebook
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
 
-  // ─── LOGIN VIEW ───────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <Link to="/" className="block text-center mb-10">
-          <span className="text-3xl font-bold tracking-tight text-primary-900">MEGGA</span>
-        </Link>
+              {/* Separator */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400">ou</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
 
-        <div className="bg-white rounded-xl border border-border p-8">
-          <h1 className="text-2xl font-semibold text-primary-900 text-center mb-2">
-            Connexion
-          </h1>
-          <p className="text-sm text-muted-foreground text-center mb-8">
-            Accédez à votre espace MEGGA
-          </p>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-11 rounded-button gap-3 text-sm font-medium"
-            onClick={handleGoogle}
-            disabled={googleLoading}
-          >
-            {googleLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <GoogleIcon className="h-5 w-5" />
-            )}
-            Se connecter avec Google
-          </Button>
-
-          <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">ou</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-primary-700 mb-1.5">
-                Adresse e-mail
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {/* Email input */}
+              <form onSubmit={handleEmailContinue}>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Email
+                </label>
                 <input
                   id="email"
                   type="email"
@@ -212,64 +256,252 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="vous@exemple.ch"
                   required
-                  className="w-full h-11 pl-10 pr-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                  autoFocus
+                  className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                 />
-              </div>
-            </div>
+                <button
+                  type="submit"
+                  disabled={loading || !email.trim()}
+                  className="w-full h-11 mt-4 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Continuer'}
+                </button>
+              </form>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-sm font-medium text-primary-700">
+              {error && (
+                <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
+              )}
+
+              {/* Pro link */}
+              <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                {isAgentMode ? (
+                  <Link to="/login" className="text-sm text-gray-500 hover:text-accent transition-colors">
+                    Retour au compte particulier
+                  </Link>
+                ) : (
+                  <Link to="/login?role=agent" className="text-sm text-gray-500 hover:text-accent transition-colors">
+                    Vous êtes un professionnel ? <span className="font-medium">Espace agent</span> &rarr;
+                  </Link>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── STEP: Login (email exists) ── */}
+          {step === 'login' && (
+            <>
+              <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                Retour
+              </button>
+
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">Bon retour !</h1>
+              <p className="text-sm text-gray-500 mb-6">{email}</p>
+
+              <form onSubmit={handleLogin}>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
                   Mot de passe
                 </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Votre mot de passe"
+                    required
+                    autoFocus
+                    className="w-full h-11 px-3.5 pr-10 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => { setShowForgotPassword(true); setResetEmail(email) }}
-                  className="text-xs text-accent hover:underline cursor-pointer"
+                  onClick={() => { setStep('forgot'); setError(null) }}
+                  className="text-xs text-gray-500 hover:text-accent mt-2 transition-colors"
                 >
                   Mot de passe oublié ?
                 </button>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Votre mot de passe"
-                  required
-                  className="w-full h-11 pl-10 pr-4 text-sm bg-input border border-border rounded-input focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
-                />
-              </div>
-            </div>
 
-            <Button
-              type="submit"
-              className="w-full h-11 rounded-button"
-              disabled={loading || !email.trim() || !password}
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Se connecter'
+                <button
+                  type="submit"
+                  disabled={loading || !password}
+                  className="w-full h-11 mt-5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Se connecter'}
+                </button>
+              </form>
+
+              {error && (
+                <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
               )}
-            </Button>
-          </form>
+            </>
+          )}
 
-          {error && (
-            <div className="mt-4 p-3 bg-danger-light rounded-lg">
-              <p className="text-xs text-danger">{error}</p>
-            </div>
+          {/* ── STEP: Register (new email) ── */}
+          {step === 'register' && (
+            <>
+              <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                Retour
+              </button>
+
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">Créer votre compte</h1>
+              <p className="text-sm text-gray-500 mb-6">{email}</p>
+
+              <form onSubmit={handleRegister} className="space-y-3.5">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Prénom
+                  </label>
+                  <input
+                    id="firstName"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                    autoFocus
+                    className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Nom
+                  </label>
+                  <input
+                    id="lastName"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="regPassword" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Mot de passe <span className="text-gray-400 font-normal">(min 8 caractères)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="regPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      className="w-full h-11 px-3.5 pr-10 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !firstName.trim() || password.length < 8}
+                  className="w-full h-11 mt-1 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Créer mon compte'}
+                </button>
+              </form>
+
+              {error && (
+                <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
+              )}
+
+              <p className="text-[11px] text-gray-400 text-center mt-4 leading-relaxed">
+                En créant un compte, vous acceptez nos{' '}
+                <Link to="/privacy" className="underline hover:text-gray-600">conditions d'utilisation</Link>
+                {' '}et notre{' '}
+                <Link to="/privacy" className="underline hover:text-gray-600">politique de confidentialité</Link>.
+              </p>
+            </>
+          )}
+
+          {/* ── STEP: Forgot password ── */}
+          {step === 'forgot' && (
+            <>
+              <button onClick={() => { setStep('login'); setError(null) }} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                Retour
+              </button>
+
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">Mot de passe oublié</h1>
+              <p className="text-sm text-gray-500 mb-6">
+                Nous enverrons un lien de réinitialisation à <strong>{email}</strong>
+              </p>
+
+              <form onSubmit={handleForgotPassword}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-11 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Envoyer le lien'}
+                </button>
+              </form>
+
+              {error && (
+                <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
+              )}
+            </>
+          )}
+
+          {/* ── STEP: Forgot password sent ── */}
+          {step === 'forgot-sent' && (
+            <>
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-7 h-7 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12l5 5L20 7" />
+                  </svg>
+                </div>
+                <h1 className="text-xl font-semibold text-gray-900 mb-2">Email envoyé</h1>
+                <p className="text-sm text-gray-500">
+                  Vérifiez votre boîte de réception à <strong>{email}</strong>.
+                  Cliquez sur le lien pour réinitialiser votre mot de passe.
+                </p>
+                <button
+                  onClick={() => { setStep('login'); setError(null) }}
+                  className="mt-6 text-sm text-gray-500 hover:text-accent transition-colors"
+                >
+                  Retour à la connexion
+                </button>
+              </div>
+            </>
           )}
         </div>
+      </div>
 
-        <p className="text-sm text-muted-foreground text-center mt-6">
-          Pas encore de compte ?{' '}
-          <Link to="/register" className="text-accent hover:underline font-medium">
-            Créer un compte
-          </Link>
-        </p>
+      {/* Right: Photo (desktop only) */}
+      <div
+        className="hidden lg:block w-[45%] bg-cover bg-center relative"
+        style={{ backgroundImage: `url(${BG_IMAGE})` }}
+      >
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" />
+        <div className="absolute bottom-8 left-8 right-8">
+          <p className="text-white/90 text-lg font-medium">
+            La plateforme immobilière suisse
+          </p>
+          <p className="text-white/60 text-sm mt-1">
+            38'000+ biens analysés dans 26 cantons
+          </p>
+        </div>
       </div>
     </div>
   )

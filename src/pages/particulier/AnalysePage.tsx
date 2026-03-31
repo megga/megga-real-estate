@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
-import { MOCK_SELLER_DATA } from '@/lib/mockSellerData'
 import { ArrowRight, Printer } from 'lucide-react'
+import { useSellerPortalData } from '@/hooks/useSellerPortalContext'
 
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
 
@@ -101,7 +101,7 @@ function ActivityBar({ data, maxVisits }: { data: WeekActivity; maxVisits: numbe
 // ── Main page ────────────────────────────────────────────────────────────
 
 export default function AnalysePage() {
-  const { property, kpis } = MOCK_SELLER_DATA
+  const { property, kpis } = useSellerPortalData()
 
   const pricePerM2 = Math.round(property.price / property.surface_m2)
   const diffVsMarket = ((pricePerM2 - MARKET_STATS.avg_price_m2_quartier) / MARKET_STATS.avg_price_m2_quartier * 100).toFixed(1)

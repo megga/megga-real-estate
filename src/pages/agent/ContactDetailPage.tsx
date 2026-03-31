@@ -207,7 +207,8 @@ export default function ContactDetailPage() {
   const { data: transactions = [] } = useContactTransactions(id)
   const { data: timeline = [], isLoading: timelineLoading } = useContactTimeline(id)
   const { summary: aiSummary, isRefreshing: isRefreshingAi, refresh: refreshAiSummary } = useAiSummary(contact)
-  const { createPortal: createSellerPortal, getPortalForContact, getPortalUrl, markInviteSent } = useSellerPortals()
+  const { getPortalForContact, getPortalUrl, markInviteSent } = useSellerPortals()
+  const [existingPortal, setExistingPortal] = useState<{ id: string; token: string; contactId: string; status: string } | null>(null)
   const sendEmail = useSendPropertyEmail()
 
   const fullName = contact ? `${contact.first_name} ${contact.last_name}` : ''
@@ -297,18 +298,18 @@ export default function ContactDetailPage() {
   const showSeller = ['seller', 'both'].includes(contact.type)
 
   // ── Portal helpers ──
-  const existingPortal = getPortalForContact(contact.id)
+  useEffect(() => {
+    if (contact?.id && ['seller', 'both'].includes(contact.type)) {
+      getPortalForContact(contact.id).then(p => setExistingPortal(p))
+    }
+  }, [contact?.id, contact?.type, getPortalForContact])
+
   const propertyTitle = transactions[0]?.property?.title ?? 'Bien en vente'
   const propertyAddress = transactions[0]?.property?.address ?? ''
 
   const handleCreatePortal = () => {
-    createSellerPortal({
-      contactId: contact.id,
-      contactName: fullName,
-      contactEmail: contact.email ?? '',
-      propertyTitle,
-      propertyAddress,
-    })
+    // Portal creation is handled by Accept Seller Lead flow
+    // This is kept for UI compatibility
   }
 
   const handleCopyLink = () => {
@@ -468,7 +469,7 @@ export default function ContactDetailPage() {
                   disabled={inviteSending}
                   className="flex-1 h-8 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-30"
                 >
-                  {inviteSending ? 'Envoi...' : inviteSent ? '✓ Invitation envoyée' : existingPortal.inviteSentAt ? "Renvoyer l'invitation" : 'Envoyer par email'}
+                  {inviteSending ? 'Envoi...' : inviteSent ? '✓ Invitation envoyée' : 'Envoyer par email'}
                 </button>
                 <a
                   href={getPortalUrl(existingPortal.token)}
@@ -480,9 +481,7 @@ export default function ContactDetailPage() {
                 </a>
               </div>
               <div className="flex items-center gap-4 text-[10px] text-theme-muted pt-1">
-                <span>Créé {formatRelativeDate(existingPortal.createdAt)}</span>
-                {existingPortal.inviteSentAt && <span>· Invitation envoyée {formatRelativeDate(existingPortal.inviteSentAt)}</span>}
-                {existingPortal.viewCount > 0 && <span>· {existingPortal.viewCount} vue{existingPortal.viewCount > 1 ? 's' : ''}</span>}
+                <span>Portail actif</span>
               </div>
             </div>
           )}

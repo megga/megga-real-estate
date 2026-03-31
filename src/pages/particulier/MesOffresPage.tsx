@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MessageSquare, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MOCK_SELLER_DATA, type SellerOffer } from '@/lib/mockSellerData'
+import type { SellerOffer } from '@/lib/mockSellerData'
+import { useSellerPortalData } from '@/hooks/useSellerPortalContext'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -201,7 +202,7 @@ function ReplyModal({ offer, onClose, onSend }: { offer: SellerOffer; onClose: (
 // ── Main page ────────────────────────────────────────────────────────────
 
 export default function MesOffresPage() {
-  const { property, offers } = MOCK_SELLER_DATA
+  const { property, offers } = useSellerPortalData()
   const [replyOffer, setReplyOffer] = useState<SellerOffer | null>(null)
 
   // Tri : pending et counter_offer d'abord, puis par date décroissante

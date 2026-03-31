@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarDays, Star, Clock, CheckCircle2, XCircle, AlertCircle, X, MessageSquare } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
-import { MOCK_SELLER_DATA } from '@/lib/mockSellerData'
+import { useSellerPortalData } from '@/hooks/useSellerPortalContext'
 import type { SellerVisit } from '@/lib/mockSellerData'
 
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
@@ -156,7 +156,7 @@ function FeedbackModal({ visit, onClose }: { visit: SellerVisit; onClose: () => 
 // ── Main page ───────────────────────────────────────────────────────────
 
 export default function MesVisitesPage() {
-  const { visits, kpis } = MOCK_SELLER_DATA
+  const { visits, kpis } = useSellerPortalData()
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set())
   const [postponeVisit, setPostponeVisit] = useState<SellerVisit | null>(null)
   const [feedbackVisit, setFeedbackVisit] = useState<SellerVisit | null>(null)

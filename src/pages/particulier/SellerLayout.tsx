@@ -8,7 +8,7 @@ import {
 import { cn } from '@/lib/utils'
 import { ThemeProvider, useTheme } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
-import { MOCK_SELLER_DATA } from '@/lib/mockSellerData'
+import { useSellerPortalData } from '@/hooks/useSellerPortalContext'
 
 // ── Nav items ────────────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ function SellerLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
-  const { property, agent } = MOCK_SELLER_DATA
+  const { property, agent } = useSellerPortalData()
 
   function isActive(href: string) {
     if (href === '/portail') return location.pathname === '/portail'

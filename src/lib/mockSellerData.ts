@@ -72,6 +72,13 @@ export interface SellerPortalData {
     email: string
     photo: string | null
   }
+  estimation?: {
+    min: number | null
+    max: number | null
+    median: number | null
+    confidence: string | null
+    comparable_count: number | null
+  }
 }
 
 // ── Mock data ────────────────────────────────────────────────────────────

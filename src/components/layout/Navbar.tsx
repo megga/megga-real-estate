@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, LogOut, LayoutDashboard, User, Plus } from 'lucide-react'
+import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useAvatar } from '@/hooks/useAvatar'
@@ -190,6 +190,26 @@ export default function Navbar() {
                       {isAgent ? <LayoutDashboard className="h-4 w-4 text-gray-400" /> : <User className="h-4 w-4 text-gray-400" />}
                       {isAgent ? 'Dashboard' : 'Mon espace'}
                     </Link>
+                    {!isAgent && (
+                      <>
+                        <Link
+                          to="/acheter?favorites=true"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <Heart className="h-4 w-4 text-gray-400" />
+                          Mes favoris
+                        </Link>
+                        <Link
+                          to="/acheter?saved=true"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <Bookmark className="h-4 w-4 text-gray-400" />
+                          Mes recherches
+                        </Link>
+                      </>
+                    )}
                   </div>
                   <div className="border-t border-gray-100 pt-1">
                     <button

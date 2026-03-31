@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Check, CheckCheck, Paperclip } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MOCK_SELLER_DATA, MOCK_SELLER_MESSAGES, type SellerMessage } from '@/lib/mockSellerData'
+import { MOCK_SELLER_MESSAGES, type SellerMessage } from '@/lib/mockSellerData'
+import { useSellerPortalData } from '@/hooks/useSellerPortalContext'
 
 // ── Date helpers ─────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ function groupMessagesByDay(messages: SellerMessage[]): { label: string; message
 // ── Main component ───────────────────────────────────────────────────────
 
 export default function MesMessagesPage() {
-  const { agent } = MOCK_SELLER_DATA
+  const { agent } = useSellerPortalData()
   const [messages, setMessages] = useState(MOCK_SELLER_MESSAGES)
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)

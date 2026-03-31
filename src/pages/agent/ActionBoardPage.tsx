@@ -1,11 +1,11 @@
-import { CheckCircle2, Home, ArrowRight } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle2, Home, Check, X, Loader2, MapPin, Phone, Mail } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'motion/react'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useActionBoard, type ActionItem } from '@/hooks/useActionBoard'
-import { useSellerLeads, type SellerLeadRow } from '@/hooks/useSellerLeads'
+import { useSellerLeads, useAcceptSellerLead, useRejectSellerLead, type SellerLeadRow } from '@/hooks/useSellerLeads'
 import ActionCard from '@/components/action-board/ActionCard'
 import PipelineHealth from '@/components/action-board/PipelineHealth'
 import MarketRadar from '@/components/action-board/MarketRadar'
@@ -139,10 +139,130 @@ function ActionSection({
   )
 }
 
+// ── Seller Lead Card ────────────────────────────────────────────────────────
+
+function SellerLeadCard({ lead }: { lead: SellerLeadRow }) {
+  const { profile } = useAuth()
+  const acceptLead = useAcceptSellerLead()
+  const rejectLead = useRejectSellerLead()
+  const [expanded, setExpanded] = useState(false)
+
+  const pd = lead.property_data
+  const typeLabel = pd?.type === 'apartment' ? 'Appartement' : pd?.type === 'house' ? 'Maison' : pd?.type === 'villa' ? 'Villa' : pd?.type === 'land' ? 'Terrain' : pd?.type || 'Bien'
+  const motivLabel = lead.motivation === 'immediate' ? 'Immédiate' : lead.motivation === '3months' ? '3 mois' : lead.motivation === '6months' ? '6 mois' : 'Exploration'
+  const isLoading = acceptLead.isPending || rejectLead.isPending
+
+  function handleAccept(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!profile) return
+    acceptLead.mutate({
+      leadId: lead.id,
+      agencyId: profile.agency_id || '',
+      agentId: profile.id,
+      agentName: profile.full_name || 'Agent MEGGA',
+    })
+  }
+
+  function handleReject(e: React.MouseEvent) {
+    e.stopPropagation()
+    rejectLead.mutate({ id: lead.id })
+  }
+
+  return (
+    <div
+      className="rounded-lg border border-theme-border p-4 hover:border-theme-active transition-colors cursor-pointer"
+      onClick={() => setExpanded(!expanded)}
+    >
+      <div className="flex items-start gap-3">
+        {/* Photo or icon */}
+        {pd?.photos?.[0] ? (
+          <img src={pd.photos[0]} alt="" className="h-14 w-14 rounded-lg object-cover flex-shrink-0" />
+        ) : (
+          <div className="h-14 w-14 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+            <Home className="h-5 w-5 text-purple-400" />
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-theme-primary truncate">{lead.contact_name}</p>
+            <span className="text-[10px] text-theme-muted flex-shrink-0">{formatRelativeDate(lead.created_at)}</span>
+          </div>
+          <p className="text-xs text-theme-secondary mt-0.5">
+            {typeLabel} {pd?.rooms}p · {pd?.surface} m² · {pd?.city || pd?.canton}
+          </p>
+          {lead.estimation_median && (
+            <p className="text-sm font-semibold text-theme-primary mt-1">
+              {lead.estimation_min && lead.estimation_max
+                ? `${formatCHF(lead.estimation_min)} — ${formatCHF(lead.estimation_max)}`
+                : formatCHF(lead.estimation_median)
+              }
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="mt-3 pt-3 border-t border-theme-border-subtle space-y-2">
+          <div className="flex items-center gap-4 text-xs text-theme-secondary">
+            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {pd?.address}, {pd?.city}</span>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-theme-secondary">
+            {lead.contact_phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {lead.contact_phone}</span>}
+            <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {lead.contact_email}</span>
+          </div>
+          <div className="text-xs text-theme-muted">
+            Motivation : <span className="text-theme-secondary font-medium">{motivLabel}</span>
+          </div>
+
+          {/* Photo thumbnails */}
+          {pd?.photos && pd.photos.length > 0 && (
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+              {pd.photos.slice(0, 4).map((photo: string, i: number) => (
+                <img key={i} src={photo} alt="" className="h-16 w-20 rounded object-cover flex-shrink-0" />
+              ))}
+              {pd.photos.length > 4 && (
+                <div className="h-16 w-20 rounded bg-theme-hover flex items-center justify-center flex-shrink-0 text-xs text-theme-muted">
+                  +{pd.photos.length - 4}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-theme-border-subtle">
+        <button
+          onClick={handleAccept}
+          disabled={isLoading}
+          className="h-8 px-3.5 rounded-lg text-xs font-medium border border-accent/30 text-accent hover:bg-accent/5 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+        >
+          {acceptLead.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          Accepter
+        </button>
+        <button
+          onClick={handleReject}
+          disabled={isLoading}
+          className="h-8 px-3.5 rounded-lg text-xs font-medium text-theme-muted hover:text-theme-secondary transition-colors flex items-center gap-1.5 disabled:opacity-50"
+        >
+          {rejectLead.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+          Rejeter
+        </button>
+        {acceptLead.isSuccess && (
+          <span className="text-xs text-emerald-500 flex items-center gap-1 ml-auto">
+            <CheckCircle2 className="h-3 w-3" /> Accepté
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Seller Leads Section ────────────────────────────────────────────────────
 
 function SellerLeadsSection({ leads }: { leads: SellerLeadRow[] }) {
-  const navigate = useNavigate()
   if (leads.length === 0) return null
 
   return (
@@ -155,34 +275,10 @@ function SellerLeadsSection({ leads }: { leads: SellerLeadRow[] }) {
           {leads.length}
         </span>
       </div>
-      <div className="flex flex-col gap-2.5">
-        {leads.map((lead) => {
-          const pd = lead.property_data
-          return (
-            <div
-              key={lead.id}
-              className="flex items-center gap-3 rounded-lg border border-theme-border p-3 hover:border-theme-active transition-colors group cursor-pointer"
-              onClick={() => {
-                if (lead.contact_id) navigate(`/dashboard/contacts/${lead.contact_id}`)
-              }}
-            >
-              <div className="h-9 w-9 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                <Home className="h-4 w-4 text-purple-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-theme-primary truncate">{lead.contact_name}</p>
-                <p className="text-xs text-theme-tertiary truncate">
-                  {pd?.city || pd?.canton} — {pd?.type === 'apartment' ? 'Appt' : pd?.type === 'house' ? 'Maison' : pd?.type === 'villa' ? 'Villa' : pd?.type || 'Bien'} {pd?.rooms}p. {pd?.surface} m²
-                  {lead.estimation_median ? ` — ${formatCHF(lead.estimation_median)}` : ''}
-                </p>
-              </div>
-              <span className="text-[11px] text-theme-muted flex-shrink-0">
-                {formatRelativeDate(lead.created_at)}
-              </span>
-              <ArrowRight className="h-3.5 w-3.5 text-theme-muted opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-            </div>
-          )
-        })}
+      <div className="flex flex-col gap-3">
+        {leads.map((lead) => (
+          <SellerLeadCard key={lead.id} lead={lead} />
+        ))}
       </div>
     </div>
   )

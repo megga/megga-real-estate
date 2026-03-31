@@ -6,12 +6,13 @@ import { AuthProvider } from '@/hooks/useAuth'
 // Static imports — shell + most-visited pages (loaded immediately)
 import HomePage from '@/pages/public/HomePage'
 import LoginPage from '@/pages/public/LoginPage'
-import RegisterPage from '@/pages/public/RegisterPage'
+// RegisterPage removed — registration is now handled by the email-first LoginPage
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import PasswordGate from '@/components/layout/PasswordGate'
 import AgentLayout from '@/components/layout/AgentLayout'
 import ActionBoardPage from '@/pages/agent/ActionBoardPage'
+import FavoritesLoginPrompt from '@/components/auth/FavoritesLoginPrompt'
 
 // Lazy-loaded public pages
 const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
@@ -61,6 +62,24 @@ const AnalysePage = lazy(() => import('@/pages/particulier/AnalysePage'))
 const MonProfilPage = lazy(() => import('@/pages/particulier/MonProfilPage'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 
+// Lazy-loaded help center pages
+const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
+const HelpCategoryPage = lazy(() => import('@/pages/public/HelpCategoryPage'))
+const HelpArticlePage = lazy(() => import('@/pages/public/HelpArticlePage'))
+const HelpStartPage = lazy(() => import('@/pages/public/HelpStartPage'))
+const HelpContactPage = lazy(() => import('@/pages/public/HelpContactPage'))
+const HelpStatusPage = lazy(() => import('@/pages/public/HelpStatusPage'))
+const HelpChangelogPage = lazy(() => import('@/pages/public/HelpChangelogPage'))
+const HelpShortcutsPage = lazy(() => import('@/pages/public/HelpShortcutsPage'))
+const HelpCompliancePage = lazy(() => import('@/pages/public/HelpCompliancePage'))
+const HelpLimitsPage = lazy(() => import('@/pages/public/HelpLimitsPage'))
+const TicketStatusPage = lazy(() => import('@/pages/public/TicketStatusPage'))
+const TicketFeedbackPage = lazy(() => import('@/pages/public/TicketFeedbackPage'))
+
+// Lazy-loaded admin support pages
+const SupportPage = lazy(() => import('@/pages/agent/SupportPage'))
+const SupportTicketDetailPage = lazy(() => import('@/pages/agent/SupportTicketDetailPage'))
+
 function PageLoader() {
   return (
     <div className="flex items-center justify-center h-64">
@@ -92,7 +111,7 @@ export default function App() {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/register" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/acheter" element={<SearchPage />} />
               <Route path="/louer" element={<LouerPage />} />
@@ -106,6 +125,22 @@ export default function App() {
               <Route path="/visite/:id/modifier" element={<VisitManagePage />} />
               <Route path="/visite/:id/feedback" element={<VisitFeedbackPage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
+
+              {/* Help Center */}
+              <Route path="/aide" element={<HelpCenterPage />} />
+              <Route path="/aide/demarrage" element={<HelpStartPage />} />
+              <Route path="/aide/contact" element={<HelpContactPage />} />
+              <Route path="/aide/statut" element={<HelpStatusPage />} />
+              <Route path="/aide/nouveautes" element={<HelpChangelogPage />} />
+              <Route path="/aide/raccourcis" element={<HelpShortcutsPage />} />
+              <Route path="/aide/conformite" element={<HelpCompliancePage />} />
+              <Route path="/aide/limites" element={<HelpLimitsPage />} />
+              <Route path="/aide/:category" element={<HelpCategoryPage />} />
+              <Route path="/aide/:category/:slug" element={<HelpArticlePage />} />
+
+              {/* Support tickets (public) */}
+              <Route path="/support/:ticketNumber" element={<TicketStatusPage />} />
+              <Route path="/support/:ticketNumber/feedback" element={<TicketFeedbackPage />} />
 
               {/* Portail vendeur — accès direct (dev/test) */}
               <Route path="/portail" element={<SellerLayout />}>
@@ -167,6 +202,8 @@ export default function App() {
                 <Route path="documents/generate" element={<DocumentGenerator />} />
                 <Route path="documents/templates/new" element={<CustomTemplatePage />} />
                 <Route path="documents/view" element={<DocumentViewer />} />
+                <Route path="support" element={<SupportPage />} />
+                <Route path="support/:id" element={<SupportTicketDetailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
 
@@ -174,6 +211,7 @@ export default function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
+          <FavoritesLoginPrompt />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
