@@ -1,4 +1,4 @@
-import { ArrowLeft, Heart } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { formatCHF } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
