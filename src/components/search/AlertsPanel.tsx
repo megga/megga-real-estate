@@ -25,9 +25,7 @@ export default function AlertsPanel({ onBack, onApplyFilters }: Props) {
       <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
         {alertSearches.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
-              <Bell className="h-5 w-5 text-gray-300" />
-            </div>
+            <img src="/illustrations/maggy/Alarm.svg" alt="" className="w-44 h-36 mx-auto mb-3" loading="lazy" decoding="async" />
             <p className="text-sm font-medium text-gray-700 mb-1">Aucune alerte active</p>
             <p className="text-xs text-gray-400 max-w-[220px]">
               Activez les alertes sur une recherche sauvegardée pour être notifié des nouveaux biens

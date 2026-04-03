@@ -133,6 +133,7 @@ export default function HelpSearchBar() {
             </ul>
           ) : (
             <div className="px-4 py-6 text-center">
+              <img src="/illustrations/maggy/LookingFor.svg" alt="" className="w-40 h-32 mx-auto mb-3" loading="lazy" decoding="async" />
               <p className="text-sm text-gray-500 mb-3">Aucun résultat pour "{query}"</p>
               <div className="flex items-center justify-center gap-3">
                 <a

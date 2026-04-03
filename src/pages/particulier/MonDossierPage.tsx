@@ -301,7 +301,10 @@ export default function MonDossierPage() {
           })}
         </div>
         {filteredActivities.length === 0 && (
-          <p className="text-xs text-theme-muted text-center py-4">Aucune activité dans cette catégorie</p>
+          <div className="flex flex-col items-center text-center py-6">
+            <img src="/illustrations/maggy/EmptyState.svg" alt="" className="w-40 h-32 mx-auto mb-3" loading="lazy" decoding="async" />
+            <p className="text-xs text-theme-muted">Aucune activité dans cette catégorie</p>
+          </div>
         )}
         {filteredActivities.length > 5 && (
           <button

@@ -771,7 +771,7 @@ export default function SearchPage() {
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
-                <Search className="h-12 w-12 text-gray-200 mb-4" />
+                <img src="/illustrations/maggy/Search.svg" alt="" className="w-52 h-40 mx-auto mb-4" loading="lazy" decoding="async" />
                 <p className="text-lg font-medium text-gray-700 mb-1">Aucun bien trouvé</p>
                 <p className="text-sm text-gray-500 mb-4">
                   Essayez de modifier vos critères de recherche

@@ -241,7 +241,10 @@ export default function MesVisitesPage() {
         </h2>
 
         {past.length === 0 ? (
-          <p className="text-sm text-theme-muted text-center py-8">Aucune visite passée</p>
+          <div className="flex flex-col items-center text-center py-8">
+            <img src="/illustrations/maggy/Planning.svg" alt="" className="w-44 h-36 mx-auto mb-3" loading="lazy" decoding="async" />
+            <p className="text-sm text-theme-muted">Aucune visite passée</p>
+          </div>
         ) : (
           <div className="space-y-0">
             {past.map((visit, i) => {
