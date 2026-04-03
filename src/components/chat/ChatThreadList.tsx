@@ -174,7 +174,10 @@ export default function ChatThreadList({
 
         {/* Contact threads */}
         {filteredThreads.length === 0 && filter !== 'all' && (
-          <div className="p-8 text-center text-xs text-theme-muted">Aucune conversation.</div>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <img src="/illustrations/maggy/EmptyState.svg" alt="" className="w-40 h-32 mx-auto mb-3" loading="lazy" decoding="async" />
+            <p className="text-xs text-theme-muted">Aucune conversation.</p>
+          </div>
         )}
         {filteredThreads.map((thread) => {
           const isActive = selectedThreadId === thread.id

@@ -20,8 +20,8 @@ interface ReminderListProps {
 export default function ReminderList({ reminders, onDone, onSnooze, onCancel }: ReminderListProps) {
   if (reminders.length === 0) {
     return (
-      <div className="text-center py-8">
-        <Check className="h-8 w-8 text-emerald-500/50 mx-auto mb-2" />
+      <div className="flex flex-col items-center text-center py-8">
+        <img src="/illustrations/maggy/Succes.svg" alt="" className="w-44 h-36 mx-auto mb-3" loading="lazy" decoding="async" />
         <p className="text-sm text-theme-tertiary">Aucune relance en attente</p>
       </div>
     )
