@@ -270,6 +270,13 @@ export default function ContactDetailPage() {
     return () => setActiveContact(null)
   }, [contact, setActiveContact])
 
+  // ── Portal helpers ──
+  useEffect(() => {
+    if (contact?.id && ['seller', 'both'].includes(contact.type)) {
+      getPortalForContact(contact.id).then(p => setExistingPortal(p))
+    }
+  }, [contact?.id, contact?.type, getPortalForContact])
+
   // ── Loading / error states ──
   if (isLoading) {
     return (
@@ -296,13 +303,6 @@ export default function ContactDetailPage() {
 
   const showBuyer  = ['buyer', 'investor', 'lead', 'both'].includes(contact.type)
   const showSeller = ['seller', 'both'].includes(contact.type)
-
-  // ── Portal helpers ──
-  useEffect(() => {
-    if (contact?.id && ['seller', 'both'].includes(contact.type)) {
-      getPortalForContact(contact.id).then(p => setExistingPortal(p))
-    }
-  }, [contact?.id, contact?.type, getPortalForContact])
 
   const propertyTitle = transactions[0]?.property?.title ?? 'Bien en vente'
   const propertyAddress = transactions[0]?.property?.address ?? ''

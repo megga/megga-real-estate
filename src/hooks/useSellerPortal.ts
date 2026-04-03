@@ -345,6 +345,7 @@ export function useSellerPortals() {
     return existing
   }, [getPortalForContact])
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const markInviteSent = useCallback((_portalId: string) => {
     // No-op — invite tracking is handled by activity_events
   }, [])
