@@ -395,7 +395,7 @@ function TemplateCard({ template, onEdit, onDelete }: {
 
   return (
     <div className="rounded-xl border border-theme-border overflow-hidden group">
-      <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+      <div className="flex items-center gap-3 p-4 cursor-pointer" role="button" tabIndex={0} aria-expanded={expanded} onClick={() => setExpanded(!expanded)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded) } }}>
         <div className="h-9 w-9 rounded-lg bg-theme-section flex items-center justify-center flex-shrink-0 text-theme-muted">
           <FileText className="h-4 w-4" />
         </div>

@@ -256,7 +256,7 @@ export default function CustomTemplateModal({ open, onClose, onSave }: CustomTem
                     onChange={e => updateSectionName(section.id, e.target.value)}
                     placeholder="Nom de la section"
                     className={cn(
-                      'flex-1 h-7 px-2 text-sm font-medium bg-transparent border border-transparent rounded focus:border-theme-border focus:outline-none text-theme-primary placeholder:text-theme-tertiary',
+                      'flex-1 h-7 px-2 text-sm font-medium bg-transparent border border-transparent rounded focus:border-theme-border focus:outline-none focus:ring-2 focus:ring-accent/20 text-theme-primary placeholder:text-theme-tertiary',
                       errors[`section_${section.id}`] && 'border-red-500'
                     )}
                   />
@@ -294,7 +294,7 @@ export default function CustomTemplateModal({ open, onClose, onSave }: CustomTem
                             <select
                               value={field.type}
                               onChange={e => updateField(section.id, field.id, { type: e.target.value as FieldType })}
-                              className="h-8 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:border-accent text-theme-secondary"
+                              className="h-8 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-secondary"
                             >
                               {FIELD_TYPES.map(ft => (
                                 <option key={ft.value} value={ft.value}>{ft.label}</option>
@@ -345,14 +345,14 @@ export default function CustomTemplateModal({ open, onClose, onSave }: CustomTem
                             value={field.placeholder}
                             onChange={e => updateField(section.id, field.id, { placeholder: e.target.value })}
                             placeholder="Placeholder (optionnel)"
-                            className="h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:border-accent text-theme-secondary placeholder:text-theme-tertiary flex-1 min-w-[120px]"
+                            className="h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-secondary placeholder:text-theme-tertiary flex-1 min-w-[120px]"
                           />
                           <input
                             type="text"
                             value={field.hint}
                             onChange={e => updateField(section.id, field.id, { hint: e.target.value })}
                             placeholder="Indice (optionnel)"
-                            className="h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:border-accent text-theme-secondary placeholder:text-theme-tertiary flex-1 min-w-[120px]"
+                            className="h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-secondary placeholder:text-theme-tertiary flex-1 min-w-[120px]"
                           />
                         </div>
 
@@ -365,7 +365,7 @@ export default function CustomTemplateModal({ open, onClose, onSave }: CustomTem
                               onChange={e => updateField(section.id, field.id, { options: e.target.value })}
                               placeholder="Options séparées par des virgules : Option 1, Option 2, Option 3"
                               className={cn(
-                                'w-full h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:border-accent text-theme-secondary placeholder:text-theme-tertiary',
+                                'w-full h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-secondary placeholder:text-theme-tertiary',
                                 errors[`options_${field.id}`] && 'border-red-500'
                               )}
                             />

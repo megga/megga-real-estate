@@ -94,7 +94,7 @@ export default function Testimonials() {
         {/* Header */}
         <div className="flex items-end justify-between mb-10">
           <div>
-            <p className="text-[10px] font-medium text-gray-300 uppercase tracking-[0.2em]">
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em]">
               Témoignages
             </p>
             <h2 className="text-2xl md:text-3xl font-semibold text-primary mt-1">

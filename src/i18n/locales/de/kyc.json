@@ -1,1 +1,30 @@
-{}
+{
+  "title": "KYC-Dossiers",
+  "count": "{{count}} Dossiers",
+  "new_case": "Neues Dossier",
+  "loading": "Dossiers werden geladen...",
+  "error": "Fehler beim Laden",
+  "empty_title": "Keine KYC-Dossiers",
+  "empty_subtitle": "Erstellen Sie Ihr erstes Prüfungsdossier",
+  "empty_results": "Kein Dossier gefunden",
+  "create_button": "KYC-Dossier erstellen",
+  "search_placeholder": "Nach Name suchen...",
+  "filter": { "all": "Alle", "all_risks": "Alle Risiken", "all_types": "Alle Typen", "clear": "Filter löschen" },
+  "column": { "contact": "Kontakt", "type": "Typ", "pep": "PEP/S", "risk": "Risiko", "status": "Status", "completion": "Fortschritt", "created": "Erstellt", "actions": "Aktionen" },
+  "action": { "view": "Dossier anzeigen", "screening": "Screening starten", "change_status": "Status ändern", "validate": "Dossier validieren", "copy_id": "ID kopieren" },
+  "risk": { "low": "Niedrig", "medium": "Mittel", "high": "Hoch", "unassessed": "Nicht bewertet" },
+  "status": { "pending": "Ausstehend", "in_progress": "In Bearbeitung", "review": "In Prüfung", "validated": "Validiert", "rejected": "Abgelehnt" },
+  "create_modal": {
+    "title": "Neues KYC-Dossier",
+    "select_contact": "Kontakt auswählen",
+    "type_label": "Dossier-Typ *",
+    "transaction_label": "Verknüpfte Transaktion (optional)",
+    "no_transaction": "Keine Transaktion",
+    "nationality_label": "Nationalität des Kontakts",
+    "nationality_hint": "ISO 2-Buchstaben-Ländercode (CH, DE, FR...)",
+    "amount_label": "Transaktionsbetrag (CHF)",
+    "error": "Fehler bei der Erstellung des Dossiers",
+    "creating": "Erstellen...",
+    "submit": "Dossier erstellen"
+  }
+}

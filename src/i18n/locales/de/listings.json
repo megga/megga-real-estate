@@ -1,1 +1,17 @@
-{}
+{
+  "title": "Meine Objekte",
+  "count": "{{count}} Objekte",
+  "add_button": "Objekt hinzufügen",
+  "tab": { "all": "Alle", "active": "Aktiv", "drafts": "Entwürfe", "reserved": "Reserviert", "sold": "Verkauft" },
+  "type": { "apartment": "Wohnung", "house": "Haus", "villa": "Villa", "commercial": "Gewerbe", "land": "Grundstück" },
+  "column": { "property": "Objekt", "type": "Typ", "status": "Status", "price": "Preis", "activity": "Aktivität" },
+  "no_photo": "Kein Foto",
+  "empty_no_properties": "Sie haben noch kein Objekt hinzugefügt",
+  "empty_no_results": "Kein Objekt gefunden",
+  "delete_dialog": {
+    "title": "Dieses Objekt löschen?",
+    "message": "Diese Aktion ist unwiderruflich. Das Objekt und sein Inserat werden dauerhaft gelöscht."
+  },
+  "deleting": "Löschen...",
+  "delete_button": "Löschen"
+}

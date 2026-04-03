@@ -142,7 +142,7 @@ export default function NegotiationCopilot({
       </div>
 
       {/* Disclaimer */}
-      <p className="text-[10px] text-gray-300 mt-4 text-center">
+      <p className="text-[10px] text-gray-400 mt-4 text-center">
         Aide à la décision — ne constitue pas une recommandation formelle.
       </p>
     </div>

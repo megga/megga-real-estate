@@ -2009,7 +2009,7 @@ export default function SettingsPage() {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    'px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap focus:outline-none focus-visible:outline-none',
+                    'px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:rounded',
                     isActive
                       ? 'border-theme-primary text-theme-primary'
                       : 'border-transparent text-theme-tertiary hover:text-theme-primary hover:border-theme-active',

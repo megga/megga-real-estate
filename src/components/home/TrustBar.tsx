@@ -16,7 +16,7 @@ export default function TrustBar() {
   return (
     <section className="py-8 bg-white border-b border-gray-100 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
-        <p className="text-[10px] font-medium text-gray-300 uppercase tracking-[0.2em] text-center mb-6">
+        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em] text-center mb-6">
           Intégrations & partenaires
         </p>
       </div>
@@ -35,7 +35,7 @@ export default function TrustBar() {
             >
               <span
                 className={cn(
-                  'text-lg md:text-xl text-gray-300 hover:text-gray-500 transition-colors duration-300 whitespace-nowrap select-none',
+                  'text-lg md:text-xl text-gray-400 hover:text-gray-500 transition-colors duration-300 whitespace-nowrap select-none',
                   partner.weight
                 )}
               >

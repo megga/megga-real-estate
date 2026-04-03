@@ -54,7 +54,11 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
           {/* Main photo (60%) */}
           <div
             className="col-span-3 row-span-2 relative overflow-hidden group cursor-pointer"
+            role="button"
+            tabIndex={0}
+            aria-label="Ouvrir la galerie photos"
             onClick={() => onOpenLightbox(heroIndex)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLightbox(heroIndex) } }}
           >
             <img
               src={photos[heroIndex]}
@@ -69,6 +73,7 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
             {heroIndex > 0 && (
               <button
                 onClick={(e) => { e.stopPropagation(); setHeroIndex(heroIndex - 1) }}
+                aria-label="Photo précédente"
                 className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
               >
                 <ChevronLeft className="h-5 w-5 text-gray-800" />
@@ -77,6 +82,7 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
             {heroIndex < photoCount - 1 && (
               <button
                 onClick={(e) => { e.stopPropagation(); setHeroIndex(heroIndex + 1) }}
+                aria-label="Photo suivante"
                 className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
               >
                 <ChevronRight className="h-5 w-5 text-gray-800" />
@@ -99,7 +105,11 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
           {/* Bottom-right photo or video */}
           <div
             className="col-span-2 row-span-1 relative overflow-hidden group cursor-pointer"
+            role="button"
+            tabIndex={0}
+            aria-label="Voir la photo 3"
             onClick={() => onOpenLightbox(2)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLightbox(2) } }}
           >
             {videoUrl ? (
               <VideoPlayer src={videoUrl} mode="thumbnail" className="w-full h-full" onClick={() => onOpenLightbox(media.findIndex(m => m.type === 'video'))} />

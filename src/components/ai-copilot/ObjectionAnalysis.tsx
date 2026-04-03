@@ -154,7 +154,7 @@ export default function ObjectionAnalysis({
       </div>
 
       {/* Disclaimer */}
-      <p className="text-[10px] text-gray-300 mt-4 text-center">
+      <p className="text-[10px] text-gray-400 mt-4 text-center">
         Analyse IA des retours de visite — données anonymisées.
       </p>
     </div>

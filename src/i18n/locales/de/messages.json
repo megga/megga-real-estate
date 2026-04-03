@@ -1,1 +1,14 @@
-{}
+{
+  "title": "Nachrichten",
+  "compose": {
+    "title": "Neue Nachricht",
+    "recipient": "Empfänger",
+    "contact_placeholder": "Kontakt auswählen...",
+    "message_label": "Nachricht",
+    "message_placeholder": "Ihre Nachricht schreiben...",
+    "send": "Senden"
+  },
+  "empty_state": "Wählen Sie eine Konversation",
+  "filter": { "all": "Alle", "unread": "Ungelesen", "buyers": "Käufer", "sellers": "Verkäufer" },
+  "search_placeholder": "Suchen..."
+}

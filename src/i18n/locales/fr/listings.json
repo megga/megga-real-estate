@@ -1,1 +1,17 @@
-{}
+{
+  "title": "Mes biens",
+  "count": "{{count}} biens",
+  "add_button": "Ajouter un bien",
+  "tab": { "all": "Tous", "active": "Actifs", "drafts": "Brouillons", "reserved": "Réservés", "sold": "Vendus" },
+  "type": { "apartment": "Appartement", "house": "Maison", "villa": "Villa", "commercial": "Commercial", "land": "Terrain" },
+  "column": { "property": "Bien", "type": "Type", "status": "Statut", "price": "Prix", "activity": "Activité" },
+  "no_photo": "Pas de photo",
+  "empty_no_properties": "Vous n'avez pas encore ajouté de bien",
+  "empty_no_results": "Aucun bien trouvé",
+  "delete_dialog": {
+    "title": "Supprimer ce bien ?",
+    "message": "Cette action est irréversible. Le bien et son annonce seront supprimés définitivement."
+  },
+  "deleting": "Suppression...",
+  "delete_button": "Supprimer"
+}

@@ -1,1 +1,42 @@
-{}
+{
+  "title": "Contacts",
+  "add_button": "Ajouter",
+  "import_button": "Importer",
+  "empty_title": "Ajouter des contacts",
+  "empty_subtitle": "Comment souhaitez-vous ajouter vos contacts ?",
+  "empty_skip": "Passer",
+  "empty_results": "Aucun contact trouvé",
+  "filter_type": "Type",
+  "filter_score": "Score",
+  "type": {
+    "buyer": "Acheteur",
+    "seller": "Vendeur",
+    "both": "Acheteur/Vendeur",
+    "lead": "Lead",
+    "investor": "Investisseur",
+    "tenant": "Locataire",
+    "landlord": "Bailleur"
+  },
+  "score": {
+    "hot": "Hot",
+    "warm": "Warm",
+    "cold": "Cold"
+  },
+  "column": {
+    "name": "Contact",
+    "type": "Type",
+    "score": "Score",
+    "email": "Email",
+    "phone": "Téléphone",
+    "activity": "Activité"
+  },
+  "import": {
+    "csv_label": "CSV / Excel",
+    "csv_desc": "Importer depuis un fichier .csv ou .tsv",
+    "vcard_label": "vCard (.vcf)",
+    "vcard_desc": "Depuis iPhone, Android, Outlook, Gmail",
+    "text_label": "Texte libre (IA)",
+    "text_desc": "Coller un email ou message, MEGGA AI extrait les infos",
+    "manual_label": "Saisie manuelle"
+  }
+}

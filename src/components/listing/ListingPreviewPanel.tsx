@@ -818,19 +818,19 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     </div>
 
                     {/* Top-right photos */}
-                    <div className="overflow-hidden cursor-pointer" onClick={() => openLightbox(1)}>
-                      <img src={photos[1] || photos[0]} alt="" className="w-full h-full object-cover" />
+                    <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 2" onClick={() => openLightbox(1)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(1) } }}>
+                      <img src={photos[1] || photos[0]} alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
-                    <div className="overflow-hidden cursor-pointer" onClick={() => openLightbox(2)}>
-                      <img src={photos[2] || photos[0]} alt="" className="w-full h-full object-cover" />
+                    <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 3" onClick={() => openLightbox(2)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(2) } }}>
+                      <img src={photos[2] || photos[0]} alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
 
                     {/* Bottom-right photos */}
-                    <div className="overflow-hidden cursor-pointer" onClick={() => openLightbox(3)}>
-                      <img src={photos[3] || photos[1] || photos[0]} alt="" className="w-full h-full object-cover" />
+                    <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 4" onClick={() => openLightbox(3)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(3) } }}>
+                      <img src={photos[3] || photos[1] || photos[0]} alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
-                    <div className="overflow-hidden cursor-pointer relative" onClick={() => openLightbox(4)}>
-                      <img src={photos[4] || photos[2] || photos[0]} alt="" className="w-full h-full object-cover" />
+                    <div className="overflow-hidden cursor-pointer relative" role="button" tabIndex={0} aria-label="Photo 5" onClick={() => openLightbox(4)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(4) } }}>
+                      <img src={photos[4] || photos[2] || photos[0]} alt="Photo du bien" className="w-full h-full object-cover" />
                       {/* "See all X photos" button */}
                       {photoCount >= 2 && (
                         <button

@@ -340,7 +340,7 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
                   if (!isNaN(n)) setLocalMin(Math.max(bounds.min, n))
                 }}
                 placeholder="Pas de min"
-                className="w-full h-11 px-3 text-sm bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                className="w-full h-11 px-3 text-sm bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:bg-white transition-colors"
               />
             </div>
             <span className="text-gray-400 mt-6 text-lg">–</span>
@@ -355,7 +355,7 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
                   if (!isNaN(n)) setLocalMax(Math.min(bounds.max, n))
                 }}
                 placeholder="Pas de max"
-                className="w-full h-11 px-3 text-sm bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                className="w-full h-11 px-3 text-sm bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:bg-white transition-colors"
               />
             </div>
           </div>

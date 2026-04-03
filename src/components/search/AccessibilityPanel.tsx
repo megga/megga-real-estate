@@ -97,7 +97,7 @@ export default function AccessibilityPanel({ onBack, onApplyMaxPrice }: Props) {
                 value={income}
                 onChange={e => setIncome(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="150'000"
-                className="w-full h-11 pl-11 pr-3 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                className="w-full h-11 pl-11 pr-3 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:bg-white transition-colors"
               />
             </div>
           </div>
@@ -111,7 +111,7 @@ export default function AccessibilityPanel({ onBack, onApplyMaxPrice }: Props) {
                 value={equity}
                 onChange={e => setEquity(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="200'000"
-                className="w-full h-11 pl-11 pr-3 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                className="w-full h-11 pl-11 pr-3 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:bg-white transition-colors"
               />
             </div>
           </div>

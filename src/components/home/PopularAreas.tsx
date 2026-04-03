@@ -198,7 +198,7 @@ export default function PopularAreas() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
-            <p className="text-[10px] font-medium text-gray-300 uppercase tracking-[0.2em]">
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em]">
               Carte interactive
             </p>
             <h2 className="text-2xl md:text-3xl font-semibold text-primary mt-1">
@@ -239,7 +239,7 @@ export default function PopularAreas() {
               {city.name}
               <span className={cn(
                 'ml-1.5 text-[10px]',
-                activeCity.id === city.id ? 'text-white/60' : 'text-gray-300'
+                activeCity.id === city.id ? 'text-white/60' : 'text-gray-400'
               )}>
                 {city.canton}
               </span>
@@ -366,7 +366,7 @@ export default function PopularAreas() {
                     <div className="flex items-center gap-2.5">
                       <MapPin className={cn(
                         'w-3.5 h-3.5 flex-shrink-0',
-                        selectedArea?.id === area.id ? 'text-accent' : 'text-gray-300 group-hover:text-gray-500'
+                        selectedArea?.id === area.id ? 'text-accent' : 'text-gray-400 group-hover:text-gray-500'
                       )} />
                       <div>
                         <span className={cn(
@@ -375,7 +375,7 @@ export default function PopularAreas() {
                         )}>
                           {area.name}
                         </span>
-                        <span className="text-[11px] text-gray-300 ml-1.5">{area.listings} biens</span>
+                        <span className="text-[11px] text-gray-400 ml-1.5">{area.listings} biens</span>
                       </div>
                     </div>
                     <span className="text-[11px] text-emerald-600 font-medium">{area.trend}</span>

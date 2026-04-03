@@ -1,1 +1,17 @@
-{}
+{
+  "title": "I miei immobili",
+  "count": "{{count}} immobili",
+  "add_button": "Aggiungere un immobile",
+  "tab": { "all": "Tutti", "active": "Attivi", "drafts": "Bozze", "reserved": "Riservati", "sold": "Venduti" },
+  "type": { "apartment": "Appartamento", "house": "Casa", "villa": "Villa", "commercial": "Commerciale", "land": "Terreno" },
+  "column": { "property": "Immobile", "type": "Tipo", "status": "Stato", "price": "Prezzo", "activity": "Attività" },
+  "no_photo": "Nessuna foto",
+  "empty_no_properties": "Non ha ancora aggiunto un immobile",
+  "empty_no_results": "Nessun immobile trovato",
+  "delete_dialog": {
+    "title": "Eliminare questo immobile?",
+    "message": "Questa azione è irreversibile. L'immobile e il suo annuncio verranno eliminati definitivamente."
+  },
+  "deleting": "Eliminazione...",
+  "delete_button": "Eliminare"
+}

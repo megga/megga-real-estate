@@ -1,1 +1,30 @@
-{}
+{
+  "title": "Fascicoli KYC",
+  "count": "{{count}} fascicoli",
+  "new_case": "Nuovo fascicolo",
+  "loading": "Caricamento fascicoli...",
+  "error": "Errore durante il caricamento",
+  "empty_title": "Nessun fascicolo KYC",
+  "empty_subtitle": "Crei il Suo primo fascicolo di verifica",
+  "empty_results": "Nessun fascicolo trovato",
+  "create_button": "Creare un fascicolo KYC",
+  "search_placeholder": "Ricerca per nome...",
+  "filter": { "all": "Tutti", "all_risks": "Tutti i rischi", "all_types": "Tutti i tipi", "clear": "Cancellare i filtri" },
+  "column": { "contact": "Contatto", "type": "Tipo", "pep": "PEP/S", "risk": "Rischio", "status": "Stato", "completion": "Progressione", "created": "Creato", "actions": "Azioni" },
+  "action": { "view": "Vedere il fascicolo", "screening": "Avviare lo screening", "change_status": "Cambiare lo stato", "validate": "Validare il fascicolo", "copy_id": "Copiare l'ID" },
+  "risk": { "low": "Basso", "medium": "Medio", "high": "Alto", "unassessed": "Non valutato" },
+  "status": { "pending": "In attesa", "in_progress": "In corso", "review": "In revisione", "validated": "Validato", "rejected": "Rifiutato" },
+  "create_modal": {
+    "title": "Nuovo fascicolo KYC",
+    "select_contact": "Selezionare un contatto",
+    "type_label": "Tipo di fascicolo *",
+    "transaction_label": "Transazione collegata (opzionale)",
+    "no_transaction": "Nessuna transazione",
+    "nationality_label": "Nazionalità del contatto",
+    "nationality_hint": "Codice paese ISO 2 lettere (CH, FR, DE...)",
+    "amount_label": "Importo della transazione (CHF)",
+    "error": "Errore durante la creazione del fascicolo",
+    "creating": "Creazione...",
+    "submit": "Creare il fascicolo"
+  }
+}

@@ -652,7 +652,7 @@ export default function ContactChatPane({
                             onKeyDown={(e) => e.key === 'Enter' && addTag()}
                             placeholder="Nouveau tag..."
                             aria-label="Ajouter un tag"
-                            className="flex-1 h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:border-accent text-theme-primary placeholder:text-theme-muted"
+                            className="flex-1 h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-primary placeholder:text-theme-muted"
                             autoFocus
                           />
                           <button
@@ -685,7 +685,7 @@ export default function ContactChatPane({
                     onBlur={saveNote}
                     rows={3}
                     placeholder="Notes sur ce contact..."
-                    className="w-full px-3 py-2 text-xs bg-transparent border border-theme-border rounded-lg focus:outline-none focus:border-accent transition-colors resize-y text-theme-primary placeholder:text-theme-muted"
+                    className="w-full px-3 py-2 text-xs bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-y text-theme-primary placeholder:text-theme-muted"
                   />
                 </div>
               )}

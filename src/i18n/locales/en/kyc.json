@@ -1,1 +1,30 @@
-{}
+{
+  "title": "KYC Cases",
+  "count": "{{count}} cases",
+  "new_case": "New case",
+  "loading": "Loading cases...",
+  "error": "Error loading cases",
+  "empty_title": "No KYC cases",
+  "empty_subtitle": "Create your first verification case",
+  "empty_results": "No cases found",
+  "create_button": "Create a KYC case",
+  "search_placeholder": "Search by name...",
+  "filter": { "all": "All", "all_risks": "All risks", "all_types": "All types", "clear": "Clear filters" },
+  "column": { "contact": "Contact", "type": "Type", "pep": "PEP/S", "risk": "Risk", "status": "Status", "completion": "Completion", "created": "Created", "actions": "Actions" },
+  "action": { "view": "View case", "screening": "Run screening", "change_status": "Change status", "validate": "Validate case", "copy_id": "Copy ID" },
+  "risk": { "low": "Low", "medium": "Medium", "high": "High", "unassessed": "Unassessed" },
+  "status": { "pending": "Pending", "in_progress": "In progress", "review": "Under review", "validated": "Validated", "rejected": "Rejected" },
+  "create_modal": {
+    "title": "New KYC case",
+    "select_contact": "Select a contact",
+    "type_label": "Case type *",
+    "transaction_label": "Linked transaction (optional)",
+    "no_transaction": "No transaction",
+    "nationality_label": "Contact nationality",
+    "nationality_hint": "ISO 2-letter country code (CH, FR, DE...)",
+    "amount_label": "Transaction amount (CHF)",
+    "error": "Error creating case",
+    "creating": "Creating...",
+    "submit": "Create case"
+  }
+}

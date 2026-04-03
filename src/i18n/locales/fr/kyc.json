@@ -1,1 +1,30 @@
-{}
+{
+  "title": "Dossiers KYC",
+  "count": "{{count}} dossiers",
+  "new_case": "Nouveau dossier",
+  "loading": "Chargement des dossiers...",
+  "error": "Erreur lors du chargement",
+  "empty_title": "Aucun dossier KYC",
+  "empty_subtitle": "Créez votre premier dossier de vérification",
+  "empty_results": "Aucun dossier trouvé",
+  "create_button": "Créer un dossier KYC",
+  "search_placeholder": "Rechercher par nom...",
+  "filter": { "all": "Tous", "all_risks": "Tous les risques", "all_types": "Tous les types", "clear": "Effacer les filtres" },
+  "column": { "contact": "Contact", "type": "Type", "pep": "PEP/S", "risk": "Risque", "status": "Statut", "completion": "Progression", "created": "Créé", "actions": "Actions" },
+  "action": { "view": "Voir le dossier", "screening": "Lancer le screening", "change_status": "Changer le statut", "validate": "Valider le dossier", "copy_id": "Copier l'ID" },
+  "risk": { "low": "Faible", "medium": "Moyen", "high": "Élevé", "unassessed": "Non évalué" },
+  "status": { "pending": "En attente", "in_progress": "En cours", "review": "En revue", "validated": "Validé", "rejected": "Rejeté" },
+  "create_modal": {
+    "title": "Nouveau dossier KYC",
+    "select_contact": "Sélectionner un contact",
+    "type_label": "Type de dossier *",
+    "transaction_label": "Transaction liée (optionnel)",
+    "no_transaction": "Aucune transaction",
+    "nationality_label": "Nationalité du contact",
+    "nationality_hint": "Code pays ISO 2 lettres (CH, FR, DE...)",
+    "amount_label": "Montant de la transaction (CHF)",
+    "error": "Erreur lors de la création du dossier",
+    "creating": "Création...",
+    "submit": "Créer le dossier"
+  }
+}

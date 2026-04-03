@@ -1,1 +1,30 @@
-{}
+{
+  "title": "Pipeline",
+  "deals_count": "{{count}} deal",
+  "new_deal": "Nuovo deal",
+  "view": { "kanban": "Kanban", "list": "Lista" },
+  "kpi": {
+    "active": "Attivi",
+    "pipeline_value": "Valore pipeline",
+    "at_risk": "A rischio",
+    "conversion": "Conversione"
+  },
+  "filter": { "agent": "Agente", "stage": "Fase" },
+  "column": { "contact": "Contatto", "property": "Immobile", "price": "Prezzo", "stage": "Fase", "activity": "Attività" },
+  "drop_target": "Rilasciare qui",
+  "empty_title": "Crei il Suo primo deal per seguire le Sue transazioni",
+  "empty_subtitle": "Ogni transazione segue una pipeline di 14 fasi.",
+  "lost_dialog": {
+    "title": "Contrassegnare come perso?",
+    "message": "Il deal di {{name}} verrà spostato nella colonna \"Perso\".",
+    "reason_label": "Motivo della perdita *",
+    "reasons": {
+      "budget": "Budget insufficiente",
+      "competitor": "Immobile acquistato altrove",
+      "financing": "Finanziamento rifiutato",
+      "withdrawal": "Rinuncia del cliente",
+      "price": "Prezzo troppo alto",
+      "other": "Altro motivo"
+    }
+  }
+}

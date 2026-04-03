@@ -1,1 +1,17 @@
-{}
+{
+  "title": "My properties",
+  "count": "{{count}} properties",
+  "add_button": "Add a property",
+  "tab": { "all": "All", "active": "Active", "drafts": "Drafts", "reserved": "Reserved", "sold": "Sold" },
+  "type": { "apartment": "Apartment", "house": "House", "villa": "Villa", "commercial": "Commercial", "land": "Land" },
+  "column": { "property": "Property", "type": "Type", "status": "Status", "price": "Price", "activity": "Activity" },
+  "no_photo": "No photo",
+  "empty_no_properties": "You haven't added any property yet",
+  "empty_no_results": "No property found",
+  "delete_dialog": {
+    "title": "Delete this property?",
+    "message": "This action is irreversible. The property and its listing will be permanently deleted."
+  },
+  "deleting": "Deleting...",
+  "delete_button": "Delete"
+}

@@ -362,7 +362,7 @@ function TextImport({ onImport, onBack }: { onImport: (contacts: ImportedContact
             onChange={(e) => setText(e.target.value)}
             placeholder="Ex: Bonjour, je suis Marie Dupont, joignable au 079 123 45 67 ou marie.dupont@gmail.com. Je cherche un 4 pièces à Genève..."
             rows={6}
-            className="w-full px-3 py-2.5 text-sm bg-transparent border border-theme-border rounded-xl text-theme-primary placeholder:text-theme-muted resize-none focus:outline-none focus:border-accent/40"
+            className="w-full px-3 py-2.5 text-sm bg-transparent border border-theme-border rounded-xl text-theme-primary placeholder:text-theme-muted resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
           />
           {error && (
             <div className="flex items-start gap-2 text-xs text-red-500">

@@ -93,7 +93,7 @@ export default function BottomTabBar() {
             {/* Close */}
             <div className="flex items-center justify-between px-5 pb-3">
               <span className="text-sm font-medium text-theme-primary">Plus</span>
-              <button onClick={() => setMoreOpen(false)} className="h-8 w-8 flex items-center justify-center rounded-lg text-theme-tertiary hover:text-theme-primary">
+              <button onClick={() => setMoreOpen(false)} aria-label="Fermer" className="h-8 w-8 flex items-center justify-center rounded-lg text-theme-tertiary hover:text-theme-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
