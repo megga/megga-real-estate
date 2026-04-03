@@ -1966,13 +1966,54 @@ Basé sur l'analyse des géants mondiaux (Zillow $2.2B, RealAdvisor $31M, Meille
 - 5 biens comparables affichés (même canton + type + surface ±30%)
 - Score de confiance (basé sur nombre de comparables trouvés)
 
+#### Page Acheter — Refonte Zillow-style UX — 3 avril 2026
+- **BuyerSidebar** : sidebar verticale 90px avec icônes (Recherche, Alertes, Favoris, Recherches, Accessibilité, Contact)
+- **PriceRangeDropdown** : histogramme + double slider + toggle mensualité (remplace le simple FilterPill prix)
+- **Sidebar panels** : FavoritesPanel, SavedSearchesPanel, AlertsPanel, AccessibilityPanel (calculateur hypothécaire suisse 33%/20%)
+- **ContactPanel** : messagerie intégrée Messenger-style (auth required, threads Supabase, bulles bleu/gris, read receipts, suggestions rapides)
+- **Mode split uniquement** : retiré modes grille et carte-only, gardé split listings+carte
+- **Outils carte dans la barre de filtres** : Recentrer, Zone, Outils (dropdown avec styles carte 3D/Satellite/Clair/Sombre + heatmap + mode immersif)
+- **Results header Zillow** : "Appartement à vendre à Genève" + compteur résultats au-dessus des cards
+- **Isochrone/commute retiré** : ~460 lignes supprimées de MapView, temps de trajet retiré (V2)
+- **"Lier à la carte" retiré** : fonctionnalité de filtre viewport supprimée (pas nécessaire en V1)
+- **ListingPreviewPanel redesigné** : overlay centré (w-[95%] max-w-[1400px]), header Zillow (← Retour | Logo MEGGA centré | Sauvegarder/Partager/More), galerie 5 photos (1 grande + 2x2), fond sombre backdrop avec blur, coins droits
+- **MapView hideTopControls** : prop pour masquer les boutons Recentrer/Dessiner/Outils de la carte quand ils sont dans la barre de filtres
+- **Cards listing** : coins réduits `rounded-xl` → `rounded-lg`, zoom hover supprimé
+
+#### Navbar enrichie — 3 avril 2026
+- **Sélecteur de langue** : icône Globe + code langue (FR/DE/EN/IT) + dropdown, sauvegardé dans localStorage
+- **Lien Aide** : icône HelpCircle, état actif sur `/aide/*`
+- **Liens simplifiés** : retiré `rounded-lg` et `bg-gray-100` des liens navigation (texte simple, préparé pour dropdowns)
+
+#### Page Vendre — Refonte premium — 3 avril 2026
+- **Hero** : "Combien vaut votre bien ?" (text-4xl md:text-5xl), trust indicators (Gratuit · Instantané · Confidentiel), sélecteur type de bien en grille, social proof "12'500+ estimations"
+- **Wizard** : stepper circulaire avec checkmarks + lignes de connexion, titres et sous-titres par étape, navigation Retour/Continuer uniforme
+- **Estimation** : résultat dramatique (prix en grand), gauge de confiance colorée, comparables en scroll horizontal
+- **Succès** : check animé, recap card, "Un agent vous contactera sous 24h"
+
+#### Footer redesigné — 3 avril 2026
+- **Trust bar** : logos officiels C2PA (c2pa.org) + Swiss Made Software, centrés, séparateur, opacité 70% → 100% au hover, titre "Certifié et reconnu"
+- **Colonnes navigation** : titres en `text-gray-900 font-semibold` (contraste WCAG AA), liens en `text-sm text-gray-500`, espacement `space-y-2.5`
+- **Labels améliorés** : "CRM immobilier", "Tarifs agences", "Devenir partenaire", "Conditions générales"
+- **Bottom bar** : © + Fait en Suisse 🇨🇭 + Conforme LPD + attribution swisstopo
+- **Assets** : `/public/c2pa-logo.svg`, `/public/sms-logo.svg`
+
+#### Help Center + Illustrations — 3 avril 2026
+- **18 illustrations SVG** dans `src/components/illustrations/` (personas, secondary, empty states, login, estimation)
+- **HelpContactPage** : flow 3 étapes (persona → formulaire → succès) style Zillow
+- **HelpCenterPage** : "Get in touch" section Zillow-style
+
+#### Superpowers + Skills custom — 3 avril 2026
+- **14 skills Superpowers** installés dans `.claude/skills/` (brainstorming, TDD, debugging, plans, git worktrees, code review, etc.)
+- **5 skills custom MEGGA** : supabase-migration, edge-function-deploy, i18n-sync, swiss-compliance-check, listing-quality-audit
+
 ### Prochaines priorités
-1. **Page `/vendre` — wizard estimation IA + lead CRM** (stratégie vendeur Phase 1)
+1. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
 2. **"Mes lieux" multi-POI** — poser travail+école+sport sur la carte, chaque bien affiche le trajet vers tous les POIs (Rightmove-style, personne en Suisse ne l'a)
 3. **Carte des prix temporelle** — overlay prix/m² par quartier avec slider 12 mois (basé sur market_price_history)
-4. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
-5. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
-6. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
-7. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
-8. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
-9. **Edge Functions à déployer** : `photo-labeler`, `public-staging` (code prêt, pas encore déployé)
+4. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
+5. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
+6. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
+7. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
+8. **Edge Functions à déployer** : `photo-labeler`, `public-staging` (code prêt, pas encore déployé)
+9. **Illustration footer** : skyline Genève/Suisse style Craftwork Maggy (prompt prêt, en attente de génération)
