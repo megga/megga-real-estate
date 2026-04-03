@@ -6,6 +6,7 @@ import {
   ChevronUp, ChevronDown, AlertTriangle, ShieldCheck,
   Loader2, Plus, X, Copy, CheckCircle2,
 } from 'lucide-react'
+import EmptyKycIllustration from '@/components/illustrations/EmptyKycIllustration'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { calculateRiskScore } from '@/lib/kycUtils'
 import {
@@ -377,7 +378,7 @@ export default function KycListPage() {
       <div className="space-y-6">
         <h1 className="text-2xl font-semibold text-theme-primary">Dossiers KYC</h1>
         <div className="rounded-xl border border-theme-border p-12 text-center">
-          <ShieldCheck className="h-12 w-12 text-theme-tertiary mx-auto mb-4" />
+          <div className="w-40 h-28 mx-auto mb-4"><EmptyKycIllustration /></div>
           <p className="text-theme-secondary font-medium mb-1">Aucun dossier KYC</p>
           <p className="text-sm text-theme-tertiary mb-4">Créez votre premier dossier de vérification</p>
           <button

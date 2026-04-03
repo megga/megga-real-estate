@@ -27,6 +27,7 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { usePropertyEstimation, type EstimationParams, type EstimationResult } from '@/hooks/usePropertyEstimation'
 import { useSellerLead } from '@/hooks/useSellerLead'
+import EstimationIllustration from '@/components/illustrations/EstimationIllustration'
 import { supabase } from '@/lib/supabase'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
@@ -976,6 +977,7 @@ function EstimationResultView({
     <div className="animate-in fade-in duration-500">
       {/* Header */}
       <div className="text-center">
+        <div className="w-48 h-36 mx-auto mb-4"><EstimationIllustration /></div>
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
           estimation IA
         </span>

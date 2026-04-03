@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { PLAN_LIMITS } from '@/lib/helpArticles'
+import PlansIllustration from '@/components/illustrations/PlansIllustration'
 
 export default function HelpLimitsPage() {
   return (
@@ -16,8 +17,13 @@ export default function HelpLimitsPage() {
           <span className="text-gray-700">Limites et quotas</span>
         </div>
 
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Limites et quotas par plan</h1>
-        <p className="text-sm text-gray-500 mb-8">Comparez les fonctionnalités disponibles selon votre abonnement.</p>
+        <div className="flex items-center gap-6 mb-8">
+          <div className="w-20 h-20 shrink-0"><PlansIllustration /></div>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">Limites et quotas par plan</h1>
+            <p className="text-sm text-gray-500">Comparez les fonctionnalités disponibles selon votre abonnement.</p>
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm border border-gray-200 rounded-xl">

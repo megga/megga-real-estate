@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark } from 'lucide-react'
+import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark, HelpCircle, Globe, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useAvatar } from '@/hooks/useAvatar'
@@ -53,8 +53,21 @@ export default function Navbar() {
   const { avatarUrl } = useAvatar()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const langRef = useRef<HTMLDivElement>(null)
+
+  const LANGUAGES = [
+    { code: 'FR', label: 'Français' },
+    { code: 'DE', label: 'Deutsch' },
+    { code: 'EN', label: 'English' },
+    { code: 'IT', label: 'Italiano' },
+  ] as const
+  const [currentLang, setCurrentLang] = useState(() => {
+    const saved = localStorage.getItem('megga-language')
+    return saved || 'FR'
+  })
 
   const isHome = location.pathname === '/'
 
@@ -76,6 +89,17 @@ export default function Navbar() {
     if (dropdownOpen) document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [dropdownOpen])
+
+  // Close lang dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false)
+      }
+    }
+    if (langOpen) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [langOpen])
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email || ''
   const displayEmail = user?.email || ''
@@ -108,14 +132,14 @@ export default function Navbar() {
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  'px-3.5 py-1.5 text-sm font-medium rounded-lg transition-all duration-150',
+                  'px-3.5 py-1.5 text-sm font-medium transition-all duration-150',
                   isActive
                     ? isTransparent
-                      ? 'bg-white/15 text-white'
-                      : 'bg-gray-100 text-gray-900'
+                      ? 'text-white'
+                      : 'text-gray-900'
                     : isTransparent
-                      ? 'text-white/80 hover:text-white hover:bg-white/10'
-                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'text-white/80 hover:text-white'
+                      : 'text-gray-500 hover:text-gray-900'
                 )}
               >
                 {link.label}
@@ -149,7 +173,64 @@ export default function Navbar() {
         </Link>
 
         {/* ─── RIGHT: Actions (desktop) ─── */}
-        <div className="hidden md:flex items-center gap-2 flex-1 justify-end">
+        <div className="hidden md:flex items-center gap-1 flex-1 justify-end">
+          {/* Language selector */}
+          <div className="relative" ref={langRef}>
+            <button
+              onClick={() => setLangOpen(!langOpen)}
+              className={cn(
+                'flex items-center gap-1 h-8 px-2.5 text-xs font-medium rounded-lg transition-all duration-150',
+                isTransparent
+                  ? 'text-white/70 hover:text-white hover:bg-white/10'
+                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              {currentLang}
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {langOpen && (
+              <div className="absolute right-0 mt-1.5 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                {LANGUAGES.map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setCurrentLang(lang.code)
+                      localStorage.setItem('megga-language', lang.code)
+                      setLangOpen(false)
+                    }}
+                    className={cn(
+                      'w-full text-left px-3.5 py-2 text-sm transition-colors',
+                      currentLang === lang.code
+                        ? 'text-gray-900 font-medium bg-gray-50'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    )}
+                  >
+                    <span className="font-medium">{lang.code}</span>
+                    <span className="text-gray-400 ml-2">{lang.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Aide */}
+          <Link
+            to="/aide"
+            className={cn(
+              'flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium rounded-lg transition-all duration-150',
+              isTransparent
+                ? 'text-white/70 hover:text-white hover:bg-white/10'
+                : location.pathname.startsWith('/aide')
+                  ? 'text-gray-900 bg-gray-100'
+                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+            )}
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            Aide
+          </Link>
+
+          {/* Publier */}
           <Link
             to="/publier"
             className={cn(
@@ -287,6 +368,41 @@ export default function Navbar() {
               </Link>
             )
           })}
+
+          {/* Aide (mobile) */}
+          <Link
+            to="/aide"
+            className={cn(
+              'px-3 py-2.5 text-[15px] font-medium rounded-lg transition-all duration-150',
+              location.pathname.startsWith('/aide')
+                ? 'text-gray-900 bg-gray-100'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            )}
+            onClick={() => setMobileOpen(false)}
+          >
+            Aide
+          </Link>
+
+          {/* Language pills (mobile) */}
+          <div className="flex items-center gap-1.5 px-3 pt-2">
+            {LANGUAGES.map(lang => (
+              <button
+                key={lang.code}
+                onClick={() => {
+                  setCurrentLang(lang.code)
+                  localStorage.setItem('megga-language', lang.code)
+                }}
+                className={cn(
+                  'h-8 px-3 text-xs font-medium rounded-lg transition-colors',
+                  currentLang === lang.code
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-gray-100 text-gray-500 hover:text-gray-700'
+                )}
+              >
+                {lang.code}
+              </button>
+            ))}
+          </div>
 
           <div className="flex flex-col gap-2.5 pt-4 border-t border-gray-100 mt-2">
             <Link to="/publier" onClick={() => setMobileOpen(false)}>

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, ChevronDown, Shield } from 'lucide-react'
+import { ChevronRight, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { COMPLIANCE_FAQ } from '@/lib/helpArticles'
+import ComplianceIllustration from '@/components/illustrations/ComplianceIllustration'
 
 export default function HelpCompliancePage() {
   const [openIdx, setOpenIdx] = useState<number | null>(0)
@@ -19,10 +20,8 @@ export default function HelpCompliancePage() {
           <span className="text-gray-700">Conformité</span>
         </div>
 
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center">
-            <Shield className="h-5 w-5 text-gray-600" />
-          </div>
+        <div className="flex items-center gap-5 mb-8">
+          <div className="w-20 h-20 shrink-0"><ComplianceIllustration /></div>
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Conformité et sécurité</h1>
             <p className="text-sm text-gray-500">Questions fréquentes sur la protection des données et la conformité.</p>

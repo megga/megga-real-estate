@@ -3,6 +3,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { isAgentRole, type UserRole } from '@/types/auth'
+import LoginIllustration from '@/components/illustrations/LoginIllustration'
 
 // ── OAuth icons ──────────────────────────────────────────────────────────
 
@@ -30,8 +31,6 @@ function FacebookIcon({ className }: { className?: string }) {
 type Step = 'email' | 'login' | 'register' | 'forgot' | 'forgot-sent'
 
 // ── Background image ────────────────────────────────────────────────────
-
-const BG_IMAGE = 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1200&h=1600&fit=crop&q=80'
 
 // ── Main component ──────────────────────────────────────────────────────
 
@@ -488,12 +487,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right: Photo (desktop only) */}
-      <div
-        className="hidden lg:block w-[45%] bg-cover bg-center relative"
-        style={{ backgroundImage: `url(${BG_IMAGE})` }}
-      >
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" />
+      {/* Right: Illustration (desktop only) */}
+      <div className="hidden lg:block w-[45%] relative overflow-hidden">
+        <LoginIllustration className="w-full h-full" />
         <div className="absolute bottom-8 left-8 right-8">
           <p className="text-white/90 text-lg font-medium">
             La plateforme immobilière suisse

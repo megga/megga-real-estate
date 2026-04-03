@@ -5,24 +5,35 @@ import {
   ChevronDown,
   X,
   Heart,
-  LayoutGrid,
   DoorOpen,
   BedDouble,
   Maximize,
   Map,
   SlidersHorizontal,
-  Columns2,
-  Sparkles,
   Building2,
   GitCompareArrows,
   Check,
   Bookmark,
+  LocateFixed,
+  PenTool,
+  Mountain,
+  Satellite,
+  Sun as SunIcon,
+  Moon,
+  Thermometer,
+  Maximize as MaximizeIcon,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
+import BuyerSidebar from '@/components/search/BuyerSidebar'
+import PriceRangeDropdown from '@/components/search/PriceRangeDropdown'
+import FavoritesPanel from '@/components/search/FavoritesPanel'
+import SavedSearchesPanel from '@/components/search/SavedSearchesPanel'
+import AlertsPanel from '@/components/search/AlertsPanel'
+import AccessibilityPanel from '@/components/search/AccessibilityPanel'
+import ContactPanel from '@/components/search/ContactPanel'
 import MapView, { type MapViewHandle } from '@/components/map/MapView'
-import ChatSearch from '@/components/search/ChatSearch'
 import CompareDrawer from '@/components/listings/CompareDrawer'
 import ListingPreviewPanel from '@/components/listing/ListingPreviewPanel'
 import SaveSearchDialog from '@/components/search/SaveSearchDialog'
@@ -38,7 +49,6 @@ import { useMarketTemperature } from '@/hooks/useMarketInsights'
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
 type Context = 'buy' | 'rent'
-type LayoutMode = 'grid' | 'split' | 'map'
 type SortOption = 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'surface_desc' | 'best_deals' | 'recommended'
 
 interface Filters {
@@ -122,20 +132,7 @@ const CANTON_SEARCH_ALIASES: Record<string, string> = {
   'glaris': 'GL', 'appenzell': 'AR',
 }
 
-const PRICE_RANGES_BUY = [
-  { min: '', max: '500000', label: "Jusqu'à CHF 500'000" },
-  { min: '500000', max: '800000', label: "CHF 500'000 – 800'000" },
-  { min: '800000', max: '1200000', label: "CHF 800'000 – 1'200'000" },
-  { min: '1200000', max: '2000000', label: "CHF 1'200'000 – 2'000'000" },
-  { min: '2000000', max: '', label: "Dès CHF 2'000'000" },
-]
-
-const PRICE_RANGES_RENT = [
-  { min: '', max: '1500', label: "Jusqu'à CHF 1'500/mois" },
-  { min: '1500', max: '2500', label: "CHF 1'500 – 2'500/mois" },
-  { min: '2500', max: '4000', label: "CHF 2'500 – 4'000/mois" },
-  { min: '4000', max: '', label: "Dès CHF 4'000/mois" },
-]
+// Price ranges moved to PriceRangeDropdown component
 
 // ─── SMART BADGE HELPER ──────────────────────────────────────────────────────
 
@@ -447,74 +444,6 @@ function toServerFilters(filters: Filters): MarketFilters {
   return sf
 }
 
-// ─── LISTING CARD COMPACT (map mode mini-list) ─────────────────────────────
-
-function ListingCardCompact({
-  listing,
-  onHover,
-  isHovered,
-  isActive,
-  onPreview,
-}: {
-  listing: ListingCardData
-  onHover?: (id: string | undefined) => void
-  isHovered?: boolean
-  isActive?: boolean
-  onPreview?: (id: string) => void
-}) {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const photos = listing.photos?.length ? listing.photos : []
-
-  useEffect(() => {
-    if ((isHovered || isActive) && cardRef.current) {
-      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }
-  }, [isHovered, isActive])
-
-  return (
-    <div
-      ref={cardRef}
-      data-listing-id={listing.id}
-      onClick={() => onPreview?.(listing.id)}
-      className={cn(
-        'flex items-center gap-2.5 p-2 rounded-lg transition-all duration-150 cursor-pointer',
-        isActive
-          ? 'bg-accent/10 ring-1 ring-accent/30'
-          : isHovered
-            ? 'bg-gray-100'
-            : 'hover:bg-gray-50'
-      )}
-      onMouseEnter={() => onHover?.(listing.id)}
-      onMouseLeave={() => onHover?.(undefined)}
-    >
-      {/* Thumbnail */}
-      <div className="w-[72px] h-[72px] rounded-md overflow-hidden shrink-0 bg-gray-100">
-        {photos.length > 0 ? (
-          <img src={photos[0]} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Building2 className="h-6 w-6 text-gray-300" />
-          </div>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 truncate">
-          {formatCHF(listing.price)}
-        </p>
-        <p className="text-xs text-gray-500 truncate mt-0.5">
-          {listing.address}, {listing.city}
-        </p>
-        <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
-          {listing.rooms > 0 && <span>{listing.rooms}p.</span>}
-          {listing.surface_m2 > 0 && <span>{formatSurface(listing.surface_m2)}</span>}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── FILTER PILL DROPDOWN ───────────────────────────────────────────────────
 
 interface FilterPillProps {
@@ -632,7 +561,7 @@ function ListingCardGrid({
       ref={cardRef}
       onClick={() => onPreview?.(listing.id)}
       className={cn(
-        'block bg-white border rounded-xl transition-all duration-200 overflow-hidden group cursor-pointer',
+        'block bg-white border rounded-lg transition-all duration-200 overflow-hidden group cursor-pointer',
         isHovered
           ? 'border-accent/40 ring-1 ring-accent/20'
           : 'border-gray-100 hover:border-gray-200'
@@ -824,12 +753,7 @@ export default function SearchPage() {
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [searchInput, setSearchInput] = useState(filters.q)
-  const [aiUnderstood, setAiUnderstood] = useState<string[]>([])
-  const [showAiBanner, setShowAiBanner] = useState(false)
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
-  const [mapBounds, setMapBounds] = useState<{ west: number; south: number; east: number; north: number } | null>(null)
-  const [filterByMap, setFilterByMap] = useState(false) // "Search as I move the map" — off by default
-  const [showChat, setShowChat] = useState(false)
   const [plusOpen, setPlusOpen] = useState(false)
   const [compareIds, setCompareIds] = useState<string[]>(() => {
     // Restore from URL params first, then localStorage
@@ -848,12 +772,10 @@ export default function SearchPage() {
   const { isFavorite, toggleFavorite, favoriteIds } = useFavorites()
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get('listing'))
   const mapViewRef = useRef<MapViewHandle>(null)
+  const [sidebarView, setSidebarView] = useState('search')
   const [mapImmersive, setMapImmersive] = useState(false)
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
-    const stored = localStorage.getItem('megga-layout-mode')
-    if (stored && ['grid', 'split', 'map'].includes(stored)) return stored as LayoutMode
-    return 'split'
-  })
+  const [mapToolsOpen, setMapToolsOpen] = useState(false)
+  const mapToolsRef = useRef<HTMLDivElement>(null)
   const [splitRatio, setSplitRatio] = useState(() => {
     const stored = localStorage.getItem('megga-split-ratio')
     return stored ? Math.max(20, Math.min(80, Number(stored))) : 35
@@ -862,18 +784,19 @@ export default function SearchPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [viewedIds, setViewedIds] = useState<string[]>([])
 
-  // Persist layout mode + resize map after transition
-  useEffect(() => {
-    localStorage.setItem('megga-layout-mode', layoutMode)
-    // Mapbox needs resize() after the CSS transition completes (300ms)
-    const timer = setTimeout(() => mapViewRef.current?.resize(), 350)
-    return () => clearTimeout(timer)
-  }, [layoutMode])
-
   // Persist split ratio + resize map
   useEffect(() => {
     localStorage.setItem('megga-split-ratio', String(splitRatio))
   }, [splitRatio])
+
+  // Close map tools dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (mapToolsRef.current && !mapToolsRef.current.contains(e.target as Node)) setMapToolsOpen(false)
+    }
+    if (mapToolsOpen) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [mapToolsOpen])
 
   // Market temperature for current location filter
   const { data: marketTemp } = useMarketTemperature(filters.canton || undefined, filters.city || undefined)
@@ -959,17 +882,9 @@ export default function SearchPage() {
     let result = allListings
     if (zoneFilterIds) {
       result = result.filter((l) => zoneFilterIds.includes(l.id))
-    } else if (filterByMap && mapBounds && (layoutMode === 'split' || layoutMode === 'map')) {
-      const inViewport = result.filter((l) => {
-        if (!l.lat || !l.lng) return false
-        return l.lng >= mapBounds.west && l.lng <= mapBounds.east &&
-               l.lat >= mapBounds.south && l.lat <= mapBounds.north
-      })
-      // Only apply filter if some listings match — don't show empty state
-      if (inViewport.length > 0) result = inViewport
     }
     return result
-  }, [allListings, zoneFilterIds, filterByMap, mapBounds, layoutMode])
+  }, [allListings, zoneFilterIds])
 
   // Recommendation sorting (client-side)
   const visible = filters.sort === 'recommended'
@@ -1026,8 +941,6 @@ export default function SearchPage() {
     e.preventDefault()
     if (!searchInput.trim()) {
       updateFilter({ q: '' })
-      setShowAiBanner(false)
-      setAiUnderstood([])
       return
     }
 
@@ -1035,7 +948,6 @@ export default function SearchPage() {
     const parsed = parseNaturalLanguageQuery(searchInput)
 
     if (parsed.understood.length > 0) {
-      // AI understood something → reset all filters then apply extracted ones
       const resetFilters: Partial<Filters> = {
         types: [],
         minPrice: '',
@@ -1049,30 +961,11 @@ export default function SearchPage() {
         q: '',
       }
       updateFilter({ ...resetFilters, ...parsed.filters })
-      setAiUnderstood(parsed.understood)
-      setShowAiBanner(true)
     } else {
-      // Fallback: use as text search
       updateFilter({ q: searchInput })
-      setShowAiBanner(false)
-      setAiUnderstood([])
     }
   }
 
-  // Chat AI filter callback
-  const handleChatFilters = useCallback((chatFilters: Record<string, string | string[]>) => {
-    const patch: Partial<Filters> = {}
-    if (chatFilters.city) patch.city = chatFilters.city as string
-    if (chatFilters.canton) patch.canton = chatFilters.canton as string
-    if (chatFilters.rooms) patch.rooms = chatFilters.rooms as string
-    if (chatFilters.maxPrice) patch.maxPrice = chatFilters.maxPrice as string
-    if (chatFilters.minPrice) patch.minPrice = chatFilters.minPrice as string
-    if (chatFilters.minSurface) patch.minSurface = chatFilters.minSurface as string
-    if (chatFilters.bedrooms) patch.bedrooms = chatFilters.bedrooms as string
-    if (Array.isArray(chatFilters.types)) patch.types = chatFilters.types
-    if (chatFilters.context === 'rent') patch.context = 'rent'
-    updateFilter(patch)
-  }, [updateFilter])
 
   // Compare helpers — persist to localStorage + URL
   useEffect(() => {
@@ -1097,8 +990,6 @@ export default function SearchPage() {
   }
   const compareListings = allListings.filter((l) => compareIds.includes(l.id))
 
-  const priceRanges = filters.context === 'rent' ? PRICE_RANGES_RENT : PRICE_RANGES_BUY
-
   // Price pill label
   const pricePillLabel = (() => {
     if (filters.minPrice && filters.maxPrice) {
@@ -1112,15 +1003,20 @@ export default function SearchPage() {
   })()
 
   return (
-    <div className="h-screen flex flex-col bg-white">
+    <div className="h-screen flex bg-white">
+      {/* ─── LEFT SIDEBAR (Zillow-style) ─── */}
+      {!mapImmersive && <BuyerSidebar activeView={sidebarView} onViewChange={setSidebarView} />}
+
+      {/* ─── RIGHT CONTENT ─── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
       {!mapImmersive && <Navbar />}
 
       {/* ─── UNIFIED STICKY BAR: Search + Filters ─── */}
-      <div className={cn('sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100', mapImmersive && 'hidden')}>
-        <div className="px-4 md:px-6">
+      <div className={cn('sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100', (mapImmersive || sidebarView !== 'search') && 'hidden')}>
+        <div className="px-4 md:px-6 py-4">
 
           {/* Desktop: single unified row — constrained to left panel width */}
-          <div className="hidden md:flex items-center gap-1.5 h-12" style={layoutMode === 'split' ? { maxWidth: `${splitRatio}%` } : undefined}>
+          <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: `${splitRatio}%` }}>
             {/* Search input — flexible width */}
             <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
               <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
@@ -1136,15 +1032,6 @@ export default function SearchPage() {
                   <X className="h-3 w-3" />
                 </button>
               )}
-              {/* AI search button */}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setShowChat(true) }}
-                className="text-gray-300 hover:text-gray-500 transition-colors cursor-pointer shrink-0"
-                title="Recherche assistée par IA"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-              </button>
             </form>
 
             {/* Type */}
@@ -1161,13 +1048,16 @@ export default function SearchPage() {
               ))}
             </FilterPill>
 
-            {/* Prix */}
-            <FilterPill label={pricePillLabel} active={!!filters.minPrice || !!filters.maxPrice} dark>
-              {priceRanges.map((range) => (
-                <FilterOption key={range.label} selected={filters.minPrice === range.min && filters.maxPrice === range.max} onClick={() => updateFilter({ minPrice: range.min, maxPrice: range.max })}>{range.label}</FilterOption>
-              ))}
-              <FilterOption selected={!filters.minPrice && !filters.maxPrice} onClick={() => updateFilter({ minPrice: '', maxPrice: '' })}>Tous les prix</FilterOption>
-            </FilterPill>
+            {/* Prix — Zillow-style dropdown */}
+            <PriceRangeDropdown
+              label={pricePillLabel}
+              active={!!filters.minPrice || !!filters.maxPrice}
+              minPrice={filters.minPrice}
+              maxPrice={filters.maxPrice}
+              context={filters.context}
+              prices={allListings.map(l => l.price).filter((p): p is number => typeof p === 'number' && p > 0)}
+              onChange={(min, max) => updateFilter({ minPrice: min, maxPrice: max })}
+            />
 
             {/* Pièces */}
             <FilterPill label={filters.rooms ? `${filters.rooms} pièces` : 'Pièces'} active={!!filters.rooms} dark>
@@ -1291,42 +1181,109 @@ export default function SearchPage() {
               ))}
             </FilterPill>
 
-            {/* Unified layout toggle: Grille | Split | Carte */}
-            <div className="hidden lg:flex items-center gap-0.5 bg-gray-50 rounded-lg p-0.5">
-              <button onClick={() => setLayoutMode('grid')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600')} title="Grille">
-                <LayoutGrid className="h-3.5 w-3.5" />
+            {/* Map tools — Recentrer + Zone + Outils */}
+            <div className="hidden lg:flex items-center gap-1">
+              <button
+                onClick={() => mapViewRef.current?.fitToListings()}
+                className="h-7 px-2.5 rounded-lg text-[11px] font-medium text-gray-400 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                title="Recentrer la carte"
+              >
+                <LocateFixed className="h-3 w-3" />
+                Recentrer
               </button>
-              <button onClick={() => setLayoutMode('split')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'split' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600')} title="Split">
-                <Columns2 className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => setLayoutMode('map')} className={cn('p-1.5 rounded-md transition-colors cursor-pointer', layoutMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600')} title="Carte">
-                <Map className="h-3.5 w-3.5" />
-              </button>
+              {!mapViewRef.current?.isDrawing && !mapViewRef.current?.hasPolygon && (
+                <button
+                  onClick={() => mapViewRef.current?.startDrawing()}
+                  className="h-7 px-2.5 rounded-lg text-[11px] font-medium text-gray-400 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                  title="Dessiner une zone sur la carte"
+                >
+                  <PenTool className="h-3 w-3" />
+                  Zone
+                </button>
+              )}
+              <div className="relative" ref={mapToolsRef}>
+                <button
+                  onClick={() => setMapToolsOpen(v => !v)}
+                  className={cn(
+                    'h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap',
+                    mapToolsOpen || mapViewRef.current?.showTools || mapViewRef.current?.showHeatmap
+                      ? 'bg-accent/10 text-accent'
+                      : 'text-gray-400 hover:text-gray-600'
+                  )}
+                >
+                  <Mountain className="h-3 w-3" />
+                  Outils
+                  <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', mapToolsOpen && 'rotate-180')} />
+                </button>
+
+                {mapToolsOpen && (
+                  <div className="absolute top-full left-0 mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                    {/* Map styles */}
+                    <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Style de carte</p>
+                    {([
+                      { id: 'standard', label: '3D', icon: Mountain },
+                      { id: 'satellite', label: 'Satellite', icon: Satellite },
+                      { id: 'light', label: 'Clair', icon: SunIcon },
+                      { id: 'dark', label: 'Sombre', icon: Moon },
+                    ] as const).map(style => {
+                      const Icon = style.icon
+                      const isActive = mapViewRef.current?.mapStyleId === style.id
+                      return (
+                        <button
+                          key={style.id}
+                          onClick={() => mapViewRef.current?.setMapStyle(style.id)}
+                          className={cn(
+                            'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+                            isActive ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                          )}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {style.label}
+                        </button>
+                      )
+                    })}
+
+                    <div className="h-px bg-gray-100 my-1" />
+
+                    {/* Heatmap */}
+                    <button
+                      onClick={() => mapViewRef.current?.toggleHeatmap()}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+                        mapViewRef.current?.showHeatmap ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                      )}
+                    >
+                      <Thermometer className="h-3.5 w-3.5" />
+                      Heatmap prix/m²
+                    </button>
+
+                    {/* Advanced tools toggle */}
+                    <button
+                      onClick={() => mapViewRef.current?.toggleTools()}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+                        mapViewRef.current?.showTools ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                      )}
+                    >
+                      <Mountain className="h-3.5 w-3.5" />
+                      Outils avancés
+                    </button>
+
+                    <div className="h-px bg-gray-100 my-1" />
+
+                    {/* Immersive */}
+                    <button
+                      onClick={() => { mapViewRef.current?.enterImmersive(); setMapToolsOpen(false) }}
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <MaximizeIcon className="h-3.5 w-3.5" />
+                      Mode immersif
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* "Search as I move" toggle — only in split/map modes */}
-            {(layoutMode === 'split' || layoutMode === 'map') && (
-              <button
-                onClick={() => setFilterByMap(v => !v)}
-                className={cn(
-                  'hidden lg:flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap',
-                  filterByMap ? 'bg-accent/10 text-accent' : 'text-gray-400 hover:text-gray-600'
-                )}
-                title="Filtrer les résultats selon la zone visible sur la carte"
-              >
-                <div className={cn('w-3 h-3 rounded-sm border transition-colors', filterByMap ? 'bg-accent border-accent' : 'border-gray-300')}>
-                  {filterByMap && <Check className="h-3 w-3 text-white" />}
-                </div>
-                Lier à la carte
-              </button>
-            )}
-
-            {/* Result count */}
-            {layoutMode !== 'map' && (
-              <span className="text-xs font-bold text-gray-400 tabular-nums whitespace-nowrap">
-                {filtered.length.toLocaleString('fr-CH')} biens
-              </span>
-            )}
           </div>
 
           {/* Mobile: search + filter button */}
@@ -1367,38 +1324,10 @@ export default function SearchPage() {
           className={cn(
             'flex flex-col overflow-hidden transition-[width,min-width] duration-300 ease-out',
             mapImmersive && 'hidden',
-            !mapImmersive && layoutMode === 'grid' && 'w-full',
-            !mapImmersive && layoutMode === 'split' && 'w-full lg:shrink-0',
-            !mapImmersive && layoutMode === 'map' && 'w-full lg:w-[280px] lg:min-w-[280px] lg:shrink-0',
+            !mapImmersive && 'w-full lg:shrink-0',
           )}
-          style={!mapImmersive && layoutMode === 'split' ? { width: `${splitRatio}%` } : undefined}
+          style={!mapImmersive ? { width: `${splitRatio}%` } : undefined}
         >
-          {/* ─── AI Understanding Banner ─── */}
-          {showAiBanner && aiUnderstood.length > 0 && (
-            <div className="px-4 md:px-6 py-2 bg-accent/5 border-b border-accent/10 flex items-center gap-2 flex-wrap">
-              <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
-              <span className="text-xs text-accent font-medium">Recherche IA :</span>
-              {aiUnderstood.map((item, i) => (
-                <span
-                  key={i}
-                  className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-medium"
-                >
-                  {item}
-                </span>
-              ))}
-              <button
-                onClick={() => {
-                  clearAllFilters()
-                  setShowAiBanner(false)
-                  setAiUnderstood([])
-                }}
-                className="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <X className="h-3 w-3" />
-                Effacer
-              </button>
-            </div>
-          )}
 
           {/* Old ZONE 2 + mobile filter button removed — merged into unified bar above */}
 
@@ -1450,35 +1379,78 @@ export default function SearchPage() {
 
           {/* Old ZONE 3 results bar removed — sort/view/count merged into unified bar */}
 
-          {/* ─── ZONE 4: Listing cards ─── */}
-          <div className={cn('flex-1 overflow-y-auto scrollbar-hide', layoutMode === 'map' ? 'px-2 py-2' : 'px-4 md:px-6 py-4')}>
+          {/* ─── ZONE 4: Listing cards OR Sidebar panels ─── */}
+          {sidebarView === 'favorites' ? (
+            <FavoritesPanel
+              listings={allListings}
+              favoriteIds={favoriteIds}
+              onBack={() => setSidebarView('search')}
+              onPreview={openPreview}
+            />
+          ) : sidebarView === 'saved' ? (
+            <SavedSearchesPanel
+              onBack={() => setSidebarView('search')}
+              onApplyFilters={(f) => {
+                setFilters(prev => ({ ...prev, ...f }))
+                setSidebarView('search')
+              }}
+            />
+          ) : sidebarView === 'alerts' ? (
+            <AlertsPanel
+              onBack={() => setSidebarView('search')}
+              onApplyFilters={(f) => {
+                setFilters(prev => ({ ...prev, ...f }))
+                setSidebarView('search')
+              }}
+            />
+          ) : sidebarView === 'calculator' ? (
+            <AccessibilityPanel
+              onBack={() => setSidebarView('search')}
+              onApplyMaxPrice={(maxPrice) => {
+                updateFilter({ maxPrice })
+                setSidebarView('search')
+              }}
+            />
+          ) : sidebarView === 'contact' ? (
+            <ContactPanel
+              onBack={() => setSidebarView('search')}
+              selectedListing={previewId ? allListings.find(l => l.id === previewId) ?? null : null}
+            />
+          ) : (
+          <div className="flex-1 overflow-y-auto scrollbar-hide px-4 md:px-6 pt-8 pb-4">
+            {/* Results header — Zillow style */}
+            {!isLoadingListings && filtered.length > 0 && (
+              <div className="flex items-baseline justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    {filters.types.length > 0
+                      ? filters.types.map(t => PROPERTY_TYPE_LABELS[t as keyof typeof PROPERTY_TYPE_LABELS] || t).join(', ')
+                      : 'Immobilier'
+                    }
+                    {filters.context === 'rent' ? ' à louer' : ' à vendre'}
+                    {filters.city && ` à ${filters.city}`}
+                    {!filters.city && filters.canton && ` à ${CANTON_LABELS[filters.canton] || filters.canton}`}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {filtered.length.toLocaleString('fr-CH')} résultat{filtered.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {isLoadingListings ? (
-              layoutMode === 'map' ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-2.5 p-2 rounded-lg">
-                      <div className="w-[72px] h-[72px] rounded-md bg-gray-100 animate-pulse shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-100 rounded animate-pulse w-2/3" />
-                        <div className="h-3 bg-gray-100 rounded animate-pulse w-4/5" />
-                      </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white border border-gray-100 rounded-lg overflow-hidden">
+                    <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
+                    <div className="p-4 space-y-3">
+                      <div className="h-5 bg-gray-100 rounded animate-pulse w-2/3" />
+                      <div className="h-4 bg-gray-100 rounded animate-pulse w-4/5" />
+                      <div className="h-4 bg-gray-100 rounded animate-pulse w-1/2" />
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-                      <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
-                      <div className="p-4 space-y-3">
-                        <div className="h-5 bg-gray-100 rounded animate-pulse w-2/3" />
-                        <div className="h-4 bg-gray-100 rounded animate-pulse w-4/5" />
-                        <div className="h-4 bg-gray-100 rounded animate-pulse w-1/2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
+                  </div>
+                ))}
+              </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
                 <Search className="h-12 w-12 text-gray-200 mb-4" />
@@ -1493,26 +1465,8 @@ export default function SearchPage() {
                   Effacer tous les filtres
                 </button>
               </div>
-            ) : layoutMode === 'map' ? (
-              /* Compact mini-cards for map mode */
-              <div className="space-y-0.5">
-                {visible.map((listing) => (
-                  <ListingCardCompact
-                    key={listing.id}
-                    listing={listing}
-                    onHover={setHoveredListing}
-                    isHovered={hoveredListing === listing.id}
-                    isActive={previewId === listing.id}
-                    onPreview={openPreview}
-                  />
-                ))}
-              </div>
-            ) : layoutMode === 'grid' || layoutMode === 'split' ? (
-              /* Grid cards — 2 cols in split, 2-3 cols in grid full width */
-              <div className={cn(
-                'grid gap-4',
-                layoutMode === 'split' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
-              )}>
+            ) : (
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                 {visible.map((listing) => (
                   <ListingCardGrid
                     key={listing.id}
@@ -1528,7 +1482,7 @@ export default function SearchPage() {
                   />
                 ))}
               </div>
-            ) : null}
+            )}
 
             {/* Load more */}
             {hasMore && (
@@ -1542,13 +1496,15 @@ export default function SearchPage() {
                 </button>
               </div>
             )}
+
           </div>
+          )}
         </div>
 
         {/* ─── Draggable separator (split mode only) ─── */}
-        {!mapImmersive && layoutMode === 'split' && (
+        {!mapImmersive && (
           <div
-            className="hidden lg:flex items-center justify-center w-1 hover:w-1.5 cursor-col-resize group shrink-0 transition-all"
+            className="hidden lg:flex items-center justify-center w-1 hover:w-1.5 cursor-col-resize group shrink-0 transition-all sticky top-[124px] h-[calc(100vh-124px)]"
             onPointerDown={onSeparatorPointerDown}
           >
             <div className={cn(
@@ -1564,12 +1520,9 @@ export default function SearchPage() {
             'border-l border-gray-200 transition-[width,flex] duration-300 ease-out overflow-hidden',
             mapImmersive
               ? 'block flex-1 border-l-0 h-screen'
-              : cn(
-                'sticky top-32 h-[calc(100vh-8rem)]',
-                layoutMode === 'grid' ? 'hidden' : 'hidden lg:block lg:flex-1',
-              )
+              : 'sticky top-[124px] h-[calc(100vh-124px)] hidden lg:block lg:flex-1'
           )}
-          style={!mapImmersive && layoutMode === 'split' ? { width: `${100 - splitRatio}%` } : undefined}
+          style={!mapImmersive ? { width: `${100 - splitRatio}%` } : undefined}
         >
           <MapView
             ref={mapViewRef}
@@ -1580,7 +1533,7 @@ export default function SearchPage() {
             onZoneFilter={setZoneFilterIds}
             onImmersiveChange={setMapImmersive}
             onSelectListing={openPreview}
-            onViewportChange={setMapBounds}
+            hideTopControls
             onQuickFilter={(qf) => {
               updateFilter({
                 types: qf.type ? [qf.type] : [],
@@ -1669,7 +1622,8 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* ─── Listing preview panel (Zillow-style) ─── */}
+
+      {/* ─── Listing preview panel (Zillow-style overlay) ─── */}
       <ListingPreviewPanel
         listingId={previewId}
         onClose={closePreview}
@@ -1698,14 +1652,7 @@ export default function SearchPage() {
         }}
       />
 
-      {/* ─── Conversational search (MEGGA AI) ─── */}
-      <ChatSearch
-        isOpen={showChat}
-        onClose={() => setShowChat(false)}
-        onApplyFilters={handleChatFilters}
-        onHighlightListing={(id) => openPreview(id)}
-        allListings={allListings}
-      />
+    </div>
     </div>
   )
 }

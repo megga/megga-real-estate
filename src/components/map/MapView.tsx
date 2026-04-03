@@ -11,8 +11,7 @@ import MapGL, {
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
 import Supercluster from 'supercluster'
-import { LocateFixed, PenTool, X, Clock, MapPinPlus, MapPin, Car, Footprints, Bike, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, RotateCcw, Pause, Play, Briefcase, Loader2, Maximize, Minimize, School, TrainFront, ShoppingBag, TreePine, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
-import { useIsochrone } from '@/hooks/useIsochrone'
+import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, RotateCcw, Pause, Play, Maximize, Minimize, School, TrainFront, ShoppingBag, TreePine, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
@@ -48,17 +47,20 @@ function debouncedGeoFetch(
 export interface MapViewHandle {
   fitToListings: () => void
   startDrawing: () => void
-  startIsochrone: () => void
   enterImmersive: () => void
   exitImmersive: () => void
+  toggleTools: () => void
+  setMapStyle: (id: string) => void
+  toggleHeatmap: () => void
   resize: () => void
-  /** Whether draw zone or isochrone is currently active */
+  /** Whether draw zone is currently active */
   hasActiveZone: boolean
   isDrawing: boolean
-  isIsoMode: boolean
-  hasIsochrone: boolean
   hasPolygon: boolean
   isImmersive: boolean
+  showTools: boolean
+  mapStyleId: string
+  showHeatmap: boolean
 }
 
 interface QuickFilters {
@@ -77,6 +79,8 @@ interface MapViewProps {
   onQuickFilter?: (filters: QuickFilters) => void
   onSelectListing?: (id: string) => void
   onViewportChange?: (bounds: { west: number; south: number; east: number; north: number }) => void
+  /** Hide top-left Recentrer/Dessiner buttons (shown in parent filter bar instead) */
+  hideTopControls?: boolean
   className?: string
 }
 
@@ -117,7 +121,7 @@ const MAP_STYLES = [
 
 type MapStyleId = typeof MAP_STYLES[number]['id']
 
-const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onSelectListing, onViewportChange, className }, ref) {
+const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onSelectListing, onViewportChange, hideTopControls, className }, ref) {
   const mapRef = useRef<MapRef>(null)
   const [mapStyleId, setMapStyleId] = useState<MapStyleId>('standard')
   const [showStylePicker, setShowStylePicker] = useState(false)
@@ -372,49 +376,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     return () => { if (orbitAnimRef.current) cancelAnimationFrame(orbitAnimRef.current) }
   }, [])
 
-  // Directions (commute calculator)
-  const [showCommute, setShowCommute] = useState(false)
-  const [commuteAddress, setCommuteAddress] = useState('')
-  const [commuteGeoResults, setCommuteGeoResults] = useState<Array<{ place_name: string; center: [number, number] }>>([])
-  const [commuteProfile, setCommuteProfile] = useState<'driving' | 'walking' | 'cycling'>('driving')
-  const [commuteRoute, setCommuteRoute] = useState<GeoJSON.FeatureCollection | null>(null)
-  const [commuteDuration, setCommuteDuration] = useState<number | null>(null)
-  const [commuteDistance, setCommuteDistance] = useState<number | null>(null)
-  const [commuteLoading, setCommuteLoading] = useState(false)
-  const [commuteOrigin, setCommuteOrigin] = useState<[number, number] | null>(null)
-  const [commutePickMode, setCommutePickMode] = useState(false)
-
-  const searchCommuteAddr = useCallback((q: string) => {
-    setCommuteAddress(q)
-    debouncedGeoFetch('commute', q, setCommuteGeoResults)
-  }, [])
-
-  const fetchCommuteRoute = useCallback(async (dest: [number, number]) => {
-    if (!commuteOrigin) return
-    setCommuteLoading(true)
-    setCommuteGeoResults([])
-    try {
-      const resp = await fetch(`https://api.mapbox.com/directions/v5/mapbox/${commuteProfile}/${commuteOrigin[0]},${commuteOrigin[1]};${dest[0]},${dest[1]}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`)
-      const data = await resp.json()
-      const route = data.routes?.[0]
-      if (!route) throw new Error('No route')
-      setCommuteDuration(Math.round(route.duration / 60))
-      setCommuteDistance(Math.round(route.distance / 100) / 10)
-      setCommuteRoute({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: route.geometry, properties: {} }] })
-      const coords = route.geometry.coordinates as [number, number][]
-      const lngs = coords.map(c => c[0])
-      const lats = coords.map(c => c[1])
-      mapRef.current?.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 80, duration: 1000, pitch: 30 })
-    } catch { setCommuteRoute(null); setCommuteDuration(null) }
-    finally { setCommuteLoading(false) }
-  }, [commuteOrigin, commuteProfile])
-
-  const clearCommute = useCallback(() => {
-    setCommuteRoute(null); setCommuteDuration(null); setCommuteDistance(null)
-    setCommuteAddress(''); setCommuteGeoResults([]); setCommuteOrigin(null)
-    setCommutePickMode(false)
-  }, [])
-
   // Apply light preset to Standard style
   useEffect(() => {
     if (mapStyleId !== 'standard') return
@@ -431,67 +392,27 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [closedPolygon, setClosedPolygon] = useState<[number, number][] | null>(null)
   const [cursorPos, setCursorPos] = useState<[number, number] | null>(null)
 
-  // Isochrone (commute time)
-  const { isochrone, isLoading: isoLoading, error: isoError, fetchIsochrone, clearIsochrone } = useIsochrone()
-  const [isoMode, setIsoMode] = useState(false)
-  const [isoMinutes, setIsoMinutes] = useState(30)
-  const [isoProfile, setIsoProfile] = useState<'driving' | 'walking' | 'cycling'>('driving')
-  const [isoPin, setIsoPin] = useState<[number, number] | null>(null)
-
-  // Extract isochrone polygon coords for point-in-polygon filtering
-  const isoPolygonCoords = useMemo<[number, number][] | null>(() => {
-    if (!isochrone?.geojson?.features?.[0]?.geometry?.coordinates?.[0]) return null
-    return isochrone.geojson.features[0].geometry.coordinates[0] as [number, number][]
-  }, [isochrone])
-
-  // Count biens inside isochrone — use mapPoints (stable, not filtered)
-  const isoListingCount = useMemo(() => {
-    if (!isoPolygonCoords || !mapPoints) return 0
-    return mapPoints.filter(p => pointInPolygon([p.lng, p.lat], isoPolygonCoords)).length
-  }, [isoPolygonCoords, mapPoints])
-
-  // Filter listings when isochrone is active — use mapPoints (stable) to avoid infinite loop
-  const prevIsoFilterRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (!isoPolygonCoords || !mapPoints) {
-      if (prevIsoFilterRef.current !== null) {
-        prevIsoFilterRef.current = null
-        // Don't call onZoneFilter(null) here — let the clear button handle it
-      }
-      return
-    }
-    const insideIds = mapPoints
-      .filter(p => pointInPolygon([p.lng, p.lat], isoPolygonCoords))
-      .map(p => p.id)
-    const key = insideIds.join(',')
-    if (key !== prevIsoFilterRef.current) {
-      prevIsoFilterRef.current = key
-      onZoneFilter?.(insideIds)
-    }
-  }, [isoPolygonCoords, mapPoints, onZoneFilter])
-
   // Expose imperative methods to parent
   useImperativeHandle(ref, () => ({
     fitToListings,
     startDrawing,
-    startIsochrone: () => setIsoMode(true),
     enterImmersive,
     exitImmersive,
+    toggleTools: () => setShowTools(v => !v),
+    setMapStyle: (id: string) => {
+      setMapStyleId(id as MapStyleId)
+      setViewState(v => ({ ...v, pitch: id === 'standard' ? 45 : 0, bearing: id === 'standard' ? v.bearing : 0 }))
+    },
+    toggleHeatmap: () => setShowHeatmap(v => !v),
     resize: () => mapRef.current?.resize(),
-    get hasActiveZone() { return !!closedPolygon || !!isochrone },
+    get hasActiveZone() { return !!closedPolygon },
     get isDrawing() { return isDrawing },
-    get isIsoMode() { return isoMode },
-    get hasIsochrone() { return !!isochrone },
     get hasPolygon() { return !!closedPolygon },
     get isImmersive() { return isImmersive },
+    get showTools() { return showTools },
+    get mapStyleId() { return mapStyleId },
+    get showHeatmap() { return showHeatmap },
   }))
-
-  // Profile labels
-  const PROFILE_LABELS = {
-    driving: { label: 'en voiture', icon: Car },
-    walking: { label: 'a pied', icon: Footprints },
-    cycling: { label: 'a velo', icon: Bike },
-  } as const
 
   // Build GeoJSON points — use mapPoints (lightweight, all 38K) if available, otherwise listings
   const points: ListingPoint[] = useMemo(() => {
@@ -627,12 +548,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   }
 
   function handleMapClick(e: MapMouseEvent) {
-    // Commute: pick origin point on map
-    if (commutePickMode) {
-      setCommuteOrigin([e.lngLat.lng, e.lngLat.lat])
-      setCommutePickMode(false)
-      return
-    }
     // Neighborhood score: pick point on map
     if (neighborhoodPickMode) {
       setNeighborhoodPoint([e.lngLat.lng, e.lngLat.lat])
@@ -687,7 +602,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   useEffect(() => {
     const map = mapRef.current?.getMap()
     if (!map) return
-    if (isDrawing || isoMode || neighborhoodPickMode) {
+    if (isDrawing || neighborhoodPickMode) {
       map.getCanvas().style.cursor = 'crosshair'
     } else {
       map.getCanvas().style.cursor = ''
@@ -695,7 +610,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     return () => {
       map.getCanvas().style.cursor = ''
     }
-  }, [isDrawing, isoMode, neighborhoodPickMode])
+  }, [isDrawing, neighborhoodPickMode])
 
   // ─── GeoJSON for draw polygon ───
   const drawGeoJSON = useMemo(() => {
@@ -900,7 +815,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           const listing = cluster.properties.listing
           const isHovered = hoveredId === listing.id
           const isSelected = selectedListing?.id === listing.id
-          const activePolygon = closedPolygon || isoPolygonCoords
+          const activePolygon = closedPolygon
           const isInZone = activePolygon
             ? listing.lat && listing.lng && pointInPolygon([listing.lng, listing.lat], activePolygon)
             : true
@@ -1034,49 +949,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </Popup>
         )}
 
-        {/* Isochrone layer */}
-        {isochrone && isochrone.geojson && (
-          <Source
-            id="isochrone"
-            type="geojson"
-            data={isochrone.geojson as GeoJSON.FeatureCollection}
-          >
-            <Layer
-              id="isochrone-fill"
-              type="fill"
-              paint={{ 'fill-color': '#2563EB', 'fill-opacity': 0.18 }}
-            />
-            {/* White glow for visibility on dark backgrounds */}
-            <Layer
-              id="isochrone-line-glow"
-              type="line"
-              paint={{ 'line-color': '#FFFFFF', 'line-width': 6, 'line-opacity': 0.5 }}
-              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            />
-            <Layer
-              id="isochrone-line"
-              type="line"
-              paint={{ 'line-color': '#2563EB', 'line-width': 2.5 }}
-              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            />
-          </Source>
-        )}
-
-        {/* Isochrone pin */}
-        {isoPin && (
-          <Marker longitude={isoPin[0]} latitude={isoPin[1]} anchor="center" style={{ zIndex: 100 }}>
-            <div className="relative flex items-center justify-center">
-              <div className="absolute h-11 w-11 rounded-full border-2 border-accent/40 animate-pulse" />
-              <div className="relative h-8 w-8 bg-accent rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                {(() => {
-                  const ProfileIcon = PROFILE_LABELS[isoProfile].icon
-                  return <ProfileIcon className="h-3.5 w-3.5 text-white" />
-                })()}
-              </div>
-            </div>
-          </Marker>
-        )}
-
         {/* Price heatmap layer (fullscreen only) */}
         {showHeatmap && (isFullscreen || showTools) && points.length > 0 && (
           <Source
@@ -1104,24 +976,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               }}
             />
           </Source>
-        )}
-
-        {/* Commute route line */}
-        {commuteRoute && (
-          <Source id="commute-route" type="geojson" data={commuteRoute}>
-            <Layer id="commute-line-glow" type="line" paint={{ 'line-color': '#FFFFFF', 'line-width': 8, 'line-opacity': 0.4 }} />
-            <Layer id="commute-line-bg" type="line" paint={{ 'line-color': '#2563EB', 'line-width': 6, 'line-opacity': 0.3 }} />
-            <Layer id="commute-line" type="line" paint={{ 'line-color': '#2563EB', 'line-width': 3, 'line-opacity': 0.9 }} />
-          </Source>
-        )}
-
-        {/* Commute origin marker */}
-        {commuteOrigin && (
-          <Marker latitude={commuteOrigin[1]} longitude={commuteOrigin[0]} anchor="bottom">
-            <div className="h-6 w-6 bg-accent rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-              <Briefcase className="h-3 w-3 text-white" />
-            </div>
-          </Marker>
         )}
 
         {/* Neighborhood score marker — emerald to distinguish from blue clusters */}
@@ -1187,25 +1041,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         )}
       </MapGL>
 
-      {/* Top-left buttons */}
-      <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
-        <button
-          onClick={fitToListings}
-          className={cn(
-            'text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-1.5',
-            isImmersive
-              ? 'bg-gray-900/80 backdrop-blur-md text-white/80 hover:text-white hover:bg-gray-900/90 border border-white/10'
-              : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-          )}
-        >
-          <LocateFixed className="h-3.5 w-3.5" />
-          Recentrer
-        </button>
-
-        {/* Draw zone — hidden when isochrone is active */}
-        {!isDrawing && !closedPolygon && !isochrone && !isoMode && !isoLoading && (
+      {/* Top-left buttons — hidden when controls are in parent filter bar (non-immersive) */}
+      {(!hideTopControls || isImmersive) && (
+        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
           <button
-            onClick={startDrawing}
+            onClick={fitToListings}
             className={cn(
               'text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-1.5',
               isImmersive
@@ -1213,155 +1053,36 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             )}
           >
-            <PenTool className="h-3.5 w-3.5" />
-            Dessiner une zone
+            <LocateFixed className="h-3.5 w-3.5" />
+            Recentrer
           </button>
-        )}
 
-        {closedPolygon && (
-          <button
-            onClick={clearZone}
-            className="bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm hover:bg-accent/90 transition-colors cursor-pointer flex items-center gap-1.5"
-          >
-            <X className="h-3.5 w-3.5" />
-            {zoneCount} bien{zoneCount !== 1 ? 's' : ''} dans la zone
-          </button>
-        )}
-
-        {/* Isochrone — button to start (hidden in immersive — available in toolbar) */}
-        {!isoMode && !isochrone && !isoLoading && !isDrawing && !closedPolygon && !isImmersive && (
-          <button
-            onClick={() => setIsoMode(true)}
-            className={cn(
-              'text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-1.5',
-              isImmersive
-                ? 'bg-gray-900/80 backdrop-blur-md text-white/80 hover:text-white hover:bg-gray-900/90 border border-white/10'
-                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-            )}
-          >
-            <Clock className="h-3.5 w-3.5" />
-            Temps de trajet
-          </button>
-        )}
-
-        {/* Isochrone — loading */}
-        {isoLoading && (
-          <div className="bg-white text-gray-500 text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm border border-gray-200 flex items-center gap-1.5 animate-pulse">
-            <Clock className="h-3.5 w-3.5" />
-            Calcul en cours...
-          </div>
-        )}
-
-        {/* Isochrone — error */}
-        {isoError && !isochrone && !isoLoading && (
-          <div className="flex items-center gap-1.5">
-            <div className="bg-red-50 text-red-600 text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm border border-red-200">
-              Erreur — reessayez
-            </div>
+          {/* Draw zone */}
+          {!isDrawing && !closedPolygon && (
             <button
-              onClick={() => { clearIsochrone(); setIsoPin(null); onZoneFilter?.(null) }}
-              className="h-7 w-7 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 cursor-pointer"
-            >
-              <X className="h-3.5 w-3.5 text-gray-500" />
-            </button>
-          </div>
-        )}
-
-        {/* Isochrone — active controls */}
-        {isochrone && (
-          <div className="flex items-center gap-1.5">
-            {/* Badge with count */}
-            <div className="bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5">
-              {(() => { const Icon = PROFILE_LABELS[isoProfile].icon; return <Icon className="h-3.5 w-3.5" /> })()}
-              {isochrone.minutes} min {PROFILE_LABELS[isoProfile].label}
-              {isoListingCount > 0 && (
-                <span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded text-[10px]">
-                  {isoListingCount} bien{isoListingCount !== 1 ? 's' : ''}
-                </span>
+              onClick={startDrawing}
+              className={cn(
+                'text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-1.5',
+                isImmersive
+                  ? 'bg-gray-900/80 backdrop-blur-md text-white/80 hover:text-white hover:bg-gray-900/90 border border-white/10'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
               )}
-            </div>
-
-            {/* Duration pills */}
-            <div className="flex bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              {[15, 30, 45, 60].map((mins) => (
-                <button
-                  key={mins}
-                  onClick={() => {
-                    setIsoMinutes(mins)
-                    if (isoPin) fetchIsochrone(isoPin[0], isoPin[1], mins, isoProfile)
-                  }}
-                  className={cn(
-                    'px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer',
-                    isoMinutes === mins ? 'bg-accent text-white' : 'text-gray-600 hover:bg-gray-50'
-                  )}
-                >
-                  {mins}′
-                </button>
-              ))}
-            </div>
-
-            {/* Transport mode pills */}
-            <div className="flex bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              {(['driving', 'walking', 'cycling'] as const).map((profile) => {
-                const { icon: Icon } = PROFILE_LABELS[profile]
-                return (
-                  <button
-                    key={profile}
-                    onClick={() => {
-                      setIsoProfile(profile)
-                      if (isoPin) fetchIsochrone(isoPin[0], isoPin[1], isoMinutes, profile)
-                    }}
-                    className={cn(
-                      'p-1.5 transition-colors cursor-pointer',
-                      isoProfile === profile ? 'bg-accent text-white' : 'text-gray-500 hover:bg-gray-50'
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Close */}
-            <button
-              onClick={() => { clearIsochrone(); setIsoPin(null); onZoneFilter?.(null) }}
-              className="h-7 w-7 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 cursor-pointer"
             >
-              <X className="h-3.5 w-3.5 text-gray-500" />
+              <PenTool className="h-3.5 w-3.5" />
+              Dessiner une zone
             </button>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Isochrone placement overlay — captures all clicks above markers */}
-      {isoMode && (
-        <>
-          <div
-            className="absolute inset-0 z-[5] cursor-crosshair"
-            onClick={(e) => {
-              const map = mapRef.current?.getMap()
-              if (!map) return
-              const rect = (e.target as HTMLElement).getBoundingClientRect()
-              const x = e.clientX - rect.left
-              const y = e.clientY - rect.top
-              const lngLat = map.unproject([x, y])
-              const pin: [number, number] = [lngLat.lng, lngLat.lat]
-              setIsoPin(pin)
-              setIsoMode(false)
-              fetchIsochrone(pin[0], pin[1], isoMinutes, isoProfile)
-            }}
-          />
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[6] bg-gray-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-            <MapPinPlus className="h-3.5 w-3.5" />
-            Cliquez pour placer votre point de depart
+          {closedPolygon && (
             <button
-              onClick={(e) => { e.stopPropagation(); setIsoMode(false) }}
-              className="ml-2 text-white/60 hover:text-white transition-colors cursor-pointer"
+              onClick={clearZone}
+              className="bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm hover:bg-accent/90 transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <X className="h-3.5 w-3.5" />
+              {zoneCount} bien{zoneCount !== 1 ? 's' : ''} dans la zone
             </button>
-          </div>
-        </>
+          )}
+        </div>
       )}
 
       {/* Drawing instructions */}
@@ -1601,19 +1322,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               </button>
               <button
                 onClick={() => {
-                  if (showCommute) { setShowCommute(false); clearCommute() }
-                  else { setShowCommute(true); setCommutePickMode(true) }
-                }}
-                className={cn(
-                  'h-7 px-2 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
-                  showCommute ? 'text-white bg-accent/60' : 'text-white/40 hover:text-white hover:bg-white/10'
-                )}
-                title="Mon trajet"
-              >
-                <Briefcase className="h-3 w-3" />
-              </button>
-              <button
-                onClick={() => {
                   if (neighborhoodPoint) { setNeighborhoodPoint(null) }
                   else { setNeighborhoodPickMode(true) }
                 }}
@@ -1630,72 +1338,78 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </>
         ) : (
           <>
-            {/* Tools toggle */}
-            <button
-              onClick={() => setShowTools(v => !v)}
-              className={cn(
-                'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
-                showTools
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-              )}
-              aria-label="Outils avancés"
-            >
-              <Mountain className="h-3.5 w-3.5" />
-              Outils
-            </button>
-
-            {/* Immersive mode button */}
-            <button
-              onClick={enterImmersive}
-              className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
-              aria-label="Mode immersif"
-            >
-              <Maximize className="h-3.5 w-3.5" />
-              Immersif
-            </button>
-
-            <div className="relative">
+            {/* Tools toggle — hidden when controls are in parent filter bar */}
+            {!hideTopControls && (
               <button
-                onClick={() => setShowStylePicker(v => !v)}
-                className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
-                aria-label="Changer le style de carte"
+                onClick={() => setShowTools(v => !v)}
+                className={cn(
+                  'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
+                  showTools
+                    ? 'bg-accent text-white border-accent'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                )}
+                aria-label="Outils avancés"
               >
-                <Layers className="h-3.5 w-3.5" />
-                {currentStyle.label}
+                <Mountain className="h-3.5 w-3.5" />
+                Outils
               </button>
+            )}
 
-              {showStylePicker && (
-                <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden min-w-[140px]">
-                  {MAP_STYLES.map(s => {
-                    const Icon = s.icon
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          setMapStyleId(s.id)
-                          setShowStylePicker(false)
-                          setViewState(v => ({
-                            ...v,
-                            pitch: s.id === 'standard' ? 45 : 0,
-                            bearing: s.id === 'standard' ? v.bearing : 0,
-                          }))
-                        }}
-                        className={cn(
-                          'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
-                          mapStyleId === s.id
-                            ? 'bg-accent/10 text-accent'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        )}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        {s.label}
-                      </button>
-                    )
-                  })}
+            {/* Immersive + Style picker — hidden when controls are in parent filter bar */}
+            {!hideTopControls && (
+              <>
+                <button
+                  onClick={enterImmersive}
+                  className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                  aria-label="Mode immersif"
+                >
+                  <Maximize className="h-3.5 w-3.5" />
+                  Immersif
+                </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setShowStylePicker(v => !v)}
+                    className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                    aria-label="Changer le style de carte"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    {currentStyle.label}
+                  </button>
+
+                  {showStylePicker && (
+                    <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden min-w-[140px]">
+                      {MAP_STYLES.map(s => {
+                        const Icon = s.icon
+                        return (
+                          <button
+                            key={s.id}
+                            onClick={() => {
+                              setMapStyleId(s.id)
+                              setShowStylePicker(false)
+                              setViewState(v => ({
+                                ...v,
+                                pitch: s.id === 'standard' ? 45 : 0,
+                                bearing: s.id === 'standard' ? v.bearing : 0,
+                              }))
+                            }}
+                            className={cn(
+                              'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
+                              mapStyleId === s.id
+                                ? 'bg-accent/10 text-accent'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            )}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {s.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </>
         )}
 
@@ -1757,23 +1471,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             >
               {isOrbiting ? <Pause className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
               {isOrbiting ? 'Arrêter' : 'Orbit 3D'}
-            </button>
-
-            {/* Commute calculator */}
-            <button
-              onClick={() => {
-                if (showCommute) { setShowCommute(false); clearCommute() }
-                else { setShowCommute(true); setCommutePickMode(true) }
-              }}
-              className={cn(
-                'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
-                showCommute
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-              )}
-            >
-              <Briefcase className="h-3.5 w-3.5" />
-              Mon trajet
             </button>
 
             {/* Geocoding search */}
@@ -1858,78 +1555,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             </div>
           )}
 
-          {/* Commute pick mode instruction */}
-          {commutePickMode && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[6] bg-gray-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-              <Briefcase className="h-3.5 w-3.5" />
-              Cliquez sur la carte pour placer votre point de départ
-              <button onClick={() => { setCommutePickMode(false); setShowCommute(false) }} className="ml-2 text-white/60 hover:text-white transition-colors cursor-pointer">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-
-          {/* Commute panel (after origin is placed) */}
-          {showCommute && commuteOrigin && !commutePickMode && (
-            <div className="absolute top-3 left-3 z-[5] w-72 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              <div className="p-3 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-gray-900">Temps de trajet</span>
-                  <button onClick={() => { setShowCommute(false); clearCommute() }} className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <div className="flex gap-1 mb-2">
-                  {(['driving', 'walking', 'cycling'] as const).map(p => {
-                    const icons = { driving: Car, walking: Footprints, cycling: Bike }
-                    const labels = { driving: 'Voiture', walking: 'À pied', cycling: 'Vélo' }
-                    const Icon = icons[p]
-                    return (
-                      <button key={p} onClick={() => setCommuteProfile(p)} className={cn('flex-1 h-7 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer', commuteProfile === p ? 'bg-accent/10 text-accent' : 'text-gray-500 hover:bg-gray-50')}>
-                        <Icon className="h-3 w-3" />
-                        {labels[p]}
-                      </button>
-                    )
-                  })}
-                </div>
-                <input
-                  type="text"
-                  value={commuteAddress}
-                  onChange={(e) => searchCommuteAddr(e.target.value)}
-                  placeholder="Destination (adresse, lieu)..."
-                  className="w-full h-8 px-3 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                  autoFocus
-                />
-              </div>
-              {commuteGeoResults.length > 0 && (
-                <div className="max-h-40 overflow-y-auto border-b border-gray-100">
-                  {commuteGeoResults.map((r, i) => (
-                    <button key={i} onClick={() => fetchCommuteRoute(r.center)} className="w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 text-left cursor-pointer truncate">
-                      {r.place_name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {commuteLoading && (
-                <div className="p-3 flex items-center justify-center gap-2 text-xs text-gray-500">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Calcul...
-                </div>
-              )}
-              {commuteDuration !== null && !commuteLoading && (
-                <div className="p-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-gray-900">{commuteDuration}</span>
-                    <span className="text-xs text-gray-500">min</span>
-                    <span className="text-xs text-gray-400">· {commuteDistance} km</span>
-                  </div>
-                  <button onClick={clearCommute} className="mt-2 w-full h-7 rounded-lg text-[10px] text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-                    Effacer
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </>
       )}
 
@@ -2057,68 +1682,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                       {r.place_name}
                     </button>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Commute panel (immersive) */}
-          {showCommute && commuteOrigin && !commutePickMode && (
-            <div className="absolute top-4 left-4 z-[6] w-72 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden">
-              <div className="p-3 border-b border-white/10">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-white/80">Temps de trajet</span>
-                  <button onClick={() => { setShowCommute(false); clearCommute() }} className="text-white/40 hover:text-white cursor-pointer">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <div className="flex gap-1 mb-2">
-                  {(['driving', 'walking', 'cycling'] as const).map(p => {
-                    const icons = { driving: Car, walking: Footprints, cycling: Bike }
-                    const labels = { driving: 'Voiture', walking: 'A pied', cycling: 'Velo' }
-                    const Icon = icons[p]
-                    return (
-                      <button key={p} onClick={() => setCommuteProfile(p)} className={cn('flex-1 h-7 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer', commuteProfile === p ? 'bg-accent/30 text-accent' : 'text-white/50 hover:bg-white/10')}>
-                        <Icon className="h-3 w-3" />
-                        {labels[p]}
-                      </button>
-                    )
-                  })}
-                </div>
-                <input
-                  type="text"
-                  value={commuteAddress}
-                  onChange={(e) => searchCommuteAddr(e.target.value)}
-                  placeholder="Destination (adresse, lieu)..."
-                  className="w-full h-8 px-3 text-xs bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
-                  autoFocus
-                />
-              </div>
-              {commuteGeoResults.length > 0 && (
-                <div className="max-h-40 overflow-y-auto border-b border-white/10">
-                  {commuteGeoResults.map((r, i) => (
-                    <button key={i} onClick={() => fetchCommuteRoute(r.center)} className="w-full px-3 py-2 text-xs text-white/70 hover:bg-white/10 text-left cursor-pointer truncate">
-                      {r.place_name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {commuteLoading && (
-                <div className="p-3 flex items-center justify-center gap-2 text-xs text-white/50">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Calcul...
-                </div>
-              )}
-              {commuteDuration !== null && !commuteLoading && (
-                <div className="p-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-white">{commuteDuration}</span>
-                    <span className="text-xs text-white/50">min</span>
-                    <span className="text-xs text-white/40">· {commuteDistance} km</span>
-                  </div>
-                  <button onClick={clearCommute} className="mt-2 w-full h-7 rounded-lg text-[10px] text-white/50 hover:text-white bg-white/10 hover:bg-white/15 transition-colors cursor-pointer">
-                    Effacer
-                  </button>
                 </div>
               )}
             </div>

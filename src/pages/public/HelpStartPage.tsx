@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ChevronRight, ArrowRight } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import GettingStartedIllustration from '@/components/illustrations/GettingStartedIllustration'
 
 const STEPS = [
   { num: 1, title: 'Configurez votre profil', description: 'Remplissez votre nom, canton, et uploadez votre photo. Configurez les informations de votre agence.', link: '/aide/agent/configurer-profil' },
@@ -22,8 +23,11 @@ export default function HelpStartPage() {
           <span className="text-gray-700">Démarrage rapide</span>
         </div>
 
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Démarrer avec MEGGA en 5 minutes</h1>
-        <p className="text-sm text-gray-500 mb-10">Le guide essentiel pour votre premier jour.</p>
+        <div className="mb-10">
+          <div className="w-full max-w-xs mx-auto mb-6"><GettingStartedIllustration /></div>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2 text-center">Démarrer avec MEGGA en 5 minutes</h1>
+          <p className="text-sm text-gray-500 text-center">Le guide essentiel pour votre premier jour.</p>
+        </div>
 
         <div className="space-y-8">
           {STEPS.map(step => (

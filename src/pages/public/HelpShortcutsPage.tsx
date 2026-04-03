@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { KEYBOARD_SHORTCUTS } from '@/lib/helpArticles'
+import KeyboardIllustration from '@/components/illustrations/KeyboardIllustration'
 
 export default function HelpShortcutsPage() {
   const contexts = [...new Set(KEYBOARD_SHORTCUTS.map(s => s.context))]
@@ -17,8 +18,13 @@ export default function HelpShortcutsPage() {
           <span className="text-gray-700">Raccourcis clavier</span>
         </div>
 
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Raccourcis clavier</h1>
-        <p className="text-sm text-gray-500 mb-8">Gagnez du temps avec les raccourcis clavier MEGGA.</p>
+        <div className="flex items-center gap-6 mb-8">
+          <div className="w-20 h-20 shrink-0"><KeyboardIllustration /></div>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">Raccourcis clavier</h1>
+            <p className="text-sm text-gray-500">Gagnez du temps avec les raccourcis clavier MEGGA.</p>
+          </div>
+        </div>
 
         {contexts.map(ctx => (
           <div key={ctx} className="mb-8">

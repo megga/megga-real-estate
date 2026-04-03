@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useTickets, type TicketRow } from '@/hooks/useTickets'
 import PageTransition from '@/components/layout/PageTransition'
+import EmptyTicketsIllustration from '@/components/illustrations/EmptyTicketsIllustration'
 
 const STATUS_TABS = [
   { key: '', label: 'Tous' },
@@ -102,7 +103,9 @@ export default function SupportPage() {
           </div>
         ) : tickets.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-sm text-theme-muted">Aucun ticket</p>
+            <div className="w-40 h-28 mx-auto mb-4"><EmptyTicketsIllustration /></div>
+            <p className="text-sm font-medium text-theme-secondary mb-1">Aucun ticket de support</p>
+            <p className="text-xs text-theme-muted">Tout est traité. Vos clients sont satisfaits.</p>
           </div>
         ) : (
           <div className="rounded-xl border border-theme-border overflow-hidden">

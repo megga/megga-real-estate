@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { X, ChevronDown, Send } from 'lucide-react'
+import { X, ChevronDown } from 'lucide-react'
+import EmptyMessagesIllustration from '@/components/illustrations/EmptyMessagesIllustration'
 import { cn } from '@/lib/utils'
 import { useMessaging } from '@/hooks/useMessaging'
 import { useContacts } from '@/hooks/useContacts'
@@ -205,9 +206,7 @@ export default function ChatPage() {
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-theme-page">
-            <div className="h-12 w-12 rounded-2xl bg-theme-section flex items-center justify-center">
-              <Send className="h-5 w-5 text-theme-muted" />
-            </div>
+            <div className="w-40 h-28"><EmptyMessagesIllustration /></div>
             <p className="text-theme-muted text-sm">Sélectionnez une conversation</p>
           </div>
         )}

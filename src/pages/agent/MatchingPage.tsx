@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Search, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import EmptyMatchingIllustration from '@/components/illustrations/EmptyMatchingIllustration'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import { useExternalMatching, type ExternalListing, type ExternalSearchCriteria } from '@/hooks/useExternalMatching'
@@ -771,6 +772,7 @@ export default function MatchingPage() {
             {/* Empty */}
             {externalContactId && !isLoadingExternal && !externalError && externalListings && externalListings.length === 0 && (
               <div className="text-center py-12 rounded-xl border border-theme-border">
+                <div className="w-40 h-28 mx-auto mb-3"><EmptyMatchingIllustration /></div>
                 <p className="text-sm text-theme-tertiary">Aucun bien trouvé sur le marché pour ces critères</p>
                 <p className="text-xs text-theme-muted mt-1">Essayez d'élargir la zone ou le budget</p>
               </div>

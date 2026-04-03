@@ -4,6 +4,7 @@ import {
   Search, Plus, Upload, ChevronLeft, ChevronRight, ChevronDown,
   FileSpreadsheet, MessageSquareText, Users as UsersIcon, PenLine,
 } from 'lucide-react'
+import EmptyContactsIllustration from '@/components/illustrations/EmptyContactsIllustration'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useContacts } from '@/hooks/useContacts'
 import type { Contact, ContactType } from '@/types/contact'
@@ -119,6 +120,7 @@ export default function ContactsPage() {
       <PageTransition>
         <div className="max-w-3xl mx-auto">
           <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+            <div className="w-40 h-28 mb-4"><EmptyContactsIllustration /></div>
             <h1 className="text-xl font-semibold text-theme-primary mb-1">Ajouter des contacts</h1>
             <p className="text-sm text-theme-muted mb-8">Comment souhaitez-vous ajouter vos contacts ?</p>
 

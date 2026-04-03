@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { SERVICES_STATUS } from '@/lib/helpArticles'
+import StatusIllustration from '@/components/illustrations/StatusIllustration'
 
 const STATUS_STYLES = {
   operational: { dot: 'bg-emerald-500', label: 'Opérationnel', text: 'text-emerald-600' },
@@ -24,7 +25,10 @@ export default function HelpStatusPage() {
           <span className="text-gray-700">Statut des services</span>
         </div>
 
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Statut des services</h1>
+        <div className="flex items-center gap-6 mb-2">
+          <div className="w-20 h-20 shrink-0"><StatusIllustration /></div>
+          <h1 className="text-2xl font-semibold text-gray-900">Statut des services</h1>
+        </div>
 
         {allOperational && (
           <div className="flex items-center gap-2 mb-8 p-4 rounded-xl bg-emerald-50 border border-emerald-100">

@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { CHANGELOG } from '@/lib/helpArticles'
+import ChangelogIllustration from '@/components/illustrations/ChangelogIllustration'
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr)
@@ -20,8 +21,14 @@ export default function HelpChangelogPage() {
           <span className="text-gray-700">Nouveautés</span>
         </div>
 
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">Nouveautés</h1>
-        <p className="text-sm text-gray-500 mb-10">Les dernières améliorations de MEGGA.</p>
+        <div className="flex items-center gap-6 mb-2">
+          <div className="w-20 h-20 shrink-0"><ChangelogIllustration /></div>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">Nouveautés</h1>
+            <p className="text-sm text-gray-500">Les dernières améliorations de MEGGA.</p>
+          </div>
+        </div>
+        <div className="mb-10" />
 
         <div className="relative pl-6 border-l-2 border-gray-100 space-y-8">
           {CHANGELOG.map((entry, i) => (

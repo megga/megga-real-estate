@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
-  X, ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, ChevronLeft, MoreHorizontal,
   MapPin, Maximize2, Heart, Share2,
   Phone, CalendarDays, Building2, Home, Calendar, Eye,
   Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check, GitCompareArrows,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import Footer from '@/components/layout/Footer'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -37,6 +38,8 @@ interface ListingPreviewPanelProps {
   onClose: () => void
   isCompared?: boolean
   onToggleCompare?: () => void
+  /** Render inline (inside parent container) instead of as a full-screen portal */
+  inline?: boolean
 }
 
 interface TransformedListing {
@@ -439,7 +442,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full h-12 bg-gradient-to-r from-accent to-indigo-600 hover:from-accent/90 hover:to-indigo-500 text-white font-semibold rounded-xl flex items-center justify-center gap-2.5 transition-all text-sm shadow-sm hover:shadow-md"
+        className="w-full h-12 bg-gradient-to-r from-accent to-indigo-600 hover:from-accent/90 hover:to-indigo-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2.5 transition-all text-sm shadow-sm hover:shadow-md"
       >
         <Sparkles className="w-4.5 h-4.5" />
         Demandez à MEGGA AI
@@ -450,7 +453,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
   // ── Open state: chat panel ──
   const chatPanel = (
     <div className={cn(
-      'rounded-xl border border-accent/20 overflow-hidden bg-white',
+      'rounded-lg border border-accent/20 overflow-hidden bg-white',
       isMobile && 'fixed bottom-0 left-0 right-0 z-50 rounded-b-none max-h-[70vh] shadow-[0_-8px_30px_rgba(0,0,0,0.12)]'
     )}>
       {/* Header */}
@@ -475,7 +478,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
               <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Sparkles className="w-3.5 h-3.5 text-accent" />
               </div>
-              <div className="bg-gray-50 px-3.5 py-2.5 rounded-xl rounded-bl-sm text-xs leading-relaxed text-gray-600">
+              <div className="bg-gray-50 px-3.5 py-2.5 rounded-lg rounded-bl-sm text-xs leading-relaxed text-gray-600">
                 {labels.welcome}
               </div>
             </div>
@@ -487,7 +490,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
                   <button
                     key={s.label}
                     onClick={() => sendMessage(s.prompt)}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-100 text-xs font-medium text-gray-600 hover:border-accent/30 hover:bg-accent/5 hover:text-accent transition-all text-left"
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-100 text-xs font-medium text-gray-600 hover:border-accent/30 hover:bg-accent/5 hover:text-accent transition-all text-left"
                   >
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                     {s.label}
@@ -506,7 +509,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
               </div>
             )}
             <div className={cn(
-              'max-w-[80%] px-3.5 py-2.5 rounded-xl text-xs leading-relaxed',
+              'max-w-[80%] px-3.5 py-2.5 rounded-lg text-xs leading-relaxed',
               msg.role === 'user'
                 ? 'bg-accent text-white rounded-br-sm'
                 : 'bg-gray-50 text-gray-700 rounded-bl-sm'
@@ -521,7 +524,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
             <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-3.5 h-3.5 text-accent animate-pulse" />
             </div>
-            <div className="bg-gray-50 px-3.5 py-2.5 rounded-xl rounded-bl-sm">
+            <div className="bg-gray-50 px-3.5 py-2.5 rounded-lg rounded-bl-sm">
               <div className="flex gap-1">
                 <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                 <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -540,13 +543,13 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
           placeholder={labels.placeholder}
-          className="flex-1 h-9 px-3.5 text-sm bg-transparent border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-gray-700 placeholder:text-gray-400"
+          className="flex-1 h-9 px-3.5 text-sm bg-transparent border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-gray-700 placeholder:text-gray-400"
           autoFocus
         />
         <button
           onClick={() => sendMessage(input)}
           disabled={!input.trim() || isLoading}
-          className="h-9 w-9 rounded-xl bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors disabled:opacity-40"
+          className="h-9 w-9 rounded-lg bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors disabled:opacity-40"
         >
           <Send className="w-4 h-4" />
         </button>
@@ -569,7 +572,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
 
 // ─── Main component ─────────────────────────────────────────────────────
 
-export default function ListingPreviewPanel({ listingId, onClose, isCompared, onToggleCompare }: ListingPreviewPanelProps) {
+export default function ListingPreviewPanel({ listingId, onClose, isCompared, onToggleCompare, inline }: ListingPreviewPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [mobilePhotoIndex, setMobilePhotoIndex] = useState(0)
@@ -713,25 +716,60 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
     if (listing.condition) characteristics.push({ label: 'État', value: CONDITION_LABELS[listing.condition] || listing.condition })
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-start justify-center pt-4 md:pt-[4vh] pb-4 md:pb-[4vh] px-2 md:px-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
+  const content = (
+    <div className={cn(
+      'flex flex-col bg-white',
+      inline
+        ? 'h-full'
+        : 'fixed top-0 bottom-0 left-1/2 -translate-x-1/2 z-[80] animate-in fade-in duration-200 shadow-2xl border-x border-gray-200 w-[95%] max-w-[1400px]'
+    )}>
 
-      {/* Modal */}
-      <div className="relative w-full max-w-[1100px] max-h-[92vh] bg-white rounded-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-
-        {/* Close button — outside photo zone, top right */}
+      {/* ── Zillow-style header bar ── */}
+      <div className={cn(
+        'relative flex items-center justify-between shrink-0 border-b border-gray-100/80',
+        inline ? 'h-11 px-4' : 'h-14 px-4 md:px-6 lg:px-8'
+      )}>
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white shadow-md hover:shadow-lg flex items-center justify-center text-gray-600 hover:text-gray-900 transition-all"
-          aria-label="Fermer"
+          className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
         >
-          <X className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Retour</span>
         </button>
 
-        {/* Scrollable content */}
-        <div ref={scrollRef} className="overflow-y-auto flex-1 scrollbar-hide">
+        {!inline && <img src="/megga-logo.svg" alt="MEGGA" className="h-6 absolute left-1/2 -translate-x-1/2" />}
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setIsFavorite(!isFavorite)}
+            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+          >
+            <Heart className={cn('h-3.5 w-3.5', isFavorite && 'fill-red-500 text-red-500')} />
+            <span className="hidden sm:inline">Sauvegarder</span>
+          </button>
+          <button
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({ title: listing?.title || '', url: window.location.href })
+              } else {
+                navigator.clipboard.writeText(window.location.href)
+              }
+            }}
+            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Partager</span>
+          </button>
+          <button
+            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div ref={scrollRef} className="overflow-y-auto flex-1 scrollbar-hide">
 
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-[400px]">
@@ -744,26 +782,20 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   PHOTO GALLERY — Desktop: 3-col grid, Mobile: carousel
                   ════════════════════════════════════════════════════════════ */}
 
-              {/* Desktop gallery */}
+              {/* Desktop gallery — Zillow 5-photo layout */}
               <div className="hidden md:block">
                 {photoCount > 0 ? (
-                  <div className="grid grid-cols-3 gap-1 h-[480px] rounded-t-2xl overflow-hidden">
-                    {/* Main photo — 2/3 width */}
+                  <div className="grid grid-cols-4 grid-rows-2 gap-[3px] h-[520px]">
+                    {/* Main photo — spans 2 cols + 2 rows */}
                     <div
-                      className="col-span-2 h-full relative overflow-hidden cursor-pointer group"
+                      className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer group"
                       onClick={() => openLightbox(0)}
                     >
                       <img
                         src={photos[photoIndex]}
                         alt={listing.title}
-                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                        className="w-full h-full object-cover"
                       />
-                      {/* Gradient overlay bottom for UI readability */}
-                      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-                      {/* Photo counter */}
-                      <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        {photoCount} photos
-                      </div>
                       {/* MEGGA Staging toggle */}
                       {hasStagedPhotos && (
                         <button
@@ -779,7 +811,6 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                           {showStaged ? 'Voir original' : 'Voir meublé'}
                         </button>
                       )}
-                      {/* Staged badge */}
                       {showStaged && hasStagedPhotos && (
                         <div className="absolute top-4 left-4 bg-accent/80 text-white text-[10px] font-semibold px-2 py-0.5 rounded z-10">
                           MEGGA Staging
@@ -787,42 +818,34 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       )}
                     </div>
 
-                    {/* Right column — 2 stacked photos */}
-                    <div className="col-span-1 grid grid-rows-2 gap-1 h-full">
-                      <div
-                        className="overflow-hidden cursor-pointer group"
-                        onClick={() => openLightbox(1)}
-                      >
-                        <img
-                          src={photos[1] || photos[0]}
-                          alt=""
-                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                        />
-                      </div>
-                      <div
-                        className="overflow-hidden cursor-pointer group relative"
-                        onClick={() => openLightbox(2)}
-                      >
-                        <img
-                          src={photos[2] || photos[0]}
-                          alt=""
-                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                        />
-                        {/* "Voir les X photos" overlay — always show if 2+ photos */}
-                        {photoCount >= 2 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openLightbox(0) }}
-                            className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-white transition-colors flex items-center gap-1.5"
-                          >
-                            <Images className="w-3.5 h-3.5" />
-                            {photoCount} photos
-                          </button>
-                        )}
-                      </div>
+                    {/* Top-right photos */}
+                    <div className="overflow-hidden cursor-pointer" onClick={() => openLightbox(1)}>
+                      <img src={photos[1] || photos[0]} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="overflow-hidden cursor-pointer" onClick={() => openLightbox(2)}>
+                      <img src={photos[2] || photos[0]} alt="" className="w-full h-full object-cover" />
+                    </div>
+
+                    {/* Bottom-right photos */}
+                    <div className="overflow-hidden cursor-pointer" onClick={() => openLightbox(3)}>
+                      <img src={photos[3] || photos[1] || photos[0]} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="overflow-hidden cursor-pointer relative" onClick={() => openLightbox(4)}>
+                      <img src={photos[4] || photos[2] || photos[0]} alt="" className="w-full h-full object-cover" />
+                      {/* "See all X photos" button */}
+                      {photoCount >= 2 && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openLightbox(0) }}
+                          className="absolute bottom-3 right-3 bg-white text-gray-900 text-xs font-semibold px-3.5 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm"
+                        >
+                          <Images className="w-3.5 h-3.5" />
+                          Voir les {photoCount} photos
+                        </button>
+                      )}
                     </div>
                   </div>
                 ) : (
-                  <div className="h-[300px] bg-gray-100 flex items-center justify-center rounded-t-2xl">
+                  <div className="h-[300px] bg-gray-100 flex items-center justify-center">
                     <div className="text-center">
                       <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                       <p className="text-sm text-gray-400">Aucune photo disponible</p>
@@ -1020,7 +1043,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     <div className="flex flex-wrap items-center gap-3 mt-4">
                       {/* Walk Score */}
                       {walkScore && walkScore.score > 0 && (
-                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
                           <div className="relative w-9 h-9">
                             <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
                               <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
@@ -1051,7 +1074,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       {listing.canton && listing.price > 0 && (() => {
                         const cost = estimateMonthlyCost(listing.price, listing.canton, listing.charges_monthly)
                         return (
-                          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100">
+                          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
                             <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center">
                               <span className="text-accent text-[10px] font-bold">CHF</span>
                             </div>
@@ -1109,7 +1132,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                             return (
                               <span
                                 key={i}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100 text-gray-700 text-sm font-medium"
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-700 text-sm font-medium"
                               >
                                 <Icon className="w-4 h-4 text-gray-500" />
                                 {label}
@@ -1122,7 +1145,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                     {/* Agency card */}
                     {listing.agency_name && (
-                      <div className="flex items-center gap-3 mt-5 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <div className="flex items-center gap-3 mt-5 p-3 rounded-lg bg-gray-50 border border-gray-100">
                         <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
                           {listing.agency_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                         </div>
@@ -1171,7 +1194,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   <div id="preview-map" className="mt-8 pt-6 border-t border-gray-100">
                     <h3 className="text-base font-semibold text-gray-900 mb-4">Localisation</h3>
                     {listing.lat && listing.lng && MAPBOX_TOKEN ? (
-                      <div className="h-[250px] rounded-xl overflow-hidden border border-gray-100">
+                      <div className="h-[250px] rounded-lg overflow-hidden border border-gray-100">
                         <MapGL
                           initialViewState={{ latitude: listing.lat, longitude: listing.lng, zoom: 14 }}
                           mapboxAccessToken={MAPBOX_TOKEN}
@@ -1190,7 +1213,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                         </MapGL>
                       </div>
                     ) : (
-                      <div className="h-[200px] rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                      <div className="h-[200px] rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
                         <div className="text-center">
                           <MapPin className="h-6 w-6 text-gray-300 mx-auto mb-1" />
                           <p className="text-sm text-gray-500">{listing.address}, {listing.city}</p>
@@ -1237,14 +1260,14 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                                 window.history.replaceState(null, '', `?${params.toString()}`)
                                 window.dispatchEvent(new PopStateEvent('popstate'))
                               }}
-                              className="rounded-xl border border-gray-100 overflow-hidden hover:border-gray-200 hover:shadow-md transition-all text-left group"
+                              className="rounded-lg border border-gray-100 overflow-hidden hover:border-gray-200 hover:shadow-md transition-all text-left group"
                             >
                               <div className="aspect-[4/3] overflow-hidden bg-gray-100">
                                 {photo ? (
                                   <img
                                     src={photo}
                                     alt={sl.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    className="w-full h-full object-cover transition-transform duration-300"
                                     loading="lazy"
                                     decoding="async"
                                   />
@@ -1281,14 +1304,14 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     {/* Primary CTA */}
                     <button
                       onClick={() => setShowDatePicker(true)}
-                      className="w-full h-12 bg-accent hover:bg-accent/90 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+                      className="w-full h-12 bg-accent hover:bg-accent/90 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                     >
                       <CalendarDays className="w-5 h-5" />
                       Planifier une visite
                     </button>
 
                     {/* Secondary CTA */}
-                    <button className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-gray-900 font-medium rounded-xl flex items-center justify-center gap-2 transition-colors">
+                    <button className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-gray-900 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors">
                       <Phone className="w-5 h-5" />
                       Contacter l'agent
                     </button>
@@ -1309,7 +1332,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       <button
                         onClick={() => setIsFavorite(!isFavorite)}
                         className={cn(
-                          'flex-1 h-10 bg-white border text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors',
+                          'flex-1 h-10 bg-white border text-sm font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors',
                           isFavorite
                             ? 'border-red-200 bg-red-50 text-red-500'
                             : 'border-gray-200 hover:border-gray-300 text-gray-600'
@@ -1322,7 +1345,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                         <button
                           onClick={onToggleCompare}
                           className={cn(
-                            'h-10 w-10 border rounded-xl flex items-center justify-center transition-colors flex-shrink-0',
+                            'h-10 w-10 border rounded-lg flex items-center justify-center transition-colors flex-shrink-0',
                             isCompared
                               ? 'bg-accent border-accent text-white'
                               : 'bg-white border-gray-200 hover:border-gray-300 text-gray-600'
@@ -1347,7 +1370,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                             setTimeout(() => setShareCopied(false), 2000)
                           }
                         }}
-                        className="flex-1 h-10 bg-white border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                        className="flex-1 h-10 bg-white border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors"
                       >
                         {shareCopied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
                         {shareCopied ? 'Copié' : 'Partager'}
@@ -1363,7 +1386,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                     {/* Agency info */}
                     {listing.agency_name && (
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
                         <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">
                           {listing.agency_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                         </div>
@@ -1399,20 +1422,23 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                 </div>
               </div>
 
+              {/* ── Footer ── */}
+              <Footer />
+
               {/* ── Mobile CTA bar ── */}
               <div className="md:hidden sticky bottom-0 bg-white border-t border-gray-100 p-4 flex gap-3 z-40">
-                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold bg-accent text-white rounded-xl hover:bg-accent/90 transition-colors">
+                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors">
                   <CalendarDays className="h-4 w-4" />
                   Visite
                 </button>
-                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-medium border border-gray-200 text-gray-700 rounded-xl hover:border-gray-300 transition-colors">
+                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-medium border border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 transition-colors">
                   <Phone className="h-4 w-4" />
                   Appeler
                 </button>
                 <button
                   onClick={() => setIsFavorite(!isFavorite)}
                   className={cn(
-                    'h-11 w-11 rounded-xl border flex items-center justify-center transition-colors',
+                    'h-11 w-11 rounded-lg border flex items-center justify-center transition-colors',
                     isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 text-gray-500'
                   )}
                 >
@@ -1431,7 +1457,6 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
             </div>
           )}
         </div>
-      </div>
 
       {/* Lightbox */}
       {listing && (
@@ -1448,7 +1473,15 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
           listingId={listingId}
         />
       )}
-    </div>,
+    </div>
+  )
+
+  if (inline) return content
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[79] bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={onClose} />
+      {content}
+    </>,
     document.body
   )
 }
