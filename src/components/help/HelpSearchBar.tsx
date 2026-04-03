@@ -38,10 +38,13 @@ export default function HelpSearchBar() {
     return fuse.search(query).slice(0, 6).map(r => r.item)
   }, [fuse, query])
 
+  // Sync derived state from query — intentional setState on query change
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setActiveIndex(-1)
     setOpen(query.trim().length > 0)
   }, [query])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

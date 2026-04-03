@@ -638,7 +638,6 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
     .slice(0, 6)
 
   // Reset state when listing changes — intentional setState on prop change
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setPhotoIndex(0)
     setMobilePhotoIndex(0)
@@ -648,7 +647,6 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
     setLightboxOpen(false)
     setFloorPlanRoom(null)
   }, [listingId])
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Escape key + body scroll lock
   useEffect(() => {
@@ -680,6 +678,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
       observers.push(obs)
     }
     return () => observers.forEach(o => o.disconnect())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listingId, listing])
 
   if (!listingId) return null

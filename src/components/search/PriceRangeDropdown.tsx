@@ -211,10 +211,13 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
   const [localMin, setLocalMin] = useState(minPrice ? Number(minPrice) : bounds.min)
   const [localMax, setLocalMax] = useState(maxPrice ? Number(maxPrice) : bounds.max)
 
+  // Sync local state from props — intentional setState on prop change
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setLocalMin(minPrice ? Number(minPrice) : bounds.min)
     setLocalMax(maxPrice ? Number(maxPrice) : bounds.max)
   }, [minPrice, maxPrice, bounds.min, bounds.max])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -234,10 +237,13 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
   const [inputMin, setInputMin] = useState('')
   const [inputMax, setInputMax] = useState('')
 
+  // Sync input strings from local values — intentional setState
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setInputMin(localMin <= bounds.min ? '' : String(localMin))
     setInputMax(localMax >= bounds.max ? '' : String(localMax))
   }, [localMin, localMax, bounds.min, bounds.max])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div className="relative" ref={ref}>

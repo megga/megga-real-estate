@@ -61,6 +61,7 @@ export default function BuyerStagingPanel({ photoUrl, onClose, className }: Buye
     } finally {
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photoUrl, style, remaining])
 
   return (

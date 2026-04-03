@@ -775,6 +775,19 @@ export default function SearchPage() {
   const [sidebarView, setSidebarView] = useState('search')
   const [mapImmersive, setMapImmersive] = useState(false)
   const [mapToolsOpen, setMapToolsOpen] = useState(false)
+  const [mapState, setMapState] = useState({ isDrawing: false, hasPolygon: false, showTools: false, showHeatmap: false, mapStyleId: 'standard' as string })
+  const syncMapState = useCallback(() => {
+    const m = mapViewRef.current
+    if (m) {
+      setMapState({
+        isDrawing: !!m.isDrawing,
+        hasPolygon: !!m.hasPolygon,
+        showTools: !!m.showTools,
+        showHeatmap: !!m.showHeatmap,
+        mapStyleId: m.mapStyleId ?? 'standard',
+      })
+    }
+  }, [])
   const mapToolsRef = useRef<HTMLDivElement>(null)
   const [splitRatio, setSplitRatio] = useState(() => {
     const stored = localStorage.getItem('megga-split-ratio')
@@ -821,7 +834,7 @@ export default function SearchPage() {
   const { data: mapPoints } = useMapPoints(serverFilters)
 
   // Aplatir les pages en une seule liste
-  const allListings = listingsData?.pages.flatMap((p) => p.listings) ?? []
+  const allListings = useMemo(() => listingsData?.pages.flatMap((p) => p.listings) ?? [], [listingsData])
   const totalCount = listingsData?.pages[0]?.totalCount ?? 0
 
   // Sync filters to URL
@@ -1191,9 +1204,9 @@ export default function SearchPage() {
                 <LocateFixed className="h-3 w-3" />
                 Recentrer
               </button>
-              {!mapViewRef.current?.isDrawing && !mapViewRef.current?.hasPolygon && (
+              {!mapState.isDrawing && !mapState.hasPolygon && (
                 <button
-                  onClick={() => mapViewRef.current?.startDrawing()}
+                  onClick={() => { mapViewRef.current?.startDrawing(); syncMapState() }}
                   className="h-7 px-2.5 rounded-lg text-[11px] font-medium text-gray-400 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
                   title="Dessiner une zone sur la carte"
                 >
@@ -1203,10 +1216,10 @@ export default function SearchPage() {
               )}
               <div className="relative" ref={mapToolsRef}>
                 <button
-                  onClick={() => setMapToolsOpen(v => !v)}
+                  onClick={() => { syncMapState(); setMapToolsOpen(v => !v) }}
                   className={cn(
                     'h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap',
-                    mapToolsOpen || mapViewRef.current?.showTools || mapViewRef.current?.showHeatmap
+                    mapToolsOpen || mapState.showTools || mapState.showHeatmap
                       ? 'bg-accent/10 text-accent'
                       : 'text-gray-400 hover:text-gray-600'
                   )}
@@ -1227,11 +1240,11 @@ export default function SearchPage() {
                       { id: 'dark', label: 'Sombre', icon: Moon },
                     ] as const).map(style => {
                       const Icon = style.icon
-                      const isActive = mapViewRef.current?.mapStyleId === style.id
+                      const isActive = mapState.mapStyleId === style.id
                       return (
                         <button
                           key={style.id}
-                          onClick={() => mapViewRef.current?.setMapStyle(style.id)}
+                          onClick={() => { mapViewRef.current?.setMapStyle(style.id); syncMapState() }}
                           className={cn(
                             'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
                             isActive ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
@@ -1247,10 +1260,10 @@ export default function SearchPage() {
 
                     {/* Heatmap */}
                     <button
-                      onClick={() => mapViewRef.current?.toggleHeatmap()}
+                      onClick={() => { mapViewRef.current?.toggleHeatmap(); syncMapState() }}
                       className={cn(
                         'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                        mapViewRef.current?.showHeatmap ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                        mapState.showHeatmap ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
                       )}
                     >
                       <Thermometer className="h-3.5 w-3.5" />
@@ -1259,10 +1272,10 @@ export default function SearchPage() {
 
                     {/* Advanced tools toggle */}
                     <button
-                      onClick={() => mapViewRef.current?.toggleTools()}
+                      onClick={() => { mapViewRef.current?.toggleTools(); syncMapState() }}
                       className={cn(
                         'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                        mapViewRef.current?.showTools ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                        mapState.showTools ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
                       )}
                     >
                       <Mountain className="h-3.5 w-3.5" />

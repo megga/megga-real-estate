@@ -1901,6 +1901,7 @@ export default function ListingFormPage() {
     } catch {
       setAutoSaveStatus('idle')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, updateProperty, createProperty])
 
   // Watch form changes for auto-save
