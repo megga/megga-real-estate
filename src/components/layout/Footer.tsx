@@ -10,16 +10,16 @@ const LINKS_RECHERCHER = [
 const LINKS_PRO = [
   { label: 'CRM immobilier', href: '/services' },
   { label: 'Publier un bien', href: '/publier' },
-  { label: 'Tarifs agences', href: '/services' },
+  { label: 'Tarifs agences', href: '/services#tarifs' },
   { label: 'Devenir partenaire', href: '/register' },
 ]
 
 const LINKS_MEGGA = [
-  { label: 'À propos', href: '/services' },
+  { label: 'À propos', href: '/services#about' },
   { label: 'Centre d\'aide', href: '/aide' },
   { label: 'Nous contacter', href: '/aide/contact' },
   { label: 'Confidentialité', href: '/privacy' },
-  { label: 'Conditions générales', href: '/services' },
+  { label: 'Conditions générales', href: '/privacy' },
 ]
 
 function FooterLinkColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {

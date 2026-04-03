@@ -134,11 +134,12 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           <div className="ml-auto flex items-center gap-0.5">
             <button
               onClick={onToggleCollapse}
+              aria-label="Réduire la sidebar"
               className="hidden lg:flex p-1.5 rounded-md hover:bg-theme-hover transition-colors"
             >
               <PanelLeftClose className="h-4 w-4 text-theme-tertiary" />
             </button>
-            <button onClick={onClose} className="lg:hidden p-1.5 rounded-md hover:bg-theme-hover">
+            <button onClick={onClose} aria-label="Fermer le menu" className="lg:hidden p-1.5 rounded-md hover:bg-theme-hover">
               <X className="h-5 w-5 text-theme-muted" />
             </button>
           </div>
@@ -153,6 +154,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
         >
           <button
             onClick={() => onOpenCommandPalette?.()}
+            aria-label="Rechercher"
             className="w-10 h-8 rounded-lg flex items-center justify-center hover:bg-theme-hover transition-colors text-theme-tertiary hover:text-theme-primary"
           >
             <Search className="w-[18px] h-[18px] stroke-[1.8]" />
@@ -262,6 +264,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           >
             <button
               onClick={onToggleCollapse}
+              aria-label="Déplier la sidebar"
               className="mx-auto flex items-center justify-center w-10 h-9 rounded-lg text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors cursor-pointer"
             >
               <PanelLeftOpen className="w-[18px] h-[18px] stroke-[1.8]" />
@@ -277,6 +280,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
         >
           <button
             onClick={toggleTheme}
+            aria-label={theme === 'light' ? 'Activer le mode sombre' : 'Activer le mode clair'}
             className={cn(navRow(isCol, false), 'w-full')}
           >
             {theme === 'light' ? (

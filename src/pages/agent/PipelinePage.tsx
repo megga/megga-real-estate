@@ -361,8 +361,12 @@ export default function PipelinePage() {
 
   function confirmLost(reason: string) {
     if (!lostConfirm) return
-    void reason // TODO: save reason to transactions.notes + activity_event
-    updateStage.mutate({ id: lostConfirm.dealId, stage: 'lost' })
+    updateStage.mutate({
+      id: lostConfirm.dealId,
+      stage: 'lost',
+      notes: `Perdu — raison : ${reason}`,
+      lostReason: reason,
+    })
     setLostConfirm(null)
   }
 

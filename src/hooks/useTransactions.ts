@@ -77,14 +77,48 @@ export function useCreateTransaction() {
 export function useUpdateTransactionStage() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, stage }: { id: string; stage: TransactionStage }) => {
+    mutationFn: async ({ id, stage, notes, lostReason }: {
+      id: string
+      stage: TransactionStage
+      notes?: string
+      lostReason?: string
+    }) => {
+      // Fetch old stage for activity_event metadata
+      const { data: old } = await supabase
+        .from('transactions')
+        .select('stage, agency_id, contact_buyer_id, contact_seller_id')
+        .eq('id', id)
+        .single()
+
+      const updatePayload: Record<string, unknown> = { stage }
+      if (notes !== undefined) updatePayload.notes = notes
+
       const { data, error } = await supabase
         .from('transactions')
-        .update({ stage })
+        .update(updatePayload)
         .eq('id', id)
         .select()
         .single()
       if (error) throw error
+
+      // Log activity_event for stage change
+      const { data: { user } } = await supabase.auth.getUser()
+      if (old) {
+        await supabase.from('activity_events').insert({
+          agency_id: old.agency_id,
+          actor_id: user?.id ?? null,
+          action: 'stage_change',
+          entity_type: 'transaction',
+          entity_id: id,
+          metadata: {
+            old_stage: old.stage,
+            new_stage: stage,
+            ...(lostReason ? { lost_reason: lostReason } : {}),
+            contact_id: old.contact_buyer_id || old.contact_seller_id,
+          },
+        })
+      }
+
       return data
     },
     onSuccess: (_, variables) => {

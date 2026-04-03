@@ -4,7 +4,7 @@ import { Sparkles, X, Send, Loader2, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
-import { ALL_ARTICLES } from '@/lib/helpArticles'
+import { ALL_ARTICLES, type HelpArticle } from '@/lib/helpArticles'
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -79,19 +79,19 @@ export default function HelpChatbot() {
       setMessages(prev => [...prev, assistantMsg])
     } catch {
       // Fallback: local fuzzy search
-      const Fuse = (await import('fuse.js')).default
-      const fuse = new Fuse(ALL_ARTICLES, { threshold: 0.4, keys: ['title', 'description', 'keywords'] })
-      const results = fuse.search(text).slice(0, 3)
+      const FuseModule = (await import('fuse.js')).default
+      const fuse = new FuseModule(ALL_ARTICLES, { threshold: 0.4, keys: ['title', 'description', 'keywords'] as const })
+      const results = fuse.search(text).slice(0, 3) as { item: HelpArticle }[]
 
       const fallbackContent = results.length > 0
-        ? `Voici ce que j'ai trouvé :\n\n${results.map(r => `- [${r.item.title}](/aide/${r.item.category}/${r.item.slug})`).join('\n')}`
+        ? `Voici ce que j'ai trouvé :\n\n${results.map((r: { item: HelpArticle }) => `- [${r.item.title}](/aide/${r.item.category}/${r.item.slug})`).join('\n')}`
         : "Je n'ai pas trouvé de réponse. Vous pouvez envoyer un ticket à notre équipe."
 
       setMessages(prev => [...prev, {
         id: `a-${Date.now()}`,
         role: 'assistant',
         content: fallbackContent,
-        suggestedArticles: results.map(r => ({ slug: r.item.slug, title: r.item.title, category: r.item.category })),
+        suggestedArticles: results.map((r: { item: HelpArticle }) => ({ slug: r.item.slug, title: r.item.title, category: r.item.category })),
         shouldEscalate: results.length === 0,
       }])
     } finally {

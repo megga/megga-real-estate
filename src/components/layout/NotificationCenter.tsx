@@ -52,6 +52,7 @@ export default function NotificationCenter() {
       {/* Bell button */}
       <button
         onClick={() => setOpen(!open)}
+        aria-label="Notifications"
         className="relative w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer"
       >
         <Bell className="w-[18px] h-[18px] text-gray-500" />
@@ -80,6 +81,7 @@ export default function NotificationCenter() {
               )}
               <button
                 onClick={() => setOpen(false)}
+                aria-label="Fermer les notifications"
                 className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-3.5 h-3.5 text-gray-400" />

@@ -428,7 +428,7 @@
   },
   "apps": {
     "filters": { "all": "All", "connected": "Connected", "calendar": "Calendar", "crm": "CRM", "tools": "Tools", "storage": "Storage" },
-    "status": { "connected": "Connected", "notConnected": "Not connected", "comingSoon": "Soon", "connect": "Connect" },
+    "status": { "connected": "Connected", "notConnected": "Not connected", "comingSoon": "Soon", "connect": "Connect", "connectedDetail": "Active — domain megga.ch verified" },
     "empty": "No applications in this category.",
     "google-calendar": { "name": "Google Calendar", "desc": "Visit and appointment sync" },
     "outlook-calendar": { "name": "Outlook Calendar", "desc": "Visit and appointment sync" },
