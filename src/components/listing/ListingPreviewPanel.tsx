@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
-  ChevronDown, ChevronUp, ChevronLeft, MoreHorizontal,
+  X, ChevronDown, ChevronUp, ChevronLeft, MoreHorizontal,
   MapPin, Maximize2, Heart, Share2,
   Phone, CalendarDays, Building2, Home, Calendar, Eye,
   Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,

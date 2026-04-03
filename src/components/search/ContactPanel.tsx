@@ -13,16 +13,6 @@ interface Props {
 
 // ─── Avatars ────────────────────────────────────────────────────────────────
 
-function UserAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
-  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
-  const s = size === 'sm' ? 'h-7 w-7 text-[10px]' : 'h-9 w-9 text-xs'
-  return (
-    <div className={cn(s, 'rounded-full bg-gray-100 flex items-center justify-center font-semibold text-gray-500 shrink-0')}>
-      {initials}
-    </div>
-  )
-}
-
 function AgentAvatar({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   const s = size === 'sm' ? 'h-7 w-7' : 'h-9 w-9'
   return (
@@ -267,7 +257,6 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
   }
 
   const hasMessages = messages.length > 0
-  const displayName = profile?.full_name || user?.email || ''
 
   return (
     <div className="flex flex-col h-full bg-white">
