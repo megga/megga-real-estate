@@ -1,4 +1,4 @@
-import { ArrowLeft, Bookmark, Bell, BellOff, Trash2, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Bell, BellOff, Trash2, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSavedSearches } from '@/hooks/useSavedSearches'
 
