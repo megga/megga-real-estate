@@ -103,12 +103,12 @@ interface FormData {
   motivation: string
 }
 
-const STEP_LABELS = ['Adresse', 'Détails', 'Photos', 'Coordonnées']
+const STEP_LABELS = ['Adresse', 'Détails', 'Photos', 'Contact']
 
 // ─── Component ───────────────────────────────────────────
 
 export default function VendrePage() {
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(0) // 0 = hero, 1-4 = wizard steps
   const [form, setForm] = useState<FormData>({
     address: '', city: '', canton: '', postalCode: '', lat: undefined, lng: undefined,
     propertyType: '', rooms: '', bedrooms: '', surface: '', condition: '', yearBuilt: '',
@@ -121,6 +121,7 @@ export default function VendrePage() {
   const [geoResults, setGeoResults] = useState<GeocodingResult[]>([])
   const [geoOpen, setGeoOpen] = useState(false)
   const geoTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const wizardRef = useRef<HTMLDivElement>(null)
 
   // Estimation
   const [estimationParams, setEstimationParams] = useState<EstimationParams | null>(null)
@@ -234,6 +235,16 @@ export default function VendrePage() {
 
   // ─── Navigation ────────────────────────────────────────
 
+  function startWizard(type?: string) {
+    if (type) {
+      setForm(prev => ({ ...prev, propertyType: type }))
+    }
+    setStep(1)
+    setTimeout(() => {
+      wizardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+
   function goNext() {
     if (step < 4) {
       setStep(step + 1)
@@ -316,79 +327,23 @@ export default function VendrePage() {
 
   // Success screen
   if (submitted) {
-    const typeLabel = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.label || form.propertyType
-    const firstName = form.contactName.split(' ')[0] || form.contactName
-
     return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="max-w-xl mx-auto px-4 py-16 text-center">
-          {/* Animated check */}
-          <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12l5 5L20 7" className="animate-[draw_0.5s_ease-out_0.3s_both]" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: 'draw 0.5s ease-out 0.3s forwards' }} />
-            </svg>
-          </div>
-          <style>{`@keyframes draw { to { stroke-dashoffset: 0; } }`}</style>
-
-          <h1 className="text-2xl font-semibold text-gray-900">Merci {firstName} !</h1>
-          <p className="text-gray-500 mt-2">Votre demande a été envoyée avec succès.</p>
-
-          {/* Recap box */}
-          <div className="mt-6 rounded-xl border border-gray-200 p-5 text-left">
-            <div className="flex items-center gap-3 mb-3">
-              {form.photos[0] ? (
-                <img src={URL.createObjectURL(form.photos[0])} alt="" className="h-14 w-14 rounded-lg object-cover" />
-              ) : (
-                <div className="h-14 w-14 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-gray-400" />
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-medium text-gray-900">{typeLabel} {form.rooms}p</p>
-                <p className="text-xs text-gray-500">{form.address}, {form.city || form.canton}</p>
-              </div>
-            </div>
-            {estimation && (
-              <div className="bg-gray-50 rounded-lg p-4 mb-3">
-                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Estimation</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {estimation.estimation_min && estimation.estimation_max
-                    ? `${formatCHF(estimation.estimation_min)} — ${formatCHF(estimation.estimation_max)}`
-                    : estimation.estimation ? formatCHF(estimation.estimation) : '—'
-                  }
-                </p>
-              </div>
-            )}
-            <p className="text-sm text-gray-600">Un agent de votre région vous contactera sous 24h.</p>
-          </div>
-
-          <p className="text-xs text-gray-400 mt-4">
-            Un email de confirmation a été envoyé à <strong>{form.contactEmail}</strong>
-          </p>
-          <p className="text-xs text-gray-400 mt-2">
-            Dès que votre agent prendra en charge votre dossier, vous recevrez un accès
-            à votre espace vendeur pour suivre la vente en temps réel.
-          </p>
-
-          {/* Action buttons */}
-          <div className="flex items-center justify-center gap-3 mt-8">
-            <a
-              href="/"
-              className="h-10 px-5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors inline-flex items-center"
-            >
-              Retour à l'accueil
-            </a>
-            <button
-              onClick={() => { setSubmitted(false); setStep(1); setForm(f => ({ ...f, contactName: '', contactEmail: '', contactPhone: '', motivation: '' as 'immediate', photos: [], address: '', city: '', canton: '', postalCode: '', lat: undefined, lng: undefined, propertyType: '', rooms: '', bedrooms: '', surface: '', condition: '', yearBuilt: '' })); setShowEstimation(false); setEstimationParams(null) }}
-              className="h-10 px-5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors"
-            >
-              Estimer un autre bien
-            </button>
-          </div>
-        </div>
-        <Footer />
-      </div>
+      <SuccessScreen
+        form={form}
+        estimation={estimation}
+        onReset={() => {
+          setSubmitted(false)
+          setStep(0)
+          setForm({
+            address: '', city: '', canton: '', postalCode: '', lat: undefined, lng: undefined,
+            propertyType: '', rooms: '', bedrooms: '', surface: '', condition: '', yearBuilt: '',
+            photos: [], photoUrls: [],
+            contactName: '', contactEmail: '', contactPhone: '', motivation: '',
+          })
+          setShowEstimation(false)
+          setEstimationParams(null)
+        }}
+      />
     )
   }
 
@@ -397,13 +352,13 @@ export default function VendrePage() {
     return (
       <div className="min-h-screen bg-white">
         <Navbar />
-        <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="max-w-xl mx-auto px-4 pt-10 pb-20">
           <button
             onClick={goBack}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-8 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 mb-10 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Retour aux photos
+            Retour
           </button>
 
           {estimationLoading ? (
@@ -415,8 +370,8 @@ export default function VendrePage() {
               onContinue={() => { setShowEstimation(false); setStep(4); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
             />
           ) : (
-            <div className="text-center py-16">
-              <p className="text-gray-500">Données insuffisantes pour estimer ce bien.</p>
+            <div className="text-center py-20">
+              <p className="text-gray-500">Donnees insuffisantes pour estimer ce bien.</p>
               <button onClick={goBack} className="mt-4 text-sm text-gray-900 underline">
                 Modifier les informations
               </button>
@@ -432,293 +387,381 @@ export default function VendrePage() {
     <div className="min-h-screen bg-white">
       <Navbar />
 
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
-            Estimez votre bien gratuitement
-          </h1>
-          <p className="text-gray-500 mt-2 text-sm">
-            Résultat instantané basé sur {formatCHF(38000).replace('CHF ', '')}+ biens analysés en Suisse
-          </p>
-        </div>
+      {/* ─── Hero Section ─── */}
+      {step === 0 && (
+        <section className="pt-20 pb-16 md:pt-28 md:pb-24 px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight leading-[1.1]">
+              Combien vaut votre bien ?
+            </h1>
+            <p className="text-lg text-gray-500 mt-5 max-w-lg mx-auto leading-relaxed">
+              Estimation gratuite et instantanee basee sur {formatCHF(38000).replace('CHF ', '')}+ biens analyses en Suisse
+            </p>
 
-        {/* Stepper */}
-        <div className="flex items-center justify-center gap-8 mb-10">
-          {STEP_LABELS.map((label, i) => {
-            const num = i + 1
-            const isCurrent = step === num
-            const isDone = step > num
-            return (
-              <button
-                key={label}
-                className={cn(
-                  'text-sm pb-2 border-b-2 transition-colors',
-                  isCurrent ? 'text-gray-900 border-gray-900 font-semibold' :
-                  isDone ? 'text-gray-500 border-gray-900' :
-                  'text-gray-400 border-transparent'
-                )}
-                onClick={() => { if (isDone) setStep(num) }}
-                disabled={!isDone}
-              >
-                {num}. {label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Step 1 — Address */}
-        {step === 1 && (
-          <div className="space-y-6">
-            <div className="relative">
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Adresse du bien
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={geoQuery}
-                  onChange={e => searchGeo(e.target.value)}
-                  onFocus={() => { if (geoResults.length) setGeoOpen(true) }}
-                  placeholder="Rue, numéro, ville..."
-                  autoFocus
-                  className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
-                />
-              </div>
-
-              {/* Autocomplete dropdown */}
-              {geoOpen && geoResults.length > 0 && (
-                <div className="absolute z-30 left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
-                  {geoResults.map((r, i) => (
-                    <button
-                      key={i}
-                      onClick={() => selectGeoResult(r)}
-                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors flex items-start gap-3 border-b border-gray-50 last:border-0"
-                    >
-                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-gray-700">{r.place_name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Trust indicators */}
+            <div className="flex items-center justify-center gap-6 mt-6">
+              {['Gratuit', 'Instantane', 'Confidentiel'].map(label => (
+                <span key={label} className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-900" />
+                  {label}
+                </span>
+              ))}
             </div>
 
-            {/* Address summary */}
-            {form.canton && (
-              <div className="flex flex-wrap gap-2">
-                {form.city && (
-                  <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                    {form.city}
-                  </span>
-                )}
-                <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                  {CANTON_LABELS[form.canton] || form.canton}
-                </span>
-                {form.postalCode && (
-                  <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                    {form.postalCode}
-                  </span>
-                )}
-              </div>
-            )}
-
-            <button
-              onClick={goNext}
-              disabled={!step1Valid}
-              className={cn(
-                'w-full h-12 rounded-lg text-base font-medium transition-colors',
-                step1Valid
-                  ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-                  : 'border border-gray-200 text-gray-400 cursor-not-allowed'
-              )}
-            >
-              Continuer
-            </button>
-          </div>
-        )}
-
-        {/* Step 2 — Details */}
-        {step === 2 && (
-          <div className="space-y-6">
-            <button
-              onClick={goBack}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Retour
-            </button>
-
-            {/* Property type */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-3 block">Type de bien</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            {/* Property type selector — hero */}
+            <div className="mt-12 max-w-lg mx-auto">
+              <p className="text-sm text-gray-400 mb-4">
+                Quel type de bien souhaitez-vous estimer ?
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {PROPERTY_TYPES.map(type => {
                   const Icon = type.icon
-                  const selected = form.propertyType === type.value
                   return (
                     <button
                       key={type.value}
-                      onClick={() => setForm(prev => ({ ...prev, propertyType: type.value }))}
-                      className={cn(
-                        'rounded-xl p-4 text-center transition-all cursor-pointer',
-                        selected
-                          ? 'border-2 border-gray-900 bg-gray-50'
-                          : 'border border-gray-200 hover:border-gray-400'
-                      )}
+                      onClick={() => startWizard(type.value)}
+                      className="rounded-xl border border-gray-200 p-4 text-center hover:border-gray-900 transition-colors group cursor-pointer"
                     >
-                      <Icon className={cn('w-7 h-7 mx-auto', selected ? 'text-gray-900' : 'text-gray-400')} />
-                      <span className="text-sm font-medium mt-2 block">{type.label}</span>
+                      <Icon className="w-7 h-7 mx-auto text-gray-400 group-hover:text-gray-900 transition-colors" />
+                      <span className="text-sm font-medium mt-2 block text-gray-700 group-hover:text-gray-900 transition-colors">
+                        {type.label}
+                      </span>
                     </button>
                   )
                 })}
               </div>
             </div>
 
-            {/* Rooms + Bedrooms */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Pièces</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {ROOM_OPTIONS.slice(0, 10).map(r => (
-                    <button
-                      key={r}
-                      onClick={() => setForm(prev => ({ ...prev, rooms: r }))}
-                      className={cn(
-                        'h-9 px-3 rounded-lg text-sm transition-colors',
-                        form.rooms === r
-                          ? 'bg-gray-900 text-white font-medium'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      )}
-                    >
-                      {r}
-                    </button>
-                  ))}
+            {/* Social proof */}
+            <p className="text-xs text-gray-400 mt-10">
+              12'500+ estimations realisees
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* ─── Wizard ─── */}
+      {step >= 1 && (
+        <div ref={wizardRef} className="max-w-xl mx-auto px-4 pt-10 pb-20">
+
+          {/* Stepper */}
+          <div className="flex items-center justify-center mb-12">
+            {STEP_LABELS.map((label, i) => {
+              const num = i + 1
+              const isCurrent = step === num
+              const isDone = step > num
+              return (
+                <div key={label} className="flex items-center">
+                  {i > 0 && (
+                    <div className={cn(
+                      'w-10 sm:w-14 h-px mx-1',
+                      isDone || isCurrent ? 'bg-gray-900' : 'bg-gray-200'
+                    )} />
+                  )}
+                  <button
+                    onClick={() => { if (isDone) setStep(num) }}
+                    disabled={!isDone}
+                    className="flex items-center gap-2"
+                  >
+                    <span className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
+                      isCurrent ? 'bg-gray-900 text-white' :
+                      isDone ? 'bg-gray-900 text-white' :
+                      'border border-gray-200 text-gray-400'
+                    )}>
+                      {isDone ? (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 12l5 5L20 7" />
+                        </svg>
+                      ) : num}
+                    </span>
+                    <span className={cn(
+                      'text-sm hidden sm:block',
+                      isCurrent ? 'text-gray-900 font-medium' :
+                      isDone ? 'text-gray-600' :
+                      'text-gray-400'
+                    )}>
+                      {label}
+                    </span>
+                  </button>
                 </div>
+              )
+            })}
+          </div>
+
+          {/* Step 1 — Address */}
+          {step === 1 && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                  Ou se trouve votre bien ?
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Commencez a taper l'adresse pour obtenir des suggestions
+                </p>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Chambres</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {BEDROOM_OPTIONS.map(b => (
-                    <button
-                      key={b}
-                      onClick={() => setForm(prev => ({ ...prev, bedrooms: b }))}
-                      className={cn(
-                        'h-9 px-3 rounded-lg text-sm transition-colors',
-                        form.bedrooms === b
-                          ? 'bg-gray-900 text-white font-medium'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      )}
-                    >
-                      {b}
-                    </button>
-                  ))}
+
+              <div className="relative">
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={geoQuery}
+                    onChange={e => searchGeo(e.target.value)}
+                    onFocus={() => { if (geoResults.length) setGeoOpen(true) }}
+                    placeholder="Rue, numero, ville..."
+                    autoFocus
+                    className="w-full h-14 pl-12 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
+                  />
                 </div>
+
+                {/* Autocomplete dropdown */}
+                {geoOpen && geoResults.length > 0 && (
+                  <div className="absolute z-30 left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    {geoResults.map((r, i) => (
+                      <button
+                        key={i}
+                        onClick={() => selectGeoResult(r)}
+                        className="w-full text-left px-4 py-3.5 text-sm hover:bg-gray-50 transition-colors flex items-start gap-3 border-b border-gray-50 last:border-0"
+                      >
+                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-700">{r.place_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Address chips */}
+              {form.canton && (
+                <div className="flex flex-wrap gap-2">
+                  {form.city && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
+                      {form.city}
+                    </span>
+                  )}
+                  <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
+                    {CANTON_LABELS[form.canton] || form.canton}
+                  </span>
+                  {form.postalCode && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
+                      {form.postalCode}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Navigation */}
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  onClick={() => setStep(0)}
+                  className="text-sm text-gray-400 hover:text-gray-900 transition-colors"
+                >
+                  Retour
+                </button>
+                <button
+                  onClick={goNext}
+                  disabled={!step1Valid}
+                  className={cn(
+                    'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
+                    step1Valid
+                      ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
+                      : 'border border-gray-200 text-gray-400 cursor-not-allowed'
+                  )}
+                >
+                  Continuer
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
+          )}
 
-            {/* Surface */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Surface habitable</label>
-              <div className="relative">
+          {/* Step 2 — Details */}
+          {step === 2 && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                  Decrivez votre bien
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Ces informations permettent d'affiner l'estimation
+                </p>
+              </div>
+
+              {/* Property type */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-3 block">Type de bien</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                  {PROPERTY_TYPES.map(type => {
+                    const Icon = type.icon
+                    const selected = form.propertyType === type.value
+                    return (
+                      <button
+                        key={type.value}
+                        onClick={() => setForm(prev => ({ ...prev, propertyType: type.value }))}
+                        className={cn(
+                          'rounded-xl p-4 text-center transition-all cursor-pointer',
+                          selected
+                            ? 'border-2 border-gray-900 bg-gray-50'
+                            : 'border border-gray-200 hover:border-gray-400'
+                        )}
+                      >
+                        <Icon className={cn('w-7 h-7 mx-auto', selected ? 'text-gray-900' : 'text-gray-400')} />
+                        <span className="text-sm font-medium mt-2 block">{type.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Rooms + Bedrooms */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Pieces</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ROOM_OPTIONS.slice(0, 10).map(r => (
+                      <button
+                        key={r}
+                        onClick={() => setForm(prev => ({ ...prev, rooms: r }))}
+                        className={cn(
+                          'h-9 px-3 rounded-lg text-sm transition-colors',
+                          form.rooms === r
+                            ? 'bg-gray-900 text-white font-medium'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        )}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Chambres</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {BEDROOM_OPTIONS.map(b => (
+                      <button
+                        key={b}
+                        onClick={() => setForm(prev => ({ ...prev, bedrooms: b }))}
+                        className={cn(
+                          'h-9 px-3 rounded-lg text-sm transition-colors',
+                          form.bedrooms === b
+                            ? 'bg-gray-900 text-white font-medium'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        )}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Surface */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Surface habitable</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={form.surface}
+                    onChange={e => setForm(prev => ({ ...prev, surface: e.target.value }))}
+                    placeholder="ex: 95"
+                    className="w-full h-12 px-4 pr-12 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">m2</span>
+                </div>
+              </div>
+
+              {/* Condition */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-3 block">Etat general</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                  {CONDITIONS.map(cond => {
+                    const Icon = cond.icon
+                    const selected = form.condition === cond.value
+                    return (
+                      <button
+                        key={cond.value}
+                        onClick={() => setForm(prev => ({ ...prev, condition: cond.value }))}
+                        className={cn(
+                          'rounded-xl p-3 text-center transition-all cursor-pointer',
+                          selected
+                            ? 'border-2 border-gray-900 bg-gray-50'
+                            : 'border border-gray-200 hover:border-gray-400'
+                        )}
+                      >
+                        <Icon className={cn('w-5 h-5 mx-auto', selected ? 'text-gray-900' : 'text-gray-400')} />
+                        <span className="text-xs font-medium mt-1 block">{cond.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Year built (optional) */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Annee de construction <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
                 <input
                   type="number"
-                  value={form.surface}
-                  onChange={e => setForm(prev => ({ ...prev, surface: e.target.value }))}
-                  placeholder="ex: 95"
-                  className="w-full h-12 px-4 pr-12 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
+                  value={form.yearBuilt}
+                  onChange={e => setForm(prev => ({ ...prev, yearBuilt: e.target.value }))}
+                  placeholder="ex: 1985"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">m²</span>
+              </div>
+
+              {/* Navigation */}
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  onClick={goBack}
+                  className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Retour
+                </button>
+                <button
+                  onClick={goNext}
+                  disabled={!step2Valid}
+                  className={cn(
+                    'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
+                    step2Valid
+                      ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
+                      : 'border border-gray-200 text-gray-400 cursor-not-allowed'
+                  )}
+                >
+                  Continuer
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
+          )}
 
-            {/* Condition */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-3 block">État général</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                {CONDITIONS.map(cond => {
-                  const Icon = cond.icon
-                  const selected = form.condition === cond.value
-                  return (
-                    <button
-                      key={cond.value}
-                      onClick={() => setForm(prev => ({ ...prev, condition: cond.value }))}
-                      className={cn(
-                        'rounded-xl p-3 text-center transition-all cursor-pointer',
-                        selected
-                          ? 'border-2 border-gray-900 bg-gray-50'
-                          : 'border border-gray-200 hover:border-gray-400'
-                      )}
-                    >
-                      <Icon className={cn('w-5 h-5 mx-auto', selected ? 'text-gray-900' : 'text-gray-400')} />
-                      <span className="text-xs font-medium mt-1 block">{cond.label}</span>
-                    </button>
-                  )
-                })}
+          {/* Step 3 — Photos */}
+          {step === 3 && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                  Ajoutez des photos
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Minimum 3 photos. Les photos aident a affiner l'estimation.
+                </p>
               </div>
-            </div>
-
-            {/* Year built (optional) */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Année de construction <span className="text-gray-400 font-normal">(optionnel)</span>
-              </label>
-              <input
-                type="number"
-                value={form.yearBuilt}
-                onChange={e => setForm(prev => ({ ...prev, yearBuilt: e.target.value }))}
-                placeholder="ex: 1985"
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
-              />
-            </div>
-
-            <button
-              onClick={goNext}
-              disabled={!step2Valid}
-              className={cn(
-                'w-full h-12 rounded-lg text-base font-medium transition-colors',
-                step2Valid
-                  ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-                  : 'border border-gray-200 text-gray-400 cursor-not-allowed'
-              )}
-            >
-              Continuer
-            </button>
-          </div>
-        )}
-
-        {/* Step 3 — Photos */}
-        {step === 3 && (
-          <div className="space-y-6">
-            <button
-              onClick={goBack}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Retour
-            </button>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Photos de votre bien
-              </label>
-              <p className="text-xs text-gray-400 mb-4">
-                Minimum 3 photos. Les photos aident à affiner l'estimation.
-              </p>
 
               {/* Drop zone */}
               <div
                 onDragOver={e => e.preventDefault()}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                className="border-2 border-dashed border-gray-200 rounded-xl p-10 text-center cursor-pointer hover:border-gray-400 transition-colors"
               >
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+                <Upload className="w-8 h-8 text-gray-300 mx-auto mb-3" />
                 <p className="text-sm text-gray-600 font-medium">
                   Glissez vos photos ici
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  ou cliquez pour sélectionner (max 10)
+                  ou cliquez pour selectionner (max 10)
                 </p>
                 <input
                   ref={fileInputRef}
@@ -732,7 +775,7 @@ export default function VendrePage() {
 
               {/* Photo previews */}
               {form.photoUrls.length > 0 && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {form.photoUrls.map((url, i) => (
                     <div key={i} className="relative aspect-[4/3] rounded-lg overflow-hidden group">
                       <img src={url} alt="" className="w-full h-full object-cover" />
@@ -747,7 +790,7 @@ export default function VendrePage() {
                 </div>
               )}
 
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-gray-400">
                 {form.photos.length}/10 photos
                 {form.photos.length < 3 && (
                   <span className="text-amber-600 ml-1">
@@ -755,159 +798,189 @@ export default function VendrePage() {
                   </span>
                 )}
               </p>
+
+              {/* Navigation */}
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  onClick={goBack}
+                  className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Retour
+                </button>
+                <button
+                  onClick={triggerEstimation}
+                  disabled={!step3Valid}
+                  className={cn(
+                    'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
+                    step3Valid
+                      ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
+                      : 'border border-gray-200 text-gray-400 cursor-not-allowed'
+                  )}
+                >
+                  Voir mon estimation
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Skip photos option */}
+              <div className="text-center">
+                <button
+                  onClick={triggerEstimation}
+                  className="text-sm text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
+                >
+                  Passer cette etape
+                </button>
+              </div>
             </div>
+          )}
 
-            <div className="flex gap-3">
-              <button
-                onClick={triggerEstimation}
-                disabled={!step3Valid}
-                className={cn(
-                  'flex-1 h-12 rounded-lg text-base font-medium transition-colors',
-                  step3Valid
-                    ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-                    : 'border border-gray-200 text-gray-400 cursor-not-allowed'
-                )}
-              >
-                Voir mon estimation
-              </button>
-            </div>
+          {/* Step 4 — Contact */}
+          {step === 4 && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                  Vos coordonnees
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Un agent de votre region vous contactera sous 24h
+                </p>
+              </div>
 
-            {/* Skip photos option */}
-            <button
-              onClick={triggerEstimation}
-              className="w-full text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Passer cette étape
-            </button>
-          </div>
-        )}
+              {/* Estimation summary mini */}
+              {estimation?.estimation && (
+                <div className="rounded-xl border border-gray-200 p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-gray-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      Estimation : {formatCHF(estimation.estimation)}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate max-w-xs">
+                      {form.address}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setShowEstimation(true) }}
+                    className="ml-auto text-xs text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0"
+                  >
+                    Revoir
+                  </button>
+                </div>
+              )}
 
-        {/* Step 4 — Contact */}
-        {step === 4 && (
-          <div className="space-y-6">
-            <button
-              onClick={() => { setShowEstimation(true) }}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Revoir l'estimation
-            </button>
-
-            {/* Estimation summary mini */}
-            {estimation?.estimation && (
-              <div className="rounded-xl border border-gray-200 p-4 flex items-center gap-4">
-                <Sparkles className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    Estimation : {formatCHF(estimation.estimation)}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {form.address}
-                  </p>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Nom complet
+                </label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={form.contactName}
+                    onChange={e => setForm(prev => ({ ...prev, contactName: e.target.value }))}
+                    placeholder="Jean Dupont"
+                    autoFocus
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
+                  />
                 </div>
               </div>
-            )}
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Nom complet
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={form.contactName}
-                  onChange={e => setForm(prev => ({ ...prev, contactName: e.target.value }))}
-                  placeholder="Jean Dupont"
-                  autoFocus
-                  className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
-                />
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="email"
+                    value={form.contactEmail}
+                    onChange={e => setForm(prev => ({ ...prev, contactEmail: e.target.value }))}
+                    placeholder="jean@example.ch"
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="email"
-                  value={form.contactEmail}
-                  onChange={e => setForm(prev => ({ ...prev, contactEmail: e.target.value }))}
-                  placeholder="jean@example.ch"
-                  className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
-                />
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Telephone <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={form.contactPhone}
+                    onChange={e => setForm(prev => ({ ...prev, contactPhone: e.target.value }))}
+                    placeholder="+41 79 000 00 00"
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Téléphone <span className="text-gray-400 font-normal">(optionnel)</span>
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="tel"
-                  value={form.contactPhone}
-                  onChange={e => setForm(prev => ({ ...prev, contactPhone: e.target.value }))}
-                  placeholder="+41 79 000 00 00"
-                  className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
-                />
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-3 block">
+                  Quand souhaitez-vous vendre ?
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {MOTIVATIONS.map(m => (
+                    <button
+                      key={m.value}
+                      onClick={() => setForm(prev => ({ ...prev, motivation: m.value }))}
+                      className={cn(
+                        'h-10 px-4 rounded-lg text-sm transition-colors',
+                        form.motivation === m.value
+                          ? 'bg-gray-900 text-white font-medium'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-3 block">
-                Quand souhaitez-vous vendre ?
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {MOTIVATIONS.map(m => (
-                  <button
-                    key={m.value}
-                    onClick={() => setForm(prev => ({ ...prev, motivation: m.value }))}
-                    className={cn(
-                      'h-10 px-4 rounded-lg text-sm transition-colors',
-                      form.motivation === m.value
-                        ? 'bg-gray-900 text-white font-medium'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    )}
-                  >
-                    {m.label}
-                  </button>
-                ))}
+              {/* Navigation */}
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  onClick={() => { setShowEstimation(true) }}
+                  className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Retour
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={!step4Valid || uploading || sellerLead.isPending}
+                  className={cn(
+                    'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
+                    step4Valid && !uploading && !sellerLead.isPending
+                      ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
+                      : 'border border-gray-200 text-gray-400 cursor-not-allowed'
+                  )}
+                >
+                  {(uploading || sellerLead.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {uploading ? 'Upload des photos...' : sellerLead.isPending ? 'Envoi...' : 'Envoyer ma demande'}
+                </button>
               </div>
-            </div>
 
-            <button
-              onClick={handleSubmit}
-              disabled={!step4Valid || uploading || sellerLead.isPending}
-              className={cn(
-                'w-full h-12 rounded-lg text-base font-medium transition-colors flex items-center justify-center gap-2',
-                step4Valid && !uploading && !sellerLead.isPending
-                  ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-                  : 'border border-gray-200 text-gray-400 cursor-not-allowed'
+              {sellerLead.isError && (
+                <p className="text-sm text-red-600 text-center">
+                  Une erreur est survenue. Veuillez reessayer.
+                </p>
               )}
-            >
-              {(uploading || sellerLead.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
-              {uploading ? 'Upload des photos...' : sellerLead.isPending ? 'Envoi...' : 'Envoyer ma demande'}
-            </button>
 
-            {sellerLead.isError && (
-              <p className="text-sm text-red-600 text-center">
-                Une erreur est survenue. Veuillez réessayer.
-              </p>
-            )}
-
-            <div className="flex items-center justify-center gap-1.5">
-              <Lock className="w-3 h-3 text-gray-400" />
-              <p className="text-xs text-gray-400">
-                Vos données sont protégées et ne seront jamais partagées.
-              </p>
+              <div className="flex items-center justify-center gap-1.5 pt-2">
+                <Lock className="w-3 h-3 text-gray-400" />
+                <p className="text-xs text-gray-400">
+                  Vos donnees sont protegees et ne seront jamais partagees.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <Footer />
     </div>
@@ -915,6 +988,91 @@ export default function VendrePage() {
 }
 
 // ─── Sub-components ──────────────────────────────────────
+
+function SuccessScreen({
+  form,
+  estimation,
+  onReset,
+}: {
+  form: FormData
+  estimation: EstimationResult | undefined
+  onReset: () => void
+}) {
+  const typeLabel = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.label || form.propertyType
+  const firstName = form.contactName.split(' ')[0] || form.contactName
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Navbar />
+      <div className="max-w-xl mx-auto px-4 py-20 text-center">
+        {/* Animated check */}
+        <div className="w-20 h-20 rounded-full border-2 border-gray-900 flex items-center justify-center mx-auto mb-8">
+          <svg className="w-10 h-10 text-gray-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12l5 5L20 7" className="animate-[draw_0.5s_ease-out_0.3s_both]" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: 'draw 0.5s ease-out 0.3s forwards' }} />
+          </svg>
+        </div>
+        <style>{`@keyframes draw { to { stroke-dashoffset: 0; } }`}</style>
+
+        <h1 className="text-2xl font-bold text-gray-900">Merci {firstName} !</h1>
+        <p className="text-gray-500 mt-2">Votre demande a ete envoyee avec succes.</p>
+
+        {/* Recap box */}
+        <div className="mt-8 rounded-xl border border-gray-200 p-6 text-left">
+          <div className="flex items-center gap-4 mb-4">
+            {form.photos[0] ? (
+              <img src={URL.createObjectURL(form.photos[0])} alt="" className="h-16 w-16 rounded-xl object-cover" />
+            ) : (
+              <div className="h-16 w-16 rounded-xl bg-gray-100 flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-gray-400" />
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{typeLabel} {form.rooms}p</p>
+              <p className="text-xs text-gray-500">{form.address}</p>
+            </div>
+          </div>
+          {estimation && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <p className="text-xs text-gray-400 mb-1">Estimation</p>
+              <p className="text-lg font-bold text-gray-900">
+                {estimation.estimation_min && estimation.estimation_max
+                  ? `${formatCHF(estimation.estimation_min)} — ${formatCHF(estimation.estimation_max)}`
+                  : estimation.estimation ? formatCHF(estimation.estimation) : '—'
+                }
+              </p>
+            </div>
+          )}
+          <p className="text-sm text-gray-600">Un agent de votre region vous contactera sous 24h.</p>
+        </div>
+
+        <p className="text-xs text-gray-400 mt-6">
+          Un email de confirmation a ete envoye a <strong>{form.contactEmail}</strong>
+        </p>
+        <p className="text-xs text-gray-400 mt-2">
+          Des que votre agent prendra en charge votre dossier, vous recevrez un acces
+          a votre espace vendeur pour suivre la vente en temps reel.
+        </p>
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-center gap-3 mt-8">
+          <a
+            href="/"
+            className="h-10 px-5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors inline-flex items-center"
+          >
+            Retour a l'accueil
+          </a>
+          <button
+            onClick={onReset}
+            className="h-10 px-5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors"
+          >
+            Estimer un autre bien
+          </button>
+        </div>
+      </div>
+      <Footer />
+    </div>
+  )
+}
 
 function EstimationLoading() {
   const [text, setText] = useState('Analyse de votre bien en cours...')
@@ -935,7 +1093,7 @@ function EstimationLoading() {
   }, [])
 
   return (
-    <div className="text-center py-16">
+    <div className="text-center py-20">
       <div className="w-12 h-12 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin mx-auto" />
       <p className="text-base font-medium text-gray-900 mt-6">{text}</p>
       <div className="mt-6 max-w-xs mx-auto">
@@ -964,7 +1122,7 @@ function EstimationResultView({
   const confidenceLabel = {
     low: 'Faible',
     medium: 'Moyen',
-    high: 'Élevé',
+    high: 'Eleve',
   }[estimation.confidence] || 'Moyen'
 
   const confidenceColor = {
@@ -973,34 +1131,46 @@ function EstimationResultView({
     high: 'text-emerald-600',
   }[estimation.confidence] || 'text-gray-600'
 
+  const confidenceBarWidth = {
+    low: '33%',
+    medium: '60%',
+    high: '90%',
+  }[estimation.confidence] || '60%'
+
+  const confidenceBarColor = {
+    low: 'bg-amber-500',
+    medium: 'bg-gray-400',
+    high: 'bg-emerald-500',
+  }[estimation.confidence] || 'bg-gray-400'
+
   return (
     <div className="animate-in fade-in duration-500">
       {/* Header */}
       <div className="text-center">
-        <div className="w-48 h-36 mx-auto mb-4"><EstimationIllustration /></div>
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <div className="w-40 h-32 mx-auto mb-6"><EstimationIllustration /></div>
+        <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">
           estimation IA
-        </span>
-        <p className="text-sm text-gray-500 mt-1">{form.address}</p>
+        </p>
+        <p className="text-sm text-gray-500 mt-2">{form.address}</p>
         <p className="text-xs text-gray-400 mt-0.5">
-          {typeLabel} · {form.rooms} pièces · {form.surface} m²
+          {typeLabel} · {form.rooms} pieces · {form.surface} m2
         </p>
       </div>
 
       {/* Main price */}
       {estimation.estimation ? (
-        <div className="mt-8 text-center">
-          <p className="text-4xl md:text-5xl font-bold text-gray-900 tabular-nums">
+        <div className="mt-10 text-center">
+          <p className="text-4xl md:text-5xl font-bold text-gray-900 tabular-nums tracking-tight">
             {formatCHF(estimation.estimation)}
           </p>
           {estimation.estimation_min && estimation.estimation_max && (
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-500 mt-3">
               entre {formatCHF(estimation.estimation_min)} et {formatCHF(estimation.estimation_max)}
             </p>
           )}
 
           {/* Range bar */}
-          <div className="mt-4 flex items-center gap-0.5 max-w-sm mx-auto">
+          <div className="mt-6 flex items-center gap-0.5 max-w-sm mx-auto">
             <div className="flex-1 h-2 bg-gray-200 rounded-l-full" />
             <div className="flex-[2] h-3 bg-gray-900 rounded-sm relative">
               <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-5 bg-gray-900 rounded-sm" />
@@ -1015,68 +1185,70 @@ function EstimationResultView({
           )}
         </div>
       ) : (
-        <div className="mt-8 text-center">
+        <div className="mt-10 text-center">
           <p className="text-gray-500">
-            Données insuffisantes pour calculer une estimation précise.
+            Donnees insuffisantes pour calculer une estimation precise.
           </p>
         </div>
       )}
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 gap-3 mt-8">
+      <div className="grid grid-cols-3 gap-3 mt-10">
         {estimation.median_price_m2 && (
-          <div className="rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">Prix au m²</p>
-            <p className="text-sm font-semibold text-gray-900 mt-0.5">
-              {formatCHF(estimation.median_price_m2)}/m²
+          <div className="rounded-xl border border-gray-200 p-4 text-center">
+            <p className="text-xs text-gray-400">Prix au m2</p>
+            <p className="text-sm font-bold text-gray-900 mt-1">
+              {formatCHF(estimation.median_price_m2)}
             </p>
           </div>
         )}
-        <div className="rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-500">Biens comparés</p>
-          <p className="text-sm font-semibold text-gray-900 mt-0.5">
-            {estimation.comparable_count} dans votre secteur
+        <div className="rounded-xl border border-gray-200 p-4 text-center">
+          <p className="text-xs text-gray-400">Biens compares</p>
+          <p className="text-sm font-bold text-gray-900 mt-1">
+            {estimation.comparable_count}
           </p>
         </div>
-        <div className="rounded-xl border border-gray-200 p-4 col-span-2">
-          <p className="text-xs text-gray-500">Indice de confiance</p>
-          <p className={cn('text-sm font-semibold mt-0.5', confidenceColor)}>
+        <div className="rounded-xl border border-gray-200 p-4 text-center">
+          <p className="text-xs text-gray-400">Confiance</p>
+          <p className={cn('text-sm font-bold mt-1', confidenceColor)}>
             {confidenceLabel}
           </p>
+          <div className="h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
+            <div className={cn('h-full rounded-full', confidenceBarColor)} style={{ width: confidenceBarWidth }} />
+          </div>
         </div>
       </div>
 
-      {/* Comparables */}
+      {/* Comparables — horizontal scroll */}
       {estimation.comparables?.length > 0 && (
-        <div className="mt-8">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">
-            Biens similaires sur le marché
+        <div className="mt-10">
+          <h4 className="text-sm font-semibold text-gray-900 mb-4">
+            Biens similaires sur le marche
           </h4>
-          <div className="space-y-2">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
             {estimation.comparables.map((comp, i) => (
-              <div key={comp.id || i} className="flex items-center gap-3 rounded-xl border border-gray-200 p-3">
-                <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+              <div key={comp.id || i} className="flex-shrink-0 w-56 rounded-xl border border-gray-200 overflow-hidden">
+                <div className="h-32 bg-gray-100">
                   {comp.photo_url ? (
                     <img src={comp.photo_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="w-5 h-5 text-gray-300" />
+                      <ImageIcon className="w-6 h-6 text-gray-300" />
                     </div>
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                <div className="p-3">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {formatCHF(comp.price)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
                     {comp.address || comp.city}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {comp.rooms ? `${comp.rooms}p. · ` : ''}{comp.surface_m2} m² · {formatCHF(comp.price)}
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {comp.rooms ? `${comp.rooms}p. · ` : ''}{comp.surface_m2} m2
+                    {comp.price_per_m2 && ` · ${formatCHF(comp.price_per_m2)}/m2`}
                   </p>
                 </div>
-                {comp.price_per_m2 && (
-                  <span className="text-xs text-gray-400 flex-shrink-0">
-                    {formatCHF(comp.price_per_m2)}/m²
-                  </span>
-                )}
               </div>
             ))}
           </div>
@@ -1084,18 +1256,18 @@ function EstimationResultView({
       )}
 
       {/* Disclaimer */}
-      <p className="text-xs text-gray-400 italic mt-6 border-t border-gray-100 pt-4">
-        Cette estimation est fournie à titre indicatif, basée sur l'analyse statistique
-        de biens similaires dans votre secteur. Pour une évaluation précise, un agent
-        certifié peut visiter votre bien gratuitement.
+      <p className="text-xs text-gray-400 italic mt-8 border-t border-gray-100 pt-4">
+        Cette estimation est fournie a titre indicatif, basee sur l'analyse statistique
+        de biens similaires dans votre secteur. Pour une evaluation precise, un agent
+        certifie peut visiter votre bien gratuitement.
       </p>
 
       {/* CTA */}
       <button
         onClick={onContinue}
-        className="w-full h-12 rounded-lg text-base font-medium border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-colors mt-6 flex items-center justify-center gap-2"
+        className="w-full h-12 rounded-lg text-base font-medium border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-colors mt-8 flex items-center justify-center gap-2"
       >
-        Être contacté par un agent
+        Etre contacte par un agent
         <ArrowRight className="w-4 h-4" />
       </button>
 

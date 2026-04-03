@@ -1,139 +1,141 @@
-import { useState } from 'react';
-import { Linkedin, Instagram, Facebook, ChevronDown } from 'lucide-react';
+import { Linkedin, Instagram, Facebook } from 'lucide-react'
 
 const LINKS_RECHERCHER = [
   { label: 'Acheter', href: '/acheter' },
   { label: 'Louer', href: '/louer' },
   { label: 'Estimer', href: '/estimations' },
-  { label: 'Nouveautés', href: '/acheter', badge: 'New' },
   { label: 'Carte interactive', href: '/acheter' },
-];
+]
 
 const LINKS_PRO = [
-  { label: 'CRM intégré', href: '/services' },
+  { label: 'CRM immobilier', href: '/services' },
   { label: 'Publier un bien', href: '/publier' },
-  { label: 'Tarifs', href: '/services' },
-  { label: 'Rejoindre MEGGA', href: '/register' },
-  { label: 'Intégrations', href: '/services' },
-];
+  { label: 'Tarifs agences', href: '/services' },
+  { label: 'Devenir partenaire', href: '/register' },
+]
 
 const LINKS_MEGGA = [
   { label: 'À propos', href: '/services' },
   { label: 'Centre d\'aide', href: '/aide' },
-  { label: 'Contact', href: '/services' },
-  { label: 'Mentions légales', href: '/services' },
+  { label: 'Nous contacter', href: '/aide/contact' },
   { label: 'Confidentialité', href: '/privacy' },
-  { label: 'CGU', href: '/services' },
-];
+  { label: 'Conditions générales', href: '/services' },
+]
 
-const CATEGORIES = [
-  'Immobilier par canton',
-  'Locations par ville',
-  'Estimations',
-  'Financement',
-];
-
-function FooterLinkColumn({ title, links }: { title: string; links: { label: string; href: string; badge?: string }[] }) {
+function FooterLinkColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
     <div>
-      <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{title}</h4>
-      <ul className="space-y-1">
+      <h4 className="text-xs font-semibold text-gray-900 mb-4">{title}</h4>
+      <ul className="space-y-2.5">
         {links.map((link) => (
           <li key={link.label}>
             <a
               href={link.href}
-              className="inline-flex items-center text-sm text-gray-700 opacity-65 hover:opacity-100 hover:text-accent hover:pl-1 transition-all py-1"
+              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
             >
               {link.label}
-              {link.badge && (
-                <span className="text-[9px] font-semibold bg-accent/15 text-accent px-1.5 py-0.5 rounded ml-2">
-                  {link.badge}
-                </span>
-              )}
             </a>
           </li>
         ))}
       </ul>
     </div>
-  );
+  )
 }
 
 export default function Footer() {
-  const [openCategory, setOpenCategory] = useState<string | null>(null);
-
   return (
-    <footer className="bg-[#F5F5F5] border-t border-[var(--color-border)]">
+    <footer className="bg-gray-50/50 border-t border-gray-200/60">
+
+      {/* ─── Trust bar — Certifications ─── */}
+      <div className="border-b border-gray-200/40">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
+          <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-gray-400 text-center mb-5">
+            Certifié et reconnu
+          </p>
+          <div className="flex items-center justify-center gap-10 md:gap-16">
+            {/* C2PA */}
+            <a
+              href="https://c2pa.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition-opacity shrink-0"
+              title="Coalition for Content Provenance and Authenticity"
+            >
+              <img src="/c2pa-logo.svg" alt="C2PA — Coalition for Content Provenance and Authenticity" className="h-8 md:h-9" />
+            </a>
+
+            {/* Separator */}
+            <div className="w-px h-10 bg-gray-200" />
+
+            {/* Swiss Made Software */}
+            <a
+              href="https://www.swissmadesoftware.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-70 hover:opacity-100 transition-opacity shrink-0"
+              title="Swiss Made Software"
+            >
+              <img src="/sms-logo.svg" alt="Swiss Made Software" className="h-10 md:h-11" />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Main footer ─── */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-        {/* Main grid */}
-        <div className="py-12 md:py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2.2fr_1fr_1fr_1fr] gap-10 md:gap-8">
+        <div className="py-12 md:py-14 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-[2.2fr_1fr_1fr_1fr] gap-10 md:gap-8">
+
           {/* Column 1 — Brand */}
-          <div>
-            <span className="text-xl font-bold tracking-tight text-gray-900">MEGGA</span>
-            <p className="text-sm text-gray-500 mt-2 leading-relaxed max-w-[280px]">
-              Le portail immobilier suisse nouvelle génération. Trouvez, louez, estimez — simplement.
+          <div className="col-span-2 md:col-span-1">
+            <img src="/megga-logo.svg" alt="MEGGA" className="h-5" />
+            <p className="text-sm text-gray-400 mt-3 leading-relaxed max-w-[260px]">
+              La plateforme immobilière suisse. Recherche intelligente, conformité intégrée.
             </p>
-            <div className="flex items-center gap-2 mt-5">
+            <div className="flex items-center gap-2.5 mt-6">
               {[
                 { icon: Linkedin, href: '#', label: 'LinkedIn' },
                 { icon: Instagram, href: '#', label: 'Instagram' },
                 { icon: Facebook, href: '#', label: 'Facebook' },
               ].map((social) => {
-                const Icon = social.icon;
+                const Icon = social.icon
                 return (
                   <a
                     key={social.label}
                     href={social.href}
                     aria-label={social.label}
-                    className="w-9 h-9 rounded-lg bg-white border border-[var(--color-border)] hover:border-accent flex items-center justify-center transition-colors"
+                    className="w-9 h-9 rounded-full border border-gray-200 hover:border-gray-400 hover:bg-white flex items-center justify-center transition-all"
                   >
-                    <Icon className="w-4 h-4 text-gray-400 hover:text-accent transition-colors" />
+                    <Icon className="w-4 h-4 text-gray-400" />
                   </a>
-                );
+                )
               })}
             </div>
           </div>
 
-          {/* Column 2 — Rechercher */}
+          {/* Column 2 */}
           <FooterLinkColumn title="Rechercher" links={LINKS_RECHERCHER} />
 
-          {/* Column 3 — Professionnels */}
-          <FooterLinkColumn title="Pour les professionnels" links={LINKS_PRO} />
+          {/* Column 3 */}
+          <FooterLinkColumn title="Professionnels" links={LINKS_PRO} />
 
-          {/* Column 4 — MEGGA */}
+          {/* Column 4 */}
           <FooterLinkColumn title="MEGGA" links={LINKS_MEGGA} />
         </div>
 
-        {/* Categories bar */}
-        <div className="border-t border-[var(--color-border)] py-4 flex flex-wrap">
-          {CATEGORIES.map((cat, i) => (
-            <button
-              key={cat}
-              onClick={() => setOpenCategory(openCategory === cat ? null : cat)}
-              className={`flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-gray-700 px-4 py-2 transition-colors cursor-pointer ${
-                i < CATEGORIES.length - 1 ? 'border-r border-[var(--color-border)]' : ''
-              }`}
-            >
-              {cat}
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openCategory === cat ? 'rotate-180' : ''}`} />
-            </button>
-          ))}
-        </div>
-
-        {/* Copyright */}
-        <div className="border-t border-[var(--color-border)] py-5 flex flex-col md:flex-row justify-between items-center gap-2">
-          <span className="text-xs text-gray-400">
-            &copy; {new Date().getFullYear()} MEGGA Real Estate. Tous droits réservés.
-          </span>
-          <span className="text-xs text-gray-400">
-            Fait en Suisse 🇨🇭
-          </span>
-        </div>
-
-        {/* Legal disclaimer */}
-        <div className="text-center text-[10px] text-gray-400/60 leading-relaxed px-4 md:px-8 pb-6">
-          MEGGA Real Estate est une plateforme technologique. Les estimations sont indicatives et ne constituent pas une évaluation officielle. Les transactions immobilières sont soumises à la législation suisse, notamment la LBA. Consultez un professionnel pour tout conseil juridique ou financier.
+        {/* ─── Bottom bar ─── */}
+        <div className="border-t border-gray-200/60 py-6 flex flex-col md:flex-row justify-between items-center gap-3">
+          <div className="flex items-center gap-3 text-xs text-gray-400">
+            <span>&copy; {new Date().getFullYear()} MEGGA Real Estate</span>
+            <span>·</span>
+            <span>Fait en Suisse 🇨🇭</span>
+            <span>·</span>
+            <span>Conforme LPD</span>
+          </div>
+          <p className="text-xs text-gray-400 text-center md:text-right max-w-lg leading-relaxed">
+            Plateforme technologique — les estimations sont indicatives. Données cartographiques swisstopo.
+          </p>
         </div>
       </div>
     </footer>
-  );
+  )
 }
