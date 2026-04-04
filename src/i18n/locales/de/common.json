@@ -33,7 +33,9 @@
     "adminChangelog": "Changelog",
     "adminFlags": "Feature Flags",
     "adminLive": "Live Feed",
-    "adminPlans": "Plane & Kontingente"
+    "adminPlans": "Plane & Kontingente",
+    "adminSecurity": "Sicherheitsaudit",
+    "adminNps": "Zufriedenheit"
   },
   "sections": {
     "main": "Hauptmenü",

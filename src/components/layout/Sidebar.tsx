@@ -5,7 +5,7 @@ import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
   MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
   Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy, ChevronDown, Megaphone, Radio,
-  CreditCard,
+  CreditCard, Shield, Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -262,6 +262,8 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                 { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: Megaphone },
                 { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: Zap },
                 { labelKey: 'nav.adminPlans', href: '/dashboard/admin/plans', icon: CreditCard },
+                { labelKey: 'nav.adminSecurity', href: '/dashboard/admin/security', icon: Shield },
+                { labelKey: 'nav.adminNps', href: '/dashboard/admin/nps', icon: Star },
               ].map((item) => {
                 const isItemActive = location.pathname === item.href ||
                   (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))

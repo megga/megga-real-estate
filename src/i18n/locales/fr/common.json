@@ -33,7 +33,9 @@
     "adminChangelog": "Changelog",
     "adminFlags": "Feature flags",
     "adminLive": "Live Feed",
-    "adminPlans": "Plans & Quotas"
+    "adminPlans": "Plans & Quotas",
+    "adminSecurity": "Audit securite",
+    "adminNps": "Satisfaction"
   },
   "sections": {
     "main": "Principal",

@@ -9,6 +9,7 @@ import Breadcrumb from '@/components/layout/Breadcrumb'
 import NewContactDialog from '@/components/contacts/NewContactDialog'
 import BottomTabBar from '@/components/layout/BottomTabBar'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
+import NpsSurvey from '@/components/feedback/NpsSurvey'
 
 function AgentLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -85,6 +86,9 @@ function AgentLayoutInner() {
 
       {/* Mobile bottom tab bar */}
       <BottomTabBar />
+
+      {/* NPS satisfaction survey (floating, bottom-right) */}
+      <NpsSurvey />
     </div>
   )
 }
