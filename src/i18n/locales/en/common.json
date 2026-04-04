@@ -22,14 +22,22 @@
     "search": "Search...",
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
-    "mainAgent": "Lead agent"
+    "mainAgent": "Lead agent",
+    "adminOverview": "Overview",
+    "adminAgencies": "Agencies",
+    "adminUsers": "Users",
+    "adminMonitoring": "Monitoring",
+    "adminMarketplace": "Moderation",
+    "adminCompliance": "Compliance",
+    "adminSupport": "Support"
   },
   "sections": {
     "main": "Main",
     "crm": "CRM",
     "properties": "Properties",
     "communication": "Communication",
-    "compliance": "Compliance"
+    "compliance": "Compliance",
+    "adminMegga": "ADMIN MEGGA"
   },
   "actions": {
     "save": "Save",
