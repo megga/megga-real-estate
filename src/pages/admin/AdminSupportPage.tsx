@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, MessageSquare, Send, Inbox, Clock, AlertTriangle } from 'lucide-react'
+import { Search, MessageSquare, Send, Inbox, Clock, AlertTriangle, Sparkles, Loader2 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAdminSupport, useTicketMessages, useSendTicketReply } from '@/hooks/useAdminSupport'
@@ -8,6 +8,7 @@ import type { SupportTicket } from '@/hooks/useAdminSupport'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import type { AdminUser } from '@/hooks/useAdminUsers'
 import { useAuth } from '@/hooks/useAuth'
+import { useTicketAiSuggestion } from '@/hooks/useTicketAiSuggestion'
 import PageTransition from '@/components/layout/PageTransition'
 
 const STATUS_FILTERS = [
@@ -159,6 +160,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
     enabled: !!ticket.id,
   })
   const [reply, setReply] = useState('')
+  const ai = useTicketAiSuggestion()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -324,7 +326,47 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
       )}
 
       {/* Reply input */}
-      <div className="px-4 py-3 border-t border-theme-border">
+      <div className="px-4 py-3 border-t border-theme-border space-y-2">
+        {/* AI suggestion bar */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              ai.generateSuggestion(ticket.id)
+            }}
+            disabled={ai.loading}
+            className="h-7 px-2.5 text-xs font-medium rounded-lg flex items-center gap-1.5 border border-admin-accent/30 text-admin-accent hover:bg-admin-accent/5 transition-colors disabled:opacity-50"
+          >
+            {ai.loading ? (
+              <><Loader2 className="h-3 w-3 animate-spin" /> Generation...</>
+            ) : (
+              <><Sparkles className="h-3 w-3" /> Suggerer une reponse IA</>
+            )}
+          </button>
+          {ai.suggestion && (
+            <button
+              onClick={() => { setReply(ai.suggestion); ai.clear() }}
+              className="h-7 px-2.5 text-xs font-medium rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
+            >
+              Inserer
+            </button>
+          )}
+          {ai.error && (
+            <span className="text-xs text-red-500">{ai.error}</span>
+          )}
+        </div>
+
+        {/* AI suggestion preview */}
+        {ai.suggestion && (
+          <div className="p-3 rounded-lg bg-admin-accent/5 border border-admin-accent/20 text-sm text-theme-primary leading-relaxed">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Sparkles className="h-3 w-3 text-admin-accent" />
+              <span className="text-[10px] font-medium text-admin-accent uppercase tracking-wider">Suggestion IA</span>
+            </div>
+            <p className="whitespace-pre-line">{ai.suggestion}</p>
+          </div>
+        )}
+
+        {/* Reply textarea + send */}
         <div className="flex items-end gap-2">
           <textarea
             value={reply}
