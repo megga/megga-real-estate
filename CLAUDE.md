@@ -250,6 +250,21 @@ megga-real-estate/
 │   │       ├── MonProfilPage.tsx   # Profil vendeur (edit, déconnexion)
 │   │       ├── PortalGateway.tsx   # Validation token d'accès
 │   │       └── PortalInvalidPage.tsx # Accès invalide/expiré
+│   │   └── admin/                 # ✅ Super-Admin MEGGA (13 pages)
+│   │       ├── AdminDashboardPage.tsx    # Vue d'ensemble (widgets drag & drop + resize)
+│   │       ├── AdminAgenciesPage.tsx     # Liste agences + health score
+│   │       ├── AdminAgencyDetailPage.tsx # Fiche agence (5 onglets)
+│   │       ├── AdminUsersPage.tsx        # Liste utilisateurs + drawer
+│   │       ├── AdminMonitoringPage.tsx   # Santé plateforme Pro
+│   │       ├── AdminMarketplacePage.tsx  # Modération annonces
+│   │       ├── AdminCompliancePage.tsx   # KYC cross-agences
+│   │       ├── AdminSupportPage.tsx      # Support tickets + AI reply
+│   │       ├── AdminLiveFeedPage.tsx     # Live feed temps réel
+│   │       ├── AdminChangelogPage.tsx    # Release notes
+│   │       ├── AdminFeatureFlagsPage.tsx # Feature flags par plan
+│   │       ├── AdminPlansPage.tsx        # Plans & Quotas
+│   │       ├── AdminSecurityAuditPage.tsx # Audit sécurité
+│   │       └── AdminNpsPage.tsx          # Satisfaction NPS
 │   ├── types/
 │   │   ├── database.ts          # Types Supabase (générés)
 │   │   ├── listing.ts
@@ -283,6 +298,13 @@ megga-real-estate/
 │       ├── extract-property-url/ # ✅ — Extraction données bien depuis URL portail (Claude Sonnet 4)
 │       ├── automation-engine/   # Moteur de relances automatiques (Phase 2)
 │       ├── search-alert/        # ✅ DÉPLOYÉ — Alertes email recherches sauvegardées (pg_cron 30min)
+│       ├── admin-monitoring/    # ✅ DÉPLOYÉ — Métriques plateforme Pro (DB size, storage, compteurs)
+│       ├── admin-stripe-metrics/ # ✅ — Revenus Stripe API (MRR, churn, paiements)
+│       ├── weekly-report/       # ✅ — Rapport hebdomadaire auto (pg_cron lundi 8h, Resend)
+│       ├── ticket-ai-reply/     # ✅ — Suggestion IA réponse tickets (Claude Sonnet 4)
+│       ├── stripe-checkout/     # ✅ DÉPLOYÉ — Création session checkout Stripe
+│       ├── stripe-portal/       # ✅ DÉPLOYÉ — Portail client Stripe
+│       ├── stripe-webhook/      # ✅ DÉPLOYÉ — Webhooks Stripe (subscriptions sync)
 │       └── webhooks/            # Stripe, Resend... (Phase 2)
 ```
 
@@ -1472,7 +1494,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 30 mars 2026)
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 5 avril 2026)
 
 ### ✅ Fonctionnalités LIVE
 
@@ -1616,13 +1638,15 @@ RESEND_API_KEY          → Envoi email via megga.ch
 DILISENSE_API_KEY       → Screening PEP/Sanctions
 MICROSOFT_CLIENT_ID     → Azure AD OAuth (Outlook Calendar)
 MICROSOFT_CLIENT_SECRET → Azure AD OAuth (Outlook Calendar)
+STRIPE_SECRET_KEY       → Stripe API (abonnements, paiements)
+STRIPE_WEBHOOK_SECRET   → Stripe webhook signature
 ```
 
 ### 📊 Supabase
 - **Project ref** : eayczugyrvmtqnnmvjod
 - **Region** : eu-west-1 (Ireland)
-- **Plan** : Nano (gratuit)
-- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync, contact_scores, property_scores, scoring_signals, market_changes
+- **Plan** : Pro ($25/mois) — upgradé le 4 avril 2026
+- **Tables** : agencies, profiles, contacts, properties, listings, transactions, kyc_cases, kyc_checklist_items, documents, messages, message_threads, favorites, activity_events, listing_embeddings, daily_actions, client_searches, matches, reminders, automation_rules, message_templates, visits, external_listings, seller_portals, google_calendar_tokens, calendar_sync, outlook_calendar_tokens, outlook_calendar_sync, contact_scores, property_scores, scoring_signals, market_changes, support_tickets, ticket_messages, ticket_events, ticket_canned_responses, platform_metrics, moderation_actions, admin_notes, subscriptions
 ### DB — Corrections RLS appliquées (2026-03-23)
 - Récursion infinie `profiles` → fixée avec `get_my_agency_id()` SECURITY DEFINER
 - Policies `contacts`, `documents`, `activity_events` → migrées vers `get_my_agency_id()`
@@ -2007,6 +2031,54 @@ Basé sur l'analyse des géants mondiaux (Zillow $2.2B, RealAdvisor $31M, Meille
 - **14 skills Superpowers** installés dans `.claude/skills/` (brainstorming, TDD, debugging, plans, git worktrees, code review, etc.)
 - **5 skills custom MEGGA** : supabase-migration, edge-function-deploy, i18n-sync, swiss-compliance-check, listing-quality-audit
 
+#### Super-Admin MEGGA — panneau complet — 4 avril 2026
+- **Rôle `super_admin`** ajouté — visible uniquement pour les comptes super_admin
+- **Accent violet `#8B5CF6`** — distinction visuelle du dashboard agent
+- **Sidebar admin** : mode séparé (bouton "Admin" → bascule la sidebar entière)
+- **Migration SQL** : `20260404_001_super_admin.sql` + `20260404_002_fix_support_tickets.sql`
+- **Fonction RLS** : `is_super_admin()` SECURITY DEFINER — bypass agency_id sur toutes les tables
+- **Tables admin** : `platform_metrics`, `moderation_actions`, `admin_notes`
+- **13 pages admin** :
+  1. **Vue d'ensemble** : health pulse, KPIs compacts, widgets drag & drop + resize fluide Apple-style
+  2. **Agences** : liste + fiche détaillée (5 onglets) + health score 0-100
+  3. **Utilisateurs** : liste + drawer slide-in + impersonate
+  4. **Monitoring** : 6 indicateurs Pro, Edge Functions par-fonction, error logs expandables
+  5. **Marketplace** : modération annonces, signalement, qualité
+  6. **Compliance** : KYC cross-agences, PEP/Sanctions, export CSV
+  7. **Support** : 2 colonnes, assignation, SLA breach, audit trail, suggestion IA (Claude Sonnet 4)
+  8. **Live Feed** : mission control temps réel (Supabase Realtime)
+  9. **Changelog** : release notes pour agences
+  10. **Feature flags** : toggle par plan (Starter/Pro/Entreprise)
+  11. **Plans & Quotas** : comparaison plans, gestion agence
+  12. **Audit sécurité** : logs actions sensibles (login, impersonate, KYC, export)
+  13. **Satisfaction NPS** : survey in-app étoiles + résultats admin
+- **Game-changers** :
+  - Impersonate ("Se connecter en tant que") — banner violet + boutons dans UserDrawer/AgencyDetail
+  - Onboarding tracker — funnel activation par agence
+  - Stripe billing dashboard — MRR réel, churn, paiements, revenus 6 mois
+  - Notifications push admin — bell panel Supabase Realtime
+- **Recommandés** :
+  - Recherche globale admin (dialog Cmd+K, 4 types)
+  - Export CSV sur 4 pages
+  - Activity log temps réel avec filtres
+  - Agency health score 0-100 (5 facteurs)
+- **Edge Functions admin** :
+  - `admin-monitoring` : métriques plateforme (Pro plan, DB size, storage)
+  - `admin-stripe-metrics` : revenus Stripe API
+  - `weekly-report` : rapport hebdo auto via Resend (pg_cron lundi 8h)
+  - `ticket-ai-reply` : suggestion IA réponse tickets (Claude Sonnet 4)
+- **Dashboard widgets** : drag & drop (dnd-kit) + resize fluide (pointer events) + persistance localStorage
+- **NPS Survey** : popup étoiles pour agents 30+ jours + page admin résultats
+- **Hooks** (14) : useAdminStats, useAdminAgencies, useAdminUsers, useAdminMonitoring, useAdminModeration, useAdminCompliance, useAdminSupport, useAdminBilling, useAdminWidgets, useAdminSearch, useAdminNps, useAdminLiveFeed, useOnboardingTracker, useActivityLog, useSecurityAudit, useChangelog, useFeatureFlags, useTicketAiSuggestion, useImpersonate
+- **~9 330 lignes** dans 46 fichiers
+
+#### Refonte design Contact Agent — 4 avril 2026
+- **AgentCard.tsx** : composant réutilisable (variant default h-11 + compact h-10)
+- **ContactAgentModal** : shadow-xl → shadow-sm, aria-label, bouton ghost, AgentCard intégré
+- **ListingSidebar** : CTA ghost, calculateur border+h-11, AgentCard intégré
+- **ListingPreviewPanel** : 2 agency cards → AgentCard compact, CTAs ghost, mobile CTA ghost
+- **ListingMobileBar** : rounded-full → rounded-lg, ghost contact, agent preview mini
+
 ### Prochaines priorités
 1. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
 2. **"Mes lieux" multi-POI** — poser travail+école+sport sur la carte, chaque bien affiche le trajet vers tous les POIs (Rightmove-style, personne en Suisse ne l'a)
@@ -2015,5 +2087,7 @@ Basé sur l'analyse des géants mondiaux (Zillow $2.2B, RealAdvisor $31M, Meille
 5. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS
 6. **Agent card avec photo et rating** — dans la sidebar CTA du PreviewPanel
 7. **Estimation du bruit OFEV** — API sonBASE, score tranquillité dans section Quartier
-8. **Edge Functions à déployer** : `photo-labeler`, `public-staging` (code prêt, pas encore déployé)
+8. **Edge Functions à déployer** : `photo-labeler`, `public-staging`, `admin-stripe-metrics`, `weekly-report`, `ticket-ai-reply` (code prêt, pas encore déployé)
 9. **Illustration footer** : skyline Genève/Suisse style Craftwork Maggy (prompt prêt, en attente de génération)
+10. **pg_cron à configurer** : `weekly-report` (lundi 8h), `platform-metrics-hourly` (toutes les heures)
+11. **Audit technique admin** : vérifier conformité design system, RLS, TypeScript, i18n, accessibilité
