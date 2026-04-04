@@ -1,6 +1,9 @@
-import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle } from 'lucide-react'
+import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, GripVertical } from 'lucide-react'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useAdminStats } from '@/hooks/useAdminStats'
-import { useAdminWidgets } from '@/hooks/useAdminWidgets'
+import { useAdminWidgets, type DashboardWidget } from '@/hooks/useAdminWidgets'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import BillingDashboard from '@/components/admin/BillingDashboard'
 import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
@@ -8,6 +11,7 @@ import OnboardingTracker from '@/components/admin/OnboardingTracker'
 import ActivityLog from '@/components/admin/ActivityLog'
 import WidgetConfigurator from '@/components/admin/WidgetConfigurator'
 import { cn, formatRelativeDate } from '@/lib/utils'
+import type { ReactNode } from 'react'
 
 const ALERT_ICONS: Record<string, typeof AlertTriangle> = {
   agency_created: Building2,
@@ -33,15 +37,134 @@ const ALERT_BORDER_COLORS: Record<string, string> = {
   ticket_created: 'border-l-blue-500',
 }
 
+/* ── Sortable widget wrapper ── */
+function SortableWidget({ id, children }: { id: string; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group/drag relative rounded-xl transition-shadow',
+        isDragging && 'z-50 shadow-lg shadow-admin-accent/10 opacity-90'
+      )}
+    >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute -left-1 top-3 h-6 w-5 flex items-center justify-center rounded opacity-0 group-hover/drag:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-10 text-theme-muted hover:text-admin-accent"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+      {children}
+    </div>
+  )
+}
+
 export default function AdminDashboardPage() {
   const { kpis, kpisLoading, alerts, alertsLoading } = useAdminStats()
-  const { visibleWidgets } = useAdminWidgets()
+  const { visibleWidgets, reorderWidgets } = useAdminWidgets()
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
 
   const isWidgetVisible = (id: string) => visibleWidgets.some(w => w.id === id)
 
-  // Health pulse
-  const hasAlerts = (kpis?.highRiskKyc ?? 0) > 0
-  const healthStatus = hasAlerts ? 'warning' : 'healthy'
+  const healthStatus = (kpis?.highRiskKyc ?? 0) > 0 ? 'warning' : 'healthy'
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      reorderWidgets(active.id as string, over.id as string)
+    }
+  }
+
+  /* ── Widget renderer ── */
+  function renderWidget(widget: DashboardWidget) {
+    switch (widget.id) {
+      case 'kpis':
+        return kpisLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-theme-border px-3.5 py-2.5 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="h-4 w-4 rounded bg-theme-hover" />
+                  <div><div className="h-5 bg-theme-hover rounded w-10 mb-1" /><div className="h-2.5 bg-theme-hover rounded w-16" /></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : kpis ? (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <AdminKpiCard compact label="Agences" value={kpis.activeAgencies} icon={Building2}
+              trend={kpis.newAgenciesThisMonth > 0 ? { value: kpis.newAgenciesThisMonth, label: '' } : undefined} />
+            <AdminKpiCard compact label="Utilisateurs" value={kpis.totalUsers} icon={Users} variant="blue"
+              trend={kpis.newUsersThisMonth > 0 ? { value: kpis.newUsersThisMonth, label: '' } : undefined} />
+            <AdminKpiCard compact label="Biens actifs" value={kpis.activeProperties} icon={Home} variant="blue" />
+            <AdminKpiCard compact label="Transactions" value={kpis.activeTransactions} icon={GitBranch} variant="success" />
+            <AdminKpiCard compact label="KYC a risque" value={kpis.highRiskKyc} icon={ShieldAlert}
+              variant={kpis.highRiskKyc > 0 ? 'danger' : 'default'} />
+          </div>
+        ) : null
+
+      case 'alerts':
+        return (
+          <div className="rounded-xl border border-theme-border p-5">
+            <h2 className="text-sm font-semibold text-theme-primary mb-3">Alertes</h2>
+            {alertsLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-10 bg-theme-hover rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : alerts.length === 0 ? (
+              <div className="flex items-center gap-2 py-4 justify-center">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <p className="text-sm text-emerald-600 dark:text-emerald-400">Aucune alerte — tout est en ordre</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {alerts.map((alert) => {
+                  const Icon = ALERT_ICONS[alert.action] ?? Bell
+                  const borderColor = ALERT_BORDER_COLORS[alert.action] ?? 'border-l-gray-300'
+                  const label = ALERT_LABELS[alert.action] ?? alert.action
+                  return (
+                    <div key={alert.id} className={`flex items-center gap-3 p-2.5 rounded-lg border-l-4 ${borderColor} bg-theme-hover/30`}>
+                      <Icon className="h-3.5 w-3.5 text-theme-secondary flex-shrink-0" />
+                      <p className="text-sm text-theme-primary flex-1 truncate">{label}</p>
+                      <span className="text-[10px] text-theme-muted flex-shrink-0">{formatRelativeDate(alert.created_at)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+
+      case 'activity':
+        return <ActivityLog />
+
+      case 'billing':
+        return <BillingDashboard />
+
+      case 'report':
+        return <WeeklyReportPreview />
+
+      case 'onboarding':
+        return <OnboardingTracker />
+
+      default:
+        return null
+    }
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-5">
@@ -57,7 +180,7 @@ export default function AdminDashboardPage() {
         <WidgetConfigurator />
       </div>
 
-      {/* ── 1. Health Pulse — résumé en 1 ligne ── */}
+      {/* ── Health Pulse ── */}
       {kpis && (
         <div className={cn(
           'flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-colors',
@@ -89,88 +212,18 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* ── 2. KPIs compacts — 1 ligne de 5 ── */}
-      {isWidgetVisible('kpis') && (kpisLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-theme-border px-3.5 py-2.5 animate-pulse">
-              <div className="flex items-center gap-3">
-                <div className="h-7 w-7 rounded-md bg-theme-hover" />
-                <div>
-                  <div className="h-5 bg-theme-hover rounded w-10 mb-1" />
-                  <div className="h-2.5 bg-theme-hover rounded w-16" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : kpis ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <AdminKpiCard compact label="Agences" value={kpis.activeAgencies} icon={Building2}
-            trend={kpis.newAgenciesThisMonth > 0 ? { value: kpis.newAgenciesThisMonth, label: '' } : undefined} />
-          <AdminKpiCard compact label="Utilisateurs" value={kpis.totalUsers} icon={Users} variant="blue"
-            trend={kpis.newUsersThisMonth > 0 ? { value: kpis.newUsersThisMonth, label: '' } : undefined} />
-          <AdminKpiCard compact label="Biens actifs" value={kpis.activeProperties} icon={Home} variant="blue" />
-          <AdminKpiCard compact label="Transactions" value={kpis.activeTransactions} icon={GitBranch} variant="success" />
-          <AdminKpiCard compact label="KYC a risque" value={kpis.highRiskKyc} icon={ShieldAlert}
-            variant={kpis.highRiskKyc > 0 ? 'danger' : 'default'} />
-        </div>
-      ) : null)}
-
-      {/* ── 3. Layout 2 colonnes : gauche (flux) + droite (panels) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* LEFT — 3/5 : Alertes + Activity Log */}
-        <div className="lg:col-span-3 space-y-5">
-          {/* Alerts feed */}
-          {isWidgetVisible('alerts') && (
-            <div className="rounded-xl border border-theme-border p-5">
-              <h2 className="text-sm font-semibold text-theme-primary mb-3">Alertes</h2>
-              {alertsLoading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-10 bg-theme-hover rounded-lg animate-pulse" />
-                  ))}
-                </div>
-              ) : alerts.length === 0 ? (
-                <div className="flex items-center gap-2 py-4 justify-center">
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  <p className="text-sm text-emerald-600 dark:text-emerald-400">Aucune alerte — tout est en ordre</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {alerts.map((alert) => {
-                    const Icon = ALERT_ICONS[alert.action] ?? Bell
-                    const borderColor = ALERT_BORDER_COLORS[alert.action] ?? 'border-l-gray-300'
-                    const label = ALERT_LABELS[alert.action] ?? alert.action
-                    return (
-                      <div key={alert.id} className={`flex items-center gap-3 p-2.5 rounded-lg border-l-4 ${borderColor} bg-theme-hover/30`}>
-                        <Icon className="h-3.5 w-3.5 text-theme-secondary flex-shrink-0" />
-                        <p className="text-sm text-theme-primary flex-1 truncate">{label}</p>
-                        <span className="text-[10px] text-theme-muted flex-shrink-0">{formatRelativeDate(alert.created_at)}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Activity Log */}
-          {isWidgetVisible('activity') && <ActivityLog />}
-        </div>
-
-        {/* RIGHT — 2/5 : Billing mini + Onboarding + Weekly report */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Billing */}
-          {isWidgetVisible('billing') && <BillingDashboard />}
-
-          {/* Weekly Report */}
-          <WeeklyReportPreview />
-
-          {/* Onboarding tracker */}
-          {isWidgetVisible('onboarding') && <OnboardingTracker />}
-        </div>
-      </div>
+      {/* ── Sortable widgets ── */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={visibleWidgets.map(w => w.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-5">
+            {visibleWidgets.map(widget => (
+              <SortableWidget key={widget.id} id={widget.id}>
+                {renderWidget(widget)}
+              </SortableWidget>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   )
 }
