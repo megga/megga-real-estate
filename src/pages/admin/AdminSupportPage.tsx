@@ -1,8 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Search, MessageSquare, Send, Inbox, Clock } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Search, MessageSquare, Send, Inbox, Clock, AlertTriangle } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import { useAdminSupport, useTicketMessages, useSendTicketReply } from '@/hooks/useAdminSupport'
 import type { SupportTicket } from '@/hooks/useAdminSupport'
+import { useAdminUsers } from '@/hooks/useAdminUsers'
+import type { AdminUser } from '@/hooks/useAdminUsers'
+import { useAuth } from '@/hooks/useAuth'
 import PageTransition from '@/components/layout/PageTransition'
 
 const STATUS_FILTERS = [
@@ -47,11 +52,60 @@ const STATUS_COLOR: Record<string, string> = {
   closed: 'text-theme-tertiary',
 }
 
+const ASSIGNABLE_ROLES = ['agent', 'admin', 'manager', 'super_admin']
+
+const EVENT_LABELS: Record<string, string> = {
+  status_change: 'Statut modifie',
+  priority_change: 'Priorite modifiee',
+  assignment_change: 'Ticket assigne',
+  message_added: 'Reponse envoyee',
+  note_added: 'Note interne ajoutee',
+  csat_submitted: 'Satisfaction soumise',
+}
+
 function isStale(ticket: SupportTicket): boolean {
   if (ticket.status === 'resolved' || ticket.status === 'closed') return false
   const ref = ticket.last_message_at ?? ticket.created_at
   const hoursSince = (Date.now() - new Date(ref).getTime()) / (1000 * 60 * 60)
   return hoursSince > 24
+}
+
+function SlaIndicator({ ticket }: { ticket: SupportTicket }) {
+  if (ticket.status === 'resolved' || ticket.status === 'closed') return null
+  if (!ticket.sla_first_response_due) return null
+
+  // First response SLA
+  if (!ticket.first_responded_at) {
+    const due = new Date(ticket.sla_first_response_due)
+    const now = new Date()
+    const diffMs = due.getTime() - now.getTime()
+
+    if (diffMs < 0) {
+      return <span className="text-[10px] font-medium text-red-500">SLA depasse</span>
+    }
+
+    const hours = Math.floor(diffMs / 3600000)
+    const minutes = Math.floor((diffMs % 3600000) / 60000)
+
+    if (hours < 1) {
+      return <span className="text-[10px] font-medium text-amber-500">SLA {minutes}min</span>
+    }
+
+    return <span className="text-[10px] text-theme-muted">SLA {hours}h{minutes > 0 ? `${minutes}m` : ''}</span>
+  }
+
+  // Resolution SLA
+  if (ticket.sla_resolution_due) {
+    const due = new Date(ticket.sla_resolution_due)
+    const now = new Date()
+    const diffMs = due.getTime() - now.getTime()
+
+    if (diffMs < 0) {
+      return <span className="text-[10px] font-medium text-red-500">Resolution SLA depasse</span>
+    }
+  }
+
+  return null
 }
 
 function TicketListSkeleton() {
@@ -88,10 +142,22 @@ function MessagesSkeleton() {
   )
 }
 
-function TicketDetail({ ticket }: { ticket: SupportTicket }) {
-  const { updateStatus, updatePriority } = useAdminSupport()
+function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: AdminUser[] }) {
+  const { updateStatus, updatePriority, assignTicket } = useAdminSupport()
   const { data: messages, isLoading: messagesLoading } = useTicketMessages(ticket.id)
   const sendReply = useSendTicketReply()
+  const eventsQuery = useQuery({
+    queryKey: ['admin-support', ticket.id, 'events'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('ticket_events')
+        .select('id, action, actor_type, old_value, new_value, created_at')
+        .eq('ticket_id', ticket.id)
+        .order('created_at', { ascending: true })
+      return data ?? []
+    },
+    enabled: !!ticket.id,
+  })
   const [reply, setReply] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -155,6 +221,20 @@ function TicketDetail({ ticket }: { ticket: SupportTicket }) {
             >
               {STATUS_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-theme-tertiary">Assigne</span>
+            <select
+              value={ticket.assigned_to ?? ''}
+              onChange={(e) => assignTicket.mutate({ id: ticket.id, assignedTo: e.target.value || null })}
+              className="h-7 px-2 pr-6 text-xs bg-transparent border border-theme-border rounded-lg text-theme-secondary focus:outline-none appearance-none"
+            >
+              <option value="">Non assigne</option>
+              {agents.map(a => (
+                <option key={a.id} value={a.id}>{a.full_name}</option>
               ))}
             </select>
           </div>
@@ -226,6 +306,23 @@ function TicketDetail({ ticket }: { ticket: SupportTicket }) {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Audit trail */}
+      {eventsQuery.data && eventsQuery.data.length > 0 && (
+        <div className="px-4 py-2 border-t border-theme-border">
+          <p className="text-[10px] uppercase tracking-wider text-theme-tertiary font-medium mb-2">Historique</p>
+          <div className="space-y-1">
+            {eventsQuery.data.map(evt => (
+              <div key={evt.id} className="flex items-center gap-2 text-[11px] text-theme-muted">
+                <span className="w-1.5 h-1.5 rounded-full bg-admin-accent/50 flex-shrink-0" />
+                <span>{EVENT_LABELS[evt.action] ?? evt.action}</span>
+                {evt.new_value && <span className="text-theme-secondary">{'\u2192'} {evt.new_value}</span>}
+                <span className="ml-auto">{formatRelativeDate(evt.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Reply input */}
       <div className="px-4 py-3 border-t border-theme-border">
         <div className="flex items-end gap-2">
@@ -252,9 +349,22 @@ function TicketDetail({ ticket }: { ticket: SupportTicket }) {
 
 export default function AdminSupportPage() {
   const { tickets, isLoading, stats, statsLoading } = useAdminSupport()
+  const { users } = useAdminUsers()
+  const { profile } = useAuth()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [myTickets, setMyTickets] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const agents = useMemo(
+    () => users.filter(u => ASSIGNABLE_ROLES.includes(u.role)),
+    [users]
+  )
+
+  const agentNameMap = useMemo(
+    () => Object.fromEntries(agents.map(a => [a.id, a.full_name])),
+    [agents]
+  )
 
   const filtered = useMemo(() => {
     let list = [...tickets]
@@ -268,8 +378,9 @@ export default function AdminSupportPage() {
       )
     }
     if (statusFilter) list = list.filter(t => t.status === statusFilter)
+    if (myTickets && profile?.id) list = list.filter(t => t.assigned_to === profile.id)
     return list
-  }, [tickets, search, statusFilter])
+  }, [tickets, search, statusFilter, myTickets, profile?.id])
 
   const selectedTicket = useMemo(
     () => tickets.find(t => t.id === selectedId) ?? null,
@@ -292,6 +403,16 @@ export default function AdminSupportPage() {
               : `${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
           </p>
         </div>
+
+        {/* SLA breach banner */}
+        {stats && stats.slaBreach > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-500/20">
+            <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-600 dark:text-red-400">
+              <strong>{stats.slaBreach}</strong> ticket{stats.slaBreach > 1 ? 's' : ''} en breach SLA
+            </p>
+          </div>
+        )}
 
         {/* 2-column layout */}
         <div className="flex rounded-xl border border-theme-border overflow-hidden" style={{ height: 'calc(100vh - 240px)', minHeight: 480 }}>
@@ -334,6 +455,18 @@ export default function AdminSupportPage() {
                     {f.label}
                   </button>
                 ))}
+                <div className="w-px h-4 bg-theme-border mx-1" />
+                <button
+                  onClick={() => setMyTickets(prev => !prev)}
+                  className={cn(
+                    'h-7 px-3 rounded-md text-xs transition-colors',
+                    myTickets
+                      ? 'bg-theme-active text-admin-accent font-medium'
+                      : 'text-theme-secondary hover:text-theme-primary'
+                  )}
+                >
+                  Mes tickets
+                </button>
               </div>
             </div>
 
@@ -345,10 +478,10 @@ export default function AdminSupportPage() {
                 <div className="px-4 py-12 text-center">
                   <Inbox className="h-6 w-6 mx-auto text-theme-tertiary mb-2" />
                   <p className="text-sm text-theme-secondary">
-                    {search || statusFilter ? 'Aucun ticket trouve' : 'Aucun ticket'}
+                    {search || statusFilter || myTickets ? 'Aucun ticket trouve' : 'Aucun ticket'}
                   </p>
                   <p className="text-xs text-theme-tertiary mt-0.5">
-                    {search || statusFilter
+                    {search || statusFilter || myTickets
                       ? 'Modifiez vos filtres'
                       : 'Les tickets apparaitront ici'}
                   </p>
@@ -386,7 +519,13 @@ export default function AdminSupportPage() {
                           <span className={cn('text-[11px] font-medium', STATUS_COLOR[ticket.status] ?? 'text-theme-tertiary')}>
                             {STATUS_LABEL[ticket.status] ?? ticket.status}
                           </span>
+                          <SlaIndicator ticket={ticket} />
                         </div>
+                        {ticket.assigned_to && agentNameMap[ticket.assigned_to] && (
+                          <span className="text-[10px] text-admin-accent">
+                            {agentNameMap[ticket.assigned_to]}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
@@ -409,7 +548,7 @@ export default function AdminSupportPage() {
           {/* Right panel: ticket detail */}
           <div className="flex-1 flex flex-col min-w-0">
             {selectedTicket ? (
-              <TicketDetail ticket={selectedTicket} />
+              <TicketDetail ticket={selectedTicket} agents={agents} />
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
@@ -428,6 +567,14 @@ export default function AdminSupportPage() {
         {!statsLoading && stats && (
           <div className="flex items-center gap-3 text-xs text-theme-tertiary">
             <span>{stats.openCount} ouvert{stats.openCount !== 1 ? 's' : ''}</span>
+            <span className="text-theme-border">|</span>
+            <span>{stats.newCount} nouveau{stats.newCount !== 1 ? 'x' : ''}</span>
+            <span className="text-theme-border">|</span>
+            {stats.slaBreach > 0 ? (
+              <span className="text-red-500 font-medium">{stats.slaBreach} SLA breach</span>
+            ) : (
+              <span>0 SLA breach</span>
+            )}
             <span className="text-theme-border">|</span>
             <span>{stats.resolvedThisWeek} resolu{stats.resolvedThisWeek !== 1 ? 's' : ''} cette semaine</span>
           </div>

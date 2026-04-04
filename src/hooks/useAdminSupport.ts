@@ -14,6 +14,9 @@ export interface SupportTicket {
   submitter_email: string
   assigned_to: string | null
   sla_breached: boolean
+  sla_first_response_due: string | null
+  sla_resolution_due: string | null
+  first_responded_at: string | null
   created_at: string
   updated_at: string
   agency_id: string | null
@@ -41,13 +44,14 @@ export interface SupportStats {
 
 export function useAdminSupport() {
   const queryClient = useQueryClient()
+  const { profile } = useAuth()
 
   const tickets = useQuery({
     queryKey: ['admin-support'],
     queryFn: async (): Promise<SupportTicket[]> => {
       const { data, error } = await supabase
         .from('support_tickets')
-        .select('id, ticket_number, subject, description, category, priority, status, submitter_name, submitter_email, assigned_to, sla_breached, created_at, updated_at, agency_id')
+        .select('id, ticket_number, subject, description, category, priority, status, submitter_name, submitter_email, assigned_to, sla_breached, sla_first_response_due, sla_resolution_due, first_responded_at, created_at, updated_at, agency_id')
         .order('updated_at', { ascending: false })
       if (error) throw error
 
@@ -119,6 +123,15 @@ export function useAdminSupport() {
       if (status === 'closed') updates.closed_at = new Date().toISOString()
       const { error } = await supabase.from('support_tickets').update(updates).eq('id', id)
       if (error) throw error
+
+      await supabase.from('ticket_events').insert({
+        ticket_id: id,
+        actor_type: 'agent',
+        actor_id: profile?.id,
+        action: 'status_change',
+        old_value: null,
+        new_value: status,
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-support'] })
@@ -130,6 +143,14 @@ export function useAdminSupport() {
     mutationFn: async ({ id, priority }: { id: string; priority: string }) => {
       const { error } = await supabase.from('support_tickets').update({ priority }).eq('id', id)
       if (error) throw error
+
+      await supabase.from('ticket_events').insert({
+        ticket_id: id,
+        actor_type: 'agent',
+        actor_id: profile?.id,
+        action: 'priority_change',
+        new_value: priority,
+      })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-support'] }),
   })
@@ -138,6 +159,14 @@ export function useAdminSupport() {
     mutationFn: async ({ id, assignedTo }: { id: string; assignedTo: string | null }) => {
       const { error } = await supabase.from('support_tickets').update({ assigned_to: assignedTo }).eq('id', id)
       if (error) throw error
+
+      await supabase.from('ticket_events').insert({
+        ticket_id: id,
+        actor_type: 'agent',
+        actor_id: profile?.id,
+        action: 'assignment_change',
+        new_value: assignedTo,
+      })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-support'] }),
   })
@@ -199,6 +228,15 @@ export function useSendTicketReply() {
       if (Object.keys(updates).length > 0) {
         await supabase.from('support_tickets').update(updates).eq('id', ticketId)
       }
+
+      // Log audit event
+      await supabase.from('ticket_events').insert({
+        ticket_id: ticketId,
+        actor_type: 'agent',
+        actor_id: profile?.id,
+        action: isInternal ? 'note_added' : 'message_added',
+        new_value: content.slice(0, 100),
+      })
 
       // Send email notification to customer (non-internal only)
       if (!isInternal) {
