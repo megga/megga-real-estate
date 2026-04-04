@@ -175,6 +175,7 @@ export default function AdminLiveFeedPage() {
       return () => clearTimeout(timer)
     }
     setPrevCount(events.length)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events.length, prevCount])
 
   // Display events (paused = freeze the current list)

@@ -19,7 +19,6 @@ serve(async (req) => {
 
     const now = new Date()
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
     // ── Collect metrics ──
     const [

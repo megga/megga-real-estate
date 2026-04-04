@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CreditCard, Check, X, ChevronDown, Infinity } from 'lucide-react'
+import { CreditCard, Check, X, ChevronDown, Infinity as InfinityIcon } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import { PLANS } from '@/lib/plans'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
@@ -156,7 +156,7 @@ export default function AdminPlansPage() {
                         </span>
                       )}
                       {feature.included && feature.limit === undefined && (
-                        <Infinity className="h-3 w-3 text-theme-tertiary" />
+                        <InfinityIcon className="h-3 w-3 text-theme-tertiary" />
                       )}
                     </div>
                   ))}

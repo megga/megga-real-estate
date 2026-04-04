@@ -6,8 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const PROJECT_REF = 'eayczugyrvmtqnnmvjod'
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -73,7 +71,6 @@ serve(async (req) => {
 
     // ── Pro plan: Storage usage via Management API ──
     let storageUsedMb = 0
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     try {
       // List all buckets and sum sizes
       const { data: buckets } = await supabaseAdmin.storage.listBuckets()
