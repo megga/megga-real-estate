@@ -1,11 +1,12 @@
 import { formatCHF, formatRelativeDate, cn } from '@/lib/utils'
-import { useAdminBilling } from '@/hooks/useAdminBilling'
+import { useAdminBilling, type StripeBillingData } from '@/hooks/useAdminBilling'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
-import { CreditCard, Users, TrendingDown, DollarSign } from 'lucide-react'
+import { CreditCard, Users, TrendingDown, TrendingUp, DollarSign, AlertTriangle, Clock, Zap } from 'lucide-react'
 
 const PLAN_COLORS: Record<string, string> = {
   starter: '#94a3b8',
   pro: '#2563eb',
+  entreprise: '#7c3aed',
   agency: '#7c3aed',
   unknown: '#d1d5db',
 }
@@ -13,22 +14,15 @@ const PLAN_COLORS: Record<string, string> = {
 const PLAN_LABELS: Record<string, string> = {
   starter: 'Starter',
   pro: 'Pro',
+  entreprise: 'Entreprise',
   agency: 'Agency',
   unknown: 'Inconnu',
 }
 
-const STATUS_DOT: Record<string, string> = {
-  active: 'bg-emerald-500',
-  canceled: 'bg-red-500',
-  past_due: 'bg-amber-500',
-  trialing: 'bg-blue-500',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Actif',
-  canceled: 'Annule',
-  past_due: 'Impaye',
-  trialing: 'Essai',
+const PAYMENT_STATUS: Record<string, { dot: string; label: string }> = {
+  succeeded: { dot: 'bg-emerald-500', label: 'Reussi' },
+  failed: { dot: 'bg-red-500', label: 'Echoue' },
+  refunded: { dot: 'bg-amber-500', label: 'Rembourse' },
 }
 
 export default function BillingDashboard() {
@@ -45,58 +39,57 @@ export default function BillingDashboard() {
             </div>
           ))}
         </div>
-        <div className="rounded-xl border border-theme-border p-5 animate-pulse h-64" />
       </div>
     )
   }
 
   if (!data) return null
 
-  const arpu = data.activeSubscriptions > 0
-    ? Math.round(data.mrr / data.activeSubscriptions)
-    : 0
-
   return (
     <div className="space-y-4">
-      {/* Section title */}
-      <h2 className="text-sm font-semibold text-theme-primary">Revenus & Abonnements</h2>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-theme-primary">Revenus & Abonnements</h2>
+        {data.source === 'stripe' && (
+          <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-medium">
+            <Zap className="h-3 w-3" />
+            Stripe connecte
+          </span>
+        )}
+        {data.source === 'supabase' && (
+          <span className="text-[10px] text-theme-muted">Donnees Supabase (deployer admin-stripe-metrics pour Stripe)</span>
+        )}
+      </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* KPI row — 6 cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <AdminKpiCard label="MRR" value={formatCHF(data.mrr)} icon={CreditCard} />
         <AdminKpiCard
-          label="MRR"
-          value={formatCHF(data.mrr)}
-          icon={CreditCard}
-        />
-        <AdminKpiCard
-          label="Abonnements actifs"
-          value={data.activeSubscriptions}
-          icon={Users}
-          subtitle={`${data.totalSubscriptions} total`}
-        />
-        <AdminKpiCard
-          label="Churn ce mois"
-          value={data.churnedThisMonth}
-          icon={TrendingDown}
-          variant={data.churnedThisMonth > 0 ? 'danger' : 'default'}
-        />
-        <AdminKpiCard
-          label="ARPU"
-          value={formatCHF(arpu)}
+          label="Revenu ce mois"
+          value={formatCHF(data.revenueThisMonth)}
           icon={DollarSign}
-          subtitle="par abonnement actif"
+          trend={data.revenueGrowth !== 0 ? { value: data.revenueGrowth, label: 'vs mois prec.' } : undefined}
+        />
+        <AdminKpiCard label="Abonnements" value={data.activeSubscriptions} icon={Users} subtitle={`${data.totalSubscriptions} total`} />
+        <AdminKpiCard label="ARPU" value={formatCHF(data.arpu)} icon={TrendingUp} />
+        <AdminKpiCard label="Churn" value={data.churnedThisMonth} icon={TrendingDown} variant={data.churnedThisMonth > 0 ? 'danger' : 'default'} />
+        <AdminKpiCard
+          label="Paiements echoues"
+          value={data.failedPaymentsThisMonth + data.pastDue}
+          icon={AlertTriangle}
+          variant={(data.failedPaymentsThisMonth + data.pastDue) > 0 ? 'danger' : 'default'}
+          subtitle={data.pastDue > 0 ? `${data.pastDue} impaye${data.pastDue > 1 ? 's' : ''}` : undefined}
         />
       </div>
 
-      {/* Plan breakdown + Recent subs */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Plan distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Plan breakdown */}
         <div className="rounded-xl border border-theme-border p-5">
-          <h3 className="text-sm font-semibold text-theme-primary mb-4">Repartition par plan</h3>
+          <h3 className="text-sm font-semibold text-theme-primary mb-4">Plans</h3>
           {data.planBreakdown.length === 0 ? (
-            <p className="text-sm text-theme-secondary py-8 text-center">Aucun abonnement</p>
+            <p className="text-sm text-theme-secondary py-4 text-center">Aucun abonnement</p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {data.planBreakdown.map(p => {
                 const total = data.activeSubscriptions || 1
                 const pct = Math.round((p.count / total) * 100)
@@ -105,26 +98,14 @@ export default function BillingDashboard() {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: PLAN_COLORS[p.plan] ?? PLAN_COLORS.unknown }} />
-                        <span className="text-sm text-theme-primary font-medium">
-                          {PLAN_LABELS[p.plan] ?? p.plan}
-                        </span>
+                        <span className="text-sm text-theme-primary font-medium">{PLAN_LABELS[p.plan] ?? p.plan}</span>
                       </div>
-                      <span className="text-xs text-theme-secondary">
-                        {p.count} ({pct}%)
-                      </span>
+                      <span className="text-xs text-theme-secondary">{p.count} ({pct}%)</span>
                     </div>
-                    <div className="h-2 rounded-full bg-theme-hover">
-                      <div
-                        className="h-2 rounded-full transition-all duration-500"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: PLAN_COLORS[p.plan] ?? PLAN_COLORS.unknown,
-                        }}
-                      />
+                    <div className="h-1.5 rounded-full bg-theme-hover">
+                      <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: PLAN_COLORS[p.plan] ?? PLAN_COLORS.unknown }} />
                     </div>
-                    <p className="text-xs text-theme-muted mt-0.5">
-                      {formatCHF(Math.round(p.revenue))}/mois
-                    </p>
+                    <p className="text-[10px] text-theme-muted mt-0.5">{formatCHF(p.mrr)}/mois</p>
                   </div>
                 )
               })}
@@ -132,62 +113,96 @@ export default function BillingDashboard() {
           )}
         </div>
 
-        {/* Recent subscriptions table */}
+        {/* Revenue history */}
         <div className="rounded-xl border border-theme-border p-5">
-          <h3 className="text-sm font-semibold text-theme-primary mb-4">Abonnements recents</h3>
-          {data.recentSubscriptions.length === 0 ? (
-            <p className="text-sm text-theme-secondary py-8 text-center">Aucun abonnement</p>
+          <h3 className="text-sm font-semibold text-theme-primary mb-4">Revenus (6 mois)</h3>
+          {data.revenueHistory.length === 0 ? (
+            <p className="text-sm text-theme-secondary py-4 text-center">Pas de donnees</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-theme-border">
-                    <th className="text-left py-2 text-xs font-medium text-theme-secondary">Agence</th>
-                    <th className="text-left py-2 text-xs font-medium text-theme-secondary">Plan</th>
-                    <th className="text-right py-2 text-xs font-medium text-theme-secondary">Prix</th>
-                    <th className="text-center py-2 text-xs font-medium text-theme-secondary">Statut</th>
-                    <th className="text-right py-2 text-xs font-medium text-theme-secondary">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.recentSubscriptions.map(sub => (
-                    <tr key={sub.id} className="border-b border-theme-border/50 last:border-0">
-                      <td className="py-2.5 text-theme-primary">
-                        {sub.agency_name ?? <span className="text-theme-muted">-</span>}
-                      </td>
-                      <td className="py-2.5">
-                        <span
-                          className="text-xs font-medium px-2 py-0.5 rounded"
-                          style={{
-                            color: PLAN_COLORS[sub.plan] ?? PLAN_COLORS.unknown,
-                            backgroundColor: `${PLAN_COLORS[sub.plan] ?? PLAN_COLORS.unknown}15`,
-                          }}
-                        >
-                          {PLAN_LABELS[sub.plan] ?? sub.plan}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-right text-theme-primary">
-                        {formatCHF(sub.price)}
-                      </td>
-                      <td className="py-2.5">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <span className={cn('w-2 h-2 rounded-full', STATUS_DOT[sub.status] ?? 'bg-gray-400')} />
-                          <span className="text-xs text-theme-secondary">
-                            {STATUS_LABELS[sub.status] ?? sub.status}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 text-right text-xs text-theme-muted">
-                        {formatRelativeDate(sub.created_at)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex items-end gap-2 h-32">
+              {data.revenueHistory.map((m, i) => {
+                const max = Math.max(...data.revenueHistory.map(h => h.amount), 1)
+                const height = Math.max((m.amount / max) * 100, 4)
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] text-theme-muted">{m.amount > 0 ? formatCHF(m.amount) : '-'}</span>
+                    <div className="w-full rounded-t" style={{ height: `${height}%`, backgroundColor: 'rgb(var(--color-admin-accent))' }} />
+                    <span className="text-[10px] text-theme-muted">{m.month}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming renewals */}
+        <div className="rounded-xl border border-theme-border p-5">
+          <h3 className="text-sm font-semibold text-theme-primary mb-4">Prochains renouvellements</h3>
+          {data.upcomingRenewals.length === 0 ? (
+            <p className="text-sm text-theme-secondary py-4 text-center">Aucun renouvellement</p>
+          ) : (
+            <div className="space-y-2">
+              {data.upcomingRenewals.map((r, i) => {
+                const date = new Date(r.date * 1000)
+                const daysUntil = Math.ceil((date.getTime() - Date.now()) / 86400000)
+                return (
+                  <div key={i} className="flex items-center gap-3 py-1.5">
+                    <Clock className="h-3.5 w-3.5 text-theme-muted flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-theme-primary truncate">{formatCHF(r.amount)}</p>
+                    </div>
+                    <span className={cn(
+                      'text-xs font-medium',
+                      daysUntil <= 3 ? 'text-amber-500' : 'text-theme-muted'
+                    )}>
+                      {daysUntil <= 0 ? "Aujourd'hui" : `J-${daysUntil}`}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
       </div>
+
+      {/* Recent payments table */}
+      {data.recentPayments.length > 0 && (
+        <div className="rounded-xl border border-theme-border p-5">
+          <h3 className="text-sm font-semibold text-theme-primary mb-4">Paiements recents</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-theme-border text-xs text-theme-secondary">
+                  <th className="text-left py-2 font-medium">Email</th>
+                  <th className="text-left py-2 font-medium">Description</th>
+                  <th className="text-right py-2 font-medium">Montant</th>
+                  <th className="text-center py-2 font-medium">Statut</th>
+                  <th className="text-right py-2 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentPayments.map(p => {
+                  const statusInfo = PAYMENT_STATUS[p.status] ?? { dot: 'bg-gray-400', label: p.status }
+                  return (
+                    <tr key={p.id} className="border-b border-theme-border/50 last:border-0">
+                      <td className="py-2.5 text-theme-primary">{p.customer_email ?? '-'}</td>
+                      <td className="py-2.5 text-theme-secondary text-xs truncate max-w-[200px]">{p.description ?? '-'}</td>
+                      <td className="py-2.5 text-right font-medium text-theme-primary">{formatCHF(p.amount)}</td>
+                      <td className="py-2.5">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span className={cn('w-2 h-2 rounded-full', statusInfo.dot)} />
+                          <span className="text-xs text-theme-secondary">{statusInfo.label}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-right text-xs text-theme-muted">{formatRelativeDate(p.created)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
