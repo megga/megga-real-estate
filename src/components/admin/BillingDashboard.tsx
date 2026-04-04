@@ -61,28 +61,20 @@ export default function BillingDashboard() {
         )}
       </div>
 
-      {/* KPI row — 6 cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <AdminKpiCard label="MRR" value={formatCHF(data.mrr)} icon={CreditCard} />
-        <AdminKpiCard
-          label="Revenu ce mois"
-          value={formatCHF(data.revenueThisMonth)}
-          icon={DollarSign}
-          trend={data.revenueGrowth !== 0 ? { value: data.revenueGrowth, label: 'vs mois prec.' } : undefined}
-        />
-        <AdminKpiCard label="Abonnements" value={data.activeSubscriptions} icon={Users} subtitle={`${data.totalSubscriptions} total`} />
-        <AdminKpiCard label="ARPU" value={formatCHF(data.arpu)} icon={TrendingUp} />
-        <AdminKpiCard label="Churn" value={data.churnedThisMonth} icon={TrendingDown} variant={data.churnedThisMonth > 0 ? 'danger' : 'default'} />
-        <AdminKpiCard
-          label="Paiements echoues"
-          value={data.failedPaymentsThisMonth + data.pastDue}
-          icon={AlertTriangle}
-          variant={(data.failedPaymentsThisMonth + data.pastDue) > 0 ? 'danger' : 'default'}
-          subtitle={data.pastDue > 0 ? `${data.pastDue} impaye${data.pastDue > 1 ? 's' : ''}` : undefined}
-        />
+      {/* KPI grid — compact 2 columns */}
+      <div className="grid grid-cols-2 gap-2">
+        <AdminKpiCard compact label="MRR" value={formatCHF(data.mrr)} icon={CreditCard} variant="success" />
+        <AdminKpiCard compact label="Revenu" value={formatCHF(data.revenueThisMonth)} icon={DollarSign} variant="success"
+          trend={data.revenueGrowth !== 0 ? { value: data.revenueGrowth, label: '' } : undefined} />
+        <AdminKpiCard compact label="Abonnements" value={data.activeSubscriptions} icon={Users} variant="blue" />
+        <AdminKpiCard compact label="ARPU" value={formatCHF(data.arpu)} icon={TrendingUp} />
+        <AdminKpiCard compact label="Churn" value={data.churnedThisMonth} icon={TrendingDown}
+          variant={data.churnedThisMonth > 0 ? 'danger' : 'default'} />
+        <AdminKpiCard compact label="Echoues" value={data.failedPaymentsThisMonth + data.pastDue} icon={AlertTriangle}
+          variant={(data.failedPaymentsThisMonth + data.pastDue) > 0 ? 'danger' : 'default'} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {/* Plan breakdown */}
         <div className="rounded-xl border border-theme-border p-5">
           <h3 className="text-sm font-semibold text-theme-primary mb-4">Plans</h3>
