@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
   MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
-  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle,
+  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -250,6 +250,56 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             </div>
           </div>
         ))}
+
+        {/* ── Super-Admin section ── */}
+        {profile?.role === 'super_admin' && (
+          <>
+            <div className={cn('px-3 pt-4 pb-1', isCol && 'px-0 text-center')}>
+              <span className={cn(
+                'text-[10px] font-semibold uppercase tracking-wider text-admin-accent',
+                isCol && 'hidden'
+              )}>
+                {t('sections.adminMegga')}
+              </span>
+              {isCol && <div className="w-4 h-px bg-admin-accent/30 mx-auto" />}
+            </div>
+            <div className="space-y-0.5">
+              {[
+                { labelKey: 'nav.adminOverview', href: '/dashboard/admin', icon: LayoutDashboard },
+                { labelKey: 'nav.adminAgencies', href: '/dashboard/admin/agencies', icon: Building2 },
+                { labelKey: 'nav.adminUsers', href: '/dashboard/admin/users', icon: Users },
+                { labelKey: 'nav.adminMonitoring', href: '/dashboard/admin/monitoring', icon: Activity },
+                { labelKey: 'nav.adminMarketplace', href: '/dashboard/admin/marketplace', icon: Store },
+                { labelKey: 'nav.adminCompliance', href: '/dashboard/admin/compliance', icon: ShieldCheck },
+                { labelKey: 'nav.adminSupport', href: '/dashboard/admin/support', icon: LifeBuoy },
+              ].map((item) => {
+                const isItemActive = location.pathname === item.href ||
+                  (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))
+                const label = t(item.labelKey)
+                return (
+                  <div key={item.href} className="relative">
+                    <Link
+                      to={item.href}
+                      onClick={onClose}
+                      onMouseEnter={() => isCol ? setHoveredItem(item.href) : undefined}
+                      onMouseLeave={() => setHoveredItem(null)}
+                      className={cn(
+                        navRow(isCol, isItemActive),
+                        isItemActive && '!bg-admin-accent/8 !text-admin-accent'
+                      )}
+                    >
+                      <item.icon className={cn('h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]', isItemActive && 'text-admin-accent')} />
+                      <span className={fadeLabel(isCol)}>{label}</span>
+                    </Link>
+                    <CollapsedTooltip show={isCol && hoveredItem === item.href}>
+                      {label}
+                    </CollapsedTooltip>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
       </nav>
 
       {/* ── Bottom ── */}

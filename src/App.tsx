@@ -80,6 +80,19 @@ const TicketFeedbackPage = lazy(() => import('@/pages/public/TicketFeedbackPage'
 const SupportPage = lazy(() => import('@/pages/agent/SupportPage'))
 const SupportTicketDetailPage = lazy(() => import('@/pages/agent/SupportTicketDetailPage'))
 
+// Lazy-loaded super-admin pages
+const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
+const AdminAgenciesPage = lazy(() => import('@/pages/admin/AdminAgenciesPage'))
+const AdminAgencyDetailPage = lazy(() => import('@/pages/admin/AdminAgencyDetailPage'))
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
+const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
+const AdminMarketplacePage = lazy(() => import('@/pages/admin/AdminMarketplacePage'))
+const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
+const AdminSupportPage = lazy(() => import('@/pages/admin/AdminSupportPage'))
+
+// Admin guard
+import SuperAdminGuard from '@/components/admin/SuperAdminGuard'
+
 function PageLoader() {
   return (
     <div className="flex items-center justify-center h-64">
@@ -205,6 +218,16 @@ export default function App() {
                 <Route path="support" element={<SupportPage />} />
                 <Route path="support/:id" element={<SupportTicketDetailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+
+                {/* Super-Admin routes */}
+                <Route path="admin" element={<SuperAdminGuard><AdminDashboardPage /></SuperAdminGuard>} />
+                <Route path="admin/agencies" element={<SuperAdminGuard><AdminAgenciesPage /></SuperAdminGuard>} />
+                <Route path="admin/agencies/:id" element={<SuperAdminGuard><AdminAgencyDetailPage /></SuperAdminGuard>} />
+                <Route path="admin/users" element={<SuperAdminGuard><AdminUsersPage /></SuperAdminGuard>} />
+                <Route path="admin/monitoring" element={<SuperAdminGuard><AdminMonitoringPage /></SuperAdminGuard>} />
+                <Route path="admin/marketplace" element={<SuperAdminGuard><AdminMarketplacePage /></SuperAdminGuard>} />
+                <Route path="admin/compliance" element={<SuperAdminGuard><AdminCompliancePage /></SuperAdminGuard>} />
+                <Route path="admin/support" element={<SuperAdminGuard><AdminSupportPage /></SuperAdminGuard>} />
               </Route>
 
               {/* 404 */}
