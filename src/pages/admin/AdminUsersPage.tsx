@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Users, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Users, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { exportToCsv } from '@/lib/exportCsv'
 import { cn, formatDate } from '@/lib/utils'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import type { AdminUser } from '@/hooks/useAdminUsers'
@@ -126,6 +127,16 @@ export default function AdminUsersPage() {
               {isLoading ? 'Chargement...' : `${users.length} utilisateur${users.length !== 1 ? 's' : ''} enregistre${users.length !== 1 ? 's' : ''}`}
             </p>
           </div>
+          <button
+            onClick={() => exportToCsv('megga-utilisateurs', users.map(u => ({
+              nom: u.full_name, email: u.email, agence: u.agency_name ?? '',
+              role: u.role, date: u.created_at,
+            })))}
+            className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exporter
+          </button>
         </div>
 
         {/* Filters */}

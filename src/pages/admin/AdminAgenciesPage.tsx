@@ -1,9 +1,14 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Building2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Building2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { exportToCsv } from '@/lib/exportCsv'
 import { cn, formatDate } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import type { AgencyWithStats } from '@/hooks/useAdminAgencies'
+import { calculateAgencyHealth } from '@/lib/agencyHealthScore'
+import AgencyHealthBadge from '@/components/admin/AgencyHealthBadge'
 import PageTransition from '@/components/layout/PageTransition'
 
 const ITEMS_PER_PAGE = 10
@@ -50,6 +55,39 @@ function SkeletonRows() {
 
 export default function AdminAgenciesPage() {
   const { agencies, isLoading, updateStatus } = useAdminAgencies()
+
+  // Activity data for health scores
+  const activityQuery = useQuery({
+    queryKey: ['admin-agency-activity-summary'],
+    queryFn: async () => {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const { data } = await supabase
+        .from('activity_events')
+        .select('agency_id, created_at')
+        .gte('created_at', thirtyDaysAgo)
+      const byAgency: Record<string, { count: number; lastAt: string }> = {}
+      for (const evt of data ?? []) {
+        if (!evt.agency_id) continue
+        if (!byAgency[evt.agency_id]) byAgency[evt.agency_id] = { count: 0, lastAt: evt.created_at }
+        byAgency[evt.agency_id].count++
+        if (evt.created_at > byAgency[evt.agency_id].lastAt) byAgency[evt.agency_id].lastAt = evt.created_at
+      }
+      return byAgency
+    },
+    staleTime: 60_000,
+  })
+
+  function getHealth(agency: AgencyWithStats) {
+    const ad = activityQuery.data?.[agency.id]
+    return calculateAgencyHealth({
+      daysSinceLastActivity: ad ? Math.floor((Date.now() - new Date(ad.lastAt).getTime()) / 86400000) : 999,
+      activePropertiesCount: agency.property_count,
+      contactsCount: 0,
+      transactionsCount: agency.transaction_count,
+      eventsLast30Days: ad?.count ?? 0,
+    })
+  }
+
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [page, setPage] = useState(1)
@@ -96,6 +134,17 @@ export default function AdminAgenciesPage() {
               {isLoading ? 'Chargement...' : `${agencies.length} agence${agencies.length !== 1 ? 's' : ''} enregistree${agencies.length !== 1 ? 's' : ''}`}
             </p>
           </div>
+          <button
+            onClick={() => exportToCsv('megga-agences', agencies.map(a => ({
+              nom: a.name, plan: a.plan ?? '', agents: a.agent_count,
+              biens: a.property_count, transactions: a.transaction_count,
+              statut: a.status, date: a.created_at,
+            })))}
+            className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exporter
+          </button>
         </div>
 
         {/* Filters */}
@@ -174,6 +223,7 @@ export default function AdminAgenciesPage() {
             <span className="w-20 text-center">Transactions</span>
             <span className="w-24">Date</span>
             <span className="w-16 text-center">Statut</span>
+            <span className="w-16 text-center">Sante</span>
             <span className="w-24" />
           </div>
 
@@ -236,6 +286,11 @@ export default function AdminAgenciesPage() {
                     'h-2 w-2 rounded-full',
                     agency.status === 'active' ? 'bg-emerald-500' : 'bg-red-500'
                   )} />
+                </div>
+
+                {/* Health */}
+                <div className="w-16 flex items-center justify-center">
+                  {(() => { const h = getHealth(agency); return <AgencyHealthBadge score={h.score} level={h.level} /> })()}
                 </div>
 
                 {/* Hover action */}

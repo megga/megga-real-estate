@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Search, ShieldCheck, AlertTriangle, Trash2, Check, Building2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ShieldCheck, AlertTriangle, Trash2, Check, Building2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { exportToCsv } from '@/lib/exportCsv'
 import { cn, formatCHF, formatDate } from '@/lib/utils'
 import { useAdminModeration } from '@/hooks/useAdminModeration'
 import type { ModerationListing } from '@/hooks/useAdminModeration'
@@ -109,15 +110,27 @@ export default function AdminMarketplacePage() {
     <PageTransition>
       <div className="max-w-5xl mx-auto space-y-5">
         {/* Header */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="h-2 w-2 rounded-full bg-admin-accent" />
-            <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="h-2 w-2 rounded-full bg-admin-accent" />
+              <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+            </div>
+            <h1 className="text-2xl font-semibold text-theme-primary">Marketplace</h1>
+            <p className="text-sm text-theme-tertiary mt-0.5">
+              {isLoading ? 'Chargement...' : `${listings.length} bien${listings.length !== 1 ? 's' : ''} actif${listings.length !== 1 ? 's' : ''}`}
+            </p>
           </div>
-          <h1 className="text-2xl font-semibold text-theme-primary">Marketplace</h1>
-          <p className="text-sm text-theme-tertiary mt-0.5">
-            {isLoading ? 'Chargement...' : `${listings.length} bien${listings.length !== 1 ? 's' : ''} actif${listings.length !== 1 ? 's' : ''}`}
-          </p>
+          <button
+            onClick={() => exportToCsv('megga-moderation', listings.map(l => ({
+              titre: l.title, agence: l.agency_name ?? '', prix: l.price,
+              canton: l.canton ?? '', statut: l.moderation_status, date: l.published_at ?? '',
+            })))}
+            className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exporter
+          </button>
         </div>
 
         {/* Stats */}

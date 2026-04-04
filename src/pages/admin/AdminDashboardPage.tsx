@@ -3,6 +3,7 @@ import { useAdminStats } from '@/hooks/useAdminStats'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import BillingDashboard from '@/components/admin/BillingDashboard'
 import OnboardingTracker from '@/components/admin/OnboardingTracker'
+import ActivityLog from '@/components/admin/ActivityLog'
 import { formatRelativeDate } from '@/lib/utils'
 
 const ALERT_ICONS: Record<string, typeof AlertTriangle> = {
@@ -115,6 +116,9 @@ export default function AdminDashboardPage() {
 
       {/* Onboarding tracker — activation funnel per agency */}
       <OnboardingTracker />
+
+      {/* Activity Log */}
+      <ActivityLog />
     </div>
   )
 }

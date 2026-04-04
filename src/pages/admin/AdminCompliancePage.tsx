@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, ShieldCheck, AlertTriangle, FileCheck, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ShieldCheck, AlertTriangle, FileCheck, Clock, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { exportToCsv } from '@/lib/exportCsv'
 import { cn, formatDate } from '@/lib/utils'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
 import type { ComplianceCase } from '@/hooks/useAdminCompliance'
@@ -173,15 +174,27 @@ export default function AdminCompliancePage() {
     <PageTransition>
       <div className="max-w-5xl mx-auto space-y-5">
         {/* Header */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="h-2 w-2 rounded-full bg-admin-accent" />
-            <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="h-2 w-2 rounded-full bg-admin-accent" />
+              <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+            </div>
+            <h1 className="text-2xl font-semibold text-theme-primary">Compliance</h1>
+            <p className="text-sm text-theme-tertiary mt-0.5">
+              {isLoading ? 'Chargement...' : `${cases.length} dossier${cases.length !== 1 ? 's' : ''} KYC`}
+            </p>
           </div>
-          <h1 className="text-2xl font-semibold text-theme-primary">Compliance</h1>
-          <p className="text-sm text-theme-tertiary mt-0.5">
-            {isLoading ? 'Chargement...' : `${cases.length} dossier${cases.length !== 1 ? 's' : ''} KYC`}
-          </p>
+          <button
+            onClick={() => exportToCsv('megga-compliance', cases.map(c => ({
+              contact: c.contact_name, agence: c.agency_name ?? '', type: c.type,
+              risque: c.risk_level, completion: c.completion_pct, statut: c.status, date: c.created_at,
+            })))}
+            className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exporter
+          </button>
         </div>
 
         {/* KPI Cards */}

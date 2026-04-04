@@ -13,6 +13,7 @@ import { useAvatar } from '@/hooks/useAvatar'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useMessaging } from '@/hooks/useMessaging'
 import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
+import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const isAdminRoute = location.pathname.startsWith('/dashboard/admin')
   const [adminMode, setAdminMode] = useState(isAdminRoute)
+  const [adminSearchOpen, setAdminSearchOpen] = useState(false)
   const isMinimalSidebar = preferences.sidebarStyle === 'minimal'
   const unreadCount = (threads || []).reduce((sum, t) => sum + (t.unread_count || 0), 0)
 
@@ -232,6 +234,18 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                 </div>
               </div>
             )}
+
+            {/* Admin search */}
+            <div className="mb-2">
+              <button
+                onClick={() => setAdminSearchOpen(true)}
+                className={cn(navRow(isCol, false), 'w-full text-theme-secondary')}
+              >
+                <Search className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
+                <span className={fadeLabel(isCol)}>Rechercher...</span>
+              </button>
+            </div>
+            <AdminSearchDialog open={adminSearchOpen} onClose={() => setAdminSearchOpen(false)} />
 
             {/* Admin items */}
             <div className="space-y-0.5">
