@@ -149,8 +149,6 @@ export default function AdminDashboardPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
-  const isWidgetVisible = (id: string) => visibleWidgets.some(w => w.id === id)
-
   const healthStatus = (kpis?.highRiskKyc ?? 0) > 0 ? 'warning' : 'healthy'
 
   function handleDragEnd(event: DragEndEvent) {

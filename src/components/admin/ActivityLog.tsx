@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, Home, GitBranch, ShieldCheck, Mail, Calendar, Shuffle, Building2, Activity, AlertTriangle } from 'lucide-react'
+import { Users, Home, GitBranch, ShieldCheck, Mail, Calendar, Shuffle, Building2, Activity } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useActivityLog, type ActivityLogEntry } from '@/hooks/useActivityLog'
 

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Database, Zap, Clock, Mail, CheckCircle, AlertTriangle, Search, Activity, HardDrive, Globe } from 'lucide-react'
+import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe } from 'lucide-react'
 import { useAdminMonitoring } from '@/hooks/useAdminMonitoring'
 import { cn, formatRelativeDate } from '@/lib/utils'
 

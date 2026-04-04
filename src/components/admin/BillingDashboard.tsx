@@ -1,5 +1,5 @@
 import { formatCHF, formatRelativeDate, cn } from '@/lib/utils'
-import { useAdminBilling, type StripeBillingData } from '@/hooks/useAdminBilling'
+import { useAdminBilling } from '@/hooks/useAdminBilling'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import { CreditCard, Users, TrendingDown, TrendingUp, DollarSign, AlertTriangle, Clock, Zap } from 'lucide-react'
 

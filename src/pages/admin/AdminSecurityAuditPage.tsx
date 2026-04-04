@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Shield, AlertTriangle, AlertCircle, Info, Download, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn, formatDate } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { exportToCsv } from '@/lib/exportCsv'
@@ -9,7 +9,7 @@ import {
   AUDIT_ACTION_LABELS,
   AUDIT_SEVERITY,
   SENSITIVE_ACTIONS,
-  type AuditEntry,
+
 } from '@/hooks/useSecurityAudit'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import PageTransition from '@/components/layout/PageTransition'

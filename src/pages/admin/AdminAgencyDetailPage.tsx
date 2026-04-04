@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, Mail, Phone, MapPin, Clock, Eye } from 'lucide-react'
+import { ArrowLeft, Building2, Mail, Phone, Clock, Eye } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate, formatCHF } from '@/lib/utils'
 import {
   useAdminAgency,

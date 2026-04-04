@@ -62,7 +62,7 @@ export default function OnboardingTracker() {
 
       {/* Funnel summary */}
       <div className="space-y-2">
-        {funnelSteps.map((step, i) => (
+        {funnelSteps.map((step) => (
           <div key={step.key} className="flex items-center gap-3">
             <span className="text-xs text-theme-secondary w-24 flex-shrink-0 text-right">{step.label}</span>
             <div className="flex-1 h-6 rounded bg-theme-hover overflow-hidden relative">
