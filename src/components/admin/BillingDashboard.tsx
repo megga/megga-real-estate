@@ -2,7 +2,6 @@ import { formatCHF, formatRelativeDate, cn } from '@/lib/utils'
 import { useAdminBilling } from '@/hooks/useAdminBilling'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import { CreditCard, Users, TrendingDown, DollarSign } from 'lucide-react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 const PLAN_COLORS: Record<string, string> = {
   starter: '#94a3b8',
@@ -57,13 +56,6 @@ export default function BillingDashboard() {
     ? Math.round(data.mrr / data.activeSubscriptions)
     : 0
 
-  const pieData = data.planBreakdown.map(p => ({
-    name: PLAN_LABELS[p.plan] ?? p.plan,
-    value: p.count,
-    revenue: p.revenue,
-    fill: PLAN_COLORS[p.plan] ?? PLAN_COLORS.unknown,
-  }))
-
   return (
     <div className="space-y-4">
       {/* Section title */}
@@ -101,72 +93,41 @@ export default function BillingDashboard() {
         {/* Plan distribution */}
         <div className="rounded-xl border border-theme-border p-5">
           <h3 className="text-sm font-semibold text-theme-primary mb-4">Repartition par plan</h3>
-          {pieData.length === 0 ? (
+          {data.planBreakdown.length === 0 ? (
             <p className="text-sm text-theme-secondary py-8 text-center">Aucun abonnement</p>
           ) : (
-            <div className="flex items-center gap-6">
-              <div className="w-40 h-40 flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={35}
-                      outerRadius={65}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {pieData.map((entry, i) => (
-                        <Cell key={i} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={({ payload }) => {
-                        if (!payload?.length) return null
-                        const item = payload[0].payload as typeof pieData[number]
-                        return (
-                          <div className="rounded-lg border border-theme-border bg-theme-card p-2 text-xs">
-                            <p className="font-medium text-theme-primary">{item.name}</p>
-                            <p className="text-theme-secondary">{item.value} abonnement{item.value > 1 ? 's' : ''}</p>
-                            <p className="text-theme-secondary">{formatCHF(Math.round(item.revenue))}/mois</p>
-                          </div>
-                        )
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex-1 space-y-3">
-                {data.planBreakdown.map(p => {
-                  const total = data.activeSubscriptions || 1
-                  const pct = Math.round((p.count / total) * 100)
-                  return (
-                    <div key={p.plan}>
-                      <div className="flex items-center justify-between mb-1">
+            <div className="space-y-4">
+              {data.planBreakdown.map(p => {
+                const total = data.activeSubscriptions || 1
+                const pct = Math.round((p.count / total) * 100)
+                return (
+                  <div key={p.plan}>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: PLAN_COLORS[p.plan] ?? PLAN_COLORS.unknown }} />
                         <span className="text-sm text-theme-primary font-medium">
                           {PLAN_LABELS[p.plan] ?? p.plan}
                         </span>
-                        <span className="text-xs text-theme-secondary">
-                          {p.count} ({pct}%)
-                        </span>
                       </div>
-                      <div className="h-2 rounded-full bg-theme-hover">
-                        <div
-                          className="h-2 rounded-full transition-all duration-500"
-                          style={{
-                            width: `${pct}%`,
-                            backgroundColor: PLAN_COLORS[p.plan] ?? PLAN_COLORS.unknown,
-                          }}
-                        />
-                      </div>
-                      <p className="text-xs text-theme-muted mt-0.5">
-                        {formatCHF(Math.round(p.revenue))}/mois
-                      </p>
+                      <span className="text-xs text-theme-secondary">
+                        {p.count} ({pct}%)
+                      </span>
                     </div>
-                  )
-                })}
-              </div>
+                    <div className="h-2 rounded-full bg-theme-hover">
+                      <div
+                        className="h-2 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: PLAN_COLORS[p.plan] ?? PLAN_COLORS.unknown,
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-theme-muted mt-0.5">
+                      {formatCHF(Math.round(p.revenue))}/mois
+                    </p>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
