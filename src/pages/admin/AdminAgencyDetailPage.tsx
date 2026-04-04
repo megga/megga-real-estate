@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, Mail, Phone, MapPin, Clock } from 'lucide-react'
+import { ArrowLeft, Building2, Mail, Phone, MapPin, Clock, Eye } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate, formatCHF } from '@/lib/utils'
 import {
   useAdminAgency,
@@ -10,6 +10,7 @@ import {
   useAgencyActivity,
 } from '@/hooks/useAdminAgencies'
 import PageTransition from '@/components/layout/PageTransition'
+import { useImpersonate } from '@/hooks/useImpersonate'
 
 type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions'
 
@@ -189,7 +190,7 @@ export default function AdminAgencyDetailPage() {
         {/* Tab content */}
         <div>
           {activeTab === 'infos' && <InfosTab agency={agency} />}
-          {activeTab === 'equipe' && <EquipeTab agencyId={agency.id} />}
+          {activeTab === 'equipe' && <EquipeTab agencyId={agency.id} agencyName={agency.name as string ?? ''} />}
           {activeTab === 'activite' && <ActiviteTab agencyId={agency.id} />}
           {activeTab === 'biens' && <BiensTab agencyId={agency.id} />}
           {activeTab === 'transactions' && <TransactionsTab agencyId={agency.id} />}
@@ -224,8 +225,9 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
 }
 
 /* ─── Tab: Equipe ─── */
-function EquipeTab({ agencyId }: { agencyId: string }) {
+function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: string }) {
   const { data: members, isLoading } = useAgencyMembers(agencyId)
+  const { startImpersonate } = useImpersonate()
 
   if (isLoading) {
     return (
@@ -251,13 +253,14 @@ function EquipeTab({ agencyId }: { agencyId: string }) {
         <span className="w-40">Email</span>
         <span className="w-24">Role</span>
         <span className="w-24 text-right">Inscription</span>
+        <span className="w-10" />
       </div>
 
       {members.map((member, i) => (
         <div
           key={member.id}
           className={cn(
-            'flex items-center px-4 py-3',
+            'group flex items-center px-4 py-3',
             i < members.length - 1 && 'border-b border-theme-border'
           )}
         >
@@ -275,6 +278,22 @@ function EquipeTab({ agencyId }: { agencyId: string }) {
           </span>
           <span className="w-24 text-xs text-theme-tertiary text-right">
             {formatDate(member.created_at)}
+          </span>
+          <span className="w-10 flex justify-end">
+            <button
+              onClick={() => startImpersonate({
+                id: member.id,
+                full_name: member.full_name ?? 'Utilisateur',
+                email: member.email,
+                role: member.role ?? 'agent',
+                agency_id: agencyId,
+                agency_name: agencyName,
+              })}
+              aria-label={`Se connecter en tant que ${member.full_name ?? 'utilisateur'}`}
+              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-admin-accent hover:bg-admin-accent/5 transition-all"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
           </span>
         </div>
       ))}

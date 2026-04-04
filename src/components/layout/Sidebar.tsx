@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
   MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
-  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy,
+  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useAvatar } from '@/hooks/useAvatar'
 import { usePreferences } from '@/hooks/usePreferences'
 import { useMessaging } from '@/hooks/useMessaging'
+import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,8 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const { preferences } = usePreferences()
   const { threads } = useMessaging(null)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const isAdminRoute = location.pathname.startsWith('/dashboard/admin')
+  const [adminMode, setAdminMode] = useState(isAdminRoute)
   const isMinimalSidebar = preferences.sidebarStyle === 'minimal'
   const unreadCount = (threads || []).reduce((sum, t) => sum + (t.unread_count || 0), 0)
 
@@ -202,67 +205,35 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
       )}
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1">
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.labelKey}>
-            {/* Section label */}
-            {isCol || isMinimalSidebar ? (
-              <div className="mt-3" />
-            ) : (
-              <div className="mt-6 mb-1 px-3">
-                <span className="text-[10px] uppercase tracking-[0.08em] text-theme-tertiary font-medium select-none">
-                  {t(section.labelKey)}
-                </span>
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1 scrollbar-hide">
+        {adminMode ? (
+          /* ── Admin Mode ── */
+          <>
+            {/* Back to agent button */}
+            <div className="mb-2">
+              <button
+                onClick={() => setAdminMode(false)}
+                className={cn(
+                  navRow(isCol, false),
+                  'w-full text-theme-secondary hover:text-theme-primary'
+                )}
+              >
+                <ChevronDown className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8] rotate-90" />
+                <span className={fadeLabel(isCol)}>Retour agent</span>
+              </button>
+            </div>
+
+            {/* Admin header */}
+            {!isCol && !isMinimalSidebar && (
+              <div className="px-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-admin-accent" />
+                  <span className="text-xs font-semibold text-admin-accent">Admin MEGGA</span>
+                </div>
               </div>
             )}
 
-            {/* Items */}
-            <div className="space-y-0.5">
-              {section.items.map((item) => {
-                const active = isActive(item.href)
-                const label = t(item.labelKey)
-                return (
-                  <div key={item.href} className="relative">
-                    <Link
-                      to={item.href}
-                      onClick={onClose}
-                      onMouseEnter={() => isCol ? setHoveredItem(item.href) : undefined}
-                      onMouseLeave={() => setHoveredItem(null)}
-                      className={navRow(isCol, active)}
-                    >
-                      <div className="relative flex-shrink-0">
-                        <item.icon className="w-[18px] h-[18px] stroke-[1.8]" />
-                        {item.href === '/dashboard/messages' && unreadCount > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
-                        )}
-                      </div>
-
-                      <span className={fadeLabel(isCol)}>{label}</span>
-                    </Link>
-
-                    <CollapsedTooltip show={isCol && hoveredItem === item.href}>
-                      {label}
-                      {item.href === '/dashboard/messages' && unreadCount > 0 && <span className="ml-1.5 text-red-500">({unreadCount})</span>}
-                    </CollapsedTooltip>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-
-        {/* ── Super-Admin section ── */}
-        {profile?.role === 'super_admin' && (
-          <>
-            <div className={cn('px-3 pt-4 pb-1', isCol && 'px-0 text-center')}>
-              <span className={cn(
-                'text-[10px] font-semibold uppercase tracking-wider text-admin-accent',
-                isCol && 'hidden'
-              )}>
-                {t('sections.adminMegga')}
-              </span>
-              {isCol && <div className="w-4 h-px bg-admin-accent/30 mx-auto" />}
-            </div>
+            {/* Admin items */}
             <div className="space-y-0.5">
               {[
                 { labelKey: 'nav.adminOverview', href: '/dashboard/admin', icon: LayoutDashboard },
@@ -299,6 +270,74 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
               })}
             </div>
           </>
+        ) : (
+          /* ── Agent Mode (default) ── */
+          <>
+            {NAV_SECTIONS.map((section) => (
+              <div key={section.labelKey}>
+                {isCol || isMinimalSidebar ? (
+                  <div className="mt-3" />
+                ) : (
+                  <div className="mt-6 mb-1 px-3">
+                    <span className="text-[10px] uppercase tracking-[0.08em] text-theme-tertiary font-medium select-none">
+                      {t(section.labelKey)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const active = isActive(item.href)
+                    const label = t(item.labelKey)
+                    return (
+                      <div key={item.href} className="relative">
+                        <Link
+                          to={item.href}
+                          onClick={onClose}
+                          onMouseEnter={() => isCol ? setHoveredItem(item.href) : undefined}
+                          onMouseLeave={() => setHoveredItem(null)}
+                          className={navRow(isCol, active)}
+                        >
+                          <div className="relative flex-shrink-0">
+                            <item.icon className="w-[18px] h-[18px] stroke-[1.8]" />
+                            {item.href === '/dashboard/messages' && unreadCount > 0 && (
+                              <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
+                            )}
+                          </div>
+                          <span className={fadeLabel(isCol)}>{label}</span>
+                        </Link>
+                        <CollapsedTooltip show={isCol && hoveredItem === item.href}>
+                          {label}
+                          {item.href === '/dashboard/messages' && unreadCount > 0 && <span className="ml-1.5 text-red-500">({unreadCount})</span>}
+                        </CollapsedTooltip>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* Admin switch button */}
+            {profile?.role === 'super_admin' && (
+              <div className="mt-4 relative">
+                <button
+                  onClick={() => setAdminMode(true)}
+                  onMouseEnter={() => isCol ? setHoveredItem('admin-switch') : undefined}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  className={cn(
+                    navRow(isCol, false),
+                    'w-full text-admin-accent hover:!bg-admin-accent/8'
+                  )}
+                >
+                  <ShieldCheck className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
+                  <span className={fadeLabel(isCol)}>Admin</span>
+                </button>
+                <CollapsedTooltip show={isCol && hoveredItem === 'admin-switch'}>
+                  Admin MEGGA
+                </CollapsedTooltip>
+              </div>
+            )}
+          </>
         )}
       </nav>
 
@@ -322,6 +361,19 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             <CollapsedTooltip show={hoveredItem === 'expand'}>Déplier</CollapsedTooltip>
           </div>
         </div>
+
+        {/* Admin notifications — super_admin only */}
+        {profile?.role === 'super_admin' && adminMode && (
+          <div className="relative"
+            onMouseEnter={() => isCol ? setHoveredItem('admin-notif') : undefined}
+            onMouseLeave={() => setHoveredItem(null)}
+          >
+            <AdminNotificationPanel />
+            <CollapsedTooltip show={isCol && hoveredItem === 'admin-notif'}>
+              Notifications
+            </CollapsedTooltip>
+          </div>
+        )}
 
         {/* Theme toggle */}
         <div className="relative"

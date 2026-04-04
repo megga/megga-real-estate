@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { X, Mail, Phone, Building2, Clock } from 'lucide-react'
+import { X, Mail, Phone, Building2, Clock, Eye } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity } from '@/hooks/useAdminUsers'
+import { useImpersonate } from '@/hooks/useImpersonate'
 
 const ROLE_OPTIONS = [
   { value: 'super_admin', label: 'Super Admin' },
@@ -45,6 +46,7 @@ function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
 export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
+  const { startImpersonate } = useImpersonate()
 
   const user = users.find(u => u.id === userId)
 
@@ -170,6 +172,25 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 <p className="text-xs text-red-500 mt-1">Erreur lors de la mise a jour du role</p>
               )}
             </div>
+
+            {/* Impersonate button */}
+            <button
+              onClick={() => {
+                startImpersonate({
+                  id: user.id,
+                  full_name: user.full_name ?? 'Utilisateur',
+                  email: user.email,
+                  role: user.role ?? 'agent',
+                  agency_id: user.agency_id,
+                  agency_name: user.agency_name,
+                })
+                onClose()
+              }}
+              className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-admin-accent/30 text-admin-accent rounded-lg hover:bg-admin-accent/5 transition-colors"
+            >
+              <Eye className="h-4 w-4" />
+              Se connecter en tant que
+            </button>
 
             {/* Activity timeline */}
             <div>

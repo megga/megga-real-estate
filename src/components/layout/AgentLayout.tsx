@@ -8,6 +8,7 @@ import CommandPalette from '@/components/layout/CommandPalette'
 import Breadcrumb from '@/components/layout/Breadcrumb'
 import NewContactDialog from '@/components/contacts/NewContactDialog'
 import BottomTabBar from '@/components/layout/BottomTabBar'
+import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 
 function AgentLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -65,6 +66,9 @@ function AgentLayoutInner() {
             <span className="text-sm font-bold text-theme-primary">MEGGA</span>
           </div>
         </header>
+
+        {/* Impersonate banner */}
+        <ImpersonateBanner />
 
         {/* Page content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 pb-20 md:pb-4 overflow-y-auto">

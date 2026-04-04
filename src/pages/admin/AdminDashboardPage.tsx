@@ -1,6 +1,8 @@
 import { Building2, Users, Home, GitBranch, CreditCard, ShieldAlert, AlertTriangle, Bell } from 'lucide-react'
 import { useAdminStats } from '@/hooks/useAdminStats'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
+import BillingDashboard from '@/components/admin/BillingDashboard'
+import OnboardingTracker from '@/components/admin/OnboardingTracker'
 import { formatRelativeDate } from '@/lib/utils'
 
 const ALERT_ICONS: Record<string, typeof AlertTriangle> = {
@@ -77,6 +79,9 @@ export default function AdminDashboardPage() {
         </div>
       ) : null}
 
+      {/* Revenue & Billing */}
+      <BillingDashboard />
+
       {/* Alerts feed */}
       <div className="rounded-xl border border-theme-border p-5">
         <h2 className="text-sm font-semibold text-theme-primary mb-4">Alertes recentes</h2>
@@ -107,6 +112,9 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Onboarding tracker — activation funnel per agency */}
+      <OnboardingTracker />
     </div>
   )
 }
