@@ -22,14 +22,28 @@
     "search": "Suchen...",
     "collapseSidebar": "Seitenleiste einklappen",
     "expandSidebar": "Seitenleiste öffnen",
-    "mainAgent": "Hauptmakler"
+    "mainAgent": "Hauptmakler",
+    "adminOverview": "Ubersicht",
+    "adminAgencies": "Agenturen",
+    "adminUsers": "Benutzer",
+    "adminMonitoring": "Monitoring",
+    "adminMarketplace": "Moderation",
+    "adminCompliance": "Compliance",
+    "adminSupport": "Support",
+    "adminChangelog": "Changelog",
+    "adminFlags": "Feature Flags",
+    "adminLive": "Live Feed",
+    "adminPlans": "Plane & Kontingente",
+    "adminSecurity": "Sicherheitsaudit",
+    "adminNps": "Zufriedenheit"
   },
   "sections": {
     "main": "Hauptmenü",
     "crm": "CRM",
     "properties": "Objekte",
     "communication": "Kommunikation",
-    "compliance": "Compliance"
+    "compliance": "Compliance",
+    "adminMegga": "ADMIN MEGGA"
   },
   "actions": {
     "save": "Speichern",

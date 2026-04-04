@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Send, User, Mail, Phone, CheckCircle2 } from 'lucide-react'
+import { X, Send, Mail, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import AgentCard from './AgentCard'
 
 interface Agent {
   name: string
@@ -80,12 +81,13 @@ export default function ContactAgentModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="relative bg-white rounded-2xl shadow-sm w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
           <h2 className="text-base font-semibold text-gray-900">Contacter l'agent</h2>
           <button
             onClick={onClose}
+            aria-label="Fermer"
             className="h-8 w-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <X className="h-4 w-4" />
@@ -112,33 +114,8 @@ export default function ContactAgentModal({
         ) : (
           <form onSubmit={handleSubmit}>
             {/* Agent card */}
-            <div className="flex items-center gap-3 px-6 py-4 bg-gray-50">
-              <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                {agent.photo && agent.photo !== '/megga-gg.svg' ? (
-                  <img
-                    src={agent.photo}
-                    alt={agent.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-accent/10">
-                    <User className="h-5 w-5 text-accent" />
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{agent.name}</p>
-                <p className="text-xs text-gray-500 truncate">{agent.agency}</p>
-              </div>
-              {agent.phone && (
-                <a
-                  href={`tel:${agent.phone}`}
-                  className="ml-auto flex items-center gap-1.5 text-xs text-accent font-medium hover:underline flex-shrink-0"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  Appeler
-                </a>
-              )}
+            <div className="px-6 py-4 bg-gray-50">
+              <AgentCard variant="default" agent={agent} />
             </div>
 
             {/* Form fields */}
@@ -226,13 +203,13 @@ export default function ContactAgentModal({
                 disabled={sending || !name || !email || !message}
                 className={cn(
                   'h-9 px-5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors',
-                  'bg-accent text-white hover:bg-accent/90',
+                  'border border-gray-200 text-gray-900 hover:border-accent hover:text-accent',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
               >
                 {sending ? (
                   <>
-                    <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="h-3.5 w-3.5 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
                     Envoi...
                   </>
                 ) : (

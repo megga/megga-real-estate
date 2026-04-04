@@ -49,6 +49,11 @@ export default {
           foreground: themeColor('--color-accent-fg'),
         },
 
+        /* ─── Admin accent (violet, theme-aware) ─── */
+        'admin-accent': themeColor('--color-admin-accent'),
+        'admin-accent-hover': themeColor('--color-admin-accent-hover'),
+        'admin-accent-light': themeColor('--color-admin-accent-light'),
+
         /* ─── Semantic status colors (theme-aware) ─── */
         success: {
           DEFAULT: themeColor('--color-success'),

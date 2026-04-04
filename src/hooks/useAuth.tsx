@@ -7,7 +7,7 @@ import { isAgentRole, isParticulierRole } from '@/types/auth'
 export type { UserRole, UserProfile } from '@/types/auth'
 
 // DEV_BYPASS: set to true to skip auth and use a mock user
-const DEV_BYPASS_AUTH = false
+const DEV_BYPASS_AUTH = true
 
 interface AuthContextType {
   session: Session | null
@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const MOCK_USER = {
   id: 'dev-mock-user',
   email: 'agent@megga.ch',
-  user_metadata: { full_name: 'Gregory Lyonnet', role: 'agent' },
+  user_metadata: { full_name: 'Gregory Lyonnet', role: 'super_admin' },
   app_metadata: {},
   aud: 'authenticated',
   created_at: '2026-01-01T00:00:00Z',
@@ -40,7 +40,7 @@ const MOCK_PROFILE: UserProfile = {
   id: 'dev-mock-user',
   email: 'agent@megga.ch',
   full_name: 'Gregory Lyonnet',
-  role: 'agent',
+  role: 'super_admin',
   avatar_url: null,
   phone: null,
   canton: 'GE',

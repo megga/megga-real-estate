@@ -22,14 +22,28 @@
     "search": "Cerca...",
     "collapseSidebar": "Comprimi barra laterale",
     "expandSidebar": "Espandi barra laterale",
-    "mainAgent": "Agente principale"
+    "mainAgent": "Agente principale",
+    "adminOverview": "Panoramica",
+    "adminAgencies": "Agenzie",
+    "adminUsers": "Utenti",
+    "adminMonitoring": "Monitoraggio",
+    "adminMarketplace": "Moderazione",
+    "adminCompliance": "Conformita",
+    "adminSupport": "Supporto",
+    "adminChangelog": "Changelog",
+    "adminFlags": "Feature Flags",
+    "adminLive": "Live Feed",
+    "adminPlans": "Piani & Quote",
+    "adminSecurity": "Audit sicurezza",
+    "adminNps": "Soddisfazione"
   },
   "sections": {
     "main": "Principale",
     "crm": "CRM",
     "properties": "Immobili",
     "communication": "Comunicazione",
-    "compliance": "Conformità"
+    "compliance": "Conformità",
+    "adminMegga": "ADMIN MEGGA"
   },
   "actions": {
     "save": "Salvare",
