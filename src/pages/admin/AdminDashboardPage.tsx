@@ -1,9 +1,11 @@
 import { Building2, Users, Home, GitBranch, CreditCard, ShieldAlert, AlertTriangle, Bell } from 'lucide-react'
 import { useAdminStats } from '@/hooks/useAdminStats'
+import { useAdminWidgets } from '@/hooks/useAdminWidgets'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import BillingDashboard from '@/components/admin/BillingDashboard'
 import OnboardingTracker from '@/components/admin/OnboardingTracker'
 import ActivityLog from '@/components/admin/ActivityLog'
+import WidgetConfigurator from '@/components/admin/WidgetConfigurator'
 import { formatRelativeDate } from '@/lib/utils'
 
 const ALERT_ICONS: Record<string, typeof AlertTriangle> = {
@@ -32,20 +34,26 @@ const ALERT_BORDER_COLORS: Record<string, string> = {
 
 export default function AdminDashboardPage() {
   const { kpis, kpisLoading, alerts, alertsLoading } = useAdminStats()
+  const { visibleWidgets } = useAdminWidgets()
+
+  const isWidgetVisible = (id: string) => visibleWidgets.some(w => w.id === id)
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header with admin badge */}
-      <div className="flex items-center gap-3">
-        <div className="h-8 px-3 rounded-lg bg-admin-accent/10 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-semibold text-admin-accent">Admin MEGGA</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-8 px-3 rounded-lg bg-admin-accent/10 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-admin-accent" />
+            <span className="text-xs font-semibold text-admin-accent">Admin MEGGA</span>
+          </div>
+          <h1 className="text-xl font-semibold text-theme-primary">Vue d'ensemble</h1>
         </div>
-        <h1 className="text-xl font-semibold text-theme-primary">Vue d'ensemble</h1>
+        <WidgetConfigurator />
       </div>
 
       {/* KPI Grid */}
-      {kpisLoading ? (
+      {isWidgetVisible('kpis') && (kpisLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="rounded-xl border border-theme-border p-5 animate-pulse">
@@ -78,13 +86,13 @@ export default function AdminDashboardPage() {
             variant={kpis.highRiskKyc > 0 ? 'danger' : 'default'}
           />
         </div>
-      ) : null}
+      ) : null)}
 
       {/* Revenue & Billing */}
-      <BillingDashboard />
+      {isWidgetVisible('billing') && <BillingDashboard />}
 
       {/* Alerts feed */}
-      <div className="rounded-xl border border-theme-border p-5">
+      {isWidgetVisible('alerts') && <div className="rounded-xl border border-theme-border p-5">
         <h2 className="text-sm font-semibold text-theme-primary mb-4">Alertes recentes</h2>
         {alertsLoading ? (
           <div className="space-y-3">
@@ -112,13 +120,13 @@ export default function AdminDashboardPage() {
             })}
           </div>
         )}
-      </div>
+      </div>}
 
-      {/* Onboarding tracker — activation funnel per agency */}
-      <OnboardingTracker />
+      {/* Onboarding tracker */}
+      {isWidgetVisible('onboarding') && <OnboardingTracker />}
 
       {/* Activity Log */}
-      <ActivityLog />
+      {isWidgetVisible('activity') && <ActivityLog />}
     </div>
   )
 }

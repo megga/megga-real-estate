@@ -1,0 +1,113 @@
+import { ToggleLeft, ToggleRight, Zap } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useFeatureFlags } from '@/hooks/useFeatureFlags'
+
+const PLAN_LABELS: Record<string, string> = {
+  starter: 'Starter',
+  pro: 'Pro',
+  agency: 'Agency',
+}
+
+export default function AdminFeatureFlagsPage() {
+  const { flags, isLoading, updateFlag } = useFeatureFlags()
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="h-2 w-2 rounded-full bg-admin-accent" />
+          <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+        </div>
+        <h1 className="text-2xl font-semibold text-theme-primary">Feature flags</h1>
+        <p className="text-sm text-theme-tertiary mt-0.5">Activez ou desactivez des fonctionnalites par plan ou par agence</p>
+      </div>
+
+      {/* Flags list */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-theme-border p-5 animate-pulse">
+              <div className="h-5 bg-theme-hover rounded w-48 mb-2" />
+              <div className="h-3 bg-theme-hover rounded w-72" />
+            </div>
+          ))}
+        </div>
+      ) : flags.length === 0 ? (
+        <div className="rounded-xl border border-theme-border p-12 text-center">
+          <Zap className="h-8 w-8 text-theme-muted mx-auto mb-3" />
+          <p className="text-sm text-theme-secondary">Aucun feature flag configure</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {flags.map(flag => (
+            <div key={flag.id} className="rounded-xl border border-theme-border p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-sm font-semibold text-theme-primary">{flag.label}</h3>
+                    <span className="text-[10px] font-mono text-theme-muted bg-theme-hover px-1.5 py-0.5 rounded">
+                      {flag.key}
+                    </span>
+                  </div>
+                  <p className="text-xs text-theme-secondary">{flag.description}</p>
+
+                  {/* Plan restrictions */}
+                  {!flag.enabled_globally && flag.enabled_plans.length > 0 && (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <span className="text-[10px] text-theme-muted">Plans :</span>
+                      {flag.enabled_plans.map(plan => (
+                        <span key={plan} className="text-[10px] font-medium text-admin-accent bg-admin-accent/10 px-1.5 py-0.5 rounded">
+                          {PLAN_LABELS[plan] ?? plan}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Toggle */}
+                <button
+                  onClick={() => updateFlag.mutate({ id: flag.id, updates: { enabled_globally: !flag.enabled_globally } })}
+                  className="flex-shrink-0 ml-4"
+                >
+                  {flag.enabled_globally ? (
+                    <ToggleRight className="h-7 w-7 text-admin-accent" />
+                  ) : (
+                    <ToggleLeft className="h-7 w-7 text-theme-muted" />
+                  )}
+                </button>
+              </div>
+
+              {/* Plan pills (toggle per plan when not globally enabled) */}
+              {!flag.enabled_globally && (
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-theme-border-subtle">
+                  <span className="text-xs text-theme-muted mr-1">Actif pour :</span>
+                  {['starter', 'pro', 'agency'].map(plan => {
+                    const active = flag.enabled_plans.includes(plan)
+                    return (
+                      <button
+                        key={plan}
+                        onClick={() => {
+                          const newPlans = active
+                            ? flag.enabled_plans.filter(p => p !== plan)
+                            : [...flag.enabled_plans, plan]
+                          updateFlag.mutate({ id: flag.id, updates: { enabled_plans: newPlans } })
+                        }}
+                        className={cn(
+                          'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors',
+                          active ? 'bg-admin-accent/10 text-admin-accent' : 'bg-theme-hover text-theme-muted hover:text-theme-primary'
+                        )}
+                      >
+                        {PLAN_LABELS[plan] ?? plan}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

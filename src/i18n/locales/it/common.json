@@ -29,7 +29,9 @@
     "adminMonitoring": "Monitoraggio",
     "adminMarketplace": "Moderazione",
     "adminCompliance": "Conformita",
-    "adminSupport": "Supporto"
+    "adminSupport": "Supporto",
+    "adminChangelog": "Changelog",
+    "adminFlags": "Feature Flags"
   },
   "sections": {
     "main": "Principale",

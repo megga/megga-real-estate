@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
   MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
-  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy, ChevronDown,
+  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy, ChevronDown, Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -257,6 +257,8 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                 { labelKey: 'nav.adminMarketplace', href: '/dashboard/admin/marketplace', icon: Store },
                 { labelKey: 'nav.adminCompliance', href: '/dashboard/admin/compliance', icon: ShieldCheck },
                 { labelKey: 'nav.adminSupport', href: '/dashboard/admin/support', icon: LifeBuoy },
+                { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: Megaphone },
+                { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: Zap },
               ].map((item) => {
                 const isItemActive = location.pathname === item.href ||
                   (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))
