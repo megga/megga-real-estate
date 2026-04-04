@@ -23,6 +23,7 @@ import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
 import InteractiveFloorPlan from '@/components/listing/InteractiveFloorPlan'
 import ListingLightbox from '@/components/listing/ListingLightbox'
 import C2PaBadge from '@/components/listing/C2PaBadge'
+import ContactAgentModal from '@/components/listing/ContactAgentModal'
 import RequestVisitModal from '@/components/listings/RequestVisitModal'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 import { useNeighborhood, calculateWalkScore } from '@/hooks/useNeighborhood'
@@ -582,6 +583,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showContactModal, setShowContactModal] = useState(false)
   const [showStaged, setShowStaged] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [floorPlanRoom, setFloorPlanRoom] = useState<string | null>(null)
@@ -1144,12 +1146,18 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                     {/* Agency card */}
                     {listing.agency_name && (
-                      <div className="flex items-center gap-3 mt-5 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
-                          {listing.agency_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                      <button
+                        onClick={() => setShowContactModal(true)}
+                        className="w-full flex items-center gap-3 mt-5 p-3 rounded-lg bg-gray-50 border border-gray-100 hover:border-gray-200 hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-[10px] font-bold text-accent flex-shrink-0">
+                          {listing.agency_name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
                         </div>
-                        <p className="text-xs font-medium text-gray-600">{listing.agency_name}</p>
-                      </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 truncate">{listing.agency_name}</p>
+                          <p className="text-[11px] text-gray-400">Contacter →</p>
+                        </div>
+                      </button>
                     )}
                   </div>
 
@@ -1310,7 +1318,10 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     </button>
 
                     {/* Secondary CTA */}
-                    <button className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-gray-900 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors">
+                    <button
+                      onClick={() => setShowContactModal(true)}
+                      className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-gray-900 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
+                    >
                       <Phone className="w-5 h-5" />
                       Contacter l'agent
                     </button>
@@ -1385,15 +1396,19 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                     {/* Agency info */}
                     {listing.agency_name && (
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">
-                          {listing.agency_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                      <button
+                        onClick={() => setShowContactModal(true)}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-xs font-bold text-accent flex-shrink-0">
+                          {listing.agency_name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{listing.agency_name}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{listing.agency_name}</p>
                           <p className="text-xs text-gray-500">{listing.city || listing.canton}</p>
                         </div>
-                      </div>
+                        <span className="text-xs text-accent font-medium flex-shrink-0">Contacter →</span>
+                      </button>
                     )}
 
                     <div className="border-t border-gray-100 my-2" />
@@ -1456,6 +1471,23 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
             </div>
           )}
         </div>
+
+      {/* Contact Agent Modal */}
+      {listing && (
+        <ContactAgentModal
+          open={showContactModal}
+          onClose={() => setShowContactModal(false)}
+          agent={{
+            name: listing.agency_name || 'Agent MEGGA',
+            agency: listing.agency_name || 'MEGGA Real Estate',
+            phone: '',
+            email: 'contact@megga.ch',
+            photo: '',
+          }}
+          listingTitle={listing.title}
+          listingAddress={`${listing.address}, ${listing.city}`}
+        />
+      )}
 
       {/* Lightbox */}
       {listing && (

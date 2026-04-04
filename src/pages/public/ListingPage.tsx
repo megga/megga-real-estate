@@ -24,6 +24,7 @@ import ListingLightbox from '@/components/listing/ListingLightbox'
 import ListingMobileBar from '@/components/listing/ListingMobileBar'
 import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
 import InteractiveFloorPlan from '@/components/listing/InteractiveFloorPlan'
+import ContactAgentModal from '@/components/listing/ContactAgentModal'
 import type { FloorPlanHotspot } from '@/types/floorPlan'
 
 // ─── Section definitions for sticky nav ─────────────────────────────────
@@ -110,6 +111,51 @@ export default function ListingPage() {
     return getListingById(id || '')
   }, [isMarketListing, isInternalListing, marketData, internalData, rawId, id])
 
+  // ── Agent profile (internal listings only) ──
+  const { data: agentProfile } = useQuery({
+    queryKey: ['agent-profile', internalData?.created_by],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, phone, email')
+        .eq('id', internalData!.created_by)
+        .single()
+      if (error) throw error
+      return data
+    },
+    enabled: !!isInternalListing && !!internalData?.created_by,
+    staleTime: 30 * 60 * 1000,
+  })
+
+  // ── Resolved agent (real profile for internal, agency name for market) ──
+  const resolvedAgent = useMemo(() => {
+    if (isInternalListing && agentProfile) {
+      return {
+        name: agentProfile.full_name || 'Agent MEGGA',
+        agency: 'MEGGA Real Estate',
+        phone: agentProfile.phone || '',
+        email: agentProfile.email || 'contact@megga.ch',
+        photo: agentProfile.avatar_url || '',
+      }
+    }
+    if (isMarketListing && marketData?.agency_name) {
+      return {
+        name: marketData.agency_name as string,
+        agency: marketData.agency_name as string,
+        phone: '',
+        email: 'contact@megga.ch',
+        photo: '',
+      }
+    }
+    return listing?.agent ?? {
+      name: 'Agent MEGGA',
+      agency: 'MEGGA Real Estate',
+      phone: '+41 22 000 00 00',
+      email: 'contact@megga.ch',
+      photo: '',
+    }
+  }, [isInternalListing, isMarketListing, agentProfile, marketData, listing])
+
   // ── Similar listings ──
   const similarFilters = useMemo(() => listing ? {
     context: 'buy' as const,
@@ -135,6 +181,7 @@ export default function ListingPage() {
   const [lightboxIndex, setLightboxIndex] = useState(initialPhotoIdx >= 0 ? initialPhotoIdx : 0)
   const [showCalculator, setShowCalculator] = useState(false)
   const [showVisitModal, setShowVisitModal] = useState(false)
+  const [showContactModal, setShowContactModal] = useState(false)
   const [floorPlanRoom, setFloorPlanRoom] = useState<string | null>(null)
 
   // Floor plan data (safely access — mock listings won't have these)
@@ -231,10 +278,10 @@ export default function ListingPage() {
 
           {/* Right: Sidebar (desktop) */}
           <ListingSidebar
-            listing={listing}
+            listing={{ ...listing, agent: resolvedAgent }}
             isFavorite={isFavorite}
             onToggleFavorite={() => setIsFavorite(!isFavorite)}
-            onContact={() => {}}
+            onContact={() => setShowContactModal(true)}
             onVisit={() => setShowVisitModal(true)}
             onCalculator={() => setShowCalculator(true)}
           />
@@ -282,6 +329,13 @@ export default function ListingPage() {
         floorPlanHotspots={floorPlanHotspots}
         stagedPhotos={(listingAny?.staged_photos as string[]) ?? undefined}
         listingId={id}
+      />
+      <ContactAgentModal
+        open={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        agent={resolvedAgent}
+        listingTitle={listing.title}
+        listingAddress={`${listing.address}, ${listing.city}`}
       />
       <AffordabilityCalculator
         price={listing.price}
