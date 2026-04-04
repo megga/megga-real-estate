@@ -20,7 +20,9 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      'react-compiler/react-compiler': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
     },
   },
 ])
