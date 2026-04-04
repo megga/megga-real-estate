@@ -45,6 +45,11 @@
     --color-accent-dark: 30 64 175;       /* #1E40AF */
     --color-accent-fg: 255 255 255;       /* text on accent bg */
 
+    /* Admin accent (violet) */
+    --color-admin-accent: 139 92 246;
+    --color-admin-accent-hover: 124 58 237;
+    --color-admin-accent-light: 245 243 255;
+
     /* Semantic */
     --color-success: 5 150 105;           /* #059669 */
     --color-success-light: 236 253 245;   /* #ECFDF5 */
@@ -136,6 +141,11 @@
     --color-accent-light: 23 37 84;       /* dark blue bg for badges */
     --color-accent-dark: 37 99 235;       /* #2563EB */
     --color-accent-fg: 255 255 255;
+
+    /* Admin accent (violet) */
+    --color-admin-accent: 167 139 250;
+    --color-admin-accent-hover: 139 92 246;
+    --color-admin-accent-light: 46 16 101;
 
     /* Semantic — adjusted for dark bg readability */
     --color-success: 16 185 129;          /* #10B981 */
