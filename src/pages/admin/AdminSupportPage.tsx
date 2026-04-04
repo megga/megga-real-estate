@@ -183,8 +183,8 @@ function TicketDetail({ ticket }: { ticket: SupportTicket }) {
           </div>
         ) : (
           messages.map((msg) => {
-            const isAdmin = msg.sender_type === 'admin'
-            const isSystem = msg.sender_type === 'system'
+            const isAdmin = msg.author_type === 'agent'
+            const isSystem = msg.author_type === 'system'
             return (
               <div
                 key={msg.id}
@@ -195,7 +195,7 @@ function TicketDetail({ ticket }: { ticket: SupportTicket }) {
               >
                 {isSystem ? (
                   <div className="w-full text-center py-1">
-                    <span className="text-[11px] text-theme-tertiary italic">{msg.content}</span>
+                    <span className="text-[11px] text-theme-tertiary italic">{msg.body}</span>
                   </div>
                 ) : (
                   <div className={cn('max-w-[70%] space-y-1')}>
@@ -207,11 +207,11 @@ function TicketDetail({ ticket }: { ticket: SupportTicket }) {
                           : 'bg-theme-hover text-theme-primary rounded-bl-md'
                       )}
                     >
-                      {msg.content}
+                      {msg.body}
                     </div>
                     <div className={cn('flex items-center gap-1.5', isAdmin ? 'justify-end' : 'justify-start')}>
                       <span className="text-[10px] text-theme-tertiary">
-                        {isAdmin ? 'Admin' : 'Agent'}
+                        {msg.author_name || (isAdmin ? 'Support' : 'Client')}
                       </span>
                       <span className="text-[10px] text-theme-tertiary">
                         {formatRelativeDate(msg.created_at)}
