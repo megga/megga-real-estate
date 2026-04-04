@@ -1,4 +1,4 @@
-import { Heart, Share2, Calculator, Phone, Mail, CalendarDays } from 'lucide-react'
+import { Heart, Share2, Calculator, Phone, Mail, CalendarDays, User } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 
 interface ListingSidebarProps {
@@ -91,26 +91,51 @@ export default function ListingSidebar({
 
         {/* Agent card */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-3">Votre contact</p>
           <div className="flex items-center gap-3 mb-4">
-            <img
-              src={listing.agent.photo}
-              alt={listing.agent.name}
-              className="h-10 w-10 rounded-full object-cover bg-gray-100"
-            />
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{listing.agent.name}</p>
-              <p className="text-xs text-gray-500">{listing.agent.agency}</p>
+            {/* Avatar — vraie photo ou initiales */}
+            <div className="h-11 w-11 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+              {listing.agent.photo && listing.agent.photo !== '/megga-gg.svg' ? (
+                <img
+                  src={listing.agent.photo}
+                  alt={listing.agent.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center bg-accent/10">
+                  <User className="h-5 w-5 text-accent" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{listing.agent.name}</p>
+              <p className="text-xs text-gray-500 truncate">{listing.agent.agency}</p>
             </div>
           </div>
+
           <div className="space-y-2">
-            <a href={`tel:${listing.agent.phone}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent transition-colors">
-              <Phone className="h-4 w-4 text-gray-400" />
-              {listing.agent.phone}
-            </a>
-            <a href={`mailto:${listing.agent.email}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-accent transition-colors">
-              <Mail className="h-4 w-4 text-gray-400" />
-              {listing.agent.email}
-            </a>
+            {listing.agent.phone && (
+              <a
+                href={`tel:${listing.agent.phone}`}
+                className="flex items-center gap-2.5 text-sm text-gray-600 hover:text-accent transition-colors group"
+              >
+                <div className="h-7 w-7 rounded-lg bg-gray-50 group-hover:bg-accent/10 flex items-center justify-center transition-colors flex-shrink-0">
+                  <Phone className="h-3.5 w-3.5 text-gray-400 group-hover:text-accent" />
+                </div>
+                {listing.agent.phone}
+              </a>
+            )}
+            {listing.agent.email && (
+              <a
+                href={`mailto:${listing.agent.email}`}
+                className="flex items-center gap-2.5 text-sm text-gray-600 hover:text-accent transition-colors group"
+              >
+                <div className="h-7 w-7 rounded-lg bg-gray-50 group-hover:bg-accent/10 flex items-center justify-center transition-colors flex-shrink-0">
+                  <Mail className="h-3.5 w-3.5 text-gray-400 group-hover:text-accent" />
+                </div>
+                <span className="truncate">{listing.agent.email}</span>
+              </a>
+            )}
           </div>
         </div>
       </div>
