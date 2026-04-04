@@ -31,7 +31,9 @@
     "adminCompliance": "Conformita",
     "adminSupport": "Supporto",
     "adminChangelog": "Changelog",
-    "adminFlags": "Feature Flags"
+    "adminFlags": "Feature Flags",
+    "adminLive": "Live Feed",
+    "adminPlans": "Piani & Quote"
   },
   "sections": {
     "main": "Principale",

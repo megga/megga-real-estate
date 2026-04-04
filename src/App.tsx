@@ -91,6 +91,8 @@ const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage
 const AdminSupportPage = lazy(() => import('@/pages/admin/AdminSupportPage'))
 const AdminChangelogPage = lazy(() => import('@/pages/admin/AdminChangelogPage'))
 const AdminFeatureFlagsPage = lazy(() => import('@/pages/admin/AdminFeatureFlagsPage'))
+const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
+const AdminLiveFeedPage = lazy(() => import('@/pages/admin/AdminLiveFeedPage'))
 
 // Admin guard
 import SuperAdminGuard from '@/components/admin/SuperAdminGuard'
@@ -232,6 +234,8 @@ export default function App() {
                 <Route path="admin/support" element={<SuperAdminGuard><AdminSupportPage /></SuperAdminGuard>} />
                 <Route path="admin/changelog" element={<SuperAdminGuard><AdminChangelogPage /></SuperAdminGuard>} />
                 <Route path="admin/feature-flags" element={<SuperAdminGuard><AdminFeatureFlagsPage /></SuperAdminGuard>} />
+                <Route path="admin/plans" element={<SuperAdminGuard><AdminPlansPage /></SuperAdminGuard>} />
+                <Route path="admin/live" element={<SuperAdminGuard><AdminLiveFeedPage /></SuperAdminGuard>} />
               </Route>
 
               {/* 404 */}

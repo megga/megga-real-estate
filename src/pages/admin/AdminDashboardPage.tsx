@@ -3,6 +3,7 @@ import { useAdminStats } from '@/hooks/useAdminStats'
 import { useAdminWidgets } from '@/hooks/useAdminWidgets'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import BillingDashboard from '@/components/admin/BillingDashboard'
+import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
 import OnboardingTracker from '@/components/admin/OnboardingTracker'
 import ActivityLog from '@/components/admin/ActivityLog'
 import WidgetConfigurator from '@/components/admin/WidgetConfigurator'
@@ -90,6 +91,9 @@ export default function AdminDashboardPage() {
 
       {/* Revenue & Billing */}
       {isWidgetVisible('billing') && <BillingDashboard />}
+
+      {/* Weekly Report */}
+      <WeeklyReportPreview />
 
       {/* Alerts feed */}
       {isWidgetVisible('alerts') && <div className="rounded-xl border border-theme-border p-5">

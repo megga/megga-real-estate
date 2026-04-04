@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
   MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
-  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy, ChevronDown, Megaphone,
+  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy, ChevronDown, Megaphone, Radio,
+  CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -250,6 +251,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             {/* Admin items */}
             <div className="space-y-0.5">
               {[
+                { labelKey: 'nav.adminLive', href: '/dashboard/admin/live', icon: Radio },
                 { labelKey: 'nav.adminOverview', href: '/dashboard/admin', icon: LayoutDashboard },
                 { labelKey: 'nav.adminAgencies', href: '/dashboard/admin/agencies', icon: Building2 },
                 { labelKey: 'nav.adminUsers', href: '/dashboard/admin/users', icon: Users },
@@ -259,6 +261,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                 { labelKey: 'nav.adminSupport', href: '/dashboard/admin/support', icon: LifeBuoy },
                 { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: Megaphone },
                 { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: Zap },
+                { labelKey: 'nav.adminPlans', href: '/dashboard/admin/plans', icon: CreditCard },
               ].map((item) => {
                 const isItemActive = location.pathname === item.href ||
                   (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))

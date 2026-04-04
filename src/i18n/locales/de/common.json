@@ -31,7 +31,9 @@
     "adminCompliance": "Compliance",
     "adminSupport": "Support",
     "adminChangelog": "Changelog",
-    "adminFlags": "Feature Flags"
+    "adminFlags": "Feature Flags",
+    "adminLive": "Live Feed",
+    "adminPlans": "Plane & Kontingente"
   },
   "sections": {
     "main": "Hauptmenü",
