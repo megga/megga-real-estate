@@ -1,9 +1,9 @@
-import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, GripVertical } from 'lucide-react'
+import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, GripVertical, Minimize2, Maximize2, Square } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAdminStats } from '@/hooks/useAdminStats'
-import { useAdminWidgets, type DashboardWidget } from '@/hooks/useAdminWidgets'
+import { useAdminWidgets, type DashboardWidget, type WidgetSize } from '@/hooks/useAdminWidgets'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import BillingDashboard from '@/components/admin/BillingDashboard'
 import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
@@ -37,9 +37,28 @@ const ALERT_BORDER_COLORS: Record<string, string> = {
   ticket_created: 'border-l-blue-500',
 }
 
+const SIZE_STYLES: Record<WidgetSize, string> = {
+  compact: 'max-h-[200px] overflow-hidden',
+  default: '',
+  expanded: 'min-h-[400px]',
+}
+
+const SIZE_ICONS: Record<WidgetSize, typeof Square> = {
+  compact: Minimize2,
+  default: Square,
+  expanded: Maximize2,
+}
+
+const SIZE_LABELS: Record<WidgetSize, string> = {
+  compact: 'Compact',
+  default: 'Normal',
+  expanded: 'Large',
+}
+
 /* ── Sortable widget wrapper ── */
-function SortableWidget({ id, children }: { id: string; children: ReactNode }) {
+function SortableWidget({ id, size, onCycleSize, children }: { id: string; size: WidgetSize; onCycleSize: () => void; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const SizeIcon = SIZE_ICONS[size]
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -52,6 +71,7 @@ function SortableWidget({ id, children }: { id: string; children: ReactNode }) {
       style={style}
       className={cn(
         'group/drag relative rounded-xl transition-shadow',
+        SIZE_STYLES[size],
         isDragging && 'z-50 shadow-lg shadow-admin-accent/10 opacity-90'
       )}
     >
@@ -63,6 +83,21 @@ function SortableWidget({ id, children }: { id: string; children: ReactNode }) {
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
+
+      {/* Resize button */}
+      <button
+        onClick={onCycleSize}
+        title={`Taille : ${SIZE_LABELS[size]}`}
+        className="absolute -right-1 top-3 h-6 w-6 flex items-center justify-center rounded opacity-0 group-hover/drag:opacity-100 transition-opacity z-10 text-theme-muted hover:text-admin-accent"
+      >
+        <SizeIcon className="h-3 w-3" />
+      </button>
+
+      {/* Compact fade overlay */}
+      {size === 'compact' && (
+        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-theme-page to-transparent pointer-events-none rounded-b-xl z-[5]" />
+      )}
+
       {children}
     </div>
   )
@@ -70,7 +105,7 @@ function SortableWidget({ id, children }: { id: string; children: ReactNode }) {
 
 export default function AdminDashboardPage() {
   const { kpis, kpisLoading, alerts, alertsLoading } = useAdminStats()
-  const { visibleWidgets, reorderWidgets } = useAdminWidgets()
+  const { visibleWidgets, reorderWidgets, cycleSize } = useAdminWidgets()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -217,7 +252,7 @@ export default function AdminDashboardPage() {
         <SortableContext items={visibleWidgets.map(w => w.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-5">
             {visibleWidgets.map(widget => (
-              <SortableWidget key={widget.id} id={widget.id}>
+              <SortableWidget key={widget.id} id={widget.id} size={widget.size} onCycleSize={() => cycleSize(widget.id)}>
                 {renderWidget(widget)}
               </SortableWidget>
             ))}
