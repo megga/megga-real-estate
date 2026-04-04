@@ -54,6 +54,7 @@ function SkeletonRows() {
 }
 
 export default function AdminAgenciesPage() {
+  'use no memo'
   const { agencies, isLoading, updateStatus } = useAdminAgencies()
 
   // Activity data for health scores

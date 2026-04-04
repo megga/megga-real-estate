@@ -26,6 +26,7 @@ const PAYMENT_STATUS: Record<string, { dot: string; label: string }> = {
 }
 
 export default function BillingDashboard() {
+  'use no memo'
   const { data, isLoading } = useAdminBilling()
 
   if (isLoading) {

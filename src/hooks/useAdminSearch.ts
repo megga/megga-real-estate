@@ -10,6 +10,7 @@ export interface AdminSearchResult {
 }
 
 export function useAdminSearch(query: string) {
+  'use no memo'
   const [results, setResults] = useState<AdminSearchResult[]>([])
   const [loading, setLoading] = useState(false)
 

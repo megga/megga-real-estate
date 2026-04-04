@@ -390,6 +390,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
 }
 
 export default function AdminSupportPage() {
+  'use no memo'
   const { tickets, isLoading, stats, statsLoading } = useAdminSupport()
   const { users } = useAdminUsers()
   const { profile } = useAuth()

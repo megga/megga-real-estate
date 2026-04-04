@@ -18,6 +18,7 @@ const TYPE_META: Record<AdminSearchResult['type'], { icon: React.ElementType; la
 }
 
 export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogProps) {
+  'use no memo'
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
