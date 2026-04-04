@@ -1,23 +1,21 @@
 import { useState, useCallback } from 'react'
 
-export type WidgetSize = 'compact' | 'default' | 'expanded'
-
 export interface DashboardWidget {
   id: string
   label: string
   component: string
   visible: boolean
   order: number
-  size: WidgetSize
+  height: number | null // null = auto, number = px
 }
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
-  { id: 'kpis', label: 'KPIs globaux', component: 'kpis', visible: true, order: 0, size: 'default' },
-  { id: 'alerts', label: 'Alertes recentes', component: 'alerts', visible: true, order: 1, size: 'default' },
-  { id: 'activity', label: 'Activite plateforme', component: 'activity', visible: true, order: 2, size: 'default' },
-  { id: 'billing', label: 'Revenus & Abonnements', component: 'billing', visible: true, order: 3, size: 'default' },
-  { id: 'report', label: 'Rapport hebdomadaire', component: 'report', visible: true, order: 4, size: 'compact' },
-  { id: 'onboarding', label: 'Onboarding agences', component: 'onboarding', visible: true, order: 5, size: 'default' },
+  { id: 'kpis', label: 'KPIs globaux', component: 'kpis', visible: true, order: 0, height: null },
+  { id: 'alerts', label: 'Alertes recentes', component: 'alerts', visible: true, order: 1, height: null },
+  { id: 'activity', label: 'Activite plateforme', component: 'activity', visible: true, order: 2, height: null },
+  { id: 'billing', label: 'Revenus & Abonnements', component: 'billing', visible: true, order: 3, height: null },
+  { id: 'report', label: 'Rapport hebdomadaire', component: 'report', visible: true, order: 4, height: null },
+  { id: 'onboarding', label: 'Onboarding agences', component: 'onboarding', visible: true, order: 5, height: null },
 ]
 
 const STORAGE_KEY = 'megga-admin-widgets'
@@ -32,7 +30,7 @@ function loadWidgets(): DashboardWidget[] {
       for (const dw of DEFAULT_WIDGETS) {
         if (!ids.has(dw.id)) merged.push(dw)
       }
-      return merged.map(w => ({ ...w, size: w.size ?? 'default' })).sort((a, b) => a.order - b.order)
+      return merged.map(w => ({ ...w, height: w.height ?? null })).sort((a, b) => a.order - b.order)
     }
   } catch { /* ignore */ }
   return DEFAULT_WIDGETS
@@ -73,17 +71,8 @@ export function useAdminWidgets() {
     save(updated)
   }, [widgets, save])
 
-  const resizeWidget = useCallback((id: string, size: WidgetSize) => {
-    save(widgets.map(w => w.id === id ? { ...w, size } : w))
-  }, [widgets, save])
-
-  const cycleSize = useCallback((id: string) => {
-    const sizes: WidgetSize[] = ['compact', 'default', 'expanded']
-    const widget = widgets.find(w => w.id === id)
-    if (!widget) return
-    const currentIdx = sizes.indexOf(widget.size)
-    const nextIdx = (currentIdx + 1) % sizes.length
-    save(widgets.map(w => w.id === id ? { ...w, size: sizes[nextIdx] } : w))
+  const setWidgetHeight = useCallback((id: string, height: number | null) => {
+    save(widgets.map(w => w.id === id ? { ...w, height } : w))
   }, [widgets, save])
 
   const resetWidgets = useCallback(() => {
@@ -96,8 +85,7 @@ export function useAdminWidgets() {
     toggleWidget,
     moveWidget,
     reorderWidgets,
-    resizeWidget,
-    cycleSize,
+    setWidgetHeight,
     resetWidgets,
   }
 }

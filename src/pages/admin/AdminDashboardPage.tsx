@@ -1,9 +1,10 @@
-import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, GripVertical, Minimize2, Maximize2, Square } from 'lucide-react'
+import { useRef, useCallback } from 'react'
+import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, GripVertical } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useAdminStats } from '@/hooks/useAdminStats'
-import { useAdminWidgets, type DashboardWidget, type WidgetSize } from '@/hooks/useAdminWidgets'
+import { useAdminWidgets, type DashboardWidget } from '@/hooks/useAdminWidgets'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import BillingDashboard from '@/components/admin/BillingDashboard'
 import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
@@ -37,45 +38,73 @@ const ALERT_BORDER_COLORS: Record<string, string> = {
   ticket_created: 'border-l-blue-500',
 }
 
-const SIZE_STYLES: Record<WidgetSize, string> = {
-  compact: 'max-h-[200px] overflow-hidden',
-  default: '',
-  expanded: 'min-h-[400px]',
-}
+const MIN_HEIGHT = 60
+const MAX_HEIGHT = 800
 
-const SIZE_ICONS: Record<WidgetSize, typeof Square> = {
-  compact: Minimize2,
-  default: Square,
-  expanded: Maximize2,
-}
-
-const SIZE_LABELS: Record<WidgetSize, string> = {
-  compact: 'Compact',
-  default: 'Normal',
-  expanded: 'Large',
-}
-
-/* ── Sortable widget wrapper ── */
-function SortableWidget({ id, size, onCycleSize, children }: { id: string; size: WidgetSize; onCycleSize: () => void; children: ReactNode }) {
+/* ── Sortable + resizable widget wrapper ── */
+function SortableWidget({ id, height, onResize, onResetHeight, children }: {
+  id: string
+  height: number | null
+  onResize: (h: number) => void
+  onResetHeight: () => void
+  children: ReactNode
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
-  const SizeIcon = SIZE_ICONS[size]
+  const containerRef = useRef<HTMLDivElement>(null)
+  const resizing = useRef(false)
+  const startY = useRef(0)
+  const startH = useRef(0)
+
+  const handleResizeStart = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    resizing.current = true
+    startY.current = e.clientY
+    startH.current = containerRef.current?.offsetHeight ?? 200
+
+    const handleMove = (ev: PointerEvent) => {
+      if (!resizing.current) return
+      const delta = ev.clientY - startY.current
+      const newH = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, startH.current + delta))
+      if (containerRef.current) {
+        containerRef.current.style.height = `${newH}px`
+      }
+    }
+
+    const handleUp = (ev: PointerEvent) => {
+      if (!resizing.current) return
+      resizing.current = false
+      const delta = ev.clientY - startY.current
+      const newH = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, startH.current + delta))
+      onResize(newH)
+      document.removeEventListener('pointermove', handleMove)
+      document.removeEventListener('pointerup', handleUp)
+    }
+
+    document.addEventListener('pointermove', handleMove)
+    document.addEventListener('pointerup', handleUp)
+  }, [onResize])
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    ...(height ? { height: `${height}px`, overflow: 'hidden' as const } : {}),
   }
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node)
+        if (node) (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+      }}
       style={style}
       className={cn(
-        'group/drag relative rounded-xl transition-shadow',
-        SIZE_STYLES[size],
-        isDragging && 'z-50 shadow-lg shadow-admin-accent/10 opacity-90'
+        'group/drag relative rounded-xl',
+        isDragging && 'z-50 shadow-lg shadow-admin-accent/10 opacity-90',
+        height && 'overflow-hidden'
       )}
     >
-      {/* Drag handle */}
+      {/* Drag handle — left */}
       <button
         {...attributes}
         {...listeners}
@@ -84,28 +113,37 @@ function SortableWidget({ id, size, onCycleSize, children }: { id: string; size:
         <GripVertical className="h-3.5 w-3.5" />
       </button>
 
-      {/* Resize button */}
-      <button
-        onClick={onCycleSize}
-        title={`Taille : ${SIZE_LABELS[size]}`}
-        className="absolute -right-1 top-3 h-6 w-6 flex items-center justify-center rounded opacity-0 group-hover/drag:opacity-100 transition-opacity z-10 text-theme-muted hover:text-admin-accent"
-      >
-        <SizeIcon className="h-3 w-3" />
-      </button>
-
-      {/* Compact fade overlay */}
-      {size === 'compact' && (
-        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-theme-page to-transparent pointer-events-none rounded-b-xl z-[5]" />
+      {/* Reset height — double click on handle resets to auto */}
+      {height && (
+        <button
+          onClick={onResetHeight}
+          className="absolute -right-1 top-3 h-5 px-1.5 flex items-center justify-center rounded opacity-0 group-hover/drag:opacity-100 transition-opacity z-10 text-[9px] text-theme-muted hover:text-admin-accent"
+        >
+          Auto
+        </button>
       )}
 
       {children}
+
+      {/* Fade overlay when truncated */}
+      {height && (
+        <div className="absolute bottom-5 left-0 right-0 h-12 bg-gradient-to-t from-theme-page to-transparent pointer-events-none z-[5]" />
+      )}
+
+      {/* Resize handle — bottom edge */}
+      <div
+        onPointerDown={handleResizeStart}
+        className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize z-10 flex items-center justify-center opacity-0 group-hover/drag:opacity-100 transition-opacity"
+      >
+        <div className="w-8 h-1 rounded-full bg-theme-muted/40 group-hover/drag:bg-admin-accent/50 transition-colors" />
+      </div>
     </div>
   )
 }
 
 export default function AdminDashboardPage() {
   const { kpis, kpisLoading, alerts, alertsLoading } = useAdminStats()
-  const { visibleWidgets, reorderWidgets, cycleSize } = useAdminWidgets()
+  const { visibleWidgets, reorderWidgets, setWidgetHeight } = useAdminWidgets()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -252,7 +290,13 @@ export default function AdminDashboardPage() {
         <SortableContext items={visibleWidgets.map(w => w.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-5">
             {visibleWidgets.map(widget => (
-              <SortableWidget key={widget.id} id={widget.id} size={widget.size} onCycleSize={() => cycleSize(widget.id)}>
+              <SortableWidget
+                key={widget.id}
+                id={widget.id}
+                height={widget.height}
+                onResize={(h) => setWidgetHeight(widget.id, h)}
+                onResetHeight={() => setWidgetHeight(widget.id, null)}
+              >
                 {renderWidget(widget)}
               </SortableWidget>
             ))}
