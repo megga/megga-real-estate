@@ -1,4 +1,4 @@
-// Help Center articles — 35 articles across 3 personas + special pages
+// Help Center articles — 45 articles across 3 personas + special pages
 
 export interface HelpArticle {
   slug: string
@@ -920,6 +920,707 @@ Si vous êtes agent immobilier, cliquez "Espace agent" en bas de la page de conn
   },
 ]
 
+// ── AGENT — Tutoriels ──────────────────────────────────────────────────
+
+const AGENT_TUTORIALS: HelpArticle[] = [
+  {
+    slug: 'premier-bien-3min',
+    category: 'agent',
+    section: 'Tutoriels',
+    title: 'Créer votre premier bien en 3 minutes',
+    description: 'Guide pas à pas pour publier un bien rapidement : import, infos, photos, prix, publication.',
+    keywords: ['bien', 'créer', 'rapide', 'tutoriel', 'publier', 'import', 'photos', 'premier'],
+    relatedSlugs: ['creer-bien', 'virtual-staging', 'matching'],
+    content: `## Créer votre premier bien en 3 minutes
+
+### Choisir votre méthode d'import
+
+Rendez-vous dans **Mes biens > Créer un bien**. Vous avez 4 options :
+
+- **Saisie manuelle** : remplissez le formulaire étape par étape
+- **Import URL** : collez un lien d'annonce d'un portail suisse — les données sont extraites automatiquement
+- **Import PDF** : uploadez un descriptif — MEGGA AI extrait les informations
+- **Dupliquer** : copiez un bien existant et modifiez les détails
+
+**Astuce** : l'import URL est le plus rapide. Collez le lien et MEGGA pré-remplit tout.
+
+### Remplir les informations essentielles
+
+- **Titre** : court et descriptif ("3.5 pièces vue lac, Montreux")
+- **Type et prix** : appartement, maison, villa, terrain ou commercial
+- **Adresse** : l'autocomplétion Mapbox vous aide à trouver l'adresse exacte
+
+### Ajouter les photos
+
+Uploadez au minimum 3 photos. Glissez-déposez ou cliquez pour sélectionner. Taguez chaque photo par pièce (salon, cuisine, chambre) pour le plan interactif.
+
+### Fixer le prix et publier
+
+Vérifiez le prix et cliquez "Publier". Le bien apparaît immédiatement dans la recherche et le matching démarre automatiquement.
+
+**Conseil** : utilisez le virtual staging pour meubler les pièces vides avant de publier.`,
+  },
+  {
+    slug: 'automatiser-relances',
+    category: 'agent',
+    section: 'Tutoriels',
+    title: 'Automatiser vos relances client',
+    description: 'Configurez des règles de relance automatique : déclencheurs, délais, canaux, templates.',
+    keywords: ['automatiser', 'relance', 'automatisation', 'règle', 'template', 'email', 'rappel', 'suivi'],
+    relatedSlugs: ['action-board', 'messagerie', 'gerer-contacts'],
+    content: `## Automatiser vos relances client
+
+### Principe
+
+MEGGA crée des rappels et suggestions basés sur des règles que vous configurez. Par défaut, les relances apparaissent dans l'Action Board — vous gardez le contrôle.
+
+### Accéder à la configuration
+
+Rendez-vous dans **Automatisation** dans la sidebar. Vous y trouvez la liste de vos règles actives.
+
+### Les 6 relances préconfigurées
+
+| Déclencheur | Délai | Action |
+|---|---|---|
+| Bien envoyé à un client | J+3 | Rappel de suivi |
+| Visite effectuée | J+1 | Demande de feedback |
+| Lead inactif | J+30 | Relance douce |
+| Acheteur chaud non relancé | J+7 | Alerte agent |
+| Vendeur sans suivi récent | J+14 | Suggestion de mise à jour |
+| Document manquant KYC | J+3 | Relance client |
+
+### Créer une règle personnalisée
+
+1. Cliquez "Nouvelle règle"
+2. Choisissez le **déclencheur** (événement qui active la règle)
+3. Définissez le **délai** en jours
+4. Sélectionnez le **canal** (email, notification, tâche)
+5. Associez un **template de message** (optionnel)
+
+### Templates de messages
+
+Les templates utilisent des variables dynamiques : \`{{contact.first_name}}\`, \`{{property.address}}\`, \`{{property.price}}\`. Créez vos propres templates dans la section dédiée.
+
+### Mode automatique (opt-in)
+
+Par défaut, les relances créent des suggestions. Activez l'envoi automatique dans les paramètres de chaque règle si vous souhaitez un envoi sans validation.`,
+  },
+  {
+    slug: 'creer-portail-vendeur',
+    category: 'agent',
+    section: 'Tutoriels',
+    title: 'Créer un portail vendeur pour votre client',
+    description: 'Générez un espace vendeur sécurisé pour que votre client suive sa vente en temps réel.',
+    keywords: ['portail', 'vendeur', 'client', 'lien', 'créer', 'suivi', 'transparence'],
+    relatedSlugs: ['acces-portail', 'gerer-contacts', 'premier-deal'],
+    content: `## Créer un portail vendeur
+
+### Pourquoi un portail vendeur
+
+Le portail vendeur donne à votre client une visibilité totale sur l'avancement de la vente : visites, offres, documents, analyse marché. Le vendeur se sent rassuré et vous réduit le nombre d'appels de suivi.
+
+### Générer le lien
+
+1. Ouvrez la fiche du contact vendeur
+2. Cliquez **"Créer un portail vendeur"**
+3. Sélectionnez le bien concerné
+4. MEGGA génère un lien sécurisé unique
+
+### Envoyer l'accès
+
+Le lien est envoyé automatiquement par email au vendeur. Vous pouvez aussi le copier et l'envoyer manuellement.
+
+### Ce que le vendeur voit
+
+- **Mon bien** : état du mandat, progression en 6 étapes, timeline d'activité
+- **Visites** : planifiées et effectuées, feedbacks anonymisés, notes
+- **Offres** : montants, statuts, progression par rapport au prix demandé
+- **Documents** : mandat, diagnostics, certificats — avec upload possible
+- **Messages** : conversation directe avec vous
+- **Analyse** : positionnement marché, prix/m\u00b2, biens comparables
+
+### Validité et sécurité
+
+Le lien est valable **6 mois**. Le vendeur n'a pas besoin de créer de compte. Pour renouveler l'accès, générez un nouveau lien depuis la fiche contact.
+
+### Suivre l'engagement
+
+Dans votre CRM, vous voyez quand le vendeur consulte son portail. Cette donnée nourrit le score Seller Intelligence.`,
+  },
+  {
+    slug: 'megga-ai-quotidien',
+    category: 'agent',
+    section: 'Tutoriels',
+    title: 'Utiliser MEGGA AI au quotidien',
+    description: 'Les 6 commandes IA les plus utiles : résumé, relance, matching, annonce, marché, actions.',
+    keywords: ['ia', 'copilote', 'megga ai', 'commandes', 'résumé', 'relance', 'rédiger', 'quotidien'],
+    relatedSlugs: ['scores-ia', 'action-board', 'matching'],
+    content: `## Utiliser MEGGA AI au quotidien
+
+### Accéder à MEGGA AI
+
+Cliquez sur le bouton **\u2728** en bas à droite de n'importe quelle page du dashboard. Un panel de chat s'ouvre.
+
+### Les 6 commandes les plus utiles
+
+**1. Résumer un client**
+> "Résume-moi M. Dupont"
+
+MEGGA AI génère un résumé structuré : profil, historique des interactions, état de la relation, prochaines étapes suggérées.
+
+**2. Rédiger une relance**
+> "Rédige une relance pour Mme Martin après la visite d'hier"
+
+Un email ou message personnalisé et contextualisé, prêt à envoyer.
+
+**3. Trouver des biens compatibles**
+> "Quels biens envoyer à M. Schmid ?"
+
+MEGGA AI analyse les critères du client et propose une shortlist avec scores de compatibilité.
+
+**4. Rédiger une annonce**
+> "Rédige une annonce pour le 4 pièces rue du Rhône"
+
+Génération d'un texte d'annonce professionnel basé sur les caractéristiques du bien.
+
+**5. Analyser le marché**
+> "Comment se positionne le bien rue de Lausanne par rapport au marché ?"
+
+Analyse prix/m\u00b2, comparables, tendances du secteur.
+
+**6. Prochaines actions**
+> "Quelles sont mes prochaines actions prioritaires ?"
+
+Liste triée par impact des actions recommandées pour vos clients et deals actifs.
+
+### Le contexte est automatique
+
+MEGGA AI connaît le contact ou le bien que vous consultez. Pas besoin de tout re-expliquer à chaque question.`,
+  },
+  {
+    slug: 'raccourcis-productivite',
+    category: 'agent',
+    section: 'Tutoriels',
+    title: '10 astuces pour gagner du temps',
+    description: 'Raccourcis clavier, import rapide, templates, palette de commandes et autres gains de productivité.',
+    keywords: ['raccourcis', 'productivité', 'astuces', 'clavier', 'rapide', 'temps', 'efficacité'],
+    relatedSlugs: ['importer-contacts', 'megga-ai-quotidien', 'action-board'],
+    content: `## 10 astuces pour gagner du temps
+
+### 1. Créer un contact en 2 secondes
+
+**\u2318\u21e7C** (Mac) / **Ctrl+Shift+C** (PC) — le formulaire de création rapide s'ouvre depuis n'importe quelle page.
+
+### 2. Palette de commandes
+
+**\u2318K** / **Ctrl+K** — accédez à n'importe quelle page, contact ou action en tapant quelques lettres.
+
+### 3. Dupliquer un bien
+
+Au lieu de tout saisir, dupliquez un bien similaire et modifiez les différences. Gain moyen : 5 minutes.
+
+### 4. Import URL en un clic
+
+Collez un lien d'annonce (Homegate, ImmoScout24, Comparis...) et MEGGA extrait tout : titre, prix, surface, adresse, photos.
+
+### 5. Import contacts en lot
+
+Glissez un fichier CSV ou vCard pour importer des dizaines de contacts en une seule opération.
+
+### 6. Recherche IA
+
+Tapez en langage naturel dans la barre de recherche au lieu de configurer chaque filtre manuellement.
+
+### 7. Templates de messages
+
+Créez des templates réutilisables pour vos relances, confirmations de visite, et présentations de biens.
+
+### 8. Auto-save du formulaire
+
+Le formulaire de création de bien sauvegarde automatiquement votre progression. Quittez et revenez sans rien perdre.
+
+### 9. Navigation clavier dans la lightbox
+
+**\u2190 \u2192** pour les photos, **P** pour afficher le plan, **Esc** pour fermer.
+
+### 10. Action Board comme page d'accueil
+
+Commencez chaque journée par l'Action Board — les tâches prioritaires sont déjà triées pour vous.`,
+  },
+]
+
+// ── VENDEUR — Guides pratiques ─────────────────────────────────────────
+
+const VENDEUR_GUIDES: HelpArticle[] = [
+  {
+    slug: 'processus-vente-suisse',
+    category: 'vendeur',
+    section: 'Guides pratiques',
+    title: 'Les étapes d\'une vente immobilière en Suisse',
+    description: 'De l\'estimation à la signature chez le notaire : les 8 étapes clés d\'une vente réussie.',
+    keywords: ['vente', 'étapes', 'processus', 'notaire', 'mandat', 'suisse', 'délai', 'timeline'],
+    relatedSlugs: ['estimation', 'acces-portail', 'documents-vendeur'],
+    content: `## Les étapes d'une vente immobilière en Suisse
+
+### Durée typique : 3 à 6 mois
+
+Voici les 8 étapes principales du processus de vente en Suisse.
+
+### 1. Estimation du bien
+
+L'agent évalue votre bien sur la base des prix/m\u00b2 du secteur, des transactions récentes et de l'état du bien. MEGGA fournit une estimation IA instantanée complétée par l'expertise de l'agent.
+
+### 2. Signature du mandat
+
+Vous signez un mandat de courtage (simple ou exclusif) qui autorise l'agent à commercialiser votre bien.
+
+### 3. Préparation (photos et staging)
+
+Photos professionnelles, éventuellement staging virtuel IA, rédaction de l'annonce, rassemblement des documents (CECB, plans, extrait RF).
+
+### 4. Publication et diffusion
+
+L'annonce est publiée sur MEGGA et les portails immobiliers partenaires.
+
+### 5. Visites et retours
+
+L'agent organise les visites et vous transmet les retours anonymisés via votre portail vendeur.
+
+### 6. Réception des offres
+
+Les offres arrivent dans votre portail avec le montant, les conditions et le statut. Vous en discutez avec votre agent.
+
+### 7. Négociation et réservation
+
+L'agent négocie en votre nom. Une fois l'accord trouvé, le bien est réservé et retiré de la commercialisation.
+
+### 8. Notaire et signature
+
+Le notaire prépare l'acte authentique de vente. La signature transfère officiellement la propriété. Le paiement est versé via le compte de consignation du notaire.`,
+  },
+  {
+    slug: 'preparer-bien-visite',
+    category: 'vendeur',
+    section: 'Guides pratiques',
+    title: 'Préparer votre bien pour les visites',
+    description: 'Checklist de 10 points pour faire bonne impression lors des visites.',
+    keywords: ['visite', 'préparer', 'checklist', 'impression', 'nettoyage', 'présentation', 'conseils'],
+    relatedSlugs: ['suivi-visites', 'estimation', 'communiquer-agent'],
+    content: `## Préparer votre bien pour les visites
+
+### Première impression = décision d'achat
+
+Les acheteurs se font une opinion dans les 30 premières secondes. Voici 10 points essentiels.
+
+### 1. Désencombrer
+
+Retirez les objets personnels, les meubles superflus et le désordre. L'acheteur doit pouvoir se projeter.
+
+### 2. Nettoyer en profondeur
+
+Sols, vitres, sanitaires, cuisine — tout doit être impeccable. Faites appel à un professionnel si nécessaire.
+
+### 3. Maximiser la lumière
+
+Ouvrez tous les volets et rideaux. Allumez les lumières dans les pièces sombres. La luminosité est le critère n\u00b01 des acheteurs suisses.
+
+### 4. Aérer avant chaque visite
+
+Ouvrez les fenêtres 15 minutes avant l'arrivée des visiteurs pour renouveler l'air.
+
+### 5. Préparer les documents
+
+Ayez à disposition : certificat CECB, plans, extrait du registre foncier, décompte de charges PPE.
+
+### 6. Éloigner les animaux
+
+Prévoyez une solution pour vos animaux de compagnie pendant la visite. Certains acheteurs sont allergiques ou mal à l'aise.
+
+### 7. Effectuer les petites réparations
+
+Poignée cassée, joint noirci, ampoule grillée — ces détails donnent une impression de négligence.
+
+### 8. Soigner les extérieurs
+
+Jardin tondu, balcon rangé, entrée propre. L'extérieur est la toute première chose que l'acheteur voit.
+
+### 9. Décoration neutre
+
+Retirez les éléments de décoration trop personnels (photos de famille, objets religieux, collections).
+
+### 10. Être flexible sur les horaires
+
+Plus vous êtes disponible pour les visites, plus vite vous vendrez. Les week-ends sont particulièrement demandés.`,
+  },
+  {
+    slug: 'analyse-positionnement',
+    category: 'vendeur',
+    section: 'Guides pratiques',
+    title: 'L\'analyse de positionnement marché',
+    description: 'Comprenez le prix/m\u00b2 de votre secteur, le risque de stagnation et les biens comparables.',
+    keywords: ['analyse', 'positionnement', 'marché', 'prix', 'm2', 'comparables', 'stagnation'],
+    relatedSlugs: ['estimation', 'acces-portail', 'offres-vendeur'],
+    content: `## L'analyse de positionnement marché
+
+### Où la trouver
+
+Dans votre portail vendeur, section **Analyse**. Cette page est mise à jour automatiquement.
+
+### Prix au m\u00b2 vs quartier
+
+Un graphique compare le prix/m\u00b2 de votre bien avec la médiane du quartier et du canton. Vous voyez immédiatement si votre bien est positionné au-dessus, en dessous ou dans la moyenne du marché.
+
+### Risque de stagnation
+
+MEGGA calcule un indicateur de risque basé sur :
+- Le nombre de jours en ligne
+- Le nombre de visites
+- Les retours des visiteurs
+- L'activité du marché local
+
+Un risque élevé signifie qu'un ajustement de prix pourrait être pertinent.
+
+### Activité hebdomadaire
+
+Un graphique montre l'évolution des vues, favoris et demandes de visite semaine par semaine.
+
+### Biens comparables vendus
+
+Jusqu'à 4 biens similaires récemment vendus dans votre secteur sont affichés avec leur prix final, surface et délai de vente. Ces comparables vous aident à comprendre le prix réaliste du marché.
+
+### Comment utiliser cette analyse
+
+Discutez-en avec votre agent lors de vos points réguliers. Si le bien stagne depuis plus de 6 semaines avec peu de visites, un ajustement de prix de 3-5% relance souvent l'intérêt.`,
+  },
+]
+
+// ── ACHETEUR — Guides pratiques ────────────────────────────────────────
+
+const ACHETEUR_GUIDES: HelpArticle[] = [
+  {
+    slug: 'financer-achat-suisse',
+    category: 'acheteur',
+    section: 'Guides pratiques',
+    title: 'Financer votre achat immobilier en Suisse',
+    description: 'Fonds propres, hypothèque, taux, amortissement : tout comprendre sur le financement suisse.',
+    keywords: ['financement', 'hypothèque', 'fonds propres', 'taux', 'amortissement', 'banque', 'pilier', 'budget'],
+    relatedSlugs: ['calculateur', 'rechercher-bien', 'planifier-visite'],
+    content: `## Financer votre achat immobilier en Suisse
+
+### Les fonds propres (20% minimum)
+
+Vous devez apporter au minimum **20% du prix d'achat** en fonds propres :
+- **10% minimum** en épargne liquide, 3ème pilier, ou titres
+- **10% maximum** depuis le 2ème pilier (caisse de pension)
+
+**Exemple** : pour un bien à CHF 800'000, il faut CHF 160'000 de fonds propres dont CHF 80'000 hors 2ème pilier.
+
+### L'hypothèque
+
+L'hypothèque couvre les 80% restants, en deux rangs :
+- **1er rang** (65% du prix) : pas d'obligation d'amortissement
+- **2ème rang** (15% du prix) : amortissement obligatoire sur 15 ans ou avant la retraite
+
+### Les taux d'intérêt
+
+Les banques proposent des taux fixes (2-10 ans) ou variables (SARON). Comparez les offres de plusieurs établissements. Un courtier hypothécaire peut négocier pour vous.
+
+### Le taux de charge (règle des 33%)
+
+Les charges annuelles ne doivent pas dépasser **33% du revenu brut** :
+- 5% d'intérêts imputés (même si votre taux réel est plus bas)
+- 1% d'amortissement
+- 1% d'entretien
+
+### L'assurance
+
+Une assurance décès et incapacité de gain est souvent exigée par la banque pour sécuriser le remboursement de l'hypothèque.
+
+### Frais annexes à prévoir
+
+- Frais de notaire : 1-3% du prix (variable par canton)
+- Droit de mutation : 1-3% (variable par canton)
+- Déménagement, rénovations éventuelles`,
+  },
+  {
+    slug: 'reussir-premiere-visite',
+    category: 'acheteur',
+    section: 'Guides pratiques',
+    title: 'Réussir votre première visite',
+    description: 'Questions à poser, points à vérifier, documents à demander et checklist de visite.',
+    keywords: ['visite', 'première', 'questions', 'vérifier', 'checklist', 'inspection', 'conseils'],
+    relatedSlugs: ['planifier-visite', 'rechercher-bien', 'comparer-biens'],
+    content: `## Réussir votre première visite
+
+### Avant la visite
+
+- Étudiez l'annonce en détail (photos, plan, description)
+- Repérez le quartier sur la carte (transports, commerces, écoles)
+- Préparez une liste de questions
+
+### Questions essentielles à poser
+
+- Depuis combien de temps le bien est-il en vente ?
+- Quel est le montant des charges PPE mensuelles ?
+- Y a-t-il des travaux votés ou prévus par la copropriété ?
+- Quel est le label énergétique (CECB) ?
+- Le vendeur est-il ouvert à la négociation ?
+- Pourquoi le vendeur vend-il ?
+
+### Points à vérifier sur place
+
+- **Humidité** : traces sur les murs, odeur, joints noircis
+- **Bruit** : ouvrez les fenêtres, écoutez (route, voisins, avion)
+- **Orientation** : où est le soleil en journée, luminosité naturelle
+- **État des installations** : cuisine, salle de bain, électricité, chauffage
+- **Voisinage** : état de l'immeuble, parties communes, parking
+
+### Documents à demander
+
+- Extrait du registre foncier
+- Plans d'étage
+- Certificat CECB
+- Décompte de charges PPE des 3 dernières années
+- Règlement de copropriété
+
+### Après la visite
+
+Notez vos impressions immédiatement. Utilisez le formulaire de feedback MEGGA (envoyé par email après la visite) pour structurer votre retour.`,
+  },
+  {
+    slug: 'comprendre-charges-ppe',
+    category: 'acheteur',
+    section: 'Guides pratiques',
+    title: 'Comprendre les charges PPE',
+    description: 'Composition des charges de copropriété, montants typiques par canton et signaux d\'alerte.',
+    keywords: ['charges', 'ppe', 'copropriété', 'fonds', 'rénovation', 'entretien', 'montant'],
+    relatedSlugs: ['financer-achat-suisse', 'calculateur', 'rechercher-bien'],
+    content: `## Comprendre les charges PPE
+
+### Qu'est-ce que la PPE ?
+
+La **Propriété par Étages** (PPE) est le régime de copropriété en Suisse. Chaque propriétaire possède un lot (son appartement) et une quote-part des parties communes.
+
+### Composition des charges
+
+Les charges mensuelles couvrent :
+- **Entretien courant** : nettoyage, jardinage, ascenseur, éclairage commun
+- **Fonds de rénovation** : épargne obligatoire pour les gros travaux futurs
+- **Assurance bâtiment** : incendie, dégâts d'eau, responsabilité civile
+- **Conciergerie** : si applicable
+- **Chauffage et eau chaude** : souvent inclus dans les charges
+- **Administration** : gérance, comptabilité, assemblées générales
+
+### Montants typiques
+
+Les charges varient selon le canton, la taille et l'âge du bâtiment :
+- **Appartement 3 pièces** : CHF 300-600/mois
+- **Appartement 4-5 pièces** : CHF 400-800/mois
+- Les charges sont plus élevées à **Genève** et **Zurich** qu'en Valais ou à Fribourg
+
+### Signaux d'alerte
+
+- **Fonds de rénovation insuffisant** : si le fonds est bas et le bâtiment ancien, des appels de fonds exceptionnels sont probables
+- **Charges anormalement basses** : l'entretien est peut-être négligé
+- **Charges en forte hausse** : demandez la raison (travaux votés, augmentation assurance)
+- **Procès en cours** : vérifiez si la copropriété a des litiges
+
+### Conseil
+
+Demandez les procès-verbaux des 3 dernières assemblées générales et le décompte de charges détaillé avant de faire une offre.`,
+  },
+]
+
+// ── AGENT — FAQ & Référence ────────────────────────────────────────────
+
+const FAQ_ARTICLES: HelpArticle[] = [
+  {
+    slug: 'glossaire-immobilier',
+    category: 'agent',
+    section: 'FAQ & Référence',
+    title: 'Glossaire immobilier suisse',
+    description: 'Définitions des termes clés du courtage immobilier en Suisse.',
+    keywords: ['glossaire', 'définitions', 'termes', 'vocabulaire', 'immobilier', 'suisse', 'ppe', 'cecb', 'lab'],
+    relatedSlugs: ['creer-kyc', 'creer-bien', 'premier-deal'],
+    content: `## Glossaire immobilier suisse
+
+### Propriété et droits réels
+
+- **PPE** (Propriété par Étages) : régime de copropriété suisse. Chaque lot est un droit distinct inscrit au registre foncier
+- **Registre foncier** : registre officiel cantonal où sont inscrits tous les droits réels immobiliers
+- **Servitude** : droit réel limité grevant un immeuble au profit d'un autre (passage, vue, conduites)
+- **Droit de superficie** : droit de construire sur le terrain d'autrui, inscrit au registre foncier
+- **Usufruit** : droit d'utiliser un bien et d'en percevoir les revenus sans en être propriétaire
+- **Droit de préemption** : droit d'acquérir un bien en priorité à conditions égales
+- **Cédule hypothécaire** : titre de gage immobilier suisse, support de l'hypothèque
+
+### Énergie et construction
+
+- **CECB** (Certificat Énergétique Cantonal des Bâtiments) : diagnostic énergétique officiel (classes A à G)
+- **Minergie** : label suisse de construction basse consommation (Minergie, Minergie-P, Minergie-A)
+- **COS** (Coefficient d'Occupation du Sol) : rapport entre surface bâtie et surface du terrain
+- **IUS** (Indice d'Utilisation du Sol) : rapport entre surface brute de plancher et surface du terrain
+
+### Conformité et juridique
+
+- **LAB** (Loi sur le blanchiment d'argent) : loi fédérale imposant des obligations de diligence aux intermédiaires financiers, y compris les courtiers immobiliers
+- **KYC** (Know Your Customer) : processus de vérification de l'identité et de l'origine des fonds
+- **PEP** (Personne Politiquement Exposée) : personne exerçant ou ayant exercé une fonction publique importante
+- **Acte authentique** : document notarié ayant force exécutoire (obligatoire pour tout transfert immobilier en Suisse)
+- **nFADP** : nouvelle Loi fédérale sur la Protection des Données (entrée en vigueur 1er septembre 2023)
+
+### Courtage et transactions
+
+- **Mandat exclusif** : un seul agent mandaté pour la vente, meilleur engagement
+- **Mandat simple** : plusieurs agents peuvent commercialiser le même bien
+- **Courtage** : commission de l'agent, généralement 2-3% du prix de vente en Suisse
+- **Régie** : société de gestion immobilière (administration, gérance locative)
+- **Gérance** : gestion courante d'un immeuble (encaissement loyers, entretien, relations locataires)
+- **Note hypothécaire** : ancien terme pour cédule hypothécaire de registre
+- **Expertise** : évaluation professionnelle de la valeur d'un bien par un expert certifié`,
+  },
+  {
+    slug: 'faq-generale',
+    category: 'agent',
+    section: 'FAQ & Référence',
+    title: 'Questions fréquentes',
+    description: '10 questions-réponses sur l\'utilisation quotidienne de MEGGA.',
+    keywords: ['faq', 'questions', 'réponses', 'aide', 'problème', 'mot de passe', 'plan', 'export', 'équipe'],
+    relatedSlugs: ['configurer-profil', 'plans-et-tarifs', 'securite-confidentialite'],
+    content: `## Questions fréquentes
+
+### Comment réinitialiser mon mot de passe ?
+
+Sur la page de connexion, cliquez "Mot de passe oublié". Un email avec un lien de réinitialisation vous est envoyé. Le lien est valable 1 heure.
+
+### Comment changer de plan ?
+
+Rendez-vous dans **Paramètres > Abonnement**. Vous pouvez passer d'un plan à l'autre à tout moment. Le changement prend effet immédiatement et la facturation est ajustée au prorata.
+
+### Comment exporter mes données ?
+
+Depuis la page Contacts ou Biens, cliquez l'icône d'export CSV en haut à droite. Vous pouvez exporter la liste complète ou une sélection filtrée.
+
+### Comment inviter un membre d'équipe ?
+
+Dans **Paramètres > Équipe**, cliquez "Inviter". Saisissez l'email et le rôle (agent, manager, assistant). Le membre reçoit un email d'invitation.
+
+### Comment connecter Google Calendar ?
+
+Dans **Paramètres > Applications**, trouvez Google Calendar et cliquez "Connecter". Autorisez l'accès OAuth. Vos événements Google apparaissent en violet dans le calendrier MEGGA.
+
+### Comment supprimer mon compte ?
+
+Contactez le support via la page Aide. La suppression est définitive et entraîne la perte de toutes les données. Un délai de 30 jours est appliqué.
+
+### Combien de temps les données sont-elles conservées ?
+
+Les données sont conservées tant que votre compte est actif. Après suppression, elles sont purgées sous 30 jours conformément à la nFADP.
+
+### Qui peut voir mes données ?
+
+Seuls les membres de votre agence ont accès à vos données (isolation par Row Level Security). MEGGA n'accède pas à vos données sauf pour le support technique sur demande.
+
+### Existe-t-il une application mobile ?
+
+Pas encore. MEGGA est une application web responsive qui fonctionne sur mobile via le navigateur. Une application native est prévue en Phase 2.
+
+### Comment contacter le support ?
+
+Via la page **Aide > Contacter le support** ou par email à support@megga.ch. Temps de réponse : 24h en jours ouvrés.`,
+  },
+  {
+    slug: 'securite-confidentialite',
+    category: 'agent',
+    section: 'FAQ & Référence',
+    title: 'Sécurité et confidentialité',
+    description: 'Chiffrement, isolation des données, conformité nFADP et mesures de protection.',
+    keywords: ['sécurité', 'confidentialité', 'chiffrement', 'tls', 'aes', 'rls', 'nfadp', 'données', 'protection'],
+    relatedSlugs: ['faq-generale', 'validation-kyc', 'configurer-profil'],
+    content: `## Sécurité et confidentialité
+
+### Chiffrement des données
+
+- **En transit** : TLS 1.3 sur toutes les connexions (HTTPS obligatoire)
+- **Au repos** : AES-256 pour le chiffrement des bases de données (standard Supabase)
+
+### Isolation des données (RLS)
+
+Chaque agence est isolée grâce au **Row Level Security** (RLS) de PostgreSQL. Un agent de l'agence A ne peut jamais accéder aux données de l'agence B, même en cas de faille applicative.
+
+### Contrôle d'accès (RBAC)
+
+4 rôles avec des permissions différentes :
+- **Admin** : accès complet à l'agence
+- **Manager** : gestion équipe + toutes les fonctionnalités
+- **Agent** : CRM, biens, transactions, KYC
+- **Assistant** : lecture seule + actions limitées
+
+### Authentification
+
+- Email + mot de passe (bcrypt)
+- Google OAuth (connexion en un clic)
+- **2FA** : authentification à deux facteurs (en préparation)
+
+### Conformité nFADP
+
+MEGGA respecte la nouvelle Loi fédérale sur la Protection des Données :
+- Données hébergées en UE (eu-west-1, Irlande)
+- Pas de transfert de données hors UE/Suisse
+- Droit d'accès, de rectification et de suppression
+- Registre des traitements maintenu
+
+### Audit trail
+
+Toutes les actions sensibles sont enregistrées dans un journal d'audit horodaté (connexions, modifications KYC, exports, validations).`,
+  },
+  {
+    slug: 'plans-et-tarifs',
+    category: 'agent',
+    section: 'FAQ & Référence',
+    title: 'Comprendre les plans et tarifs',
+    description: 'Comparaison des 3 plans MEGGA : Starter, Pro et Agency avec fonctionnalités détaillées.',
+    keywords: ['plans', 'tarifs', 'prix', 'abonnement', 'starter', 'pro', 'agency', 'fonctionnalités'],
+    relatedSlugs: ['faq-generale', 'configurer-profil', 'virtual-staging'],
+    content: `## Comprendre les plans et tarifs
+
+### 3 plans adaptés à chaque besoin
+
+| | Starter | Pro | Agency |
+|---|---|---|---|
+| **Prix** | Gratuit | CHF 89/mois | CHF 249/mois |
+| **Annuel** | Gratuit | CHF 71/mois (-20%) | CHF 199/mois (-20%) |
+| **Contacts** | 50 | Illimité | Illimité |
+| **Biens actifs** | 10 | Illimité | Illimité |
+| **Utilisateurs** | 1 | 5 | Illimité |
+| **Staging IA** | Non | 50/mois | 200/mois |
+| **Plan interactif** | Non | Oui | Oui |
+| **KYC screening** | 5/mois | Illimité | Illimité |
+| **Stockage** | 500 MB | 10 GB | 50 GB |
+| **Portails vendeur** | 3 | Illimité | Illimité |
+
+### Starter — Démarrer gratuitement
+
+Idéal pour tester MEGGA sans engagement. Comprend le CRM de base, le matching simple, et un accès limité aux fonctionnalités IA.
+
+### Pro — L'essentiel du courtier
+
+Le plan le plus populaire. Contacts et biens illimités, staging IA, plan interactif, KYC complet, et synchronisation calendrier.
+
+### Agency — Pour les équipes
+
+Tout le plan Pro, plus : utilisateurs illimités, quotas étendus, support prioritaire, et fonctionnalités multi-agences.
+
+### Changer de plan
+
+Rendez-vous dans **Paramètres > Abonnement**. Le changement est immédiat, la facturation ajustée au prorata. Vous pouvez résilier à tout moment.
+
+### Besoin d'un plan sur mesure ?
+
+Contactez-nous pour les agences de plus de 20 agents ou les groupements immobiliers.`,
+  },
+]
+
 // ── Export all articles ─────────────────────────────────────────────────
 
 export const ALL_ARTICLES: HelpArticle[] = [
@@ -928,8 +1629,12 @@ export const ALL_ARTICLES: HelpArticle[] = [
   ...AGENT_MATCHING,
   ...AGENT_KYC,
   ...AGENT_COMM,
+  ...AGENT_TUTORIALS,
+  ...FAQ_ARTICLES,
   ...VENDEUR_ARTICLES,
+  ...VENDEUR_GUIDES,
   ...ACHETEUR_ARTICLES,
+  ...ACHETEUR_GUIDES,
 ]
 
 export function getArticlesByCategory(category: HelpArticle['category']): HelpArticle[] {

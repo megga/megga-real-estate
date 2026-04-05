@@ -3,6 +3,8 @@ import { ChevronRight } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import ArticleFeedback from '@/components/help/ArticleFeedback'
+import SupportIllustration from '@/components/illustrations/SupportIllustration'
+import HelpChatbot from '@/components/help/HelpChatbot'
 import { getArticle, getArticlesBySlugs } from '@/lib/helpArticles'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -11,7 +13,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   acheteur: 'Guides Acheteur',
 }
 
-// Simple markdown-to-JSX renderer
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\u00e0-\u00ff]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+// Simple markdown-to-JSX renderer with editorial typography
 function renderMarkdown(content: string) {
   const lines = content.split('\n')
   const elements: React.ReactNode[] = []
@@ -21,9 +30,9 @@ function renderMarkdown(content: string) {
   function flushList() {
     if (listItems.length > 0) {
       elements.push(
-        <ul key={`list-${elements.length}`} className="list-disc pl-5 space-y-1 mb-4">
+        <ul key={`list-${elements.length}`} className="list-disc pl-6 space-y-2 mb-5">
           {listItems.map((item, j) => (
-            <li key={j} className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: inlineFormat(item) }} />
+            <li key={j} className="text-[15px] text-gray-700 leading-7" dangerouslySetInnerHTML={{ __html: inlineFormat(item) }} />
           ))}
         </ul>
       )
@@ -33,9 +42,9 @@ function renderMarkdown(content: string) {
 
   function inlineFormat(text: string): string {
     return text
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/`(.+?)`/g, '<code class="text-xs bg-gray-100 px-1 py-0.5 rounded">$1</code>')
-      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-accent hover:underline">$1</a>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
+      .replace(/`(.+?)`/g, '<code class="text-[13px] bg-gray-100 px-1.5 py-0.5 rounded font-mono text-gray-800">$1</code>')
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-600 hover:underline">$1</a>')
   }
 
   while (i < lines.length) {
@@ -43,10 +52,20 @@ function renderMarkdown(content: string) {
 
     if (line.startsWith('## ')) {
       flushList()
-      elements.push(<h2 key={i} className="text-lg font-semibold text-gray-900 mt-8 mb-3">{line.slice(3)}</h2>)
+      const headingText = line.slice(3)
+      const headingId = slugify(headingText)
+      elements.push(
+        <h2 key={i} id={headingId} className="text-xl font-semibold text-gray-900 mt-10 mb-4 scroll-mt-28">
+          {headingText}
+        </h2>
+      )
     } else if (line.startsWith('### ')) {
       flushList()
-      elements.push(<h3 key={i} className="text-base font-medium text-gray-900 mt-6 mb-2">{line.slice(4)}</h3>)
+      elements.push(
+        <h3 key={i} className="text-base font-semibold text-gray-900 mt-8 mb-3">
+          {line.slice(4)}
+        </h3>
+      )
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       listItems.push(line.slice(2))
     } else if (line.startsWith('| ')) {
@@ -63,17 +82,23 @@ function renderMarkdown(content: string) {
         const header = rows[0].split('|').filter(Boolean).map(c => c.trim())
         const body = rows.slice(1).map(r => r.split('|').filter(Boolean).map(c => c.trim()))
         elements.push(
-          <div key={i} className="overflow-x-auto mb-4 mt-2">
-            <table className="w-full text-sm border border-gray-200 rounded-lg">
+          <div key={i} className="overflow-x-auto mb-6 mt-3 rounded-lg border border-gray-200">
+            <table className="w-full text-[15px]">
               <thead>
-                <tr className="bg-gray-50">
-                  {header.map((h, j) => <th key={j} className="text-left px-3 py-2 font-medium text-gray-700 border-b border-gray-200">{h}</th>)}
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  {header.map((h, j) => (
+                    <th key={j} className="text-left px-4 py-3 font-semibold text-gray-900 text-sm">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {body.map((row, j) => (
                   <tr key={j} className="border-b border-gray-100 last:border-0">
-                    {row.map((cell, k) => <td key={k} className="px-3 py-2 text-gray-600">{cell}</td>)}
+                    {row.map((cell, k) => (
+                      <td key={k} className="px-4 py-3 text-gray-700" dangerouslySetInnerHTML={{ __html: inlineFormat(cell) }} />
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -86,7 +111,7 @@ function renderMarkdown(content: string) {
     } else {
       flushList()
       elements.push(
-        <p key={i} className="text-sm text-gray-700 leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: inlineFormat(line) }} />
+        <p key={i} className="text-[15px] text-gray-700 leading-7 mb-4" dangerouslySetInnerHTML={{ __html: inlineFormat(line) }} />
       )
     }
     i++
@@ -105,7 +130,9 @@ export default function HelpArticlePage() {
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
           <p className="text-gray-500">Article introuvable.</p>
-          <Link to="/aide" className="text-sm text-gray-900 underline mt-4 inline-block">Retour au centre d'aide</Link>
+          <Link to="/aide" className="text-sm text-gray-900 underline mt-4 inline-block">
+            Retour au centre d'aide
+          </Link>
         </div>
         <Footer />
       </div>
@@ -113,55 +140,131 @@ export default function HelpArticlePage() {
   }
 
   const related = getArticlesBySlugs(article.relatedSlugs)
+  const readingTime = Math.max(1, Math.ceil(article.content.split(/\s+/).length / 200))
+
+  // Extract ## headings for table of contents
+  const headings = article.content
+    .split('\n')
+    .filter(line => line.startsWith('## '))
+    .map(line => ({
+      text: line.slice(3),
+      id: slugify(line.slice(3)),
+    }))
 
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      <div className="max-w-3xl mx-auto px-4 py-12">
+
+      <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-8 flex-wrap">
-          <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
+        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-10 flex-wrap">
+          <Link to="/aide" className="hover:text-gray-600 transition-colors">
+            Centre d'aide
+          </Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <Link to={`/aide/${category}`} className="hover:text-gray-600 transition-colors">{CATEGORY_LABELS[category || ''] || category}</Link>
+          <Link to={`/aide/${category}`} className="hover:text-gray-600 transition-colors">
+            {CATEGORY_LABELS[category || ''] || category}
+          </Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-gray-600">{article.title}</span>
+          <span className="text-gray-600 truncate max-w-[200px] sm:max-w-none">{article.title}</span>
         </div>
 
-        {/* Section badge */}
-        <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{article.section}</p>
+        {/* Content + Sidebar */}
+        <div className="flex gap-16">
+          {/* Main content */}
+          <div className="flex-1 min-w-0">
+            {/* Title area */}
+            <div className="mb-10">
+              <span className="text-xs font-medium text-blue-600 uppercase tracking-wider">
+                {article.section}
+              </span>
+              <h1 className="text-3xl font-bold text-gray-900 mt-2 leading-tight">
+                {article.title}
+              </h1>
+              <p className="text-sm text-gray-500 mt-3">
+                {readingTime} min de lecture
+              </p>
+            </div>
 
-        {/* Article content */}
-        <article className="prose-sm">
-          {renderMarkdown(article.content)}
-        </article>
+            {/* Article body */}
+            <article>{renderMarkdown(article.content)}</article>
 
-        {/* Related articles */}
-        {related.length > 0 && (
-          <div className="mt-12 pt-8 border-t border-gray-100">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Articles liés</h3>
-            <div className="space-y-2">
-              {related.map(a => (
-                <Link
-                  key={a.slug}
-                  to={`/aide/${a.category}/${a.slug}`}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3 hover:border-gray-300 transition-colors"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{a.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{a.description}</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
-                </Link>
-              ))}
+            {/* Feedback */}
+            <div className="mt-14 pt-8 border-t border-gray-100">
+              <ArticleFeedback slug={article.slug} />
             </div>
           </div>
-        )}
 
-        {/* Feedback */}
-        <div className="mt-10">
-          <ArticleFeedback slug={article.slug} />
+          {/* Sidebar — desktop only */}
+          <div className="hidden lg:block w-72 flex-shrink-0">
+            <div className="sticky top-28">
+              {/* Table of Contents */}
+              {headings.length > 0 && (
+                <div className="mb-8">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    Sur cette page
+                  </h4>
+                  <nav className="space-y-2">
+                    {headings.map(h => (
+                      <a
+                        key={h.id}
+                        href={`#${h.id}`}
+                        className="block text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                      >
+                        {h.text}
+                      </a>
+                    ))}
+                  </nav>
+                </div>
+              )}
+
+              {/* Related articles */}
+              {related.length > 0 && (
+                <div className="pt-6 border-t border-gray-100">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    Articles liés
+                  </h4>
+                  <div className="space-y-3">
+                    {related.map(a => (
+                      <Link
+                        key={a.slug}
+                        to={`/aide/${a.category}/${a.slug}`}
+                        className="block text-sm text-gray-700 hover:text-blue-600 transition-colors"
+                      >
+                        {a.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Contact CTA — bento with illustration (same as HelpCenterPage) */}
+        <div className="mt-16 rounded-2xl border border-gray-200 bg-white overflow-hidden flex flex-col md:flex-row items-stretch">
+          <div className="md:w-[55%] bg-[#FFF8F0] flex items-end justify-center p-8 pb-0 min-h-[240px] md:min-h-[280px]">
+            <SupportIllustration className="w-full max-w-[360px] h-auto" />
+          </div>
+          <div className="md:w-[45%] flex flex-col justify-center p-8 md:p-10">
+            <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">Contactez-nous</h3>
+            <p className="text-[15px] text-gray-500 mb-6 leading-relaxed">
+              Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
+            </p>
+            <Link
+              to="/aide/contact"
+              className="h-11 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center w-fit"
+            >
+              Contactez-nous
+            </Link>
+          </div>
         </div>
       </div>
+
+      <div className="fixed bottom-6 right-6 z-50">
+        <HelpChatbot />
+      </div>
+
       <Footer />
     </div>
   )

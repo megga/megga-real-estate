@@ -410,62 +410,110 @@ export default function SearchPage() {
                     <ChevronDown className={cn('w-3 h-3 transition-transform', plusActive ? 'text-white/60' : 'text-gray-400', plusOpen && 'rotate-180')} />
                   </button>
                   {plusOpen && (
-                    <div className="absolute top-full left-0 mt-1.5 w-[420px] bg-white rounded-xl shadow-lg border border-gray-100 z-50 p-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Left column */}
-                        <div>
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Surface min.</p>
-                          <div className="flex flex-wrap gap-1 mb-4">
-                            {['30', '50', '80', '100', '150', '200'].map((s) => (
-                              <button key={s} type="button" onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.minSurface === s ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
-                                {s} m²
-                              </button>
-                            ))}
+                    <div className="absolute top-full left-0 mt-1.5 w-[620px] bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-6 animate-[fadeIn_0.15s_ease-out]">
+                      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                      <div className="grid grid-cols-3 gap-8">
+
+                        {/* Column 1 — Surface & Énergie */}
+                        <div className="space-y-6">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900 mb-3">Surface min.</p>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {['30', '50', '80', '100', '150', '200'].map((s) => (
+                                <button key={s} type="button" onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })} className={cn('h-9 text-xs font-medium rounded-lg transition-all cursor-pointer', filters.minSurface === s ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
+                                  {s} m²
+                                </button>
+                              ))}
+                            </div>
                           </div>
 
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Chambres</p>
-                          <div className="flex gap-1 mb-4">
-                            {BEDROOM_OPTIONS.map((b) => (
-                              <button key={`bed-${b}`} type="button" onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.bedrooms === b ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
-                                {b}
-                              </button>
-                            ))}
-                          </div>
+                          <div className="h-px bg-gray-100" />
 
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Salles de bain</p>
-                          <div className="flex gap-1 mb-4">
-                            {BATHROOM_OPTIONS.map((b) => (
-                              <button key={`bath-${b}`} type="button" onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.bathrooms === b ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
-                                {b}
-                              </button>
-                            ))}
-                          </div>
-
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Énergie</p>
-                          <div className="flex flex-wrap gap-1">
-                            {ENERGY_OPTIONS.map((e) => (
-                              <button key={e.value} type="button" onClick={() => updateFilter({ energyLabel: filters.energyLabel === e.value ? '' : e.value })} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.energyLabel === e.value ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
-                                {e.label}
-                              </button>
-                            ))}
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900 mb-3">Énergie</p>
+                            <div className="space-y-1.5">
+                              {ENERGY_OPTIONS.map((e) => (
+                                <button key={e.value} type="button" onClick={() => updateFilter({ energyLabel: filters.energyLabel === e.value ? '' : e.value })} className={cn('w-full h-8 px-3 text-xs font-medium rounded-lg text-left transition-all cursor-pointer', filters.energyLabel === e.value ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
+                                  {e.label}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Right column — lifestyle tags */}
-                        <div>
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Style de vie</p>
-                          <div className="flex flex-wrap gap-1">
-                            {LIFESTYLE_TAGS.map((tag) => (
-                              <button key={tag.value} type="button" onClick={() => {
-                                const next = filters.lifestyleTags.includes(tag.value) ? filters.lifestyleTags.filter((t) => t !== tag.value) : [...filters.lifestyleTags, tag.value]
-                                updateFilter({ lifestyleTags: next })
-                              }} className={cn('px-2.5 py-1 text-xs rounded-md transition-colors cursor-pointer', filters.lifestyleTags.includes(tag.value) ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}>
-                                {tag.label}
-                              </button>
-                            ))}
+                        {/* Column 2 — Chambres, Salles de bain, Étage */}
+                        <div className="space-y-6">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900 mb-3">Chambres</p>
+                            <div className="flex gap-1.5">
+                              {BEDROOM_OPTIONS.map((b) => (
+                                <button key={`bed-${b}`} type="button" onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })} className={cn('flex-1 h-9 text-xs font-medium rounded-lg transition-all cursor-pointer', filters.bedrooms === b ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
+                                  {b}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900 mb-3">Salles de bain</p>
+                            <div className="flex gap-1.5">
+                              {BATHROOM_OPTIONS.map((b) => (
+                                <button key={`bath-${b}`} type="button" onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })} className={cn('flex-1 h-9 text-xs font-medium rounded-lg transition-all cursor-pointer', filters.bathrooms === b ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
+                                  {b}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="h-px bg-gray-100" />
+
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900 mb-3">Équipements</p>
+                            <div className="space-y-1.5">
+                              {LIFESTYLE_TAGS.filter(t => ['terrasse', 'balcon', 'jardin', 'parking', 'piscine', 'ascenseur', 'meuble', 'dernier_etage'].includes(t.value)).map((tag) => (
+                                <button key={tag.value} type="button" onClick={() => {
+                                  const next = filters.lifestyleTags.includes(tag.value) ? filters.lifestyleTags.filter((t) => t !== tag.value) : [...filters.lifestyleTags, tag.value]
+                                  updateFilter({ lifestyleTags: next })
+                                }} className={cn('w-full h-8 px-3 text-xs font-medium rounded-lg text-left transition-all cursor-pointer flex items-center justify-between', filters.lifestyleTags.includes(tag.value) ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
+                                  {tag.label}
+                                  {filters.lifestyleTags.includes(tag.value) && <span className="text-[10px]">✓</span>}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Column 3 — Environnement */}
+                        <div className="space-y-6">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-900 mb-3">Environnement</p>
+                            <div className="space-y-1.5">
+                              {LIFESTYLE_TAGS.filter(t => ['vue_lac', 'vue_montagne', 'lumineux', 'quartier_calme', 'proche_transports', 'proche_ecoles', 'centre_ville'].includes(t.value)).map((tag) => (
+                                <button key={tag.value} type="button" onClick={() => {
+                                  const next = filters.lifestyleTags.includes(tag.value) ? filters.lifestyleTags.filter((t) => t !== tag.value) : [...filters.lifestyleTags, tag.value]
+                                  updateFilter({ lifestyleTags: next })
+                                }} className={cn('w-full h-8 px-3 text-xs font-medium rounded-lg text-left transition-all cursor-pointer flex items-center justify-between', filters.lifestyleTags.includes(tag.value) ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
+                                  {tag.label}
+                                  {filters.lifestyleTags.includes(tag.value) && <span className="text-[10px]">✓</span>}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
+
+                      {/* Footer — reset */}
+                      {plusActive && (
+                        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => updateFilter({ minSurface: '', bedrooms: '', bathrooms: '', energyLabel: '', lifestyleTags: [] })}
+                            className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                          >
+                            Réinitialiser les filtres
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

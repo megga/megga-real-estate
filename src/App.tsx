@@ -76,6 +76,8 @@ const HelpChangelogPage = lazy(() => import('@/pages/public/HelpChangelogPage'))
 const HelpShortcutsPage = lazy(() => import('@/pages/public/HelpShortcutsPage'))
 const HelpCompliancePage = lazy(() => import('@/pages/public/HelpCompliancePage'))
 const HelpLimitsPage = lazy(() => import('@/pages/public/HelpLimitsPage'))
+const HelpResourcesPage = lazy(() => import('@/pages/public/HelpResourcesPage'))
+const GlossairePage = lazy(() => import('@/pages/public/GlossairePage'))
 const TicketStatusPage = lazy(() => import('@/pages/public/TicketStatusPage'))
 const TicketFeedbackPage = lazy(() => import('@/pages/public/TicketFeedbackPage'))
 
@@ -160,6 +162,8 @@ export default function App() {
               <Route path="/aide/raccourcis" element={<HelpShortcutsPage />} />
               <Route path="/aide/conformite" element={<HelpCompliancePage />} />
               <Route path="/aide/limites" element={<HelpLimitsPage />} />
+              <Route path="/aide/ressources" element={<HelpResourcesPage />} />
+              <Route path="/aide/glossaire" element={<GlossairePage />} />
               <Route path="/aide/:category" element={<HelpCategoryPage />} />
               <Route path="/aide/:category/:slug" element={<HelpArticlePage />} />
 

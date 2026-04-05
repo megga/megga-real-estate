@@ -1,47 +1,43 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ThumbsUp, ThumbsDown, Check } from 'lucide-react'
-
-const STORAGE_KEY = 'megga-help-feedback'
-
-function loadFeedback(): Record<string, boolean> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return {}
-    const arr: { slug: string; helpful: boolean }[] = JSON.parse(raw)
-    const map: Record<string, boolean> = {}
-    arr.forEach(f => { map[f.slug] = f.helpful })
-    return map
-  } catch { return {} }
-}
-
-function saveFeedback(slug: string, helpful: boolean, comment?: string) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const arr: { slug: string; helpful: boolean; comment?: string; timestamp: string }[] = raw ? JSON.parse(raw) : []
-    const existing = arr.findIndex(f => f.slug === slug)
-    const entry = { slug, helpful, comment, timestamp: new Date().toISOString() }
-    if (existing >= 0) arr[existing] = entry
-    else arr.push(entry)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr))
-  } catch { /* ignore */ }
-}
+import { supabase } from '@/lib/supabase'
 
 export default function ArticleFeedback({ slug }: { slug: string }) {
-  const existing = loadFeedback()
-  const [voted, setVoted] = useState<boolean | null>(existing[slug] ?? null)
+  const [voted, setVoted] = useState<boolean | null>(null)
   const [showComment, setShowComment] = useState(false)
   const [comment, setComment] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
-  function handleVote(helpful: boolean) {
+  // Track article view
+  useEffect(() => {
+    supabase.from('article_views').insert({ article_slug: slug }).then()
+  }, [slug])
+
+  async function handleVote(helpful: boolean) {
     setVoted(helpful)
-    saveFeedback(slug, helpful)
+
+    // Save to Supabase
+    const { data: user } = await supabase.auth.getUser()
+    supabase.from('article_feedback').insert({
+      article_slug: slug,
+      helpful,
+      user_id: user.user?.id || null,
+    }).then()
+
     if (!helpful) setShowComment(true)
     else setSubmitted(true)
   }
 
-  function handleSubmitComment() {
-    saveFeedback(slug, false, comment)
+  async function handleSubmitComment() {
+    // Update the feedback with comment
+    const { data: user } = await supabase.auth.getUser()
+    supabase.from('article_feedback').insert({
+      article_slug: slug,
+      helpful: false,
+      comment,
+      user_id: user.user?.id || null,
+    }).then()
+
     setSubmitted(true)
     setShowComment(false)
   }
