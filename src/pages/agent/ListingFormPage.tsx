@@ -323,7 +323,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
   const { register, watch, setValue, formState: { errors } } = form
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-theme-primary">Informations générales</h2>
         <p className="text-sm text-theme-tertiary mt-1">Décrivez votre bien immobilier.</p>
@@ -344,7 +344,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
       {/* Property type — icons + labels */}
       <div>
         <FieldLabel htmlFor="type">Type de bien</FieldLabel>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {(Object.entries(PROPERTY_TYPE_LABELS) as [PropertyType, string][]).map(([value, label]) => {
             const Icon = PROPERTY_TYPE_ICONS[value]
             const isSelected = watch('type') === value
@@ -352,14 +352,14 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
               <label
                 key={value}
                 className={cn(
-                  'flex flex-col items-center justify-center py-4 px-2 rounded-xl border text-center cursor-pointer transition-all duration-200',
+                  'flex flex-col items-center justify-center py-5 px-3 rounded-xl border text-center cursor-pointer transition-all duration-200',
                   isSelected
                     ? 'border-theme-primary bg-theme-active text-theme-primary scale-[1.02]'
                     : 'border-theme-border text-theme-secondary hover:bg-theme-hover hover:border-theme-active'
                 )}
               >
                 <input type="radio" value={value} {...register('type')} className="sr-only" />
-                <Icon className={cn('h-5 w-5 mb-1.5', isSelected ? 'text-theme-primary' : 'text-theme-muted')} />
+                <Icon className={cn('h-7 w-7 mb-2', isSelected ? 'text-theme-primary' : 'text-theme-muted')} />
                 <span className="text-sm font-medium">{label}</span>
                 <span className={cn('text-[10px] mt-0.5', isSelected ? 'text-theme-secondary' : 'text-theme-muted')}>{PROPERTY_TYPE_DESCRIPTIONS[value]}</span>
               </label>
@@ -403,7 +403,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
       </div>
 
       {/* Surface + floor details */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-5">
         <div>
           <FieldLabel htmlFor="surface_m2">Surface</FieldLabel>
           <div className="relative">
@@ -442,7 +442,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
               type="button"
               onClick={() => setValue('condition', watch('condition') === opt.value ? undefined : opt.value as ListingFormData['condition'], { shouldValidate: true })}
               className={cn(
-                'h-9 px-4 rounded-lg text-sm font-medium border transition-all',
+                'h-10 px-5 rounded-lg text-sm font-medium border transition-all',
                 watch('condition') === opt.value
                   ? 'border-theme-primary bg-theme-active text-theme-primary'
                   : 'border-theme-border text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
@@ -1757,6 +1757,26 @@ export default function ListingFormPage() {
   const [completedSteps, setCompletedSteps] = useState<number[]>(
     isEditMode ? [1, 2, 3, 4, 5] : []
   )
+  const [openSections, setOpenSections] = useState<Set<number>>(new Set([1]))
+  const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({})
+
+  function toggleSection(num: number) {
+    setOpenSections(prev => {
+      const next = new Set(prev)
+      if (next.has(num)) next.delete(num)
+      else next.add(num)
+      return next
+    })
+  }
+
+  function scrollToSection(num: number) {
+    if (!openSections.has(num)) {
+      setOpenSections(prev => new Set(prev).add(num))
+    }
+    setTimeout(() => {
+      sectionRefs.current[num]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [floorPlanUrl, setFloorPlanUrl] = useState<string | null>(null)
   const [floorPlanHotspots, setFloorPlanHotspots] = useState<FloorPlanHotspot[]>([])
@@ -2150,7 +2170,7 @@ export default function ListingFormPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -2182,13 +2202,6 @@ export default function ListingFormPage() {
         )}
       </div>
 
-      {/* Stepper */}
-      <Stepper
-        current={currentStep}
-        completed={completedSteps}
-        onStepClick={isEditMode ? (step) => setCurrentStep(step) : undefined}
-      />
-
       {/* Error banner */}
       {saveError && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-500">
@@ -2196,90 +2209,268 @@ export default function ListingFormPage() {
         </div>
       )}
 
-      {/* Form card */}
-      <div className="rounded-xl border border-theme-border p-6 md:p-8">
-        <form onSubmit={(e) => e.preventDefault()}>
-          {currentStep === 1 && <Step1 form={form} />}
-          {currentStep === 2 && <Step2 form={form} />}
-          {currentStep === 3 && <Step3 form={form} />}
-          {currentStep === 4 && <Step4
-            form={form}
-            pendingFiles={pendingFiles}
-            setPendingFiles={setPendingFiles}
-            floorPlanProps={{
-              floorPlanUrl,
-              hotspots: floorPlanHotspots,
-              photoTags,
-              onFloorPlanChange: setFloorPlanUrl,
-              onHotspotsChange: setFloorPlanHotspots,
-              onPhotoTagsChange: setPhotoTags,
-              onUploadFloorPlan: async (file) => {
-                const propId = isEditMode ? id! : autoSavePropertyId.current ?? 'draft'
-                return uploadFloorPlan.mutateAsync({ propertyId: propId, file })
-              },
-              isUploading: uploadFloorPlan.isPending,
-              canAccess: canAccess('floorPlan'),
-            }}
-          />}
-          {currentStep === 5 && <Step5 form={form} />}
-        </form>
-      </div>
-
-      {/* Spacer for sticky nav */}
-      <div className="h-20" />
-
-      {/* Sticky bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-theme-card/80 backdrop-blur-lg border-t border-theme-border">
-        <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div>
-            {currentStep > 1 && (
-              <Button
+      {/* ═══ Accordion layout + Sidebar ═══ */}
+      <div className="flex gap-6">
+        {/* ── Main: Accordion sections ── */}
+        <div className="flex-1 min-w-0 space-y-3">
+          <form onSubmit={(e) => e.preventDefault()}>
+            {/* Section 1 — Infos générales */}
+            <div ref={el => { sectionRefs.current[1] = el }} className="mb-3">
+              <button
                 type="button"
-                variant="outline"
-                onClick={handlePrev}
-                disabled={isSaving}
-                className="gap-2"
+                onClick={() => toggleSection(1)}
+                className={cn(
+                  'w-full flex items-center justify-between p-4 rounded-xl border transition-colors',
+                  openSections.has(1) ? 'border-theme-active bg-theme-card' : 'border-theme-border hover:border-theme-active'
+                )}
               >
-                <ArrowLeft className="h-4 w-4" />
-                Précédent
-              </Button>
-            )}
-          </div>
+                <div className="flex items-center gap-3">
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(1) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                    {completedSteps.includes(1) ? <Check className="w-3.5 h-3.5" /> : '1'}
+                  </span>
+                  <span className="text-sm font-semibold text-theme-primary">Infos générales</span>
+                </div>
+                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(1) && 'rotate-180')} />
+              </button>
+              {openSections.has(1) && (
+                <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
+                  <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
+                  <Step1 form={form} />
+                </div>
+              )}
+            </div>
 
-          <div className="flex items-center gap-3">
-            <Button
+            {/* Section 2 — Localisation */}
+            <div ref={el => { sectionRefs.current[2] = el }} className="mb-3">
+              <button
+                type="button"
+                onClick={() => toggleSection(2)}
+                className={cn(
+                  'w-full flex items-center justify-between p-4 rounded-xl border transition-colors',
+                  openSections.has(2) ? 'border-theme-active bg-theme-card' : 'border-theme-border hover:border-theme-active'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(2) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                    {completedSteps.includes(2) ? <Check className="w-3.5 h-3.5" /> : '2'}
+                  </span>
+                  <span className="text-sm font-semibold text-theme-primary">Localisation</span>
+                </div>
+                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(2) && 'rotate-180')} />
+              </button>
+              {openSections.has(2) && (
+                <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
+                  <Step2 form={form} />
+                </div>
+              )}
+            </div>
+
+            {/* Section 3 — Prix & détails */}
+            <div ref={el => { sectionRefs.current[3] = el }} className="mb-3">
+              <button
+                type="button"
+                onClick={() => toggleSection(3)}
+                className={cn(
+                  'w-full flex items-center justify-between p-4 rounded-xl border transition-colors',
+                  openSections.has(3) ? 'border-theme-active bg-theme-card' : 'border-theme-border hover:border-theme-active'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(3) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                    {completedSteps.includes(3) ? <Check className="w-3.5 h-3.5" /> : '3'}
+                  </span>
+                  <span className="text-sm font-semibold text-theme-primary">Prix & détails</span>
+                </div>
+                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(3) && 'rotate-180')} />
+              </button>
+              {openSections.has(3) && (
+                <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
+                  <Step3 form={form} />
+                </div>
+              )}
+            </div>
+
+            {/* Section 4 — Photos */}
+            <div ref={el => { sectionRefs.current[4] = el }} className="mb-3">
+              <button
+                type="button"
+                onClick={() => toggleSection(4)}
+                className={cn(
+                  'w-full flex items-center justify-between p-4 rounded-xl border transition-colors',
+                  openSections.has(4) ? 'border-theme-active bg-theme-card' : 'border-theme-border hover:border-theme-active'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(4) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                    {completedSteps.includes(4) ? <Check className="w-3.5 h-3.5" /> : '4'}
+                  </span>
+                  <span className="text-sm font-semibold text-theme-primary">Photos</span>
+                  {(form.watch('photos')?.length || 0) + pendingFiles.length > 0 && (
+                    <span className="text-xs text-theme-muted">{(form.watch('photos')?.length || 0) + pendingFiles.length} photos</span>
+                  )}
+                </div>
+                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(4) && 'rotate-180')} />
+              </button>
+              {openSections.has(4) && (
+                <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
+                  <Step4
+                    form={form}
+                    pendingFiles={pendingFiles}
+                    setPendingFiles={setPendingFiles}
+                    floorPlanProps={{
+                      floorPlanUrl,
+                      hotspots: floorPlanHotspots,
+                      photoTags,
+                      onFloorPlanChange: setFloorPlanUrl,
+                      onHotspotsChange: setFloorPlanHotspots,
+                      onPhotoTagsChange: setPhotoTags,
+                      onUploadFloorPlan: async (file) => {
+                        const propId = isEditMode ? id! : autoSavePropertyId.current ?? 'draft'
+                        return uploadFloorPlan.mutateAsync({ propertyId: propId, file })
+                      },
+                      isUploading: uploadFloorPlan.isPending,
+                      canAccess: canAccess('floorPlan'),
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Section 5 — Description */}
+            <div ref={el => { sectionRefs.current[5] = el }} className="mb-3">
+              <button
+                type="button"
+                onClick={() => toggleSection(5)}
+                className={cn(
+                  'w-full flex items-center justify-between p-4 rounded-xl border transition-colors',
+                  openSections.has(5) ? 'border-theme-active bg-theme-card' : 'border-theme-border hover:border-theme-active'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(5) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                    {completedSteps.includes(5) ? <Check className="w-3.5 h-3.5" /> : '5'}
+                  </span>
+                  <span className="text-sm font-semibold text-theme-primary">Description & publication</span>
+                </div>
+                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(5) && 'rotate-180')} />
+              </button>
+              {openSections.has(5) && (
+                <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
+                  <Step5 form={form} />
+                </div>
+              )}
+            </div>
+          </form>
+
+          {/* Spacer for mobile bottom bar */}
+          <div className="h-20 lg:h-0" />
+        </div>
+
+        {/* ── Sidebar: Live preview (desktop only) ── */}
+        <div className="hidden lg:block w-72 flex-shrink-0">
+          <div className="sticky top-24 space-y-4">
+            {/* Preview card */}
+            <div className="rounded-xl border border-theme-border p-4">
+              {(form.watch('photos')?.[0] || pendingFiles[0]) ? (
+                <img
+                  src={form.watch('photos')?.[0] || (pendingFiles[0] ? URL.createObjectURL(pendingFiles[0]) : '')}
+                  alt=""
+                  className="w-full aspect-[4/3] rounded-lg object-cover mb-3"
+                />
+              ) : (
+                <div className="w-full aspect-[4/3] rounded-lg bg-theme-hover flex items-center justify-center mb-3">
+                  <Building2 className="w-8 h-8 text-theme-tertiary" />
+                </div>
+              )}
+              <p className="text-base font-bold text-theme-primary truncate">
+                {form.watch('title') || 'Nouveau bien'}
+              </p>
+              <p className="text-xs text-theme-secondary truncate mt-0.5">
+                {form.watch('address') || 'Adresse non renseignée'}
+              </p>
+              <div className="flex items-center gap-3 mt-2 text-xs text-theme-muted">
+                {form.watch('rooms') && <span>{form.watch('rooms')}p.</span>}
+                {form.watch('surface_m2') && <span>{form.watch('surface_m2')} m²</span>}
+                {form.watch('price') && <span className="font-medium text-theme-primary">{formatCHF(Number(form.watch('price')))}</span>}
+              </div>
+            </div>
+
+            {/* Completion */}
+            <div className="rounded-xl border border-theme-border p-4">
+              <div className="flex items-center justify-between text-xs text-theme-secondary mb-2">
+                <span>Complétion</span>
+                <span>{Math.round((completedSteps.length / 5) * 100)}%</span>
+              </div>
+              <div className="h-1.5 bg-theme-hover rounded-full overflow-hidden">
+                <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${(completedSteps.length / 5) * 100}%` }} />
+              </div>
+              <div className="mt-3 space-y-1">
+                {[
+                  { num: 1, label: 'Infos générales' },
+                  { num: 2, label: 'Localisation' },
+                  { num: 3, label: 'Prix & détails' },
+                  { num: 4, label: 'Photos' },
+                  { num: 5, label: 'Description' },
+                ].map(s => (
+                  <button
+                    key={s.num}
+                    type="button"
+                    onClick={() => scrollToSection(s.num)}
+                    className="flex items-center gap-2 w-full text-left text-xs text-theme-secondary hover:text-theme-primary transition-colors py-0.5"
+                  >
+                    <span className={cn('w-3 h-3 rounded-full border flex items-center justify-center', completedSteps.includes(s.num) ? 'bg-emerald-500 border-emerald-500' : 'border-theme-border')}>
+                      {completedSteps.includes(s.num) && <Check className="w-2 h-2 text-white" />}
+                    </span>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <button
               type="button"
-              variant="ghost"
               onClick={handleSaveDraft}
               disabled={isSaving}
-              className="gap-2 text-theme-secondary"
+              className="w-full h-10 rounded-lg border border-theme-border text-sm text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2"
             >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              <span className="hidden sm:inline">Brouillon</span>
-            </Button>
-
-            {currentStep < 5 ? (
-              <Button
-                type="button"
-                onClick={handleNext}
-                disabled={isSaving}
-                className="gap-2"
-              >
-                Suivant
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handlePublish}
-                disabled={isSaving}
-                className="gap-2"
-              >
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {isEditMode ? 'Enregistrer' : 'Publier'}
-              </Button>
-            )}
+              Sauver brouillon
+            </button>
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={isSaving}
+              className="w-full h-10 rounded-lg border border-theme-border text-sm font-medium text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isEditMode ? 'Enregistrer' : 'Publier'}
+            </button>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile bottom bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-theme-card/80 backdrop-blur-lg border-t border-theme-border">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={isSaving}
+            className="h-10 px-4 rounded-lg border border-theme-border text-sm text-theme-secondary flex items-center gap-2"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Brouillon
+          </button>
+          <button
+            type="button"
+            onClick={handlePublish}
+            disabled={isSaving}
+            className="h-10 px-6 rounded-lg border border-theme-border text-sm font-medium text-theme-primary flex items-center gap-2"
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isEditMode ? 'Enregistrer' : 'Publier'}
+          </button>
         </div>
       </div>
     </div>
