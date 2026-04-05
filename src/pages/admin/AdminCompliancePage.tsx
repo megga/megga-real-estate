@@ -168,7 +168,7 @@ export default function AdminCompliancePage() {
       )
     }
     return list
-  }, [cases, tab, search])
+  }, [cases, tab, search, TYPE_FULL])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
   const safePage = Math.min(page, totalPages)
