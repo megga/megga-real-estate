@@ -10,7 +10,6 @@ import HelpSearchBar from '@/components/help/HelpSearchBar'
 import { getArticlesByCategory } from '@/lib/helpArticles'
 import AgentIllustration from '@/components/illustrations/AgentIllustration'
 import SellerIllustration from '@/components/illustrations/SellerIllustration'
-import BuyerIllustration from '@/components/illustrations/BuyerIllustration'
 import SupportIllustration from '@/components/illustrations/SupportIllustration'
 
 // ── Data ────────────────────────────────────────────────────────────────

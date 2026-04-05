@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Send, ArrowUp, ArrowRight, Search, MessageSquare, HelpCircle, Home, ChevronLeft, ChevronRight, Sparkles, CheckCircle, CheckCheck, Paperclip, Smile, Mic, StopCircle, Image } from 'lucide-react'
+import { X, Send, ArrowUp, ArrowRight, Search, MessageSquare, HelpCircle, Home, ChevronLeft, ChevronRight, Sparkles, CheckCircle, CheckCheck, Paperclip, Smile, Mic } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -147,12 +147,6 @@ const CATEGORIES_CONNECTED = [
   'Autre demande',
 ]
 
-const CATEGORIES_ANONYMOUS = [
-  'Question sur une fonctionnalité',
-  'Problèmes techniques / Erreurs',
-  'Autre demande',
-]
-
 function generateConversationId(): string {
   return Math.random().toString(36).substring(2, 10).toUpperCase()
 }
@@ -279,7 +273,7 @@ export default function HelpChatbot() {
   // Load trending GIFs on open
   useEffect(() => {
     if (showGif && gifResults.length === 0 && !gifQuery) {
-      gf.trending({ limit: 12 }).then(res => setGifResults(res.data as typeof gifResults))
+      gf.trending({ limit: 12 }).then(res => setGifResults(res.data as unknown as typeof gifResults))
     }
   }, [showGif, gifResults.length, gifQuery])
 
@@ -287,10 +281,10 @@ export default function HelpChatbot() {
     setGifQuery(q)
     if (!q.trim()) {
       const res = await gf.trending({ limit: 12 })
-      setGifResults(res.data as typeof gifResults)
+      setGifResults(res.data as unknown as typeof gifResults)
     } else {
       const res = await gf.search(q, { limit: 12 })
-      setGifResults(res.data as typeof gifResults)
+      setGifResults(res.data as unknown as typeof gifResults)
     }
   }
 
