@@ -96,13 +96,6 @@ const fullSchema = step1Schema.merge(step2Schema).merge(step3Schema).merge(step4
 
 type ListingFormData = z.infer<typeof fullSchema>
 
-const STEPS = [
-  { id: 1, label: 'Infos' },
-  { id: 2, label: 'Localisation' },
-  { id: 3, label: 'Prix & détails' },
-  { id: 4, label: 'Photos' },
-  { id: 5, label: 'Description' },
-] as const
 
 const FEATURES_CATEGORIZED = [
   {
