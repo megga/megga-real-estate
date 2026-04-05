@@ -28,7 +28,6 @@ import BuyerSidebar from '@/components/search/BuyerSidebar'
 import Footer from '@/components/layout/Footer'
 import { usePropertyEstimation, type EstimationParams, type EstimationResult } from '@/hooks/usePropertyEstimation'
 import { useSellerLead } from '@/hooks/useSellerLead'
-import EstimationIllustration from '@/components/illustrations/EstimationIllustration'
 import { supabase } from '@/lib/supabase'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
