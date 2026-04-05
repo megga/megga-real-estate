@@ -1,24 +1,26 @@
+import { useTranslation } from 'react-i18next'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useOnboardingTracker } from '@/hooks/useOnboardingTracker'
 import type { AgencyOnboarding } from '@/hooks/useOnboardingTracker'
 import { Building2, Check } from 'lucide-react'
 
-const STEP_LABELS: { key: keyof AgencyOnboarding['steps']; label: string }[] = [
-  { key: 'profile_completed', label: 'Inscrit' },
-  { key: 'first_contact', label: 'Contact' },
-  { key: 'first_property', label: 'Bien' },
-  { key: 'first_kyc', label: 'KYC' },
-  { key: 'first_transaction', label: 'Transaction' },
-  { key: 'first_match', label: 'Match' },
+const STEP_LABEL_KEYS: { key: keyof AgencyOnboarding['steps']; i18nKey: string }[] = [
+  { key: 'profile_completed', i18nKey: 'onboarding.step.registered' },
+  { key: 'first_contact', i18nKey: 'onboarding.step.contact' },
+  { key: 'first_property', i18nKey: 'onboarding.step.property' },
+  { key: 'first_kyc', i18nKey: 'onboarding.step.kyc' },
+  { key: 'first_transaction', i18nKey: 'onboarding.step.transaction' },
+  { key: 'first_match', i18nKey: 'onboarding.step.match' },
 ]
 
-const STATUS_CONFIG: Record<AgencyOnboarding['status'], { label: string; dotClass: string }> = {
-  active: { label: 'Actif', dotClass: 'bg-emerald-500' },
-  at_risk: { label: 'A risque', dotClass: 'bg-amber-500' },
-  dormant: { label: 'Dormant', dotClass: 'bg-red-500' },
+const STATUS_CONFIG: Record<AgencyOnboarding['status'], { i18nKey: string; dotClass: string }> = {
+  active: { i18nKey: 'onboarding.status.active', dotClass: 'bg-emerald-500' },
+  at_risk: { i18nKey: 'onboarding.status.atRisk', dotClass: 'bg-amber-500' },
+  dormant: { i18nKey: 'onboarding.status.dormant', dotClass: 'bg-red-500' },
 }
 
 export default function OnboardingTracker() {
+  const { t } = useTranslation('admin')
   const { data: agencies, isLoading } = useOnboardingTracker()
 
   if (isLoading) {
@@ -37,10 +39,10 @@ export default function OnboardingTracker() {
   if (!agencies?.length) {
     return (
       <div className="rounded-xl border border-theme-border p-5">
-        <h2 className="text-sm font-semibold text-theme-primary mb-4">Activation des agences</h2>
+        <h2 className="text-sm font-semibold text-theme-primary mb-4">{t('onboarding.title')}</h2>
         <div className="flex flex-col items-center py-8 text-center">
           <Building2 className="h-8 w-8 text-theme-muted mb-3" />
-          <p className="text-sm text-theme-secondary">Aucune agence inscrite</p>
+          <p className="text-sm text-theme-secondary">{t('onboarding.noAgencies')}</p>
         </div>
       </div>
     )
@@ -48,7 +50,7 @@ export default function OnboardingTracker() {
 
   // Compute funnel counts
   const total = agencies.length
-  const funnelSteps = STEP_LABELS.map(step => {
+  const funnelSteps = STEP_LABEL_KEYS.map(step => {
     const count = agencies.filter(a => a.steps[step.key]).length
     return { ...step, count, pct: Math.round((count / total) * 100) }
   })
@@ -58,13 +60,13 @@ export default function OnboardingTracker() {
 
   return (
     <div className="rounded-xl border border-theme-border p-5 space-y-6">
-      <h2 className="text-sm font-semibold text-theme-primary">Activation des agences</h2>
+      <h2 className="text-sm font-semibold text-theme-primary">{t('onboarding.title')}</h2>
 
       {/* Funnel summary */}
       <div className="space-y-2">
         {funnelSteps.map((step) => (
           <div key={step.key} className="flex items-center gap-3">
-            <span className="text-xs text-theme-secondary w-24 flex-shrink-0 text-right">{step.label}</span>
+            <span className="text-xs text-theme-secondary w-24 flex-shrink-0 text-right">{t(step.i18nKey)}</span>
             <div className="flex-1 h-6 rounded bg-theme-hover overflow-hidden relative">
               <div
                 className="h-full rounded bg-admin-accent transition-all duration-500"
@@ -89,11 +91,11 @@ export default function OnboardingTracker() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-theme-border">
-              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4">Agence</th>
-              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4 w-36">Progression</th>
-              <th className="text-center text-xs font-medium text-theme-secondary pb-2 pr-4 w-40">Etapes</th>
-              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4 w-24">Statut</th>
-              <th className="text-right text-xs font-medium text-theme-secondary pb-2 w-28">Derniere activite</th>
+              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4">{t('onboarding.table.agency')}</th>
+              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4 w-36">{t('onboarding.table.progress')}</th>
+              <th className="text-center text-xs font-medium text-theme-secondary pb-2 pr-4 w-40">{t('onboarding.table.steps')}</th>
+              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4 w-24">{t('onboarding.table.status')}</th>
+              <th className="text-right text-xs font-medium text-theme-secondary pb-2 w-28">{t('onboarding.table.lastActivity')}</th>
             </tr>
           </thead>
           <tbody>
@@ -125,12 +127,12 @@ export default function OnboardingTracker() {
                   {/* Step dots */}
                   <td className="py-2.5 pr-4">
                     <div className="flex items-center justify-center gap-1.5">
-                      {STEP_LABELS.map(step => {
+                      {STEP_LABEL_KEYS.map(step => {
                         const done = agency.steps[step.key]
                         return (
                           <div
                             key={step.key}
-                            title={step.label}
+                            title={t(step.i18nKey)}
                             className={cn(
                               'h-4 w-4 rounded-full flex items-center justify-center',
                               done ? 'bg-emerald-500' : 'bg-theme-hover'
@@ -147,14 +149,14 @@ export default function OnboardingTracker() {
                   <td className="py-2.5 pr-4">
                     <div className="flex items-center gap-2">
                       <span className={cn('w-2 h-2 rounded-full', statusCfg.dotClass)} />
-                      <span className="text-xs text-theme-secondary">{statusCfg.label}</span>
+                      <span className="text-xs text-theme-secondary">{t(statusCfg.i18nKey)}</span>
                     </div>
                   </td>
 
                   {/* Last activity */}
                   <td className="py-2.5 text-right">
                     <span className="text-xs text-theme-muted">
-                      {agency.last_activity ? formatRelativeDate(agency.last_activity) : 'Aucune'}
+                      {agency.last_activity ? formatRelativeDate(agency.last_activity) : t('onboarding.noActivity')}
                     </span>
                   </td>
                 </tr>

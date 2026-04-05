@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CreditCard, Check, X, ChevronDown, Infinity as InfinityIcon } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import { PLANS } from '@/lib/plans'
@@ -33,6 +34,7 @@ function PlanBadge({ plan }: { plan: string }) {
 }
 
 function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; agencyId: string }) {
+  const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
@@ -58,13 +60,13 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
         onClick={() => setOpen(!open)}
         className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-1.5"
       >
-        Changer
+        {t('admin:plans.changePlan')}
         <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-theme-card border border-theme-border rounded-lg py-1 min-w-[140px]">
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }} />
+          <div className="absolute right-0 top-full mt-1 z-20 bg-theme-card border border-theme-border rounded-lg py-1 min-w-[140px]" role="listbox">
             {PLANS.map(plan => (
               <button
                 key={plan.id}
@@ -79,7 +81,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
               >
                 {plan.name}
                 {plan.id === normalized && (
-                  <span className="ml-1.5 text-theme-muted">(actuel)</span>
+                  <span className="ml-1.5 text-theme-muted">({t('admin:common.current')})</span>
                 )}
               </button>
             ))}
@@ -91,6 +93,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
 }
 
 export default function AdminPlansPage() {
+  const { t } = useTranslation('admin')
   const { agencies, isLoading } = useAdminAgencies()
 
   const featureKeys = PLANS[0].features.map(f => f.key)
@@ -101,17 +104,17 @@ export default function AdminPlansPage() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <span className="h-2 w-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+          <span className="text-xs font-medium text-admin-accent">{t('admin:common.adminBadge')}</span>
         </div>
-        <h1 className="text-2xl font-semibold text-theme-primary">Plans & Quotas</h1>
+        <h1 className="text-2xl font-semibold text-theme-primary">{t('admin:plans.title')}</h1>
         <p className="text-sm text-theme-tertiary mt-0.5">
-          Configuration des plans et gestion des abonnements agences
+          {t('admin:plans.subtitle')}
         </p>
       </div>
 
       {/* Plan comparison grid */}
       <div>
-        <h2 className="text-lg font-semibold text-theme-primary mb-4">Comparaison des plans</h2>
+        <h2 className="text-lg font-semibold text-theme-primary mb-4">{t('admin:plans.comparison')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map(plan => {
             const colors = PLAN_COLORS[plan.id] ?? PLAN_COLORS.starter
@@ -122,13 +125,13 @@ export default function AdminPlansPage() {
                   <h3 className="text-base font-semibold">{plan.name}</h3>
                   <div className="mt-1">
                     {plan.price_monthly === 0 ? (
-                      <span className="text-xl font-bold">Gratuit</span>
+                      <span className="text-xl font-bold">{t('admin:plans.free')}</span>
                     ) : (
                       <div>
                         <span className="text-xl font-bold">{formatCHF(plan.price_monthly)}</span>
-                        <span className="text-xs opacity-70">/mois</span>
+                        <span className="text-xs opacity-70">{t('admin:plans.perMonth')}</span>
                         <div className="text-xs opacity-60 mt-0.5">
-                          ou {formatCHF(plan.price_yearly)}/mois (annuel)
+                          {t('admin:plans.annual', { price: formatCHF(plan.price_yearly) })}
                         </div>
                       </div>
                     )}
@@ -169,11 +172,11 @@ export default function AdminPlansPage() {
 
       {/* Feature comparison table (aligned rows) */}
       <div>
-        <h2 className="text-lg font-semibold text-theme-primary mb-4">Detail par feature</h2>
+        <h2 className="text-lg font-semibold text-theme-primary mb-4">{t('admin:plans.featureDetail')}</h2>
         <div className="rounded-xl border border-theme-border overflow-hidden">
           {/* Table header */}
           <div className="grid grid-cols-4 bg-theme-hover text-xs font-medium text-theme-secondary">
-            <div className="px-4 py-3">Feature</div>
+            <div className="px-4 py-3">{t('admin:plans.feature')}</div>
             {PLANS.map(plan => (
               <div key={plan.id} className="px-4 py-3 text-center">{plan.name}</div>
             ))}
@@ -213,14 +216,14 @@ export default function AdminPlansPage() {
 
       {/* Agency plan management */}
       <div>
-        <h2 className="text-lg font-semibold text-theme-primary mb-4">Abonnements agences</h2>
+        <h2 className="text-lg font-semibold text-theme-primary mb-4">{t('admin:plans.agencySubscriptions')}</h2>
         <div className="rounded-xl border border-theme-border overflow-hidden">
           {/* Table header */}
           <div className="grid grid-cols-[1fr_120px_100px_100px] bg-theme-hover text-xs font-medium text-theme-secondary">
-            <div className="px-4 py-3">Agence</div>
-            <div className="px-4 py-3 text-center">Plan</div>
-            <div className="px-4 py-3 text-center">Agents</div>
-            <div className="px-4 py-3 text-center">Actions</div>
+            <div className="px-4 py-3">{t('admin:plans.table.agency')}</div>
+            <div className="px-4 py-3 text-center">{t('admin:plans.table.plan')}</div>
+            <div className="px-4 py-3 text-center">{t('admin:plans.table.agents')}</div>
+            <div className="px-4 py-3 text-center">{t('admin:plans.table.actions')}</div>
           </div>
 
           {/* Loading state */}
@@ -249,7 +252,7 @@ export default function AdminPlansPage() {
           {!isLoading && agencies.length === 0 && (
             <div className="px-4 py-12 text-center">
               <CreditCard className="h-8 w-8 text-theme-muted mx-auto mb-3" />
-              <p className="text-sm text-theme-secondary">Aucune agence enregistree</p>
+              <p className="text-sm text-theme-secondary">{t('admin:plans.noAgency')}</p>
             </div>
           )}
 

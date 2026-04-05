@@ -27,10 +27,10 @@ export default function AdminKpiCard({ label, value, subtitle, icon: Icon, trend
         <Icon className={cn('h-4 w-4 flex-shrink-0', iconColor)} />
         <div className="min-w-0">
           <p className="text-lg font-bold text-theme-primary leading-tight">{value}</p>
-          <p className="text-[10px] text-theme-muted leading-tight">{label}</p>
+          <p className="text-xs text-theme-muted leading-tight">{label}</p>
         </div>
         {trend && (
-          <span className={cn('text-[10px] font-medium ml-auto flex-shrink-0', trend.value >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+          <span className={cn('text-xs font-medium ml-auto flex-shrink-0', trend.value >= 0 ? 'text-emerald-500' : 'text-red-500')}>
             {trend.value >= 0 ? '+' : ''}{trend.value}
           </span>
         )}

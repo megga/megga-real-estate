@@ -1,30 +1,35 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { useTranslation } from 'react-i18next'
 import { Bell, X, Building2, ShieldAlert, CreditCard, AlertTriangle, MessageSquare, Check } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminNotifications } from '@/hooks/useAdminNotifications'
 
-// ─── Action type → icon + label mapping ──────────────────────────────────────
+// ─── Action type → icon + i18n key mapping ──────────────────────────────────────
 
-const ACTION_CONFIG: Record<string, { icon: React.ElementType; label: string }> = {
-  agency_created: { icon: Building2, label: 'Nouvelle agence' },
-  kyc_screening_match: { icon: ShieldAlert, label: 'Alerte PEP/Sanctions' },
-  subscription_cancelled: { icon: CreditCard, label: 'Abonnement annule' },
-  edge_function_error: { icon: AlertTriangle, label: 'Erreur systeme' },
-  ticket_created: { icon: MessageSquare, label: 'Nouveau ticket' },
-}
-
-function getActionConfig(action: string) {
-  return ACTION_CONFIG[action] ?? { icon: Bell, label: action }
+const ACTION_CONFIG: Record<string, { icon: React.ElementType; i18nKey: string }> = {
+  agency_created: { icon: Building2, i18nKey: 'notifications.action.newAgency' },
+  kyc_screening_match: { icon: ShieldAlert, i18nKey: 'notifications.action.pepAlert' },
+  subscription_cancelled: { icon: CreditCard, i18nKey: 'notifications.action.subscriptionCancelled' },
+  edge_function_error: { icon: AlertTriangle, i18nKey: 'notifications.action.systemError' },
+  ticket_created: { icon: MessageSquare, i18nKey: 'notifications.action.newTicket' },
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function AdminNotificationPanel() {
+  const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
   const bellRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const focusTrapRef = useFocusTrap(open)
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useAdminNotifications()
+
+  const combinedPanelRef = useCallback((node: HTMLDivElement | null) => {
+    (panelRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  }, [focusTrapRef])
 
   // Close on outside click
   useEffect(() => {
@@ -62,7 +67,7 @@ export default function AdminNotificationPanel() {
       >
         <Bell className="w-[18px] h-[18px] stroke-[1.8]" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold leading-none">
+          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-xs font-semibold leading-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -71,12 +76,14 @@ export default function AdminNotificationPanel() {
       {/* Panel (portal) */}
       {open && createPortal(
         <div
-          ref={panelRef}
+          ref={combinedPanelRef}
+          role="dialog"
+          aria-modal="true"
           className="fixed top-14 right-4 w-[380px] max-h-[500px] bg-theme-card border border-theme-border rounded-xl z-[100] flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-theme-border shrink-0">
-            <span className="text-sm font-semibold text-theme-primary">Notifications</span>
+            <span className="text-sm font-semibold text-theme-primary">{t('notifications.title')}</span>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button
@@ -84,12 +91,12 @@ export default function AdminNotificationPanel() {
                   className="flex items-center gap-1 text-xs text-theme-secondary hover:text-theme-primary transition-colors"
                 >
                   <Check className="w-3.5 h-3.5" />
-                  Tout marquer lu
+                  {t('notifications.markAllRead')}
                 </button>
               )}
               <button
                 onClick={() => setOpen(false)}
-                aria-label="Fermer les notifications"
+                aria-label={t('notifications.close')}
                 className="p-1 rounded-md hover:bg-theme-hover transition-colors text-theme-tertiary hover:text-theme-primary"
               >
                 <X className="w-4 h-4" />
@@ -106,12 +113,13 @@ export default function AdminNotificationPanel() {
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-theme-muted">
                 <Bell className="w-8 h-8 mb-2 opacity-40" />
-                <span className="text-sm">Aucune notification</span>
+                <span className="text-sm">{t('notifications.empty')}</span>
               </div>
             ) : (
               notifications.map((notif) => {
-                const config = getActionConfig(notif.action)
-                const Icon = config.icon
+                const cfg = ACTION_CONFIG[notif.action]
+                const Icon = cfg?.icon ?? Bell
+                const label = cfg ? t(cfg.i18nKey) : notif.action
                 return (
                   <button
                     key={notif.id}
@@ -130,7 +138,7 @@ export default function AdminNotificationPanel() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={cn('text-sm', !notif.read ? 'font-medium text-theme-primary' : 'text-theme-secondary')}>
-                          {config.label}
+                          {label}
                         </span>
                         {!notif.read && (
                           <span className="w-1.5 h-1.5 rounded-full bg-admin-accent shrink-0" />
@@ -142,7 +150,7 @@ export default function AdminNotificationPanel() {
                     </div>
 
                     {/* Timestamp */}
-                    <span className="text-[11px] text-theme-muted whitespace-nowrap shrink-0 mt-0.5">
+                    <span className="text-xs text-theme-muted whitespace-nowrap shrink-0 mt-0.5">
                       {formatRelativeDate(notif.created_at)}
                     </span>
                   </button>

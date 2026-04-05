@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Star, MessageSquare, TrendingUp, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminNps } from '@/hooks/useAdminNps'
@@ -12,14 +13,6 @@ const RATING_COLORS: Record<number, string> = {
   5: 'bg-emerald-500',
 }
 
-const RATING_LABELS: Record<number, string> = {
-  1: 'Tres insatisfait',
-  2: 'Insatisfait',
-  3: 'Neutre',
-  4: 'Satisfait',
-  5: 'Tres satisfait',
-}
-
 function NpsScoreColor(score: number): string {
   if (score >= 50) return 'text-emerald-500'
   if (score >= 0) return 'text-amber-500'
@@ -27,6 +20,7 @@ function NpsScoreColor(score: number): string {
 }
 
 function ResponseCard({ response }: { response: NpsResponse }) {
+  const { t } = useTranslation('admin')
   return (
     <div className="flex items-start gap-4 py-4 border-b border-theme-border last:border-b-0">
       {/* Stars */}
@@ -48,13 +42,13 @@ function ResponseCard({ response }: { response: NpsResponse }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-theme-primary">
-            {response.user_name ?? 'Utilisateur anonyme'}
+            {response.user_name ?? t('nps.anonymousUser')}
           </span>
           {response.user_email && (
             <span className="text-xs text-theme-muted">{response.user_email}</span>
           )}
           {response.role && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-theme-hover text-theme-secondary">
+            <span className="text-xs px-1.5 py-0.5 rounded bg-theme-hover text-theme-secondary">
               {response.role}
             </span>
           )}
@@ -73,10 +67,19 @@ function ResponseCard({ response }: { response: NpsResponse }) {
 }
 
 export default function AdminNpsPage() {
+  const { t } = useTranslation('admin')
   const { data, isLoading } = useAdminNps()
 
   const stats = data?.stats
   const responses = data?.responses ?? []
+
+  const ratingLabels: Record<number, string> = {
+    1: t('nps.rating.1'),
+    2: t('nps.rating.2'),
+    3: t('nps.rating.3'),
+    4: t('nps.rating.4'),
+    5: t('nps.rating.5'),
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -84,10 +87,10 @@ export default function AdminNpsPage() {
       <div className="flex items-center gap-3">
         <div className="h-8 px-3 rounded-lg bg-admin-accent/10 flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-semibold text-admin-accent">Admin MEGGA</span>
+          <span className="text-xs font-semibold text-admin-accent">{t('common.adminBadge')}</span>
         </div>
         <Star className="h-5 w-5 text-theme-secondary" />
-        <h1 className="text-xl font-semibold text-theme-primary">Satisfaction (NPS)</h1>
+        <h1 className="text-xl font-semibold text-theme-primary">{t('nps.title')}</h1>
       </div>
 
       {/* Loading state */}
@@ -106,19 +109,19 @@ export default function AdminNpsPage() {
           <div className="rounded-xl border border-theme-border p-5">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-theme-muted" />
-              <span className="text-xs text-theme-secondary">Score NPS</span>
+              <span className="text-xs text-theme-secondary">{t('nps.score')}</span>
             </div>
             <p className={cn('text-3xl font-bold', NpsScoreColor(stats.npsScore))}>
               {stats.npsScore > 0 ? '+' : ''}{stats.npsScore}
             </p>
-            <p className="text-[10px] text-theme-muted mt-1">-100 a +100</p>
+            <p className="text-xs text-theme-muted mt-1">{t('nps.scoreRange')}</p>
           </div>
 
           {/* Average rating */}
           <div className="rounded-xl border border-theme-border p-5">
             <div className="flex items-center gap-2 mb-2">
               <Star className="h-4 w-4 text-theme-muted" />
-              <span className="text-xs text-theme-secondary">Note moyenne</span>
+              <span className="text-xs text-theme-secondary">{t('nps.averageRating')}</span>
             </div>
             <div className="flex items-baseline gap-1">
               <p className="text-3xl font-bold text-theme-primary">{stats.averageRating}</p>
@@ -130,7 +133,7 @@ export default function AdminNpsPage() {
           <div className="rounded-xl border border-theme-border p-5">
             <div className="flex items-center gap-2 mb-2">
               <MessageSquare className="h-4 w-4 text-theme-muted" />
-              <span className="text-xs text-theme-secondary">Reponses</span>
+              <span className="text-xs text-theme-secondary">{t('nps.responses')}</span>
             </div>
             <p className="text-3xl font-bold text-theme-primary">{stats.totalResponses}</p>
           </div>
@@ -139,7 +142,7 @@ export default function AdminNpsPage() {
           <div className="rounded-xl border border-theme-border p-5">
             <div className="flex items-center gap-2 mb-2">
               <Users className="h-4 w-4 text-theme-muted" />
-              <span className="text-xs text-theme-secondary">Promoteurs / Detracteurs</span>
+              <span className="text-xs text-theme-secondary">{t('nps.promotersDetractors')}</span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-bold text-emerald-500">
@@ -157,7 +160,7 @@ export default function AdminNpsPage() {
       {/* Distribution bar */}
       {stats && stats.totalResponses > 0 && (
         <div className="rounded-xl border border-theme-border p-5">
-          <p className="text-sm font-medium text-theme-primary mb-4">Distribution des notes</p>
+          <p className="text-sm font-medium text-theme-primary mb-4">{t('nps.distribution')}</p>
           {/* Stacked bar */}
           <div className="flex h-8 rounded-lg overflow-hidden">
             {[1, 2, 3, 4, 5].map(rating => {
@@ -183,7 +186,7 @@ export default function AdminNpsPage() {
             {[1, 2, 3, 4, 5].map(rating => (
               <div key={rating} className="flex items-center gap-1.5">
                 <div className={cn('w-2.5 h-2.5 rounded-sm', RATING_COLORS[rating])} />
-                <span className="text-[10px] text-theme-muted">{RATING_LABELS[rating]} ({stats.distribution[rating] ?? 0})</span>
+                <span className="text-xs text-theme-muted">{ratingLabels[rating]} ({stats.distribution[rating] ?? 0})</span>
               </div>
             ))}
           </div>
@@ -193,7 +196,7 @@ export default function AdminNpsPage() {
       {/* Response list */}
       <div className="rounded-xl border border-theme-border p-5">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-medium text-theme-primary">Reponses recentes</p>
+          <p className="text-sm font-medium text-theme-primary">{t('nps.recentResponses')}</p>
           <span className="text-xs text-theme-muted">{responses.length} reponse{responses.length !== 1 ? 's' : ''}</span>
         </div>
 
@@ -208,8 +211,8 @@ export default function AdminNpsPage() {
         {!isLoading && responses.length === 0 && (
           <div className="text-center py-12">
             <Star className="h-8 w-8 text-theme-border mx-auto mb-3" />
-            <p className="text-sm text-theme-secondary">Aucune reponse NPS pour le moment</p>
-            <p className="text-xs text-theme-muted mt-1">Les agents recevront le sondage apres 30 jours d'utilisation</p>
+            <p className="text-sm text-theme-secondary">{t('nps.empty.title')}</p>
+            <p className="text-xs text-theme-muted mt-1">{t('nps.empty.subtitle')}</p>
           </div>
         )}
 

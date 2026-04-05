@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Search, MessageSquare, Send, Inbox, Clock, AlertTriangle, Sparkles, Loader2 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
@@ -11,39 +12,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTicketAiSuggestion } from '@/hooks/useTicketAiSuggestion'
 import PageTransition from '@/components/layout/PageTransition'
 
-const STATUS_FILTERS = [
-  { value: '', label: 'Tous' },
-  { value: 'open', label: 'Ouverts' },
-  { value: 'in_progress', label: 'En cours' },
-  { value: 'resolved', label: 'Resolus' },
-]
-
-const STATUS_OPTIONS = [
-  { value: 'open', label: 'Ouvert' },
-  { value: 'in_progress', label: 'En cours' },
-  { value: 'resolved', label: 'Resolu' },
-  { value: 'closed', label: 'Ferme' },
-]
-
-const PRIORITY_OPTIONS = [
-  { value: 'urgent', label: 'Urgent' },
-  { value: 'high', label: 'Haute' },
-  { value: 'medium', label: 'Moyenne' },
-  { value: 'low', label: 'Basse' },
-]
-
 const PRIORITY_DOT_COLOR: Record<string, string> = {
   urgent: 'bg-red-500',
   high: 'bg-orange-500',
   medium: 'bg-yellow-500',
-  low: 'bg-gray-400',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  open: 'Ouvert',
-  in_progress: 'En cours',
-  resolved: 'Resolu',
-  closed: 'Ferme',
+  low: 'bg-theme-muted',
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -55,15 +28,6 @@ const STATUS_COLOR: Record<string, string> = {
 
 const ASSIGNABLE_ROLES = ['agent', 'admin', 'manager', 'super_admin']
 
-const EVENT_LABELS: Record<string, string> = {
-  status_change: 'Statut modifie',
-  priority_change: 'Priorite modifiee',
-  assignment_change: 'Ticket assigne',
-  message_added: 'Reponse envoyee',
-  note_added: 'Note interne ajoutee',
-  csat_submitted: 'Satisfaction soumise',
-}
-
 function isStale(ticket: SupportTicket): boolean {
   if (ticket.status === 'resolved' || ticket.status === 'closed') return false
   const ref = ticket.last_message_at ?? ticket.created_at
@@ -72,37 +36,36 @@ function isStale(ticket: SupportTicket): boolean {
 }
 
 function SlaIndicator({ ticket }: { ticket: SupportTicket }) {
+  const { t } = useTranslation('admin')
   if (ticket.status === 'resolved' || ticket.status === 'closed') return null
   if (!ticket.sla_first_response_due) return null
 
-  // First response SLA
   if (!ticket.first_responded_at) {
     const due = new Date(ticket.sla_first_response_due)
     const now = new Date()
     const diffMs = due.getTime() - now.getTime()
 
     if (diffMs < 0) {
-      return <span className="text-[10px] font-medium text-red-500">SLA depasse</span>
+      return <span className="text-xs font-medium text-red-500">{t('support.slaExceeded')}</span>
     }
 
     const hours = Math.floor(diffMs / 3600000)
     const minutes = Math.floor((diffMs % 3600000) / 60000)
 
     if (hours < 1) {
-      return <span className="text-[10px] font-medium text-amber-500">SLA {minutes}min</span>
+      return <span className="text-xs font-medium text-amber-500">SLA {minutes}min</span>
     }
 
-    return <span className="text-[10px] text-theme-muted">SLA {hours}h{minutes > 0 ? `${minutes}m` : ''}</span>
+    return <span className="text-xs text-theme-muted">SLA {hours}h{minutes > 0 ? `${minutes}m` : ''}</span>
   }
 
-  // Resolution SLA
   if (ticket.sla_resolution_due) {
     const due = new Date(ticket.sla_resolution_due)
     const now = new Date()
     const diffMs = due.getTime() - now.getTime()
 
     if (diffMs < 0) {
-      return <span className="text-[10px] font-medium text-red-500">Resolution SLA depasse</span>
+      return <span className="text-xs font-medium text-red-500">{t('support.resolutionSlaExceeded')}</span>
     }
   }
 
@@ -128,12 +91,15 @@ function TicketListSkeleton() {
   )
 }
 
+const messageBubbleMaxWidth = { maxWidth: '70%' } as const;
+const supportLayoutStyle = { height: 'calc(100vh - 240px)', minHeight: 480 } as const;
+
 function MessagesSkeleton() {
   return (
     <div className="flex-1 p-4 space-y-4">
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className={cn('flex', i % 2 === 0 ? 'justify-start' : 'justify-end')}>
-          <div className="space-y-1.5" style={{ maxWidth: '70%' }}>
+          <div className="space-y-1.5" style={messageBubbleMaxWidth}>
             <div className={cn('h-16 rounded-lg animate-pulse', i % 2 === 0 ? 'bg-theme-hover w-64' : 'bg-admin-accent/10 w-48')} />
             <div className="h-2.5 w-20 rounded bg-theme-hover animate-pulse" />
           </div>
@@ -144,6 +110,7 @@ function MessagesSkeleton() {
 }
 
 function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: AdminUser[] }) {
+  const { t } = useTranslation('admin')
   const { updateStatus, updatePriority, assignTicket } = useAdminSupport()
   const { data: messages, isLoading: messagesLoading } = useTicketMessages(ticket.id)
   const sendReply = useSendTicketReply()
@@ -162,6 +129,36 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
   const [reply, setReply] = useState('')
   const ai = useTicketAiSuggestion()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const STATUS_OPTIONS = [
+    { value: 'open', label: t('common.status.open') },
+    { value: 'in_progress', label: t('common.status.inProgress') },
+    { value: 'resolved', label: t('common.status.resolved') },
+    { value: 'closed', label: t('common.status.closed') },
+  ]
+
+  const PRIORITY_OPTIONS = [
+    { value: 'urgent', label: t('common.priority.urgent') },
+    { value: 'high', label: t('common.priority.high') },
+    { value: 'medium', label: t('common.priority.medium') },
+    { value: 'low', label: t('common.priority.low') },
+  ]
+
+  const EVENT_LABELS: Record<string, string> = {
+    status_change: t('support.event.statusChange'),
+    priority_change: t('support.event.priorityChange'),
+    assignment_change: t('support.event.assignmentChange'),
+    message_added: t('support.event.messageAdded'),
+    note_added: t('support.event.noteAdded'),
+    csat_submitted: t('support.event.csatSubmitted'),
+  }
+
+  const STATUS_LABEL: Record<string, string> = {
+    open: t('common.status.open'),
+    in_progress: t('common.status.inProgress'),
+    resolved: t('common.status.resolved'),
+    closed: t('common.status.closed'),
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -195,14 +192,14 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
           {isStale(ticket) && (
             <div className="flex items-center gap-1 flex-shrink-0">
               <Clock className="h-3 w-3 text-red-500" />
-              <span className="text-[11px] text-red-500 font-medium">+24h</span>
+              <span className="text-xs text-red-500 font-medium">{t('support.stale')}</span>
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-theme-tertiary">Priorite</span>
+            <span className="text-xs text-theme-tertiary">{t('support.priority')}</span>
             <select
               value={ticket.priority}
               onChange={(e) => updatePriority.mutate({ id: ticket.id, priority: e.target.value })}
@@ -215,7 +212,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-theme-tertiary">Statut</span>
+            <span className="text-xs text-theme-tertiary">{t('support.status')}</span>
             <select
               value={ticket.status}
               onChange={(e) => updateStatus.mutate({ id: ticket.id, status: e.target.value })}
@@ -228,13 +225,13 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-theme-tertiary">Assigne</span>
+            <span className="text-xs text-theme-tertiary">{t('support.assigned')}</span>
             <select
               value={ticket.assigned_to ?? ''}
               onChange={(e) => assignTicket.mutate({ id: ticket.id, assignedTo: e.target.value || null })}
               className="h-7 px-2 pr-6 text-xs bg-transparent border border-theme-border rounded-lg text-theme-secondary focus:outline-none appearance-none"
             >
-              <option value="">Non assigne</option>
+              <option value="">{t('support.notAssigned')}</option>
               {agents.map(a => (
                 <option key={a.id} value={a.id}>{a.full_name}</option>
               ))}
@@ -242,7 +239,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
           </div>
 
           <span className="text-xs text-theme-tertiary ml-auto">
-            {ticket.message_count} message{ticket.message_count !== 1 ? 's' : ''}
+            {t('support.messages', { count: ticket.message_count })}
           </span>
         </div>
 
@@ -259,8 +256,8 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
           <div className="flex-1 flex items-center justify-center py-12">
             <div className="text-center">
               <MessageSquare className="h-6 w-6 mx-auto text-theme-tertiary mb-2" />
-              <p className="text-sm text-theme-secondary">Aucun message</p>
-              <p className="text-xs text-theme-tertiary mt-0.5">Redigez une reponse ci-dessous</p>
+              <p className="text-sm text-theme-secondary">{t('support.noMessages')}</p>
+              <p className="text-xs text-theme-tertiary mt-0.5">{t('support.writeReply')}</p>
             </div>
           </div>
         ) : (
@@ -277,7 +274,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
               >
                 {isSystem ? (
                   <div className="w-full text-center py-1">
-                    <span className="text-[11px] text-theme-tertiary italic">{msg.body}</span>
+                    <span className="text-xs text-theme-tertiary italic">{msg.body}</span>
                   </div>
                 ) : (
                   <div className={cn('max-w-[70%] space-y-1')}>
@@ -292,10 +289,10 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
                       {msg.body}
                     </div>
                     <div className={cn('flex items-center gap-1.5', isAdmin ? 'justify-end' : 'justify-start')}>
-                      <span className="text-[10px] text-theme-tertiary">
+                      <span className="text-xs text-theme-tertiary">
                         {msg.author_name || (isAdmin ? 'Support' : 'Client')}
                       </span>
-                      <span className="text-[10px] text-theme-tertiary">
+                      <span className="text-xs text-theme-tertiary">
                         {formatRelativeDate(msg.created_at)}
                       </span>
                     </div>
@@ -311,13 +308,13 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
       {/* Audit trail */}
       {eventsQuery.data && eventsQuery.data.length > 0 && (
         <div className="px-4 py-2 border-t border-theme-border">
-          <p className="text-[10px] uppercase tracking-wider text-theme-tertiary font-medium mb-2">Historique</p>
+          <p className="text-xs tracking-wide text-theme-tertiary font-medium mb-2">{t('support.history')}</p>
           <div className="space-y-1">
             {eventsQuery.data.map(evt => (
-              <div key={evt.id} className="flex items-center gap-2 text-[11px] text-theme-muted">
+              <div key={evt.id} className="flex items-center gap-2 text-xs text-theme-muted">
                 <span className="w-1.5 h-1.5 rounded-full bg-admin-accent/50 flex-shrink-0" />
                 <span>{EVENT_LABELS[evt.action] ?? evt.action}</span>
-                {evt.new_value && <span className="text-theme-secondary">{'\u2192'} {evt.new_value}</span>}
+                {evt.new_value && <span className="text-theme-secondary">{'\u2192'} {STATUS_LABEL[evt.new_value] ?? evt.new_value}</span>}
                 <span className="ml-auto">{formatRelativeDate(evt.created_at)}</span>
               </div>
             ))}
@@ -337,9 +334,9 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
             className="h-7 px-2.5 text-xs font-medium rounded-lg flex items-center gap-1.5 border border-admin-accent/30 text-admin-accent hover:bg-admin-accent/5 transition-colors disabled:opacity-50"
           >
             {ai.loading ? (
-              <><Loader2 className="h-3 w-3 animate-spin" /> Generation...</>
+              <><Loader2 className="h-3 w-3 animate-spin" /> {t('support.generating')}</>
             ) : (
-              <><Sparkles className="h-3 w-3" /> Suggerer une reponse IA</>
+              <><Sparkles className="h-3 w-3" /> {t('support.suggestAiReply')}</>
             )}
           </button>
           {ai.suggestion && (
@@ -347,7 +344,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
               onClick={() => { setReply(ai.suggestion); ai.clear() }}
               className="h-7 px-2.5 text-xs font-medium rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
             >
-              Inserer
+              {t('support.insert')}
             </button>
           )}
           {ai.error && (
@@ -360,7 +357,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
           <div className="p-3 rounded-lg bg-admin-accent/5 border border-admin-accent/20 text-sm text-theme-primary leading-relaxed">
             <div className="flex items-center gap-1.5 mb-2">
               <Sparkles className="h-3 w-3 text-admin-accent" />
-              <span className="text-[10px] font-medium text-admin-accent uppercase tracking-wider">Suggestion IA</span>
+              <span className="text-xs font-medium text-admin-accent tracking-wide">{t('support.aiSuggestion')}</span>
             </div>
             <p className="whitespace-pre-line">{ai.suggestion}</p>
           </div>
@@ -372,13 +369,14 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Redigez une reponse..."
+            placeholder={t('support.replyPlaceholder')}
             rows={1}
             className="flex-1 min-h-[36px] max-h-[120px] px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
           />
           <button
             onClick={handleSend}
             disabled={!reply.trim() || sendReply.isPending}
+            aria-label={t('support.sendReply')}
             className="h-9 w-9 flex items-center justify-center rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active disabled:opacity-40 transition-colors flex-shrink-0"
           >
             <Send className="h-4 w-4" />
@@ -391,6 +389,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
 
 export default function AdminSupportPage() {
   'use no memo'
+  const { t } = useTranslation('admin')
   const { tickets, isLoading, stats, statsLoading } = useAdminSupport()
   const { users } = useAdminUsers()
   const { profile } = useAuth()
@@ -398,6 +397,20 @@ export default function AdminSupportPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [myTickets, setMyTickets] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const STATUS_FILTERS = [
+    { value: '', label: t('support.filter.all') },
+    { value: 'open', label: t('support.filter.open') },
+    { value: 'in_progress', label: t('support.filter.inProgress') },
+    { value: 'resolved', label: t('support.filter.resolved') },
+  ]
+
+  const STATUS_LABEL: Record<string, string> = {
+    open: t('common.status.open'),
+    in_progress: t('common.status.inProgress'),
+    resolved: t('common.status.resolved'),
+    closed: t('common.status.closed'),
+  }
 
   const agents = useMemo(
     () => users.filter(u => ASSIGNABLE_ROLES.includes(u.role)),
@@ -437,13 +450,13 @@ export default function AdminSupportPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="h-2 w-2 rounded-full bg-admin-accent" />
-            <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+            <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
           </div>
-          <h1 className="text-2xl font-semibold text-theme-primary">Support</h1>
+          <h1 className="text-2xl font-semibold text-theme-primary">{t('support.title')}</h1>
           <p className="text-sm text-theme-tertiary mt-0.5">
             {isLoading
-              ? 'Chargement...'
-              : `${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
+              ? t('common.loading')
+              : t('support.subtitle', { count: tickets.length })}
           </p>
         </div>
 
@@ -452,22 +465,22 @@ export default function AdminSupportPage() {
           <div className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-500/20">
             <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
             <p className="text-sm text-red-600 dark:text-red-400">
-              <strong>{stats.slaBreach}</strong> ticket{stats.slaBreach > 1 ? 's' : ''} en breach SLA
+              <strong>{stats.slaBreach}</strong> {t('support.slaBreach', { count: stats.slaBreach })}
             </p>
           </div>
         )}
 
         {/* 2-column layout */}
-        <div className="flex rounded-xl border border-theme-border overflow-hidden" style={{ height: 'calc(100vh - 240px)', minHeight: 480 }}>
+        <div className="flex rounded-xl border border-theme-border overflow-hidden" style={supportLayoutStyle}>
           {/* Left panel: ticket list */}
           <div className="w-[380px] flex-shrink-0 border-r border-theme-border flex flex-col">
             {/* List header */}
             <div className="px-4 py-3 border-b border-theme-border space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-theme-primary">Tickets</span>
+                <span className="text-sm font-semibold text-theme-primary">{t('support.tickets')}</span>
                 {stats && stats.openCount > 0 && (
-                  <span className="text-[11px] font-medium text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">
-                    {stats.openCount} ouvert{stats.openCount !== 1 ? 's' : ''}
+                  <span className="text-xs font-medium text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">
+                    {t('support.openCount', { count: stats.openCount })}
                   </span>
                 )}
               </div>
@@ -476,7 +489,7 @@ export default function AdminSupportPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary" />
                 <input
                   type="text"
-                  placeholder="Rechercher..."
+                  placeholder={t('common.search')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full h-8 pl-8 pr-3 text-xs bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -508,7 +521,7 @@ export default function AdminSupportPage() {
                       : 'text-theme-secondary hover:text-theme-primary'
                   )}
                 >
-                  Mes tickets
+                  {t('support.myTickets')}
                 </button>
               </div>
             </div>
@@ -521,12 +534,12 @@ export default function AdminSupportPage() {
                 <div className="px-4 py-12 text-center">
                   <Inbox className="h-6 w-6 mx-auto text-theme-tertiary mb-2" />
                   <p className="text-sm text-theme-secondary">
-                    {search || statusFilter || myTickets ? 'Aucun ticket trouve' : 'Aucun ticket'}
+                    {search || statusFilter || myTickets ? t('support.empty.titleFiltered') : t('support.empty.title')}
                   </p>
                   <p className="text-xs text-theme-tertiary mt-0.5">
                     {search || statusFilter || myTickets
-                      ? 'Modifiez vos filtres'
-                      : 'Les tickets apparaitront ici'}
+                      ? t('support.empty.subtitleFiltered')
+                      : t('support.empty.subtitle')}
                   </p>
                 </div>
               ) : (
@@ -543,7 +556,7 @@ export default function AdminSupportPage() {
                     <div className="flex items-start gap-2.5">
                       {/* Priority dot + stale indicator */}
                       <div className="flex flex-col items-center gap-1 pt-1">
-                        <span className={cn('h-2 w-2 rounded-full flex-shrink-0', PRIORITY_DOT_COLOR[ticket.priority] ?? 'bg-gray-400')} />
+                        <span className={cn('h-2 w-2 rounded-full flex-shrink-0', PRIORITY_DOT_COLOR[ticket.priority] ?? 'bg-theme-muted')} />
                         {isStale(ticket) && (
                           <span className="h-1.5 w-1.5 rounded-full bg-red-500 flex-shrink-0" />
                         )}
@@ -559,24 +572,24 @@ export default function AdminSupportPage() {
                               {ticket.agency_name}
                             </span>
                           )}
-                          <span className={cn('text-[11px] font-medium', STATUS_COLOR[ticket.status] ?? 'text-theme-tertiary')}>
+                          <span className={cn('text-xs font-medium', STATUS_COLOR[ticket.status] ?? 'text-theme-tertiary')}>
                             {STATUS_LABEL[ticket.status] ?? ticket.status}
                           </span>
                           <SlaIndicator ticket={ticket} />
                         </div>
                         {ticket.assigned_to && agentNameMap[ticket.assigned_to] && (
-                          <span className="text-[10px] text-admin-accent">
+                          <span className="text-xs text-admin-accent">
                             {agentNameMap[ticket.assigned_to]}
                           </span>
                         )}
                       </div>
 
                       <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
-                        <span className="text-[11px] text-theme-tertiary">
+                        <span className="text-xs text-theme-tertiary">
                           {formatRelativeDate(ticket.updated_at)}
                         </span>
                         {ticket.message_count > 0 && (
-                          <span className="text-[10px] text-theme-tertiary">
+                          <span className="text-xs text-theme-tertiary">
                             {ticket.message_count} msg
                           </span>
                         )}
@@ -596,9 +609,9 @@ export default function AdminSupportPage() {
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <MessageSquare className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
-                  <p className="text-sm text-theme-secondary font-medium">Selectionnez un ticket</p>
+                  <p className="text-sm text-theme-secondary font-medium">{t('support.selectTicket')}</p>
                   <p className="text-xs text-theme-tertiary mt-0.5">
-                    Choisissez un ticket dans la liste pour voir les details
+                    {t('support.selectTicketSubtitle')}
                   </p>
                 </div>
               </div>
@@ -609,9 +622,9 @@ export default function AdminSupportPage() {
         {/* Stats bar */}
         {!statsLoading && stats && (
           <div className="flex items-center gap-3 text-xs text-theme-tertiary">
-            <span>{stats.openCount} ouvert{stats.openCount !== 1 ? 's' : ''}</span>
+            <span>{t('support.openCount', { count: stats.openCount })}</span>
             <span className="text-theme-border">|</span>
-            <span>{stats.newCount} nouveau{stats.newCount !== 1 ? 'x' : ''}</span>
+            <span>{t('support.newCount', { count: stats.newCount })}</span>
             <span className="text-theme-border">|</span>
             {stats.slaBreach > 0 ? (
               <span className="text-red-500 font-medium">{stats.slaBreach} SLA breach</span>
@@ -619,7 +632,7 @@ export default function AdminSupportPage() {
               <span>0 SLA breach</span>
             )}
             <span className="text-theme-border">|</span>
-            <span>{stats.resolvedThisWeek} resolu{stats.resolvedThisWeek !== 1 ? 's' : ''} cette semaine</span>
+            <span>{t('support.resolvedThisWeek', { count: stats.resolvedThisWeek })}</span>
           </div>
         )}
       </div>

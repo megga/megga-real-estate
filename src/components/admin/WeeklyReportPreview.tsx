@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Mail, Send, CheckCircle, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Send, CheckCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 export default function WeeklyReportPreview() {
+  const { t } = useTranslation('admin')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
@@ -21,38 +23,24 @@ export default function WeeklyReportPreview() {
   }
 
   return (
-    <div className="rounded-xl border border-theme-border p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Mail className="h-4 w-4 text-admin-accent" />
-          <h3 className="text-sm font-semibold text-theme-primary">Rapport hebdomadaire</h3>
-        </div>
-        <button
-          onClick={handleSendNow}
-          disabled={sending}
-          className={cn(
-            'h-8 px-3 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors',
-            sent
-              ? 'bg-emerald-500/10 text-emerald-600'
-              : 'border border-theme-border text-theme-secondary hover:text-admin-accent hover:border-admin-accent'
-          )}
-        >
-          {sending ? (
-            <><Loader2 className="h-3 w-3 animate-spin" /> Envoi...</>
-          ) : sent ? (
-            <><CheckCircle className="h-3 w-3" /> Envoye</>
-          ) : (
-            <><Send className="h-3 w-3" /> Envoyer maintenant</>
-          )}
-        </button>
-      </div>
-      <p className="text-xs text-theme-secondary">
-        Un rapport automatique est envoye chaque lundi a 8h aux super-admins.
-        Il resume les KPIs de la semaine : agences, utilisateurs, transactions, KYC, erreurs.
-      </p>
-      <p className="text-[10px] text-theme-muted mt-2">
-        Deployer : supabase functions deploy weekly-report
-      </p>
-    </div>
+    <button
+      onClick={handleSendNow}
+      disabled={sending}
+      title={t('weeklyReport.description')}
+      className={cn(
+        'h-9 px-3.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors',
+        sent
+          ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-500/20'
+          : 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
+      )}
+    >
+      {sending ? (
+        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('weeklyReport.sending')}</>
+      ) : sent ? (
+        <><CheckCircle className="h-3.5 w-3.5" /> {t('weeklyReport.sent')}</>
+      ) : (
+        <><Send className="h-3.5 w-3.5" /> {t('weeklyReport.sendNow')}</>
+      )}
+    </button>
   )
 }

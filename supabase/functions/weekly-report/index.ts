@@ -17,6 +17,27 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Auth: accept either super_admin JWT or pg_cron secret
+    const authHeader = req.headers.get('Authorization')
+    const cronSecret = req.headers.get('x-cron-secret')
+    const expectedCronSecret = Deno.env.get('CRON_SECRET')
+
+    if (cronSecret && expectedCronSecret && cronSecret === expectedCronSecret) {
+      // pg_cron caller — OK
+    } else if (authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+      if (authError || !user) throw new Error('Unauthorized')
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (profile?.role !== 'super_admin') throw new Error('Forbidden')
+    } else {
+      throw new Error('Unauthorized')
+    }
+
     const now = new Date()
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
@@ -164,8 +185,9 @@ serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured')
 
+    const sendErrors: string[] = []
     for (const email of adminEmails) {
-      await fetch('https://api.resend.com/emails', {
+      const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${RESEND_API_KEY}`,
@@ -178,6 +200,13 @@ serve(async (req) => {
           html,
         }),
       })
+      if (!res.ok) {
+        console.error(`Resend error for ${email}:`, res.status, await res.text())
+        sendErrors.push(email)
+      }
+    }
+    if (sendErrors.length === adminEmails.length) {
+      throw new Error('All email sends failed')
     }
 
     // Log the report sending
@@ -186,7 +215,7 @@ serve(async (req) => {
       entity_type: 'system',
       entity_id: 'weekly-report',
       metadata: {
-        recipients: adminEmails,
+        recipient_count: adminEmails.length,
         metrics: {
           agencies: totalAgencies.count,
           users: totalUsers.count,
@@ -199,7 +228,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      recipients: adminEmails,
+      recipient_count: adminEmails.length,
       sent_at: now.toISOString(),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

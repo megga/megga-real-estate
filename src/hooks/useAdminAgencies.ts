@@ -32,18 +32,19 @@ export function useAdminAgencies() {
       const agencyIds = (data ?? []).map(a => a.id)
       if (agencyIds.length === 0) return []
 
-      const [profiles, properties, transactions] = await Promise.all([
-        supabase.from('profiles').select('agency_id').in('agency_id', agencyIds),
-        supabase.from('properties').select('agency_id').eq('status', 'active').in('agency_id', agencyIds),
-        supabase.from('transactions').select('agency_id').eq('status', 'active').in('agency_id', agencyIds),
-      ])
+      // Use RPC for server-side counting (single SQL query instead of fetching all rows)
+      const { data: stats } = await supabase.rpc('get_agency_stats', { agency_ids: agencyIds })
+      const statsMap: Record<string, { agent_count: number; property_count: number; transaction_count: number }> = {}
+      for (const s of stats ?? []) {
+        statsMap[s.agency_id] = { agent_count: Number(s.agent_count), property_count: Number(s.property_count), transaction_count: Number(s.transaction_count) }
+      }
 
       return (data ?? []).map(agency => ({
         ...agency,
         status: agency.status ?? 'active',
-        agent_count: (profiles.data ?? []).filter(p => p.agency_id === agency.id).length,
-        property_count: (properties.data ?? []).filter(p => p.agency_id === agency.id).length,
-        transaction_count: (transactions.data ?? []).filter(t => t.agency_id === agency.id).length,
+        agent_count: statsMap[agency.id]?.agent_count ?? 0,
+        property_count: statsMap[agency.id]?.property_count ?? 0,
+        transaction_count: statsMap[agency.id]?.transaction_count ?? 0,
       }))
     },
     staleTime: 30_000,
@@ -79,6 +80,7 @@ export function useAdminAgency(id: string) {
       return data
     },
     enabled: !!id,
+    staleTime: 30_000,
   })
 }
 
@@ -95,6 +97,7 @@ export function useAgencyMembers(agencyId: string) {
       return data ?? []
     },
     enabled: !!agencyId,
+    staleTime: 30_000,
   })
 }
 
@@ -111,6 +114,7 @@ export function useAgencyProperties(agencyId: string) {
       return data ?? []
     },
     enabled: !!agencyId,
+    staleTime: 30_000,
   })
 }
 
@@ -127,6 +131,7 @@ export function useAgencyTransactions(agencyId: string) {
       return data ?? []
     },
     enabled: !!agencyId,
+    staleTime: 30_000,
   })
 }
 
@@ -144,5 +149,6 @@ export function useAgencyActivity(agencyId: string) {
       return data ?? []
     },
     enabled: !!agencyId,
+    staleTime: 30_000,
   })
 }

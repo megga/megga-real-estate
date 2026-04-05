@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Building2, Mail, Phone, Clock, Eye } from 'lucide-react'
 import { cn, formatDate, formatRelativeDate, formatCHF } from '@/lib/utils'
@@ -14,50 +15,50 @@ import { useImpersonate } from '@/hooks/useImpersonate'
 
 type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions'
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'infos', label: 'Infos' },
-  { key: 'equipe', label: 'Equipe' },
-  { key: 'activite', label: 'Activite' },
-  { key: 'biens', label: 'Biens' },
-  { key: 'transactions', label: 'Transactions' },
+const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
+  { key: 'infos', i18nKey: 'agencyDetail.tab.infos' },
+  { key: 'equipe', i18nKey: 'agencyDetail.tab.team' },
+  { key: 'activite', i18nKey: 'agencyDetail.tab.activity' },
+  { key: 'biens', i18nKey: 'agencyDetail.tab.properties' },
+  { key: 'transactions', i18nKey: 'agencyDetail.tab.transactions' },
 ]
 
-const PLAN_LABEL: Record<string, string> = {
-  starter: 'Starter',
-  pro: 'Pro',
-  agency: 'Agency',
+const PLAN_I18N: Record<string, string> = {
+  starter: 'common.plan.starter',
+  pro: 'common.plan.pro',
+  agency: 'common.plan.agency',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  active: 'Actif',
-  suspended: 'Suspendu',
+const STATUS_I18N: Record<string, string> = {
+  active: 'common.status.active',
+  suspended: 'common.status.suspended',
 }
 
-const PROPERTY_STATUS: Record<string, string> = {
-  draft: 'Brouillon',
-  active: 'Actif',
-  reserved: 'Reserve',
-  sold: 'Vendu',
-  off_market: 'Retire',
-  archived: 'Archive',
+const PROPERTY_STATUS_I18N: Record<string, string> = {
+  draft: 'common.status.draft',
+  active: 'common.status.active',
+  reserved: 'common.status.reserved',
+  sold: 'common.status.sold',
+  off_market: 'common.status.offMarket',
+  archived: 'common.status.archived',
 }
 
-const STAGE_LABEL: Record<string, string> = {
-  new_lead: 'Nouveau lead',
-  to_qualify: 'A qualifier',
-  active_search: 'Recherche active',
-  visit_planned: 'Visite planifiee',
-  visit_done: 'Visite effectuee',
-  interest_confirmed: 'Interet confirme',
-  offer: 'Offre',
-  negotiation: 'Negociation',
-  reserved: 'Reserve',
-  financing: 'Financement',
-  notary: 'Notaire',
-  signed: 'Signe',
-  closed: 'Cloture',
-  lost: 'Perdu',
-  to_recontact: 'A relancer',
+const STAGE_I18N: Record<string, string> = {
+  new_lead: 'agencyDetail.stage.newLead',
+  to_qualify: 'agencyDetail.stage.toQualify',
+  active_search: 'agencyDetail.stage.activeSearch',
+  visit_planned: 'agencyDetail.stage.visitPlanned',
+  visit_done: 'agencyDetail.stage.visitDone',
+  interest_confirmed: 'agencyDetail.stage.interestConfirmed',
+  offer: 'agencyDetail.stage.offer',
+  negotiation: 'agencyDetail.stage.negotiation',
+  reserved: 'agencyDetail.stage.reserved',
+  financing: 'agencyDetail.stage.financing',
+  notary: 'agencyDetail.stage.notary',
+  signed: 'agencyDetail.stage.signed',
+  closed: 'agencyDetail.stage.closed',
+  lost: 'agencyDetail.stage.lost',
+  to_recontact: 'agencyDetail.stage.toRecontact',
 }
 
 function MemberAvatar({ name }: { name: string }) {
@@ -66,7 +67,7 @@ function MemberAvatar({ name }: { name: string }) {
   const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length
   return (
     <div className={cn('h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0', colors[idx])}>
-      <span className="text-[10px] font-semibold text-white">{initials}</span>
+      <span className="text-xs font-semibold text-white">{initials}</span>
     </div>
   )
 }
@@ -87,6 +88,7 @@ function SkeletonDetail() {
 }
 
 export default function AdminAgencyDetailPage() {
+  const { t } = useTranslation('admin')
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<Tab>('infos')
 
@@ -101,7 +103,7 @@ export default function AdminAgencyDetailPage() {
             className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Agences
+            {t('admin:agencyDetail.back')}
           </Link>
           <SkeletonDetail />
         </div>
@@ -118,11 +120,11 @@ export default function AdminAgencyDetailPage() {
             className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Agences
+            {t('admin:agencyDetail.back')}
           </Link>
           <div className="px-4 py-16 text-center">
             <Building2 className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
-            <p className="text-sm text-theme-secondary">Agence introuvable</p>
+            <p className="text-sm text-theme-secondary">{t('admin:agencyDetail.notFound')}</p>
           </div>
         </div>
       </PageTransition>
@@ -146,12 +148,12 @@ export default function AdminAgencyDetailPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+              <span className="text-xs font-medium text-admin-accent">{t('admin:common.adminBadge')}</span>
             </div>
             <h1 className="text-2xl font-semibold text-theme-primary">{agency.name}</h1>
             <div className="flex items-center gap-3 mt-1.5">
               <span className="text-xs font-medium text-theme-secondary">
-                {PLAN_LABEL[agency.plan ?? ''] ?? agency.plan ?? 'Starter'}
+                {t(PLAN_I18N[agency.plan ?? ''] ?? 'common.plan.starter')}
               </span>
               <span className="flex items-center gap-1.5">
                 <span className={cn(
@@ -159,7 +161,7 @@ export default function AdminAgencyDetailPage() {
                   agency.status === 'active' ? 'bg-emerald-500' : 'bg-red-500'
                 )} />
                 <span className="text-xs text-theme-secondary">
-                  {STATUS_LABEL[agency.status ?? 'active'] ?? agency.status}
+                  {t(STATUS_I18N[agency.status ?? 'active'] ?? 'common.status.active')}
                 </span>
               </span>
               <span className="text-xs text-theme-tertiary">
@@ -171,7 +173,7 @@ export default function AdminAgencyDetailPage() {
 
         {/* Tabs */}
         <div className="flex items-center gap-1 border-b border-theme-border">
-          {TABS.map((tab) => (
+          {TAB_KEYS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -182,7 +184,7 @@ export default function AdminAgencyDetailPage() {
                   : 'text-theme-secondary border-transparent hover:text-theme-primary'
               )}
             >
-              {tab.label}
+              {t(tab.i18nKey)}
             </button>
           ))}
         </div>
@@ -202,11 +204,12 @@ export default function AdminAgencyDetailPage() {
 
 /* ─── Tab: Infos ─── */
 function InfosTab({ agency }: { agency: Record<string, unknown> }) {
+  const { t } = useTranslation('admin')
   const fields = [
-    { icon: Building2, label: 'Adresse', value: agency.address as string | null },
-    { icon: Phone, label: 'Telephone', value: agency.phone as string | null },
-    { icon: Mail, label: 'Email', value: agency.email as string | null },
-    { icon: Clock, label: 'Slug', value: agency.slug as string | null },
+    { icon: Building2, label: t('admin:agencyDetail.info.address'), value: agency.address as string | null },
+    { icon: Phone, label: t('admin:agencyDetail.info.phone'), value: agency.phone as string | null },
+    { icon: Mail, label: t('admin:agencyDetail.info.email'), value: agency.email as string | null },
+    { icon: Clock, label: t('admin:agencyDetail.info.slug'), value: agency.slug as string | null },
   ]
 
   return (
@@ -216,7 +219,7 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
           <f.icon className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
           <span className="text-sm text-theme-secondary w-24 flex-shrink-0">{f.label}</span>
           <span className="text-sm text-theme-primary">
-            {f.value || <span className="text-theme-tertiary">Non renseigne</span>}
+            {f.value || <span className="text-theme-tertiary">{t('admin:common.notProvided')}</span>}
           </span>
         </div>
       ))}
@@ -226,13 +229,14 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
 
 /* ─── Tab: Equipe ─── */
 function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: string }) {
+  const { t } = useTranslation('admin')
   const { data: members, isLoading } = useAgencyMembers(agencyId)
   const { startImpersonate } = useImpersonate()
 
   if (isLoading) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">Chargement...</p>
+        <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
       </div>
     )
   }
@@ -240,7 +244,7 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
   if (!members || members.length === 0) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">Aucun membre</p>
+        <p className="text-sm text-theme-tertiary">{t('admin:agencyDetail.team.noMembers')}</p>
       </div>
     )
   }
@@ -248,11 +252,11 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
   return (
     <div className="rounded-xl border border-theme-border">
       {/* Header */}
-      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-        <span className="flex-1">Nom</span>
-        <span className="w-40">Email</span>
-        <span className="w-24">Role</span>
-        <span className="w-24 text-right">Inscription</span>
+      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
+        <span className="flex-1">{t('admin:agencyDetail.team.table.name')}</span>
+        <span className="w-40">{t('admin:agencyDetail.team.table.email')}</span>
+        <span className="w-24">{t('admin:agencyDetail.team.table.role')}</span>
+        <span className="w-24 text-right">{t('admin:agencyDetail.team.table.registration')}</span>
         <span className="w-10" />
       </div>
 
@@ -265,9 +269,9 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
           )}
         >
           <div className="flex-1 flex items-center gap-2.5 min-w-0">
-            <MemberAvatar name={member.full_name ?? 'Utilisateur'} />
+            <MemberAvatar name={member.full_name ?? t('admin:common.user')} />
             <span className="text-sm font-medium text-theme-primary truncate">
-              {member.full_name ?? 'Sans nom'}
+              {member.full_name ?? t('admin:common.noName')}
             </span>
           </div>
           <span className="w-40 text-xs text-theme-secondary truncate">
@@ -289,7 +293,7 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
                 agency_id: agencyId,
                 agency_name: agencyName,
               })}
-              aria-label={`Se connecter en tant que ${member.full_name ?? 'utilisateur'}`}
+              aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
               className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-admin-accent hover:bg-admin-accent/5 transition-all"
             >
               <Eye className="h-4 w-4" />
@@ -303,12 +307,13 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
 
 /* ─── Tab: Activite ─── */
 function ActiviteTab({ agencyId }: { agencyId: string }) {
+  const { t } = useTranslation('admin')
   const { data: events, isLoading } = useAgencyActivity(agencyId)
 
   if (isLoading) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">Chargement...</p>
+        <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
       </div>
     )
   }
@@ -316,7 +321,7 @@ function ActiviteTab({ agencyId }: { agencyId: string }) {
   if (!events || events.length === 0) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">Aucune activite recente</p>
+        <p className="text-sm text-theme-tertiary">{t('admin:agencyDetail.activity.noActivity')}</p>
       </div>
     )
   }
@@ -333,7 +338,7 @@ function ActiviteTab({ agencyId }: { agencyId: string }) {
             <p className="text-sm text-theme-primary">
               <span className="font-medium">{event.action}</span>
               {event.entity_type && (
-                <span className="text-theme-secondary"> sur {event.entity_type}</span>
+                <span className="text-theme-secondary"> {t('admin:agencyDetail.activity.on')} {event.entity_type}</span>
               )}
             </p>
             <p className="text-xs text-theme-tertiary mt-0.5">
@@ -348,12 +353,13 @@ function ActiviteTab({ agencyId }: { agencyId: string }) {
 
 /* ─── Tab: Biens ─── */
 function BiensTab({ agencyId }: { agencyId: string }) {
+  const { t } = useTranslation('admin')
   const { data: properties, isLoading } = useAgencyProperties(agencyId)
 
   if (isLoading) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">Chargement...</p>
+        <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
       </div>
     )
   }
@@ -361,7 +367,7 @@ function BiensTab({ agencyId }: { agencyId: string }) {
   if (!properties || properties.length === 0) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">Aucun bien</p>
+        <p className="text-sm text-theme-tertiary">{t('admin:agencyDetail.properties.noProperties')}</p>
       </div>
     )
   }
@@ -369,12 +375,12 @@ function BiensTab({ agencyId }: { agencyId: string }) {
   return (
     <div className="rounded-xl border border-theme-border">
       {/* Header */}
-      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-        <span className="flex-1">Titre</span>
-        <span className="w-24">Statut</span>
-        <span className="w-28 text-right">Prix</span>
-        <span className="w-24">Ville</span>
-        <span className="w-24 text-right">Date</span>
+      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
+        <span className="flex-1">{t('admin:agencyDetail.properties.table.title')}</span>
+        <span className="w-24">{t('admin:agencyDetail.properties.table.status')}</span>
+        <span className="w-28 text-right">{t('admin:agencyDetail.properties.table.price')}</span>
+        <span className="w-24">{t('admin:agencyDetail.properties.table.city')}</span>
+        <span className="w-24 text-right">{t('admin:agencyDetail.properties.table.date')}</span>
       </div>
 
       {properties.map((prop, i) => (
@@ -386,7 +392,7 @@ function BiensTab({ agencyId }: { agencyId: string }) {
           )}
         >
           <span className="flex-1 text-sm text-theme-primary truncate">
-            {prop.title || 'Sans titre'}
+            {prop.title || t('admin:common.noTitle')}
           </span>
           <span className="w-24">
             <span className={cn(
@@ -395,7 +401,7 @@ function BiensTab({ agencyId }: { agencyId: string }) {
               prop.status === 'sold' ? 'text-admin-accent' :
               'text-theme-secondary'
             )}>
-              {PROPERTY_STATUS[prop.status] ?? prop.status}
+              {t(PROPERTY_STATUS_I18N[prop.status] ?? 'common.status.draft')}
             </span>
           </span>
           <span className="w-28 text-sm text-theme-primary text-right font-medium">
@@ -415,12 +421,13 @@ function BiensTab({ agencyId }: { agencyId: string }) {
 
 /* ─── Tab: Transactions ─── */
 function TransactionsTab({ agencyId }: { agencyId: string }) {
+  const { t } = useTranslation('admin')
   const { data: transactions, isLoading } = useAgencyTransactions(agencyId)
 
   if (isLoading) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">Chargement...</p>
+        <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
       </div>
     )
   }
@@ -428,7 +435,7 @@ function TransactionsTab({ agencyId }: { agencyId: string }) {
   if (!transactions || transactions.length === 0) {
     return (
       <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">Aucune transaction</p>
+        <p className="text-sm text-theme-tertiary">{t('admin:agencyDetail.transactions.noTransactions')}</p>
       </div>
     )
   }
@@ -436,11 +443,11 @@ function TransactionsTab({ agencyId }: { agencyId: string }) {
   return (
     <div className="rounded-xl border border-theme-border">
       {/* Header */}
-      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-        <span className="flex-1">Etape</span>
-        <span className="w-20">Statut</span>
-        <span className="w-28 text-right">Montant</span>
-        <span className="w-24 text-right">Date</span>
+      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
+        <span className="flex-1">{t('admin:agencyDetail.transactions.table.stage')}</span>
+        <span className="w-20">{t('admin:agencyDetail.transactions.table.status')}</span>
+        <span className="w-28 text-right">{t('admin:agencyDetail.transactions.table.amount')}</span>
+        <span className="w-24 text-right">{t('admin:agencyDetail.transactions.table.date')}</span>
       </div>
 
       {transactions.map((tx, i) => (
@@ -452,7 +459,7 @@ function TransactionsTab({ agencyId }: { agencyId: string }) {
           )}
         >
           <span className="flex-1 text-sm text-theme-primary">
-            {STAGE_LABEL[tx.stage] ?? tx.stage ?? '—'}
+            {STAGE_I18N[tx.stage] ? t(STAGE_I18N[tx.stage]) : tx.stage ?? '—'}
           </span>
           <span className="w-20">
             <span className={cn(

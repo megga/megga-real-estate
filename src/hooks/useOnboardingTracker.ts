@@ -34,44 +34,28 @@ export function useOnboardingTracker() {
 
       const ids = agencies.map(a => a.id)
 
-      // Parallel queries for each milestone
-      const [contacts, properties, kycCases, transactions, matches, activities] = await Promise.all([
-        supabase.from('contacts').select('agency_id').in('agency_id', ids),
-        supabase.from('properties').select('agency_id').in('agency_id', ids),
-        supabase.from('kyc_cases').select('agency_id').in('agency_id', ids),
-        supabase.from('transactions').select('agency_id').in('agency_id', ids),
-        supabase.from('matches').select('agency_id').in('agency_id', ids),
-        supabase.from('activity_events').select('agency_id, created_at').in('agency_id', ids).order('created_at', { ascending: false }),
-      ])
-
-      const hasContact = new Set((contacts.data ?? []).map(c => c.agency_id))
-      const hasProperty = new Set((properties.data ?? []).map(p => p.agency_id))
-      const hasKyc = new Set((kycCases.data ?? []).map(k => k.agency_id))
-      const hasTransaction = new Set((transactions.data ?? []).map(t => t.agency_id))
-      const hasMatch = new Set((matches.data ?? []).map(m => m.agency_id))
-
-      // Last activity per agency
-      const lastActivityMap: Record<string, string> = {}
-      for (const evt of activities.data ?? []) {
-        if (evt.agency_id && !lastActivityMap[evt.agency_id]) {
-          lastActivityMap[evt.agency_id] = evt.created_at
-        }
+      // Use RPC for server-side milestone detection (single SQL query with EXISTS)
+      const { data: milestones } = await supabase.rpc('get_onboarding_milestones', { agency_ids: ids })
+      const milestoneMap: Record<string, { has_contact: boolean; has_property: boolean; has_kyc: boolean; has_transaction: boolean; has_match: boolean; last_activity_at: string | null }> = {}
+      for (const m of milestones ?? []) {
+        milestoneMap[m.agency_id] = m
       }
 
       return agencies.map(agency => {
+        const m = milestoneMap[agency.id]
         const steps = {
           profile_completed: true, // They signed up, so profile exists
-          first_contact: hasContact.has(agency.id),
-          first_property: hasProperty.has(agency.id),
-          first_kyc: hasKyc.has(agency.id),
-          first_transaction: hasTransaction.has(agency.id),
-          first_match: hasMatch.has(agency.id),
+          first_contact: m?.has_contact ?? false,
+          first_property: m?.has_property ?? false,
+          first_kyc: m?.has_kyc ?? false,
+          first_transaction: m?.has_transaction ?? false,
+          first_match: m?.has_match ?? false,
         }
 
         const completedCount = Object.values(steps).filter(Boolean).length
         const completion = Math.round((completedCount / 6) * 100)
 
-        const lastActivity = lastActivityMap[agency.id] ?? null
+        const lastActivity = m?.last_activity_at ?? null
         const daysSinceActivity = lastActivity
           ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24))
           : 999

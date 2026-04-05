@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Search, Users, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
@@ -10,22 +11,15 @@ import PageTransition from '@/components/layout/PageTransition'
 
 const ITEMS_PER_PAGE = 10
 
-const ROLE_LABEL: Record<string, string> = {
-  super_admin: 'Super Admin',
-  admin: 'Admin',
-  manager: 'Manager',
-  agent: 'Agent',
-  assistant: 'Assistant',
+const ROLE_I18N: Record<string, string> = {
+  super_admin: 'common.role.superAdmin',
+  admin: 'common.role.admin',
+  manager: 'common.role.manager',
+  agent: 'common.role.agent',
+  assistant: 'common.role.assistant',
 }
 
-const ROLE_FILTERS = [
-  { value: '', label: 'Tous' },
-  { value: 'super_admin', label: 'Super Admin' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'agent', label: 'Agent' },
-  { value: 'assistant', label: 'Assistant' },
-]
+const ROLE_FILTER_VALUES = ['', 'super_admin', 'admin', 'manager', 'agent', 'assistant']
 
 function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -72,20 +66,22 @@ function SkeletonRows() {
 }
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+  const { t } = useTranslation('admin')
   return (
     <div className="px-4 py-16 text-center">
       <Users className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
       <p className="text-sm text-theme-secondary font-medium">
-        {hasFilters ? 'Aucun utilisateur trouve' : 'Aucun utilisateur'}
+        {hasFilters ? t('admin:users.empty.titleFiltered') : t('admin:users.empty.title')}
       </p>
       <p className="text-xs text-theme-tertiary mt-1">
-        {hasFilters ? 'Modifiez vos filtres de recherche' : 'Les utilisateurs apparaitront ici une fois inscrits'}
+        {hasFilters ? t('admin:users.empty.subtitleFiltered') : t('admin:users.empty.subtitle')}
       </p>
     </div>
   )
 }
 
 export default function AdminUsersPage() {
+  const { t } = useTranslation('admin')
   const { users, isLoading } = useAdminUsers()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('')
@@ -120,11 +116,11 @@ export default function AdminUsersPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+              <span className="text-xs font-medium text-admin-accent">{t('admin:common.adminBadge')}</span>
             </div>
-            <h1 className="text-2xl font-semibold text-theme-primary">Utilisateurs</h1>
+            <h1 className="text-2xl font-semibold text-theme-primary">{t('admin:users.title')}</h1>
             <p className="text-sm text-theme-tertiary mt-0.5">
-              {isLoading ? 'Chargement...' : `${users.length} utilisateur${users.length !== 1 ? 's' : ''} enregistre${users.length !== 1 ? 's' : ''}`}
+              {isLoading ? t('admin:common.loading') : t(users.length !== 1 ? 'admin:users.subtitle_plural' : 'admin:users.subtitle', { count: users.length })}
             </p>
           </div>
           <button
@@ -135,7 +131,7 @@ export default function AdminUsersPage() {
             className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Exporter
+            {t('admin:common.export')}
           </button>
         </div>
 
@@ -145,7 +141,7 @@ export default function AdminUsersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
             <input
               type="text"
-              placeholder="Rechercher par nom ou email..."
+              placeholder={t('admin:users.searchPlaceholder')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -153,18 +149,18 @@ export default function AdminUsersPage() {
           </div>
 
           <div className="flex items-center gap-1">
-            {ROLE_FILTERS.map((f) => (
+            {ROLE_FILTER_VALUES.map((value) => (
               <button
-                key={f.value}
-                onClick={() => { setRoleFilter(f.value); setPage(1) }}
+                key={value}
+                onClick={() => { setRoleFilter(value); setPage(1) }}
                 className={cn(
                   'h-9 px-4 rounded-lg text-sm transition-colors',
-                  roleFilter === f.value
+                  roleFilter === value
                     ? 'bg-theme-active text-theme-primary font-medium'
                     : 'text-theme-secondary hover:text-theme-primary'
                 )}
               >
-                {f.label}
+                {value ? t(ROLE_I18N[value] ?? 'common.role.agent') : t('admin:common.all')}
               </button>
             ))}
           </div>
@@ -174,7 +170,7 @@ export default function AdminUsersPage() {
         <div className="md:hidden space-y-2">
           {isLoading ? (
             <div className="px-4 py-12 text-center">
-              <p className="text-sm text-theme-tertiary">Chargement...</p>
+              <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
             </div>
           ) : paginated.length === 0 ? (
             <EmptyState hasFilters={!!search || !!roleFilter} />
@@ -185,11 +181,11 @@ export default function AdminUsersPage() {
                 onClick={() => handleRowClick(user)}
                 className="flex items-center gap-3 p-3 w-full text-left rounded-xl border border-theme-border hover:border-theme-active transition-colors"
               >
-                <UserAvatar name={user.full_name ?? 'Utilisateur'} avatarUrl={user.avatar_url} />
+                <UserAvatar name={user.full_name ?? t('admin:common.user')} avatarUrl={user.avatar_url} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-theme-primary truncate">{user.full_name ?? 'Sans nom'}</p>
+                  <p className="text-sm font-medium text-theme-primary truncate">{user.full_name ?? t('admin:common.noName')}</p>
                   <p className="text-xs text-theme-tertiary mt-0.5 truncate">
-                    {ROLE_LABEL[user.role] ?? user.role ?? 'Agent'}
+                    {t(ROLE_I18N[user.role] ?? 'common.role.agent')}
                     {user.agency_name && ` · ${user.agency_name}`}
                   </p>
                 </div>
@@ -201,12 +197,12 @@ export default function AdminUsersPage() {
         {/* Desktop: table */}
         <div className="hidden md:block rounded-xl border border-theme-border">
           {/* Header row */}
-          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-            <span className="flex-1">Nom</span>
-            <span className="w-44">Email</span>
-            <span className="w-28">Agence</span>
-            <span className="w-24">Role</span>
-            <span className="w-24">Inscription</span>
+          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
+            <span className="flex-1">{t('admin:users.table.name')}</span>
+            <span className="w-44">{t('admin:users.table.email')}</span>
+            <span className="w-28">{t('admin:users.table.agency')}</span>
+            <span className="w-24">{t('admin:users.table.role')}</span>
+            <span className="w-24">{t('admin:users.table.registration')}</span>
           </div>
 
           {/* Rows */}
@@ -226,10 +222,10 @@ export default function AdminUsersPage() {
               >
                 {/* Name + avatar */}
                 <div className="flex-1 flex items-center gap-3 min-w-0">
-                  <UserAvatar name={user.full_name ?? 'Utilisateur'} avatarUrl={user.avatar_url} />
+                  <UserAvatar name={user.full_name ?? t('admin:common.user')} avatarUrl={user.avatar_url} />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-theme-primary truncate group-hover:text-admin-accent transition-colors">
-                      {user.full_name ?? 'Sans nom'}
+                      {user.full_name ?? t('admin:common.noName')}
                     </p>
                     {user.phone && (
                       <p className="text-xs text-theme-tertiary truncate">{user.phone}</p>
@@ -265,7 +261,7 @@ export default function AdminUsersPage() {
                     user.role === 'admin' ? 'text-amber-500' :
                     'text-theme-secondary'
                   )}>
-                    {ROLE_LABEL[user.role] ?? user.role ?? 'Agent'}
+                    {t(ROLE_I18N[user.role] ?? 'common.role.agent')}
                   </span>
                 </span>
 
@@ -281,12 +277,13 @@ export default function AdminUsersPage() {
           {filtered.length > ITEMS_PER_PAGE && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-theme-border">
               <p className="text-xs text-theme-tertiary">
-                {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} sur {filtered.length}
+                {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('admin:common.on')} {filtered.length}
               </p>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage <= 1}
+                  aria-label={t('admin:common.previousPage')}
                   className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -314,6 +311,7 @@ export default function AdminUsersPage() {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage >= totalPages}
+                  aria-label={t('admin:common.nextPage')}
                   className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -331,7 +329,7 @@ export default function AdminUsersPage() {
               disabled={safePage <= 1}
               className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
             >
-              Precedent
+              {t('admin:common.previous')}
             </button>
             <span className="text-xs text-theme-tertiary">{safePage}/{totalPages}</span>
             <button
@@ -339,7 +337,7 @@ export default function AdminUsersPage() {
               disabled={safePage >= totalPages}
               className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
             >
-              Suivant
+              {t('admin:common.next')}
             </button>
           </div>
         )}

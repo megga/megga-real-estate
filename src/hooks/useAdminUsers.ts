@@ -72,5 +72,6 @@ export function useUserActivity(userId: string) {
       return data ?? []
     },
     enabled: !!userId,
+    staleTime: 30_000,
   })
 }

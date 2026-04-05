@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Shield, AlertTriangle, AlertCircle, Info, Download, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -20,12 +21,8 @@ const ITEMS_PER_PAGE = 20
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info'
 
-const SEVERITY_PILLS: { value: SeverityFilter; label: string }[] = [
-  { value: 'all', label: 'Tous' },
-  { value: 'critical', label: 'Critique' },
-  { value: 'warning', label: 'Avertissement' },
-  { value: 'info', label: 'Info' },
-]
+// Labels are resolved at render time via t() — see component body
+const SEVERITY_PILL_VALUES: SeverityFilter[] = ['all', 'critical', 'warning', 'info']
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
@@ -37,13 +34,7 @@ function severityDot(severity: 'critical' | 'warning' | 'info'): string {
   }
 }
 
-function severityLabel(severity: 'critical' | 'warning' | 'info'): string {
-  switch (severity) {
-    case 'critical': return 'Critique'
-    case 'warning': return 'Avertissement'
-    case 'info': return 'Info'
-  }
-}
+// severityLabel is now resolved via t() inside the component
 
 function formatTimestamp(dateStr: string): string {
   try {
@@ -98,6 +89,7 @@ function SkeletonRows() {
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 
 export default function AdminSecurityAuditPage() {
+  const { t } = useTranslation('admin')
   const { data: entries, isLoading } = useSecurityAudit({ limit: 500 })
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')
@@ -159,7 +151,7 @@ export default function AdminSecurityAuditPage() {
     if (!filtered.length) return
     exportToCsv('audit-securite', filtered.map(e => ({
       timestamp: formatTimestamp(e.created_at),
-      severite: severityLabel(getActionSeverity(e.action)),
+      severite: t(`admin:common.severity.${getActionSeverity(e.action)}`),
       action: AUDIT_ACTION_LABELS[e.action] ?? e.action,
       acteur_nom: e.actor_name ?? '',
       acteur_email: e.actor_email ?? '',
@@ -167,14 +159,14 @@ export default function AdminSecurityAuditPage() {
       entity_id: e.entity_id,
       details: summarizeMetadata(e.metadata),
     })), [
-      { key: 'timestamp', label: 'Horodatage' },
-      { key: 'severite', label: 'Severite' },
-      { key: 'action', label: 'Action' },
-      { key: 'acteur_nom', label: 'Acteur' },
+      { key: 'timestamp', label: t('admin:securityAudit.table.timestamp') },
+      { key: 'severite', label: t('admin:securityAudit.table.severity') },
+      { key: 'action', label: t('admin:securityAudit.table.action') },
+      { key: 'acteur_nom', label: t('admin:securityAudit.table.actor') },
       { key: 'acteur_email', label: 'Email' },
-      { key: 'entity_type', label: 'Type entite' },
-      { key: 'entity_id', label: 'ID entite' },
-      { key: 'details', label: 'Details' },
+      { key: 'entity_type', label: t('admin:securityAudit.table.entity') },
+      { key: 'entity_id', label: 'ID' },
+      { key: 'details', label: t('admin:securityAudit.table.details') },
     ])
   }
 
@@ -188,14 +180,14 @@ export default function AdminSecurityAuditPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+              <span className="text-xs font-medium text-admin-accent">{t('admin:common.adminBadge')}</span>
             </div>
             <div className="flex items-center gap-2.5">
               <Shield className="h-5 w-5 text-theme-secondary" />
-              <h1 className="text-2xl font-semibold text-theme-primary">Audit de securite</h1>
+              <h1 className="text-2xl font-semibold text-theme-primary">{t('admin:securityAudit.title')}</h1>
             </div>
             <p className="text-sm text-theme-tertiary mt-0.5">
-              Journal des actions sensibles sur la plateforme
+              {t('admin:securityAudit.subtitle')}
             </p>
           </div>
 
@@ -205,29 +197,29 @@ export default function AdminSecurityAuditPage() {
             className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Exporter CSV
+            {t('admin:common.exportCsv')}
           </button>
         </div>
 
         {/* Stats bar */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <AdminKpiCard
-            label="Evenements critiques"
+            label={t('admin:securityAudit.kpi.criticalEvents')}
             value={isLoading ? '...' : stats.critical}
-            subtitle="7 derniers jours"
+            subtitle={t('admin:common.last7Days')}
             icon={AlertTriangle}
             variant={stats.critical > 0 ? 'danger' : 'default'}
           />
           <AdminKpiCard
-            label="Avertissements"
+            label={t('admin:securityAudit.kpi.warnings')}
             value={isLoading ? '...' : stats.warning}
-            subtitle="7 derniers jours"
+            subtitle={t('admin:common.last7Days')}
             icon={AlertCircle}
           />
           <AdminKpiCard
-            label="Total evenements"
+            label={t('admin:securityAudit.kpi.totalEvents')}
             value={isLoading ? '...' : stats.total}
-            subtitle="7 derniers jours"
+            subtitle={t('admin:common.last7Days')}
             icon={Info}
           />
         </div>
@@ -236,18 +228,18 @@ export default function AdminSecurityAuditPage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Severity pills */}
           <div className="flex items-center gap-1 rounded-lg border border-theme-border p-0.5">
-            {SEVERITY_PILLS.map(pill => (
+            {SEVERITY_PILL_VALUES.map(val => (
               <button
-                key={pill.value}
-                onClick={() => handleSeverityChange(pill.value)}
+                key={val}
+                onClick={() => handleSeverityChange(val)}
                 className={cn(
                   'h-8 px-3 rounded-md text-sm transition-colors',
-                  severityFilter === pill.value
+                  severityFilter === val
                     ? 'bg-theme-active text-theme-primary font-medium'
                     : 'text-theme-secondary hover:text-theme-primary'
                 )}
               >
-                {pill.label}
+                {val === 'all' ? t('admin:common.all') : t(`admin:common.severity.${val}`)}
               </button>
             ))}
           </div>
@@ -259,7 +251,7 @@ export default function AdminSecurityAuditPage() {
               onChange={e => handleActionChange(e.target.value)}
               className="h-9 pl-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg text-theme-secondary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent appearance-none cursor-pointer"
             >
-              <option value="all">Toutes les actions</option>
+              <option value="all">{t('admin:securityAudit.allActions')}</option>
               {SENSITIVE_ACTIONS.map(action => (
                 <option key={action} value={action}>
                   {AUDIT_ACTION_LABELS[action] ?? action}
@@ -274,7 +266,7 @@ export default function AdminSecurityAuditPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
             <input
               type="text"
-              placeholder="Rechercher par acteur..."
+              placeholder={t('admin:securityAudit.searchPlaceholder')}
               value={searchQuery}
               onChange={e => handleSearchChange(e.target.value)}
               className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-primary placeholder:text-theme-muted"
@@ -286,12 +278,12 @@ export default function AdminSecurityAuditPage() {
         <div className="rounded-xl border border-theme-border overflow-hidden">
           {/* Table header */}
           <div className="flex items-center px-4 py-2.5 bg-theme-section text-xs font-medium text-theme-secondary border-b border-theme-border">
-            <div className="w-[140px] shrink-0">Horodatage</div>
-            <div className="w-[100px] shrink-0">Severite</div>
-            <div className="w-[180px] shrink-0">Action</div>
-            <div className="w-[180px] shrink-0">Acteur</div>
-            <div className="flex-1 min-w-0">Details</div>
-            <div className="w-[100px] shrink-0 text-right">Entite</div>
+            <div className="w-[140px] shrink-0">{t('admin:securityAudit.table.timestamp')}</div>
+            <div className="w-[100px] shrink-0">{t('admin:securityAudit.table.severity')}</div>
+            <div className="w-[180px] shrink-0">{t('admin:securityAudit.table.action')}</div>
+            <div className="w-[180px] shrink-0">{t('admin:securityAudit.table.actor')}</div>
+            <div className="flex-1 min-w-0">{t('admin:securityAudit.table.details')}</div>
+            <div className="w-[100px] shrink-0 text-right">{t('admin:securityAudit.table.entity')}</div>
           </div>
 
           {/* Table body */}
@@ -300,8 +292,8 @@ export default function AdminSecurityAuditPage() {
           ) : paginated.length === 0 ? (
             <div className="px-4 py-12 text-center">
               <Shield className="h-8 w-8 text-theme-tertiary mx-auto mb-2" />
-              <p className="text-sm text-theme-secondary">Aucun evenement trouve</p>
-              <p className="text-xs text-theme-tertiary mt-1">Modifiez vos filtres pour voir plus de resultats</p>
+              <p className="text-sm text-theme-secondary">{t('admin:securityAudit.empty.title')}</p>
+              <p className="text-xs text-theme-tertiary mt-1">{t('admin:securityAudit.empty.subtitle')}</p>
             </div>
           ) : (
             paginated.map((entry, i) => {
@@ -324,7 +316,7 @@ export default function AdminSecurityAuditPage() {
                     {/* Severity */}
                     <div className="w-[100px] shrink-0 flex items-center gap-2">
                       <span className={cn('w-2 h-2 rounded-full shrink-0', severityDot(severity))} />
-                      <span className="text-xs text-theme-secondary">{severityLabel(severity)}</span>
+                      <span className="text-xs text-theme-secondary">{t(`admin:common.severity.${severity}`)}</span>
                     </div>
 
                     {/* Action */}
@@ -342,7 +334,7 @@ export default function AdminSecurityAuditPage() {
                           <p className="text-xs text-theme-tertiary truncate">{entry.actor_email}</p>
                         </div>
                       ) : entry.actor_id === 'ai' ? (
-                        <span className="text-sm text-theme-secondary">MEGGA AI</span>
+                        <span className="text-sm text-theme-secondary">{t('admin:securityAudit.megaAi')}</span>
                       ) : (
                         <span className="text-xs text-theme-tertiary">-</span>
                       )}
@@ -368,8 +360,8 @@ export default function AdminSecurityAuditPage() {
                       i < paginated.length - 1 && 'border-b border-theme-border'
                     )}>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-medium text-theme-secondary">Metadata complete</span>
-                        <span className="text-[10px] text-theme-tertiary">ID: {entry.entity_id}</span>
+                        <span className="text-xs font-medium text-theme-secondary">{t('admin:securityAudit.metadataFull')}</span>
+                        <span className="text-xs text-theme-tertiary">ID: {entry.entity_id}</span>
                       </div>
                       <pre className="text-xs text-theme-secondary font-mono bg-theme-page rounded-lg p-3 overflow-x-auto max-h-48 scrollbar-hide">
                         {JSON.stringify(entry.metadata, null, 2)}
@@ -386,12 +378,13 @@ export default function AdminSecurityAuditPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <p className="text-xs text-theme-tertiary">
-              {filtered.length} evenement{filtered.length !== 1 ? 's' : ''} au total
+              {t(filtered.length !== 1 ? 'admin:securityAudit.eventsTotal_plural' : 'admin:securityAudit.eventsTotal', { count: filtered.length })}
             </p>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={safePage <= 1}
+                aria-label="Page précédente"
                 className="h-7 w-7 rounded-md flex items-center justify-center text-theme-secondary hover:text-theme-primary disabled:opacity-30 transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -418,6 +411,7 @@ export default function AdminSecurityAuditPage() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={safePage >= totalPages}
+                aria-label="Page suivante"
                 className="h-7 w-7 rounded-md flex items-center justify-center text-theme-secondary hover:text-theme-primary disabled:opacity-30 transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />

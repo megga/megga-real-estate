@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Search, Building2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
@@ -55,6 +56,7 @@ function SkeletonRows() {
 
 export default function AdminAgenciesPage() {
   'use no memo'
+  const { t } = useTranslation('admin')
   const { agencies, isLoading, updateStatus } = useAdminAgencies()
 
   // Activity data for health scores
@@ -78,15 +80,23 @@ export default function AdminAgenciesPage() {
     staleTime: 60_000,
   })
 
+  const healthMap = useMemo(() => {
+    const map: Record<string, ReturnType<typeof calculateAgencyHealth>> = {}
+    for (const agency of agencies) {
+      const ad = activityQuery.data?.[agency.id]
+      map[agency.id] = calculateAgencyHealth({
+        daysSinceLastActivity: ad ? Math.floor((Date.now() - new Date(ad.lastAt).getTime()) / 86400000) : 999,
+        activePropertiesCount: agency.property_count,
+        contactsCount: 0,
+        transactionsCount: agency.transaction_count,
+        eventsLast30Days: ad?.count ?? 0,
+      })
+    }
+    return map
+  }, [agencies, activityQuery.data])
+
   function getHealth(agency: AgencyWithStats) {
-    const ad = activityQuery.data?.[agency.id]
-    return calculateAgencyHealth({
-      daysSinceLastActivity: ad ? Math.floor((Date.now() - new Date(ad.lastAt).getTime()) / 86400000) : 999,
-      activePropertiesCount: agency.property_count,
-      contactsCount: 0,
-      transactionsCount: agency.transaction_count,
-      eventsLast30Days: ad?.count ?? 0,
-    })
+    return healthMap[agency.id] ?? calculateAgencyHealth({ daysSinceLastActivity: 999, activePropertiesCount: 0, contactsCount: 0, transactionsCount: 0, eventsLast30Days: 0 })
   }
 
   const [search, setSearch] = useState('')
@@ -115,9 +125,9 @@ export default function AdminAgenciesPage() {
   }
 
   const statusFilters = [
-    { value: '', label: 'Tous' },
-    { value: 'active', label: 'Actif' },
-    { value: 'suspended', label: 'Suspendu' },
+    { value: '', label: t('common.all') },
+    { value: 'active', label: t('common.status.active') },
+    { value: 'suspended', label: t('common.status.suspended') },
   ]
 
   return (
@@ -128,11 +138,11 @@ export default function AdminAgenciesPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+              <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
             </div>
-            <h1 className="text-2xl font-semibold text-theme-primary">Agences</h1>
+            <h1 className="text-2xl font-semibold text-theme-primary">{t('agencies.title')}</h1>
             <p className="text-sm text-theme-tertiary mt-0.5">
-              {isLoading ? 'Chargement...' : `${agencies.length} agence${agencies.length !== 1 ? 's' : ''} enregistree${agencies.length !== 1 ? 's' : ''}`}
+              {isLoading ? t('common.loading') : t(agencies.length !== 1 ? 'agencies.subtitle_plural' : 'agencies.subtitle', { count: agencies.length })}
             </p>
           </div>
           <button
@@ -144,7 +154,7 @@ export default function AdminAgenciesPage() {
             className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Exporter
+            {t('agencies.export')}
           </button>
         </div>
 
@@ -154,7 +164,7 @@ export default function AdminAgenciesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
             <input
               type="text"
-              placeholder="Rechercher une agence..."
+              placeholder={t('agencies.searchPlaceholder')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -183,7 +193,7 @@ export default function AdminAgenciesPage() {
         <div className="md:hidden space-y-2">
           {isLoading ? (
             <div className="px-4 py-12 text-center">
-              <p className="text-sm text-theme-tertiary">Chargement...</p>
+              <p className="text-sm text-theme-tertiary">{t('common.loading')}</p>
             </div>
           ) : paginated.length === 0 ? (
             <EmptyState hasFilters={!!search || !!statusFilter} />
@@ -216,15 +226,15 @@ export default function AdminAgenciesPage() {
         {/* Desktop: table */}
         <div className="hidden md:block rounded-xl border border-theme-border">
           {/* Header row */}
-          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-            <span className="flex-1">Nom</span>
-            <span className="w-20">Plan</span>
-            <span className="w-16 text-center">Agents</span>
-            <span className="w-16 text-center">Biens</span>
-            <span className="w-20 text-center">Transactions</span>
-            <span className="w-24">Date</span>
-            <span className="w-16 text-center">Statut</span>
-            <span className="w-16 text-center">Sante</span>
+          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
+            <span className="flex-1">{t('agencies.table.name')}</span>
+            <span className="w-20">{t('agencies.table.plan')}</span>
+            <span className="w-16 text-center">{t('agencies.table.agents')}</span>
+            <span className="w-16 text-center">{t('agencies.table.properties')}</span>
+            <span className="w-20 text-center">{t('agencies.table.transactions')}</span>
+            <span className="w-24">{t('agencies.table.date')}</span>
+            <span className="w-16 text-center">{t('agencies.table.status')}</span>
+            <span className="w-16 text-center">{t('agencies.table.health')}</span>
             <span className="w-24" />
           </div>
 
@@ -305,7 +315,7 @@ export default function AdminAgenciesPage() {
                         : 'text-emerald-500 hover:text-emerald-600'
                     )}
                   >
-                    {agency.status === 'active' ? 'Suspendre' : 'Activer'}
+                    {agency.status === 'active' ? t('agencies.action.suspend') : t('agencies.action.activate')}
                   </button>
                 </div>
               </Link>
@@ -316,12 +326,13 @@ export default function AdminAgenciesPage() {
           {filtered.length > ITEMS_PER_PAGE && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-theme-border">
               <p className="text-xs text-theme-tertiary">
-                {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} sur {filtered.length}
+                {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('common.on')} {filtered.length}
               </p>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage <= 1}
+                  aria-label={t('common.previousPage')}
                   className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -349,6 +360,7 @@ export default function AdminAgenciesPage() {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage >= totalPages}
+                  aria-label={t('common.nextPage')}
                   className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -366,7 +378,7 @@ export default function AdminAgenciesPage() {
               disabled={safePage <= 1}
               className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
             >
-              Precedent
+              {t('common.previous')}
             </button>
             <span className="text-xs text-theme-tertiary">{safePage}/{totalPages}</span>
             <button
@@ -374,7 +386,7 @@ export default function AdminAgenciesPage() {
               disabled={safePage >= totalPages}
               className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
             >
-              Suivant
+              {t('common.next')}
             </button>
           </div>
         )}
@@ -384,14 +396,15 @@ export default function AdminAgenciesPage() {
 }
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+  const { t } = useTranslation('admin')
   return (
     <div className="px-4 py-16 text-center">
       <Building2 className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
       <p className="text-sm text-theme-secondary font-medium">
-        {hasFilters ? 'Aucune agence trouvee' : 'Aucune agence'}
+        {hasFilters ? t('agencies.empty.titleFiltered') : t('agencies.empty.title')}
       </p>
       <p className="text-xs text-theme-tertiary mt-1">
-        {hasFilters ? 'Modifiez vos filtres de recherche' : 'Les agences apparaitront ici une fois inscrites'}
+        {hasFilters ? t('agencies.empty.subtitleFiltered') : t('agencies.empty.subtitle')}
       </p>
     </div>
   )
