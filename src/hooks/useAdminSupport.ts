@@ -195,6 +195,7 @@ export function useTicketMessages(ticketId: string) {
       return (data ?? []) as TicketMessage[]
     },
     enabled: !!ticketId,
+    staleTime: 15_000,
   })
 }
 
