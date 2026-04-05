@@ -444,17 +444,6 @@ export default function VendrePage() {
   // ─── Validation ────────────────────────────────────────
 
   const step1Valid = form.address.length > 3 && form.canton.length > 0
-  const step2Valid = (() => {
-    if (!form.propertyType || !form.surface) return false
-    switch (form.propertyType) {
-      case 'land':
-        return !!form.landZone
-      case 'commercial':
-        return !!form.commercialType && !!form.condition
-      default: // apartment, house, villa
-        return !!form.rooms && !!form.condition
-    }
-  })()
   const step3Valid = true // photos are optional
   const step4Valid = form.contactName.length > 1 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail) && form.motivation
 
@@ -472,6 +461,11 @@ export default function VendrePage() {
           setForm({
             address: '', city: '', canton: '', postalCode: '', lat: undefined, lng: undefined,
             propertyType: '', rooms: '', bedrooms: '', surface: '', condition: '', yearBuilt: '',
+            floor: '', ppeCharges: '', hasBalcony: false, balconySurface: '',
+            landSurface: '', parkingSpaces: '', hasGarden: false,
+            hasPool: false, viewType: '',
+            landZone: '', cosIus: '',
+            commercialType: '', annualRent: '', isOccupied: '',
             photos: [], photoUrls: [],
             contactName: '', contactEmail: '', contactPhone: '', motivation: '',
           })
