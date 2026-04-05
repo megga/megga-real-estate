@@ -715,15 +715,6 @@ export default function VendrePage() {
                 )}
               </div>
 
-              {/* Address confirmation */}
-              {false && form.canton && (
-                <div className="flex flex-wrap gap-2">
-                  <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                    {form.city}
-                  </span>
-                </div>
-              )}
-
               {/* Navigation */}
               <div className="flex items-center justify-between pt-2">
                 <button
