@@ -459,7 +459,7 @@ export default function HelpChatbot() {
 
   function handleAccept() {
     setAccepted(true)
-    try { localStorage.setItem('megga-chat-accepted', 'true') } catch {}
+    try { localStorage.setItem('megga-chat-accepted', 'true') } catch { /* ignore */ }
     const id = generateConversationId()
     setConversationId(id)
     saveConversation(id)
