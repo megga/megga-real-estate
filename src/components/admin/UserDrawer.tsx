@@ -1,17 +1,19 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { X, Mail, Phone, Building2, Clock, Eye } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity } from '@/hooks/useAdminUsers'
 import { useImpersonate } from '@/hooks/useImpersonate'
 
 const ROLE_OPTIONS = [
-  { value: 'super_admin', label: 'Super Admin' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'agent', label: 'Agent' },
-  { value: 'assistant', label: 'Assistant' },
+  { value: 'super_admin', i18nKey: 'common.role.superAdmin' },
+  { value: 'admin', i18nKey: 'common.role.admin' },
+  { value: 'manager', i18nKey: 'common.role.manager' },
+  { value: 'agent', i18nKey: 'common.role.agent' },
+  { value: 'assistant', i18nKey: 'common.role.assistant' },
 ]
 
 interface UserDrawerProps {
@@ -44,11 +46,13 @@ function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
 }
 
 export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
+  const { t } = useTranslation('admin')
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
   const { startImpersonate } = useImpersonate()
 
   const user = users.find(u => u.id === userId)
+  const focusTrapRef = useFocusTrap(true)
 
   // Close on Escape
   useEffect(() => {
@@ -70,7 +74,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex justify-end">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex justify-end">
       {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -78,11 +82,11 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
       />
 
       {/* Drawer panel */}
-      <div className="relative w-[380px] max-w-full bg-theme-card border-l border-theme-border h-full overflow-y-auto scrollbar-hide">
+      <div ref={focusTrapRef} className="relative w-[380px] max-w-full bg-theme-card border-l border-theme-border h-full overflow-y-auto scrollbar-hide">
         {/* Close button */}
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('userDrawer.close')}
           className="absolute top-4 right-4 p-1.5 rounded-md text-theme-secondary hover:text-theme-primary transition-colors"
         >
           <X className="h-4 w-4" />
@@ -90,7 +94,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
         {!user ? (
           <div className="px-6 py-16 text-center">
-            <p className="text-sm text-theme-tertiary">Utilisateur introuvable</p>
+            <p className="text-sm text-theme-tertiary">{t('userDrawer.notFound')}</p>
           </div>
         ) : (
           <div className="px-6 py-6 space-y-6">
@@ -98,7 +102,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
             <div className="flex flex-col items-center text-center pt-2">
               <UserAvatar name={user.full_name ?? 'Utilisateur'} avatarUrl={user.avatar_url} />
               <h2 className="text-lg font-semibold text-theme-primary mt-3">
-                {user.full_name ?? 'Sans nom'}
+                {user.full_name ?? t('common.noName')}
               </h2>
               <p className="text-sm text-theme-secondary mt-0.5">{user.email}</p>
             </div>
@@ -108,23 +112,23 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
               {/* Phone */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <Phone className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">Telephone</span>
+                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.phone')}</span>
                 <span className="text-sm text-theme-primary">
-                  {user.phone || <span className="text-theme-tertiary">Non renseigne</span>}
+                  {user.phone || <span className="text-theme-tertiary">{t('common.notProvided')}</span>}
                 </span>
               </div>
 
               {/* Email */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <Mail className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">Email</span>
+                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.email')}</span>
                 <span className="text-sm text-theme-primary truncate">{user.email}</span>
               </div>
 
               {/* Agency */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <Building2 className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">Agence</span>
+                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.agency')}</span>
                 {user.agency_name && user.agency_id ? (
                   <Link
                     to={`/dashboard/admin/agencies/${user.agency_id}`}
@@ -134,14 +138,14 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                     {user.agency_name}
                   </Link>
                 ) : (
-                  <span className="text-sm text-theme-tertiary">Aucune</span>
+                  <span className="text-sm text-theme-tertiary">{t('common.none')}</span>
                 )}
               </div>
 
               {/* Created at */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <Clock className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">Inscription</span>
+                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.registration')}</span>
                 <span className="text-sm text-theme-primary">
                   {formatRelativeDate(user.created_at)}
                 </span>
@@ -151,7 +155,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
             {/* Role selector */}
             <div>
               <label className="text-xs font-medium text-theme-secondary mb-1.5 block">
-                Role
+                {t('userDrawer.role')}
               </label>
               <select
                 value={user.role ?? 'agent'}
@@ -165,11 +169,11 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 )}
               >
                 {ROLE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>{t(opt.i18nKey)}</option>
                 ))}
               </select>
               {updateRole.isError && (
-                <p className="text-xs text-red-500 mt-1">Erreur lors de la mise a jour du role</p>
+                <p className="text-xs text-red-500 mt-1">{t('userDrawer.roleUpdateError')}</p>
               )}
             </div>
 
@@ -189,12 +193,12 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
               className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-admin-accent/30 text-admin-accent rounded-lg hover:bg-admin-accent/5 transition-colors"
             >
               <Eye className="h-4 w-4" />
-              Se connecter en tant que
+              {t('userDrawer.impersonate')}
             </button>
 
             {/* Activity timeline */}
             <div>
-              <h3 className="text-xs font-medium text-theme-secondary mb-3">Activite recente</h3>
+              <h3 className="text-xs font-medium text-theme-secondary mb-3">{t('userDrawer.recentActivity')}</h3>
 
               {activityLoading ? (
                 <div className="space-y-2">
@@ -209,7 +213,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                   ))}
                 </div>
               ) : !activity || activity.length === 0 ? (
-                <p className="text-xs text-theme-tertiary py-4 text-center">Aucune activite recente</p>
+                <p className="text-xs text-theme-tertiary py-4 text-center">{t('userDrawer.noActivity')}</p>
               ) : (
                 <div className="space-y-0.5">
                   {activity.map((event) => (
@@ -222,10 +226,10 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                         <p className="text-xs text-theme-primary">
                           <span className="font-medium">{event.action}</span>
                           {event.entity_type && (
-                            <span className="text-theme-secondary"> sur {event.entity_type}</span>
+                            <span className="text-theme-secondary"> {t('userDrawer.actionOn')} {event.entity_type}</span>
                           )}
                         </p>
-                        <p className="text-[11px] text-theme-tertiary mt-0.5">
+                        <p className="text-xs text-theme-tertiary mt-0.5">
                           {formatRelativeDate(event.created_at)}
                         </p>
                       </div>

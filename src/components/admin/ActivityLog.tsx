@@ -1,25 +1,26 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Users, Home, GitBranch, ShieldCheck, Mail, Calendar, Shuffle, Building2, Activity } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useActivityLog, type ActivityLogEntry } from '@/hooks/useActivityLog'
 
-const ACTION_LABELS: Record<string, string> = {
-  contact_created: 'Contact cree',
-  contact_updated: 'Contact mis a jour',
-  property_created: 'Bien cree',
-  property_updated: 'Bien mis a jour',
-  transaction_created: 'Transaction creee',
-  transaction_stage_change: 'Etape pipeline changee',
-  kyc_created: 'Dossier KYC cree',
-  kyc_screening_match: 'Alerte PEP/Sanctions',
-  kyc_validated: 'KYC valide',
-  email_sent: 'Email envoye',
-  visit_created: 'Visite planifiee',
-  match_created: 'Match cree',
-  match_sent: 'Match envoye',
-  agency_created: 'Agence inscrite',
-  subscription_cancelled: 'Abonnement annule',
-  edge_function_error: 'Erreur systeme',
+const ACTION_LABEL_KEYS: Record<string, string> = {
+  contact_created: 'activityLog.action.contactCreated',
+  contact_updated: 'activityLog.action.contactUpdated',
+  property_created: 'activityLog.action.propertyCreated',
+  property_updated: 'activityLog.action.propertyUpdated',
+  transaction_created: 'activityLog.action.transactionCreated',
+  transaction_stage_change: 'activityLog.action.pipelineChanged',
+  kyc_created: 'activityLog.action.kycCreated',
+  kyc_screening_match: 'activityLog.action.kycScreeningMatch',
+  kyc_validated: 'activityLog.action.kycValidated',
+  email_sent: 'activityLog.action.emailSent',
+  visit_created: 'activityLog.action.visitCreated',
+  match_created: 'activityLog.action.matchCreated',
+  match_sent: 'activityLog.action.matchSent',
+  agency_created: 'activityLog.action.agencyCreated',
+  subscription_cancelled: 'activityLog.action.subscriptionCancelled',
+  edge_function_error: 'activityLog.action.systemError',
 }
 
 const ENTITY_ICONS: Record<string, React.ElementType> = {
@@ -33,14 +34,14 @@ const ENTITY_ICONS: Record<string, React.ElementType> = {
   agency: Building2,
 }
 
-function groupByDate(entries: ActivityLogEntry[]): { label: string; items: ActivityLogEntry[] }[] {
+function groupByDate(entries: ActivityLogEntry[], todayLabel: string, yesterdayLabel: string): { label: string; items: ActivityLogEntry[] }[] {
   const groups: Record<string, ActivityLogEntry[]> = {}
   const today = new Date().toDateString()
   const yesterday = new Date(Date.now() - 86400000).toDateString()
 
   for (const entry of entries) {
     const d = new Date(entry.created_at).toDateString()
-    const label = d === today ? "Aujourd'hui" : d === yesterday ? 'Hier' : new Date(entry.created_at).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' })
+    const label = d === today ? todayLabel : d === yesterday ? yesterdayLabel : new Date(entry.created_at).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' })
     if (!groups[label]) groups[label] = []
     groups[label].push(entry)
   }
@@ -48,31 +49,32 @@ function groupByDate(entries: ActivityLogEntry[]): { label: string; items: Activ
   return Object.entries(groups).map(([label, items]) => ({ label, items }))
 }
 
-const ACTION_TYPES = [
-  { value: '', label: 'Tous' },
-  { value: 'contact_created', label: 'Contacts' },
-  { value: 'property_created', label: 'Biens' },
-  { value: 'transaction_stage_change', label: 'Pipeline' },
-  { value: 'kyc_screening_match', label: 'KYC' },
-  { value: 'email_sent', label: 'Emails' },
-  { value: 'edge_function_error', label: 'Erreurs' },
+const ACTION_TYPE_KEYS = [
+  { value: '', key: 'activityLog.filter.all' },
+  { value: 'contact_created', key: 'activityLog.filter.contacts' },
+  { value: 'property_created', key: 'activityLog.filter.properties' },
+  { value: 'transaction_stage_change', key: 'activityLog.filter.pipeline' },
+  { value: 'kyc_screening_match', key: 'activityLog.filter.kyc' },
+  { value: 'email_sent', key: 'activityLog.filter.emails' },
+  { value: 'edge_function_error', key: 'activityLog.filter.errors' },
 ]
 
 export default function ActivityLog() {
+  const { t } = useTranslation('admin')
   const [actionFilter, setActionFilter] = useState('')
   const [limit, setLimit] = useState(50)
   const { data: entries, isLoading } = useActivityLog({ action: actionFilter || undefined, limit })
 
-  const grouped = groupByDate(entries ?? [])
+  const grouped = groupByDate(entries ?? [], t('common.today'), t('common.yesterday'))
 
   return (
     <div className="rounded-xl border border-theme-border p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-theme-primary">Activite plateforme</h2>
+          <h2 className="text-sm font-semibold text-theme-primary">{t('activityLog.title')}</h2>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] text-emerald-600 font-medium">Temps reel</span>
+            <span className="text-xs text-emerald-600 font-medium">{t('activityLog.realtime')}</span>
           </div>
         </div>
         <select
@@ -80,8 +82,8 @@ export default function ActivityLog() {
           onChange={e => setActionFilter(e.target.value)}
           className="h-8 px-2 pr-7 text-xs bg-transparent border border-theme-border rounded-lg text-theme-secondary focus:outline-none appearance-none"
         >
-          {ACTION_TYPES.map(t => (
-            <option key={t.value} value={t.value}>{t.label}</option>
+          {ACTION_TYPE_KEYS.map(at => (
+            <option key={at.value} value={at.value}>{t(at.key)}</option>
           ))}
         </select>
       </div>
@@ -97,16 +99,16 @@ export default function ActivityLog() {
           ))}
         </div>
       ) : (entries ?? []).length === 0 ? (
-        <p className="text-sm text-theme-secondary py-8 text-center">Aucune activite recente</p>
+        <p className="text-sm text-theme-secondary py-8 text-center">{t('activityLog.noActivity')}</p>
       ) : (
         <div className="space-y-4">
           {grouped.map(group => (
             <div key={group.label}>
-              <p className="text-[10px] uppercase tracking-wider text-theme-tertiary font-medium mb-2">{group.label}</p>
+              <p className="text-xs tracking-wide text-theme-tertiary font-medium mb-2">{group.label}</p>
               <div className="space-y-0.5">
                 {group.items.map((entry, i) => {
                   const Icon = ENTITY_ICONS[entry.entity_type] ?? Activity
-                  const label = ACTION_LABELS[entry.action] ?? entry.action
+                  const label = ACTION_LABEL_KEYS[entry.action] ? t(ACTION_LABEL_KEYS[entry.action]) : entry.action
                   const isError = entry.action.includes('error')
                   return (
                     <div key={entry.id} className="flex items-center gap-3 py-1.5 group">
@@ -134,7 +136,7 @@ export default function ActivityLog() {
               onClick={() => setLimit(l => l + 50)}
               className="w-full h-9 text-sm font-medium text-theme-secondary border border-theme-border rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors"
             >
-              Charger plus
+              {t('activityLog.loadMore')}
             </button>
           )}
         </div>

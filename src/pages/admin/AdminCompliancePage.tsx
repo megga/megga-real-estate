@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Search, ShieldCheck, AlertTriangle, FileCheck, Clock, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
@@ -10,43 +11,7 @@ import PageTransition from '@/components/layout/PageTransition'
 
 const ITEMS_PER_PAGE = 10
 
-const TABS = [
-  { value: 'risk', label: 'A risque' },
-  { value: 'pending', label: 'En cours' },
-  { value: 'validated', label: 'Valides' },
-  { value: 'all', label: 'Tous' },
-] as const
-
-type TabValue = (typeof TABS)[number]['value']
-
-const TYPE_LABEL: Record<string, string> = {
-  buyer_pp: 'PP',
-  buyer_pm: 'PM',
-  seller_pp: 'PP',
-  seller_pm: 'PM',
-}
-
-const TYPE_FULL: Record<string, string> = {
-  buyer_pp: 'Acheteur PP',
-  buyer_pm: 'Acheteur PM',
-  seller_pp: 'Vendeur PP',
-  seller_pm: 'Vendeur PM',
-}
-
-const RISK_LABEL: Record<string, string> = {
-  low: 'Faible',
-  medium: 'Moyen',
-  high: 'Eleve',
-  unassessed: 'Non evalue',
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'En attente',
-  in_progress: 'En cours',
-  review: 'En revue',
-  validated: 'Valide',
-  rejected: 'Rejete',
-}
+type TabValue = 'risk' | 'pending' | 'validated' | 'all'
 
 function riskDotColor(level: string): string {
   switch (level) {
@@ -102,22 +67,24 @@ function SkeletonRows() {
 }
 
 function EmptyState({ tab }: { tab: TabValue }) {
+  const { t } = useTranslation('admin')
+
   const messages: Record<TabValue, { title: string; subtitle: string }> = {
     risk: {
-      title: 'Aucun dossier a risque',
-      subtitle: 'Aucun dossier avec un risque eleve ou alerte PEP',
+      title: t('compliance.empty.risk.title'),
+      subtitle: t('compliance.empty.risk.subtitle'),
     },
     pending: {
-      title: 'Aucun dossier en cours',
-      subtitle: 'Tous les dossiers ont ete traites',
+      title: t('compliance.empty.pending.title'),
+      subtitle: t('compliance.empty.pending.subtitle'),
     },
     validated: {
-      title: 'Aucun dossier valide',
-      subtitle: 'Les dossiers valides apparaitront ici',
+      title: t('compliance.empty.validated.title'),
+      subtitle: t('compliance.empty.validated.subtitle'),
     },
     all: {
-      title: 'Aucun dossier KYC',
-      subtitle: 'Les dossiers de compliance apparaitront ici',
+      title: t('compliance.empty.all.title'),
+      subtitle: t('compliance.empty.all.subtitle'),
     },
   }
 
@@ -147,10 +114,47 @@ function CompletionBar({ value }: { value: number }) {
 }
 
 export default function AdminCompliancePage() {
+  const { t } = useTranslation('admin')
   const { cases, isLoading, stats, statsLoading } = useAdminCompliance()
   const [tab, setTab] = useState<TabValue>('all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+
+  const TABS: { value: TabValue; label: string }[] = [
+    { value: 'risk', label: t('compliance.tab.atRisk') },
+    { value: 'pending', label: t('compliance.tab.pending') },
+    { value: 'validated', label: t('compliance.tab.validated') },
+    { value: 'all', label: t('compliance.tab.all') },
+  ]
+
+  const TYPE_LABEL: Record<string, string> = {
+    buyer_pp: 'PP',
+    buyer_pm: 'PM',
+    seller_pp: 'PP',
+    seller_pm: 'PM',
+  }
+
+  const TYPE_FULL: Record<string, string> = {
+    buyer_pp: t('compliance.type.buyerPP'),
+    buyer_pm: t('compliance.type.buyerPM'),
+    seller_pp: t('compliance.type.sellerPP'),
+    seller_pm: t('compliance.type.sellerPM'),
+  }
+
+  const RISK_LABEL: Record<string, string> = {
+    low: t('common.risk.low'),
+    medium: t('common.risk.medium'),
+    high: t('common.risk.high'),
+    unassessed: t('common.risk.unassessed'),
+  }
+
+  const STATUS_LABEL: Record<string, string> = {
+    pending: t('common.status.pending'),
+    in_progress: t('common.status.inProgress'),
+    review: t('common.status.review'),
+    validated: t('common.status.validated'),
+    rejected: t('common.status.rejected'),
+  }
 
   const filtered = useMemo(() => {
     let list = filterCases(cases, tab)
@@ -178,11 +182,11 @@ export default function AdminCompliancePage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">Admin MEGGA</span>
+              <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
             </div>
-            <h1 className="text-2xl font-semibold text-theme-primary">Compliance</h1>
+            <h1 className="text-2xl font-semibold text-theme-primary">{t('compliance.title')}</h1>
             <p className="text-sm text-theme-tertiary mt-0.5">
-              {isLoading ? 'Chargement...' : `${cases.length} dossier${cases.length !== 1 ? 's' : ''} KYC`}
+              {isLoading ? t('common.loading') : t('compliance.subtitle', { count: cases.length })}
             </p>
           </div>
           <button
@@ -193,30 +197,30 @@ export default function AdminCompliancePage() {
             className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Exporter
+            {t('common.export')}
           </button>
         </div>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <AdminKpiCard
-            label="Dossiers total"
+            label={t('compliance.kpi.total')}
             value={statsLoading ? '...' : (stats?.total ?? 0)}
             icon={FileCheck}
           />
           <AdminKpiCard
-            label="En attente"
+            label={t('compliance.kpi.pending')}
             value={statsLoading ? '...' : (stats?.pending ?? 0)}
             icon={Clock}
           />
           <AdminKpiCard
-            label="Alertes PEP"
+            label={t('compliance.kpi.pepAlerts')}
             value={statsLoading ? '...' : (stats?.pepMatches ?? 0)}
             icon={AlertTriangle}
             variant={stats && stats.pepMatches > 0 ? 'danger' : 'default'}
           />
           <AdminKpiCard
-            label="Taux completion"
+            label={t('compliance.kpi.completionRate')}
             value={statsLoading ? '...' : `${stats?.avgCompletion ?? 0}%`}
             icon={ShieldCheck}
           />
@@ -225,18 +229,18 @@ export default function AdminCompliancePage() {
         {/* Tabs + Search */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
-            {TABS.map((t) => (
+            {TABS.map((tb) => (
               <button
-                key={t.value}
-                onClick={() => { setTab(t.value); setPage(1) }}
+                key={tb.value}
+                onClick={() => { setTab(tb.value); setPage(1) }}
                 className={cn(
                   'h-9 px-4 rounded-lg text-sm transition-colors',
-                  tab === t.value
+                  tab === tb.value
                     ? 'bg-theme-active text-theme-primary font-medium'
                     : 'text-theme-secondary hover:text-theme-primary'
                 )}
               >
-                {t.label}
+                {tb.label}
               </button>
             ))}
           </div>
@@ -245,7 +249,7 @@ export default function AdminCompliancePage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
             <input
               type="text"
-              placeholder="Rechercher par nom ou agence..."
+              placeholder={t('compliance.searchPlaceholder')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -257,7 +261,7 @@ export default function AdminCompliancePage() {
         <div className="md:hidden space-y-2">
           {isLoading ? (
             <div className="px-4 py-12 text-center">
-              <p className="text-sm text-theme-tertiary">Chargement...</p>
+              <p className="text-sm text-theme-tertiary">{t('common.loading')}</p>
             </div>
           ) : paginated.length === 0 ? (
             <EmptyState tab={tab} />
@@ -271,7 +275,7 @@ export default function AdminCompliancePage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-theme-primary truncate">{c.contact_name}</p>
-                    <span className="text-[10px] font-medium text-theme-tertiary border border-theme-border rounded px-1.5 py-0.5">
+                    <span className="text-xs font-medium text-theme-tertiary border border-theme-border rounded px-1.5 py-0.5">
                       {TYPE_LABEL[c.type] ?? c.type}
                     </span>
                   </div>
@@ -297,15 +301,15 @@ export default function AdminCompliancePage() {
         {/* Desktop: table */}
         <div className="hidden md:block rounded-xl border border-theme-border">
           {/* Header row */}
-          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-            <span className="flex-1 min-w-0">Contact</span>
-            <span className="w-28">Agence</span>
-            <span className="w-20">Type</span>
-            <span className="w-24">Risque</span>
-            <span className="w-14 text-center">PEP</span>
-            <span className="w-28">Completion</span>
-            <span className="w-20 text-center">Statut</span>
-            <span className="w-24">Date</span>
+          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
+            <span className="flex-1 min-w-0">{t('compliance.table.contact')}</span>
+            <span className="w-28">{t('compliance.table.agency')}</span>
+            <span className="w-20">{t('compliance.table.type')}</span>
+            <span className="w-24">{t('compliance.table.risk')}</span>
+            <span className="w-14 text-center">{t('compliance.table.pep')}</span>
+            <span className="w-28">{t('compliance.table.completion')}</span>
+            <span className="w-20 text-center">{t('compliance.table.status')}</span>
+            <span className="w-24">{t('compliance.table.date')}</span>
           </div>
 
           {/* Rows */}
@@ -337,7 +341,7 @@ export default function AdminCompliancePage() {
 
                 {/* Type badge */}
                 <span className="w-20">
-                  <span className="text-[10px] font-medium text-theme-secondary border border-theme-border rounded px-1.5 py-0.5">
+                  <span className="text-xs font-medium text-theme-secondary border border-theme-border rounded px-1.5 py-0.5">
                     {TYPE_LABEL[c.type] ?? c.type}
                   </span>
                 </span>
@@ -390,12 +394,13 @@ export default function AdminCompliancePage() {
           {filtered.length > ITEMS_PER_PAGE && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-theme-border">
               <p className="text-xs text-theme-tertiary">
-                {(safePage - 1) * ITEMS_PER_PAGE + 1}&ndash;{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} sur {filtered.length}
+                {(safePage - 1) * ITEMS_PER_PAGE + 1}&ndash;{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('common.on')} {filtered.length}
               </p>
               <div className="flex items-center gap-1">
                 <button
                   onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)) }}
                   disabled={safePage <= 1}
+                  aria-label={t('common.previousPage')}
                   className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -423,6 +428,7 @@ export default function AdminCompliancePage() {
                 <button
                   onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)) }}
                   disabled={safePage >= totalPages}
+                  aria-label={t('common.nextPage')}
                   className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -440,7 +446,7 @@ export default function AdminCompliancePage() {
               disabled={safePage <= 1}
               className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
             >
-              Precedent
+              {t('common.previous')}
             </button>
             <span className="text-xs text-theme-tertiary">{safePage}/{totalPages}</span>
             <button
@@ -448,7 +454,7 @@ export default function AdminCompliancePage() {
               disabled={safePage >= totalPages}
               className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
             >
-              Suivant
+              {t('common.next')}
             </button>
           </div>
         )}

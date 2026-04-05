@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, Building2, Users, Home, MessageSquare, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminSearch, type AdminSearchResult } from '@/hooks/useAdminSearch'
@@ -10,19 +12,21 @@ interface AdminSearchDialogProps {
   onClose: () => void
 }
 
-const TYPE_META: Record<AdminSearchResult['type'], { icon: React.ElementType; label: string }> = {
-  agency: { icon: Building2, label: 'Agences' },
-  user: { icon: Users, label: 'Utilisateurs' },
-  property: { icon: Home, label: 'Biens' },
-  ticket: { icon: MessageSquare, label: 'Tickets' },
+const TYPE_META: Record<AdminSearchResult['type'], { icon: React.ElementType; i18nKey: string }> = {
+  agency: { icon: Building2, i18nKey: 'search.type.agencies' },
+  user: { icon: Users, i18nKey: 'search.type.users' },
+  property: { icon: Home, i18nKey: 'search.type.properties' },
+  ticket: { icon: MessageSquare, i18nKey: 'search.type.tickets' },
 }
 
 export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogProps) {
   'use no memo'
+  const { t } = useTranslation('admin')
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { results, loading } = useAdminSearch(query)
+  const focusTrapRef = useFocusTrap(open)
 
   // Auto-focus input when dialog opens
   useEffect(() => {
@@ -57,7 +61,7 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]">
       {/* Overlay */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -65,7 +69,7 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
       />
 
       {/* Dialog */}
-      <div className="relative bg-theme-card rounded-xl border border-theme-border w-full max-w-lg mx-4 overflow-hidden">
+      <div ref={focusTrapRef} className="relative bg-theme-card rounded-xl border border-theme-border w-full max-w-lg mx-4 overflow-hidden">
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 h-12 border-b border-theme-border">
           {loading ? (
@@ -78,10 +82,10 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Rechercher agences, utilisateurs, biens..."
+            placeholder={t('search.placeholder')}
             className="flex-1 bg-transparent text-theme-primary text-sm placeholder:text-theme-muted outline-none"
           />
-          <kbd className="text-[10px] bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">
+          <kbd className="text-xs bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">
             Esc
           </kbd>
         </div>
@@ -90,13 +94,13 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
         <div className="max-h-80 overflow-y-auto scrollbar-hide">
           {query.length >= 2 && results.length === 0 && !loading && (
             <div className="px-4 py-8 text-center text-sm text-theme-muted">
-              Aucun resultat
+              {t('search.noResult')}
             </div>
           )}
 
           {query.length < 2 && (
             <div className="px-4 py-8 text-center text-sm text-theme-muted">
-              Tapez au moins 2 caracteres
+              {t('search.minChars')}
             </div>
           )}
 
@@ -108,8 +112,8 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
             return (
               <div key={type}>
                 <div className="px-4 pt-3 pb-1">
-                  <span className="text-[10px] uppercase tracking-wider text-theme-tertiary font-medium">
-                    {meta.label}
+                  <span className="text-xs tracking-wide text-theme-tertiary font-medium">
+                    {t(meta.i18nKey)}
                   </span>
                 </div>
                 {items.map(item => {

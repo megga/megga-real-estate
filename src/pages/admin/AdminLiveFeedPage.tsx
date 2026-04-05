@@ -1,34 +1,31 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Radio, Pause, Play, Filter, ChevronDown } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminLiveFeed, type LiveEvent } from '@/hooks/useAdminLiveFeed'
 
 // ─── ACTION LABELS ─────────────────────────────────────────────────────────
 
-const ACTION_LABELS: Record<string, string> = {
-  contact_created: 'Contact cree',
-  contact_updated: 'Contact modifie',
-  property_created: 'Bien cree',
-  property_updated: 'Bien modifie',
-  transaction_stage_change: 'Pipeline change',
-  transaction_created: 'Transaction creee',
-  kyc_screening_match: 'Alerte PEP/Sanctions',
-  kyc_case_created: 'Dossier KYC cree',
-  kyc_case_validated: 'KYC valide',
-  email_sent: 'Email envoye',
-  visit_created: 'Visite planifiee',
-  visit_completed: 'Visite effectuee',
-  match_created: 'Match cree',
-  match_sent: 'Match envoye',
-  agency_created: 'Agence inscrite',
-  edge_function_error: 'Erreur systeme',
-  document_uploaded: 'Document uploade',
-  login: 'Connexion',
-  logout: 'Deconnexion',
-}
-
-function getActionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action.replace(/_/g, ' ')
+const ACTION_KEYS: Record<string, string> = {
+  contact_created: 'liveFeed.action.contactCreated',
+  contact_updated: 'liveFeed.action.contactUpdated',
+  property_created: 'liveFeed.action.propertyCreated',
+  property_updated: 'liveFeed.action.propertyUpdated',
+  transaction_stage_change: 'liveFeed.action.pipelineChanged',
+  transaction_created: 'liveFeed.action.transactionCreated',
+  kyc_screening_match: 'liveFeed.action.kycScreeningMatch',
+  kyc_case_created: 'liveFeed.action.kycCaseCreated',
+  kyc_case_validated: 'liveFeed.action.kycValidated',
+  email_sent: 'liveFeed.action.emailSent',
+  visit_created: 'liveFeed.action.visitCreated',
+  visit_completed: 'liveFeed.action.visitCompleted',
+  match_created: 'liveFeed.action.matchCreated',
+  match_sent: 'liveFeed.action.matchSent',
+  agency_created: 'liveFeed.action.agencyCreated',
+  edge_function_error: 'liveFeed.action.systemError',
+  document_uploaded: 'liveFeed.action.documentUploaded',
+  login: 'liveFeed.action.login',
+  logout: 'liveFeed.action.logout',
 }
 
 // ─── ENTITY TYPE COLORS ────────────────────────────────────────────────────
@@ -38,28 +35,28 @@ const ENTITY_COLORS: Record<string, string> = {
   property: 'bg-emerald-500',
   transaction: 'bg-amber-500',
   kyc: 'bg-red-500',
-  email: 'bg-gray-400',
+  email: 'bg-theme-muted',
   visit: 'bg-cyan-500',
   match: 'bg-admin-accent',
   agency: 'bg-purple-500',
 }
 
 function getEntityColor(entityType: string): string {
-  return ENTITY_COLORS[entityType] ?? 'bg-gray-300'
+  return ENTITY_COLORS[entityType] ?? 'bg-theme-muted'
 }
 
 // ─── ALL ENTITY TYPES FOR FILTER ───────────────────────────────────────────
 
-const ENTITY_TYPES = [
-  { value: 'all', label: 'Tous' },
-  { value: 'contact', label: 'Contacts' },
-  { value: 'property', label: 'Biens' },
-  { value: 'transaction', label: 'Transactions' },
-  { value: 'kyc', label: 'KYC' },
-  { value: 'email', label: 'Emails' },
-  { value: 'visit', label: 'Visites' },
-  { value: 'match', label: 'Matchs' },
-  { value: 'agency', label: 'Agences' },
+const ENTITY_TYPE_KEYS: Array<{ value: string; labelKey: string }> = [
+  { value: 'all', labelKey: 'liveFeed.entityType.all' },
+  { value: 'contact', labelKey: 'liveFeed.entityType.contacts' },
+  { value: 'property', labelKey: 'liveFeed.entityType.properties' },
+  { value: 'transaction', labelKey: 'liveFeed.entityType.transactions' },
+  { value: 'kyc', labelKey: 'liveFeed.entityType.kyc' },
+  { value: 'email', labelKey: 'liveFeed.entityType.emails' },
+  { value: 'visit', labelKey: 'liveFeed.entityType.visits' },
+  { value: 'match', labelKey: 'liveFeed.entityType.matches' },
+  { value: 'agency', labelKey: 'liveFeed.entityType.agencies' },
 ]
 
 // ─── HELPER: format HH:MM:SS ───────────────────────────────────────────────
@@ -86,7 +83,7 @@ function summarizeMetadata(metadata: Record<string, unknown>): string {
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-xl border border-theme-border p-4">
-      <span className="text-[10px] font-medium text-theme-secondary uppercase">{label}</span>
+      <span className="text-xs font-medium text-theme-secondary tracking-wide">{label}</span>
       <p className="text-lg font-bold text-theme-primary mt-1">{value}</p>
     </div>
   )
@@ -94,13 +91,16 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 
 // ─── EVENT ROW ──────────────────────────────────────────────────────────────
 
-function EventRow({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
+function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: boolean; getActionLabel: (action: string) => string }) {
   const [expanded, setExpanded] = useState(false)
   const metaSummary = summarizeMetadata(event.metadata)
   const hasMetadata = metaSummary.length > 0
 
   return (
     <div
+      role={hasMetadata ? 'button' : undefined}
+      tabIndex={hasMetadata ? 0 : undefined}
+      onKeyDown={hasMetadata ? (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded) } } : undefined}
       className={cn(
         'border-b border-theme-border-subtle hover:bg-theme-hover transition-colors',
         hasMetadata && 'cursor-pointer',
@@ -123,7 +123,7 @@ function EventRow({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
         </span>
 
         {/* Entity type badge */}
-        <span className="text-[10px] font-mono text-theme-secondary bg-theme-hover px-2 py-0.5 rounded shrink-0">
+        <span className="text-xs font-mono text-theme-secondary bg-theme-hover px-2 py-0.5 rounded shrink-0">
           {event.entity_type}
         </span>
 
@@ -144,7 +144,7 @@ function EventRow({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
       {/* Expanded metadata */}
       {expanded && hasMetadata && (
         <div className="px-4 pb-3 pl-[100px]" onClick={(e) => e.stopPropagation()}>
-          <pre className="text-[11px] font-mono text-theme-secondary bg-theme-section rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
+          <pre className="text-xs font-mono text-theme-secondary bg-theme-section rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
             {JSON.stringify(event.metadata, null, 2)}
           </pre>
         </div>
@@ -156,12 +156,18 @@ function EventRow({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
 // ─── MAIN PAGE ──────────────────────────────────────────────────────────────
 
 export default function AdminLiveFeedPage() {
+  const { t } = useTranslation('admin')
   const { events, isLoading } = useAdminLiveFeed(100)
   const [paused, setPaused] = useState(false)
   const [entityFilter, setEntityFilter] = useState('all')
   const [actionFilter, setActionFilter] = useState('')
   const feedRef = useRef<HTMLDivElement>(null)
   const [prevCount, setPrevCount] = useState(0)
+
+  function getActionLabel(action: string): string {
+    const key = ACTION_KEYS[action]
+    return key ? t(key) : action.replace(/_/g, ' ')
+  }
 
   // Track new events for animation
   const newEventIds = useRef(new Set<string>())
@@ -195,6 +201,7 @@ export default function AdminLiveFeedPage() {
       e.action.toLowerCase().includes(q) ||
       getActionLabel(e.action).toLowerCase().includes(q)
     )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredByEntity, actionFilter])
 
   // Unique action types for dropdown
@@ -204,14 +211,18 @@ export default function AdminLiveFeedPage() {
   }, [events])
 
   // Stats
-  const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+  const { todayCount, hourCount, uniqueTypes, lastEvent } = useMemo(() => {
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
 
-  const todayCount = events.filter(e => new Date(e.created_at) >= todayStart).length
-  const hourCount = events.filter(e => new Date(e.created_at) >= oneHourAgo).length
-  const uniqueTypes = new Set(events.map(e => e.action)).size
-  const lastEvent = events[0] ? formatRelativeDate(events[0].created_at) : '-'
+    return {
+      todayCount: events.filter(e => new Date(e.created_at) >= todayStart).length,
+      hourCount: events.filter(e => new Date(e.created_at) >= oneHourAgo).length,
+      uniqueTypes: new Set(events.map(e => e.action)).size,
+      lastEvent: events[0] ? formatRelativeDate(events[0].created_at) : '-',
+    }
+  }, [events])
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -219,19 +230,19 @@ export default function AdminLiveFeedPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="h-8 px-3 rounded-lg bg-admin-accent/10 flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-semibold text-admin-accent">Admin MEGGA</span>
+          <span className="text-xs font-semibold text-admin-accent">{t('common.adminBadge')}</span>
         </div>
-        <h1 className="text-xl font-semibold text-theme-primary">Live Feed</h1>
+        <h1 className="text-xl font-semibold text-theme-primary">{t('liveFeed.title')}</h1>
         <div className="flex items-center gap-1.5 ml-1">
           <span className={cn(
             'w-2 h-2 rounded-full',
             paused ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'
           )} />
           <span className={cn(
-            'text-[10px] font-medium',
+            'text-xs font-medium',
             paused ? 'text-amber-600' : 'text-emerald-600'
           )}>
-            {paused ? 'En pause' : 'Temps reel'}
+            {paused ? t('liveFeed.paused') : t('liveFeed.realtime')}
           </span>
         </div>
         <div className="ml-auto">
@@ -240,7 +251,7 @@ export default function AdminLiveFeedPage() {
             className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
           >
             {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-            {paused ? 'Reprendre' : 'Pause'}
+            {paused ? t('liveFeed.resume') : t('liveFeed.pause')}
           </button>
         </div>
       </div>
@@ -257,10 +268,10 @@ export default function AdminLiveFeedPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Aujourd'hui" value={todayCount} />
-          <StatCard label="Cette heure" value={hourCount} />
-          <StatCard label="Types uniques" value={uniqueTypes} />
-          <StatCard label="Dernier evenement" value={lastEvent} />
+          <StatCard label={t('liveFeed.stats.today')} value={todayCount} />
+          <StatCard label={t('liveFeed.stats.thisHour')} value={hourCount} />
+          <StatCard label={t('liveFeed.stats.uniqueTypes')} value={uniqueTypes} />
+          <StatCard label={t('liveFeed.stats.lastEvent')} value={lastEvent} />
         </div>
       )}
 
@@ -268,7 +279,7 @@ export default function AdminLiveFeedPage() {
       <div className="flex items-center gap-3 flex-wrap">
         {/* Entity type pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          {ENTITY_TYPES.map((et) => (
+          {ENTITY_TYPE_KEYS.map((et) => (
             <button
               key={et.value}
               onClick={() => setEntityFilter(et.value)}
@@ -282,7 +293,7 @@ export default function AdminLiveFeedPage() {
               {et.value !== 'all' && (
                 <span className={cn('inline-block w-1.5 h-1.5 rounded-full mr-1.5', getEntityColor(et.value))} />
               )}
-              {et.label}
+              {t(et.labelKey)}
             </button>
           ))}
         </div>
@@ -296,14 +307,14 @@ export default function AdminLiveFeedPage() {
               onChange={(e) => setActionFilter(e.target.value)}
               className="h-8 pl-8 pr-3 text-xs bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-secondary appearance-none cursor-pointer"
             >
-              <option value="">Toutes les actions</option>
+              <option value="">{t('liveFeed.filter.allActions')}</option>
               {uniqueActions.map((a) => (
                 <option key={a} value={a}>{getActionLabel(a)}</option>
               ))}
             </select>
           </div>
           <span className="text-xs text-theme-muted">
-            {filteredEvents.length} evenement{filteredEvents.length !== 1 ? 's' : ''}
+            {t('liveFeed.events', { count: filteredEvents.length })}
           </span>
         </div>
       </div>
@@ -314,12 +325,12 @@ export default function AdminLiveFeedPage() {
         className="rounded-xl border border-theme-border overflow-hidden"
       >
         {/* Column headers */}
-        <div className="flex items-center gap-3 px-4 py-2 border-b border-theme-border bg-theme-section text-[10px] font-medium text-theme-tertiary uppercase">
-          <span className="w-[72px] shrink-0">Heure</span>
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-theme-border bg-theme-section text-xs font-medium text-theme-tertiary tracking-wide">
+          <span className="w-[72px] shrink-0">{t('liveFeed.column.time')}</span>
           <span className="w-2 shrink-0" />
-          <span className="min-w-[140px] shrink-0">Action</span>
-          <span className="shrink-0">Type</span>
-          <span className="flex-1">Details</span>
+          <span className="min-w-[140px] shrink-0">{t('liveFeed.column.action')}</span>
+          <span className="shrink-0">{t('liveFeed.column.type')}</span>
+          <span className="flex-1">{t('liveFeed.column.details')}</span>
         </div>
 
         {/* Events list */}
@@ -331,8 +342,8 @@ export default function AdminLiveFeedPage() {
           ) : filteredEvents.length === 0 ? (
             <div className="p-12 text-center">
               <Radio className="h-8 w-8 text-theme-tertiary mx-auto mb-3" />
-              <p className="text-sm text-theme-secondary">Aucun evenement</p>
-              <p className="text-xs text-theme-muted mt-1">Les evenements apparaitront ici en temps reel</p>
+              <p className="text-sm text-theme-secondary">{t('liveFeed.empty.title')}</p>
+              <p className="text-xs text-theme-muted mt-1">{t('liveFeed.empty.subtitle')}</p>
             </div>
           ) : (
             filteredEvents.map((event) => (
@@ -340,6 +351,7 @@ export default function AdminLiveFeedPage() {
                 key={event.id}
                 event={event}
                 isNew={newEventIds.current.has(event.id)}
+                getActionLabel={getActionLabel}
               />
             ))
           )}
