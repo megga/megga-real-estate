@@ -38,7 +38,21 @@ serve(async (req) => {
     const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
     // ── Subscriptions ──
-    const subscriptions = await stripe.subscriptions.list({ limit: 100, status: 'all' })
+    // Paginate all subscriptions (Stripe max 100 per page)
+    const allSubs: Stripe.Subscription[] = []
+    let hasMore = true
+    let startingAfter: string | undefined
+    while (hasMore) {
+      const page = await stripe.subscriptions.list({
+        limit: 100,
+        status: 'all',
+        ...(startingAfter ? { starting_after: startingAfter } : {}),
+      })
+      allSubs.push(...page.data)
+      hasMore = page.has_more
+      if (page.data.length > 0) startingAfter = page.data[page.data.length - 1].id
+    }
+    const subscriptions = { data: allSubs }
     const activeSubs = subscriptions.data.filter(s => s.status === 'active' || s.status === 'trialing')
     const canceledThisMonth = subscriptions.data.filter(s =>
       s.status === 'canceled' && s.canceled_at && new Date(s.canceled_at * 1000) >= monthStart
@@ -60,10 +74,21 @@ serve(async (req) => {
     }
 
     // ── Recent charges (payments) ──
-    const charges = await stripe.charges.list({
-      limit: 50,
-      created: { gte: Math.floor(prevMonthStart.getTime() / 1000) },
-    })
+    // Paginate all charges for the period
+    const allCharges: Stripe.Charge[] = []
+    let chargesHasMore = true
+    let chargesStartingAfter: string | undefined
+    while (chargesHasMore) {
+      const page = await stripe.charges.list({
+        limit: 100,
+        created: { gte: Math.floor(prevMonthStart.getTime() / 1000) },
+        ...(chargesStartingAfter ? { starting_after: chargesStartingAfter } : {}),
+      })
+      allCharges.push(...page.data)
+      chargesHasMore = page.has_more
+      if (page.data.length > 0) chargesStartingAfter = page.data[page.data.length - 1].id
+    }
+    const charges = { data: allCharges }
 
     const revenueThisMonth = charges.data
       .filter(c => c.paid && !c.refunded && new Date(c.created * 1000) >= monthStart)
@@ -129,7 +154,9 @@ serve(async (req) => {
         amount: c.amount / 100,
         currency: c.currency.toUpperCase(),
         status: c.refunded ? 'refunded' : c.paid ? 'succeeded' : 'failed',
-        customer_email: c.billing_details?.email ?? null,
+        customer_email: c.billing_details?.email
+          ? c.billing_details.email.replace(/^(.{2}).*@/, '$1***@')
+          : null,
         description: c.description ?? null,
         created: new Date(c.created * 1000).toISOString(),
       }))
@@ -155,7 +182,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    const status = (err as Error).message === 'Forbidden' ? 403 : 401
+    const msg = (err as Error).message
+    const status = msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500
     return new Response(JSON.stringify({ error: (err as Error).message }), {
       status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

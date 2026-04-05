@@ -17,15 +17,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Auth check
+    // Auth check — verify caller is super_admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) throw new Error('Unauthorized')
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) throw new Error('Unauthorized')
 
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (profile?.role !== 'super_admin') throw new Error('Forbidden')
+
     const { ticket_id } = await req.json()
     if (!ticket_id) throw new Error('ticket_id required')
+    if (typeof ticket_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticket_id)) {
+      throw new Error('Invalid ticket_id format')
+    }
 
     // Fetch ticket + messages + canned responses
     const [ticketRes, messagesRes, cannedRes] = await Promise.all([
@@ -111,8 +121,8 @@ Genere UNE reponse appropriee au dernier message du client. La reponse doit etre
     })
 
     if (!claudeResponse.ok) {
-      const errText = await claudeResponse.text()
-      throw new Error(`Claude API ${claudeResponse.status}: ${errText}`)
+      console.error('Claude API error:', claudeResponse.status, await claudeResponse.text())
+      throw new Error('AI service temporarily unavailable')
     }
 
     const claudeData = await claudeResponse.json()
@@ -122,8 +132,10 @@ Genere UNE reponse appropriee au dernier message du client. La reponse doit etre
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 400,
+    const msg = (err as Error).message
+    const status = msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500
+    return new Response(JSON.stringify({ error: msg }), {
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
