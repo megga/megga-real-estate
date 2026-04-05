@@ -134,13 +134,6 @@ export default function AdminCompliancePage() {
     seller_pm: 'PM',
   }
 
-  const TYPE_FULL: Record<string, string> = {
-    buyer_pp: t('compliance.type.buyerPP'),
-    buyer_pm: t('compliance.type.buyerPM'),
-    seller_pp: t('compliance.type.sellerPP'),
-    seller_pm: t('compliance.type.sellerPM'),
-  }
-
   const RISK_LABEL: Record<string, string> = {
     low: t('common.risk.low'),
     medium: t('common.risk.medium'),
@@ -157,6 +150,12 @@ export default function AdminCompliancePage() {
   }
 
   const filtered = useMemo(() => {
+    const typeFull: Record<string, string> = {
+      buyer_pp: t('compliance.type.buyerPP'),
+      buyer_pm: t('compliance.type.buyerPM'),
+      seller_pp: t('compliance.type.sellerPP'),
+      seller_pm: t('compliance.type.sellerPM'),
+    }
     let list = filterCases(cases, tab)
     if (search) {
       const q = search.toLowerCase()
@@ -164,11 +163,11 @@ export default function AdminCompliancePage() {
         c =>
           c.contact_name.toLowerCase().includes(q) ||
           (c.agency_name ?? '').toLowerCase().includes(q) ||
-          (TYPE_FULL[c.type] ?? '').toLowerCase().includes(q)
+          (typeFull[c.type] ?? '').toLowerCase().includes(q)
       )
     }
     return list
-  }, [cases, tab, search, TYPE_FULL])
+  }, [cases, tab, search, t])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
   const safePage = Math.min(page, totalPages)

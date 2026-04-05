@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useTranslation } from 'react-i18next'
@@ -22,21 +22,15 @@ export default function AdminNotificationPanel() {
   const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
   const bellRef = useRef<HTMLButtonElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
   const focusTrapRef = useFocusTrap(open)
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useAdminNotifications()
-
-  const combinedPanelRef = useCallback((node: HTMLDivElement | null) => {
-    (panelRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-    (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-  }, [focusTrapRef])
 
   // Close on outside click
   useEffect(() => {
     if (!open) return
     function handleClick(e: MouseEvent) {
       if (
-        panelRef.current && !panelRef.current.contains(e.target as Node) &&
+        focusTrapRef.current && !focusTrapRef.current.contains(e.target as Node) &&
         bellRef.current && !bellRef.current.contains(e.target as Node)
       ) {
         setOpen(false)
@@ -44,7 +38,7 @@ export default function AdminNotificationPanel() {
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+  }, [open, focusTrapRef])
 
   // Close on Escape
   useEffect(() => {
@@ -76,7 +70,7 @@ export default function AdminNotificationPanel() {
       {/* Panel (portal) */}
       {open && createPortal(
         <div
-          ref={combinedPanelRef}
+          ref={focusTrapRef}
           role="dialog"
           aria-modal="true"
           className="fixed top-14 right-4 w-[380px] max-h-[500px] bg-theme-card border border-theme-border rounded-xl z-[100] flex flex-col overflow-hidden"
