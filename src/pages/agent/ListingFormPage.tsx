@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 import {
-  ArrowLeft, ArrowRight, Check, Save, Send,
+  ArrowLeft, Check, Save, Send,
   Upload, X, GripVertical, Loader2, ChevronDown,
   Minus, Plus, MapPin, PenLine, Copy, Link2, FileText,
   Building2, Home as HomeIcon, Castle, Store, Mountain,
@@ -17,7 +17,6 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { cn, formatCHF } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
 import type { PropertyType } from '@/lib/constants'
 import ListingGenerator from '@/components/ai-copilot/ListingGenerator'
@@ -160,66 +159,6 @@ const AVAILABILITY_OPTIONS = [
   { value: 'negotiable', label: 'À convenir' },
 ] as const
 
-
-// ─── Immersive Stepper ───
-
-function Stepper({ current, completed, onStepClick }: {
-  current: number
-  completed: number[]
-  onStepClick?: (step: number) => void
-}) {
-  const totalSteps = STEPS.length
-  const completedCount = completed.length
-  const progressPct = Math.round(((completedCount + (completed.includes(current) ? 0 : 0.5)) / totalSteps) * 100)
-
-  return (
-    <div className="mb-6">
-      {/* Global progress bar */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1 h-1 bg-theme-section rounded-full overflow-hidden">
-          <div
-            className="h-full bg-theme-primary rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
-        <span className="text-[11px] font-medium text-theme-muted tabular-nums w-8 text-right">{progressPct}%</span>
-      </div>
-
-      {/* Step pills */}
-      <div className="flex gap-1.5">
-        {STEPS.map((step) => {
-          const isCompleted = completed.includes(step.id)
-          const isCurrent = current === step.id
-          const isClickable = onStepClick && (isCompleted || isCurrent)
-
-          return (
-            <button
-              key={step.id}
-              type="button"
-              onClick={() => isClickable && onStepClick?.(step.id)}
-              className={cn(
-                'flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium transition-all duration-200',
-                isClickable ? 'cursor-pointer' : 'cursor-default',
-                isCurrent
-                  ? 'bg-theme-primary text-theme-inverse'
-                  : isCompleted
-                  ? 'bg-theme-active text-theme-primary'
-                  : 'text-theme-muted hover:text-theme-secondary'
-              )}
-            >
-              {isCompleted ? (
-                <Check className="h-3 w-3" />
-              ) : (
-                <span className="tabular-nums">{step.id}</span>
-              )}
-              <span className="hidden sm:inline">{step.label}</span>
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
 
 // ─── Number Stepper component ───
 
@@ -1957,16 +1896,7 @@ export default function ListingFormPage() {
     return true
   }
 
-  async function handleNext() {
-    const valid = await validateCurrentStep()
-    if (!valid) return
-    setCompletedSteps((prev) => [...new Set([...prev, currentStep])])
-    setCurrentStep((s) => Math.min(s + 1, 5))
-  }
 
-  function handlePrev() {
-    setCurrentStep((s) => Math.max(s - 1, 1))
-  }
 
   async function uploadPendingPhotos(propertyId: string): Promise<string[]> {
     const existingUrls = form.getValues('photos') || []
