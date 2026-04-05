@@ -16,6 +16,7 @@ import frMatching from './locales/fr/matching.json'
 import frAutomation from './locales/fr/automation.json'
 import frDocuments from './locales/fr/documents.json'
 import frAdmin from './locales/fr/admin.json'
+import frDirectory from './locales/fr/directory.json'
 
 // DE
 import deCommon from './locales/de/common.json'
@@ -31,6 +32,7 @@ import deMatching from './locales/de/matching.json'
 import deAutomation from './locales/de/automation.json'
 import deDocuments from './locales/de/documents.json'
 import deAdmin from './locales/de/admin.json'
+import deDirectory from './locales/de/directory.json'
 
 // EN
 import enCommon from './locales/en/common.json'
@@ -46,6 +48,7 @@ import enMatching from './locales/en/matching.json'
 import enAutomation from './locales/en/automation.json'
 import enDocuments from './locales/en/documents.json'
 import enAdmin from './locales/en/admin.json'
+import enDirectory from './locales/en/directory.json'
 
 // IT
 import itCommon from './locales/it/common.json'
@@ -61,16 +64,17 @@ import itMatching from './locales/it/matching.json'
 import itAutomation from './locales/it/automation.json'
 import itDocuments from './locales/it/documents.json'
 import itAdmin from './locales/it/admin.json'
+import itDirectory from './locales/it/directory.json'
 
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      fr: { common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts, pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages, calendar: frCalendar, matching: frMatching, automation: frAutomation, documents: frDocuments, admin: frAdmin },
-      de: { common: deCommon, dashboard: deDashboard, settings: deSettings, contacts: deContacts, pipeline: dePipeline, listings: deListings, kyc: deKyc, messages: deMessages, calendar: deCalendar, matching: deMatching, automation: deAutomation, documents: deDocuments, admin: deAdmin },
-      en: { common: enCommon, dashboard: enDashboard, settings: enSettings, contacts: enContacts, pipeline: enPipeline, listings: enListings, kyc: enKyc, messages: enMessages, calendar: enCalendar, matching: enMatching, automation: enAutomation, documents: enDocuments, admin: enAdmin },
-      it: { common: itCommon, dashboard: itDashboard, settings: itSettings, contacts: itContacts, pipeline: itPipeline, listings: itListings, kyc: itKyc, messages: itMessages, calendar: itCalendar, matching: itMatching, automation: itAutomation, documents: itDocuments, admin: itAdmin },
+      fr: { common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts, pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages, calendar: frCalendar, matching: frMatching, automation: frAutomation, documents: frDocuments, admin: frAdmin, directory: frDirectory },
+      de: { common: deCommon, dashboard: deDashboard, settings: deSettings, contacts: deContacts, pipeline: dePipeline, listings: deListings, kyc: deKyc, messages: deMessages, calendar: deCalendar, matching: deMatching, automation: deAutomation, documents: deDocuments, admin: deAdmin, directory: deDirectory },
+      en: { common: enCommon, dashboard: enDashboard, settings: enSettings, contacts: enContacts, pipeline: enPipeline, listings: enListings, kyc: enKyc, messages: enMessages, calendar: enCalendar, matching: enMatching, automation: enAutomation, documents: enDocuments, admin: enAdmin, directory: enDirectory },
+      it: { common: itCommon, dashboard: itDashboard, settings: itSettings, contacts: itContacts, pipeline: itPipeline, listings: itListings, kyc: itKyc, messages: itMessages, calendar: itCalendar, matching: itMatching, automation: itAutomation, documents: itDocuments, admin: itAdmin, directory: itDirectory },
     },
     fallbackLng: 'fr',
     supportedLngs: ['fr', 'de', 'en', 'it'],

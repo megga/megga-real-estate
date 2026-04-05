@@ -11,12 +11,14 @@ const leftLinks = [
   { label: 'Acheter', href: '/acheter' },
   { label: 'Louer', href: '/louer' },
   { label: 'Vendre', href: '/vendre' },
+  { label: 'Trouver un agent', href: '/agents' },
 ]
 
 const mobileLinks = [
   { label: 'Acheter', href: '/acheter' },
   { label: 'Louer', href: '/louer' },
   { label: 'Vendre', href: '/vendre' },
+  { label: 'Trouver un agent', href: '/agents' },
   { label: 'Estimations', href: '/estimations' },
   { label: 'Services', href: '/services' },
 ]
@@ -115,10 +117,10 @@ export default function Navbar() {
   return (
     <header
       className={cn(
-        'h-14 sticky top-0 z-50 transition-all duration-300',
+        'h-[72px] sticky top-0 z-50 transition-all duration-300',
         isTransparent
           ? 'bg-transparent'
-          : 'bg-white/80 backdrop-blur-xl border-b border-gray-100/80 shadow-sm'
+          : 'bg-white border-b border-gray-200'
       )}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center">

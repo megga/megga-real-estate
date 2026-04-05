@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import Navbar from '@/components/layout/Navbar'
+import BuyerSidebar from '@/components/search/BuyerSidebar'
 import Footer from '@/components/layout/Footer'
 import { usePropertyEstimation, type EstimationParams, type EstimationResult } from '@/hooks/usePropertyEstimation'
 import { useSellerLead } from '@/hooks/useSellerLead'
@@ -52,6 +53,27 @@ const CONDITIONS = [
 
 const ROOM_OPTIONS = ['1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5', '6', '6.5', '7', '8+']
 const BEDROOM_OPTIONS = ['1', '2', '3', '4', '5', '6+']
+
+// ─── Type-specific constants ────────────────────────────
+const FLOOR_OPTIONS = ['RDC', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10+', 'Attique']
+const PARKING_OPTIONS = ['0', '1', '2', '3+']
+const VIEW_TYPES = [
+  { value: 'lake', label: 'Lac' },
+  { value: 'mountain', label: 'Montagne' },
+  { value: 'open', label: 'Vue dégagée' },
+  { value: 'none', label: 'Aucune' },
+] as const
+const LAND_ZONES = [
+  { value: 'constructible', label: 'Constructible' },
+  { value: 'agricole', label: 'Agricole' },
+  { value: 'mixte', label: 'Mixte' },
+] as const
+const COMMERCIAL_TYPES = [
+  { value: 'bureau', label: 'Bureau' },
+  { value: 'commerce', label: 'Commerce' },
+  { value: 'restaurant', label: 'Restaurant' },
+  { value: 'entrepot', label: 'Entrepôt' },
+] as const
 
 const MOTIVATIONS = [
   { value: 'immediate', label: 'Dès que possible' },
@@ -86,13 +108,32 @@ interface FormData {
   postalCode: string
   lat: number | undefined
   lng: number | undefined
-  // Step 2 — Details
+  // Step 2 — Details (common)
   propertyType: string
   rooms: string
   bedrooms: string
   surface: string
   condition: string
   yearBuilt: string
+  // Step 2 — Appartement
+  floor: string
+  ppeCharges: string
+  hasBalcony: boolean
+  balconySurface: string
+  // Step 2 — Maison + Villa
+  landSurface: string
+  parkingSpaces: string
+  hasGarden: boolean
+  // Step 2 — Villa
+  hasPool: boolean
+  viewType: string
+  // Step 2 — Terrain
+  landZone: string
+  cosIus: string
+  // Step 2 — Commercial
+  commercialType: string
+  annualRent: string
+  isOccupied: string
   // Step 3 — Photos
   photos: File[]
   photoUrls: string[]
@@ -103,15 +144,81 @@ interface FormData {
   motivation: string
 }
 
-const STEP_LABELS = ['Adresse', 'Détails', 'Photos', 'Contact']
+const STEP_LABELS = ['Adresse', 'Détails', 'Photos', 'Contact', 'Estimation']
 
 // ─── Component ───────────────────────────────────────────
 
+// ─── Substep definitions per property type ──────────────
+type SubStepDef = { id: string; question: string; type: 'pills' | 'input' | 'toggle'; required?: boolean }
+
+function getSubSteps(propertyType: string): SubStepDef[] {
+  const common: SubStepDef[] = []
+
+  if (['apartment', 'house', 'villa'].includes(propertyType)) {
+    common.push(
+      { id: 'rooms', question: 'Combien de pièces ?', type: 'pills' },
+      { id: 'bedrooms', question: 'Combien de chambres ?', type: 'pills' },
+    )
+  }
+
+  common.push({
+    id: 'surface',
+    question: propertyType === 'land' ? 'Quelle est la surface de la parcelle ?' : 'Quelle est la surface habitable ?',
+    type: 'input',
+  })
+
+  // Type-specific
+  if (propertyType === 'apartment') {
+    common.push(
+      { id: 'floor', question: 'À quel étage ?', type: 'pills' },
+    )
+  }
+  if (['house', 'villa'].includes(propertyType)) {
+    common.push(
+      { id: 'landSurface', question: 'Quelle est la surface du terrain ?', type: 'input' },
+      { id: 'parkingSpaces', question: 'Combien de places de parking ?', type: 'pills' },
+    )
+  }
+  if (propertyType === 'villa') {
+    common.push(
+      { id: 'viewType', question: 'Quelle vue avez-vous ?', type: 'pills' },
+    )
+  }
+  if (propertyType === 'land') {
+    common.push(
+      { id: 'landZone', question: 'Quelle est la zone ?', type: 'pills' },
+    )
+  }
+  if (propertyType === 'commercial') {
+    common.push(
+      { id: 'commercialType', question: 'Quel type de bien commercial ?', type: 'pills' },
+    )
+  }
+
+  // Condition for all except land
+  if (propertyType !== 'land') {
+    common.push(
+      { id: 'condition', question: 'Quel est l\'état général ?', type: 'pills' },
+    )
+  }
+
+  // Summary (always last)
+  common.push({ id: 'summary', question: 'Vérifiez vos informations', type: 'pills' })
+
+  return common
+}
+
 export default function VendrePage() {
   const [step, setStep] = useState(0) // 0 = hero, 1-4 = wizard steps
+  const [subStep, setSubStep] = useState(0) // substep within step 2
   const [form, setForm] = useState<FormData>({
     address: '', city: '', canton: '', postalCode: '', lat: undefined, lng: undefined,
     propertyType: '', rooms: '', bedrooms: '', surface: '', condition: '', yearBuilt: '',
+    floor: '', ppeCharges: '', hasBalcony: false, balconySurface: '',
+    landSurface: '', parkingSpaces: '', hasGarden: false,
+    hasPool: false, viewType: '',
+    landZone: '', cosIus: '',
+    commercialType: '', annualRent: '', isOccupied: '',
     photos: [], photoUrls: [],
     contactName: '', contactEmail: '', contactPhone: '', motivation: '',
   })
@@ -239,7 +346,9 @@ export default function VendrePage() {
     if (type) {
       setForm(prev => ({ ...prev, propertyType: type }))
     }
-    setStep(1)
+    // Skip step 1 (address) if address is already filled from hero search bar
+    setStep(form.address && form.canton ? 2 : 1)
+    setSubStep(0)
     setTimeout(() => {
       wizardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
@@ -248,6 +357,7 @@ export default function VendrePage() {
   function goNext() {
     if (step < 4) {
       setStep(step + 1)
+      setSubStep(0)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
@@ -300,6 +410,21 @@ export default function VendrePage() {
           condition: form.condition,
           yearBuilt: form.yearBuilt,
           photos: photoUrls,
+          // Type-specific fields
+          floor: form.floor || undefined,
+          ppeCharges: form.ppeCharges ? parseInt(form.ppeCharges) : undefined,
+          hasBalcony: form.hasBalcony || undefined,
+          balconySurface: form.balconySurface ? parseInt(form.balconySurface) : undefined,
+          landSurface: form.landSurface ? parseInt(form.landSurface) : undefined,
+          parkingSpaces: form.parkingSpaces || undefined,
+          hasGarden: form.hasGarden || undefined,
+          hasPool: form.hasPool || undefined,
+          viewType: form.viewType || undefined,
+          landZone: form.landZone || undefined,
+          cosIus: form.cosIus || undefined,
+          commercialType: form.commercialType || undefined,
+          annualRent: form.annualRent ? parseInt(form.annualRent) : undefined,
+          isOccupied: form.isOccupied === 'oui' ? true : form.isOccupied === 'non' ? false : undefined,
         },
         estimation,
         contactName: form.contactName,
@@ -319,8 +444,18 @@ export default function VendrePage() {
   // ─── Validation ────────────────────────────────────────
 
   const step1Valid = form.address.length > 3 && form.canton.length > 0
-  const step2Valid = form.propertyType && form.rooms && form.surface && form.condition
-  const step3Valid = form.photos.length >= 3
+  const step2Valid = (() => {
+    if (!form.propertyType || !form.surface) return false
+    switch (form.propertyType) {
+      case 'land':
+        return !!form.landZone
+      case 'commercial':
+        return !!form.commercialType && !!form.condition
+      default: // apartment, house, villa
+        return !!form.rooms && !!form.condition
+    }
+  })()
+  const step3Valid = true // photos are optional
   const step4Valid = form.contactName.length > 1 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail) && form.motivation
 
   // ─── Render ────────────────────────────────────────────
@@ -352,13 +487,14 @@ export default function VendrePage() {
     return (
       <div className="min-h-screen bg-white">
         <Navbar />
-        <div className="max-w-xl mx-auto px-4 pt-10 pb-20">
+        <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
+        <div className="max-w-2xl mx-auto px-4 py-10 flex flex-col justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
           <button
             onClick={goBack}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 mb-10 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Retour
+            Modifier les informations
           </button>
 
           {estimationLoading ? (
@@ -371,7 +507,7 @@ export default function VendrePage() {
             />
           ) : (
             <div className="text-center py-20">
-              <p className="text-gray-500">Donnees insuffisantes pour estimer ce bien.</p>
+              <p className="text-gray-500">Données insuffisantes pour estimer ce bien.</p>
               <button onClick={goBack} className="mt-4 text-sm text-gray-900 underline">
                 Modifier les informations
               </button>
@@ -386,118 +522,172 @@ export default function VendrePage() {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
+      <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
 
-      {/* ─── Hero Section ─── */}
+      {/* ─── Hero Section — Zillow/Redfin style ─── */}
       {step === 0 && (
-        <section className="pt-20 pb-16 md:pt-28 md:pb-24 px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight leading-[1.1]">
-              Combien vaut votre bien ?
-            </h1>
-            <p className="text-lg text-gray-500 mt-5 max-w-lg mx-auto leading-relaxed">
-              Estimation gratuite et instantanee basee sur {formatCHF(38000).replace('CHF ', '')}+ biens analyses en Suisse
-            </p>
+        <section className="relative flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 72px)' }}>
+          {/* Background — subtle gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-white to-white pointer-events-none" />
 
-            {/* Trust indicators */}
-            <div className="flex items-center justify-center gap-6 mt-6">
-              {['Gratuit', 'Instantane', 'Confidentiel'].map(label => (
-                <span key={label} className="flex items-center gap-1.5 text-sm text-gray-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-900" />
-                  {label}
-                </span>
-              ))}
+          <div className="relative max-w-3xl mx-auto text-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+              38'000+ biens analysés en temps réel
             </div>
 
-            {/* Property type selector — hero */}
-            <div className="mt-12 max-w-lg mx-auto">
-              <p className="text-sm text-gray-400 mb-4">
-                Quel type de bien souhaitez-vous estimer ?
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 tracking-tight leading-[1.05]">
+              Combien vaut
+              <br />
+              <span className="text-blue-600">votre bien</span> ?
+            </h1>
+            <p className="text-lg md:text-xl text-gray-500 mt-6 max-w-xl mx-auto leading-relaxed">
+              Obtenez une estimation gratuite et instantanée basée sur les données du marché suisse
+            </p>
+
+            {/* Search bar — Zillow style address input */}
+            <div className="mt-10 max-w-xl mx-auto">
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={geoQuery}
+                  onChange={e => searchGeo(e.target.value)}
+                  onFocus={() => { if (geoResults.length > 0) setGeoOpen(true) }}
+                  placeholder="Entrez l'adresse de votre bien..."
+                  className="w-full h-14 md:h-16 pl-12 pr-40 text-base md:text-lg text-gray-900 placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 shadow-lg shadow-gray-200/50 transition-all"
+                />
+                <button
+                  onClick={() => { if (form.address) startWizard() }}
+                  disabled={!form.address}
+                  className={cn(
+                    'absolute right-2 top-1/2 -translate-y-1/2 h-10 md:h-12 px-6 md:px-8 rounded-xl text-sm md:text-base font-semibold transition-all',
+                    form.address
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  )}
+                >
+                  Estimer
+                </button>
+
+                {/* Geocoding dropdown */}
+                {geoOpen && geoResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                    {geoResults.map((r, i) => (
+                      <button
+                        key={i}
+                        onClick={() => selectGeoResult(r)}
+                        className="flex items-center gap-3 w-full px-4 py-3.5 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 truncate">{r.place_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Or select property type */}
+            <div className="mt-8">
+              <p className="text-sm text-gray-400 mb-4">ou sélectionnez un type de bien</p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 {PROPERTY_TYPES.map(type => {
                   const Icon = type.icon
                   return (
                     <button
                       key={type.value}
                       onClick={() => startWizard(type.value)}
-                      className="rounded-xl border border-gray-200 p-4 text-center hover:border-gray-900 transition-colors group cursor-pointer"
+                      className="flex items-center gap-2 h-10 px-5 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all hover:shadow-sm"
                     >
-                      <Icon className="w-7 h-7 mx-auto text-gray-400 group-hover:text-gray-900 transition-colors" />
-                      <span className="text-sm font-medium mt-2 block text-gray-700 group-hover:text-gray-900 transition-colors">
-                        {type.label}
-                      </span>
+                      <Icon className="w-4 h-4" />
+                      {type.label}
                     </button>
                   )
                 })}
               </div>
             </div>
 
-            {/* Social proof */}
-            <p className="text-xs text-gray-400 mt-10">
-              12'500+ estimations realisees
-            </p>
+            {/* Trust indicators — Zillow style */}
+            <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-gray-900">38'000+</p>
+                <p className="text-xs text-gray-500 mt-1">Biens analysés</p>
+              </div>
+              <div className="hidden sm:block w-px h-10 bg-gray-200" />
+              <div className="text-center">
+                <p className="text-3xl font-bold text-gray-900">26</p>
+                <p className="text-xs text-gray-500 mt-1">Cantons couverts</p>
+              </div>
+              <div className="hidden sm:block w-px h-10 bg-gray-200" />
+              <div className="text-center">
+                <p className="text-3xl font-bold text-gray-900">±5%</p>
+                <p className="text-xs text-gray-500 mt-1">Précision moyenne</p>
+              </div>
+            </div>
+
+            {/* Reassurance */}
+            <div className="mt-8 flex items-center justify-center gap-6">
+              {[
+                { icon: Lock, text: 'Confidentiel' },
+                { icon: Sparkles, text: 'Résultat instantané' },
+                { icon: User, text: '100% gratuit' },
+              ].map(item => (
+                <span key={item.text} className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <item.icon className="w-3.5 h-3.5" />
+                  {item.text}
+                </span>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
       {/* ─── Wizard ─── */}
       {step >= 1 && (
-        <div ref={wizardRef} className="max-w-xl mx-auto px-4 pt-10 pb-20">
+        <div ref={wizardRef} className="max-w-2xl mx-auto px-4 py-10 flex flex-col justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
 
-          {/* Stepper */}
-          <div className="flex items-center justify-center mb-12">
-            {STEP_LABELS.map((label, i) => {
-              const num = i + 1
-              const isCurrent = step === num
-              const isDone = step > num
-              return (
-                <div key={label} className="flex items-center">
-                  {i > 0 && (
-                    <div className={cn(
-                      'w-10 sm:w-14 h-px mx-1',
-                      isDone || isCurrent ? 'bg-gray-900' : 'bg-gray-200'
-                    )} />
-                  )}
-                  <button
-                    onClick={() => { if (isDone) setStep(num) }}
-                    disabled={!isDone}
-                    className="flex items-center gap-2"
-                  >
-                    <span className={cn(
-                      'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
-                      isCurrent ? 'bg-gray-900 text-white' :
-                      isDone ? 'bg-gray-900 text-white' :
-                      'border border-gray-200 text-gray-400'
-                    )}>
-                      {isDone ? (
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M5 12l5 5L20 7" />
-                        </svg>
-                      ) : num}
-                    </span>
-                    <span className={cn(
-                      'text-sm hidden sm:block',
-                      isCurrent ? 'text-gray-900 font-medium' :
-                      isDone ? 'text-gray-600' :
-                      'text-gray-400'
-                    )}>
-                      {label}
-                    </span>
-                  </button>
+          {/* Progress bar — smooth across steps + substeps */}
+          {(() => {
+            const subSteps = step === 2 ? getSubSteps(form.propertyType) : []
+            const totalSubSteps = subSteps.length || 1
+            // Step 1 = 25%, Step 2 = 25-50% (split across substeps), Step 3 = 75%, Step 4 = 100%
+            let progress = 0
+            if (step === 1) progress = 25
+            else if (step === 2) progress = 25 + (subStep / totalSubSteps) * 25
+            else if (step === 3) progress = 60
+            else if (step === 4) progress = 80
+            const currentLabel = step === 2 && subStep < subSteps.length
+              ? subSteps[subStep]?.question?.split('?')[0]?.replace('Combien de ', '').replace('Quelle est la ', '').replace('Quel est l\'', '').replace('Quelle ', '').replace('Quel ', '').replace('À quel ', '') || STEP_LABELS[step - 1]
+              : STEP_LABELS[step - 1]
+            return (
+              <div className="mb-10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-500">
+                    {step === 2 ? `Question ${subStep + 1}/${totalSubSteps}` : `Étape ${step} sur 5`}
+                  </span>
+                  <span className="text-xs text-gray-400 capitalize">{currentLabel}</span>
                 </div>
-              )
-            })}
-          </div>
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Step 1 — Address */}
           {step === 1 && (
             <div className="space-y-8">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                  Ou se trouve votre bien ?
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                  Où se trouve votre bien ?
                 </h2>
-                <p className="text-sm text-gray-500">
-                  Commencez a taper l'adresse pour obtenir des suggestions
+                <p className="text-base text-gray-500">
+                  Commencez à taper l'adresse pour obtenir des suggestions
                 </p>
               </div>
 
@@ -511,7 +701,7 @@ export default function VendrePage() {
                     onFocus={() => { if (geoResults.length) setGeoOpen(true) }}
                     placeholder="Rue, numero, ville..."
                     autoFocus
-                    className="w-full h-14 pl-12 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
+                    className="w-full h-14 pl-12 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base text-gray-900 placeholder:text-gray-400 outline-none transition-all"
                   />
                 </div>
 
@@ -532,22 +722,12 @@ export default function VendrePage() {
                 )}
               </div>
 
-              {/* Address chips */}
-              {form.canton && (
+              {/* Address confirmation */}
+              {false && form.canton && (
                 <div className="flex flex-wrap gap-2">
-                  {form.city && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                      {form.city}
-                    </span>
-                  )}
                   <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                    {CANTON_LABELS[form.canton] || form.canton}
+                    {form.city}
                   </span>
-                  {form.postalCode && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                      {form.postalCode}
-                    </span>
-                  )}
                 </div>
               )}
 
@@ -565,8 +745,8 @@ export default function VendrePage() {
                   className={cn(
                     'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                     step1Valid
-                      ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-                      : 'border border-gray-200 text-gray-400 cursor-not-allowed'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   )}
                 >
                   Continuer
@@ -576,176 +756,295 @@ export default function VendrePage() {
             </div>
           )}
 
-          {/* Step 2 — Details */}
-          {step === 2 && (
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                  Decrivez votre bien
+          {/* Step 2 — Conversational substeps (one question per screen) */}
+          {step === 2 && (() => {
+            const subSteps = getSubSteps(form.propertyType)
+            const current = subSteps[subStep]
+            if (!current) return null
+
+            function selectAndAdvance(field: string, value: string | boolean) {
+              setForm(prev => ({ ...prev, [field]: value }))
+              // Auto-advance after short delay for visual feedback
+              setTimeout(() => {
+                if (subStep < subSteps.length - 1) {
+                  setSubStep(s => s + 1)
+                }
+              }, 200)
+            }
+
+            function goSubBack() {
+              if (subStep > 0) setSubStep(s => s - 1)
+              else goBack()
+            }
+
+            // ── Summary screen ──
+            if (current.id === 'summary') {
+              const fields = subSteps.filter(s => s.id !== 'summary')
+              const getValue = (id: string): string => {
+                const v = form[id as keyof FormData]
+                if (typeof v === 'boolean') return v ? 'Oui' : 'Non'
+                if (typeof v === 'string') {
+                  // Translate known values
+                  const labels: Record<string, string> = {
+                    lake: 'Lac', mountain: 'Montagne', open: 'Vue dégagée', none: 'Aucune',
+                    constructible: 'Constructible', agricole: 'Agricole', mixte: 'Mixte',
+                    bureau: 'Bureau', commerce: 'Commerce', restaurant: 'Restaurant', entrepot: 'Entrepôt',
+                    new: 'Neuf', renovated: 'Rénové', good: 'Bon état', refresh: 'À rafraîchir', renovate: 'À rénover',
+                  }
+                  return labels[v] || v || '—'
+                }
+                return String(v || '—')
+              }
+              const suffix = (id: string): string => {
+                if (id === 'surface' || id === 'landSurface' || id === 'balconySurface') return ' m²'
+                if (id === 'annualRent') return ' CHF/an'
+                if (id === 'ppeCharges') return ' CHF/mois'
+                return ''
+              }
+
+              return (
+                <div className="text-center space-y-6 animate-[fadeSlideIn_0.3s_ease-out]">
+                  <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }`}</style>
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                    Vérifiez vos informations
+                  </h2>
+                  <p className="text-base text-gray-500">Modifiez si nécessaire avant de continuer</p>
+                  <div className="max-w-md mx-auto space-y-2 text-left">
+                    {fields.map((f, i) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setSubStep(i)}
+                        className="w-full flex items-center justify-between h-12 px-4 rounded-xl border border-gray-200 hover:border-gray-400 transition-colors group"
+                      >
+                        <span className="text-sm text-gray-500">{f.question.replace(' ?', '')}</span>
+                        <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {getValue(f.id)}{suffix(f.id)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between pt-4 max-w-md mx-auto">
+                    <button onClick={goSubBack} className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5">
+                      <ArrowLeft className="w-4 h-4" /> Retour
+                    </button>
+                    <button
+                      onClick={() => { setSubStep(0); goNext() }}
+                      className="h-11 px-8 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-colors flex items-center gap-2"
+                    >
+                      Continuer <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )
+            }
+
+            // ── Pills helper ──
+            function PillGrid({ options, value, field, columns = 'auto' }: { options: { value: string; label: string }[]; value: string; field: string; columns?: string }) {
+              return (
+                <div className={cn(
+                  'flex flex-wrap justify-center gap-3',
+                  columns === '3' && 'grid grid-cols-3 gap-3',
+                  columns === '4' && 'grid grid-cols-4 gap-3',
+                  columns === '5' && 'grid grid-cols-5 gap-3'
+                )}>
+                  {options.map(o => (
+                    <button
+                      key={o.value}
+                      onClick={() => selectAndAdvance(field, o.value)}
+                      className={cn(
+                        'h-12 md:h-12 px-5 md:px-6 rounded-xl text-sm font-medium transition-all min-w-[60px]',
+                        value === o.value
+                          ? 'bg-gray-900 text-white scale-105 shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-[1.02]'
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              )
+            }
+
+            // ── Render current question ──
+            return (
+              <div key={current.id} className="flex flex-col items-center justify-center text-center space-y-8 animate-[fadeSlideIn_0.3s_ease-out]">
+                <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }`}</style>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                  {current.question}
                 </h2>
-                <p className="text-sm text-gray-500">
-                  Ces informations permettent d'affiner l'estimation
+
+                {/* ── Rooms ── */}
+                {current.id === 'rooms' && (
+                  <PillGrid
+                    options={ROOM_OPTIONS.slice(0, 10).map(r => ({ value: r, label: r }))}
+                    value={form.rooms}
+                    field="rooms"
+                  />
+                )}
+
+                {/* ── Bedrooms ── */}
+                {current.id === 'bedrooms' && (
+                  <PillGrid
+                    options={BEDROOM_OPTIONS.map(b => ({ value: b, label: b }))}
+                    value={form.bedrooms}
+                    field="bedrooms"
+                  />
+                )}
+
+                {/* ── Surface (input) ── */}
+                {current.id === 'surface' && (
+                  <div className="w-full max-w-sm mx-auto">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={form.surface}
+                        onChange={e => setForm(prev => ({ ...prev, surface: e.target.value }))}
+                        placeholder={form.propertyType === 'land' ? 'ex: 800' : 'ex: 95'}
+                        autoFocus
+                        className="w-full h-14 px-5 pr-14 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-lg text-gray-900 text-center placeholder:text-gray-300 outline-none transition-all"
+                      />
+                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm text-gray-400">m²</span>
+                    </div>
+                    <button
+                      onClick={() => { if (form.surface) setSubStep(s => s + 1) }}
+                      disabled={!form.surface}
+                      className={cn(
+                        'mt-6 h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 mx-auto',
+                        form.surface
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      )}
+                    >
+                      Continuer <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Floor (apartment) ── */}
+                {current.id === 'floor' && (
+                  <PillGrid
+                    options={FLOOR_OPTIONS.map(f => ({ value: f, label: f }))}
+                    value={form.floor}
+                    field="floor"
+                  />
+                )}
+
+                {/* ── Land surface (house/villa) ── */}
+                {current.id === 'landSurface' && (
+                  <div className="w-full max-w-sm mx-auto">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={form.landSurface}
+                        onChange={e => setForm(prev => ({ ...prev, landSurface: e.target.value }))}
+                        placeholder="ex: 500"
+                        autoFocus
+                        className="w-full h-14 px-5 pr-14 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-lg text-gray-900 text-center placeholder:text-gray-300 outline-none transition-all"
+                      />
+                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm text-gray-400">m²</span>
+                    </div>
+                    <button
+                      onClick={() => { if (form.landSurface) setSubStep(s => s + 1) }}
+                      disabled={!form.landSurface}
+                      className={cn(
+                        'mt-6 h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 mx-auto',
+                        form.landSurface
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      )}
+                    >
+                      Continuer <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setSubStep(s => s + 1)} className="block mx-auto mt-3 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2">
+                      Passer
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Parking ── */}
+                {current.id === 'parkingSpaces' && (
+                  <PillGrid
+                    options={PARKING_OPTIONS.map(p => ({ value: p, label: p === '0' ? 'Aucun' : p }))}
+                    value={form.parkingSpaces}
+                    field="parkingSpaces"
+                  />
+                )}
+
+                {/* ── View (villa) ── */}
+                {current.id === 'viewType' && (
+                  <PillGrid
+                    options={VIEW_TYPES.map(v => ({ value: v.value, label: v.label }))}
+                    value={form.viewType}
+                    field="viewType"
+                  />
+                )}
+
+                {/* ── Land zone ── */}
+                {current.id === 'landZone' && (
+                  <PillGrid
+                    options={LAND_ZONES.map(z => ({ value: z.value, label: z.label }))}
+                    value={form.landZone}
+                    field="landZone"
+                  />
+                )}
+
+                {/* ── Commercial type ── */}
+                {current.id === 'commercialType' && (
+                  <PillGrid
+                    options={COMMERCIAL_TYPES.map(c => ({ value: c.value, label: c.label }))}
+                    value={form.commercialType}
+                    field="commercialType"
+                    columns="4"
+                  />
+                )}
+
+                {/* ── Condition ── */}
+                {current.id === 'condition' && (
+                  <PillGrid
+                    options={CONDITIONS.map(c => ({ value: c.value, label: c.label }))}
+                    value={form.condition}
+                    field="condition"
+                    columns="5"
+                  />
+                )}
+
+                {/* ── Back button (always visible, not for pills which auto-advance) ── */}
+                {current.type !== 'input' && (
+                  <button
+                    onClick={goSubBack}
+                    className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5 mx-auto pt-4"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Retour
+                  </button>
+                )}
+                {current.type === 'input' && (
+                  <button
+                    onClick={goSubBack}
+                    className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5 mx-auto"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Retour
+                  </button>
+                )}
+
+                {/* Social proof */}
+                <p className="text-xs text-gray-300 mt-8">
+                  12'500+ propriétaires ont déjà estimé leur bien sur MEGGA
                 </p>
               </div>
+            )
+          })()}
 
-              {/* Property type */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-3 block">Type de bien</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                  {PROPERTY_TYPES.map(type => {
-                    const Icon = type.icon
-                    const selected = form.propertyType === type.value
-                    return (
-                      <button
-                        key={type.value}
-                        onClick={() => setForm(prev => ({ ...prev, propertyType: type.value }))}
-                        className={cn(
-                          'rounded-xl p-4 text-center transition-all cursor-pointer',
-                          selected
-                            ? 'border-2 border-gray-900 bg-gray-50'
-                            : 'border border-gray-200 hover:border-gray-400'
-                        )}
-                      >
-                        <Icon className={cn('w-7 h-7 mx-auto', selected ? 'text-gray-900' : 'text-gray-400')} />
-                        <span className="text-sm font-medium mt-2 block">{type.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Rooms + Bedrooms */}
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Pieces</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ROOM_OPTIONS.slice(0, 10).map(r => (
-                      <button
-                        key={r}
-                        onClick={() => setForm(prev => ({ ...prev, rooms: r }))}
-                        className={cn(
-                          'h-9 px-3 rounded-lg text-sm transition-colors',
-                          form.rooms === r
-                            ? 'bg-gray-900 text-white font-medium'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        )}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Chambres</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {BEDROOM_OPTIONS.map(b => (
-                      <button
-                        key={b}
-                        onClick={() => setForm(prev => ({ ...prev, bedrooms: b }))}
-                        className={cn(
-                          'h-9 px-3 rounded-lg text-sm transition-colors',
-                          form.bedrooms === b
-                            ? 'bg-gray-900 text-white font-medium'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        )}
-                      >
-                        {b}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Surface */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Surface habitable</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={form.surface}
-                    onChange={e => setForm(prev => ({ ...prev, surface: e.target.value }))}
-                    placeholder="ex: 95"
-                    className="w-full h-12 px-4 pr-12 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">m2</span>
-                </div>
-              </div>
-
-              {/* Condition */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-3 block">Etat general</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                  {CONDITIONS.map(cond => {
-                    const Icon = cond.icon
-                    const selected = form.condition === cond.value
-                    return (
-                      <button
-                        key={cond.value}
-                        onClick={() => setForm(prev => ({ ...prev, condition: cond.value }))}
-                        className={cn(
-                          'rounded-xl p-3 text-center transition-all cursor-pointer',
-                          selected
-                            ? 'border-2 border-gray-900 bg-gray-50'
-                            : 'border border-gray-200 hover:border-gray-400'
-                        )}
-                      >
-                        <Icon className={cn('w-5 h-5 mx-auto', selected ? 'text-gray-900' : 'text-gray-400')} />
-                        <span className="text-xs font-medium mt-1 block">{cond.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Year built (optional) */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Annee de construction <span className="text-gray-400 font-normal">(optionnel)</span>
-                </label>
-                <input
-                  type="number"
-                  value={form.yearBuilt}
-                  onChange={e => setForm(prev => ({ ...prev, yearBuilt: e.target.value }))}
-                  placeholder="ex: 1985"
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base outline-none transition-all"
-                />
-              </div>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  onClick={goBack}
-                  className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Retour
-                </button>
-                <button
-                  onClick={goNext}
-                  disabled={!step2Valid}
-                  className={cn(
-                    'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
-                    step2Valid
-                      ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-                      : 'border border-gray-200 text-gray-400 cursor-not-allowed'
-                  )}
-                >
-                  Continuer
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
+          
 
           {/* Step 3 — Photos */}
           {step === 3 && (
             <div className="space-y-8">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                   Ajoutez des photos
                 </h2>
-                <p className="text-sm text-gray-500">
-                  Minimum 3 photos. Les photos aident a affiner l'estimation.
+                <p className="text-base text-gray-500">
+                  Optionnel — les photos améliorent la précision de <span className="font-medium text-gray-700">40%</span>
                 </p>
               </div>
 
@@ -761,7 +1060,7 @@ export default function VendrePage() {
                   Glissez vos photos ici
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  ou cliquez pour selectionner (max 10)
+                  ou cliquez pour sélectionner (max 10)
                 </p>
                 <input
                   ref={fileInputRef}
@@ -792,11 +1091,6 @@ export default function VendrePage() {
 
               <p className="text-xs text-gray-400">
                 {form.photos.length}/10 photos
-                {form.photos.length < 3 && (
-                  <span className="text-amber-600 ml-1">
-                    — encore {3 - form.photos.length} photo{3 - form.photos.length > 1 ? 's' : ''} requise{3 - form.photos.length > 1 ? 's' : ''}
-                  </span>
-                )}
               </p>
 
               {/* Navigation */}
@@ -814,8 +1108,8 @@ export default function VendrePage() {
                   className={cn(
                     'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                     step3Valid
-                      ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-                      : 'border border-gray-200 text-gray-400 cursor-not-allowed'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   )}
                 >
                   Voir mon estimation
@@ -829,7 +1123,7 @@ export default function VendrePage() {
                   onClick={triggerEstimation}
                   className="text-sm text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
                 >
-                  Passer cette etape
+                  Passer cette étape
                 </button>
               </div>
             </div>
@@ -839,11 +1133,11 @@ export default function VendrePage() {
           {step === 4 && (
             <div className="space-y-8">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                  Vos coordonnees
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                  Dernière étape
                 </h2>
-                <p className="text-sm text-gray-500">
-                  Un agent de votre region vous contactera sous 24h
+                <p className="text-base text-gray-500">
+                  Un expert de votre région vous contactera sous <span className="font-medium text-gray-700">24h</span>
                 </p>
               </div>
 
@@ -956,8 +1250,8 @@ export default function VendrePage() {
                   className={cn(
                     'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                     step4Valid && !uploading && !sellerLead.isPending
-                      ? 'border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
-                      : 'border border-gray-200 text-gray-400 cursor-not-allowed'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   )}
                 >
                   {(uploading || sellerLead.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -1004,66 +1298,86 @@ function SuccessScreen({
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      <div className="max-w-xl mx-auto px-4 py-20 text-center">
-        {/* Animated check */}
-        <div className="w-20 h-20 rounded-full border-2 border-gray-900 flex items-center justify-center mx-auto mb-8">
-          <svg className="w-10 h-10 text-gray-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12l5 5L20 7" className="animate-[draw_0.5s_ease-out_0.3s_both]" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: 'draw 0.5s ease-out 0.3s forwards' }} />
+      <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
+      <div className="max-w-lg mx-auto px-4 text-center flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
+        <style>{`@keyframes draw { to { stroke-dashoffset: 0; } } @keyframes scaleIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }`}</style>
+
+        {/* Animated success icon */}
+        <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6 animate-[scaleIn_0.4s_ease-out]">
+          <svg className="w-10 h-10 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12l5 5L20 7" style={{ strokeDasharray: 30, strokeDashoffset: 30, animation: 'draw 0.5s ease-out 0.4s forwards' }} />
           </svg>
         </div>
-        <style>{`@keyframes draw { to { stroke-dashoffset: 0; } }`}</style>
 
-        <h1 className="text-2xl font-bold text-gray-900">Merci {firstName} !</h1>
-        <p className="text-gray-500 mt-2">Votre demande a ete envoyee avec succes.</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Merci {firstName} !</h1>
+        <p className="text-base text-gray-500 mt-3 max-w-sm">
+          Votre demande a été envoyée. Un expert immobilier de votre région vous contactera très bientôt.
+        </p>
 
-        {/* Recap box */}
-        <div className="mt-8 rounded-xl border border-gray-200 p-6 text-left">
-          <div className="flex items-center gap-4 mb-4">
+        {/* Recap card */}
+        <div className="w-full mt-8 rounded-2xl border border-gray-200 overflow-hidden text-left">
+          {/* Property header */}
+          <div className="flex items-center gap-4 p-5 bg-gray-50">
             {form.photos[0] ? (
               <img src={URL.createObjectURL(form.photos[0])} alt="" className="h-16 w-16 rounded-xl object-cover" />
             ) : (
-              <div className="h-16 w-16 rounded-xl bg-gray-100 flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-gray-400" />
+              <div className="h-16 w-16 rounded-xl bg-white border border-gray-200 flex items-center justify-center">
+                {(() => { const Icon = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.icon || Building2; return <Icon className="w-6 h-6 text-gray-400" /> })()}
               </div>
             )}
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{typeLabel} {form.rooms}p</p>
-              <p className="text-xs text-gray-500">{form.address}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900">{typeLabel}{form.rooms && ` · ${form.rooms} pièces`}</p>
+              <p className="text-xs text-gray-500 truncate">{form.address}</p>
+              {form.surface && <p className="text-xs text-gray-400 mt-0.5">{form.surface} m²</p>}
             </div>
           </div>
-          {estimation && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+
+          {/* Estimation */}
+          {estimation?.estimation && (
+            <div className="p-5 border-t border-gray-100">
               <p className="text-xs text-gray-400 mb-1">Estimation</p>
-              <p className="text-lg font-bold text-gray-900">
-                {estimation.estimation_min && estimation.estimation_max
-                  ? `${formatCHF(estimation.estimation_min)} — ${formatCHF(estimation.estimation_max)}`
-                  : estimation.estimation ? formatCHF(estimation.estimation) : '—'
-                }
+              <p className="text-2xl font-bold text-gray-900">
+                {formatCHF(estimation.estimation)}
               </p>
+              {estimation.estimation_min && estimation.estimation_max && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Fourchette : {formatCHF(estimation.estimation_min)} — {formatCHF(estimation.estimation_max)}
+                </p>
+              )}
             </div>
           )}
-          <p className="text-sm text-gray-600">Un agent de votre region vous contactera sous 24h.</p>
+
+          {/* Next steps */}
+          <div className="p-5 border-t border-gray-100 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Prochaines étapes</p>
+            {[
+              { step: '1', text: 'Un expert vous appelle sous 24h', done: false },
+              { step: '2', text: 'Visite gratuite de votre bien', done: false },
+              { step: '3', text: 'Proposition de mandat personnalisée', done: false },
+            ].map(s => (
+              <div key={s.step} className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center flex-shrink-0">{s.step}</span>
+                <span className="text-sm text-gray-700">{s.text}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <p className="text-xs text-gray-400 mt-6">
-          Un email de confirmation a ete envoye a <strong>{form.contactEmail}</strong>
-        </p>
-        <p className="text-xs text-gray-400 mt-2">
-          Des que votre agent prendra en charge votre dossier, vous recevrez un acces
-          a votre espace vendeur pour suivre la vente en temps reel.
+          Confirmation envoyée à <span className="font-medium text-gray-600">{form.contactEmail}</span>
         </p>
 
-        {/* Action buttons */}
+        {/* Actions */}
         <div className="flex items-center justify-center gap-3 mt-8">
           <a
             href="/"
-            className="h-10 px-5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors inline-flex items-center"
+            className="h-11 px-6 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors inline-flex items-center"
           >
-            Retour a l'accueil
+            Retour à l'accueil
           </a>
           <button
             onClick={onReset}
-            className="h-10 px-5 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-colors"
+            className="h-11 px-6 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
           >
             Estimer un autre bien
           </button>
@@ -1075,34 +1389,53 @@ function SuccessScreen({
 }
 
 function EstimationLoading() {
-  const [text, setText] = useState('Analyse de votre bien en cours...')
+  const [text, setText] = useState('Analyse de votre bien...')
   const [progress, setProgress] = useState(0)
+  const [step, setLoadStep] = useState(0)
 
   useEffect(() => {
-    const texts = [
-      'Analyse de votre bien en cours...',
-      "Comparaison avec 38'000+ biens suisses...",
-      'Calcul de la fourchette de prix...',
+    const steps = [
+      { text: 'Analyse de votre bien...', delay: 0 },
+      { text: "Comparaison avec 38'000+ biens...", delay: 800 },
+      { text: 'Analyse du marché local...', delay: 1600 },
+      { text: 'Calcul de la fourchette de prix...', delay: 2400 },
     ]
-    const t1 = setTimeout(() => setText(texts[1]), 600)
-    const t2 = setTimeout(() => setText(texts[2]), 1200)
+    const timers = steps.map((s, i) =>
+      setTimeout(() => { setText(s.text); setLoadStep(i) }, s.delay)
+    )
     const interval = setInterval(() => {
-      setProgress(p => Math.min(p + 3, 95))
-    }, 50)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearInterval(interval) }
+      setProgress(p => Math.min(p + 2, 95))
+    }, 60)
+    return () => { timers.forEach(clearTimeout); clearInterval(interval) }
   }, [])
 
   return (
-    <div className="text-center py-20">
-      <div className="w-12 h-12 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin mx-auto" />
-      <p className="text-base font-medium text-gray-900 mt-6">{text}</p>
-      <div className="mt-6 max-w-xs mx-auto">
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+    <div className="text-center py-20 animate-[fadeSlideIn_0.3s_ease-out]">
+      <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }`}</style>
+      {/* Animated circles */}
+      <div className="relative w-20 h-20 mx-auto mb-8">
+        <div className="absolute inset-0 rounded-full border-[3px] border-blue-100" />
+        <div className="absolute inset-0 rounded-full border-[3px] border-blue-600 border-t-transparent animate-spin" />
+        <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-blue-600">
+          {Math.round(progress)}%
+        </span>
+      </div>
+
+      <p className="text-lg font-semibold text-gray-900">{text}</p>
+      <div className="mt-6 max-w-sm mx-auto">
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gray-900 rounded-full transition-all duration-100"
+            className="h-full bg-blue-600 rounded-full transition-all duration-200"
             style={{ width: `${progress}%` }}
           />
         </div>
+      </div>
+
+      {/* Step indicators */}
+      <div className="flex items-center justify-center gap-2 mt-6">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className={cn('w-2 h-2 rounded-full transition-colors', i <= step ? 'bg-blue-600' : 'bg-gray-200')} />
+        ))}
       </div>
     </div>
   )
@@ -1119,116 +1452,96 @@ function EstimationResultView({
 }) {
   const typeLabel = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.label || form.propertyType
 
-  const confidenceLabel = {
-    low: 'Faible',
-    medium: 'Moyen',
-    high: 'Eleve',
-  }[estimation.confidence] || 'Moyen'
-
-  const confidenceColor = {
-    low: 'text-amber-600',
-    medium: 'text-gray-600',
-    high: 'text-emerald-600',
-  }[estimation.confidence] || 'text-gray-600'
-
-  const confidenceBarWidth = {
-    low: '33%',
-    medium: '60%',
-    high: '90%',
-  }[estimation.confidence] || '60%'
-
-  const confidenceBarColor = {
-    low: 'bg-amber-500',
-    medium: 'bg-gray-400',
-    high: 'bg-emerald-500',
-  }[estimation.confidence] || 'bg-gray-400'
+  const confidencePercent = { low: 33, medium: 65, high: 92 }[estimation.confidence] || 65
+  const confidenceLabel = { low: 'Faible', medium: 'Moyen', high: 'Élevé' }[estimation.confidence] || 'Moyen'
+  const confidenceColor = { low: 'text-amber-600', medium: 'text-blue-600', high: 'text-emerald-600' }[estimation.confidence] || 'text-blue-600'
 
   return (
-    <div className="animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="text-center">
-        <div className="w-40 h-32 mx-auto mb-6"><EstimationIllustration /></div>
-        <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">
-          estimation IA
-        </p>
-        <p className="text-sm text-gray-500 mt-2">{form.address}</p>
-        <p className="text-xs text-gray-400 mt-0.5">
-          {typeLabel} · {form.rooms} pieces · {form.surface} m2
-        </p>
-      </div>
+    <div className="animate-[fadeSlideIn_0.4s_ease-out]">
+      <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }`}</style>
 
-      {/* Main price */}
+      {/* ── Price reveal — the hero moment ── */}
       {estimation.estimation ? (
-        <div className="mt-10 text-center">
-          <p className="text-4xl md:text-5xl font-bold text-gray-900 tabular-nums tracking-tight">
+        <div className="text-center">
+          <p className="text-sm font-medium text-blue-600 mb-2">Votre estimation</p>
+          <p className="text-sm text-gray-500 mb-6">{form.address}</p>
+
+          {/* Big price */}
+          <p className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 tabular-nums tracking-tight animate-[priceReveal_0.6s_ease-out_0.2s_both]">
             {formatCHF(estimation.estimation)}
           </p>
-          {estimation.estimation_min && estimation.estimation_max && (
-            <p className="text-sm text-gray-500 mt-3">
-              entre {formatCHF(estimation.estimation_min)} et {formatCHF(estimation.estimation_max)}
-            </p>
-          )}
+          <style>{`@keyframes priceReveal { from { opacity: 0; transform: scale(0.8) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }`}</style>
 
-          {/* Range bar */}
-          <div className="mt-6 flex items-center gap-0.5 max-w-sm mx-auto">
-            <div className="flex-1 h-2 bg-gray-200 rounded-l-full" />
-            <div className="flex-[2] h-3 bg-gray-900 rounded-sm relative">
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-5 bg-gray-900 rounded-sm" />
-            </div>
-            <div className="flex-1 h-2 bg-gray-200 rounded-r-full" />
-          </div>
+          {/* Range */}
           {estimation.estimation_min && estimation.estimation_max && (
-            <div className="flex justify-between max-w-sm mx-auto mt-1.5 text-xs text-gray-400">
-              <span>{formatCHF(estimation.estimation_min)}</span>
-              <span>{formatCHF(estimation.estimation_max)}</span>
+            <div className="mt-6 max-w-md mx-auto">
+              <div className="flex items-end gap-1 justify-center h-12">
+                <div className="flex-1 flex flex-col items-center">
+                  <span className="text-xs text-gray-400 mb-1">Min</span>
+                  <div className="w-full h-6 bg-blue-100 rounded-l-lg" />
+                  <span className="text-sm font-medium text-gray-600 mt-1">{formatCHF(estimation.estimation_min)}</span>
+                </div>
+                <div className="flex-[1.5] flex flex-col items-center">
+                  <span className="text-xs text-blue-600 font-medium mb-1">Estimation</span>
+                  <div className="w-full h-10 bg-blue-600 rounded-sm" />
+                  <span className="text-sm font-bold text-gray-900 mt-1">{formatCHF(estimation.estimation)}</span>
+                </div>
+                <div className="flex-1 flex flex-col items-center">
+                  <span className="text-xs text-gray-400 mb-1">Max</span>
+                  <div className="w-full h-6 bg-blue-100 rounded-r-lg" />
+                  <span className="text-sm font-medium text-gray-600 mt-1">{formatCHF(estimation.estimation_max)}</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
       ) : (
-        <div className="mt-10 text-center">
-          <p className="text-gray-500">
-            Donnees insuffisantes pour calculer une estimation precise.
-          </p>
+        <div className="text-center py-10">
+          <p className="text-gray-500">Données insuffisantes pour calculer une estimation précise.</p>
         </div>
       )}
 
-      {/* Metrics */}
-      <div className="grid grid-cols-3 gap-3 mt-10">
+      {/* ── Key metrics ── */}
+      <div className="grid grid-cols-3 gap-4 mt-10">
         {estimation.median_price_m2 && (
-          <div className="rounded-xl border border-gray-200 p-4 text-center">
-            <p className="text-xs text-gray-400">Prix au m2</p>
-            <p className="text-sm font-bold text-gray-900 mt-1">
-              {formatCHF(estimation.median_price_m2)}
-            </p>
+          <div className="text-center p-4 rounded-xl bg-gray-50">
+            <p className="text-2xl font-bold text-gray-900">{formatCHF(estimation.median_price_m2)}</p>
+            <p className="text-xs text-gray-500 mt-1">Prix au m²</p>
           </div>
         )}
-        <div className="rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-xs text-gray-400">Biens compares</p>
-          <p className="text-sm font-bold text-gray-900 mt-1">
-            {estimation.comparable_count}
-          </p>
+        <div className="text-center p-4 rounded-xl bg-gray-50">
+          <p className="text-2xl font-bold text-gray-900">{estimation.comparable_count}</p>
+          <p className="text-xs text-gray-500 mt-1">Biens comparés</p>
         </div>
-        <div className="rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-xs text-gray-400">Confiance</p>
-          <p className={cn('text-sm font-bold mt-1', confidenceColor)}>
-            {confidenceLabel}
-          </p>
-          <div className="h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
-            <div className={cn('h-full rounded-full', confidenceBarColor)} style={{ width: confidenceBarWidth }} />
-          </div>
+        <div className="text-center p-4 rounded-xl bg-gray-50">
+          <p className={cn('text-2xl font-bold', confidenceColor)}>{confidencePercent}%</p>
+          <p className="text-xs text-gray-500 mt-1">Confiance {confidenceLabel.toLowerCase()}</p>
         </div>
       </div>
 
-      {/* Comparables — horizontal scroll */}
+      {/* ── Property summary ── */}
+      <div className="flex items-center gap-3 mt-8 p-4 rounded-xl border border-gray-200">
+        <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+          {(() => { const Icon = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.icon || Building2; return <Icon className="w-5 h-5 text-blue-600" /> })()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900">{typeLabel}</p>
+          <p className="text-xs text-gray-500 truncate">
+            {form.rooms && `${form.rooms} pièces · `}{form.surface} m²{form.canton && ` · ${CANTON_LABELS[form.canton] || form.canton}`}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Comparables ── */}
       {estimation.comparables?.length > 0 && (
         <div className="mt-10">
-          <h4 className="text-sm font-semibold text-gray-900 mb-4">
-            Biens similaires sur le marche
+          <h4 className="text-base font-semibold text-gray-900 mb-4">
+            Biens similaires vendus récemment
           </h4>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
             {estimation.comparables.map((comp, i) => (
-              <div key={comp.id || i} className="flex-shrink-0 w-56 rounded-xl border border-gray-200 overflow-hidden">
-                <div className="h-32 bg-gray-100">
+              <div key={comp.id || i} className="flex-shrink-0 w-64 rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="h-36 bg-gray-100">
                   {comp.photo_url ? (
                     <img src={comp.photo_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
@@ -1237,16 +1550,12 @@ function EstimationResultView({
                     </div>
                   )}
                 </div>
-                <div className="p-3">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {formatCHF(comp.price)}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">
-                    {comp.address || comp.city}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {comp.rooms ? `${comp.rooms}p. · ` : ''}{comp.surface_m2} m2
-                    {comp.price_per_m2 && ` · ${formatCHF(comp.price_per_m2)}/m2`}
+                <div className="p-4">
+                  <p className="text-base font-bold text-gray-900">{formatCHF(comp.price)}</p>
+                  <p className="text-sm text-gray-500 mt-0.5 truncate">{comp.address || comp.city}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {comp.rooms ? `${comp.rooms}p. · ` : ''}{comp.surface_m2} m²
+                    {comp.price_per_m2 && ` · ${formatCHF(comp.price_per_m2)}/m²`}
                   </p>
                 </div>
               </div>
@@ -1255,24 +1564,26 @@ function EstimationResultView({
         </div>
       )}
 
-      {/* Disclaimer */}
-      <p className="text-xs text-gray-400 italic mt-8 border-t border-gray-100 pt-4">
-        Cette estimation est fournie a titre indicatif, basee sur l'analyse statistique
-        de biens similaires dans votre secteur. Pour une evaluation precise, un agent
-        certifie peut visiter votre bien gratuitement.
+      {/* ── Disclaimer ── */}
+      <p className="text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100">
+        Estimation indicative basée sur l'analyse de biens similaires dans votre secteur. Pour une évaluation précise, un agent certifié peut visiter votre bien gratuitement.
       </p>
 
-      {/* CTA */}
+      {/* ── CTA ── */}
       <button
         onClick={onContinue}
-        className="w-full h-12 rounded-lg text-base font-medium border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white transition-colors mt-8 flex items-center justify-center gap-2"
+        className="w-full h-14 rounded-xl text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all mt-8 flex items-center justify-center gap-2"
       >
-        Etre contacte par un agent
-        <ArrowRight className="w-4 h-4" />
+        Être contacté par un expert
+        <ArrowRight className="w-5 h-5" />
       </button>
 
-      <p className="text-center text-xs text-gray-400 mt-3">
-        Sans engagement · Gratuit · Un agent vous rappelle sous 24h
+      <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-4">
+        <span>Sans engagement</span>
+        <span>·</span>
+        <span>100% gratuit</span>
+        <span>·</span>
+        <span>Réponse sous 24h</span>
       </p>
     </div>
   )

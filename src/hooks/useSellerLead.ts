@@ -18,6 +18,21 @@ export interface SellerLeadInput {
     condition: string
     yearBuilt: string
     photos: string[]
+    // Type-specific fields
+    floor?: string
+    ppeCharges?: number
+    hasBalcony?: boolean
+    balconySurface?: number
+    landSurface?: number
+    parkingSpaces?: string
+    hasGarden?: boolean
+    hasPool?: boolean
+    viewType?: string
+    landZone?: string
+    cosIus?: string
+    commercialType?: string
+    annualRent?: number
+    isOccupied?: boolean
   }
   // Estimation
   estimation: EstimationResult
@@ -75,6 +90,29 @@ export function useSellerLead() {
           lat: pd.lat || null,
           lng: pd.lng || null,
           photos: pd.photos.length > 0 ? pd.photos : null,
+          // Type-specific fields mapped to DB columns
+          floor: pd.floor ? (pd.floor === 'RDC' ? 0 : pd.floor === 'Attique' ? 99 : parseInt(pd.floor) || null) : null,
+          charges_monthly: pd.ppeCharges || null,
+          has_outdoor: pd.hasBalcony || pd.hasGarden || false,
+          has_parking: pd.parkingSpaces ? parseInt(pd.parkingSpaces) > 0 : false,
+          // Store extra details in features array
+          features: [
+            pd.hasBalcony && 'Balcon/Terrasse',
+            pd.balconySurface && `Balcon ${pd.balconySurface} m²`,
+            pd.hasGarden && 'Jardin',
+            pd.hasPool && 'Piscine',
+            pd.viewType === 'lake' && 'Vue lac',
+            pd.viewType === 'mountain' && 'Vue montagne',
+            pd.viewType === 'open' && 'Vue dégagée',
+            pd.landSurface && `Terrain ${pd.landSurface} m²`,
+            pd.parkingSpaces && `${pd.parkingSpaces} parking`,
+            pd.landZone && `Zone ${pd.landZone}`,
+            pd.cosIus && `COS/IUS ${pd.cosIus}`,
+            pd.commercialType && pd.commercialType,
+            pd.annualRent && `Loyer ${pd.annualRent} CHF/an`,
+            pd.isOccupied === true && 'Occupé',
+            pd.isOccupied === false && 'Vacant',
+          ].filter(Boolean) as string[],
         })
         .select('id')
         .single()

@@ -9,11 +9,13 @@ import WhyMegga from '@/components/home/WhyMegga'
 import Testimonials from '@/components/home/Testimonials'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import BuyerSidebar from '@/components/search/BuyerSidebar'
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
+      <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
 
       {/* Hero */}
       <section className="relative min-h-[560px] flex items-center justify-center overflow-hidden">

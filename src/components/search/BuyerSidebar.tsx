@@ -87,12 +87,14 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
   return (
     <nav
       className={cn(
-        'hidden lg:flex flex-col items-center w-[90px] shrink-0 bg-white border-r border-gray-200',
+        'flex flex-col items-center w-[90px] shrink-0 bg-white border-r border-gray-200 h-full',
         className
       )}
     >
-      {/* Top spacer — aligns with navbar height */}
-      <div className="w-full h-14 shrink-0 border-b border-gray-200" />
+      {/* Top spacer — only when sidebar is NOT fixed (static position, e.g. SearchPage) */}
+      {!className?.includes('fixed') && (
+        <div className="w-full h-[72px] shrink-0 border-b border-gray-200" />
+      )}
       {/* Icons area */}
       <div className="flex flex-col items-center pt-4 pb-5 flex-1">
         {NAV_ITEMS.map(renderItem)}
