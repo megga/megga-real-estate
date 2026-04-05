@@ -1494,7 +1494,7 @@ Cantons :         GE, VD, VS, NE, FR, BE, JU, BS, BL, AG, SO, ZH, LU, ZG, SZ, NW
 
 ---
 
-## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 5 avril 2026)
+## 13. ÉTAT D'IMPLÉMENTATION (mis à jour : 6 avril 2026)
 
 ### ✅ Fonctionnalités LIVE
 
@@ -2078,6 +2078,50 @@ Basé sur l'analyse des géants mondiaux (Zillow $2.2B, RealAdvisor $31M, Meille
 - **ListingSidebar** : CTA ghost, calculateur border+h-11, AgentCard intégré
 - **ListingPreviewPanel** : 2 agency cards → AgentCard compact, CTAs ghost, mobile CTA ghost
 - **ListingMobileBar** : rounded-full → rounded-lg, ghost contact, agent preview mini
+
+#### Agent Directory MVP — 5 avril 2026
+- **3 tables Supabase** : `agent_profiles`, `agency_profiles`, `agent_reviews` + RLS + indexes + RPC `search_directory`
+- **3 pages Zillow-style** : `/agents` (directory search), `/agents/:slug` (profil agent), `/agences/:slug` (profil agence)
+- **8 composants** dans `src/components/directory/` : AgentCard, AgencyCard, AgentSearchBar, AgentStatsPanel, ReviewCard, ReviewForm, ClaimProfileCTA, VerifiedBadge
+- **3 hooks** : `useAgentDirectory` (RPC search), `useAgentProfile`, `useAgentReviews` + `useSubmitReview`
+- **i18n 4 langues** : namespace `directory` (80 clés × FR/DE/EN/IT)
+- **Seed script** `scripts/seed-directory.mjs` : SVIT 2'719 + SMK 178 + USPI GE 35 + USPI VD 71 = **2'517 agences + 1'981 agents** en DB
+- **GitHub Action** `sync-directory.yml` : sync hebdomadaire lundi 7h (ajouts/retraits/rapport)
+- **Design** : hero photo full-width, barre de recherche Zillow, sidebar filtres (canton/spécialité/langue/vérifié), cards horizontales liste, popular cantons bar, pagination numérotée, bottom CTA "Réclamer mon profil"
+- Navbar : lien "Trouver un agent" ajouté
+- Routes lazy : `AgentDirectoryPage`, `AgentProfilePage`, `AgencyProfilePage`
+
+#### Page Vendre — Redesign Zillow complet — 5-6 avril 2026
+- **Hero** : titre text-7xl "Combien vaut votre bien ?" avec "votre bien" en bleu, barre d'adresse geocoding Mapbox, types en pills horizontales, compteurs confiance (38'000+ / 26 cantons / ±5%), badge live pulsant, réassurance (Confidentiel, Instantané, Gratuit)
+- **Wizard conversationnel** : step 2 remplacé par mini-wizard interne — 1 question par écran, auto-avance au clic (200ms), animations slide-in entre substeps, barre de progression "Question X/Y"
+- **Champs différenciés par type** :
+  - Appartement : pièces, chambres, surface, étage (RDC→Attique), charges PPE, balcon/terrasse
+  - Maison/Villa : + surface terrain, parking, jardin
+  - Villa : + piscine, vue (lac/montagne/dégagée/aucune)
+  - Terrain : surface parcelle, zone (constructible/agricole/mixte), COS/IUS — pas de pièces/état
+  - Commercial : type (bureau/commerce/restaurant/entrepôt), loyer annuel, occupé/vacant
+- **Photos optionnelles** : plus de blocage min 3, texte "Optionnel — améliore la précision de 40%"
+- **Skip adresse** : si adresse remplie depuis hero → saute step 1
+- **Estimation Zillow** : prix text-7xl avec animation `priceReveal`, barre fourchette visuelle (min/estimation/max), métriques en gros chiffres, comparables w-64 en scroll horizontal, CTA bleu "Être contacté par un expert"
+- **Loading enrichi** : cercle avec %, 4 textes progressifs, dots indicateurs
+- **Succès redesigné** : check animé vert, card récap avec icône type, "Prochaines étapes" numérotées (1. Expert 24h, 2. Visite gratuite, 3. Proposition mandat)
+- **Social proof** : "12'500+ propriétaires ont déjà estimé leur bien sur MEGGA" sur chaque substep
+- **CRM mapping complet** : floor, charges_monthly, has_outdoor, has_parking mappés aux colonnes DB + étage/vue/piscine/terrain/parking stockés dans `features[]`
+- **Mobile responsive** vérifié sur 375px
+
+#### ListingFormPage — Refonte sections dépliables — 6 avril 2026
+- **Wizard 5 steps séquentiel → accordéon 5 sections dépliables** (une page scrollable)
+- **Section header** : numéro + titre + badge complétude (✓ vert si valide) + chevron
+- **Sidebar sticky** (desktop lg:) : preview card temps réel (photo, titre, adresse, pièces/m²/prix), barre complétion %, navigation rapide par section, boutons "Sauver brouillon" + "Publier"
+- **Mobile** : bottom bar sticky avec Brouillon + Publier
+- **Container élargi** : max-w-3xl → max-w-6xl (formulaire moins compressé)
+- **Aéré** : icônes type h-7, gap-3, py-5, surface/étage en 2 colonnes, space-y-8
+- Toute la logique préservée : React Hook Form, Zod, auto-save, photo upload, staging, floor plan, 4 méthodes création
+
+#### Layout — BuyerSidebar globale — 5 avril 2026
+- **BuyerSidebar** ajoutée sur HomePage, VendrePage, pages directory (fixed top-[72px] bottom-0 left-0)
+- **Navbar** : h-14 → h-[72px], bg-white solide (plus de bg-white/80 backdrop-blur sauf homepage transparente)
+- **BuyerSidebar spacer** conditionnel : masqué quand fixed (pas de doublon d'espace)
 
 ### Prochaines priorités
 1. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
