@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark, HelpCircle, Globe, ChevronDown } from 'lucide-react'
+import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark, HelpCircle, Globe, ChevronDown, Users, Building2, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useAvatar } from '@/hooks/useAvatar'
@@ -11,7 +11,12 @@ const leftLinks = [
   { label: 'Acheter', href: '/acheter' },
   { label: 'Louer', href: '/louer' },
   { label: 'Vendre', href: '/vendre' },
-  { label: 'Trouver un agent', href: '/agents' },
+]
+
+const proDropdownItems = [
+  { label: 'Trouver un agent', href: '/agents', icon: Users, desc: 'Trouvez un courtier' },
+  { label: 'Trouver une agence', href: '/agences', icon: Building2, desc: 'Annuaire des agences' },
+  { label: 'Créer un profil', href: '/devenir-agent', icon: UserPlus, desc: 'Rejoignez MEGGA' },
 ]
 
 const mobileLinks = [
@@ -19,6 +24,8 @@ const mobileLinks = [
   { label: 'Louer', href: '/louer' },
   { label: 'Vendre', href: '/vendre' },
   { label: 'Trouver un agent', href: '/agents' },
+  { label: 'Trouver une agence', href: '/agences' },
+  { label: 'Créer un profil', href: '/devenir-agent' },
   { label: 'Estimations', href: '/estimations' },
   { label: 'Services', href: '/services' },
 ]
@@ -56,6 +63,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [agentDropOpen, setAgentDropOpen] = useState(false)
+  const agentDropRef = useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const langRef = useRef<HTMLDivElement>(null)
@@ -91,6 +100,17 @@ export default function Navbar() {
     if (dropdownOpen) document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [dropdownOpen])
+
+  // Close agent dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (agentDropRef.current && !agentDropRef.current.contains(e.target as Node)) {
+        setAgentDropOpen(false)
+      }
+    }
+    if (agentDropOpen) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [agentDropOpen])
 
   // Close lang dropdown on outside click
   useEffect(() => {
@@ -148,6 +168,46 @@ export default function Navbar() {
               </Link>
             )
           })}
+
+          {/* Trouver un agent — dropdown */}
+          <div className="relative" ref={agentDropRef}>
+            <button
+              onClick={() => setAgentDropOpen(!agentDropOpen)}
+              className={cn(
+                'flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium transition-all duration-150',
+                (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agences') || location.pathname === '/devenir-agent')
+                  ? isTransparent ? 'text-white' : 'text-gray-900'
+                  : isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-gray-900'
+              )}
+            >
+              Professionnels
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', agentDropOpen && 'rotate-180')} />
+            </button>
+            {agentDropOpen && (
+              <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                {proDropdownItems.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={() => setAgentDropOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50',
+                        location.pathname === item.href ? 'bg-gray-50' : ''
+                      )}
+                    >
+                      <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                        <p className="text-xs text-gray-400">{item.desc}</p>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* ─── LEFT: Hamburger (mobile) ─── */}

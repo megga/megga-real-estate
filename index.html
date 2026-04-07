@@ -14,10 +14,11 @@
     <title>MEGGA Real Estate — Le portail immobilier suisse nouvelle génération</title>
     <script>
       // Pre-set theme BEFORE React renders to prevent white flash (FOUC)
+      // Only apply if user explicitly chose dark (not system preference — public pages stay light)
       (function() {
         try {
           var t = localStorage.getItem('megga-theme');
-          if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          if (t === 'dark' && /\/dashboard/.test(location.pathname)) {
             document.documentElement.setAttribute('data-theme', 'dark');
           }
         } catch(e) {}

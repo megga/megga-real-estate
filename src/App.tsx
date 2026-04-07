@@ -30,6 +30,7 @@ const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
 const AgentDirectoryPage = lazy(() => import('@/pages/public/AgentDirectoryPage'))
 const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
 const AgencyProfilePage = lazy(() => import('@/pages/public/AgencyProfilePage'))
+const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
 
 // Lazy-loaded agent pages (except ActionBoardPage which is static)
 const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
@@ -150,6 +151,7 @@ export default function App() {
               <Route path="/visite/:id/feedback" element={<VisitFeedbackPage />} />
               <Route path="/agents" element={<AgentDirectoryPage />} />
               <Route path="/agents/:slug" element={<AgentProfilePage />} />
+              <Route path="/agences" element={<AgenciesPage />} />
               <Route path="/agences/:slug" element={<AgencyProfilePage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 

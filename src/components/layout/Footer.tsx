@@ -136,6 +136,17 @@ export default function Footer() {
           </p>
         </div>
       </div>
+
+      {/* ─── Illustration skyline ─── */}
+      <div className="w-full overflow-hidden">
+        <img
+          src="/illustration-footer.svg"
+          alt=""
+          className="w-full h-auto"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
     </footer>
   )
 }

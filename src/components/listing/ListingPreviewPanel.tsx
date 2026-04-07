@@ -444,7 +444,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full h-12 bg-gradient-to-r from-accent to-indigo-600 hover:from-accent/90 hover:to-indigo-500 text-white font-semibold rounded-lg flex items-center justify-center gap-2.5 transition-all text-sm shadow-sm hover:shadow-md"
+        className="w-full h-11 border border-gray-200 text-gray-700 hover:border-gray-400 hover:text-gray-900 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
       >
         <Sparkles className="w-4.5 h-4.5" />
         Demandez à MEGGA AI
@@ -739,8 +739,6 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
           <span className="hidden sm:inline">Retour</span>
         </button>
 
-        {!inline && <img src="/megga-logo.svg" alt="MEGGA" className="h-6 absolute left-1/2 -translate-x-1/2" />}
-
         <div className="flex items-center gap-1">
           <button
             onClick={() => setIsFavorite(!isFavorite)}
@@ -927,95 +925,38 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   {/* ── SECTION: Overview ── */}
                   <div id="preview-overview">
 
-                    {/* Exclusive badge + C2PA */}
-                    <div className="flex items-center gap-2 mb-3 flex-wrap">
-                      {listing.is_exclusive && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold tracking-wide uppercase">
-                          <Star className="w-3.5 h-3.5 fill-accent" />
-                          Exclusif MEGGA
-                        </span>
-                      )}
+                    {/* Price + address */}
+                    <div className="flex items-center gap-2 mb-1">
+                      {listing.is_exclusive && <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0" />}
                       <C2PaBadge verified={listing.c2pa_verified || false} verifiedAt={listing.c2pa_verified_at} />
                     </div>
 
-                    {/* Price */}
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
-                      {formatCHF(listing.price)}
-                    </h2>
+                    <div className="flex items-baseline gap-3">
+                      <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
+                        {formatCHF(listing.price)}
+                      </h2>
+                      {pricePerM2 > 0 && (
+                        <span className="text-sm text-gray-400">{formatCHF(pricePerM2)}/m²</span>
+                      )}
+                    </div>
 
-                    {/* Address */}
-                    <p className="flex items-center gap-1.5 mt-1.5 text-gray-500 text-base">
-                      <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <p className="mt-1 text-gray-500 text-base">
                       {listing.address}, {listing.postal_code} {listing.city} ({listing.canton})
                     </p>
 
-                    {/* Specs grid cards — Zillow style */}
-                    <div className="grid grid-cols-4 gap-3 mt-5 py-5 border-y border-gray-100">
-                      {listing.rooms > 0 && (
-                        <div className="text-center">
-                          <p className="text-2xl font-bold text-gray-900">{listing.rooms}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">pièces</p>
-                        </div>
-                      )}
-                      {listing.bedrooms > 0 && (
-                        <div className="text-center border-l border-gray-100">
-                          <p className="text-2xl font-bold text-gray-900">{listing.bedrooms}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">chambres</p>
-                        </div>
-                      )}
-                      {listing.bathrooms > 0 && (
-                        <div className="text-center border-l border-gray-100">
-                          <p className="text-2xl font-bold text-gray-900">{listing.bathrooms}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">sdb</p>
-                        </div>
-                      )}
-                      {listing.surface_m2 > 0 && (
-                        <div className="text-center border-l border-gray-100">
-                          <p className="text-2xl font-bold text-gray-900">{listing.surface_m2.toLocaleString('fr-CH')}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">m²</p>
-                        </div>
-                      )}
+                    {/* Specs — compact inline */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-3 text-sm text-gray-600">
+                      {listing.rooms > 0 && <span className="font-medium">{listing.rooms} pièces</span>}
+                      {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-300">·</span>}
+                      {listing.bedrooms > 0 && <span className="font-medium">{listing.bedrooms} chambres</span>}
+                      {listing.bedrooms > 0 && listing.bathrooms > 0 && <span className="text-gray-300">·</span>}
+                      {listing.bathrooms > 0 && <span className="font-medium">{listing.bathrooms} sdb</span>}
+                      {listing.bathrooms > 0 && listing.surface_m2 > 0 && <span className="text-gray-300">·</span>}
+                      {listing.surface_m2 > 0 && <span className="font-medium">{listing.surface_m2.toLocaleString('fr-CH')} m²</span>}
+                      {listing.type && <><span className="text-gray-300">·</span><span>{TYPE_LABELS[listing.type] || listing.type}</span></>}
                     </div>
 
-                    {/* Property details grid — type, year, price/m², floor */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-                      {listing.type && (
-                        <div className="flex items-center gap-2.5">
-                          <Home className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{TYPE_LABELS[listing.type] || listing.type}</span>
-                        </div>
-                      )}
-                      {listing.year_built > 0 && (
-                        <div className="flex items-center gap-2.5">
-                          <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">Construit en {listing.year_built}</span>
-                        </div>
-                      )}
-                      {pricePerM2 > 0 && (
-                        <div className="flex items-center gap-2.5">
-                          <Maximize2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{formatCHF(pricePerM2)}/m²</span>
-                        </div>
-                      )}
-                      {listing.floor > 0 && (
-                        <div className="flex items-center gap-2.5">
-                          <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{listing.floor}e étage</span>
-                        </div>
-                      )}
-                      {listing.condition && (
-                        <div className="flex items-center gap-2.5">
-                          <Eye className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{CONDITION_LABELS[listing.condition] || listing.condition}</span>
-                        </div>
-                      )}
-                      {listing.charges_monthly > 0 && (
-                        <div className="flex items-center gap-2.5">
-                          <Receipt className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{formatCHF(listing.charges_monthly)}/mois</span>
-                        </div>
-                      )}
-                    </div>
+                    {/* — property details moved to Caractéristiques section — */}
 
                     {/* Badges row: urgency + energy + engagement stats */}
                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -1041,65 +982,20 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       )}
                     </div>
 
-                    {/* Walk Score + Monthly cost — compact row */}
-                    <div className="flex flex-wrap items-center gap-3 mt-4">
-                      {/* Walk Score */}
-                      {walkScore && walkScore.score > 0 && (
-                        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
-                          <div className="relative w-9 h-9">
-                            <svg viewBox="0 0 36 36" className="w-9 h-9 -rotate-90">
-                              <circle cx="18" cy="18" r="15.5" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-                              <circle
-                                cx="18" cy="18" r="15.5" fill="none"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeDasharray={`${walkScore.score * 0.975} 100`}
-                                className={
-                                  walkScore.score >= 70 ? 'stroke-green-500' :
-                                  walkScore.score >= 50 ? 'stroke-yellow-500' :
-                                  walkScore.score >= 25 ? 'stroke-orange-500' : 'stroke-red-500'
-                                }
-                              />
-                            </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-900">
-                              {walkScore.score}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-[11px] font-semibold text-gray-900">Walkabilité</p>
-                            <p className={cn('text-[10px] font-medium', walkScore.color)}>{walkScore.label}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Monthly cost estimate */}
-                      {listing.canton && listing.price > 0 && (() => {
-                        const cost = estimateMonthlyCost(listing.price, listing.canton, listing.charges_monthly)
-                        return (
-                          <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
-                            <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center">
-                              <span className="text-accent text-[10px] font-bold">CHF</span>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-semibold text-gray-900">{formatCHF(cost.totalMonthly)}/mois</p>
-                              <p className="text-[10px] text-gray-400">Coût mensuel estimé</p>
-                            </div>
-                          </div>
-                        )
-                      })()}
-
-                      {/* Charges if applicable */}
-                      {listing.charges_monthly > 0 && (
-                        <span className="text-[11px] text-gray-400">Charges : {formatCHF(listing.charges_monthly)}/mois</span>
-                      )}
-                    </div>
+                    {/* Walk Score — inline compact */}
+                    {walkScore && walkScore.score > 0 && (
+                      <div className="flex items-center gap-2 mt-3">
+                        <span className={cn('text-xs font-semibold', walkScore.color)}>{walkScore.score}</span>
+                        <span className="text-xs text-gray-400">Walkabilité — {walkScore.label}</span>
+                      </div>
+                    )}
 
                     <div className="border-t border-gray-100 my-6" />
 
                     {/* Description */}
                     {listing.description && (
                       <div>
-                        <h3 className="text-base font-semibold text-gray-900 mb-3">Description</h3>
+                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Description</h3>
                         <div className={cn(
                           'text-gray-600 text-[15px] leading-relaxed',
                           !descExpanded && 'line-clamp-4'
@@ -1126,7 +1022,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     {/* Points forts — with icons */}
                     {features.length > 0 && (
                       <div className="mt-6">
-                        <h3 className="text-base font-semibold text-gray-900 mb-3">Points forts</h3>
+                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Points forts</h3>
                         <div className="flex flex-wrap gap-2">
                           {(Array.isArray(features) ? features : Object.keys(features)).map((f, i) => {
                             const label = typeof f === 'string' ? f : String(f)
@@ -1134,7 +1030,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                             return (
                               <span
                                 key={i}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-700 text-sm font-medium"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 text-gray-600 text-sm"
                               >
                                 <Icon className="w-4 h-4 text-gray-500" />
                                 {label}
@@ -1145,28 +1041,13 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       </div>
                     )}
 
-                    {/* Agency card */}
-                    {listing.agency_name && (
-                      <div className="mt-5">
-                        <AgentCard
-                          variant="compact"
-                          agent={{
-                            name: listing.agency_name,
-                            agency: listing.agency_name,
-                            phone: '',
-                            email: '',
-                            photo: '',
-                          }}
-                          onClick={() => setShowContactModal(true)}
-                        />
-                      </div>
-                    )}
+                    {/* Agency card — displayed in sidebar only on desktop */}
                   </div>
 
                   {/* ── SECTION: Floor Plan Interactif ── */}
                   {listing.floor_plan_url && listing.floor_plan_hotspots.length > 0 && (
-                    <div id="preview-plan" className="mt-8 pt-6 border-t border-gray-100">
-                      <h3 className="text-base font-semibold text-gray-900 mb-4">Plan interactif</h3>
+                    <div id="preview-plan" className="mt-10 pt-8 border-t border-gray-100">
+                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Plan interactif</h3>
                       <InteractiveFloorPlan
                         floorPlanUrl={listing.floor_plan_url}
                         hotspots={listing.floor_plan_hotspots}
@@ -1187,11 +1068,11 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   )}
 
                   {/* ── SECTION: Details / Caractéristiques ── */}
-                  <div id="preview-details" className="mt-8 pt-6 border-t border-gray-100">
-                    <h3 className="text-base font-semibold text-gray-900 mb-4">Caractéristiques</h3>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  <div id="preview-details" className="mt-10 pt-8 border-t border-gray-100">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Caractéristiques</h3>
+                    <div className="grid grid-cols-2 gap-x-6">
                       {characteristics.map(({ label, value }, i) => (
-                        <div key={i} className="flex items-center justify-between py-2.5 border-b border-gray-100">
+                        <div key={i} className={cn('flex items-center justify-between py-2.5 px-2', i % 2 === 0 ? 'bg-gray-50/60' : '')}>
                           <span className="text-sm text-gray-500">{label}</span>
                           <span className="text-sm font-medium text-gray-900">{value}</span>
                         </div>
@@ -1200,8 +1081,8 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   </div>
 
                   {/* ── SECTION: Map ── */}
-                  <div id="preview-map" className="mt-8 pt-6 border-t border-gray-100">
-                    <h3 className="text-base font-semibold text-gray-900 mb-4">Localisation</h3>
+                  <div id="preview-map" className="mt-10 pt-8 border-t border-gray-100">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Localisation</h3>
                     {listing.lat && listing.lng && MAPBOX_TOKEN ? (
                       <div className="h-[250px] rounded-lg overflow-hidden border border-gray-100">
                         <MapGL
@@ -1232,13 +1113,13 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   </div>
 
                   {/* ── SECTION: Quartier ── */}
-                  <div id="preview-quartier" className="mt-8 pt-6 border-t border-gray-100">
+                  <div id="preview-quartier" className="mt-10 pt-8 border-t border-gray-100">
                     <NeighborhoodSection lat={listing.lat} lng={listing.lng} canton={listing.canton} city={listing.city} compact />
                   </div>
 
                   {/* ── SECTION: Market ── */}
-                  <div id="preview-market" className="mt-8 pt-6 border-t border-gray-100 pb-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-4">Analyse du marché</h3>
+                  <div id="preview-market" className="mt-10 pt-8 border-t border-gray-100 pb-6">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Analyse du marché</h3>
                     <div className="space-y-4">
                       {marketTemp && <MarketTemperatureBadge temperature={marketTemp} />}
                       {isMarket && rawId && <PriceHistoryChart marketListingId={rawId} />}
@@ -1251,8 +1132,8 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                   {/* ── SECTION: Similar listings ── */}
                   {similarListings.length > 0 && (
-                    <div id="preview-similaires" className="mt-8 pt-6 border-t border-gray-100 pb-6">
-                      <h3 className="text-base font-semibold text-gray-900 mb-4">Biens similaires</h3>
+                    <div id="preview-similaires" className="mt-10 pt-8 border-t border-gray-100 pb-6">
+                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Biens similaires</h3>
                       <div className="grid grid-cols-2 gap-3">
                         {similarListings.slice(0, 4).map((sl) => {
                           const photo = sl.photos?.[0]
