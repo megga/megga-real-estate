@@ -19,11 +19,14 @@
  */
 
 import { readFileSync } from 'fs'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { validateListing } from './lib/validate-listing.mjs'
 
 // ── Load env ────────────────────────────────────────────────
 
-const envPath = '/Users/megga/Desktop/megga-real-estate/.env.local'
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const envPath = resolve(__dirname, '..', '.env.local')
 const envContent = readFileSync(envPath, 'utf8')
 const SUPABASE_URL = envContent.match(/VITE_SUPABASE_URL=(.+)/)?.[1]?.trim()
 const ANON_KEY = envContent.match(/VITE_SUPABASE_ANON_KEY=(.+)/)?.[1]?.trim()
