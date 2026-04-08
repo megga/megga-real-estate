@@ -30,7 +30,8 @@ function useAgencies() {
     queryKey: ['agencies-directory'],
     queryFn: async () => {
       // Supabase default limit is 1000, paginate to get all
-      const all: Record<string, unknown>[] = []
+      type Agency = { id: string; name: string; slug: string; canton: string | null; city: string | null; address: string | null; phone: string | null; email: string | null; website_url: string | null; logo_url: string | null; status: string | null; source: string | null }
+      const all: Agency[] = []
       let from = 0
       const pageSize = 1000
       while (true) {

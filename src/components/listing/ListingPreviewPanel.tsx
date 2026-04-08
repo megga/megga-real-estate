@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
   X, ChevronDown, ChevronUp, ChevronLeft, MoreHorizontal,
-  MapPin, Maximize2, Heart, Share2,
-  Phone, CalendarDays, Building2, Home, Calendar, Eye,
-  Clock, Star, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
+  MapPin, Heart, Share2,
+  Phone, CalendarDays, Building2,
+  Clock, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check, GitCompareArrows,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
