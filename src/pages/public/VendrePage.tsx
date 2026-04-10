@@ -199,6 +199,7 @@ export default function VendrePage() {
   const { t } = useTranslation('common')
   const [step, setStep] = useState(0) // 0 = hero, 1-4 = wizard steps
   const [subStep, setSubStep] = useState(0) // substep within step 2
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [form, setForm] = useState<FormData>({
     address: '', city: '', canton: '', postalCode: '', lat: undefined, lng: undefined,
     propertyType: '', rooms: '', bedrooms: '', surface: '', condition: '', yearBuilt: '',
@@ -433,7 +434,7 @@ export default function VendrePage() {
 
   const step1Valid = form.address.length > 3 && form.canton.length > 0
   const step3Valid = true // photos are optional
-  const step4Valid = form.contactName.length > 1 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail) && form.motivation
+  const step4Valid = form.contactName.length > 1 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail) && form.motivation && privacyAccepted
 
   // ─── Render ────────────────────────────────────────────
 
@@ -1207,6 +1208,25 @@ export default function VendrePage() {
                   ))}
                 </div>
               </div>
+
+              {/* LPD art. 6 — Consentement explicite au traitement des données */}
+              <label className="flex items-start gap-2.5 cursor-pointer pt-2">
+                <input
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent/20"
+                  required
+                  aria-label="Consentement au traitement des données"
+                />
+                <span className="text-xs text-gray-600 leading-relaxed">
+                  J'accepte que MEGGA traite mes données conformément à sa{' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent underline">
+                    politique de confidentialité
+                  </a>
+                  . Mes informations seront utilisées pour vous contacter et établir une estimation.
+                </span>
+              </label>
 
               {/* Navigation */}
               <div className="flex items-center justify-between pt-2">

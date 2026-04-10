@@ -184,6 +184,12 @@
     "passwordError": "La password deve contenere almeno 8 caratteri",
     "back": "Indietro"
   },
+  "privacyConsent": {
+    "label": "Consenso al trattamento dei dati",
+    "prefix": "Accetto che MEGGA tratti i miei dati in conformità con la sua ",
+    "linkText": "politica sulla privacy",
+    "suffix": ". Le mie informazioni saranno utilizzate per rispondere alla mia richiesta."
+  },
   "privacy": {
     "title": "Politica sulla privacy",
     "lastUpdated": "Ultimo aggiornamento: 11 aprile 2026",

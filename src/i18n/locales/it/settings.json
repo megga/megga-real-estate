@@ -267,6 +267,24 @@
       "cannotUnlink": "Deve impostare una password prima di scollegare Google.",
       "linkError": "Impossibile collegare l'account Google.",
       "unlinkSuccess": "Account Google scollegato con successo."
+    },
+    "dangerZone": {
+      "title": "Zona pericolosa",
+      "description": "L'eliminazione dell'account è irreversibile. I dossier KYC in corso verranno conservati per 10 anni come richiesto dalla Legge sul riciclaggio di denaro (LRD).",
+      "deleteButton": "Elimina il mio account",
+      "modal": {
+        "title": "Eliminare l'account?",
+        "description": "Questa azione è irreversibile. I dati personali saranno anonimizzati. I dossier KYC convalidati saranno conservati per 10 anni come richiesto dalla LRD (art. 7 cpv. 3).",
+        "confirmLabel": "Digita {{word}} per confermare",
+        "confirmWord": "ELIMINA",
+        "cancel": "Annulla",
+        "confirm": "Elimina definitivamente"
+      },
+      "errors": {
+        "kycPending": "Hai {{count}} dossier KYC in corso. Attendi la loro finalizzazione o contatta il supporto.",
+        "soleAdmin": "Sei l'unico amministratore della tua agenzia. Trasferisci i tuoi diritti prima di eliminare l'account.",
+        "unknown": "Si è verificato un errore durante l'eliminazione dell'account."
+      }
     }
   },
   "subscription": {

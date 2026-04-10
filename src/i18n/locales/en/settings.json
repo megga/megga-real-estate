@@ -267,6 +267,24 @@
       "cannotUnlink": "You must set a password before unlinking Google.",
       "linkError": "Failed to link Google account.",
       "unlinkSuccess": "Google account unlinked successfully."
+    },
+    "dangerZone": {
+      "title": "Danger zone",
+      "description": "Deleting your account is irreversible. Ongoing KYC cases will be retained for 10 years as required by the Anti-Money Laundering Act (AMLA).",
+      "deleteButton": "Delete my account",
+      "modal": {
+        "title": "Delete your account?",
+        "description": "This action is irreversible. Your personal data will be anonymised. Validated KYC cases will be retained for 10 years as required by AMLA (art. 7 para. 3).",
+        "confirmLabel": "Type {{word}} to confirm",
+        "confirmWord": "DELETE",
+        "cancel": "Cancel",
+        "confirm": "Delete permanently"
+      },
+      "errors": {
+        "kycPending": "You have {{count}} KYC case(s) in progress. Wait for them to be finalised or contact support.",
+        "soleAdmin": "You are the only administrator of your agency. Transfer your rights before deleting your account.",
+        "unknown": "An error occurred while deleting the account."
+      }
     }
   },
   "subscription": {

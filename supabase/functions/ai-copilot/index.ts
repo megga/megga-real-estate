@@ -2,10 +2,63 @@
 // Copilote IA agent — chat libre + actions structurées
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// LBA/IA compliance: log toute interaction IA liée à une entité CRM (contact, KYC,
+// bien, deal) dans activity_events avec actor_id='ai'. Silencieux en cas d'échec
+// (on ne veut pas bloquer la réponse IA si le log échoue).
+async function logAiCopilotInteraction(params: {
+  action: string
+  context: Record<string, unknown>
+  tokens: { input?: number; output?: number }
+  success: boolean
+}) {
+  try {
+    const { context } = params
+    const contactId = context?.contact_id as string | undefined
+    const kycCaseId = context?.kyc_case_id as string | undefined
+    const propertyId = context?.property_id as string | undefined
+    const transactionId = context?.transaction_id as string | undefined
+    const agencyId = context?.agency_id as string | undefined
+
+    // Only log if interaction is tied to a real CRM entity (otherwise free chat)
+    const entityId = kycCaseId || contactId || propertyId || transactionId
+    if (!entityId) return
+
+    const entityType = kycCaseId
+      ? 'kyc'
+      : contactId
+      ? 'contact'
+      : propertyId
+      ? 'property'
+      : 'transaction'
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !serviceRoleKey) return
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    await supabase.from('activity_events').insert({
+      agency_id: agencyId ?? null,
+      actor_id: 'ai',
+      action: `MEGGA AI — ${params.action}`,
+      entity_type: entityType,
+      entity_id: entityId,
+      metadata: {
+        copilot_action: params.action,
+        input_tokens: params.tokens.input,
+        output_tokens: params.tokens.output,
+        success: params.success,
+      },
+    })
+  } catch {
+    // Silent fail — ne jamais bloquer la réponse IA sur un échec de logging
+  }
 }
 
 type CopilotAction =
@@ -247,6 +300,17 @@ serve(async (req: Request) => {
 
     const claudeData = await claudeResponse.json()
     const result = claudeData.content?.[0]?.text || ''
+
+    // LBA/IA audit trail — log toute interaction liée à une entité CRM
+    await logAiCopilotInteraction({
+      action,
+      context: context ?? {},
+      tokens: {
+        input: claudeData.usage?.input_tokens,
+        output: claudeData.usage?.output_tokens,
+      },
+      success: true,
+    })
 
     return new Response(
       JSON.stringify({

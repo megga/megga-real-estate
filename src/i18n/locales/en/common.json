@@ -184,6 +184,12 @@
     "passwordError": "Password must contain at least 8 characters",
     "back": "Back"
   },
+  "privacyConsent": {
+    "label": "Consent to data processing",
+    "prefix": "I agree that MEGGA processes my data in accordance with its ",
+    "linkText": "privacy policy",
+    "suffix": ". My information will be used to respond to my request."
+  },
   "privacy": {
     "title": "Privacy policy",
     "lastUpdated": "Last updated: April 11, 2026",

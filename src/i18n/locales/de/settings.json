@@ -267,6 +267,24 @@
       "cannotUnlink": "Sie müssen ein Passwort festlegen, bevor Sie Google trennen können.",
       "linkError": "Google-Konto konnte nicht verknüpft werden.",
       "unlinkSuccess": "Google-Konto erfolgreich getrennt."
+    },
+    "dangerZone": {
+      "title": "Gefahrenzone",
+      "description": "Die Löschung Ihres Kontos ist unwiderruflich. Laufende KYC-Dossiers werden gemäss Geldwäschereigesetz (GwG) 10 Jahre lang aufbewahrt.",
+      "deleteButton": "Mein Konto löschen",
+      "modal": {
+        "title": "Konto löschen?",
+        "description": "Diese Aktion ist unwiderruflich. Ihre persönlichen Daten werden anonymisiert. Validierte KYC-Dossiers werden gemäss GwG (Art. 7 Abs. 3) 10 Jahre lang aufbewahrt.",
+        "confirmLabel": "Tippen Sie {{word}} zur Bestätigung",
+        "confirmWord": "LÖSCHEN",
+        "cancel": "Abbrechen",
+        "confirm": "Endgültig löschen"
+      },
+      "errors": {
+        "kycPending": "Sie haben {{count}} laufende(s) KYC-Dossier(s). Warten Sie auf die Finalisierung oder kontaktieren Sie den Support.",
+        "soleAdmin": "Sie sind der einzige Administrator Ihrer Agentur. Übertragen Sie Ihre Rechte, bevor Sie Ihr Konto löschen.",
+        "unknown": "Beim Löschen des Kontos ist ein Fehler aufgetreten."
+      }
     }
   },
   "subscription": {

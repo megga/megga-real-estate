@@ -15,10 +15,12 @@ import { useSubscription } from '@/hooks/useSubscription'
 import { useAvatar } from '@/hooks/useAvatar'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
+import { useDeleteAccount, type DeleteAccountError } from '@/hooks/useDeleteAccount'
 import { STRIPE_PRICES } from '@/lib/constants'
 import AvatarCropModal from '@/components/profile/AvatarCropModal'
 import AppearanceTab from '@/components/settings/AppearanceTab'
 import PageTransition from '@/components/layout/PageTransition'
+import { Modal } from '@/components/ui/modal'
 
 /* ─── Tab Types ─── */
 
@@ -1124,6 +1126,11 @@ function SecurityTab() {
   const [googleMessage, setGoogleMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [securityLog, setSecurityLog] = useState<{ id: string; action: string; detail: string; date: string }[]>([])
   const [logLoading, setLogLoading] = useState(true)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('')
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const deleteAccount = useDeleteAccount()
+  const confirmWord = t('security.dangerZone.modal.confirmWord')
 
   // Check if Google is linked by looking at user identities
   const googleIdentity = user?.identities?.find(id => id.provider === 'google')
@@ -1215,6 +1222,25 @@ function SecurityTab() {
 
   const passwordMatch = newPassword === confirmPassword
   const passwordValid = newPassword.length >= 6
+
+  async function handleDeleteAccount() {
+    setDeleteError(null)
+    try {
+      await deleteAccount.mutateAsync()
+      // Success — sign out and redirect home
+      await supabase.auth.signOut()
+      window.location.href = '/?account_deleted=1'
+    } catch (err) {
+      const e = err as DeleteAccountError
+      if (e.code === 'KYC_PENDING') {
+        setDeleteError(t('security.dangerZone.errors.kycPending', { count: e.count ?? 0 }))
+      } else if (e.code === 'SOLE_ADMIN') {
+        setDeleteError(t('security.dangerZone.errors.soleAdmin'))
+      } else {
+        setDeleteError(e.message || t('security.dangerZone.errors.unknown'))
+      }
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -1385,6 +1411,84 @@ function SecurityTab() {
           </div>
         ))}
       </div>
+
+      {/* ── Danger Zone — Suppression de compte (nLPD art. 32) ── */}
+      <div className="rounded-xl border border-red-500/30 p-5 mt-8">
+        <h3 className="text-sm font-semibold text-red-600 mb-2">
+          {t('security.dangerZone.title')}
+        </h3>
+        <p className="text-sm text-theme-secondary mb-4">
+          {t('security.dangerZone.description')}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setDeleteConfirmInput('')
+            setDeleteError(null)
+            setShowDeleteModal(true)
+          }}
+          className="h-9 px-3.5 rounded-lg text-sm font-medium border border-red-500/40 text-red-600 hover:border-red-500 hover:bg-red-500/5 transition-colors"
+        >
+          {t('security.dangerZone.deleteButton')}
+        </button>
+      </div>
+
+      {/* ── Delete Account Modal ── */}
+      <Modal
+        open={showDeleteModal}
+        onClose={() => {
+          if (!deleteAccount.isPending) setShowDeleteModal(false)
+        }}
+        title={t('security.dangerZone.modal.title')}
+        size="md"
+      >
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-theme-secondary">
+            {t('security.dangerZone.modal.description')}
+          </p>
+
+          <div>
+            <label className={labelClasses}>
+              {t('security.dangerZone.modal.confirmLabel', { word: confirmWord })}
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmInput}
+              onChange={(e) => setDeleteConfirmInput(e.target.value)}
+              placeholder={confirmWord}
+              autoComplete="off"
+              className={inputClasses}
+              aria-label={t('security.dangerZone.modal.confirmLabel', { word: confirmWord })}
+            />
+          </div>
+
+          {deleteError && (
+            <p className="text-xs text-red-500" role="alert">
+              {deleteError}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleteAccount.isPending}
+              className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
+            >
+              {t('security.dangerZone.modal.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmInput !== confirmWord || deleteAccount.isPending}
+              className="h-9 px-4 rounded-lg text-sm font-medium border border-red-500/40 text-red-600 hover:border-red-500 hover:bg-red-500/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            >
+              {deleteAccount.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {t('security.dangerZone.modal.confirm')}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

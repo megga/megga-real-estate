@@ -58,6 +58,7 @@ export default function HelpContactPage() {
   const createTicket = useCreateTicket()
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null)
   const [form, setForm] = useState({ category: '', name: '', email: '', subject: '', message: '' })
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [result, setResult] = useState<{ ticketNumber: string; accessToken: string } | null>(null)
 
   const persona = PERSONAS.find(p => p.id === selectedPersona)
@@ -185,9 +186,28 @@ export default function HelpContactPage() {
               <p className="text-xs text-red-600">{t('help.errorOccurred')}</p>
             )}
 
+            {/* LPD art. 6 — Consentement explicite au traitement des données */}
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent/20"
+                required
+                aria-label={t('common.privacyConsent.label')}
+              />
+              <span className="text-xs text-gray-600 leading-relaxed">
+                {t('common.privacyConsent.prefix')}{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent underline">
+                  {t('common.privacyConsent.linkText')}
+                </a>
+                {t('common.privacyConsent.suffix')}
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={createTicket.isPending || !form.category || !form.name || !form.email || !form.subject || !form.message}
+              disabled={createTicket.isPending || !form.category || !form.name || !form.email || !form.subject || !form.message || !privacyAccepted}
               className="w-full h-11 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
             >
               {createTicket.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t('help.sendMyRequest')}

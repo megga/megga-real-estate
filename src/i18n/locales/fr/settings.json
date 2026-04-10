@@ -267,6 +267,24 @@
       "cannotUnlink": "Vous devez avoir un mot de passe défini avant de délier Google.",
       "linkError": "Impossible de lier le compte Google.",
       "unlinkSuccess": "Compte Google délié avec succès."
+    },
+    "dangerZone": {
+      "title": "Zone dangereuse",
+      "description": "La suppression de votre compte est irréversible. Vos dossiers KYC en cours seront conservés 10 ans conformément à la loi sur le blanchiment d'argent (LBA).",
+      "deleteButton": "Supprimer mon compte",
+      "modal": {
+        "title": "Supprimer votre compte ?",
+        "description": "Cette action est irréversible. Vos données personnelles seront anonymisées. Les dossiers KYC validés seront conservés 10 ans conformément à la LBA (art. 7 al. 3).",
+        "confirmLabel": "Tapez {{word}} pour confirmer",
+        "confirmWord": "SUPPRIMER",
+        "cancel": "Annuler",
+        "confirm": "Supprimer définitivement"
+      },
+      "errors": {
+        "kycPending": "Vous avez {{count}} dossier(s) KYC en cours. Attendez leur finalisation ou contactez le support.",
+        "soleAdmin": "Vous êtes le seul administrateur de votre agence. Transférez vos droits avant de supprimer votre compte.",
+        "unknown": "Une erreur est survenue lors de la suppression du compte."
+      }
     }
   },
   "subscription": {
