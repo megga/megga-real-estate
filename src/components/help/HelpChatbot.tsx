@@ -6,12 +6,28 @@ import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { ALL_ARTICLES, type HelpArticle } from '@/lib/helpArticles'
 
-// Lazy load heavy components
+// Lazy load heavy components (emoji-mart ~400KB, giphy ~50KB)
 const EmojiPicker = lazy(() => import('@emoji-mart/react'))
-import emojiData from '@emoji-mart/data'
-import { GiphyFetch } from '@giphy/js-fetch-api'
 
-const gf = new GiphyFetch('GlVGYHkr3WSBnllca54iNt0yFbjz7L65') // Giphy public beta key
+// Lazy singletons — chargés à la première utilisation
+let emojiDataCache: unknown = null
+async function getEmojiData() {
+  if (!emojiDataCache) {
+    const mod = await import('@emoji-mart/data')
+    emojiDataCache = mod.default
+  }
+  return emojiDataCache
+}
+
+type GiphyLike = { trending: (opts: { limit: number }) => Promise<{ data: unknown }>; search: (q: string, opts: { limit: number }) => Promise<{ data: unknown }> }
+let gfCache: GiphyLike | null = null
+async function getGiphy(): Promise<GiphyLike> {
+  if (!gfCache) {
+    const { GiphyFetch } = await import('@giphy/js-fetch-api')
+    gfCache = new GiphyFetch('GlVGYHkr3WSBnllca54iNt0yFbjz7L65') as unknown as GiphyLike
+  }
+  return gfCache
+}
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -273,12 +289,13 @@ export default function HelpChatbot() {
   // Load trending GIFs on open
   useEffect(() => {
     if (showGif && gifResults.length === 0 && !gifQuery) {
-      gf.trending({ limit: 12 }).then(res => setGifResults(res.data as unknown as typeof gifResults))
+      getGiphy().then(gf => gf.trending({ limit: 12 })).then(res => setGifResults(res.data as unknown as typeof gifResults))
     }
   }, [showGif, gifResults.length, gifQuery])
 
   async function searchGifs(q: string) {
     setGifQuery(q)
+    const gf = await getGiphy()
     if (!q.trim()) {
       const res = await gf.trending({ limit: 12 })
       setGifResults(res.data as unknown as typeof gifResults)
@@ -287,6 +304,14 @@ export default function HelpChatbot() {
       setGifResults(res.data as unknown as typeof gifResults)
     }
   }
+
+  // Emoji data chargé à l'ouverture du picker
+  const [emojiData, setEmojiData] = useState<unknown>(null)
+  useEffect(() => {
+    if (showEmoji && !emojiData) {
+      getEmojiData().then(setEmojiData)
+    }
+  }, [showEmoji, emojiData])
 
   function handleEmojiSelect(emoji: { native: string }) {
     setInput(prev => prev + emoji.native)
@@ -902,7 +927,11 @@ export default function HelpChatbot() {
                   <div className="absolute bottom-full left-0 right-0 mb-2 z-50 overflow-hidden rounded-xl border border-theme-border" style={{ animation: 'intercom-fade-up 0.2s ease-out' }}>
                     <Suspense fallback={<div className="w-full h-[280px] bg-theme-card flex items-center justify-center text-sm text-theme-muted">Chargement...</div>}>
                       <div style={{ height: '280px' }}>
-                        <EmojiPicker data={emojiData} onEmojiSelect={handleEmojiSelect} locale="fr" theme="light" previewPosition="none" skinTonePosition="none" perLine={9} maxFrequentRows={1} />
+                        {emojiData ? (
+                          <EmojiPicker data={emojiData} onEmojiSelect={handleEmojiSelect} locale="fr" theme="light" previewPosition="none" skinTonePosition="none" perLine={9} maxFrequentRows={1} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-sm text-theme-muted">Chargement...</div>
+                        )}
                       </div>
                     </Suspense>
                   </div>

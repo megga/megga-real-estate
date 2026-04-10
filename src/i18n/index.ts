@@ -2,7 +2,7 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 
-// FR
+// FR est chargé synchronement (fallback + langue par défaut)
 import frCommon from './locales/fr/common.json'
 import frDashboard from './locales/fr/dashboard.json'
 import frSettings from './locales/fr/settings.json'
@@ -18,73 +18,133 @@ import frDocuments from './locales/fr/documents.json'
 import frAdmin from './locales/fr/admin.json'
 import frDirectory from './locales/fr/directory.json'
 
-// DE
-import deCommon from './locales/de/common.json'
-import deDashboard from './locales/de/dashboard.json'
-import deSettings from './locales/de/settings.json'
-import deContacts from './locales/de/contacts.json'
-import dePipeline from './locales/de/pipeline.json'
-import deListings from './locales/de/listings.json'
-import deKyc from './locales/de/kyc.json'
-import deMessages from './locales/de/messages.json'
-import deCalendar from './locales/de/calendar.json'
-import deMatching from './locales/de/matching.json'
-import deAutomation from './locales/de/automation.json'
-import deDocuments from './locales/de/documents.json'
-import deAdmin from './locales/de/admin.json'
-import deDirectory from './locales/de/directory.json'
+const NAMESPACES = [
+  'common', 'dashboard', 'settings', 'contacts', 'pipeline', 'listings',
+  'kyc', 'messages', 'calendar', 'matching', 'automation', 'documents',
+  'admin', 'directory',
+] as const
 
-// EN
-import enCommon from './locales/en/common.json'
-import enDashboard from './locales/en/dashboard.json'
-import enSettings from './locales/en/settings.json'
-import enContacts from './locales/en/contacts.json'
-import enPipeline from './locales/en/pipeline.json'
-import enListings from './locales/en/listings.json'
-import enKyc from './locales/en/kyc.json'
-import enMessages from './locales/en/messages.json'
-import enCalendar from './locales/en/calendar.json'
-import enMatching from './locales/en/matching.json'
-import enAutomation from './locales/en/automation.json'
-import enDocuments from './locales/en/documents.json'
-import enAdmin from './locales/en/admin.json'
-import enDirectory from './locales/en/directory.json'
+type Namespace = typeof NAMESPACES[number]
+type SupportedLang = 'fr' | 'de' | 'en' | 'it'
 
-// IT
-import itCommon from './locales/it/common.json'
-import itDashboard from './locales/it/dashboard.json'
-import itSettings from './locales/it/settings.json'
-import itContacts from './locales/it/contacts.json'
-import itPipeline from './locales/it/pipeline.json'
-import itListings from './locales/it/listings.json'
-import itKyc from './locales/it/kyc.json'
-import itMessages from './locales/it/messages.json'
-import itCalendar from './locales/it/calendar.json'
-import itMatching from './locales/it/matching.json'
-import itAutomation from './locales/it/automation.json'
-import itDocuments from './locales/it/documents.json'
-import itAdmin from './locales/it/admin.json'
-import itDirectory from './locales/it/directory.json'
+// DE/EN/IT sont lazy-loadés à la demande (évite ~420KB dans le main bundle)
+async function loadDe() {
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, automation, documents, admin, directory] = await Promise.all([
+    import('./locales/de/common.json'),
+    import('./locales/de/dashboard.json'),
+    import('./locales/de/settings.json'),
+    import('./locales/de/contacts.json'),
+    import('./locales/de/pipeline.json'),
+    import('./locales/de/listings.json'),
+    import('./locales/de/kyc.json'),
+    import('./locales/de/messages.json'),
+    import('./locales/de/calendar.json'),
+    import('./locales/de/matching.json'),
+    import('./locales/de/automation.json'),
+    import('./locales/de/documents.json'),
+    import('./locales/de/admin.json'),
+    import('./locales/de/directory.json'),
+  ])
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, automation: automation.default, documents: documents.default, admin: admin.default, directory: directory.default }
+}
+
+async function loadEn() {
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, automation, documents, admin, directory] = await Promise.all([
+    import('./locales/en/common.json'),
+    import('./locales/en/dashboard.json'),
+    import('./locales/en/settings.json'),
+    import('./locales/en/contacts.json'),
+    import('./locales/en/pipeline.json'),
+    import('./locales/en/listings.json'),
+    import('./locales/en/kyc.json'),
+    import('./locales/en/messages.json'),
+    import('./locales/en/calendar.json'),
+    import('./locales/en/matching.json'),
+    import('./locales/en/automation.json'),
+    import('./locales/en/documents.json'),
+    import('./locales/en/admin.json'),
+    import('./locales/en/directory.json'),
+  ])
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, automation: automation.default, documents: documents.default, admin: admin.default, directory: directory.default }
+}
+
+async function loadIt() {
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, automation, documents, admin, directory] = await Promise.all([
+    import('./locales/it/common.json'),
+    import('./locales/it/dashboard.json'),
+    import('./locales/it/settings.json'),
+    import('./locales/it/contacts.json'),
+    import('./locales/it/pipeline.json'),
+    import('./locales/it/listings.json'),
+    import('./locales/it/kyc.json'),
+    import('./locales/it/messages.json'),
+    import('./locales/it/calendar.json'),
+    import('./locales/it/matching.json'),
+    import('./locales/it/automation.json'),
+    import('./locales/it/documents.json'),
+    import('./locales/it/admin.json'),
+    import('./locales/it/directory.json'),
+  ])
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, automation: automation.default, documents: documents.default, admin: admin.default, directory: directory.default }
+}
+
+async function loadLanguage(lng: SupportedLang): Promise<Record<Namespace, unknown>> {
+  if (lng === 'de') return loadDe()
+  if (lng === 'en') return loadEn()
+  if (lng === 'it') return loadIt()
+  return {
+    common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts,
+    pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages,
+    calendar: frCalendar, matching: frMatching, automation: frAutomation,
+    documents: frDocuments, admin: frAdmin, directory: frDirectory,
+  }
+}
 
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      fr: { common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts, pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages, calendar: frCalendar, matching: frMatching, automation: frAutomation, documents: frDocuments, admin: frAdmin, directory: frDirectory },
-      de: { common: deCommon, dashboard: deDashboard, settings: deSettings, contacts: deContacts, pipeline: dePipeline, listings: deListings, kyc: deKyc, messages: deMessages, calendar: deCalendar, matching: deMatching, automation: deAutomation, documents: deDocuments, admin: deAdmin, directory: deDirectory },
-      en: { common: enCommon, dashboard: enDashboard, settings: enSettings, contacts: enContacts, pipeline: enPipeline, listings: enListings, kyc: enKyc, messages: enMessages, calendar: enCalendar, matching: enMatching, automation: enAutomation, documents: enDocuments, admin: enAdmin, directory: enDirectory },
-      it: { common: itCommon, dashboard: itDashboard, settings: itSettings, contacts: itContacts, pipeline: itPipeline, listings: itListings, kyc: itKyc, messages: itMessages, calendar: itCalendar, matching: itMatching, automation: itAutomation, documents: itDocuments, admin: itAdmin, directory: itDirectory },
+      fr: {
+        common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts,
+        pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages,
+        calendar: frCalendar, matching: frMatching, automation: frAutomation,
+        documents: frDocuments, admin: frAdmin, directory: frDirectory,
+      },
     },
     fallbackLng: 'fr',
     supportedLngs: ['fr', 'de', 'en', 'it'],
     defaultNS: 'common',
+    ns: NAMESPACES as unknown as string[],
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'megga-language',
       caches: ['localStorage'],
     },
+    // Évite que i18next bloque le rendu en attendant le chargement async
+    partialBundledLanguages: true,
   })
+
+async function ensureLanguageLoaded(lng: string) {
+  if (lng === 'fr' || !['de', 'en', 'it'].includes(lng)) return
+  if (i18n.hasResourceBundle(lng, 'common')) return
+  const bundle = await loadLanguage(lng as SupportedLang)
+  for (const ns of NAMESPACES) {
+    i18n.addResourceBundle(lng, ns, bundle[ns], true, true)
+  }
+  // Notifie React de re-render avec les nouvelles ressources
+  await i18n.changeLanguage(lng)
+}
+
+// Au démarrage : charge la langue détectée si ≠ fr
+void ensureLanguageLoaded(i18n.language)
+
+// À chaque changement de langue : charge à la volée
+i18n.on('languageChanged', (lng) => {
+  if (!i18n.hasResourceBundle(lng, 'common')) {
+    void ensureLanguageLoaded(lng)
+  }
+})
 
 export default i18n
