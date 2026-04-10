@@ -241,7 +241,7 @@ function FieldError({ message }: { message?: string }) {
 function SectionDivider({ title }: { title: string }) {
   return (
     <div className="pt-2">
-      <p className="text-xs font-medium text-theme-muted uppercase tracking-wider">{title}</p>
+      <p className="text-xs font-medium text-theme-muted capitalize">{title}</p>
     </div>
   )
 }
@@ -293,7 +293,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
                 <input type="radio" value={value} {...register('type')} className="sr-only" />
                 <Icon className={cn('h-7 w-7 mb-2', isSelected ? 'text-theme-primary' : 'text-theme-muted')} />
                 <span className="text-sm font-medium">{label}</span>
-                <span className={cn('text-[10px] mt-0.5', isSelected ? 'text-theme-secondary' : 'text-theme-muted')}>{PROPERTY_TYPE_DESCRIPTIONS[value]}</span>
+                <span className={cn('text-xs mt-0.5', isSelected ? 'text-theme-secondary' : 'text-theme-muted')}>{PROPERTY_TYPE_DESCRIPTIONS[value]}</span>
               </label>
             )
           })}
@@ -457,7 +457,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
                       {postalCode} {city} ({canton})
                     </p>
                     {lat && lng && (
-                      <p className="text-[10px] text-theme-muted mt-1">
+                      <p className="text-xs text-theme-muted mt-1">
                         {lat.toFixed(6)}, {lng.toFixed(6)}
                       </p>
                     )}
@@ -478,19 +478,19 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
           {hasAddress && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <p className="text-[10px] text-theme-muted mb-1">Rue</p>
+                <p className="text-xs text-theme-muted mb-1">Rue</p>
                 <p className="text-sm text-theme-primary font-medium truncate">{address}</p>
               </div>
               <div>
-                <p className="text-[10px] text-theme-muted mb-1">Ville</p>
+                <p className="text-xs text-theme-muted mb-1">Ville</p>
                 <p className="text-sm text-theme-primary font-medium">{city}</p>
               </div>
               <div>
-                <p className="text-[10px] text-theme-muted mb-1">NPA</p>
+                <p className="text-xs text-theme-muted mb-1">NPA</p>
                 <p className="text-sm text-theme-primary font-medium">{postalCode}</p>
               </div>
               <div>
-                <p className="text-[10px] text-theme-muted mb-1">Canton</p>
+                <p className="text-xs text-theme-muted mb-1">Canton</p>
                 <p className="text-sm text-theme-primary font-medium">{canton}</p>
               </div>
             </div>
@@ -557,7 +557,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
             <div className="text-center">
               <MapPin className="h-6 w-6 text-theme-primary mx-auto mb-1" />
               <p className="text-xs text-theme-secondary">{lat.toFixed(4)}, {lng.toFixed(4)}</p>
-              <p className="text-[10px] text-theme-muted mt-0.5">Carte Mapbox (prochaine mise à jour)</p>
+              <p className="text-xs text-theme-muted mt-0.5">Carte Mapbox (prochaine mise à jour)</p>
             </div>
           </div>
         ) : (
@@ -678,7 +678,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
             >
               <input type="radio" value={opt.value} {...register('mandate_type')} className="sr-only" />
               <span className="text-sm font-medium">{opt.label}</span>
-              <span className="text-[10px] text-theme-muted mt-0.5">{opt.desc}</span>
+              <span className="text-xs text-theme-muted mt-0.5">{opt.desc}</span>
             </label>
           ))}
         </div>
@@ -807,13 +807,13 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
         </div>
         {/* Badge for first photo */}
         {index === 0 && (
-          <span className="absolute top-2 left-2 text-[10px] font-semibold bg-theme-primary text-theme-inverse px-2 py-0.5 rounded-full">
+          <span className="absolute top-2 left-2 text-xs font-semibold bg-theme-primary text-theme-inverse px-2 py-0.5 rounded-full">
             Couverture
           </span>
         )}
         {/* Index badge */}
         {index > 0 && (
-          <span className="absolute top-2 left-2 text-[10px] font-medium bg-black/40 text-white px-1.5 py-0.5 rounded-full">
+          <span className="absolute top-2 left-2 text-xs font-medium bg-black/40 text-white px-1.5 py-0.5 rounded-full">
             {index + 1}
           </span>
         )}
@@ -824,7 +824,7 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
           value={roomTag || ''}
           onChange={e => onRoomTagChange(e.target.value)}
           onClick={e => e.stopPropagation()}
-          className="w-full h-7 px-2 text-[11px] bg-theme-card border-t border-theme-border text-theme-secondary focus:outline-none focus:text-theme-primary"
+          className="w-full h-7 px-2 text-xs bg-theme-card border-t border-theme-border text-theme-secondary focus:outline-none focus:text-theme-primary"
         >
           <option value="">— Pièce —</option>
           {FLOOR_PLAN_ROOMS.map(r => (
@@ -1180,11 +1180,11 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
                   <div className="grid grid-cols-2 gap-px bg-theme-border">
                     <div className="relative bg-theme-card">
                       <img src={photos[selectedPhoto]} alt="Original" className="w-full aspect-[4/3] object-cover" />
-                      <span className="absolute bottom-2 left-2 text-[10px] font-medium bg-black/50 text-white px-2 py-0.5 rounded">Original</span>
+                      <span className="absolute bottom-2 left-2 text-xs font-medium bg-black/50 text-white px-2 py-0.5 rounded">Original</span>
                     </div>
                     <div className="relative bg-theme-card">
                       <img src={result.staged_url} alt="Meublé" className="w-full aspect-[4/3] object-cover" />
-                      <span className="absolute bottom-2 left-2 text-[10px] font-medium bg-accent/80 text-white px-2 py-0.5 rounded">MEGGA Staging</span>
+                      <span className="absolute bottom-2 left-2 text-xs font-medium bg-accent/80 text-white px-2 py-0.5 rounded">MEGGA Staging</span>
                     </div>
                   </div>
                   <div className="p-3 flex items-center justify-between">
@@ -1316,7 +1316,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {tags.map((tag) => (
-                <span key={tag} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-theme-active text-theme-primary">
+                <span key={tag} className="text-xs font-medium px-2 py-0.5 rounded-full bg-theme-active text-theme-primary">
                   {tag}
                 </span>
               ))}
@@ -1393,11 +1393,11 @@ function MethodSelectionScreen({ hasProperties, onSelect }: {
               )} />
               <div>
                 <p className="text-sm font-medium text-theme-primary">{m.title}</p>
-                <p className="text-[12px] text-theme-muted mt-0.5 leading-relaxed">{m.desc}</p>
+                <p className="text-xs text-theme-muted mt-0.5 leading-relaxed">{m.desc}</p>
               </div>
             </div>
             {!m.available && m.id !== 'duplicate' && (
-              <span className="absolute top-3 right-3 text-[10px] text-theme-muted">Bientôt</span>
+              <span className="absolute top-3 right-3 text-xs text-theme-muted">Bientôt</span>
             )}
           </button>
         ))}
@@ -1464,10 +1464,10 @@ function DuplicateSelector({ onSelect, onBack }: {
                   <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
                     {p.title || p.address}
                   </p>
-                  <p className="text-[12px] text-theme-muted truncate">
+                  <p className="text-xs text-theme-muted truncate">
                     {p.city}{p.canton ? ` (${p.canton})` : ''} · {p.rooms} pièces · {p.surface_m2} m²
                   </p>
-                  <p className="text-[12px] font-medium text-theme-secondary mt-0.5">
+                  <p className="text-xs font-medium text-theme-secondary mt-0.5">
                     {formatCHF(p.price)}
                   </p>
                 </div>
@@ -1548,10 +1548,10 @@ function UrlImportScreen({ onExtracted, onBack }: {
 
             {/* Supported portals */}
             <div className="pt-4">
-              <p className="text-[11px] text-theme-muted mb-2">Portails supportés :</p>
+              <p className="text-xs text-theme-muted mb-2">Portails supportés :</p>
               <div className="flex flex-wrap gap-1.5">
                 {SUPPORTED_PORTALS.map(p => (
-                  <span key={p} className="text-[11px] text-theme-secondary px-2 py-0.5 rounded-md bg-theme-hover">{p}</span>
+                  <span key={p} className="text-xs text-theme-secondary px-2 py-0.5 rounded-md bg-theme-hover">{p}</span>
                 ))}
               </div>
             </div>
@@ -1561,7 +1561,7 @@ function UrlImportScreen({ onExtracted, onBack }: {
             <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
             <p className="text-sm font-medium text-theme-primary">Analyse de l'annonce en cours...</p>
             <p className="text-xs text-theme-muted mt-1 truncate max-w-xs mx-auto">{url}</p>
-            <p className="text-[11px] text-theme-muted mt-3">MEGGA AI lit la page et extrait les informations du bien</p>
+            <p className="text-xs text-theme-muted mt-3">MEGGA AI lit la page et extrait les informations du bien</p>
           </div>
         )}
       </div>
@@ -1630,7 +1630,7 @@ function PdfUploadScreen({ onExtracted, onBack }: {
             <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
             <p className="text-sm font-medium text-theme-primary">Analyse du document en cours...</p>
             <p className="text-xs text-theme-muted mt-1">{selectedFile?.name}</p>
-            <p className="text-[11px] text-theme-muted mt-3">MEGGA AI lit le PDF et extrait les informations du bien</p>
+            <p className="text-xs text-theme-muted mt-3">MEGGA AI lit le PDF et extrait les informations du bien</p>
           </div>
         )}
 
@@ -1650,7 +1650,7 @@ function PdfUploadScreen({ onExtracted, onBack }: {
 
         {/* Supported formats */}
         <div className="mt-6 text-center">
-          <p className="text-[11px] text-theme-muted">Formats supportés : fiches descriptives, mandats de vente, rapports d'estimation</p>
+          <p className="text-xs text-theme-muted">Formats supportés : fiches descriptives, mandats de vente, rapports d'estimation</p>
         </div>
       </div>
     </div>

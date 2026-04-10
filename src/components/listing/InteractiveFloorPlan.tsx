@@ -71,7 +71,7 @@ export default function InteractiveFloorPlan({
                 >
                   {getRoomLabel(hs.roomKey)}
                   {hs.photoUrls.length > 0 && (
-                    <span className="text-gray-400 ml-1">· {hs.photoUrls.length} photo{hs.photoUrls.length > 1 ? 's' : ''}</span>
+                    <span className="text-gray-500 ml-1">· {hs.photoUrls.length} photo{hs.photoUrls.length > 1 ? 's' : ''}</span>
                   )}
                 </div>
               )}

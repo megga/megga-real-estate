@@ -1,1 +1,97 @@
-{}
+{
+  "title": "Automatisierung",
+  "rulesActive": "{{count}} aktive Regel",
+  "rulesActive_plural": "{{count}} aktive Regeln",
+  "remindersActive": "{{count}} laufende Erinnerung",
+  "remindersActive_plural": "{{count}} laufende Erinnerungen",
+  "newRule": "Neue Regel",
+  "tabs": {
+    "reminders": "Erinnerungen",
+    "rules": "Regeln",
+    "templates": "Vorlagen"
+  },
+  "toProcess": "Zu bearbeiten",
+  "pending": "Ausstehend",
+  "noReminders": "Keine ausstehenden Erinnerungen",
+  "noRemindersDesc": "Konfigurieren Sie Automatisierungsregeln, um die Nachverfolgung Ihrer Kunden nicht zu vergessen.",
+  "bannerInfo": "Erinnerungen erstellen standardmässig Aufgaben. Der automatische Versand erfordert eine explizite Aktivierung pro Regel.",
+  "newTemplate": "Neue Vorlage",
+  "rule": {
+    "title": "Neue Regel",
+    "name": "Regelname",
+    "namePlaceholder": "Z.B.: Nachfassen T+3 nach Versand",
+    "trigger": "Auslöser",
+    "action": "Aktion",
+    "delay": "Verzögerung (Tage)",
+    "template": "Vorlage",
+    "templateOptional": "optional",
+    "none": "Keine",
+    "cancel": "Abbrechen",
+    "create": "Regel erstellen",
+    "generated": "{{count}} generiert",
+    "inProgress": "{{count}} laufend",
+    "lastTriggered": "Letzte: {{date}}",
+    "day": "{{count}} Tag",
+    "day_plural": "{{count}} Tage",
+    "autoSend": "Automatischer Versand",
+    "autoSendDesc": "Wenn aktiviert, wird die Nachricht ohne Agentenvalidierung gesendet",
+    "triggerLabel": "Auslöser",
+    "actionLabel": "Aktion",
+    "delayLabel": "Verzögerung",
+    "templateLabel": "Vorlage",
+    "duplicate": "Duplizieren",
+    "delete": "Löschen"
+  },
+  "triggers": {
+    "property_sent": "Wenn ein Objekt an einen Kunden gesendet wird",
+    "visit_completed": "Wenn eine Besichtigung durchgeführt wurde",
+    "lead_inactive": "Wenn ein Lead inaktiv ist",
+    "document_missing": "Wenn ein KYC-Dokument fehlt",
+    "new_match": "Wenn ein neuer Match gefunden wird"
+  },
+  "triggerShort": {
+    "property_sent": "Objekt gesendet",
+    "visit_completed": "Besichtigung durchgeführt",
+    "lead_inactive": "Lead inaktiv",
+    "document_missing": "Dok. fehlt",
+    "new_match": "Neuer Match"
+  },
+  "actions": {
+    "create_reminder": "Erinnerung für Agenten erstellen",
+    "send_email": "E-Mail an Kunden senden",
+    "notify_agent": "Agentenbenachrichtigung",
+    "create_task": "Aufgabe erstellen"
+  },
+  "actionShort": {
+    "create_reminder": "Agentenerinnerung",
+    "send_email": "Kunden-E-Mail",
+    "notify_agent": "Benachrichtigung",
+    "create_task": "Aufgabe"
+  },
+  "templateModal": {
+    "new": "Neue Vorlage",
+    "edit": "Vorlage bearbeiten",
+    "name": "Name",
+    "namePlaceholder": "Z.B.: Nachfassen nach Objektversand",
+    "category": "Kategorie",
+    "channel": "Kanal",
+    "channelEmail": "E-Mail",
+    "channelNotification": "Benachrichtigung",
+    "subject": "E-Mail-Betreff",
+    "subjectPlaceholder": "Z.B.: Bezüglich unserer Objektauswahl",
+    "body": "Nachrichtentext",
+    "bodyPlaceholder": "Guten Tag {{contact.first_name}},\n\n...",
+    "variables": "Variablen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "create": "Vorlage erstellen"
+  },
+  "categories": {
+    "follow_up": "Nachfassen",
+    "post_visit": "Nach der Besichtigung",
+    "property_presentation": "Objektpräsentation",
+    "seller_update": "Verkäufer-Update",
+    "visit_confirmation": "Besichtigungsbestätigung",
+    "objection_response": "Einwandbehandlung"
+  }
+}

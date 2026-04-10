@@ -196,7 +196,7 @@ export default function DashboardPage() {
                   <div
                     key={stage.stage}
                     className={cn(
-                      'flex items-center justify-center text-[11px] font-semibold text-white transition-all',
+                      'flex items-center justify-center text-xs font-semibold text-white transition-all',
                       STAGE_COLORS[stage.stage],
                     )}
                     style={{ width: `${(stage.count / totalDeals) * 100}%`, minWidth: stage.count > 0 ? '24px' : 0 }}
@@ -270,7 +270,10 @@ export default function DashboardPage() {
                       'group flex items-start gap-3 py-3 cursor-pointer',
                       i < atRiskDeals.length - 1 && 'border-b border-theme-border',
                     )}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => navigate(`/dashboard/pipeline`)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/dashboard/pipeline`) } }}
                   >
                     <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
@@ -286,7 +289,7 @@ export default function DashboardPage() {
                       )}
                       <div className="flex items-center gap-2 mt-1">
                         <span className={cn(
-                          'text-[10px] font-medium px-1.5 py-0.5 rounded',
+                          'text-xs font-medium px-1.5 py-0.5 rounded',
                           'bg-theme-section text-theme-secondary',
                         )}>
                           {TRANSACTION_STAGE_LABELS[deal.stage]}

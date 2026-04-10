@@ -202,7 +202,7 @@ export default function AgentProfilePage() {
                 <p className="text-xs text-theme-muted mb-2">{t('profile.languages')}</p>
                 <div className="flex flex-wrap gap-2">
                   {agent.languages.map(l => (
-                    <span key={l} className="h-7 px-3 rounded-lg text-xs font-medium bg-theme-hover text-theme-secondary inline-flex items-center uppercase">
+                    <span key={l} className="h-7 px-3 rounded-lg text-xs font-medium bg-theme-hover text-theme-secondary inline-flex items-center capitalize">
                       {l}
                     </span>
                   ))}

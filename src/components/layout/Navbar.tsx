@@ -40,7 +40,7 @@ function UserAvatar({ name, email, avatarUrl, size = 'md' }: {
     : email[0].toUpperCase()
 
   const sizeClass = size === 'sm' ? 'h-8 w-8' : 'h-9 w-9'
-  const textSize = size === 'sm' ? 'text-[10px]' : 'text-xs'
+  const textSize = size === 'sm' ? 'text-xs' : 'text-xs'
 
   if (avatarUrl) {
     return <img src={avatarUrl} alt={name || email} className={cn(sizeClass, 'rounded-full object-cover')} />
@@ -140,7 +140,7 @@ export default function Navbar() {
         'h-[72px] sticky top-0 z-50 transition-all duration-300',
         isTransparent
           ? 'bg-transparent'
-          : 'bg-white border-b border-gray-200'
+          : 'bg-theme-page border-b border-theme-border'
       )}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center">
@@ -158,10 +158,10 @@ export default function Navbar() {
                   isActive
                     ? isTransparent
                       ? 'text-white'
-                      : 'text-gray-900'
+                      : 'text-theme-primary'
                     : isTransparent
                       ? 'text-white/80 hover:text-white'
-                      : 'text-gray-500 hover:text-gray-900'
+                      : 'text-theme-tertiary hover:text-theme-primary'
                 )}
               >
                 {link.label}
@@ -176,15 +176,15 @@ export default function Navbar() {
               className={cn(
                 'flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium transition-all duration-150',
                 (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agences') || location.pathname === '/devenir-agent')
-                  ? isTransparent ? 'text-white' : 'text-gray-900'
-                  : isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-gray-900'
+                  ? isTransparent ? 'text-white' : 'text-theme-primary'
+                  : isTransparent ? 'text-white/80 hover:text-white' : 'text-theme-tertiary hover:text-theme-primary'
               )}
             >
               Professionnels
               <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', agentDropOpen && 'rotate-180')} />
             </button>
             {agentDropOpen && (
-              <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+              <div className="absolute left-0 mt-2 w-56 bg-theme-card rounded-xl border border-theme-border py-2 z-50">
                 {proDropdownItems.map((item) => {
                   const Icon = item.icon
                   return (
@@ -193,14 +193,14 @@ export default function Navbar() {
                       to={item.href}
                       onClick={() => setAgentDropOpen(false)}
                       className={cn(
-                        'flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50',
-                        location.pathname === item.href ? 'bg-gray-50' : ''
+                        'flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-theme-hover',
+                        location.pathname === item.href ? 'bg-theme-hover' : ''
                       )}
                     >
-                      <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <Icon className="w-4 h-4 text-theme-muted flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{item.label}</p>
-                        <p className="text-xs text-gray-400">{item.desc}</p>
+                        <p className="text-sm font-medium text-theme-primary">{item.label}</p>
+                        <p className="text-xs text-theme-muted">{item.desc}</p>
                       </div>
                     </Link>
                   )
@@ -214,7 +214,7 @@ export default function Navbar() {
         <button
           className={cn(
             'md:hidden p-1.5 rounded-lg transition-colors -ml-1.5',
-            isTransparent ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-50'
+            isTransparent ? 'text-white hover:bg-white/10' : 'text-theme-secondary hover:bg-theme-hover'
           )}
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
@@ -244,7 +244,7 @@ export default function Navbar() {
                 'flex items-center gap-1 h-8 px-2.5 text-xs font-medium rounded-lg transition-all duration-150',
                 isTransparent
                   ? 'text-white/70 hover:text-white hover:bg-white/10'
-                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+                  : 'text-theme-muted hover:text-theme-secondary hover:bg-theme-hover'
               )}
             >
               <Globe className="w-3.5 h-3.5" />
@@ -252,7 +252,7 @@ export default function Navbar() {
               <ChevronDown className="w-3 h-3" />
             </button>
             {langOpen && (
-              <div className="absolute right-0 mt-1.5 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+              <div className="absolute right-0 mt-1.5 w-40 bg-theme-card rounded-xl border border-theme-border py-1 z-50">
                 {LANGUAGES.map(lang => (
                   <button
                     key={lang.code}
@@ -264,12 +264,12 @@ export default function Navbar() {
                     className={cn(
                       'w-full text-left px-3.5 py-2 text-sm transition-colors',
                       currentLang === lang.code
-                        ? 'text-gray-900 font-medium bg-gray-50'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'text-theme-primary font-medium bg-theme-hover'
+                        : 'text-theme-secondary hover:bg-theme-hover'
                     )}
                   >
                     <span className="font-medium">{lang.code}</span>
-                    <span className="text-gray-400 ml-2">{lang.label}</span>
+                    <span className="text-theme-muted ml-2">{lang.label}</span>
                   </button>
                 ))}
               </div>
@@ -284,8 +284,8 @@ export default function Navbar() {
               isTransparent
                 ? 'text-white/70 hover:text-white hover:bg-white/10'
                 : location.pathname.startsWith('/aide')
-                  ? 'text-gray-900 bg-gray-100'
-                  : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'text-theme-primary bg-theme-hover'
+                  : 'text-theme-muted hover:text-theme-secondary hover:bg-theme-hover'
             )}
           >
             <HelpCircle className="w-3.5 h-3.5" />
@@ -299,7 +299,7 @@ export default function Navbar() {
               'flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-lg transition-all duration-150',
               isTransparent
                 ? 'text-white/80 hover:text-white hover:bg-white/10'
-                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                : 'text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover'
             )}
           >
             <Plus className="w-3.5 h-3.5" />
@@ -307,7 +307,7 @@ export default function Navbar() {
           </Link>
 
           {loading ? (
-            <div className="h-8 w-8 rounded-full bg-gray-100 animate-pulse" />
+            <div className="h-8 w-8 rounded-full bg-theme-hover animate-pulse" />
           ) : user ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -319,45 +319,45 @@ export default function Navbar() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50">
-                  <div className="px-4 py-2.5 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
-                    <p className="text-xs text-gray-500 truncate">{displayEmail}</p>
+                <div className="absolute right-0 mt-2 w-60 bg-theme-card rounded-xl border border-theme-border py-1.5 z-50">
+                  <div className="px-4 py-2.5 border-b border-theme-border-subtle">
+                    <p className="text-sm font-medium text-theme-primary truncate">{displayName}</p>
+                    <p className="text-xs text-theme-tertiary truncate">{displayEmail}</p>
                   </div>
                   <div className="py-1">
                     <Link
                       to={isAgent ? '/dashboard' : '/portail'}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      {isAgent ? <LayoutDashboard className="h-4 w-4 text-gray-400" /> : <User className="h-4 w-4 text-gray-400" />}
+                      {isAgent ? <LayoutDashboard className="h-4 w-4 text-theme-muted" /> : <User className="h-4 w-4 text-theme-muted" />}
                       {isAgent ? 'Dashboard' : 'Mon espace'}
                     </Link>
                     {!isAgent && (
                       <>
                         <Link
                           to="/acheter?favorites=true"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
-                          <Heart className="h-4 w-4 text-gray-400" />
+                          <Heart className="h-4 w-4 text-theme-muted" />
                           Mes favoris
                         </Link>
                         <Link
                           to="/acheter?saved=true"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
-                          <Bookmark className="h-4 w-4 text-gray-400" />
+                          <Bookmark className="h-4 w-4 text-theme-muted" />
                           Mes recherches
                         </Link>
                       </>
                     )}
                   </div>
-                  <div className="border-t border-gray-100 pt-1">
+                  <div className="border-t border-theme-border-subtle pt-1">
                     <button
                       onClick={handleSignOut}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-theme-hover transition-colors w-full text-left"
                     >
                       <LogOut className="h-4 w-4" />
                       Déconnexion
@@ -373,7 +373,7 @@ export default function Navbar() {
                   'h-9 px-4 text-sm font-medium rounded-full transition-all duration-150',
                   isTransparent
                     ? 'bg-white text-gray-900 hover:bg-white/90'
-                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                    : 'bg-theme-primary text-theme-inverse hover:opacity-90'
                 )}
               >
                 Se connecter
@@ -385,7 +385,7 @@ export default function Navbar() {
         {/* ─── RIGHT: Avatar/Login (mobile) ─── */}
         <div className="md:hidden">
           {loading ? (
-            <div className="h-8 w-8 rounded-full bg-gray-100 animate-pulse" />
+            <div className="h-8 w-8 rounded-full bg-theme-hover animate-pulse" />
           ) : user ? (
             <Link to={isAgent ? '/dashboard' : '/portail'}>
               <UserAvatar name={displayName} email={displayEmail} avatarUrl={avatarUrl} size="sm" />
@@ -395,7 +395,7 @@ export default function Navbar() {
               to="/login"
               className={cn(
                 'text-sm font-medium transition-colors',
-                isTransparent ? 'text-white' : 'text-gray-900'
+                isTransparent ? 'text-white' : 'text-theme-primary'
               )}
             >
               Connexion
@@ -407,8 +407,8 @@ export default function Navbar() {
       {/* ─── Mobile menu (slide-down) ─── */}
       <div
         className={cn(
-          'md:hidden bg-white border-b border-gray-100 overflow-hidden transition-all duration-250 ease-out',
-          mobileOpen ? 'max-h-[500px] opacity-100 shadow-lg' : 'max-h-0 opacity-0 border-b-0'
+          'md:hidden bg-theme-card border-b border-theme-border-subtle overflow-hidden transition-all duration-250 ease-out',
+          mobileOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 border-b-0'
         )}
       >
         <nav className="flex flex-col px-4 py-3 gap-0.5">
@@ -419,10 +419,10 @@ export default function Navbar() {
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  'px-3 py-2.5 text-[15px] font-medium rounded-lg transition-all duration-150',
+                  'px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150',
                   isActive
-                    ? 'text-gray-900 bg-gray-100'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    ? 'text-theme-primary bg-theme-hover'
+                    : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
                 )}
                 onClick={() => setMobileOpen(false)}
               >
@@ -435,10 +435,10 @@ export default function Navbar() {
           <Link
             to="/aide"
             className={cn(
-              'px-3 py-2.5 text-[15px] font-medium rounded-lg transition-all duration-150',
+              'px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150',
               location.pathname.startsWith('/aide')
-                ? 'text-gray-900 bg-gray-100'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'text-theme-primary bg-theme-hover'
+                : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
             )}
             onClick={() => setMobileOpen(false)}
           >
@@ -457,8 +457,8 @@ export default function Navbar() {
                 className={cn(
                   'h-8 px-3 text-xs font-medium rounded-lg transition-colors',
                   currentLang === lang.code
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-500 hover:text-gray-700'
+                    ? 'bg-theme-active text-theme-primary font-medium'
+                    : 'bg-theme-hover text-theme-tertiary hover:text-theme-secondary'
                 )}
               >
                 {lang.code}
@@ -466,9 +466,9 @@ export default function Navbar() {
             ))}
           </div>
 
-          <div className="flex flex-col gap-2.5 pt-4 border-t border-gray-100 mt-2">
+          <div className="flex flex-col gap-2.5 pt-4 border-t border-theme-border-subtle mt-2">
             <Link to="/publier" onClick={() => setMobileOpen(false)}>
-              <button className="w-full h-10 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+              <button className="w-full h-10 text-sm font-medium rounded-lg border border-theme-border text-theme-secondary hover:bg-theme-hover transition-colors flex items-center justify-center gap-2">
                 <Plus className="w-4 h-4" />
                 Publier une annonce
               </button>
@@ -479,27 +479,27 @@ export default function Navbar() {
                 <div className="flex items-center gap-3 px-3 py-2">
                   <UserAvatar name={displayName} email={displayEmail} avatarUrl={avatarUrl} size="sm" />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
-                    <p className="text-xs text-gray-500 truncate">{displayEmail}</p>
+                    <p className="text-sm font-medium text-theme-primary truncate">{displayName}</p>
+                    <p className="text-xs text-theme-tertiary truncate">{displayEmail}</p>
                   </div>
                 </div>
                 <Link
                   to={isAgent ? '/dashboard' : '/portail'}
-                  className="px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
+                  className="px-3 py-2.5 text-sm font-medium text-theme-secondary hover:bg-theme-hover rounded-lg"
                   onClick={() => setMobileOpen(false)}
                 >
                   {isAgent ? 'Dashboard' : 'Mon espace'}
                 </Link>
                 <button
                   onClick={() => { handleSignOut(); setMobileOpen(false) }}
-                  className="px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg text-left"
+                  className="px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-theme-hover rounded-lg text-left"
                 >
                   Déconnexion
                 </button>
               </>
             ) : (
               <Link to="/login" onClick={() => setMobileOpen(false)}>
-                <button className="w-full h-10 text-sm font-medium rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors">
+                <button className="w-full h-10 text-sm font-medium rounded-lg bg-theme-primary text-theme-inverse hover:opacity-90 transition-colors">
                   Se connecter
                 </button>
               </Link>

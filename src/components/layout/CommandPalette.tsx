@@ -207,7 +207,7 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
             onClick={onClose}
             className="flex items-center"
           >
-            <kbd className="text-[10px] bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">
+            <kbd className="text-xs bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">
               ESC
             </kbd>
           </button>
@@ -222,7 +222,7 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
           ) : (
             grouped.map((group) => (
               <div key={group.category}>
-                <div className="px-4 py-1.5 text-[10px] uppercase tracking-[0.08em] text-theme-tertiary font-medium">
+                <div className="px-4 py-1.5 text-xs capitalize text-theme-tertiary font-medium">
                   {categoryLabels[group.category] || group.category}
                 </div>
                 {group.items.map((item) => {
@@ -243,7 +243,7 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
                       )}
                     >
                       {item.category === 'contacts' ? (
-                        <div className="w-6 h-6 rounded-full bg-accent/10 text-accent text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-accent/10 text-accent text-xs font-semibold flex items-center justify-center flex-shrink-0">
                           {item.label.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
                         </div>
                       ) : item.category === 'actions' ? (
@@ -259,13 +259,13 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
                       </span>
 
                       {item.subtitle && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-theme-active text-theme-muted flex-shrink-0">
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-theme-active text-theme-muted flex-shrink-0">
                           {item.subtitle}
                         </span>
                       )}
 
                       {item.shortcut && (
-                        <span className="text-[10px] text-theme-tertiary font-mono flex-shrink-0">
+                        <span className="text-xs text-theme-tertiary font-mono flex-shrink-0">
                           {item.shortcut}
                         </span>
                       )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 const PARTNERS = [
@@ -10,14 +11,15 @@ const PARTNERS = [
 ]
 
 export default function TrustBar() {
+  const { t } = useTranslation('common')
   // Duplicate list for seamless infinite scroll
   const items = [...PARTNERS, ...PARTNERS]
 
   return (
     <section className="py-8 bg-white border-b border-gray-100 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
-        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em] text-center mb-6">
-          Intégrations & partenaires
+        <p className="text-xs font-medium text-gray-500 capitalize text-center mb-6">
+          {t('home.integrationsPartners')}
         </p>
       </div>
 
@@ -35,7 +37,7 @@ export default function TrustBar() {
             >
               <span
                 className={cn(
-                  'text-lg md:text-xl text-gray-400 hover:text-gray-500 transition-colors duration-300 whitespace-nowrap select-none',
+                  'text-lg md:text-xl text-gray-500 hover:text-gray-500 transition-colors duration-300 whitespace-nowrap select-none',
                   partner.weight
                 )}
               >

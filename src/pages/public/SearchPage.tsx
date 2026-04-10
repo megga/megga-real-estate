@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   ChevronDown,
@@ -52,6 +53,7 @@ import {
 // ─── MAIN SEARCH PAGE ───────────────────────────────────────────────────────
 
 export default function SearchPage() {
+  const { t } = useTranslation('common')
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<Filters>(() => parseFiltersFromParams(searchParams))
   const [hoveredListing, setHoveredListing] = useState<string>()
@@ -317,7 +319,7 @@ export default function SearchPage() {
     }
     if (filters.minPrice) return `Dès CHF ${Number(filters.minPrice).toLocaleString('fr-CH').replace(/\s/g, "'")}`
     if (filters.maxPrice) return `Max CHF ${Number(filters.maxPrice).toLocaleString('fr-CH').replace(/\s/g, "'")}`
-    return 'Prix'
+    return t('search.price')
   })()
 
   return (
@@ -337,7 +339,7 @@ export default function SearchPage() {
           <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: `${splitRatio}%` }}>
             {/* Search input — flexible width */}
             <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
-              <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+              <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
               <input
                 type="text"
                 value={searchInput}
@@ -346,7 +348,7 @@ export default function SearchPage() {
                 className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
               />
               {searchInput && (
-                <button type="button" onClick={() => { setSearchInput(''); clearAllFilters() }} className="text-gray-400 hover:text-gray-600">
+                <button type="button" onClick={() => { setSearchInput(''); clearAllFilters() }} className="text-gray-500 hover:text-gray-600">
                   <X className="h-3 w-3" />
                 </button>
               )}
@@ -354,7 +356,7 @@ export default function SearchPage() {
 
             {/* Type */}
             <FilterPill
-              label={filters.types.length ? filters.types.map((t) => PROPERTY_TYPE_LABELS[t as keyof typeof PROPERTY_TYPE_LABELS] || t).join(', ') : 'Type'}
+              label={filters.types.length ? filters.types.map((tp) => PROPERTY_TYPE_LABELS[tp as keyof typeof PROPERTY_TYPE_LABELS] || tp).join(', ') : t('search.type')}
               active={filters.types.length > 0}
               dark
             >
@@ -378,7 +380,7 @@ export default function SearchPage() {
             />
 
             {/* Pièces */}
-            <FilterPill label={filters.rooms ? `${filters.rooms} pièces` : 'Pièces'} active={!!filters.rooms} dark>
+            <FilterPill label={filters.rooms ? t('search.nRooms', { count: filters.rooms }) : t('search.roomsFilter')} active={!!filters.rooms} dark>
               {ROOM_OPTIONS.map((r) => (
                 <FilterOption key={r} selected={filters.rooms === r} onClick={() => updateFilter({ rooms: filters.rooms === r ? '' : r })}>{r} pièces</FilterOption>
               ))}
@@ -406,8 +408,8 @@ export default function SearchPage() {
                       plusActive ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     )}
                   >
-                    {plusCount > 0 ? `Plus (${plusCount})` : 'Plus'}
-                    <ChevronDown className={cn('w-3 h-3 transition-transform', plusActive ? 'text-white/60' : 'text-gray-400', plusOpen && 'rotate-180')} />
+                    {plusCount > 0 ? t('search.moreWithCount', { count: plusCount }) : t('search.more')}
+                    <ChevronDown className={cn('w-3 h-3 transition-transform', plusActive ? 'text-white/60' : 'text-gray-500', plusOpen && 'rotate-180')} />
                   </button>
                   {plusOpen && (
                     <div className="absolute top-full left-0 mt-1.5 w-[620px] bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-6 animate-[fadeIn_0.15s_ease-out]">
@@ -476,7 +478,7 @@ export default function SearchPage() {
                                   updateFilter({ lifestyleTags: next })
                                 }} className={cn('w-full h-8 px-3 text-xs font-medium rounded-lg text-left transition-all cursor-pointer flex items-center justify-between', filters.lifestyleTags.includes(tag.value) ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
                                   {tag.label}
-                                  {filters.lifestyleTags.includes(tag.value) && <span className="text-[10px]">✓</span>}
+                                  {filters.lifestyleTags.includes(tag.value) && <span className="text-xs">✓</span>}
                                 </button>
                               ))}
                             </div>
@@ -494,7 +496,7 @@ export default function SearchPage() {
                                   updateFilter({ lifestyleTags: next })
                                 }} className={cn('w-full h-8 px-3 text-xs font-medium rounded-lg text-left transition-all cursor-pointer flex items-center justify-between', filters.lifestyleTags.includes(tag.value) ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
                                   {tag.label}
-                                  {filters.lifestyleTags.includes(tag.value) && <span className="text-[10px]">✓</span>}
+                                  {filters.lifestyleTags.includes(tag.value) && <span className="text-xs">✓</span>}
                                 </button>
                               ))}
                             </div>
@@ -508,7 +510,7 @@ export default function SearchPage() {
                           <button
                             type="button"
                             onClick={() => updateFilter({ minSurface: '', bedrooms: '', bathrooms: '', energyLabel: '', lifestyleTags: [] })}
-                            className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
                           >
                             Réinitialiser les filtres
                           </button>
@@ -522,15 +524,15 @@ export default function SearchPage() {
 
             {/* Clear filters + Save search */}
             {hasActiveFilters && (
-              <button onClick={clearAllFilters} className="h-7 w-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shrink-0" title="Effacer les filtres">
+              <button onClick={clearAllFilters} className="h-7 w-7 rounded-md flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shrink-0" title={t('search.clearFilters')}>
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
             {hasActiveFilters && (
               <button
                 onClick={() => setSaveDialogOpen(true)}
-                className="h-8 w-8 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
-                title="Sauvegarder cette recherche"
+                className="h-8 w-8 rounded-md flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
+                title={t('search.saveSearch')}
               >
                 <Bookmark className="h-3.5 w-3.5" />
               </button>
@@ -538,7 +540,7 @@ export default function SearchPage() {
 
             {/* Sort pill */}
             <FilterPill
-              label={SORT_OPTIONS.find(o => o.value === filters.sort)?.label || 'Pertinence'}
+              label={SORT_OPTIONS.find(o => o.value === filters.sort)?.label || t('search.relevance')}
               active={filters.sort !== 'relevance'}
               dark
             >
@@ -551,8 +553,8 @@ export default function SearchPage() {
             <div className="hidden lg:flex items-center gap-1">
               <button
                 onClick={() => mapViewRef.current?.fitToListings()}
-                className="h-7 px-2.5 rounded-lg text-[11px] font-medium text-gray-400 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
-                title="Recentrer la carte"
+                className="h-7 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                title={t('search.recenterMap')}
               >
                 <LocateFixed className="h-3 w-3" />
                 Recentrer
@@ -560,8 +562,8 @@ export default function SearchPage() {
               {!mapState.isDrawing && !mapState.hasPolygon && (
                 <button
                   onClick={() => { mapViewRef.current?.startDrawing(); syncMapState() }}
-                  className="h-7 px-2.5 rounded-lg text-[11px] font-medium text-gray-400 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
-                  title="Dessiner une zone sur la carte"
+                  className="h-7 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                  title={t('search.drawZone')}
                 >
                   <PenTool className="h-3 w-3" />
                   Zone
@@ -571,10 +573,10 @@ export default function SearchPage() {
                 <button
                   onClick={() => { syncMapState(); setMapToolsOpen(v => !v) }}
                   className={cn(
-                    'h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap',
+                    'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap',
                     mapToolsOpen || mapState.showTools || mapState.showHeatmap
                       ? 'bg-accent/10 text-accent'
-                      : 'text-gray-400 hover:text-gray-600'
+                      : 'text-gray-500 hover:text-gray-600'
                   )}
                 >
                   <Mountain className="h-3 w-3" />
@@ -585,12 +587,12 @@ export default function SearchPage() {
                 {mapToolsOpen && (
                   <div className="absolute top-full left-0 mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
                     {/* Map styles */}
-                    <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Style de carte</p>
+                    <p className="px-3 pt-1.5 pb-1 text-xs font-semibold text-gray-500 capitalize">Style de carte</p>
                     {([
                       { id: 'standard', label: '3D', icon: Mountain },
-                      { id: 'satellite', label: 'Satellite', icon: Satellite },
-                      { id: 'light', label: 'Clair', icon: SunIcon },
-                      { id: 'dark', label: 'Sombre', icon: Moon },
+                      { id: 'satellite', label: t('search.mapStyleSatellite'), icon: Satellite },
+                      { id: 'light', label: t('search.mapStyleLight'), icon: SunIcon },
+                      { id: 'dark', label: t('search.mapStyleDark'), icon: Moon },
                     ] as const).map(style => {
                       const Icon = style.icon
                       const isActive = mapState.mapStyleId === style.id
@@ -655,7 +657,7 @@ export default function SearchPage() {
           {/* Mobile: search + filter button */}
           <div className="md:hidden flex items-center gap-2 h-12">
             <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-1">
-              <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+              <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
               <input
                 type="text"
                 value={searchInput}
@@ -674,7 +676,7 @@ export default function SearchPage() {
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Filtres
               {activeFilterCount > 0 && (
-                <span className="h-4 w-4 bg-white text-gray-900 text-[10px] rounded-full flex items-center justify-center font-bold">
+                <span className="h-4 w-4 bg-white text-gray-900 text-xs rounded-full flex items-center justify-center font-bold">
                   {activeFilterCount}
                 </span>
               )}
@@ -702,7 +704,7 @@ export default function SearchPage() {
             <div className="md:hidden px-4 py-3 border-b border-gray-100 bg-gray-50">
               <div className="flex items-center gap-2 flex-wrap">
                 <FilterPill
-                  label={filters.types.length ? 'Type ✓' : 'Type'}
+                  label={filters.types.length ? t('search.typeConfirmed') : t('search.type')}
                   active={filters.types.length > 0}
                 >
                   {Object.entries(PROPERTY_TYPE_LABELS).map(([value, label]) => (
@@ -720,14 +722,14 @@ export default function SearchPage() {
                     </FilterOption>
                   ))}
                 </FilterPill>
-                <FilterPill label={filters.rooms ? `${filters.rooms}p.` : 'Pièces'} active={!!filters.rooms}>
+                <FilterPill label={filters.rooms ? t('search.nRoomsShort', { count: filters.rooms }) : t('search.roomsFilter')} active={!!filters.rooms}>
                   {ROOM_OPTIONS.map((r) => (
                     <FilterOption key={r} selected={filters.rooms === r} onClick={() => updateFilter({ rooms: filters.rooms === r ? '' : r })}>
                       {r} pièces
                     </FilterOption>
                   ))}
                 </FilterPill>
-                <FilterPill label={filters.canton ? (CANTON_LABELS[filters.canton] || filters.canton) : 'Canton'} active={!!filters.canton}>
+                <FilterPill label={filters.canton ? (CANTON_LABELS[filters.canton] || filters.canton) : t('search.canton')} active={!!filters.canton}>
                   {(marketStats?.cantonCounts || []).slice(0, 10).map(({ canton: c, count: cnt }) => (
                     <FilterOption key={c} selected={filters.canton === c} onClick={() => updateFilter({ canton: filters.canton === c ? '' : c, city: '' })}>
                       {CANTON_LABELS[c] || c} ({cnt})
@@ -735,7 +737,7 @@ export default function SearchPage() {
                   ))}
                 </FilterPill>
                 {hasActiveFilters && (
-                  <button onClick={clearAllFilters} className="text-xs text-gray-400 hover:text-gray-700 cursor-pointer">
+                  <button onClick={clearAllFilters} className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer">
                     Effacer
                   </button>
                 )}
@@ -791,7 +793,7 @@ export default function SearchPage() {
                   <h2 className="text-lg font-bold text-gray-900">
                     {filters.types.length > 0
                       ? filters.types.map(t => PROPERTY_TYPE_LABELS[t as keyof typeof PROPERTY_TYPE_LABELS] || t).join(', ')
-                      : 'Immobilier'
+                      : t('search.realEstate')
                     }
                     {filters.context === 'rent' ? ' à louer' : ' à vendre'}
                     {filters.city && ` à ${filters.city}`}
@@ -858,7 +860,7 @@ export default function SearchPage() {
                   disabled={isFetchingNextPage}
                   className="px-6 py-2.5 text-sm font-medium text-accent border border-accent rounded-full hover:bg-accent hover:text-white transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isFetchingNextPage ? 'Chargement...' : 'Charger plus de résultats'}
+                  {isFetchingNextPage ? t('actions.loading') : t('search.loadMore')}
                 </button>
               </div>
             )}

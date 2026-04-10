@@ -212,7 +212,7 @@ export default function VisitManagePage() {
                 disabled={!newDate || reschedule.isPending}
                 className={cn(
                   'flex-1 h-10 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2',
-                  newDate && !reschedule.isPending ? 'bg-accent text-white hover:bg-accent/90' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  newDate && !reschedule.isPending ? 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active' : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                 )}
               >
                 {reschedule.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

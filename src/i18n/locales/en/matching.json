@@ -1,1 +1,57 @@
-{}
+{
+  "title": "Matching",
+  "subtitle": "Buyers ↔ Compatible properties",
+  "runMatching": "Run matching",
+  "running": "Analysing...",
+  "portfolio": "Portfolio",
+  "market": "Market",
+  "kpi": {
+    "totalMatches": "Total matches",
+    "toSend": "To send",
+    "sent": "Sent",
+    "contacts": "Contacts"
+  },
+  "filter": {
+    "all": "All",
+    "suggested": "To send",
+    "sentLabel": "Sent",
+    "internal": "Internal",
+    "marketLabel": "Market",
+    "clear": "Clear"
+  },
+  "sort": {
+    "score": "Score",
+    "priceAsc": "Price ↑",
+    "priceDesc": "Price ↓",
+    "recent": "Recent"
+  },
+  "empty": {
+    "title": "Add search criteria to your contacts",
+    "desc": "Matching automatically compares your buyers' criteria with available properties.",
+    "cta": "View my contacts"
+  },
+  "card": {
+    "sendTo": "Send →",
+    "sentBy": "Sent via {{channel}}",
+    "noPhoto": "No photo",
+    "seeSheet": "View listing →"
+  },
+  "preview": {
+    "rooms": "Rooms",
+    "bedrooms": "Bedrooms",
+    "surface": "Surface",
+    "floor": "Floor",
+    "year": "Year",
+    "charges": "Charges",
+    "features": "Features",
+    "compatibilityScore": "Compatibility score",
+    "source": "Source",
+    "agency": "Agency",
+    "pricePerM2": "Price/m²",
+    "online": "Online",
+    "matchFor": "Match for",
+    "close": "Close",
+    "seeAd": "View ad",
+    "sendToClient": "Send to client"
+  }
+}

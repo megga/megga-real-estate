@@ -1,1 +1,57 @@
-{}
+{
+  "title": "Matching",
+  "subtitle": "Acheteurs ↔ Biens compatibles",
+  "runMatching": "Lancer le matching",
+  "running": "Analyse en cours...",
+  "portfolio": "Portefeuille",
+  "market": "Marché",
+  "kpi": {
+    "totalMatches": "Total matchs",
+    "toSend": "À envoyer",
+    "sent": "Envoyés",
+    "contacts": "Contacts"
+  },
+  "filter": {
+    "all": "Tous",
+    "suggested": "À envoyer",
+    "sentLabel": "Envoyés",
+    "internal": "Interne",
+    "marketLabel": "Marché",
+    "clear": "Effacer"
+  },
+  "sort": {
+    "score": "Score",
+    "priceAsc": "Prix ↑",
+    "priceDesc": "Prix ↓",
+    "recent": "Récent"
+  },
+  "empty": {
+    "title": "Ajoutez des critères de recherche à vos contacts",
+    "desc": "Le matching compare automatiquement les critères de vos acheteurs avec les biens disponibles.",
+    "cta": "Voir mes contacts"
+  },
+  "card": {
+    "sendTo": "Envoyer →",
+    "sentBy": "Envoyé par {{channel}}",
+    "noPhoto": "Pas de photo",
+    "seeSheet": "Voir la fiche →"
+  },
+  "preview": {
+    "rooms": "Pièces",
+    "bedrooms": "Chambres",
+    "surface": "Surface",
+    "floor": "Étage",
+    "year": "Année",
+    "charges": "Charges",
+    "features": "Caractéristiques",
+    "compatibilityScore": "Score de compatibilité",
+    "source": "Source",
+    "agency": "Agence",
+    "pricePerM2": "Prix/m²",
+    "online": "En ligne",
+    "matchFor": "Match pour",
+    "close": "Fermer",
+    "seeAd": "Voir l'annonce",
+    "sendToClient": "Envoyer au client"
+  }
+}

@@ -55,11 +55,11 @@ export default function HelpCategoryPage() {
         <nav className="flex items-center gap-1.5 text-sm mb-8">
           <Link
             to="/aide"
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-500 hover:text-gray-600 transition-colors"
           >
             Centre d'aide
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-300" />
+          <ChevronRight className="h-3.5 w-3.5 text-gray-500" />
           <span className="text-gray-700 font-medium">{meta.label}</span>
         </nav>
 
@@ -71,7 +71,7 @@ export default function HelpCategoryPage() {
           <p className="text-base text-gray-500 mb-1">
             {meta.description}
           </p>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-500">
             {articles.length} article{articles.length > 1 ? 's' : ''}
           </p>
         </div>
@@ -123,7 +123,7 @@ export default function HelpCategoryPage() {
           </div>
           <div className="md:w-[45%] flex flex-col justify-center p-8 md:p-10">
             <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">Contactez-nous</h3>
-            <p className="text-[15px] text-gray-500 mb-6 leading-relaxed">
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
               Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
             </p>
             <Link

@@ -137,7 +137,7 @@ function MethodSelectionScreen({ onSelect }: { onSelect: (m: ImportMethod) => vo
               <m.icon className="w-5 h-5 mt-0.5 flex-shrink-0 text-theme-muted group-hover:text-theme-secondary transition-colors" />
               <div>
                 <p className="text-sm font-medium text-theme-primary">{m.title}</p>
-                <p className="text-[12px] text-theme-muted mt-0.5 leading-relaxed">{m.desc}</p>
+                <p className="text-xs text-theme-muted mt-0.5 leading-relaxed">{m.desc}</p>
               </div>
             </div>
           </button>
@@ -206,7 +206,10 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
       <div className="w-full max-w-lg">
         {step === 'upload' ? (
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => fileRef.current?.click()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click() } }}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
@@ -238,7 +241,7 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
               ))}
             </div>
 
-            <p className="text-[11px] text-theme-muted mt-3">Aperçu : {rows.slice(0, 3).map(r => `${r[0]} ${r[1] || ''}`).join(', ')}...</p>
+            <p className="text-xs text-theme-muted mt-3">Aperçu : {rows.slice(0, 3).map(r => `${r[0]} ${r[1] || ''}`).join(', ')}...</p>
 
             <button
               onClick={handleConfirm}
@@ -284,7 +287,10 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
       <div className="w-full max-w-lg">
         {!parsed ? (
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => fileRef.current?.click()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click() } }}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
@@ -304,12 +310,12 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto scrollbar-hide rounded-xl border border-theme-border p-4">
               {parsed.map((c, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm py-1">
-                  <div className="h-7 w-7 rounded-full bg-theme-hover flex items-center justify-center text-[10px] font-semibold text-theme-secondary flex-shrink-0">
+                  <div className="h-7 w-7 rounded-full bg-theme-hover flex items-center justify-center text-xs font-semibold text-theme-secondary flex-shrink-0">
                     {(c.first_name?.[0] || '') + (c.last_name?.[0] || '')}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="font-medium text-theme-primary text-[13px]">{c.first_name} {c.last_name}</span>
-                    <div className="flex gap-3 text-[11px] text-theme-muted">
+                    <span className="font-medium text-theme-primary text-sm">{c.first_name} {c.last_name}</span>
+                    <div className="flex gap-3 text-xs text-theme-muted">
                       {c.email && <span>{c.email}</span>}
                       {c.phone && <span>{c.phone}</span>}
                     </div>
@@ -415,12 +421,12 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
             <div className="space-y-1.5 rounded-xl border border-theme-border p-4">
               {extracted.map((c, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm py-1">
-                  <div className="h-7 w-7 rounded-full bg-theme-hover flex items-center justify-center text-[10px] font-semibold text-theme-secondary flex-shrink-0">
+                  <div className="h-7 w-7 rounded-full bg-theme-hover flex items-center justify-center text-xs font-semibold text-theme-secondary flex-shrink-0">
                     {(c.first_name?.[0] || '') + (c.last_name?.[0] || '')}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="font-medium text-theme-primary text-[13px]">{c.first_name} {c.last_name}</span>
-                    <div className="flex gap-3 text-[11px] text-theme-muted">
+                    <span className="font-medium text-theme-primary text-sm">{c.first_name} {c.last_name}</span>
+                    <div className="flex gap-3 text-xs text-theme-muted">
                       {c.email && <span>{c.email}</span>}
                       {c.phone && <span>{c.phone}</span>}
                     </div>

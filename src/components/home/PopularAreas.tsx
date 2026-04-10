@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import MapGL, { Marker, type ViewStateChangeEvent } from 'react-map-gl/mapbox'
 import { MapPin, ArrowRight, TrendingUp, Home, Users, Navigation } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
@@ -153,6 +154,7 @@ function findClosestCity(lat: number, lng: number): City {
 }
 
 export default function PopularAreas() {
+  const { t } = useTranslation('common')
   const [activeCity, setActiveCity] = useState<City>(CITIES[0])
   const [selectedArea, setSelectedArea] = useState<Area | null>(CITIES[0].areas[0])
   const [geoDetected, setGeoDetected] = useState(false)
@@ -198,18 +200,18 @@ export default function PopularAreas() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
-            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em]">
-              Carte interactive
+            <p className="text-xs font-medium text-gray-500 capitalize">
+              {t('home.interactiveMap')}
             </p>
             <h2 className="text-2xl md:text-3xl font-semibold text-primary mt-1">
-              Quartiers populaires
+              {t('home.popularAreas')}
             </h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Explorez les zones les plus recherchées
+            <p className="text-sm text-gray-500 mt-1">
+              {t('home.exploreSearchedAreas')}
               {geoDetected && (
                 <span className="inline-flex items-center gap-1 ml-1.5 text-accent">
                   <Navigation className="w-3 h-3" />
-                  <span className="text-[11px]">près de vous</span>
+                  <span className="text-xs">{t('home.nearYou')}</span>
                 </span>
               )}
             </p>
@@ -218,7 +220,7 @@ export default function PopularAreas() {
             to="/acheter"
             className="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors group"
           >
-            Explorer la carte
+            {t('home.exploreMap')}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
@@ -238,8 +240,8 @@ export default function PopularAreas() {
             >
               {city.name}
               <span className={cn(
-                'ml-1.5 text-[10px]',
-                activeCity.id === city.id ? 'text-white/60' : 'text-gray-400'
+                'ml-1.5 text-xs',
+                activeCity.id === city.id ? 'text-white/60' : 'text-gray-500'
               )}>
                 {city.canton}
               </span>
@@ -275,7 +277,7 @@ export default function PopularAreas() {
                   >
                     <button
                       className={cn(
-                        'flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-semibold shadow-md transition-all duration-200 cursor-pointer border whitespace-nowrap',
+                        'flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold shadow-md transition-all duration-200 cursor-pointer border whitespace-nowrap',
                         isSelected
                           ? 'bg-accent text-white border-accent scale-110 z-20 shadow-lg'
                           : area.popular
@@ -303,36 +305,36 @@ export default function PopularAreas() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-primary">{selectedArea.name}</h3>
-                    <p className="text-xs text-gray-400">{activeCity.name}, {selectedArea.canton}</p>
+                    <p className="text-xs text-gray-500">{activeCity.name}, {selectedArea.canton}</p>
                   </div>
                   <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
                     <TrendingUp className="w-3 h-3" />
-                    <span className="text-[11px] font-semibold">{selectedArea.trend}</span>
+                    <span className="text-xs font-semibold">{selectedArea.trend}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-4">
                   <div className="bg-gray-50 rounded-xl p-3">
-                    <div className="flex items-center gap-1.5 text-gray-400">
+                    <div className="flex items-center gap-1.5 text-gray-500">
                       <Home className="w-3 h-3" />
-                      <span className="text-[10px] uppercase tracking-wider font-medium">Prix moyen</span>
+                      <span className="text-xs capitalize font-medium">{t('home.avgPrice')}</span>
                     </div>
                     <p className="text-sm font-bold text-primary mt-1">{formatCHF(selectedArea.avgPrice)}</p>
                   </div>
                   <div className="bg-gray-50 rounded-xl p-3">
-                    <div className="flex items-center gap-1.5 text-gray-400">
+                    <div className="flex items-center gap-1.5 text-gray-500">
                       <Users className="w-3 h-3" />
-                      <span className="text-[10px] uppercase tracking-wider font-medium">Annonces</span>
+                      <span className="text-xs capitalize font-medium">{t('home.listings')}</span>
                     </div>
-                    <p className="text-sm font-bold text-primary mt-1">{selectedArea.listings} biens</p>
+                    <p className="text-sm font-bold text-primary mt-1">{t('home.propertiesCount', { count: selectedArea.listings })}</p>
                   </div>
                 </div>
 
                 <Link
                   to="/acheter"
-                  className="flex items-center justify-center gap-1.5 w-full h-10 bg-accent text-white text-sm font-medium rounded-full mt-4 hover:bg-accent/90 transition-colors"
+                  className="flex items-center justify-center gap-1.5 w-full h-10 text-sm font-medium rounded-full mt-4 border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
                 >
-                  Voir les biens
+                  {t('home.viewProperties')}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -340,8 +342,8 @@ export default function PopularAreas() {
 
             {/* Popular areas list */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-card flex-1">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
-                Les plus recherchés à {activeCity.name}
+              <p className="text-xs font-medium text-gray-500 capitalize mb-3">
+                {t('home.mostSearchedIn', { city: activeCity.name })}
               </p>
               <div className="space-y-1">
                 {popularAreas.map((area) => (
@@ -366,7 +368,7 @@ export default function PopularAreas() {
                     <div className="flex items-center gap-2.5">
                       <MapPin className={cn(
                         'w-3.5 h-3.5 flex-shrink-0',
-                        selectedArea?.id === area.id ? 'text-accent' : 'text-gray-400 group-hover:text-gray-500'
+                        selectedArea?.id === area.id ? 'text-accent' : 'text-gray-500 group-hover:text-gray-500'
                       )} />
                       <div>
                         <span className={cn(
@@ -375,10 +377,10 @@ export default function PopularAreas() {
                         )}>
                           {area.name}
                         </span>
-                        <span className="text-[11px] text-gray-400 ml-1.5">{area.listings} biens</span>
+                        <span className="text-xs text-gray-500 ml-1.5">{t('home.propertiesCount', { count: area.listings })}</span>
                       </div>
                     </div>
-                    <span className="text-[11px] text-emerald-600 font-medium">{area.trend}</span>
+                    <span className="text-xs text-emerald-600 font-medium">{area.trend}</span>
                   </button>
                 ))}
               </div>
@@ -389,7 +391,7 @@ export default function PopularAreas() {
               to="/acheter"
               className="lg:hidden flex items-center justify-center gap-1.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors py-2"
             >
-              Explorer la carte complète
+              {t('home.exploreFullMap')}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

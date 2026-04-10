@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import EmptyPipelineIllustration from '@/components/illustrations/EmptyPipelineIllustration'
 import NewTransactionDialog from '@/components/transactions/NewTransactionDialog'
 import {
@@ -97,7 +98,7 @@ const STAGE_DOTS: Record<string, string> = Object.fromEntries(
 
 function DealAvatar({ name, size = 'default' }: { name: string; size?: 'default' | 'small' }) {
   const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-  const s = size === 'small' ? 'h-5 w-5 text-[9px]' : 'h-6 w-6 text-[10px]'
+  const s = size === 'small' ? 'h-5 w-5 text-xs' : 'h-6 w-6 text-xs'
   return (
     <div className={cn('rounded-full bg-theme-active text-theme-secondary font-semibold flex items-center justify-center shrink-0', s)}>
       {initials}
@@ -125,12 +126,12 @@ function DealCardContent({ deal, onSelect }: { deal: PipelineDeal; onSelect?: (d
       </div>
       <div className="flex items-center justify-between mt-2.5">
         <span className="text-sm font-semibold text-theme-primary">{formatCHF(deal.price)}</span>
-        <span className="text-[11px] text-theme-tertiary">{formatRelativeDate(deal.updated_at)}</span>
+        <span className="text-xs text-theme-tertiary">{formatRelativeDate(deal.updated_at)}</span>
       </div>
       {/* Agent — visible on hover */}
       <div className="flex items-center gap-1.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <DealAvatar name={deal.agent} size="small" />
-        <span className="text-[10px] text-theme-muted">{deal.agent}</span>
+        <span className="text-xs text-theme-muted">{deal.agent}</span>
       </div>
     </div>
   )
@@ -157,11 +158,12 @@ function SortableDealCard({ deal }: { deal: PipelineDeal }) {
 
 // ── Kanban Column ───────────────────────────────────────────────────────────
 
-function KanbanColumn({ stage, dotColor, deals, isArchive }: {
+function KanbanColumn({ stage, dotColor, deals, isArchive, dropLabel }: {
   stage: TransactionStage
   dotColor: string
   deals: PipelineDeal[]
   isArchive?: boolean
+  dropLabel: string
 }) {
   const label = TRANSACTION_STAGE_LABELS[stage]
   const totalValue = deals.reduce((sum, d) => sum + d.price, 0)
@@ -173,10 +175,10 @@ function KanbanColumn({ stage, dotColor, deals, isArchive }: {
         <div className="flex items-center gap-2">
           <div className={cn('h-2 w-2 rounded-full', dotColor)} />
           <span className="text-xs font-medium text-theme-primary">{label}</span>
-          <span className="text-[11px] text-theme-tertiary ml-auto">{deals.length}</span>
+          <span className="text-xs text-theme-tertiary ml-auto">{deals.length}</span>
         </div>
         {deals.length > 0 && (
-          <p className="text-[10px] text-theme-muted mt-0.5 pl-4">{formatCHF(totalValue)}</p>
+          <p className="text-xs text-theme-muted mt-0.5 pl-4">{formatCHF(totalValue)}</p>
         )}
       </div>
 
@@ -190,7 +192,7 @@ function KanbanColumn({ stage, dotColor, deals, isArchive }: {
 
         {deals.length === 0 && (
           <div className="flex items-center justify-center h-20 text-xs text-theme-tertiary border border-dashed border-theme-border rounded-lg">
-            Déposez ici
+            {dropLabel}
           </div>
         )}
       </div>
@@ -205,6 +207,7 @@ function LostConfirmDialog({ dealName, onConfirm, onCancel }: {
   onConfirm: (reason: string) => void
   onCancel: () => void
 }) {
+  const { t } = useTranslation('pipeline')
   const [reason, setReason] = useState('')
 
   return createPortal(
@@ -212,26 +215,26 @@ function LostConfirmDialog({ dealName, onConfirm, onCancel }: {
       <div className="bg-theme-card border border-theme-border rounded-xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 mb-3">
           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-          <h3 className="text-base font-semibold text-theme-primary">Marquer comme perdu ?</h3>
+          <h3 className="text-base font-semibold text-theme-primary">{t('lost_dialog.title')}</h3>
         </div>
         <p className="text-sm text-theme-secondary">
-          Le deal de <span className="font-medium text-theme-primary">{dealName}</span> sera déplacé dans la colonne "Perdu".
+          {t('lost_dialog.message', { name: dealName })}
         </p>
 
         <div className="mt-4">
-          <label className="text-sm font-medium text-theme-primary block mb-1.5">Raison de la perte *</label>
+          <label className="text-sm font-medium text-theme-primary block mb-1.5">{t('lost_dialog.reason_label')}</label>
           <select
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             className="w-full h-10 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
           >
-            <option value="">Sélectionner...</option>
-            <option value="budget">Budget insuffisant</option>
-            <option value="concurrent">Bien acheté ailleurs</option>
-            <option value="financement">Financement refusé</option>
-            <option value="desistement">Désistement client</option>
-            <option value="prix">Prix trop élevé</option>
-            <option value="autre">Autre raison</option>
+            <option value="">{t('lost.select')}</option>
+            <option value="budget">{t('lost_dialog.reasons.budget')}</option>
+            <option value="concurrent">{t('lost_dialog.reasons.competitor')}</option>
+            <option value="financement">{t('lost_dialog.reasons.financing')}</option>
+            <option value="desistement">{t('lost_dialog.reasons.withdrawal')}</option>
+            <option value="prix">{t('lost_dialog.reasons.price')}</option>
+            <option value="autre">{t('lost_dialog.reasons.other')}</option>
           </select>
         </div>
 
@@ -240,7 +243,7 @@ function LostConfirmDialog({ dealName, onConfirm, onCancel }: {
             className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
             onClick={onCancel}
           >
-            Annuler
+            {t('lost_dialog.cancel')}
           </button>
           <button
             disabled={!reason}
@@ -250,7 +253,7 @@ function LostConfirmDialog({ dealName, onConfirm, onCancel }: {
             )}
             onClick={() => onConfirm(reason)}
           >
-            Confirmer
+            {t('lost_dialog.confirm')}
           </button>
         </div>
       </div>
@@ -262,6 +265,7 @@ function LostConfirmDialog({ dealName, onConfirm, onCancel }: {
 // ── Main Page ───────────────────────────────────────────────────────────────
 
 export default function PipelinePage() {
+  const { t } = useTranslation('pipeline')
   // Hide parent scrollbar for immersive kanban
   useEffect(() => {
     const main = document.querySelector('main')
@@ -390,8 +394,8 @@ export default function PipelinePage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-theme-primary">Pipeline</h1>
-            <p className="text-sm text-theme-tertiary mt-0.5">{deals.length} deals</p>
+            <h1 className="text-2xl font-semibold text-theme-primary">{t('title')}</h1>
+            <p className="text-sm text-theme-tertiary mt-0.5">{t('deals_count', { count: deals.length })}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center border border-theme-border rounded-lg p-0.5">
@@ -403,7 +407,7 @@ export default function PipelinePage() {
                 )}
               >
                 <Kanban className="h-3.5 w-3.5" />
-                Kanban
+                {t('view.kanban')}
               </button>
               <button
                 onClick={() => setView('list')}
@@ -413,7 +417,7 @@ export default function PipelinePage() {
                 )}
               >
                 <List className="h-3.5 w-3.5" />
-                Liste
+                {t('view.list')}
               </button>
             </div>
 
@@ -422,7 +426,7 @@ export default function PipelinePage() {
               className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
-              Nouveau deal
+              {t('new_deal')}
             </button>
           </div>
         </div>
@@ -430,22 +434,22 @@ export default function PipelinePage() {
         {/* Summary bar — KPIs */}
         <div className="flex items-center gap-6 py-3 px-4 rounded-xl border border-theme-border">
           <div>
-            <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">Actifs</p>
+            <p className="text-xs text-theme-tertiary capitalize">{t('kpi.active')}</p>
             <p className="text-lg font-semibold text-theme-primary">{activeDeals.length}</p>
           </div>
           <div className="h-8 w-px bg-theme-border" />
           <div>
-            <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">Valeur pipeline</p>
+            <p className="text-xs text-theme-tertiary capitalize">{t('kpi.pipeline_value')}</p>
             <p className="text-lg font-semibold text-theme-primary">{formatCHF(pipelineValue)}</p>
           </div>
           <div className="h-8 w-px bg-theme-border" />
           <div>
-            <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">À risque</p>
+            <p className="text-xs text-theme-tertiary capitalize">{t('kpi.at_risk')}</p>
             <p className={cn('text-lg font-semibold', atRiskCount > 0 ? 'text-orange-500' : 'text-theme-primary')}>{atRiskCount}</p>
           </div>
           <div className="h-8 w-px bg-theme-border" />
           <div>
-            <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">Conversion</p>
+            <p className="text-xs text-theme-tertiary capitalize">{t('kpi.conversion')}</p>
             <p className="text-lg font-semibold text-theme-primary">{conversionRate}%</p>
           </div>
         </div>
@@ -456,7 +460,7 @@ export default function PipelinePage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder={t('search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -465,7 +469,7 @@ export default function PipelinePage() {
 
           <div className="relative">
             <select value={agentFilter} onChange={(e) => setAgentFilter(e.target.value)} className={selectClasses}>
-              <option value="">Agent</option>
+              <option value="">{t('filter.agent')}</option>
               {agents.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
@@ -473,7 +477,7 @@ export default function PipelinePage() {
 
           <div className="relative">
             <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className={selectClasses}>
-              <option value="">Étape</option>
+              <option value="">{t('filter.stage')}</option>
               {PIPELINE_COLUMNS.map((col) => (
                 <option key={col.stage} value={col.stage}>{TRANSACTION_STAGE_LABELS[col.stage]}</option>
               ))}
@@ -483,7 +487,7 @@ export default function PipelinePage() {
 
           {hasFilters && (
             <button onClick={() => { setSearch(''); setAgentFilter(''); setStageFilter('') }} className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors">
-              Effacer
+              {t('clear')}
             </button>
           )}
         </div>
@@ -500,7 +504,7 @@ export default function PipelinePage() {
               <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
                 {/* Main columns */}
                 {mainColumns.map((col) => (
-                  <KanbanColumn key={col.stage} stage={col.stage} dotColor={col.dotColor} deals={col.deals} />
+                  <KanbanColumn key={col.stage} stage={col.stage} dotColor={col.dotColor} deals={col.deals} dropLabel={t('drop_target')} />
                 ))}
 
                 {/* Archive separator */}
@@ -510,7 +514,7 @@ export default function PipelinePage() {
 
                 {/* Archive columns */}
                 {archiveColumns.map((col) => (
-                  <KanbanColumn key={col.stage} stage={col.stage} dotColor={col.dotColor} deals={col.deals} isArchive />
+                  <KanbanColumn key={col.stage} stage={col.stage} dotColor={col.dotColor} deals={col.deals} isArchive dropLabel={t('drop_target')} />
                 ))}
               </div>
 
@@ -528,25 +532,28 @@ export default function PipelinePage() {
         {/* List View */}
         {view === 'list' && (
           <div className="rounded-xl border border-theme-border">
-            <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-              <span className="flex-1">Contact</span>
-              <span className="w-40 hidden md:block">Bien</span>
-              <span className="w-28">Prix</span>
-              <span className="w-28">Étape</span>
-              <span className="w-24 text-right hidden sm:block">Activité</span>
+            <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary capitalize">
+              <span className="flex-1">{t('column.contact')}</span>
+              <span className="w-40 hidden md:block">{t('column.property')}</span>
+              <span className="w-28">{t('column.price')}</span>
+              <span className="w-28">{t('column.stage')}</span>
+              <span className="w-24 text-right hidden sm:block">{t('column.activity')}</span>
             </div>
 
             {filtered.length === 0 ? (
               <div className="px-4 py-16 text-center">
                 <div className="w-40 h-28 mx-auto mb-4"><EmptyPipelineIllustration /></div>
-                <p className="text-sm font-medium text-theme-secondary">Créez votre premier deal pour suivre vos transactions</p>
-                <p className="text-xs text-theme-tertiary mt-1">Chaque transaction suit un pipeline de 14 étapes.</p>
+                <p className="text-sm font-medium text-theme-secondary">{t('empty_title')}</p>
+                <p className="text-xs text-theme-tertiary mt-1">{t('empty_subtitle')}</p>
               </div>
             ) : (
               filtered.map((deal, i) => (
                 <div
                   key={deal.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelectedDeal(deal)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDeal(deal) } }}
                   className={cn(
                     'flex items-center px-4 py-3 hover:bg-theme-hover transition-colors cursor-pointer group',
                     i < filtered.length - 1 && 'border-b border-theme-border'

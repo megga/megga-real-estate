@@ -85,7 +85,7 @@ export default function BuyerStagingPanel({ photoUrl, onClose, className }: Buye
             onClick={() => { setStyle(s.key); setStagedUrl(null) }}
             className={cn(
               'h-8 px-3 rounded-full text-xs font-medium transition-colors',
-              style === s.key ? 'bg-accent text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
+              style === s.key ? 'bg-theme-active text-theme-primary' : 'bg-white/10 text-white/70 hover:bg-white/20'
             )}
           >
             {s.label}
@@ -98,7 +98,7 @@ export default function BuyerStagingPanel({ photoUrl, onClose, className }: Buye
         <button
           onClick={generate}
           disabled={loading || remaining <= 0}
-          className="w-full h-10 rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+          className="w-full h-10 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
         >
           {loading ? (
             <>

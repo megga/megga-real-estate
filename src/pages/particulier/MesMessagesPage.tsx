@@ -99,7 +99,7 @@ export default function MesMessagesPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-theme-primary">{agent.name}</p>
-            <p className="text-[10px] text-theme-tertiary">MEGGA Immobilier · Votre agent</p>
+            <p className="text-xs text-theme-tertiary">MEGGA Immobilier · Votre agent</p>
           </div>
         </div>
 
@@ -110,7 +110,7 @@ export default function MesMessagesPage() {
               {/* Day separator */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 h-px bg-theme-border-subtle" />
-                <span className="text-[10px] text-theme-muted font-medium uppercase tracking-wider">
+                <span className="text-xs text-theme-muted font-medium capitalize">
                   {group.label}
                 </span>
                 <div className="flex-1 h-px bg-theme-border-subtle" />
@@ -131,7 +131,7 @@ export default function MesMessagesPage() {
                     >
                       {/* Agent avatar */}
                       {isAgent && (
-                        <div className="h-6 w-6 rounded-full bg-accent text-white text-[9px] font-semibold flex items-center justify-center shrink-0 mb-0.5">
+                        <div className="h-6 w-6 rounded-full bg-accent text-white text-xs font-semibold flex items-center justify-center shrink-0 mb-0.5">
                           {agentInitials}
                         </div>
                       )}
@@ -150,7 +150,7 @@ export default function MesMessagesPage() {
                           'flex items-center gap-1 mt-1',
                           isAgent ? 'justify-start' : 'justify-end'
                         )}>
-                          <span className="text-[10px] text-theme-muted">
+                          <span className="text-xs text-theme-muted">
                             {formatMessageTime(msg.created_at)}
                           </span>
                           {!isAgent && (

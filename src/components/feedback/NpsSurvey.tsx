@@ -128,7 +128,7 @@ export default function NpsSurvey() {
             </div>
           )}
 
-          <p className="text-[10px] text-theme-muted mt-3 text-center">1 = Pas du tout satisfait · 5 = Tres satisfait</p>
+          <p className="text-xs text-theme-muted mt-3 text-center">1 = Pas du tout satisfait · 5 = Tres satisfait</p>
         </>
       )}
     </div>

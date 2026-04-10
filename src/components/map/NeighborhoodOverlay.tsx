@@ -49,8 +49,8 @@ function CategoryBar({ label, icon: Icon, score, count, nearest }: {
       <Icon className="h-3.5 w-3.5 text-white/50 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[11px] text-white/70">{label}</span>
-          <span className="text-[10px] text-white/40">
+          <span className="text-xs text-white/70">{label}</span>
+          <span className="text-xs text-white/40">
             {count > 0 ? `${count} lieu${count !== 1 ? 'x' : ''}` : 'Aucun a proximite'}
           </span>
         </div>
@@ -64,7 +64,7 @@ function CategoryBar({ label, icon: Icon, score, count, nearest }: {
           />
         </div>
         {nearest && (
-          <p className="text-[10px] text-white/40 mt-0.5 truncate">{nearest}</p>
+          <p className="text-xs text-white/40 mt-0.5 truncate">{nearest}</p>
         )}
       </div>
     </div>
@@ -91,7 +91,7 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
       {isLoading ? (
         <div className="px-4 py-8 flex flex-col items-center gap-2">
           <Loader2 className="h-5 w-5 text-white/40 animate-spin" />
-          <span className="text-[11px] text-white/40">Analyse du quartier...</span>
+          <span className="text-xs text-white/40">Analyse du quartier...</span>
         </div>
       ) : walkScore ? (
         <>
@@ -100,9 +100,9 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
             <ScoreRing score={walkScore.score} />
             <div>
               <p className="text-sm font-bold" style={{ color: walkScore.color }}>{walkScore.label}</p>
-              <p className="text-[10px] text-white/40 mt-0.5">Walk Score 0-100</p>
+              <p className="text-xs text-white/40 mt-0.5">Walk Score 0-100</p>
               {walkScore.score < 25 && (
-                <p className="text-[9px] text-white/30 mt-1">Cliquez en centre-ville pour de meilleurs scores</p>
+                <p className="text-xs text-white/30 mt-1">Cliquez en centre-ville pour de meilleurs scores</p>
               )}
             </div>
           </div>
@@ -130,19 +130,19 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
             <div className="px-4 py-2.5 border-t border-white/10 flex items-center gap-2.5">
               <Train className="h-3.5 w-3.5 text-accent shrink-0" />
               <div className="min-w-0">
-                <p className="text-[11px] text-white/80 font-medium truncate">{station.name}</p>
-                <p className="text-[10px] text-white/40">{station.formatted}</p>
+                <p className="text-xs text-white/80 font-medium truncate">{station.name}</p>
+                <p className="text-xs text-white/40">{station.formatted}</p>
               </div>
             </div>
           )}
 
           <div className="px-4 py-2 border-t border-white/10">
-            <p className="text-[9px] text-white/30 text-center">estimation MEGGA · basee sur POIs Mapbox</p>
+            <p className="text-xs text-white/30 text-center">estimation MEGGA · basee sur POIs Mapbox</p>
           </div>
         </>
       ) : (
         <div className="px-4 py-6 text-center">
-          <p className="text-[11px] text-white/40">Donnees non disponibles pour ce lieu</p>
+          <p className="text-xs text-white/40">Donnees non disponibles pour ce lieu</p>
         </div>
       )}
     </div>

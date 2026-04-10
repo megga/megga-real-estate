@@ -89,14 +89,14 @@ function SearchBarLibre({ context }: { context: ContextTab }) {
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-1">
       <div className="flex items-center justify-center w-11 h-11 shrink-0">
-        <MessageSquare className="w-5 h-5 text-gray-400" />
+        <MessageSquare className="w-5 h-5 text-gray-500" />
       </div>
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 text-[15px] text-gray-900 placeholder-gray-400 font-normal bg-transparent outline-none min-w-0"
+        className="flex-1 text-sm text-gray-900 placeholder-gray-400 font-normal bg-transparent outline-none min-w-0"
       />
       <button
         type="submit"
@@ -118,22 +118,22 @@ function SearchBarFiltres({ context }: { context: ContextTab }) {
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-1">
       <div className="flex items-center justify-center w-11 h-11 shrink-0">
-        <Search className="w-5 h-5 text-gray-400" />
+        <Search className="w-5 h-5 text-gray-500" />
       </div>
       <div className="flex-1 flex items-center">
-        <button type="button" className="flex-1 text-sm text-gray-400 hover:bg-gray-50 rounded-lg px-3 py-2 transition text-left cursor-pointer">
+        <button type="button" className="flex-1 text-sm text-gray-500 hover:bg-gray-50 rounded-lg px-3 py-2 transition text-left cursor-pointer">
           Localisation
         </button>
         <div className="w-px h-7 bg-gray-200 shrink-0" />
-        <button type="button" className="flex-1 text-sm text-gray-400 hover:bg-gray-50 rounded-lg px-3 py-2 transition text-left cursor-pointer hidden md:block">
+        <button type="button" className="flex-1 text-sm text-gray-500 hover:bg-gray-50 rounded-lg px-3 py-2 transition text-left cursor-pointer hidden md:block">
           Type
         </button>
         <div className="w-px h-7 bg-gray-200 shrink-0 hidden md:block" />
-        <button type="button" className="flex-1 text-sm text-gray-400 hover:bg-gray-50 rounded-lg px-3 py-2 transition text-left cursor-pointer">
+        <button type="button" className="flex-1 text-sm text-gray-500 hover:bg-gray-50 rounded-lg px-3 py-2 transition text-left cursor-pointer">
           {budgetLabel}
         </button>
         <div className="w-px h-7 bg-gray-200 shrink-0 hidden md:block" />
-        <button type="button" className="flex-1 text-sm text-gray-400 hover:bg-gray-50 rounded-lg px-3 py-2 transition text-left cursor-pointer hidden md:block">
+        <button type="button" className="flex-1 text-sm text-gray-500 hover:bg-gray-50 rounded-lg px-3 py-2 transition text-left cursor-pointer hidden md:block">
           Pièces
         </button>
       </div>
@@ -162,14 +162,14 @@ function SearchBarAdresse({ context }: { context: ContextTab }) {
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-1">
       <div className="flex items-center justify-center w-11 h-11 shrink-0">
-        <MapPin className="w-5 h-5 text-gray-400" />
+        <MapPin className="w-5 h-5 text-gray-500" />
       </div>
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 text-[15px] text-gray-900 placeholder-gray-400 font-normal bg-transparent outline-none min-w-0"
+        className="flex-1 text-sm text-gray-900 placeholder-gray-400 font-normal bg-transparent outline-none min-w-0"
       />
       <button
         type="submit"

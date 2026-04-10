@@ -10,10 +10,10 @@ export default function PortalGateway() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-theme-section">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-2 border-gray-900 border-t-transparent rounded-full mx-auto" />
-          <p className="text-sm text-gray-500 mt-4">Chargement de votre espace...</p>
+          <div className="animate-spin h-8 w-8 border-2 border-theme-primary border-t-transparent rounded-full mx-auto" />
+          <p className="text-sm text-theme-tertiary mt-4">Chargement de votre espace...</p>
         </div>
       </div>
     )

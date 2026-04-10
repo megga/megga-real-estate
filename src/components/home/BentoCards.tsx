@@ -116,52 +116,37 @@ function IllustrationEstimer() {
   );
 }
 
-const CARDS = [
-  {
-    illustration: IllustrationAcheter,
-    title: 'Acheter',
-    description: 'Trouvez votre bien idéal parmi des milliers d\'annonces vérifiées à travers toute la Suisse.',
-    cta: 'Rechercher un bien',
-    href: '/acheter',
-  },
-  {
-    illustration: IllustrationLouer,
-    title: 'Louer',
-    description: 'Appartements, maisons, colocations — parcourez les offres de location disponibles maintenant.',
-    cta: 'Voir les locations',
-    href: '/louer',
-  },
-  {
-    illustration: IllustrationEstimer,
-    title: 'Estimer',
-    description: 'Obtenez une estimation de votre bien en quelques secondes grâce à notre analyse de marché.',
-    cta: 'Estimer mon bien',
-    href: '/estimations',
-  },
+import { useTranslation } from 'react-i18next';
+
+const CARD_KEYS = [
+  { illustration: IllustrationAcheter, titleKey: 'home.buyTitle', descKey: 'home.buyDesc', ctaKey: 'home.buyCta', href: '/acheter' },
+  { illustration: IllustrationLouer, titleKey: 'home.rentTitle', descKey: 'home.rentDesc', ctaKey: 'home.rentCta', href: '/louer' },
+  { illustration: IllustrationEstimer, titleKey: 'home.estimateTitle', descKey: 'home.estimateDesc', ctaKey: 'home.estimateCta', href: '/estimations' },
 ] as const;
 
 export default function BentoCards() {
+  const { t } = useTranslation('common');
   return (
     <section className="py-12 md:py-16 bg-[var(--color-bg-section)]">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {CARDS.map((card) => {
+          {CARD_KEYS.map((card) => {
             const Illustration = card.illustration;
             return (
               <a
-                key={card.title}
+                key={card.titleKey}
                 href={card.href}
                 className="group bg-white rounded-2xl p-6 md:p-8 border border-gray-100 hover:border-gray-200 hover:shadow-[var(--shadow-card-hover)] transition-all duration-200 text-center flex flex-col items-center"
               >
                 <Illustration />
                 <h3 className="text-xl font-bold text-gray-900 mt-4">
-                  {card.title}
+                  {t(card.titleKey)}
                 </h3>
                 <p className="text-gray-500 text-sm mt-2 leading-relaxed max-w-[260px]">
-                  {card.description}
+                  {t(card.descKey)}
                 </p>
                 <button className="mt-5 px-6 py-2.5 text-sm font-semibold text-[#2563EB] border-2 border-[#2563EB] rounded-full hover:bg-[#2563EB] hover:text-white transition-all group-hover:bg-[#2563EB] group-hover:text-white cursor-pointer">
-                  {card.cta}
+                  {t(card.ctaKey)}
                 </button>
               </a>
             );

@@ -33,12 +33,12 @@ export function FilterPill({ label, active, dark, children }: FilterPillProps) {
               ? 'bg-gray-900 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             : active
-              ? 'bg-accent text-white'
+              ? 'bg-theme-active text-theme-primary'
               : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
         )}
       >
         {label}
-        <ChevronDown className={cn('w-3 h-3 transition-transform', active ? (dark ? 'text-white/60' : 'text-white/70') : 'text-gray-400', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-3 h-3 transition-transform', active ? (dark ? 'text-white/60' : 'text-theme-secondary') : 'text-gray-500', open && 'rotate-180')} />
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1.5 min-w-[200px] bg-white rounded-xl shadow-lg border border-gray-100 z-50 py-1.5 max-h-72 overflow-y-auto scrollbar-hide">

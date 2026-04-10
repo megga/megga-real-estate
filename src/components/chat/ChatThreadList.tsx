@@ -84,7 +84,7 @@ export default function ChatThreadList({
         <div>
           <h1 className="text-lg font-semibold text-theme-primary">Chat</h1>
           {unreadCount > 0 && (
-            <p className="text-[10px] text-accent font-medium mt-0.5">
+            <p className="text-xs text-accent font-medium mt-0.5">
               {unreadCount} non lu{unreadCount > 1 ? 's' : ''}
             </p>
           )}
@@ -213,7 +213,7 @@ export default function ChatThreadList({
                     {thread.contact_name}
                   </span>
                   <span className={cn(
-                    'text-[10px] flex-shrink-0 tabular-nums',
+                    'text-xs flex-shrink-0 tabular-nums',
                     isUnread ? 'text-accent font-medium' : 'text-theme-muted'
                   )}>
                     {compactDate(thread.last_message_at)}
@@ -228,7 +228,7 @@ export default function ChatThreadList({
                   </p>
                   {/* Unread count badge */}
                   {isUnread && (
-                    <span className="h-4.5 min-w-[18px] px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center flex-shrink-0">
+                    <span className="h-4.5 min-w-[18px] px-1 rounded-full bg-red-500 text-xs font-bold text-white flex items-center justify-center flex-shrink-0">
                       {thread.unread_count}
                     </span>
                   )}

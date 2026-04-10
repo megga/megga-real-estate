@@ -34,7 +34,7 @@ export default function OnboardingChecklist() {
                 className="text-theme-primary transition-all duration-500"
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-theme-primary">
+            <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-theme-primary">
               {percentage}%
             </span>
           </div>

@@ -151,8 +151,8 @@ export default function ListingGenerator({
         <div className="h-7 w-7 rounded-lg bg-accent/10 flex items-center justify-center">
           <Sparkles className="h-4 w-4 text-accent" />
         </div>
-        <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider">Génération d'annonces</h2>
-        <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1">
+        <h2 className="text-sm font-semibold text-primary-900 capitalize">Génération d'annonces</h2>
+        <span className="text-xs font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1">
           <Sparkles className="h-2.5 w-2.5" />
           Généré par IA
         </span>
@@ -177,7 +177,7 @@ export default function ListingGenerator({
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-muted-foreground">{v.description}</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-theme-tertiary">
                     {(contents[v.key] || '').length} caractères
                   </span>
                   <button

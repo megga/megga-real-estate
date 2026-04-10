@@ -144,7 +144,7 @@ export default function DocumentViewer() {
               <button
                 key={doc.id}
                 onClick={() => navigate(`/dashboard/documents/view?id=${doc.id}`)}
-                className="w-full bg-theme-card rounded-xl border border-theme-border-subtle p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group text-left flex items-center gap-4"
+                className="w-full bg-theme-card rounded-xl border border-theme-border-subtle p-4 hover:-translate-y-0.5 transition-all cursor-pointer group text-left flex items-center gap-4"
               >
                 {/* Icon */}
                 <div className="w-12 h-12 rounded-xl bg-theme-hover border border-theme-border-subtle flex items-center justify-center flex-shrink-0">
@@ -157,7 +157,7 @@ export default function DocumentViewer() {
                     <h3 className="text-sm font-semibold text-theme-primary group-hover:text-accent transition-colors truncate">
                       {doc.templateName}
                     </h3>
-                    <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
+                    <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
                       <StatusIcon className="w-3 h-3" />
                       {statusConf.label}
                     </span>
@@ -268,7 +268,7 @@ export default function DocumentViewer() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold text-theme-primary">{doc.templateName}</h1>
-              <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
+              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
                 <StatusIcon className="w-3 h-3" />
                 {statusConf.label}
               </span>
@@ -325,7 +325,7 @@ export default function DocumentViewer() {
                   <div className="border-t border-theme-border-subtle my-1" />
                   <button
                     onClick={() => setShowActions(false)}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-500/10 rounded-lg cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     Supprimer
@@ -413,7 +413,7 @@ export default function DocumentViewer() {
                 {/* Document body — grouped fields */}
                 {Object.entries(fieldSections).map(([section, fields]) => (
                   <div key={section}>
-                    <h3 className="text-sm font-semibold text-theme-primary mb-3 uppercase tracking-wider">
+                    <h3 className="text-sm font-semibold text-theme-primary mb-3 capitalize">
                       {section}
                     </h3>
                     <div className="space-y-2">
@@ -441,7 +441,7 @@ export default function DocumentViewer() {
                       <p className="text-xs text-theme-tertiary mt-2">Lieu et date : _______________</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-theme-tertiary mt-8 text-center">
+                  <p className="text-xs text-theme-tertiary mt-8 text-center">
                     Document généré via MEGGA Real Estate — {new Date(doc.createdAt).toLocaleDateString('fr-CH')} — Réf. {doc.id.toUpperCase()}
                   </p>
                 </div>
@@ -462,7 +462,7 @@ export default function DocumentViewer() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-theme-tertiary">Statut</span>
-                <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
+                <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
                   <StatusIcon className="w-3 h-3" />
                   {statusConf.label}
                 </span>
@@ -483,7 +483,7 @@ export default function DocumentViewer() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-theme-tertiary">Format</span>
-                <span className="text-[10px] font-medium text-theme-tertiary bg-theme-active px-1.5 py-0.5 rounded">PDF</span>
+                <span className="text-xs font-medium text-theme-tertiary bg-theme-active px-1.5 py-0.5 rounded">PDF</span>
               </div>
             </div>
           </div>
@@ -533,7 +533,7 @@ export default function DocumentViewer() {
                   </div>
                   <div>
                     <p className="text-xs font-medium text-theme-secondary">Document signé</p>
-                    <p className="text-[11px] text-theme-tertiary">18.03.2026 à 15:45</p>
+                    <p className="text-xs text-theme-tertiary">18.03.2026 à 15:45</p>
                   </div>
                 </div>
               )}
@@ -544,7 +544,7 @@ export default function DocumentViewer() {
                   </div>
                   <div>
                     <p className="text-xs font-medium text-theme-secondary">Envoyé au client</p>
-                    <p className="text-[11px] text-theme-tertiary">
+                    <p className="text-xs text-theme-tertiary">
                       {new Date(doc.createdAt).toLocaleDateString('fr-CH')} à {new Date(doc.createdAt).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -556,7 +556,7 @@ export default function DocumentViewer() {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-theme-secondary">Document créé</p>
-                  <p className="text-[11px] text-theme-tertiary">
+                  <p className="text-xs text-theme-tertiary">
                     {new Date(doc.createdAt).toLocaleDateString('fr-CH')} à {new Date(doc.createdAt).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>

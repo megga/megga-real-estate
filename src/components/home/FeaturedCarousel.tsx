@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { cn, formatCHF } from '@/lib/utils';
 
@@ -84,6 +85,7 @@ const FEATURED: FeaturedListing[] = [
 ];
 
 export default function FeaturedCarousel() {
+  const { t } = useTranslation('common');
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -117,10 +119,10 @@ export default function FeaturedCarousel() {
         <div className="flex items-end justify-between">
           <div>
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-900">
-              Biens en vedette
+              {t('home.featuredProperties')}
             </h2>
             <p className="text-gray-500 mt-2">
-              Découvrez notre sélection de biens d&apos;exception en Suisse
+              {t('home.featuredSubtitle')}
             </p>
           </div>
           <div className="hidden md:flex items-center gap-2">
@@ -184,10 +186,10 @@ export default function FeaturedCarousel() {
               <div className="p-4">
                 <span className="text-xl font-bold text-gray-900">{formatCHF(listing.price)}</span>
                 <p className="text-sm text-gray-500 mt-1 truncate">{listing.address}</p>
-                <div className="flex items-center gap-1.5 mt-2 text-sm text-gray-400">
-                  <span>{listing.rooms} pièces</span>
+                <div className="flex items-center gap-1.5 mt-2 text-sm text-gray-500">
+                  <span>{t('home.rooms', { count: listing.rooms })}</span>
                   <span>·</span>
-                  <span>{listing.bedrooms} ch.</span>
+                  <span>{t('home.bedrooms', { count: listing.bedrooms })}</span>
                   <span>·</span>
                   <span>{listing.surface} m²</span>
                 </div>

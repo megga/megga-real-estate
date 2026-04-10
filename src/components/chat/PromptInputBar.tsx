@@ -68,7 +68,7 @@ function AutocompleteDropdown({ items, selectedIndex, onSelect }: {
           )}
         >
           <div className={cn(
-            'h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-semibold',
+            'h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold',
             item.type === 'command' ? 'bg-accent/10 text-accent' :
             item.type === 'contact' ? 'bg-theme-hover text-theme-secondary' :
             'bg-emerald-500/10 text-emerald-500'
@@ -415,9 +415,9 @@ export default function PromptInputBar({
             {/* Inline hints when empty */}
             {!hasContent && (
               <div className="flex items-center gap-1.5 ml-1">
-                <span className="text-[10px] text-theme-muted">/commande</span>
-                <span className="text-[10px] text-theme-muted">@contact</span>
-                <span className="text-[10px] text-theme-muted">#bien</span>
+                <span className="text-xs text-theme-muted">/commande</span>
+                <span className="text-xs text-theme-muted">@contact</span>
+                <span className="text-xs text-theme-muted">#bien</span>
               </div>
             )}
           </div>

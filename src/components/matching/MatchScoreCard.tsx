@@ -75,33 +75,33 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
           {/* Reason badges */}
           {reasons && (
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {reasons.budget && <span className="text-[10px] text-emerald-500">Budget</span>}
-              {reasons.zone && <span className="text-[10px] text-emerald-500">Zone</span>}
-              {reasons.type && <span className="text-[10px] text-emerald-500">Type</span>}
-              {reasons.rooms_surface && <span className="text-[10px] text-emerald-500">Surface</span>}
-              {reasons.features && <span className="text-[10px] text-emerald-500">Extras</span>}
+              {reasons.budget && <span className="text-xs text-emerald-500">Budget</span>}
+              {reasons.zone && <span className="text-xs text-emerald-500">Zone</span>}
+              {reasons.type && <span className="text-xs text-emerald-500">Type</span>}
+              {reasons.rooms_surface && <span className="text-xs text-emerald-500">Surface</span>}
+              {reasons.features && <span className="text-xs text-emerald-500">Extras</span>}
               {reasons.distance_km != null && (
-                <span className="text-[10px] text-theme-secondary">{reasons.distance_km} km</span>
+                <span className="text-xs text-theme-secondary">{reasons.distance_km} km</span>
               )}
               {reasons.must_have_missing?.length > 0 && (
-                <span className="text-[10px] text-red-500">
+                <span className="text-xs text-red-500">
                   Manque : {reasons.must_have_missing.join(', ')}
                 </span>
               )}
               {reasons.nice_to_have_matched?.length > 0 && (
-                <span className="text-[10px] text-blue-500">
+                <span className="text-xs text-blue-500">
                   + {reasons.nice_to_have_matched.join(', ')}
                 </span>
               )}
               {reasons.days_on_market > 30 && (
-                <span className="text-[10px] text-theme-muted">{reasons.days_on_market}j en ligne</span>
+                <span className="text-xs text-theme-muted">{reasons.days_on_market}j en ligne</span>
               )}
             </div>
           )}
 
           {/* Actions */}
           {isSent ? (
-            <p className="text-[11px] text-theme-muted">Envoyé · {match.sent_via}</p>
+            <p className="text-xs text-theme-muted">Envoyé · {match.sent_via}</p>
           ) : (
             <div className="flex items-center gap-2">
               <button

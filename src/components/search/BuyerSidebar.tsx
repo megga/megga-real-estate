@@ -56,7 +56,7 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
           style={isActive ? { backgroundColor: BLUE_BG } : undefined}
         >
           <Icon
-            className={cn('h-[20px] w-[20px] transition-colors', !isActive && 'text-gray-400 group-hover:text-gray-600')}
+            className={cn('h-[20px] w-[20px] transition-colors', !isActive && 'text-gray-500 group-hover:text-gray-600')}
             style={isActive ? { color: BLUE } : undefined}
             strokeWidth={isActive ? 2.2 : 1.8}
             fill={isActive && item.id === 'favorites' ? BLUE : 'none'}
@@ -66,8 +66,8 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
         {/* Label — outside the background */}
         <span
           className={cn(
-            'text-[11px] mt-1 font-medium leading-tight transition-colors',
-            !isActive && 'text-gray-400 group-hover:text-gray-600'
+            'text-xs mt-1 font-medium leading-tight transition-colors',
+            !isActive && 'text-gray-500 group-hover:text-gray-600'
           )}
           style={isActive ? { color: BLUE } : undefined}
         >
@@ -76,7 +76,7 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
 
         {/* Badge for favorites count */}
         {item.id === 'favorites' && favCount > 0 && (
-          <span className="absolute top-0 right-1 h-[16px] min-w-[16px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute top-0 right-1 h-[16px] min-w-[16px] px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
             {favCount > 99 ? '99+' : favCount}
           </span>
         )}

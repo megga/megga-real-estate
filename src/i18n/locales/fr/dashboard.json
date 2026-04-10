@@ -94,6 +94,17 @@
       "9": "octobre",
       "10": "novembre",
       "11": "décembre"
+    },
+    "sellerLeads": "Nouveaux leads vendeurs",
+    "accept": "Accepter",
+    "reject": "Rejeter",
+    "accepted": "Accepté",
+    "motivation": "Motivation",
+    "motivations": {
+      "immediate": "Immédiate",
+      "3months": "3 mois",
+      "6months": "6 mois",
+      "exploring": "Exploration"
     }
   }
 }

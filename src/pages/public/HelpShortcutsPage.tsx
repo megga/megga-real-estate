@@ -12,7 +12,7 @@ export default function HelpShortcutsPage() {
     <div className="min-h-screen bg-white">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-8">
+        <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
           <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">Raccourcis clavier</span>
@@ -28,7 +28,7 @@ export default function HelpShortcutsPage() {
 
         {contexts.map(ctx => (
           <div key={ctx} className="mb-8">
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{ctx}</h2>
+            <h2 className="text-xs font-semibold text-gray-500 capitalize mb-3">{ctx}</h2>
             <div className="rounded-xl border border-gray-200 divide-y divide-gray-100">
               {KEYBOARD_SHORTCUTS.filter(s => s.context === ctx).map((shortcut, i) => (
                 <div key={i} className="flex items-center justify-between p-3.5">

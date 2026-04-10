@@ -62,7 +62,7 @@ function AgentLayoutInner() {
           </button>
           <div className="ml-3 flex items-center gap-2">
             <div className="h-6 w-6 bg-theme-primary rounded flex items-center justify-center">
-              <span className="text-[9px] font-bold text-theme-inverse">GG</span>
+              <span className="text-xs font-bold text-theme-inverse">GG</span>
             </div>
             <span className="text-sm font-bold text-theme-primary">MEGGA</span>
           </div>

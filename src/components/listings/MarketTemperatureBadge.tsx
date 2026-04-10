@@ -47,7 +47,7 @@ export default function MarketTemperatureBadge({ temperature, compact = false, c
           style={{ left: `${Math.max(5, Math.min(95, temperature.score))}%`, transform: 'translate(-50%, -50%)' }}
         />
       </div>
-      <div className="flex justify-between text-[10px] text-gray-400 mb-4">
+      <div className="flex justify-between text-xs text-gray-500 mb-4">
         <span>Favorable acheteur</span>
         <span>Favorable vendeur</span>
       </div>
@@ -56,15 +56,15 @@ export default function MarketTemperatureBadge({ temperature, compact = false, c
       <div className="grid grid-cols-3 gap-3 text-center">
         <div>
           <p className="text-lg font-semibold text-gray-900">{temperature.avgDaysOnMarket}j</p>
-          <p className="text-[10px] text-gray-500">Duree moyenne</p>
+          <p className="text-xs text-gray-500">Duree moyenne</p>
         </div>
         <div>
           <p className="text-lg font-semibold text-gray-900">{temperature.priceDropPct}%</p>
-          <p className="text-[10px] text-gray-500">Baisses de prix</p>
+          <p className="text-xs text-gray-500">Baisses de prix</p>
         </div>
         <div>
           <p className="text-lg font-semibold text-gray-900">{formatCHF(temperature.medianPricePerM2)}</p>
-          <p className="text-[10px] text-gray-500">Mediane /m2</p>
+          <p className="text-xs text-gray-500">Mediane /m2</p>
         </div>
       </div>
     </div>

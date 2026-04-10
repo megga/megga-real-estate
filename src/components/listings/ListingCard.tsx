@@ -89,7 +89,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
           </div>
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <Building2 className="h-12 w-12 text-gray-300" />
+            <Building2 className="h-12 w-12 text-gray-500" />
           </div>
         )}
 
@@ -134,14 +134,14 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
         {/* Hot price badge */}
         {listing.is_hot && (
           <div className="absolute top-3 left-3 bg-danger text-white text-xs font-medium px-2 py-0.5 rounded-badge flex items-center gap-1 z-10">
-            <span className="text-[10px]">🔥</span>
+            <span className="text-xs">🔥</span>
             Hot price
           </div>
         )}
 
         {/* Video indicator badge */}
         {listing.video_url && (
-          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-full flex items-center gap-1 z-10" style={listing.is_hot ? { top: '2.75rem' } : undefined}>
+          <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 z-10" style={listing.is_hot ? { top: '2.75rem' } : undefined}>
             <Play className="h-3 w-3 fill-white" />
             Vidéo
           </div>
@@ -164,7 +164,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
                 />
               ))}
             </div>
-            <span className="absolute bottom-3 right-3 text-[10px] font-medium text-white bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5 z-10">
+            <span className="absolute bottom-3 right-3 text-xs font-medium text-white bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5 z-10">
               {currentPhoto + 1}/{photos.length}
             </span>
           </>
@@ -189,12 +189,12 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
             <DoorOpen className="h-3.5 w-3.5" />
             {listing.rooms} pièces
           </span>
-          <span className="text-gray-300">·</span>
+          <span className="text-gray-500">·</span>
           <span className="flex items-center gap-1">
             <BedDouble className="h-3.5 w-3.5" />
             {listing.bedrooms} ch.
           </span>
-          <span className="text-gray-300">·</span>
+          <span className="text-gray-500">·</span>
           <span className="flex items-center gap-1">
             <Maximize className="h-3.5 w-3.5" />
             {formatSurface(listing.surface_m2)}

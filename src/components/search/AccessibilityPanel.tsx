@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 
@@ -36,14 +37,14 @@ function calculate(income: number, equity: number): CalcResult {
   const requiredEquity = maxPrice * MIN_EQUITY_PCT
 
   let status: ResultStatus = 'green'
-  let statusLabel = 'Vous pouvez acheter'
+  let statusLabel = 'canAfford'
 
   if (equity < requiredEquity * 0.8) {
     status = 'red'
-    statusLabel = 'Fonds propres insuffisants'
+    statusLabel = 'insufficientEquity'
   } else if (equity < requiredEquity) {
     status = 'orange'
-    statusLabel = 'Accessible avec conditions'
+    statusLabel = 'accessibleWithConditions'
   }
 
   return { maxPrice, maxChargesAnnual, maxChargesMonthly, requiredEquity, status, statusLabel }
@@ -56,6 +57,7 @@ const STATUS_COLORS: Record<ResultStatus, { bg: string; text: string; dot: strin
 }
 
 export default function AccessibilityPanel({ onBack, onApplyMaxPrice }: Props) {
+  const { t } = useTranslation('common')
   const [income, setIncome] = useState('')
   const [equity, setEquity] = useState('')
   const [result, setResult] = useState<CalcResult | null>(null)
@@ -74,24 +76,24 @@ export default function AccessibilityPanel({ onBack, onApplyMaxPrice }: Props) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-        <button onClick={onBack} className="text-gray-400 hover:text-gray-700 transition-colors cursor-pointer">
+        <button onClick={onBack} className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <h2 className="text-sm font-bold text-gray-900">Calculateur d'accessibilité</h2>
+        <h2 className="text-sm font-bold text-gray-900">{t('search.affordabilityCalculator')}</h2>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto scrollbar-hide p-5">
-        <p className="text-xs text-gray-400 mb-5">
-          Basé sur les règles suisses : charges max 33% du revenu brut, fonds propres min 20%, taux de charge 7%.
+        <p className="text-xs text-gray-500 mb-5">
+          {t('search.affordabilityRules')}
         </p>
 
         {/* Form */}
         <div className="space-y-4 mb-5">
           <div>
-            <label className="block text-sm font-bold text-gray-900 mb-1.5">Revenu brut annuel *</label>
+            <label className="block text-sm font-bold text-gray-900 mb-1.5">{t('search.grossAnnualIncome')} *</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">CHF</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-medium">CHF</span>
               <input
                 type="text"
                 value={income}
@@ -103,9 +105,9 @@ export default function AccessibilityPanel({ onBack, onApplyMaxPrice }: Props) {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-900 mb-1.5">Fonds propres disponibles *</label>
+            <label className="block text-sm font-bold text-gray-900 mb-1.5">{t('search.availableEquity')} *</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">CHF</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-medium">CHF</span>
               <input
                 type="text"
                 value={equity}
@@ -121,7 +123,7 @@ export default function AccessibilityPanel({ onBack, onApplyMaxPrice }: Props) {
             disabled={!income || !equity}
             className="w-full h-11 bg-gray-900 text-white text-sm font-bold rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
           >
-            Calculer
+            {t('search.calculate')}
           </button>
         </div>
 
@@ -132,26 +134,26 @@ export default function AccessibilityPanel({ onBack, onApplyMaxPrice }: Props) {
             <div className={cn('rounded-xl p-4', colors.bg)}>
               <div className="flex items-center gap-2 mb-2">
                 <span className={cn('w-2 h-2 rounded-full', colors.dot)} />
-                <span className={cn('text-xs font-bold', colors.text)}>{result.statusLabel}</span>
+                <span className={cn('text-xs font-bold', colors.text)}>{t(`search.${result.statusLabel}`)}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCHF(Math.round(result.maxPrice / 1000) * 1000)}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">Prix maximum accessible</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('search.maxAccessiblePrice')}</p>
             </div>
 
             {/* Details */}
             <div className="rounded-xl border border-gray-100 divide-y divide-gray-100">
               <div className="flex justify-between px-4 py-2.5">
-                <span className="text-xs text-gray-500">Charges max mensuelles</span>
+                <span className="text-xs text-gray-500">{t('search.maxMonthlyCharges')}</span>
                 <span className="text-xs font-bold text-gray-900">{formatCHF(Math.round(result.maxChargesMonthly))}/mois</span>
               </div>
               <div className="flex justify-between px-4 py-2.5">
-                <span className="text-xs text-gray-500">Fonds propres requis (20%)</span>
+                <span className="text-xs text-gray-500">{t('search.requiredEquity')}</span>
                 <span className="text-xs font-bold text-gray-900">{formatCHF(Math.round(result.requiredEquity))}</span>
               </div>
               <div className="flex justify-between px-4 py-2.5">
-                <span className="text-xs text-gray-500">Charges annuelles (7%)</span>
+                <span className="text-xs text-gray-500">{t('search.annualCharges')}</span>
                 <span className="text-xs font-bold text-gray-900">{formatCHF(Math.round(result.maxChargesAnnual))}/an</span>
               </div>
             </div>
@@ -162,13 +164,13 @@ export default function AccessibilityPanel({ onBack, onApplyMaxPrice }: Props) {
                 onClick={() => onApplyMaxPrice(String(Math.round(result.maxPrice / 1000) * 1000))}
                 className="w-full h-11 flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-bold rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
               >
-                Voir les biens dans mon budget
+                {t('search.viewPropertiesInBudget')}
                 <ArrowRight className="h-4 w-4" />
               </button>
             )}
 
-            <p className="text-[10px] text-gray-300 text-center">
-              Estimation indicative basée sur les règles standard suisses. Consultez votre banque pour une offre personnalisée.
+            <p className="text-xs text-gray-500 text-center">
+              {t('search.affordabilityDisclaimer')}
             </p>
           </div>
         )}

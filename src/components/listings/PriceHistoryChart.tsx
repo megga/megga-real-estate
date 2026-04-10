@@ -118,7 +118,7 @@ export default function PriceHistoryChart({ marketListingId, className }: PriceH
                 </span>
                 {p.changePct !== null && (
                   <span className={cn(
-                    'text-[10px]',
+                    'text-xs',
                     p.changePct < 0 ? 'text-emerald-600' : 'text-red-500'
                   )}>
                     {p.changePct < 0 ? '' : '+'}{Math.round(p.changePct)}%
@@ -130,7 +130,7 @@ export default function PriceHistoryChart({ marketListingId, className }: PriceH
         })}
       </div>
 
-      <p className="text-[10px] text-gray-300 mt-3">
+      <p className="text-xs text-gray-500 mt-3">
         Source : suivi automatique des annonces publiques
       </p>
     </div>

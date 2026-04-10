@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight, Loader2, ArrowRight, Check, ArrowLeft } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -53,6 +54,7 @@ const PERSONAS = [
 ]
 
 export default function HelpContactPage() {
+  const { t } = useTranslation('common')
   const createTicket = useCreateTicket()
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null)
   const [form, setForm] = useState({ category: '', name: '', email: '', subject: '', message: '' })
@@ -77,15 +79,15 @@ export default function HelpContactPage() {
           <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
             <Check className="w-7 h-7 text-emerald-600" />
           </div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">Votre demande a été envoyée</h1>
-          <p className="text-sm text-gray-500 mb-1">Numéro de ticket : <strong>{result.ticketNumber}</strong></p>
-          <p className="text-sm text-gray-500 mb-6">Nous vous répondrons à <strong>{form.email}</strong> sous 24h en jours ouvrés.</p>
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">{t('help.requestSent')}</h1>
+          <p className="text-sm text-gray-500 mb-1">{t('help.ticketNumber')} : <strong>{result.ticketNumber}</strong></p>
+          <p className="text-sm text-gray-500 mb-6">{t('help.replyWithin24h', { email: form.email })}</p>
           <div className="flex items-center justify-center gap-3">
             <Link to={trackingUrl} className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-gray-400 transition-colors inline-flex items-center gap-1.5">
-              Suivre mon ticket <ArrowRight className="h-3.5 w-3.5" />
+              {t('help.trackTicket')} <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link to="/aide" className="h-9 px-4 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors inline-flex items-center">
-              Retour au centre d'aide
+              {t('help.backToHelpCenter')}
             </Link>
           </div>
         </div>
@@ -100,10 +102,10 @@ export default function HelpContactPage() {
       <div className="min-h-screen bg-white">
         <Navbar />
         <div className="max-w-xl mx-auto px-4 py-12">
-          <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-8">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
             <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
             <ChevronRight className="h-3.5 w-3.5" />
-            <button onClick={() => setSelectedPersona(null)} className="hover:text-gray-600 transition-colors">Contact</button>
+            <button onClick={() => setSelectedPersona(null)} className="hover:text-gray-600 transition-colors">{t('help.contactUs')}</button>
             <ChevronRight className="h-3.5 w-3.5" />
             <span className="text-gray-700">{persona.label}</span>
           </div>
@@ -113,30 +115,30 @@ export default function HelpContactPage() {
             className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Changer de profil
+            {t('help.changeProfile')}
           </button>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Envoyer une demande</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('help.sendRequest')}</h1>
           <p className="text-sm text-gray-500 mb-8">
-            Décrivez votre demande, nous vous répondons sous 24h ouvrées.
+            {t('help.sendRequestDesc')}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Catégorie *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('help.category')} *</label>
               <select
                 value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                 required
                 className="w-full h-11 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 bg-white"
               >
-                <option value="">Choisir une catégorie</option>
+                <option value="">{t('help.chooseCategory')}</option>
                 {persona.categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Votre nom *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('help.yourName')} *</label>
               <input
                 type="text"
                 value={form.name}
@@ -147,7 +149,7 @@ export default function HelpContactPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Votre email *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('help.yourEmail')} *</label>
               <input
                 type="email"
                 value={form.email}
@@ -158,7 +160,7 @@ export default function HelpContactPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Sujet *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('help.subject')} *</label>
               <input
                 type="text"
                 value={form.subject}
@@ -169,7 +171,7 @@ export default function HelpContactPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Décrivez votre demande *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('help.describeRequest')} *</label>
               <textarea
                 value={form.message}
                 onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
@@ -180,7 +182,7 @@ export default function HelpContactPage() {
             </div>
 
             {createTicket.isError && (
-              <p className="text-xs text-red-600">Une erreur est survenue. Veuillez réessayer.</p>
+              <p className="text-xs text-red-600">{t('help.errorOccurred')}</p>
             )}
 
             <button
@@ -188,7 +190,7 @@ export default function HelpContactPage() {
               disabled={createTicket.isPending || !form.category || !form.name || !form.email || !form.subject || !form.message}
               className="w-full h-11 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
             >
-              {createTicket.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Envoyer ma demande'}
+              {createTicket.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t('help.sendMyRequest')}
             </button>
           </form>
 
@@ -204,16 +206,16 @@ export default function HelpContactPage() {
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-12">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-10">
+        <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-10">
           <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">Contact</span>
         </div>
 
         {/* Header — Zillow style */}
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Contacter le support</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">{t('help.contactSupport')}</h1>
         <p className="text-base text-gray-500 mb-14 max-w-xl">
-          Quelques questions pour vous orienter au bon endroit.
+          {t('help.contactSupportDesc')}
         </p>
 
         {/* 3 persona cards — Zillow layout */}

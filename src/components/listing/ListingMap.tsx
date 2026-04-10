@@ -156,9 +156,9 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
     return (
       <div id="localisation" className="scroll-mt-28 w-full h-[350px] md:h-[400px] bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <MapPin className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+          <MapPin className="h-8 w-8 text-gray-500 mx-auto mb-2" />
           <p className="text-sm font-medium text-gray-500">{address}</p>
-          <p className="text-xs text-gray-400">{postal_code} {city}</p>
+          <p className="text-xs text-gray-500">{postal_code} {city}</p>
         </div>
       </div>
     )
@@ -271,7 +271,7 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
           <div className="p-3 border-b border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-gray-900">Temps de trajet</span>
-              <button onClick={() => { setShowCommute(false); clearCommute() }} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+              <button onClick={() => { setShowCommute(false); clearCommute() }} className="text-gray-500 hover:text-gray-600 cursor-pointer">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -285,7 +285,7 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
                     key={p}
                     onClick={() => setCommuteProfile(p)}
                     className={cn(
-                      'flex-1 h-7 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer',
+                      'flex-1 h-7 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer',
                       commuteProfile === p ? 'bg-accent/10 text-accent' : 'text-gray-500 hover:bg-gray-50'
                     )}
                   >
@@ -335,15 +335,15 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-gray-900">{commuteDuration}</span>
                 <span className="text-xs text-gray-500">min</span>
-                <span className="text-xs text-gray-400">· {commuteDistance} km</span>
+                <span className="text-xs text-gray-500">· {commuteDistance} km</span>
               </div>
-              <p className="text-[10px] text-gray-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 {{ driving: 'En voiture', walking: 'À pied', cycling: 'À vélo' }[commuteProfile]}
                 {commuteAddress && ` vers ${commuteAddress.split(',')[0]}`}
               </p>
               <button
                 onClick={clearCommute}
-                className="mt-2 w-full h-7 rounded-lg text-[10px] text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="mt-2 w-full h-7 rounded-lg text-xs text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 Effacer
               </button>

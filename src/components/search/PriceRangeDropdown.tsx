@@ -259,7 +259,7 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
         )}
       >
         {label}
-        <ChevronDown className={cn('w-3 h-3 transition-transform', active ? 'text-white/60' : 'text-gray-400', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-3 h-3 transition-transform', active ? 'text-white/60' : 'text-gray-500', open && 'rotate-180')} />
       </button>
 
       {/* Dropdown panel */}
@@ -343,7 +343,7 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
                 className="w-full h-11 px-3 text-sm bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:bg-white transition-colors"
               />
             </div>
-            <span className="text-gray-400 mt-6 text-lg">–</span>
+            <span className="text-gray-500 mt-6 text-lg">–</span>
             <div className="flex-1">
               <label className="block text-sm font-bold text-gray-900 mb-1.5">Max</label>
               <input

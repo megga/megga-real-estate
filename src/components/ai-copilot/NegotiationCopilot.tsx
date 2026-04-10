@@ -64,8 +64,8 @@ export default function NegotiationCopilot({
         <div className="h-7 w-7 rounded-lg bg-purple-100 flex items-center justify-center">
           <Scale className="h-4 w-4 text-purple-600" />
         </div>
-        <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider">Copilote de négociation</h2>
-        <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1">
+        <h2 className="text-sm font-semibold text-primary-900 capitalize">Copilote de négociation</h2>
+        <span className="text-xs font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1">
           <Sparkles className="h-2.5 w-2.5" />
           Suggestion IA
         </span>
@@ -75,24 +75,24 @@ export default function NegotiationCopilot({
       <div className="bg-section rounded-lg p-4 mb-4">
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prix demandé</p>
+            <p className="text-xs text-muted-foreground capitalize mb-1">Prix demandé</p>
             <p className="text-sm font-bold text-primary-900">{formatCHF(askingPrice)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Écart</p>
+            <p className="text-xs text-muted-foreground capitalize mb-1">Écart</p>
             <p className={cn('text-lg font-bold', gap > 10 ? 'text-danger' : gap > 5 ? 'text-warning' : 'text-success')}>
               -{gap.toFixed(1)}%
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Offre reçue</p>
+            <p className="text-xs text-muted-foreground capitalize mb-1">Offre reçue</p>
             <p className="text-sm font-bold text-accent">{formatCHF(offerPrice)}</p>
           </div>
         </div>
 
         {/* Gap bar */}
         <div className="mt-3 relative">
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-3 bg-theme-active rounded-full overflow-hidden">
             <div
               className={cn(
                 'h-full rounded-full transition-all',
@@ -109,7 +109,7 @@ export default function NegotiationCopilot({
         <div className="flex items-start gap-3 p-3 bg-accent/5 rounded-lg border border-accent/10">
           <Target className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-xs font-semibold text-accent uppercase tracking-wider mb-0.5">Stratégie recommandée</p>
+            <p className="text-xs font-semibold text-accent capitalize mb-0.5">Stratégie recommandée</p>
             <p className="text-sm font-medium text-primary-900">{strategy}</p>
             <p className="text-xs text-primary-600 mt-1">{counterOffer}</p>
           </div>
@@ -142,7 +142,7 @@ export default function NegotiationCopilot({
       </div>
 
       {/* Disclaimer */}
-      <p className="text-[10px] text-gray-400 mt-4 text-center">
+      <p className="text-xs text-theme-tertiary mt-4 text-center">
         Aide à la décision — ne constitue pas une recommandation formelle.
       </p>
     </div>

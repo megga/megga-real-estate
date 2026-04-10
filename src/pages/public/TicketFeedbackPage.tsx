@@ -63,7 +63,7 @@ export default function TicketFeedbackPage() {
     <div className="min-h-screen bg-white">
       <Navbar />
       <div className="max-w-md mx-auto px-4 py-20 text-center">
-        <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">MEGGA Support</p>
+        <p className="text-xs text-gray-500 capitalize mb-2">MEGGA Support</p>
         <h1 className="text-xl font-semibold text-gray-900 mb-2">Votre avis sur le ticket {ticketNumber}</h1>
         <p className="text-sm text-gray-500 mb-8">Comment évaluez-vous le support reçu ?</p>
 

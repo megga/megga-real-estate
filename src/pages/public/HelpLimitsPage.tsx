@@ -11,7 +11,7 @@ export default function HelpLimitsPage() {
     <div className="min-h-screen bg-white">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-8">
+        <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
           <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">Limites et quotas</span>
@@ -48,7 +48,7 @@ export default function HelpLimitsPage() {
           </table>
         </div>
 
-        <p className="text-xs text-gray-400 mt-4 text-center">
+        <p className="text-xs text-gray-500 mt-4 text-center">
           Besoin d'un plan sur mesure ? <Link to="/aide/contact" className="underline hover:text-gray-600">Contactez-nous</Link>
         </p>
       </div>

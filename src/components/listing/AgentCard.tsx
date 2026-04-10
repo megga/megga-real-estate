@@ -30,7 +30,7 @@ export default function AgentCard({ agent, variant = 'default', onClick, classNa
           {agent.photo && agent.photo !== '/megga-gg.svg' ? (
             <img src={agent.photo} alt={agent.name} className="h-full w-full object-cover" />
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-accent">
+            <div className="h-full w-full flex items-center justify-center text-xs font-bold text-accent">
               {agent.agency
                 ? agent.agency.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
                 : <User className="h-4 w-4 text-accent" />}
@@ -74,7 +74,7 @@ export default function AgentCard({ agent, variant = 'default', onClick, classNa
             className="flex items-center gap-2.5 text-sm text-gray-600 hover:text-accent transition-colors group"
           >
             <div className="h-7 w-7 rounded-lg bg-gray-50 group-hover:bg-accent/10 flex items-center justify-center transition-colors flex-shrink-0">
-              <Phone className="h-3.5 w-3.5 text-gray-400 group-hover:text-accent" />
+              <Phone className="h-3.5 w-3.5 text-gray-500 group-hover:text-accent" />
             </div>
             {agent.phone}
           </a>
@@ -85,7 +85,7 @@ export default function AgentCard({ agent, variant = 'default', onClick, classNa
             className="flex items-center gap-2.5 text-sm text-gray-600 hover:text-accent transition-colors group"
           >
             <div className="h-7 w-7 rounded-lg bg-gray-50 group-hover:bg-accent/10 flex items-center justify-center transition-colors flex-shrink-0">
-              <Mail className="h-3.5 w-3.5 text-gray-400 group-hover:text-accent" />
+              <Mail className="h-3.5 w-3.5 text-gray-500 group-hover:text-accent" />
             </div>
             <span className="truncate">{agent.email}</span>
           </a>

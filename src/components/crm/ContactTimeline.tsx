@@ -23,7 +23,7 @@ const EVENT_CONFIG: Record<TimelineEventType, { icon: typeof Mail; color: string
   visit:         { icon: MapPin,         color: 'text-orange-600',  bgColor: 'bg-orange-100' },
   property_sent: { icon: Send,           color: 'text-cyan-600',    bgColor: 'bg-cyan-100' },
   note:          { icon: StickyNote,     color: 'text-yellow-600',  bgColor: 'bg-yellow-100' },
-  document:      { icon: FileText,       color: 'text-gray-600',    bgColor: 'bg-gray-100' },
+  document:      { icon: FileText,       color: 'text-theme-secondary', bgColor: 'bg-theme-hover' },
   offer:         { icon: DollarSign,     color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
   stage_change:  { icon: ArrowRight,     color: 'text-indigo-600',  bgColor: 'bg-indigo-100' },
   reminder:      { icon: Clock,          color: 'text-amber-600',   bgColor: 'bg-amber-100' },
@@ -85,7 +85,7 @@ export default function ContactTimeline({ activities, className }: ContactTimeli
             <div key={event.id} className="relative flex gap-4">
               <div className={cn(
                 'h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0 z-10',
-                isFirst ? config.bgColor : 'bg-white border-2 border-border'
+                isFirst ? config.bgColor : 'bg-theme-card border-2 border-border'
               )}>
                 <Icon className={cn('h-4 w-4', isFirst ? config.color : 'text-primary-400')} />
               </div>
@@ -98,7 +98,7 @@ export default function ContactTimeline({ activities, className }: ContactTimeli
                     {event.description}
                   </p>
                   <span className={cn(
-                    'text-[10px] font-medium px-1.5 py-0.5 rounded-badge flex-shrink-0 whitespace-nowrap',
+                    'text-xs font-medium px-1.5 py-0.5 rounded-badge flex-shrink-0 whitespace-nowrap',
                     config.bgColor, config.color
                   )}>
                     {event.type === 'email' && 'Email'}

@@ -802,10 +802,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                     e.stopPropagation()
                     handleClusterClick(cluster.id as number, lng, lat)
                   }}
-                  className="rounded-full text-[11px] font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2 bg-gray-900 text-white border-white/80 hover:scale-110 hover:bg-gray-800 flex items-center gap-1"
+                  className="rounded-full text-xs font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2 bg-gray-900 text-white border-white/80 hover:scale-110 hover:bg-gray-800 flex items-center gap-1"
                 >
                   {formatPricePin(minPrice)}
-                  <span className="text-[9px] font-normal text-white/60">+{pointCount}</span>
+                  <span className="text-xs font-normal text-white/60">+{pointCount}</span>
                 </button>
               </Marker>
             )
@@ -842,7 +842,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   onMouseEnter={() => { onHover?.(listing.id); setHoveredPin(listing) }}
                   onMouseLeave={() => { onHover?.(undefined); setHoveredPin(null) }}
                   className={cn(
-                    'relative rounded-full text-[11px] font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2',
+                    'relative rounded-full text-xs font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2',
                     isHovered || isSelected
                       ? 'bg-accent text-white border-white shadow-xl scale-110'
                       : isInZone
@@ -873,15 +873,15 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               {hoveredPin.photos?.[0] ? (
                 <img src={hoveredPin.photos[0]} alt="" className="w-full h-20 object-cover" />
               ) : (
-                <div className="w-full h-20 bg-gray-100 flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-gray-300" />
+                <div className="w-full h-20 bg-theme-hover flex items-center justify-center">
+                  <Building2 className="h-6 w-6 text-theme-muted" />
                 </div>
               )}
               <div className="p-2">
-                <p className="text-xs font-bold text-gray-900">{formatCHF(hoveredPin.price)}</p>
-                <p className="text-[10px] text-gray-500 truncate mt-0.5">{hoveredPin.address}, {hoveredPin.city}</p>
+                <p className="text-xs font-bold text-theme-primary">{formatCHF(hoveredPin.price)}</p>
+                <p className="text-xs text-theme-tertiary truncate mt-0.5">{hoveredPin.address}, {hoveredPin.city}</p>
                 {hoveredPin.rooms > 0 && (
-                  <p className="text-[10px] text-gray-400 mt-0.5">
+                  <p className="text-xs text-theme-muted mt-0.5">
                     {hoveredPin.rooms}p. · {hoveredPin.surface_m2 > 0 ? formatSurface(hoveredPin.surface_m2) : ''}
                   </p>
                 )}
@@ -900,7 +900,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             closeOnClick={false}
             offset={20}
             maxWidth={isImmersive ? '320px' : '200px'}
-            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-xl [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-xl [&_.mapboxgl-popup-close-button]:text-gray-400 [&_.mapboxgl-popup-close-button]:text-lg [&_.mapboxgl-popup-close-button]:right-2 [&_.mapboxgl-popup-close-button]:top-1 [&_.mapboxgl-popup-close-button]:hover:text-gray-700 [&_.mapboxgl-popup-close-button]:z-10"
+            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-xl [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-xl [&_.mapboxgl-popup-close-button]:text-theme-muted [&_.mapboxgl-popup-close-button]:text-lg [&_.mapboxgl-popup-close-button]:right-2 [&_.mapboxgl-popup-close-button]:top-1 [&_.mapboxgl-popup-close-button]:hover:text-theme-secondary [&_.mapboxgl-popup-close-button]:z-10"
           >
             <Link to={`/listing/${selectedListing.id}`} className={cn('block', isImmersive ? 'w-[300px]' : 'w-48')}>
               {selectedListing.photos[0] ? (
@@ -911,33 +911,33 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                     className={cn('w-full object-cover', isImmersive ? 'h-44' : 'h-28')}
                   />
                   {isImmersive && selectedListing.photos.length > 1 && (
-                    <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
+                    <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
                       {selectedListing.photos.length} photos
                     </span>
                   )}
                 </div>
               ) : (
-                <div className={cn('w-full flex items-center justify-center bg-gray-100', isImmersive ? 'h-44' : 'h-28')}>
-                  <Building2 className="h-8 w-8 text-gray-300" />
+                <div className={cn('w-full flex items-center justify-center bg-theme-hover', isImmersive ? 'h-44' : 'h-28')}>
+                  <Building2 className="h-8 w-8 text-theme-muted" />
                 </div>
               )}
               <div className={cn(isImmersive ? 'p-4' : 'p-2.5')}>
-                <p className={cn('font-bold text-gray-900', isImmersive ? 'text-lg' : 'text-sm')}>
+                <p className={cn('font-bold text-theme-primary', isImmersive ? 'text-lg' : 'text-sm')}>
                   {formatCHF(selectedListing.price)}
                   {selectedListing.context === 'rent' ? '/mois' : ''}
                 </p>
-                <p className={cn('text-gray-500 mt-0.5 truncate', isImmersive ? 'text-sm' : 'text-xs')}>
+                <p className={cn('text-theme-tertiary mt-0.5 truncate', isImmersive ? 'text-sm' : 'text-xs')}>
                   {selectedListing.address}{selectedListing.city ? `, ${selectedListing.city}` : ''}
                 </p>
                 {selectedListing.rooms > 0 && (
-                  <div className={cn('flex items-center gap-2 mt-1', isImmersive ? 'text-sm text-gray-600' : 'text-xs text-gray-400')}>
+                  <div className={cn('flex items-center gap-2 mt-1', isImmersive ? 'text-sm text-theme-secondary' : 'text-xs text-theme-muted')}>
                     <span>{selectedListing.rooms} pièces</span>
                     {selectedListing.bedrooms > 0 && <><span>·</span><span>{selectedListing.bedrooms} ch.</span></>}
                     {selectedListing.surface_m2 > 0 && <><span>·</span><span>{formatSurface(selectedListing.surface_m2)}</span></>}
                   </div>
                 )}
                 {isImmersive && selectedListing.surface_m2 > 0 && (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-theme-muted mt-1">
                     {formatCHF(Math.round(selectedListing.price / selectedListing.surface_m2))}/m²
                   </p>
                 )}
@@ -1047,10 +1047,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           <button
             onClick={fitToListings}
             className={cn(
-              'text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-1.5',
+              'text-xs font-medium px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5',
               isImmersive
                 ? 'bg-gray-900/80 backdrop-blur-md text-white/80 hover:text-white hover:bg-gray-900/90 border border-white/10'
-                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                : 'bg-theme-card text-theme-secondary border border-theme-border hover:bg-theme-hover'
             )}
           >
             <LocateFixed className="h-3.5 w-3.5" />
@@ -1062,10 +1062,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <button
               onClick={startDrawing}
               className={cn(
-                'text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm transition-colors cursor-pointer flex items-center gap-1.5',
+                'text-xs font-medium px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5',
                 isImmersive
                   ? 'bg-gray-900/80 backdrop-blur-md text-white/80 hover:text-white hover:bg-gray-900/90 border border-white/10'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                  : 'bg-theme-card text-theme-secondary border border-theme-border hover:bg-theme-hover'
               )}
             >
               <PenTool className="h-3.5 w-3.5" />
@@ -1076,7 +1076,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           {closedPolygon && (
             <button
               onClick={clearZone}
-              className="bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-xl shadow-sm hover:bg-accent/90 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="text-xs font-medium px-3 py-1.5 rounded-xl border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <X className="h-3.5 w-3.5" />
               {zoneCount} bien{zoneCount !== 1 ? 's' : ''} dans la zone
@@ -1113,7 +1113,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           <>
           {/* ── Filter bar (top) ── */}
           <div className="flex items-center gap-1 bg-gray-900/70 backdrop-blur-xl rounded-xl px-2 py-1 border border-white/10 max-w-[95vw] overflow-x-auto scrollbar-hide">
-            <span className="text-[10px] text-white/40 px-1.5">Filtres</span>
+            <span className="text-xs text-white/40 px-1.5">Filtres</span>
             <div className="w-px h-4 bg-white/15" />
             {[
               { label: 'Appart.', active: quickFilters.type === 'apartment', onClick: () => updateQuickFilter({ type: quickFilters.type === 'apartment' ? '' : 'apartment' }) },
@@ -1123,7 +1123,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 key={f.label}
                 onClick={f.onClick}
                 className={cn(
-                  'h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer',
+                  'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                   f.active ? 'text-white bg-white/20' : 'text-white/50 hover:text-white hover:bg-white/10'
                 )}
               >
@@ -1140,7 +1140,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 key={f.label}
                 onClick={f.onClick}
                 className={cn(
-                  'h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer',
+                  'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                   f.active ? 'text-white bg-white/20' : 'text-white/50 hover:text-white hover:bg-white/10'
                 )}
               >
@@ -1157,7 +1157,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 key={f.label}
                 onClick={f.onClick}
                 className={cn(
-                  'h-7 px-2.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer',
+                  'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
                   f.active ? 'text-white bg-white/20' : 'text-white/50 hover:text-white hover:bg-white/10'
                 )}
               >
@@ -1182,12 +1182,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
             {/* ─ Group: Vue ─ */}
             <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg px-1 py-0.5 shrink-0">
-              <span className="text-[9px] text-white/30 px-1 uppercase tracking-wider shrink-0">Vue</span>
+              <span className="text-xs text-white/30 px-1 uppercase tracking-wider shrink-0">Vue</span>
               {/* Style picker */}
               <div className="relative">
                 <button
                   onClick={() => setShowStylePicker(v => !v)}
-                  className="h-7 px-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="h-7 px-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5"
                   title="Style de carte"
                 >
                   <Layers className="h-3 w-3" />
@@ -1226,7 +1226,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                       key={preset}
                       onClick={() => setLightPreset(preset)}
                       className={cn(
-                        'h-7 w-7 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center shrink-0',
+                        'h-7 w-7 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center justify-center shrink-0',
                         lightPreset === preset ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
                       )}
                       title={{ day: 'Jour', dawn: 'Aube', dusk: 'Crépuscule', night: 'Nuit' }[preset]}
@@ -1250,11 +1250,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
             {/* ─ Group: Données ─ */}
             <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg px-1 py-0.5 shrink-0">
-              <span className="text-[9px] text-white/30 px-1 uppercase tracking-wider shrink-0">Donnees</span>
+              <span className="text-xs text-white/30 px-1 uppercase tracking-wider shrink-0">Donnees</span>
               <button
                 onClick={() => setShowHeatmap(v => !v)}
                 className={cn(
-                  'h-7 px-2 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
+                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
                   showHeatmap ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
                 )}
                 title="Heatmap prix/m²"
@@ -1264,7 +1264,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               <button
                 onClick={isOrbiting ? stopOrbit : startOrbit}
                 className={cn(
-                  'h-7 px-2 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
+                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
                   isOrbiting ? 'text-white bg-accent/60' : 'text-white/40 hover:text-white hover:bg-white/10'
                 )}
                 title={isOrbiting ? 'Arreter' : 'Orbit 3D'}
@@ -1284,7 +1284,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                     key={poi.key}
                     onClick={() => togglePOI(poi.key)}
                     className={cn(
-                      'h-7 w-7 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center shrink-0',
+                      'h-7 w-7 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center justify-center shrink-0',
                       showPOIs[poi.key] ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
                     )}
                     title={poi.label}
@@ -1299,11 +1299,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
             {/* ─ Group: Explorer ─ */}
             <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg px-1 py-0.5 shrink-0">
-              <span className="text-[9px] text-white/30 px-1 uppercase tracking-wider shrink-0">Explorer</span>
+              <span className="text-xs text-white/30 px-1 uppercase tracking-wider shrink-0">Explorer</span>
               <button
                 onClick={isTourActive ? stopTour : startTour}
                 className={cn(
-                  'h-7 px-2 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
+                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
                   isTourActive ? 'text-white bg-accent/60' : 'text-white/40 hover:text-white hover:bg-white/10'
                 )}
                 title="Survol des biens"
@@ -1313,7 +1313,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               <button
                 onClick={() => setShowGeoSearch(v => !v)}
                 className={cn(
-                  'h-7 px-2 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
+                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
                   showGeoSearch ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
                 )}
                 title="Rechercher un lieu"
@@ -1326,7 +1326,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   else { setNeighborhoodPickMode(true) }
                 }}
                 className={cn(
-                  'h-7 px-2 rounded-lg text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
+                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
                   neighborhoodPoint || neighborhoodPickMode ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
                 )}
                 title="Score quartier"
@@ -1343,10 +1343,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               <button
                 onClick={() => setShowTools(v => !v)}
                 className={cn(
-                  'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
+                  'h-9 px-3 rounded-xl border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
                   showTools
-                    ? 'bg-accent text-white border-accent'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                    ? 'bg-theme-active text-theme-primary border-theme-active'
+                    : 'bg-theme-card text-theme-secondary border-theme-border hover:bg-theme-hover'
                 )}
                 aria-label="Outils avancés"
               >
@@ -1360,7 +1360,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               <>
                 <button
                   onClick={enterImmersive}
-                  className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="h-9 px-3 rounded-xl bg-theme-card border border-theme-border text-theme-secondary text-xs font-medium hover:bg-theme-hover transition-colors cursor-pointer flex items-center gap-1.5"
                   aria-label="Mode immersif"
                 >
                   <Maximize className="h-3.5 w-3.5" />
@@ -1370,7 +1370,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 <div className="relative">
                   <button
                     onClick={() => setShowStylePicker(v => !v)}
-                    className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="h-9 px-3 rounded-xl bg-theme-card border border-theme-border text-theme-secondary text-xs font-medium hover:bg-theme-hover transition-colors cursor-pointer flex items-center gap-1.5"
                     aria-label="Changer le style de carte"
                   >
                     <Layers className="h-3.5 w-3.5" />
@@ -1378,7 +1378,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   </button>
 
                   {showStylePicker && (
-                    <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden min-w-[140px]">
+                    <div className="absolute bottom-full left-0 mb-2 bg-theme-card rounded-xl shadow-lg border border-theme-border overflow-hidden min-w-[140px]">
                       {MAP_STYLES.map(s => {
                         const Icon = s.icon
                         return (
@@ -1396,8 +1396,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                             className={cn(
                               'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
                               mapStyleId === s.id
-                                ? 'bg-accent/10 text-accent'
-                                : 'text-gray-700 hover:bg-gray-50'
+                                ? 'bg-theme-active text-accent'
+                                : 'text-theme-secondary hover:bg-theme-hover'
                             )}
                           >
                             <Icon className="h-3.5 w-3.5" />
@@ -1415,7 +1415,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
         {/* Viewport counter */}
         {!isImmersive && viewportCount > 0 && (
-          <span className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-500 text-xs font-medium flex items-center tabular-nums">
+          <span className="h-9 px-3 rounded-xl bg-theme-card border border-theme-border text-theme-tertiary text-xs font-medium flex items-center tabular-nums">
             {viewportCount.toLocaleString('fr-CH')} biens
           </span>
         )}
@@ -1428,15 +1428,15 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           <div className="absolute top-3 right-3 z-[5] flex flex-col gap-2">
             {/* Light presets (Standard 3D only) */}
             {mapStyleId === 'standard' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-2.5 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Lumière</div>
+              <div className="bg-theme-card rounded-xl shadow-lg border border-theme-border overflow-hidden">
+                <div className="px-2.5 py-1.5 text-xs font-semibold text-theme-muted uppercase tracking-wider">Lumière</div>
                 {(['day', 'dawn', 'dusk', 'night'] as const).map(preset => (
                   <button
                     key={preset}
                     onClick={() => setLightPreset(preset)}
                     className={cn(
                       'w-full px-3 py-1.5 text-xs font-medium text-left transition-colors cursor-pointer',
-                      lightPreset === preset ? 'bg-accent/10 text-accent' : 'text-gray-700 hover:bg-gray-50'
+                      lightPreset === preset ? 'bg-theme-active text-accent' : 'text-theme-secondary hover:bg-theme-hover'
                     )}
                   >
                     {{ day: 'Jour', dawn: 'Aube', dusk: 'Crépuscule', night: 'Nuit' }[preset]}
@@ -1449,10 +1449,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <button
               onClick={() => setShowHeatmap(v => !v)}
               className={cn(
-                'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
+                'h-9 px-3 rounded-xl border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
                 showHeatmap
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  ? 'bg-theme-active text-theme-primary border-theme-active'
+                  : 'bg-theme-card text-theme-secondary border-theme-border hover:bg-theme-hover'
               )}
             >
               <Thermometer className="h-3.5 w-3.5" />
@@ -1463,10 +1463,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <button
               onClick={isOrbiting ? stopOrbit : startOrbit}
               className={cn(
-                'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
+                'h-9 px-3 rounded-xl border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
                 isOrbiting
-                  ? 'bg-accent text-white border-accent'
-                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  ? 'bg-theme-active text-theme-primary border-theme-active'
+                  : 'bg-theme-card text-theme-secondary border-theme-border hover:bg-theme-hover'
               )}
             >
               {isOrbiting ? <Pause className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
@@ -1477,14 +1477,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <div className="relative">
               <button
                 onClick={() => setShowGeoSearch(v => !v)}
-                className="h-9 px-3 rounded-xl bg-white shadow-sm border border-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                className="h-9 px-3 rounded-xl bg-theme-card border border-theme-border text-theme-secondary text-xs font-medium hover:bg-theme-hover transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <Search className="h-3.5 w-3.5" />
                 Rechercher un lieu
               </button>
 
               {showGeoSearch && (
-                <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div className="absolute top-full right-0 mt-2 w-72 bg-theme-card rounded-xl shadow-lg border border-theme-border overflow-hidden">
                   <div className="p-2">
                     <input
                       type="text"
@@ -1495,12 +1495,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                         debouncedGeoFetch('tools-geo', q, setGeoResults)
                       }}
                       placeholder="Adresse, ville, quartier..."
-                      className="w-full h-8 px-3 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                      className="w-full h-8 px-3 text-xs bg-theme-section border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                       autoFocus
                     />
                   </div>
                   {geoResults.length > 0 && (
-                    <div className="border-t border-gray-100 max-h-48 overflow-y-auto">
+                    <div className="border-t border-theme-border-subtle max-h-48 overflow-y-auto">
                       {geoResults.map((r, i) => (
                         <button
                           key={i}
@@ -1511,7 +1511,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                             setGeoSearchQuery('')
                             setGeoResults([])
                           }}
-                          className="w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 text-left cursor-pointer truncate"
+                          className="w-full px-3 py-2 text-xs text-theme-secondary hover:bg-theme-hover text-left cursor-pointer truncate"
                         >
                           {r.place_name}
                         </button>
@@ -1525,9 +1525,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
           {/* Bottom-center: Zone area measurement */}
           {closedPolygon && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[5] bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 px-4 py-2 flex items-center gap-2">
-              <Ruler className="h-3.5 w-3.5 text-gray-500" />
-              <span className="text-xs font-medium text-gray-700">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[5] bg-theme-card/95 backdrop-blur-sm rounded-xl border border-theme-border px-4 py-2 flex items-center gap-2">
+              <Ruler className="h-3.5 w-3.5 text-theme-tertiary" />
+              <span className="text-xs font-medium text-theme-secondary">
                 Surface : {(() => {
                   const coords = closedPolygon
                   const R = 6371000
@@ -1649,7 +1649,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 {/* Search radius slider */}
                 {geoMarker && (
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-[10px] text-white/50">Rayon</span>
+                    <span className="text-xs text-white/50">Rayon</span>
                     <input
                       type="range"
                       min={250}
@@ -1659,7 +1659,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                       onChange={(e) => updateGeoRadius(Number(e.target.value))}
                       className="flex-1 h-1 accent-accent"
                     />
-                    <span className="text-[10px] text-white/70 min-w-[40px] text-right">
+                    <span className="text-xs text-white/70 min-w-[40px] text-right">
                       {geoRadius >= 1000 ? `${(geoRadius / 1000).toFixed(1)} km` : `${geoRadius} m`}
                     </span>
                   </div>

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Search, Plus, LayoutGrid, List, ChevronLeft, ChevronRight, ChevronDown,
   Loader2, Trash2, Pencil,
@@ -44,6 +45,7 @@ interface AgentListing {
 const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
 
 export default function ListingsPage() {
+  const { t } = useTranslation('listings')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [typeFilter, setTypeFilter] = useState<string>('')
@@ -124,15 +126,15 @@ export default function ListingsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-theme-primary">Mes biens</h1>
-            <p className="text-sm text-theme-tertiary mt-0.5">{dataSource.length} biens</p>
+            <h1 className="text-2xl font-semibold text-theme-primary">{t('title')}</h1>
+            <p className="text-sm text-theme-tertiary mt-0.5">{t('count', { count: dataSource.length })}</p>
           </div>
           <Link
             to="/dashboard/listings/new"
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
-            Ajouter un bien
+            {t('add_button')}
           </Link>
         </div>
 
@@ -140,11 +142,11 @@ export default function ListingsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center border border-theme-border rounded-lg p-0.5">
             {[
-              { key: '', label: 'Tous', count: statusCounts.all },
-              { key: 'active', label: 'Actifs', count: statusCounts.active || 0 },
-              { key: 'draft', label: 'Brouillons', count: statusCounts.draft || 0 },
-              { key: 'reserved', label: 'Réservés', count: statusCounts.reserved || 0 },
-              { key: 'sold', label: 'Vendus', count: statusCounts.sold || 0 },
+              { key: '', label: t('tab.all'), count: statusCounts.all },
+              { key: 'active', label: t('tab.active'), count: statusCounts.active || 0 },
+              { key: 'draft', label: t('tab.drafts'), count: statusCounts.draft || 0 },
+              { key: 'reserved', label: t('tab.reserved'), count: statusCounts.reserved || 0 },
+              { key: 'sold', label: t('tab.sold'), count: statusCounts.sold || 0 },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -182,7 +184,7 @@ export default function ListingsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder={t('search')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -191,19 +193,19 @@ export default function ListingsPage() {
 
           <div className="relative">
             <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1) }} className={selectClasses}>
-              <option value="">Type</option>
-              <option value="apartment">Appartement</option>
-              <option value="house">Maison</option>
-              <option value="villa">Villa</option>
-              <option value="commercial">Commercial</option>
-              <option value="land">Terrain</option>
+              <option value="">{t('filter_type')}</option>
+              <option value="apartment">{t('type.apartment')}</option>
+              <option value="house">{t('type.house')}</option>
+              <option value="villa">{t('type.villa')}</option>
+              <option value="commercial">{t('type.commercial')}</option>
+              <option value="land">{t('type.land')}</option>
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
           </div>
 
           {hasFilters && (
             <button onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter(''); setPage(1) }} className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors">
-              Effacer
+              {t('clear')}
             </button>
           )}
         </div>
@@ -212,7 +214,7 @@ export default function ListingsPage() {
         {filtered.length === 0 && (
           <div className="text-center py-16 rounded-xl border border-theme-border">
             <p className="text-sm text-theme-tertiary mb-4">
-              {dataSource.length === 0 ? 'Vous n\'avez pas encore ajouté de bien' : 'Aucun bien trouvé'}
+              {dataSource.length === 0 ? t('empty_no_properties') : t('empty_no_results')}
             </p>
             {dataSource.length === 0 && (
               <Link
@@ -220,7 +222,7 @@ export default function ListingsPage() {
                 className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Ajouter un bien
+                {t('add_button')}
               </Link>
             )}
           </div>
@@ -237,10 +239,10 @@ export default function ListingsPage() {
                     <img src={listing.photo} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full bg-theme-section flex items-center justify-center">
-                      <span className="text-xs text-theme-muted">Pas de photo</span>
+                      <span className="text-xs text-theme-muted">{t('no_photo')}</span>
                     </div>
                   )}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white text-[11px] font-medium px-2 py-1 rounded-md">
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded-md">
                     <div className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[listing.status])} />
                     {PROPERTY_STATUS_LABELS[listing.status]}
                   </div>
@@ -287,12 +289,12 @@ export default function ListingsPage() {
         {/* List view */}
         {filtered.length > 0 && viewMode === 'list' && (
           <div className="rounded-xl border border-theme-border">
-            <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-[11px] font-medium text-theme-tertiary uppercase tracking-wider">
-              <span className="flex-1">Bien</span>
-              <span className="w-24 hidden md:block">Type</span>
-              <span className="w-24">Statut</span>
-              <span className="w-28 text-right">Prix</span>
-              <span className="w-24 text-right hidden sm:block">Activité</span>
+            <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary capitalize">
+              <span className="flex-1">{t('column.property')}</span>
+              <span className="w-24 hidden md:block">{t('column.type')}</span>
+              <span className="w-24">{t('column.status')}</span>
+              <span className="w-28 text-right">{t('column.price')}</span>
+              <span className="w-24 text-right hidden sm:block">{t('column.activity')}</span>
               <span className="w-16" />
             </div>
 
@@ -343,14 +345,14 @@ export default function ListingsPage() {
         {filtered.length > ITEMS_PER_PAGE && (
           <div className="flex items-center justify-between">
             <p className="text-xs text-theme-tertiary">
-              {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} sur {filtered.length}
+              {t('pagination', { from: (safePage - 1) * ITEMS_PER_PAGE + 1, to: Math.min(safePage * ITEMS_PER_PAGE, filtered.length), total: filtered.length })}
             </p>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors">
                 <ChevronLeft className="h-4 w-4" />
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button key={p} onClick={() => setPage(p)} className={cn('h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors', p === safePage ? 'bg-accent text-white' : 'text-theme-secondary hover:text-theme-primary')}>
+                <button key={p} onClick={() => setPage(p)} className={cn('h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors', p === safePage ? 'bg-theme-active text-theme-primary' : 'text-theme-secondary hover:text-theme-primary')}>
                   {p}
                 </button>
               ))}
@@ -366,18 +368,18 @@ export default function ListingsPage() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
             <div className="relative bg-theme-card rounded-xl border border-theme-border p-6 max-w-sm w-full mx-4">
-              <h3 className="text-base font-semibold text-theme-primary">Supprimer ce bien ?</h3>
-              <p className="text-sm text-theme-secondary mt-2">Cette action est irréversible. Le bien et son annonce seront supprimés définitivement.</p>
+              <h3 className="text-base font-semibold text-theme-primary">{t('delete_dialog.title')}</h3>
+              <p className="text-sm text-theme-secondary mt-2">{t('delete_dialog.message')}</p>
               <div className="flex justify-end gap-3 mt-6">
                 <button onClick={() => setDeleteId(null)} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-                  Annuler
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={deleteProperty.isPending}
                   className="h-9 px-4 text-sm font-medium border border-red-300 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-50"
                 >
-                  {deleteProperty.isPending ? 'Suppression...' : 'Supprimer'}
+                  {deleteProperty.isPending ? t('deleting') : t('delete_button')}
                 </button>
               </div>
             </div>

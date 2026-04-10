@@ -55,7 +55,7 @@ export default function BuyerIntelligence({
     <div className={cn('rounded-xl border border-theme-border p-5', className)}>
       <div className="flex items-center gap-2 mb-5">
         <h2 className="text-sm font-semibold text-theme-primary">Buyer intelligence</h2>
-        <span className="text-[10px] text-theme-muted">estimation IA</span>
+        <span className="text-xs text-theme-muted">estimation IA</span>
       </div>
 
       <div className="space-y-4">

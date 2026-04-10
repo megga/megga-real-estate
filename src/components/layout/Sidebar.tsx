@@ -72,7 +72,7 @@ const fadeLabel = (collapsed: boolean) =>
 
 function UserAvatar({ name, avatarUrl, size = 'default' }: { name: string; avatarUrl?: string | null; size?: 'default' | 'small' }) {
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  const s = size === 'small' ? 'h-7 w-7 text-[10px]' : 'h-8 w-8 text-xs'
+  const s = size === 'small' ? 'h-7 w-7 text-xs' : 'h-8 w-8 text-xs'
 
   return avatarUrl ? (
     <img src={avatarUrl} alt={name} className={cn('rounded-full object-cover flex-shrink-0 transition-[width,height] duration-200', s)} />
@@ -175,7 +175,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           >
             <Search className="w-3.5 h-3.5 text-theme-tertiary" />
             <span className="flex-1 text-left">{t('nav.search')}</span>
-            <kbd className="text-[10px] bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+            <kbd className="text-xs bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
           </button>
         </div>
       )}
@@ -202,7 +202,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="flex-1 text-left">Nouveau contact</span>
-            <kbd className="text-[10px] bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">⌘⇧C</kbd>
+            <kbd className="text-xs bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">⌘⇧C</kbd>
           </button>
         </div>
       )}
@@ -300,7 +300,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                   <div className="mt-3" />
                 ) : (
                   <div className="mt-6 mb-1 px-3">
-                    <span className="text-[10px] uppercase tracking-[0.08em] text-theme-tertiary font-medium select-none">
+                    <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
                       {t(section.labelKey)}
                     </span>
                   </div>
@@ -450,7 +450,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           <UserAvatar name={profile?.full_name ?? 'Gregory Lyonnet'} avatarUrl={avatarUrl} size={isCol ? 'small' : 'default'} />
           <div className={cn(fadeLabel(isCol), 'min-w-0 flex-1')}>
             <p className="text-sm font-medium text-theme-primary leading-tight truncate">{profile?.full_name ?? 'Gregory Lyonnet'}</p>
-            <p className="text-[11px] text-theme-tertiary leading-tight truncate">{t('nav.mainAgent')}</p>
+            <p className="text-xs text-theme-tertiary leading-tight truncate">{t('nav.mainAgent')}</p>
           </div>
           <div className={cn(fadeLabel(isCol))}>
             <button

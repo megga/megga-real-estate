@@ -104,8 +104,8 @@ export default function SupportTicketDetailPage() {
                     <div className="flex items-center gap-2 mb-1.5">
                       {isNote && <Lock className="h-3 w-3 text-amber-600" />}
                       <span className="text-xs font-medium text-theme-primary">{msg.author_name}</span>
-                      <span className="text-[10px] text-theme-muted">{formatRelativeDate(msg.created_at)}</span>
-                      {isNote && <span className="text-[10px] text-amber-600 font-medium">Note interne</span>}
+                      <span className="text-xs text-theme-muted">{formatRelativeDate(msg.created_at)}</span>
+                      {isNote && <span className="text-xs text-amber-600 font-medium">Note interne</span>}
                     </div>
                     <p className="text-sm text-theme-secondary whitespace-pre-wrap">{msg.body}</p>
                   </div>
@@ -170,7 +170,7 @@ export default function SupportTicketDetailPage() {
           <div className="space-y-4">
             <div className="rounded-xl border border-theme-border p-4 space-y-4">
               <div>
-                <label className="text-[10px] text-theme-muted uppercase tracking-wider mb-1 block">Statut</label>
+                <label className="text-xs text-theme-muted capitalize mb-1 block">Statut</label>
                 <select
                   value={ticket.status}
                   onChange={e => handleStatusChange(e.target.value)}
@@ -181,7 +181,7 @@ export default function SupportTicketDetailPage() {
               </div>
 
               <div>
-                <label className="text-[10px] text-theme-muted uppercase tracking-wider mb-1 block">Priorité</label>
+                <label className="text-xs text-theme-muted capitalize mb-1 block">Priorité</label>
                 <select
                   value={ticket.priority}
                   onChange={e => handlePriorityChange(e.target.value)}
@@ -192,14 +192,14 @@ export default function SupportTicketDetailPage() {
               </div>
 
               <div>
-                <label className="text-[10px] text-theme-muted uppercase tracking-wider mb-1 block">Catégorie</label>
+                <label className="text-xs text-theme-muted capitalize mb-1 block">Catégorie</label>
                 <p className="text-sm text-theme-primary">{ticket.category}</p>
               </div>
             </div>
 
             {/* SLA */}
             <div className="rounded-xl border border-theme-border p-4">
-              <label className="text-[10px] text-theme-muted uppercase tracking-wider mb-2 block">SLA</label>
+              <label className="text-xs text-theme-muted capitalize mb-2 block">SLA</label>
               <div className="space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-theme-muted">1ère réponse</span>
@@ -218,7 +218,7 @@ export default function SupportTicketDetailPage() {
 
             {/* Client info */}
             <div className="rounded-xl border border-theme-border p-4">
-              <label className="text-[10px] text-theme-muted uppercase tracking-wider mb-2 block">Client</label>
+              <label className="text-xs text-theme-muted capitalize mb-2 block">Client</label>
               <p className="text-sm font-medium text-theme-primary">{ticket.submitter_name}</p>
               <p className="text-xs text-theme-muted">{ticket.submitter_email}</p>
               <p className="text-xs text-theme-muted mt-1">Créé {formatRelativeDate(ticket.created_at)}</p>
@@ -227,7 +227,7 @@ export default function SupportTicketDetailPage() {
             {/* CSAT */}
             {ticket.csat_rating && (
               <div className="rounded-xl border border-theme-border p-4">
-                <label className="text-[10px] text-theme-muted uppercase tracking-wider mb-2 block">CSAT</label>
+                <label className="text-xs text-theme-muted capitalize mb-2 block">CSAT</label>
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map(n => (
                     <Star key={n} className={cn('h-4 w-4', n <= ticket.csat_rating! ? 'text-amber-400 fill-amber-400' : 'text-gray-200')} />

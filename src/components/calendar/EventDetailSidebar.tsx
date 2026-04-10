@@ -108,7 +108,7 @@ function MiniCalendar({
       {/* Weekday header */}
       <div className="grid grid-cols-7 mb-1">
         {MINI_WEEKDAYS.map((d, i) => (
-          <div key={i} className="text-center text-[10px] text-theme-tertiary font-medium py-0.5">{d}</div>
+          <div key={i} className="text-center text-xs text-theme-tertiary font-medium py-0.5">{d}</div>
         ))}
       </div>
       {/* Day grid */}
@@ -124,7 +124,7 @@ function MiniCalendar({
               key={day.toISOString()}
               onClick={() => onDateSelect?.(day)}
               className={cn(
-                'relative h-7 w-full flex items-center justify-center text-[11px] rounded transition-colors',
+                'relative h-7 w-full flex items-center justify-center text-xs rounded transition-colors',
                 !inMonth && 'text-theme-tertiary/40',
                 inMonth && !today && !selected && 'text-theme-secondary hover:bg-theme-hover',
                 today && !selected && 'text-accent font-semibold',
@@ -171,7 +171,7 @@ function DayAgenda({
 
   return (
     <div className="px-3 py-2 space-y-1">
-      <div className="text-[10px] font-medium text-theme-tertiary uppercase tracking-wider mb-1">
+      <div className="text-xs font-medium text-theme-tertiary capitalize mb-1">
         {format(date, "EEEE d MMMM", { locale: fr })}
       </div>
       {dayEvents.map((event) => {
@@ -190,7 +190,7 @@ function DayAgenda({
             <div className={cn('font-medium truncate', styles.text)}>
               {event.title}
             </div>
-            <div className="text-theme-tertiary text-[10px] mt-0.5">
+            <div className="text-theme-tertiary text-xs mt-0.5">
               {event.isAllDay
                 ? 'Journée entière'
                 : `${format(event.start, 'HH:mm')} — ${format(event.end, 'HH:mm')}`}

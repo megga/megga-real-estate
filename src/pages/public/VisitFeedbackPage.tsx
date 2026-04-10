@@ -222,15 +222,15 @@ export default function VisitFeedbackPage() {
             className={cn(
               'w-full h-11 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2',
               rating && offerInterest && !submitFeedback.isPending
-                ? 'bg-accent text-white hover:bg-accent/90'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                ? 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
+                : 'bg-gray-100 text-gray-500 cursor-not-allowed'
             )}
           >
             {submitFeedback.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             {submitFeedback.isPending ? 'Envoi...' : 'Envoyer mon avis'}
           </button>
 
-          <p className="text-[11px] text-gray-400 text-center">
+          <p className="text-xs text-gray-500 text-center">
             Votre retour est anonymisé et partagé avec le vendeur pour améliorer la présentation du bien.
           </p>
         </form>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, MapPin, ChevronRight, Star, Shield, Phone, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAgentDirectory, DEFAULT_FILTERS } from '@/hooks/useAgentDirectory'
@@ -23,6 +24,7 @@ const PAGE_SIZE = 20
 // ─── Agent Card — Liste verticale ───────────────────────────
 
 function AgentListCard({ agent }: { agent: AgentProfileRow }) {
+  const { t } = useTranslation('directory')
   const fullName = `${agent.first_name} ${agent.last_name}`
   const initials = `${agent.first_name?.[0] || ''}${agent.last_name?.[0] || ''}`.toUpperCase()
   const location = [agent.city, agent.canton ? `(${agent.canton})` : null].filter(Boolean).join(' ')
@@ -44,7 +46,7 @@ function AgentListCard({ agent }: { agent: AgentProfileRow }) {
           />
         ) : (
           <div className="w-20 h-20 md:w-[88px] md:h-[88px] rounded-full bg-gray-100 flex items-center justify-center">
-            <span className="text-xl md:text-2xl font-bold text-gray-400">{initials}</span>
+            <span className="text-xl md:text-2xl font-bold text-gray-500">{initials}</span>
           </div>
         )}
       </div>
@@ -68,7 +70,7 @@ function AgentListCard({ agent }: { agent: AgentProfileRow }) {
 
         {/* Location */}
         {location && (
-          <p className="flex items-center gap-1 text-sm text-gray-400 mt-0.5">
+          <p className="flex items-center gap-1 text-sm text-gray-500 mt-0.5">
             <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
             {location}
           </p>
@@ -90,19 +92,19 @@ function AgentListCard({ agent }: { agent: AgentProfileRow }) {
                   />
                 ))}
               </div>
-              <span className="text-xs text-gray-400">({agent.rating_count})</span>
+              <span className="text-xs text-gray-500">({agent.rating_count})</span>
             </>
           ) : (
-            <span className="text-xs text-gray-400">Pas encore d'avis</span>
+            <span className="text-xs text-gray-500">{t('review.noReviews')}</span>
           )}
         </div>
 
         {/* Stats */}
         {agent.stats_properties_sold > 0 && (
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
-            <span><strong className="text-gray-600">{agent.stats_properties_sold}</strong> ventes</span>
+          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+            <span><strong className="text-gray-600">{agent.stats_properties_sold}</strong> {t('sales')}</span>
             {agent.stats_avg_days_to_sell > 0 && (
-              <span><strong className="text-gray-600">{agent.stats_avg_days_to_sell}j</strong> délai moy.</span>
+              <span><strong className="text-gray-600">{agent.stats_avg_days_to_sell}{t('avgDaysSuffix')}</strong></span>
             )}
           </div>
         )}
@@ -111,10 +113,10 @@ function AgentListCard({ agent }: { agent: AgentProfileRow }) {
       {/* Right — CTA */}
       <div className="hidden md:flex flex-col items-end gap-2 flex-shrink-0 pt-2">
         <span className="h-9 px-4 text-sm font-medium border border-gray-200 text-gray-700 group-hover:border-gray-400 group-hover:text-gray-900 rounded-lg transition-colors inline-flex items-center">
-          Voir l'agent
+          {t('viewProfile')}
         </span>
         {agent.phone && (
-          <span className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+          <span className="text-xs text-gray-500 flex items-center gap-1 mt-1">
             <Phone className="h-3 w-3" />
             {agent.phone}
           </span>
@@ -150,13 +152,14 @@ const FAQ_ITEMS = [
 ]
 
 function FaqSection() {
+  const { t } = useTranslation('directory')
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
     <div className="bg-gray-800 py-16 md:py-20">
       <div className="max-w-3xl mx-auto px-4 md:px-6">
         <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-10">
-          Questions fréquentes
+          {t('faq.title')}
         </h2>
         <div>
           {FAQ_ITEMS.map((item, i) => (
@@ -169,12 +172,12 @@ function FaqSection() {
                   {item.q}
                 </span>
                 <ChevronRight className={cn(
-                  'w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200',
+                  'w-5 h-5 text-gray-500 flex-shrink-0 transition-transform duration-200',
                   openIndex === i && 'rotate-90'
                 )} />
               </button>
               {openIndex === i && (
-                <p className="text-sm text-gray-400 leading-relaxed pb-5 pr-10">
+                <p className="text-sm text-gray-500 leading-relaxed pb-5 pr-10">
                   {item.a}
                 </p>
               )}
@@ -189,6 +192,7 @@ function FaqSection() {
 // ─── Main Page ──────────────────────────────────────────────
 
 export default function AgentDirectoryPage() {
+  const { t } = useTranslation('directory')
   const [filters, setFilters] = useState<DirectoryFilters>({ ...DEFAULT_FILTERS, type: 'agents' })
   const { data, isLoading } = useAgentDirectory(filters)
 
@@ -224,21 +228,21 @@ export default function AgentDirectoryPage() {
             className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight"
             style={{ textShadow: '0 2px 16px rgba(0,0,0,0.3)' }}
           >
-            Trouver un agent immobilier
+            {t('hero.title')}
           </h1>
           <p className="mt-3 text-white/70 text-base md:text-lg max-w-lg">
-            Trouvez le courtier idéal pour votre projet, partout en Suisse.
+            {t('hero.subtitle')}
           </p>
 
           {/* Search bar — white pill in hero */}
           <div className="mt-8 w-full max-w-xl">
             <div className="relative flex items-center bg-white rounded-lg shadow-lg">
-              <Search className="absolute left-4 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-4 h-5 w-5 text-gray-500" />
               <input
                 type="text"
                 value={filters.query}
                 onChange={e => updateFilters({ query: e.target.value, page: 0 })}
-                placeholder="Nom, agence ou ville..."
+                placeholder={t('searchPlaceholder')}
                 className="w-full h-13 md:h-14 pl-12 pr-4 text-base text-gray-900 placeholder:text-gray-400 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-accent/30"
               />
             </div>
@@ -248,15 +252,15 @@ export default function AgentDirectoryPage() {
           <div className="flex items-center gap-6 md:gap-8 mt-6">
             <div className="flex items-center gap-1.5 text-white/60 text-sm">
               <Shield className="h-4 w-4" />
-              <span>Profils vérifiés</span>
+              <span>{t('trust.verifiedProfiles')}</span>
             </div>
             <div className="flex items-center gap-1.5 text-white/60 text-sm">
               <Star className="h-4 w-4" />
-              <span>Avis clients réels</span>
+              <span>{t('trust.realReviews')}</span>
             </div>
             <div className="flex items-center gap-1.5 text-white/60 text-sm">
               <MapPin className="h-4 w-4" />
-              <span>26 cantons</span>
+              <span>{t('trust.allCantons')}</span>
             </div>
           </div>
         </div>
@@ -268,7 +272,7 @@ export default function AgentDirectoryPage() {
       <div className="max-w-4xl mx-auto px-4 md:px-6 -mt-5 relative z-20">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-3.5">
           <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-hide">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">Populaire</span>
+            <span className="text-xs font-semibold text-gray-500 capitalize whitespace-nowrap">{t('popular')}</span>
             <div className="w-px h-4 bg-gray-200 flex-shrink-0" />
             {POPULAR_CANTONS.map(c => (
               <button
@@ -297,11 +301,11 @@ export default function AgentDirectoryPage() {
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
               {filters.canton
-                ? `Agents immobiliers en ${CANTON_LABELS[filters.canton] || filters.canton}`
-                : 'Agents immobiliers en Suisse'}
+                ? t('results.agentsIn', { location: CANTON_LABELS[filters.canton] || filters.canton })
+                : t('results.agentsInSwitzerland')}
             </h2>
-            <p className="text-sm text-gray-400 mt-1">
-              {data?.total?.toLocaleString('fr-CH') || '...'} agent{(data?.total || 0) > 1 ? 's' : ''} trouvé{(data?.total || 0) > 1 ? 's' : ''}
+            <p className="text-sm text-gray-500 mt-1">
+              {t('results.agentsFound', { count: data?.total || 0 })}
             </p>
           </div>
 
@@ -309,9 +313,9 @@ export default function AgentDirectoryPage() {
           {(filters.query || filters.canton) && (
             <button
               onClick={() => setFilters({ ...DEFAULT_FILTERS, type: 'agents' })}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
             >
-              Réinitialiser
+              {t('results.reset')}
             </button>
           )}
         </div>
@@ -326,13 +330,13 @@ export default function AgentDirectoryPage() {
         ) : agents.length === 0 ? (
           /* Empty state */
           <div className="text-center py-20">
-            <p className="text-gray-400">Aucun agent trouvé</p>
+            <p className="text-gray-500">{t('results.noAgentFound')}</p>
             {(filters.query || filters.canton) && (
               <button
                 onClick={() => setFilters({ ...DEFAULT_FILTERS, type: 'agents' })}
                 className="mt-3 text-sm text-accent hover:underline"
               >
-                Voir tous les agents
+                {t('results.viewAllAgents')}
               </button>
             )}
           </div>
@@ -353,10 +357,10 @@ export default function AgentDirectoryPage() {
                 onClick={() => updateFilters({ page: filters.page - 1 })}
                 className="h-9 px-4 text-sm font-medium border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
               >
-                Précédent
+                {t('results.previous')}
               </button>
             )}
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-gray-500">
               Page {filters.page + 1} / {totalPages}
             </span>
             {filters.page + 1 < totalPages && (
@@ -364,7 +368,7 @@ export default function AgentDirectoryPage() {
                 onClick={() => updateFilters({ page: filters.page + 1 })}
                 className="h-9 px-4 text-sm font-medium border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
               >
-                Suivant
+                {t('results.next')}
               </button>
             )}
           </div>
@@ -384,16 +388,16 @@ export default function AgentDirectoryPage() {
         />
         <div className="relative z-10 max-w-3xl mx-auto px-4 md:px-6 flex flex-col justify-center items-start" style={{ minHeight: 280 }}>
           <h2 className="text-2xl md:text-3xl font-bold text-white">
-            Besoin d'aide pour trouver un agent ?
+            {t('cta.needHelp')}
           </h2>
           <p className="mt-2 text-white/70 text-base max-w-lg">
-            Nous vous mettons en relation avec un agent certifié dans votre région, adapté à votre projet.
+            {t('cta.needHelpDesc')}
           </p>
           <Link
             to="/devenir-agent"
             className="mt-6 h-11 px-6 bg-white text-gray-900 text-sm font-semibold rounded-lg flex items-center gap-2 hover:bg-gray-100 transition-colors"
           >
-            Contacter un agent local
+            {t('cta.contactLocal')}
           </Link>
         </div>
       </div>

@@ -83,11 +83,11 @@ export default function AgentCard({ agent }: AgentCardProps) {
                   ))}
                 </div>
                 <span className="text-sm text-gray-500">
-                  ({agent.rating_count} {agent.rating_count === 1 ? 'avis' : 'avis'})
+                  ({agent.rating_count})
                 </span>
               </>
             ) : (
-              <span className="text-sm text-gray-400">Pas encore d'avis</span>
+              <span className="text-sm text-gray-500">{t('review.noReviews')}</span>
             )}
           </div>
 
@@ -95,13 +95,13 @@ export default function AgentCard({ agent }: AgentCardProps) {
           {agent.status === 'verified' && agent.stats_properties_sold > 0 && (
             <div className="flex items-center gap-4 mt-2">
               <div className="flex items-center gap-1 text-sm text-gray-600">
-                <TrendingUp className="h-3.5 w-3.5 text-gray-400" />
+                <TrendingUp className="h-3.5 w-3.5 text-gray-500" />
                 <span className="font-medium">{agent.stats_properties_sold}</span>
-                <span>ventes récentes</span>
+                <span>{t('recentSales')}</span>
               </div>
               {agent.stats_avg_days_to_sell > 0 && (
                 <div className="text-sm text-gray-500">
-                  <span className="font-medium">{agent.stats_avg_days_to_sell}j</span> en moy.
+                  <span className="font-medium">{agent.stats_avg_days_to_sell}{t('avgDaysSuffix')}</span>
                 </div>
               )}
             </div>
@@ -115,7 +115,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
               </span>
             ))}
             {agent.languages.length > 0 && (
-              <span className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md uppercase">
+              <span className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md capitalize">
                 {agent.languages.join(' · ')}
               </span>
             )}

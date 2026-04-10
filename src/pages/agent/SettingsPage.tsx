@@ -789,7 +789,7 @@ function TeamMemberRow({ member, isCurrentUser, onChangeRole, onRemove }: {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-theme-primary truncate">{member.full_name}</p>
-          {isCurrentUser && <span className="text-[10px] text-theme-tertiary">({t('team.you')})</span>}
+          {isCurrentUser && <span className="text-xs text-theme-tertiary">({t('team.you')})</span>}
         </div>
         <p className="text-xs text-theme-muted truncate">{member.email}</p>
       </div>
@@ -1066,8 +1066,8 @@ function NotificationsTab() {
             <span className="text-xs font-medium text-theme-secondary">{t('notifications.enableAll')}</span>
           </div>
           <div className="flex items-center gap-8 shrink-0">
-            <span className="text-[11px] font-medium text-theme-muted uppercase tracking-wider w-10 text-center">{t('notifications.email')}</span>
-            <span className="text-[11px] font-medium text-theme-muted uppercase tracking-wider w-10 text-center">{t('notifications.push')}</span>
+            <span className="text-xs font-medium text-theme-muted capitalize w-10 text-center">{t('notifications.email')}</span>
+            <span className="text-xs font-medium text-theme-muted capitalize w-10 text-center">{t('notifications.push')}</span>
           </div>
         </div>
 
@@ -1348,7 +1348,7 @@ function SecurityTab() {
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-theme-primary truncate">{session.device}</p>
                 {session.isCurrent && (
-                  <span className="text-[10px] font-medium text-theme-secondary">{t('security.sessions.current')}</span>
+                  <span className="text-xs font-medium text-theme-secondary">{t('security.sessions.current')}</span>
                 )}
               </div>
               <p className="text-xs text-theme-tertiary mt-0.5">{session.location} · {session.lastActive}</p>
@@ -1563,13 +1563,13 @@ function SubscriptionTab() {
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-semibold text-theme-primary">Plan {planLabels[currentPlan]}</h3>
                   {isActive && (
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">{t('subscription.currentBadge')}</span>
+                    <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">{t('subscription.currentBadge')}</span>
                   )}
                   {subscription?.status === 'past_due' && (
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-red-500">Paiement échoué</span>
+                    <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-red-500">Paiement échoué</span>
                   )}
                   {subscription?.cancel_at_period_end && (
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500">Annulation prévue</span>
+                    <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500">Annulation prévue</span>
                   )}
                 </div>
                 <p className="text-xs text-theme-muted mt-0.5">
@@ -1627,7 +1627,7 @@ function SubscriptionTab() {
               )}
             >
               Annuel
-              <span className="text-[10px] font-semibold text-emerald-500">2 mois offerts</span>
+              <span className="text-xs font-semibold text-emerald-500">2 mois offerts</span>
             </button>
           </div>
         </div>
@@ -1654,7 +1654,7 @@ function SubscriptionTab() {
                 {/* Popular badge */}
                 {plan.isPopular && (
                   <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
-                    <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-theme-page border border-theme-primary text-theme-primary">
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-theme-page border border-theme-primary text-theme-primary">
                       Populaire
                     </span>
                   </div>
@@ -1861,12 +1861,12 @@ function GoogleCalendarAppCard() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span className="text-xs font-medium text-emerald-500">{t('apps.status.connected')}</span>
             </div>
-            {lastSyncAt && <span className="text-[10px] text-theme-muted">{t('apps.googleCalendar.lastSync', { date: formatRelativeDate(lastSyncAt) })}</span>}
+            {lastSyncAt && <span className="text-xs text-theme-muted">{t('apps.googleCalendar.lastSync', { date: formatRelativeDate(lastSyncAt) })}</span>}
             <div className="flex gap-1.5">
-              <button onClick={() => syncAll()} disabled={isSyncing} className="h-6 px-2 rounded text-[10px] font-medium border border-theme-border text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50">
+              <button onClick={() => syncAll()} disabled={isSyncing} className="h-6 px-2 rounded text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50">
                 {isSyncing ? '...' : t('apps.googleCalendar.syncNow')}
               </button>
-              <button onClick={() => { if (confirm(t('apps.googleCalendar.disconnectConfirm'))) disconnectGoogleCalendar() }} disabled={isDisconnecting} className="h-6 px-2 rounded text-[10px] font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors disabled:opacity-50">
+              <button onClick={() => { if (confirm(t('apps.googleCalendar.disconnectConfirm'))) disconnectGoogleCalendar() }} disabled={isDisconnecting} className="h-6 px-2 rounded text-xs font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors disabled:opacity-50">
                 {t('apps.googleCalendar.disconnect')}
               </button>
             </div>
@@ -1903,12 +1903,12 @@ function OutlookCalendarAppCard() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span className="text-xs font-medium text-emerald-500">{t('apps.status.connected')}</span>
             </div>
-            {lastSyncAt && <span className="text-[10px] text-theme-muted">{t('apps.outlookCalendar.lastSync', { date: formatRelativeDate(lastSyncAt) })}</span>}
+            {lastSyncAt && <span className="text-xs text-theme-muted">{t('apps.outlookCalendar.lastSync', { date: formatRelativeDate(lastSyncAt) })}</span>}
             <div className="flex gap-1.5">
-              <button onClick={() => syncAll()} disabled={isSyncing} className="h-6 px-2 rounded text-[10px] font-medium border border-theme-border text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50">
+              <button onClick={() => syncAll()} disabled={isSyncing} className="h-6 px-2 rounded text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary transition-colors disabled:opacity-50">
                 {isSyncing ? '...' : t('apps.outlookCalendar.syncNow')}
               </button>
-              <button onClick={() => { if (confirm(t('apps.outlookCalendar.disconnectConfirm'))) disconnectOutlookCalendar() }} disabled={isDisconnecting} className="h-6 px-2 rounded text-[10px] font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors disabled:opacity-50">
+              <button onClick={() => { if (confirm(t('apps.outlookCalendar.disconnectConfirm'))) disconnectOutlookCalendar() }} disabled={isDisconnecting} className="h-6 px-2 rounded text-xs font-medium text-red-500 border border-theme-border hover:border-red-500 transition-colors disabled:opacity-50">
                 {t('apps.outlookCalendar.disconnect')}
               </button>
             </div>

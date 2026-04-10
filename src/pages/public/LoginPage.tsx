@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { isAgentRole, type UserRole } from '@/types/auth'
@@ -35,6 +36,7 @@ type Step = 'email' | 'login' | 'register' | 'forgot' | 'forgot-sent'
 // ── Main component ──────────────────────────────────────────────────────
 
 export default function LoginPage() {
+  const { t } = useTranslation('common')
   const { user, profile, loading: authLoading, signInWithPassword, signInWithGoogle, signUp, resetPassword } = useAuth()
   const [searchParams] = useSearchParams()
 
@@ -189,7 +191,7 @@ export default function LoginPage() {
         {/* Facebook toast */}
         {fbToast && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            Facebook sera disponible prochainement
+            {t('auth.facebookSoon')}
           </div>
         )}
 
@@ -204,10 +206,10 @@ export default function LoginPage() {
             <>
               <div className="text-center mb-8">
                 <h1 className="text-xl font-semibold text-gray-900">
-                  {isAgentMode ? 'Espace professionnel' : 'Bienvenue sur MEGGA'}
+                  {isAgentMode ? t('auth.professionalSpace') : t('auth.welcomeToMegga')}
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  Connectez-vous ou créez votre compte
+                  {t('auth.loginOrCreate')}
                 </p>
               </div>
 
@@ -223,7 +225,7 @@ export default function LoginPage() {
                   ) : (
                     <GoogleIcon className="h-5 w-5" />
                   )}
-                  Continuer avec Google
+                  {t('auth.continueWithGoogle')}
                 </button>
 
                 <button
@@ -232,28 +234,28 @@ export default function LoginPage() {
                   className="w-full h-11 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   <FacebookIcon className="h-5 w-5" />
-                  Continuer avec Facebook
+                  {t('auth.continueWithFacebook')}
                 </button>
               </div>
 
               {/* Separator */}
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400">ou</span>
+                <span className="text-xs text-gray-500">{t('auth.or')}</span>
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
 
               {/* Email input */}
               <form onSubmit={handleEmailContinue}>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email
+                  {t('auth.email')}
                 </label>
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="vous@exemple.ch"
+                  placeholder={t('auth.emailPlaceholder')}
                   required
                   autoFocus
                   className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
@@ -263,7 +265,7 @@ export default function LoginPage() {
                   disabled={loading || !email.trim()}
                   className="w-full h-11 mt-4 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Continuer'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.continue')}
                 </button>
               </form>
 
@@ -275,11 +277,11 @@ export default function LoginPage() {
               <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                 {isAgentMode ? (
                   <Link to="/login" className="text-sm text-gray-500 hover:text-accent transition-colors">
-                    Retour au compte particulier
+                    {t('auth.backToPersonal')}
                   </Link>
                 ) : (
                   <Link to="/login?role=agent" className="text-sm text-gray-500 hover:text-accent transition-colors">
-                    Vous êtes un professionnel ? <span className="font-medium">Espace agent</span> &rarr;
+                    {t('auth.youArePro')} <span className="font-medium">{t('auth.agentSpace')}</span> &rarr;
                   </Link>
                 )}
               </div>
@@ -291,15 +293,15 @@ export default function LoginPage() {
             <>
               <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
-                Retour
+                {t('auth.back')}
               </button>
 
-              <h1 className="text-xl font-semibold text-gray-900 mb-1">Bon retour !</h1>
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">{t('auth.welcomeBack')}</h1>
               <p className="text-sm text-gray-500 mb-6">{email}</p>
 
               <form onSubmit={handleLogin}>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Mot de passe
+                  {t('auth.password')}
                 </label>
                 <div className="relative">
                   <input
@@ -307,7 +309,7 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Votre mot de passe"
+                    placeholder={t('auth.passwordPlaceholder')}
                     required
                     autoFocus
                     className="w-full h-11 px-3.5 pr-10 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
@@ -315,7 +317,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -327,7 +329,7 @@ export default function LoginPage() {
                   onClick={() => { setStep('forgot'); setError(null) }}
                   className="text-xs text-gray-500 hover:text-accent mt-2 transition-colors"
                 >
-                  Mot de passe oublié ?
+                  {t('auth.forgotPassword')}
                 </button>
 
                 <button
@@ -335,7 +337,7 @@ export default function LoginPage() {
                   disabled={loading || !password}
                   className="w-full h-11 mt-5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Se connecter'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.signIn')}
                 </button>
               </form>
 
@@ -350,16 +352,16 @@ export default function LoginPage() {
             <>
               <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
-                Retour
+                {t('auth.back')}
               </button>
 
-              <h1 className="text-xl font-semibold text-gray-900 mb-1">Créer votre compte</h1>
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">{t('auth.createAccount')}</h1>
               <p className="text-sm text-gray-500 mb-6">{email}</p>
 
               <form onSubmit={handleRegister} className="space-y-3.5">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Prénom
+                    {t('auth.firstName')}
                   </label>
                   <input
                     id="firstName"
@@ -374,7 +376,7 @@ export default function LoginPage() {
 
                 <div>
                   <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Nom
+                    {t('auth.lastName')}
                   </label>
                   <input
                     id="lastName"
@@ -387,7 +389,7 @@ export default function LoginPage() {
 
                 <div>
                   <label htmlFor="regPassword" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Mot de passe <span className="text-gray-400 font-normal">(min 8 caractères)</span>
+                    {t('auth.password')} <span className="text-gray-500 font-normal">({t('auth.passwordMin')})</span>
                   </label>
                   <div className="relative">
                     <input
@@ -402,7 +404,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
                       tabIndex={-1}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -415,7 +417,7 @@ export default function LoginPage() {
                   disabled={loading || !firstName.trim() || password.length < 8}
                   className="w-full h-11 mt-1 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Créer mon compte'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.createMyAccount')}
                 </button>
               </form>
 
@@ -423,11 +425,11 @@ export default function LoginPage() {
                 <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
               )}
 
-              <p className="text-[11px] text-gray-400 text-center mt-4 leading-relaxed">
-                En créant un compte, vous acceptez nos{' '}
-                <Link to="/privacy" className="underline hover:text-gray-600">conditions d'utilisation</Link>
-                {' '}et notre{' '}
-                <Link to="/privacy" className="underline hover:text-gray-600">politique de confidentialité</Link>.
+              <p className="text-xs text-gray-500 text-center mt-4 leading-relaxed">
+                {t('auth.acceptTerms')}{' '}
+                <Link to="/privacy" className="underline hover:text-gray-600">{t('auth.termsOfUse')}</Link>
+                {' '}{t('auth.and')}{' '}
+                <Link to="/privacy" className="underline hover:text-gray-600">{t('auth.privacyPolicy')}</Link>.
               </p>
             </>
           )}
@@ -437,12 +439,12 @@ export default function LoginPage() {
             <>
               <button onClick={() => { setStep('login'); setError(null) }} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
-                Retour
+                {t('auth.back')}
               </button>
 
-              <h1 className="text-xl font-semibold text-gray-900 mb-1">Mot de passe oublié</h1>
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">{t('auth.forgotPasswordTitle')}</h1>
               <p className="text-sm text-gray-500 mb-6">
-                Nous enverrons un lien de réinitialisation à <strong>{email}</strong>
+                {t('auth.resetLinkSent')} <strong>{email}</strong>
               </p>
 
               <form onSubmit={handleForgotPassword}>
@@ -451,7 +453,7 @@ export default function LoginPage() {
                   disabled={loading}
                   className="w-full h-11 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Envoyer le lien'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.sendLink')}
                 </button>
               </form>
 
@@ -470,16 +472,16 @@ export default function LoginPage() {
                     <path d="M5 12l5 5L20 7" />
                   </svg>
                 </div>
-                <h1 className="text-xl font-semibold text-gray-900 mb-2">Email envoyé</h1>
+                <h1 className="text-xl font-semibold text-gray-900 mb-2">{t('auth.emailSent')}</h1>
                 <p className="text-sm text-gray-500">
-                  Vérifiez votre boîte de réception à <strong>{email}</strong>.
-                  Cliquez sur le lien pour réinitialiser votre mot de passe.
+                  {t('auth.checkInbox')} <strong>{email}</strong>.
+                  {t('auth.clickResetLink')}
                 </p>
                 <button
                   onClick={() => { setStep('login'); setError(null) }}
                   className="mt-6 text-sm text-gray-500 hover:text-accent transition-colors"
                 >
-                  Retour à la connexion
+                  {t('auth.backToLogin')}
                 </button>
               </div>
             </>
@@ -492,10 +494,10 @@ export default function LoginPage() {
         <LoginIllustration className="w-full h-full" />
         <div className="absolute bottom-8 left-8 right-8">
           <p className="text-white/90 text-lg font-medium">
-            La plateforme immobilière suisse
+            {t('auth.swissPlatform')}
           </p>
           <p className="text-white/60 text-sm mt-1">
-            38'000+ biens analysés dans 26 cantons
+            {t('auth.propertiesAnalyzed')}
           </p>
         </div>
       </div>

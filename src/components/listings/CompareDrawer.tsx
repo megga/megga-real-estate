@@ -55,7 +55,7 @@ function PhotoCarousel({ photos, title }: { photos: string[]; title: string }) {
   if (count === 0) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-50">
-        <Building2 className="h-8 w-8 text-gray-300" />
+        <Building2 className="h-8 w-8 text-gray-500" />
       </div>
     )
   }
@@ -79,7 +79,7 @@ function PhotoCarousel({ photos, title }: { photos: string[]; title: string }) {
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
-          <span className="absolute bottom-1.5 right-1.5 text-[10px] font-medium bg-black/50 text-white px-1.5 py-0.5 rounded-full">
+          <span className="absolute bottom-1.5 right-1.5 text-xs font-medium bg-black/50 text-white px-1.5 py-0.5 rounded-full">
             {idx + 1}/{count}
           </span>
         </>

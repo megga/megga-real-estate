@@ -2,15 +2,27 @@
   "title": "Pipeline",
   "deals_count": "{{count}} Deals",
   "new_deal": "Neuer Deal",
-  "view": { "kanban": "Kanban", "list": "Liste" },
+  "view": {
+    "kanban": "Kanban",
+    "list": "Liste"
+  },
   "kpi": {
     "active": "Aktiv",
     "pipeline_value": "Pipeline-Wert",
     "at_risk": "Gefährdet",
     "conversion": "Konversion"
   },
-  "filter": { "agent": "Agent", "stage": "Stufe" },
-  "column": { "contact": "Kontakt", "property": "Objekt", "price": "Preis", "stage": "Stufe", "activity": "Aktivität" },
+  "filter": {
+    "agent": "Agent",
+    "stage": "Stufe"
+  },
+  "column": {
+    "contact": "Kontakt",
+    "property": "Objekt",
+    "price": "Preis",
+    "stage": "Stufe",
+    "activity": "Aktivität"
+  },
   "drop_target": "Hier ablegen",
   "empty_title": "Erstellen Sie Ihren ersten Deal, um Ihre Transaktionen zu verfolgen",
   "empty_subtitle": "Jede Transaktion durchläuft eine Pipeline mit 14 Stufen.",
@@ -18,6 +30,8 @@
     "title": "Als verloren markieren?",
     "message": "Der Deal von {{name}} wird in die Spalte \"Verloren\" verschoben.",
     "reason_label": "Grund des Verlusts *",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
     "reasons": {
       "budget": "Budget unzureichend",
       "competitor": "Objekt anderweitig gekauft",
@@ -26,5 +40,18 @@
       "price": "Preis zu hoch",
       "other": "Anderer Grund"
     }
+  },
+  "search": "Suchen...",
+  "clear": "Löschen",
+  "dropHere": "Hier ablegen",
+  "overdueReminder": "Überfällige Erinnerung",
+  "lost": {
+    "select": "Auswählen...",
+    "budget": "Unzureichendes Budget",
+    "competitor": "Objekt anderswo gekauft",
+    "financing": "Finanzierung abgelehnt",
+    "withdrawal": "Rücktritt des Kunden",
+    "price": "Preis zu hoch",
+    "other": "Anderer Grund"
   }
 }

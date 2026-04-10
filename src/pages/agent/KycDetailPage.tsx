@@ -404,7 +404,7 @@ export default function KycDetailPage() {
         </div>
 
         {kyc.last_screening_at && (
-          <p className="text-[10px] text-theme-muted mt-4 flex items-center gap-1">
+          <p className="text-xs text-theme-muted mt-4 flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
             estimation IA — dernière vérification {formatRelativeDate(kyc.last_screening_at)}
           </p>
@@ -421,7 +421,7 @@ export default function KycDetailPage() {
           )}>
             {riskResult.score}/100
           </span>
-          <span className="text-[10px] text-theme-tertiary flex items-center gap-1 ml-auto">
+          <span className="text-xs text-theme-tertiary flex items-center gap-1 ml-auto">
             <Sparkles className="w-3 h-3" /> estimation IA
           </span>
         </div>
@@ -520,14 +520,14 @@ export default function KycDetailPage() {
                                         {item.label}
                                       </span>
                                       {item.is_required && (
-                                        <span className="text-[10px] font-medium text-theme-tertiary uppercase">Requis</span>
+                                        <span className="text-xs font-medium text-theme-tertiary capitalize">Requis</span>
                                       )}
                                     </div>
                                     {item.notes && (
                                       <p className="text-xs text-theme-tertiary mt-0.5">{item.notes}</p>
                                     )}
                                     {item.completed_at && (
-                                      <p className="text-[11px] text-theme-tertiary mt-0.5">
+                                      <p className="text-xs text-theme-tertiary mt-0.5">
                                         Complété {formatRelativeDate(item.completed_at)}
                                       </p>
                                     )}
@@ -635,8 +635,8 @@ export default function KycDetailPage() {
                           const daysUntil = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                           const isExpiringSoon = !isExpired && daysUntil <= 30
 
-                          if (isExpired) return <span className="text-[10px] font-medium text-red-500 ml-2">Expiré</span>
-                          if (isExpiringSoon) return <span className="text-[10px] font-medium text-amber-500 ml-2">Expire dans {daysUntil}j</span>
+                          if (isExpired) return <span className="text-xs font-medium text-red-500 ml-2">Expiré</span>
+                          if (isExpiringSoon) return <span className="text-xs font-medium text-amber-500 ml-2">Expire dans {daysUntil}j</span>
                           return null
                         })()}
                       </div>
@@ -722,7 +722,7 @@ export default function KycDetailPage() {
                           {event.metadata.provider === 'dilisense' && `Screening dilisense — ${(event.metadata as Record<string, unknown>).total_hits ?? 0} résultat(s)`}
                         </p>
                       )}
-                      <p className="text-[11px] text-theme-tertiary mt-1">
+                      <p className="text-xs text-theme-tertiary mt-1">
                         {event.actor_id === 'ai' ? 'Système IA' : event.actor_id} · {formatDate(event.created_at)} à {new Date(event.created_at).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>

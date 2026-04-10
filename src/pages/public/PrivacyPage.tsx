@@ -1,11 +1,14 @@
+import { useTranslation } from 'react-i18next'
+
 export default function PrivacyPage() {
+  const { t } = useTranslation('common')
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-4 py-16">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Politique de confidentialité</h1>
-        <p className="text-sm text-gray-500 mb-10">Dernière mise à jour : 26 mars 2026</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('privacy.title')}</h1>
+        <p className="text-sm text-gray-500 mb-10">{t('privacy.lastUpdated')}</p>
 
-        <div className="prose prose-gray max-w-none space-y-8 text-gray-700 text-[15px] leading-relaxed">
+        <div className="prose prose-gray max-w-none space-y-8 text-gray-700 text-sm leading-relaxed">
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">1. Responsable du traitement</h2>
             <p>

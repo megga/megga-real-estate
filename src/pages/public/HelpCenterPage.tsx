@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import HelpChatbot from '@/components/help/HelpChatbot'
@@ -54,6 +55,7 @@ const FALLBACK_ARTICLES = [
 // ── Popular Articles Carousel ──────────────────────────────────────────
 
 function PopularArticlesCarousel() {
+  const { t } = useTranslation('common')
   const [page, setPage] = useState(0)
   const [articles, setArticles] = useState(FALLBACK_ARTICLES)
 
@@ -83,8 +85,8 @@ function PopularArticlesCarousel() {
         {/* Header + arrows */}
         <div className="flex items-end justify-between mb-10">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white">Articles populaires</h2>
-            <p className="text-base text-gray-400 mt-2">Réponses rapides aux questions fréquentes.</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-white">{t('help.popularArticles')}</h2>
+            <p className="text-base text-gray-400 mt-2">{t('help.popularArticlesDesc')}</p>
           </div>
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
@@ -129,7 +131,7 @@ function PopularArticlesCarousel() {
               </p>
 
               <span className="text-xs text-blue-600 font-semibold flex items-center gap-1.5 group-hover:gap-2.5 transition-all mt-auto">
-                Lire l'article <ArrowRight className="h-3.5 w-3.5" />
+                {t('help.readArticle')} <ArrowRight className="h-3.5 w-3.5" />
               </span>
             </Link>
           ))}
@@ -157,20 +159,21 @@ function PopularArticlesCarousel() {
 // ── Page ────────────────────────────────────────────────────────────────
 
 export default function HelpCenterPage() {
+  const { t } = useTranslation('common')
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
 
       {/* ── Hero section ── */}
       <div className="max-w-4xl mx-auto px-6 md:px-10 pt-20 md:pt-28 pb-16 md:pb-20 text-center">
-        <h1 className="text-4xl md:text-[56px] font-bold text-gray-900 tracking-tight leading-[1.1]">
-          Comment pouvons-nous
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight leading-[1.1]">
+          {t('help.howCanWeHelp')}
           <br />
-          <span className="text-blue-600">vous aider</span> ?
+          <span className="text-blue-600">{t('help.helpYou')}</span> ?
         </h1>
 
         <p className="text-gray-500 mt-5 text-lg max-w-md mx-auto leading-relaxed">
-          Guides, tutoriels et réponses rapides pour tirer le meilleur de MEGGA.
+          {t('help.guidesSubtitle')}
         </p>
 
         {/* Search bar */}
@@ -182,7 +185,7 @@ export default function HelpCenterPage() {
 
         {/* Quick links */}
         <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
-          <span className="text-xs text-gray-400">Populaires :</span>
+          <span className="text-xs text-gray-500">{t('help.popular')} :</span>
           {['Importer contacts', 'KYC', 'Matching', 'Calendrier'].map(tag => (
             <span key={tag} className="text-xs text-gray-500 px-3 py-1 rounded-full border border-gray-200 hover:border-gray-300 hover:text-gray-700 cursor-pointer transition-colors">
               {tag}
@@ -209,10 +212,10 @@ export default function HelpCenterPage() {
               <div className="flex items-end justify-between px-7 pb-6 pt-3">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 leading-snug">{persona.label}</h2>
-                  <p className="text-sm text-gray-400 mt-1">{persona.subtitle}</p>
+                  <p className="text-sm text-gray-500 mt-1">{persona.subtitle}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full border-2 border-gray-200 group-hover:border-gray-900 group-hover:bg-gray-900 flex items-center justify-center transition-all flex-shrink-0 ml-3">
-                  <ArrowRight className="h-4.5 w-4.5 text-gray-400 group-hover:text-white transition-colors" />
+                  <ArrowRight className="h-4.5 w-4.5 text-gray-500 group-hover:text-white transition-colors" />
                 </div>
               </div>
             </Link>
@@ -229,7 +232,7 @@ export default function HelpCenterPage() {
           to="/aide/ressources"
           className="h-12 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2"
         >
-          Parcourir tous les guides <ArrowRight className="h-4 w-4" />
+          {t('help.browseAllGuides')} <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
 
@@ -244,16 +247,16 @@ export default function HelpCenterPage() {
 
           {/* Text + CTA side */}
           <div className="md:w-[45%] flex flex-col justify-center p-8 md:p-12">
-            <h2 className="text-2xl md:text-[28px] font-bold text-gray-900 mb-3 leading-tight">Contactez-nous</h2>
-            <p className="text-[15px] text-gray-500 mb-8 leading-relaxed">
-              Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">{t('help.contactUs')}</h2>
+            <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+              {t('help.contactSubtitle')}
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/aide/contact"
                 className="h-12 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center"
               >
-                Contactez-nous
+                {t('help.contactUs')}
               </Link>
             </div>
           </div>

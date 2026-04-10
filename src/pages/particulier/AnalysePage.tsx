@@ -68,7 +68,7 @@ function StatCard({ label, value, subtitle }: {
 }) {
   return (
     <div className="rounded-xl border border-theme-border p-4">
-      <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-xs text-theme-muted capitalize mb-1">{label}</p>
       <p className="text-xl font-bold text-theme-primary">{value}</p>
       {subtitle && <p className="text-xs text-theme-tertiary mt-0.5">{subtitle}</p>}
     </div>
@@ -88,10 +88,10 @@ function ActivityBar({ data, maxVisits }: { data: WeekActivity; maxVisits: numbe
           style={{ height: `${Math.max(height, 8)}%` }}
         />
       </div>
-      <span className="text-[10px] text-theme-muted">{data.week}</span>
-      <span className="text-[10px] font-medium text-theme-tertiary">{data.visits}</span>
+      <span className="text-xs text-theme-muted">{data.week}</span>
+      <span className="text-xs font-medium text-theme-tertiary">{data.visits}</span>
       {/* Tooltip with date range */}
-      <span className="absolute -bottom-5 text-[9px] text-theme-muted opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+      <span className="absolute -bottom-5 text-xs text-theme-muted opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
         {data.label}
       </span>
     </div>
@@ -166,7 +166,7 @@ export default function AnalysePage() {
 
       {/* Price positioning — simplified, no scale widget */}
       <div className="rounded-xl border border-theme-border p-5">
-        <h2 className="text-[10px] text-theme-muted uppercase tracking-wider mb-4">Positionnement prix</h2>
+        <h2 className="text-xs text-theme-muted capitalize mb-4">Positionnement prix</h2>
 
         <div className="grid grid-cols-2 gap-6">
           <div>
@@ -188,24 +188,24 @@ export default function AnalysePage() {
         {/* Simple bar comparison */}
         <div className="mt-5 pt-4 border-t border-theme-border-subtle space-y-2.5">
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-theme-muted w-20 shrink-0">Votre bien</span>
+            <span className="text-xs text-theme-muted w-20 shrink-0">Votre bien</span>
             <div className="flex-1 h-2 rounded-full bg-theme-hover overflow-hidden">
               <div
                 className="h-full rounded-full bg-theme-primary transition-all duration-500"
                 style={{ width: `${Math.min(100, (pricePerM2 / (MARKET_STATS.avg_price_m2_quartier * 1.3)) * 100)}%` }}
               />
             </div>
-            <span className="text-[10px] font-medium text-theme-primary w-20 text-right">CHF {pricePerM2.toLocaleString('fr-CH')}</span>
+            <span className="text-xs font-medium text-theme-primary w-20 text-right">CHF {pricePerM2.toLocaleString('fr-CH')}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-theme-muted w-20 shrink-0">Moy. quartier</span>
+            <span className="text-xs text-theme-muted w-20 shrink-0">Moy. quartier</span>
             <div className="flex-1 h-2 rounded-full bg-theme-hover overflow-hidden">
               <div
                 className="h-full rounded-full bg-theme-primary/40 transition-all duration-500"
                 style={{ width: `${Math.min(100, (MARKET_STATS.avg_price_m2_quartier / (MARKET_STATS.avg_price_m2_quartier * 1.3)) * 100)}%` }}
               />
             </div>
-            <span className="text-[10px] text-theme-muted w-20 text-right">CHF {MARKET_STATS.avg_price_m2_quartier.toLocaleString('fr-CH')}</span>
+            <span className="text-xs text-theme-muted w-20 text-right">CHF {MARKET_STATS.avg_price_m2_quartier.toLocaleString('fr-CH')}</span>
           </div>
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function AnalysePage() {
 
       {/* Weekly activity chart — monochrome bars, date labels */}
       <div className="rounded-xl border border-theme-border p-5">
-        <h2 className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Activité par semaine</h2>
+        <h2 className="text-xs text-theme-muted capitalize mb-1">Activité par semaine</h2>
         <p className="text-xs text-theme-tertiary mb-4">Visites physiques · 6 dernières semaines</p>
 
         <div className="flex items-end gap-1 relative pb-2">
@@ -250,13 +250,13 @@ export default function AnalysePage() {
       <div className="rounded-xl border border-theme-border p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-[10px] text-theme-muted uppercase tracking-wider">Biens comparables vendus</h2>
+            <h2 className="text-xs text-theme-muted capitalize">Biens comparables vendus</h2>
             <p className="text-xs text-theme-tertiary mt-0.5">
               Appartements 4-6 pièces vendus récemment à Genève
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-theme-muted">Prix moyen / m²</p>
+            <p className="text-xs text-theme-muted">Prix moyen / m²</p>
             <p className="text-sm font-bold text-theme-primary">CHF {avgComparablePriceM2.toLocaleString('fr-CH')}</p>
           </div>
         </div>
@@ -274,7 +274,7 @@ export default function AnalysePage() {
                 {/* Address */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-theme-primary truncate">{comp.address}</p>
-                  <p className="text-[10px] text-theme-muted">
+                  <p className="text-xs text-theme-muted">
                     {comp.rooms} pièces · {comp.surface_m2} m² · Vendu le {formatDate(comp.sold_at)}
                   </p>
                 </div>
@@ -282,7 +282,7 @@ export default function AnalysePage() {
                 {/* Price */}
                 <div className="text-right shrink-0">
                   <p className="text-sm font-semibold text-theme-primary">{formatCHF(comp.price)}</p>
-                  <p className="text-[10px] text-theme-muted">
+                  <p className="text-xs text-theme-muted">
                     CHF {compPriceM2.toLocaleString('fr-CH')}/m²
                   </p>
                 </div>
@@ -292,7 +292,7 @@ export default function AnalysePage() {
                   <p className="text-xs font-medium text-theme-secondary">
                     {parseFloat(vsYours) > 0 ? '+' : ''}{vsYours}%
                   </p>
-                  <p className="text-[9px] text-theme-muted">{comp.days_on_market}j</p>
+                  <p className="text-xs text-theme-muted">{comp.days_on_market}j</p>
                 </div>
               </div>
             )
@@ -310,7 +310,7 @@ export default function AnalysePage() {
       </div>
 
       {/* Disclaimer */}
-      <p className="text-[10px] text-theme-muted text-center pt-2">
+      <p className="text-xs text-theme-muted text-center pt-2">
         Données indicatives basées sur les transactions récentes du secteur. Ne constitue pas une estimation certifiée.
       </p>
     </div>

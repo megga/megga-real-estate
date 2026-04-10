@@ -89,7 +89,7 @@ function OfferCard({ offer, askingPrice, onReply }: { offer: SellerOffer; asking
       {/* Conditions */}
       {offer.conditions && (
         <div className="mt-4 pt-3 border-t border-theme-border-subtle">
-          <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Conditions</p>
+          <p className="text-xs text-theme-muted capitalize mb-1">Conditions</p>
           <p className="text-sm text-theme-secondary leading-relaxed">{offer.conditions}</p>
         </div>
       )}
@@ -173,7 +173,7 @@ function ReplyModal({ offer, onClose, onSend }: { offer: SellerOffer; onClose: (
               )}
               placeholder="Votre message..."
             />
-            <p className="text-[10px] text-theme-muted mt-1.5">
+            <p className="text-xs text-theme-muted mt-1.5">
               Ce message sera envoyé à Gregory Lyonnet via la messagerie du portail.
             </p>
             <div className="flex justify-end mt-4">
@@ -264,7 +264,7 @@ export default function MesOffresPage() {
       </div>
 
       {/* Note de transparence */}
-      <p className="text-[10px] text-theme-muted text-center pt-2">
+      <p className="text-xs text-theme-muted text-center pt-2">
         Les informations sur les acquéreurs sont anonymisées pour protéger la confidentialité des parties.
       </p>
 

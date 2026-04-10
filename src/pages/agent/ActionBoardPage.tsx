@@ -96,13 +96,13 @@ function ActionSection({
     )}>
       {/* Section header */}
       <div className="flex items-center gap-2.5 mb-3">
-        <h2 className={cn('text-[11px] uppercase tracking-[0.08em] font-semibold', config.iconColor)}>
+        <h2 className={cn('text-xs capitalize font-semibold', config.iconColor)}>
           {t(config.titleKey)}
         </h2>
         {!isEmpty && (
           <span className={cn(
             'ml-1 text-xs font-semibold px-2 py-0.5 rounded-full min-w-[22px] text-center',
-            BADGE_COLORS[config.key] || 'bg-gray-500/15 text-gray-400'
+            BADGE_COLORS[config.key] || 'bg-gray-500/15 text-gray-500'
           )}>
             {actions.length}
           </span>
@@ -142,14 +142,16 @@ function ActionSection({
 // ── Seller Lead Card ────────────────────────────────────────────────────────
 
 function SellerLeadCard({ lead }: { lead: SellerLeadRow }) {
+  const { t } = useTranslation('dashboard')
   const { profile } = useAuth()
   const acceptLead = useAcceptSellerLead()
   const rejectLead = useRejectSellerLead()
   const [expanded, setExpanded] = useState(false)
 
   const pd = lead.property_data
-  const typeLabel = pd?.type === 'apartment' ? 'Appartement' : pd?.type === 'house' ? 'Maison' : pd?.type === 'villa' ? 'Villa' : pd?.type === 'land' ? 'Terrain' : pd?.type || 'Bien'
-  const motivLabel = lead.motivation === 'immediate' ? 'Immédiate' : lead.motivation === '3months' ? '3 mois' : lead.motivation === '6months' ? '6 mois' : 'Exploration'
+  const TYPE_MAP: Record<string, string> = { apartment: 'Appartement', house: 'Maison', villa: 'Villa', land: 'Terrain' }
+  const typeLabel = TYPE_MAP[pd?.type ?? ''] || pd?.type || 'Bien'
+  const motivLabel = t(`actionBoard.motivations.${lead.motivation ?? 'exploring'}`)
   const isLoading = acceptLead.isPending || rejectLead.isPending
 
   function handleAccept(e: React.MouseEvent) {
@@ -171,7 +173,10 @@ function SellerLeadCard({ lead }: { lead: SellerLeadRow }) {
   return (
     <div
       className="rounded-lg border border-theme-border p-4 hover:border-theme-active transition-colors cursor-pointer"
+      role="button"
+      tabIndex={0}
       onClick={() => setExpanded(!expanded)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded) } }}
     >
       <div className="flex items-start gap-3">
         {/* Photo or icon */}
@@ -186,7 +191,7 @@ function SellerLeadCard({ lead }: { lead: SellerLeadRow }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium text-theme-primary truncate">{lead.contact_name}</p>
-            <span className="text-[10px] text-theme-muted flex-shrink-0">{formatRelativeDate(lead.created_at)}</span>
+            <span className="text-xs text-theme-muted flex-shrink-0">{formatRelativeDate(lead.created_at)}</span>
           </div>
           <p className="text-xs text-theme-secondary mt-0.5">
             {typeLabel} {pd?.rooms}p · {pd?.surface} m² · {pd?.city || pd?.canton}
@@ -213,7 +218,7 @@ function SellerLeadCard({ lead }: { lead: SellerLeadRow }) {
             <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {lead.contact_email}</span>
           </div>
           <div className="text-xs text-theme-muted">
-            Motivation : <span className="text-theme-secondary font-medium">{motivLabel}</span>
+            {t('actionBoard.motivation')} : <span className="text-theme-secondary font-medium">{motivLabel}</span>
           </div>
 
           {/* Photo thumbnails */}
@@ -240,7 +245,7 @@ function SellerLeadCard({ lead }: { lead: SellerLeadRow }) {
           className="h-8 px-3.5 rounded-lg text-xs font-medium border border-accent/30 text-accent hover:bg-accent/5 transition-colors flex items-center gap-1.5 disabled:opacity-50"
         >
           {acceptLead.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          Accepter
+          {t('actionBoard.accept')}
         </button>
         <button
           onClick={handleReject}
@@ -248,11 +253,11 @@ function SellerLeadCard({ lead }: { lead: SellerLeadRow }) {
           className="h-8 px-3.5 rounded-lg text-xs font-medium text-theme-muted hover:text-theme-secondary transition-colors flex items-center gap-1.5 disabled:opacity-50"
         >
           {rejectLead.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-          Rejeter
+          {t('actionBoard.reject')}
         </button>
         {acceptLead.isSuccess && (
           <span className="text-xs text-emerald-500 flex items-center gap-1 ml-auto">
-            <CheckCircle2 className="h-3 w-3" /> Accepté
+            <CheckCircle2 className="h-3 w-3" /> {t('actionBoard.accepted')}
           </span>
         )}
       </div>
@@ -263,13 +268,14 @@ function SellerLeadCard({ lead }: { lead: SellerLeadRow }) {
 // ── Seller Leads Section ────────────────────────────────────────────────────
 
 function SellerLeadsSection({ leads }: { leads: SellerLeadRow[] }) {
+  const { t } = useTranslation('dashboard')
   if (leads.length === 0) return null
 
   return (
     <div className="rounded-xl px-5 py-4 border border-purple-500/40">
       <div className="flex items-center gap-2.5 mb-3">
-        <h2 className="text-[11px] uppercase tracking-[0.08em] font-semibold text-purple-400">
-          Nouveaux leads vendeurs
+        <h2 className="text-xs capitalize font-semibold text-purple-400">
+          {t('actionBoard.sellerLeads')}
         </h2>
         <span className="ml-1 text-xs font-semibold px-2 py-0.5 rounded-full min-w-[22px] text-center bg-purple-500/15 text-purple-400">
           {leads.length}

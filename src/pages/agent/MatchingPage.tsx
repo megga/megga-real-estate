@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, ChevronDown, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import EmptyMatchingIllustration from '@/components/illustrations/EmptyMatchingIllustration'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
@@ -20,6 +21,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
   onClose: () => void
   onSend: () => void
 }) {
+  const { t } = useTranslation('matching')
   const [photoIdx, setPhotoIdx] = useState(0)
   const listing = match.listing
   const photos = listing.photos || []
@@ -83,7 +85,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
               <X className="w-4 h-4 text-white" />
             </button>
             {/* Photo count */}
-            <span className="absolute bottom-3 right-3 text-[11px] text-white/70 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-md">
+            <span className="absolute bottom-3 right-3 text-xs text-white/70 bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-md">
               {photoIdx + 1}/{photos.length}
             </span>
           </div>
@@ -106,30 +108,30 @@ function MatchPreviewModal({ match, onClose, onSend }: {
           {/* Key stats */}
           <div className="flex gap-6 py-3 border-y border-theme-border-subtle mb-4">
             <div>
-              <p className="text-xs text-theme-tertiary">Pièces</p>
+              <p className="text-xs text-theme-tertiary">{t('preview.rooms')}</p>
               <p className="text-sm font-medium text-theme-primary">{listing.rooms}</p>
             </div>
             <div>
-              <p className="text-xs text-theme-tertiary">Chambres</p>
+              <p className="text-xs text-theme-tertiary">{t('preview.bedrooms')}</p>
               <p className="text-sm font-medium text-theme-primary">{listing.bedrooms}</p>
             </div>
             <div>
-              <p className="text-xs text-theme-tertiary">Surface</p>
+              <p className="text-xs text-theme-tertiary">{t('preview.surface')}</p>
               <p className="text-sm font-medium text-theme-primary">{listing.surface_m2} m²</p>
             </div>
             {listing.floor != null && (
               <div>
-                <p className="text-xs text-theme-tertiary">Étage</p>
+                <p className="text-xs text-theme-tertiary">{t('preview.floor')}</p>
                 <p className="text-sm font-medium text-theme-primary">{listing.floor}/{listing.total_floors}</p>
               </div>
             )}
             <div>
-              <p className="text-xs text-theme-tertiary">Année</p>
+              <p className="text-xs text-theme-tertiary">{t('preview.year')}</p>
               <p className="text-sm font-medium text-theme-primary">{listing.year_built}</p>
             </div>
             {listing.charges_monthly > 0 && (
               <div>
-                <p className="text-xs text-theme-tertiary">Charges</p>
+                <p className="text-xs text-theme-tertiary">{t('preview.charges')}</p>
                 <p className="text-sm font-medium text-theme-primary">{formatCHF(listing.charges_monthly)}/mois</p>
               </div>
             )}
@@ -145,7 +147,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
           {/* Features */}
           {Object.keys(listing.features).length > 0 && (
             <div className="mb-5">
-              <p className="text-xs text-theme-tertiary mb-2">Caractéristiques</p>
+              <p className="text-xs text-theme-tertiary mb-2">{t('preview.features')}</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 {Object.entries(listing.features).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between py-1 border-b border-theme-border-subtle">
@@ -160,7 +162,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
           {/* Score breakdown */}
           <div className="rounded-lg border border-theme-border p-4 mb-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-theme-primary">Score de compatibilité</p>
+              <p className="text-sm font-medium text-theme-primary">{t('preview.compatibilityScore')}</p>
               <p className="text-sm font-semibold text-theme-primary">{match.score}%</p>
             </div>
             <div className="h-1.5 bg-theme-border rounded-full overflow-hidden mb-3">
@@ -181,24 +183,24 @@ function MatchPreviewModal({ match, onClose, onSend }: {
           {match.source === 'market' && listing.source_portal && (
             <div className="flex items-center gap-4 py-2.5 px-3 rounded-lg border border-theme-border-subtle mb-4">
               <div>
-                <p className="text-[10px] text-theme-tertiary">Source</p>
+                <p className="text-xs text-theme-tertiary">{t('preview.source')}</p>
                 <p className="text-xs font-medium text-theme-primary">{listing.source_portal}</p>
               </div>
               {listing.agency_name && (
                 <div>
-                  <p className="text-[10px] text-theme-tertiary">Agence</p>
+                  <p className="text-xs text-theme-tertiary">{t('preview.agency')}</p>
                   <p className="text-xs font-medium text-theme-primary">{listing.agency_name}</p>
                 </div>
               )}
               {listing.price_per_m2 != null && listing.price_per_m2 > 0 && (
                 <div>
-                  <p className="text-[10px] text-theme-tertiary">Prix/m²</p>
+                  <p className="text-xs text-theme-tertiary">{t('preview.pricePerM2')}</p>
                   <p className="text-xs font-medium text-theme-primary">{formatCHF(listing.price_per_m2)}</p>
                 </div>
               )}
               {(listing.days_on_market ?? 0) > 0 && (
                 <div>
-                  <p className="text-[10px] text-theme-tertiary">En ligne</p>
+                  <p className="text-xs text-theme-tertiary">{t('preview.online')}</p>
                   <p className="text-xs font-medium text-theme-primary">{listing.days_on_market}j</p>
                 </div>
               )}
@@ -207,7 +209,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
 
           {/* Match for contact */}
           <p className="text-xs text-theme-tertiary mb-4">
-            Match pour <span className="font-medium text-theme-primary">{match.contactName}</span>
+            {t('preview.matchFor')} <span className="font-medium text-theme-primary">{match.contactName}</span>
           </p>
 
           {/* Actions */}
@@ -216,7 +218,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
               onClick={onClose}
               className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
             >
-              Fermer
+              {t('preview.close')}
             </button>
             {match.source === 'market' && listing.source_url && (
               <a
@@ -225,7 +227,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
                 rel="noopener noreferrer"
                 className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center"
               >
-                Voir l'annonce
+                {t('preview.seeAd')}
               </a>
             )}
             {!isSent && (
@@ -233,7 +235,7 @@ function MatchPreviewModal({ match, onClose, onSend }: {
                 onClick={onSend}
                 className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors"
               >
-                Envoyer au client
+                {t('preview.sendToClient')}
               </button>
             )}
           </div>
@@ -251,6 +253,7 @@ function MatchCard({ match, onSend, onPreview }: {
   onSend: () => void
   onPreview: () => void
 }) {
+  const { t } = useTranslation('matching')
   const isSent = match.status === 'sent'
 
   const matchedReasons = [
@@ -263,7 +266,10 @@ function MatchCard({ match, onSend, onPreview }: {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onPreview}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPreview() } }}
       className={cn(
         'rounded-xl border overflow-hidden transition-all group cursor-pointer',
         isSent ? 'border-theme-border-subtle opacity-60' : 'border-theme-border hover:border-theme-active',
@@ -279,7 +285,7 @@ function MatchCard({ match, onSend, onPreview }: {
           />
           {match.source === 'market' && (
             <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-md px-2 py-1">
-              <span className="text-[10px] text-white/80 font-medium">
+              <span className="text-xs text-white/80 font-medium">
                 {match.listing.source_portal || 'Marché'}
               </span>
             </div>
@@ -306,7 +312,7 @@ function MatchCard({ match, onSend, onPreview }: {
 
         {/* Reasons — monochrome text */}
         {matchedReasons.length > 0 && (
-          <p className="text-[10px] text-theme-secondary mt-1.5">
+          <p className="text-xs text-theme-secondary mt-1.5">
             {matchedReasons.join(' · ')}
           </p>
         )}
@@ -315,9 +321,9 @@ function MatchCard({ match, onSend, onPreview }: {
         <div className="flex items-center justify-end mt-3">
           {isSent ? (
             <div className="text-right">
-              <p className="text-[11px] text-theme-muted">Envoyé par {match.sentVia}</p>
+              <p className="text-xs text-theme-muted">{t('card.sentBy', { channel: match.sentVia })}</p>
               {match.sentAt && (
-                <p className="text-[10px] text-theme-muted">{formatRelativeDate(match.sentAt)}</p>
+                <p className="text-xs text-theme-muted">{formatRelativeDate(match.sentAt)}</p>
               )}
             </div>
           ) : (
@@ -325,7 +331,7 @@ function MatchCard({ match, onSend, onPreview }: {
               onClick={onSend}
               className="text-xs font-medium text-theme-tertiary opacity-0 group-hover:opacity-100 hover:text-theme-primary transition-all"
             >
-              Envoyer →
+              {t('card.sendTo')}
             </button>
           )}
         </div>
@@ -340,9 +346,13 @@ function ExternalMatchCard({ listing, onNavigate }: {
   listing: ExternalListing
   onNavigate: (listing: ExternalListing) => void
 }) {
+  const { t } = useTranslation('matching')
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onNavigate(listing)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate(listing) } }}
       className="rounded-xl border border-theme-border overflow-hidden group hover:border-theme-active transition-colors cursor-pointer"
     >
       {listing.photo_url ? (
@@ -358,14 +368,14 @@ function ExternalMatchCard({ listing, onNavigate }: {
             {listing.source_logo_url && (
               <img src={listing.source_logo_url} alt="" className="h-3 w-3 rounded-sm" />
             )}
-            <span className="text-[10px] text-white/80 font-medium">
+            <span className="text-xs text-white/80 font-medium">
               {listing.source_portal}
             </span>
           </div>
         </div>
       ) : (
         <div className="aspect-[16/10] bg-theme-section flex items-center justify-center">
-          <span className="text-theme-tertiary text-xs">Pas de photo</span>
+          <span className="text-theme-tertiary text-xs">{t('card.noPhoto')}</span>
         </div>
       )}
 
@@ -389,14 +399,14 @@ function ExternalMatchCard({ listing, onNavigate }: {
         </p>
 
         {listing.source_agency && (
-          <p className="text-[10px] text-theme-muted mt-2">
+          <p className="text-xs text-theme-muted mt-2">
             via {listing.source_agency}
           </p>
         )}
 
         <div className="flex items-center gap-2 mt-3 pt-2 border-t border-theme-border">
           <span className="flex-1 h-8 flex items-center justify-center rounded-lg text-xs font-medium text-theme-tertiary opacity-0 group-hover:opacity-100 transition-all">
-            Voir la fiche →
+            {t('card.seeSheet')}
           </span>
         </div>
       </div>
@@ -408,16 +418,17 @@ function ExternalMatchCard({ listing, onNavigate }: {
 
 type SortBy = 'score' | 'price_asc' | 'price_desc' | 'date'
 
-const SORT_LABELS: Record<SortBy, string> = {
-  score: 'Score',
-  price_asc: 'Prix ↑',
-  price_desc: 'Prix ↓',
-  date: 'Récent',
+const SORT_KEYS: Record<SortBy, string> = {
+  score: 'sort.score',
+  price_asc: 'sort.priceAsc',
+  price_desc: 'sort.priceDesc',
+  date: 'sort.recent',
 }
 
 const selectClasses = 'h-9 px-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
 
 export default function MatchingPage() {
+  const { t } = useTranslation('matching')
   const navigate = useNavigate()
   const { suggested, sent, internalMatches, marketMatches, sendMatch, runMatching, isRunning } = useMatching()
   const { contacts: allBuyerContacts } = useContacts({ type: 'buyer' })
@@ -529,9 +540,9 @@ export default function MatchingPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-theme-primary">Matching</h1>
+            <h1 className="text-2xl font-semibold text-theme-primary">{t('title')}</h1>
             <p className="text-sm text-theme-tertiary mt-0.5">
-              Acheteurs ↔ Biens compatibles
+              {t('subtitle')}
             </p>
           </div>
           <button
@@ -543,7 +554,7 @@ export default function MatchingPage() {
             disabled={isRunning || !contactFilter}
             className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40"
           >
-            {isRunning ? 'Analyse en cours...' : 'Lancer le matching'}
+            {isRunning ? t('running') : t('runMatching')}
           </button>
         </div>
 
@@ -558,7 +569,7 @@ export default function MatchingPage() {
                 : 'text-theme-secondary hover:text-theme-primary'
             )}
           >
-            Portefeuille
+            {t('portfolio')}
           </button>
           <button
             onClick={() => setActiveMainTab('external')}
@@ -569,7 +580,7 @@ export default function MatchingPage() {
                 : 'text-theme-secondary hover:text-theme-primary'
             )}
           >
-            Marché
+            {t('market')}
             {externalListings && externalListings.length > 0 && (
               <span className="ml-1.5 text-xs text-theme-tertiary">{externalListings.length}</span>
             )}
@@ -580,22 +591,22 @@ export default function MatchingPage() {
         {/* KPI Summary */}
         <div className="flex items-center gap-6 py-3 px-4 rounded-xl border border-theme-border">
           <div>
-            <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">Total matchs</p>
+            <p className="text-xs text-theme-tertiary capitalize">{t('kpi.totalMatches')}</p>
             <p className="text-lg font-semibold text-theme-primary">{suggested.length + sent.length}</p>
           </div>
           <div className="h-8 w-px bg-theme-border" />
           <div>
-            <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">À envoyer</p>
+            <p className="text-xs text-theme-tertiary capitalize">{t('kpi.toSend')}</p>
             <p className="text-lg font-semibold text-theme-primary">{suggested.length}</p>
           </div>
           <div className="h-8 w-px bg-theme-border" />
           <div>
-            <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">Envoyés</p>
+            <p className="text-xs text-theme-tertiary capitalize">{t('kpi.sent')}</p>
             <p className="text-lg font-semibold text-theme-primary">{sent.length}</p>
           </div>
           <div className="h-8 w-px bg-theme-border" />
           <div>
-            <p className="text-[11px] text-theme-tertiary uppercase tracking-wider">Contacts</p>
+            <p className="text-xs text-theme-tertiary capitalize">{t('kpi.contacts')}</p>
             <p className="text-lg font-semibold text-theme-primary">{groupedByContact.length}</p>
           </div>
         </div>
@@ -623,7 +634,7 @@ export default function MatchingPage() {
                   filterBy === f ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
                 )}
               >
-                {f === 'all' ? 'Tous' : f === 'suggested' ? 'À envoyer' : 'Envoyés'}
+                {f === 'all' ? t('filter.all') : f === 'suggested' ? t('filter.suggested') : t('filter.sentLabel')}
               </button>
             ))}
           </div>
@@ -639,7 +650,7 @@ export default function MatchingPage() {
                   sourceFilter === f ? 'bg-theme-active text-theme-primary' : 'text-theme-tertiary hover:text-theme-secondary'
                 )}
               >
-                {f === 'all' ? 'Tous' : f === 'internal' ? `Interne${internalMatches.length ? ` (${internalMatches.length})` : ''}` : `Marché${marketMatches.length ? ` (${marketMatches.length})` : ''}`}
+                {f === 'all' ? t('filter.all') : f === 'internal' ? `${t('filter.internal')}${internalMatches.length ? ` (${internalMatches.length})` : ''}` : `${t('filter.marketLabel')}${marketMatches.length ? ` (${marketMatches.length})` : ''}`}
               </button>
             ))}
           </div>
@@ -656,8 +667,8 @@ export default function MatchingPage() {
           {/* Sort */}
           <div className="relative">
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className={selectClasses}>
-              {(Object.entries(SORT_LABELS) as [SortBy, string][]).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
+              {(Object.entries(SORT_KEYS) as [SortBy, string][]).map(([val, key]) => (
+                <option key={val} value={val}>{t(key)}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
@@ -665,7 +676,7 @@ export default function MatchingPage() {
 
           {(search || contactFilter || filterBy !== 'all' || sourceFilter !== 'all') && (
             <button onClick={() => { setSearch(''); setContactFilter(''); setFilterBy('all'); setSourceFilter('all') }} className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors">
-              Effacer
+              {t('filter.clear')}
             </button>
           )}
         </div>
@@ -676,10 +687,10 @@ export default function MatchingPage() {
             <div className="h-12 w-12 rounded-full bg-theme-active flex items-center justify-center mx-auto mb-3">
               <Search className="h-6 w-6 text-theme-tertiary" />
             </div>
-            <p className="text-sm font-medium text-theme-secondary">Ajoutez des critères de recherche à vos contacts</p>
-            <p className="text-xs text-theme-tertiary mt-1 mb-4">Le matching compare automatiquement les critères de vos acheteurs avec les biens disponibles.</p>
+            <p className="text-sm font-medium text-theme-secondary">{t('empty.title')}</p>
+            <p className="text-xs text-theme-tertiary mt-1 mb-4">{t('empty.desc')}</p>
             <a href="/dashboard/contacts" className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors inline-flex items-center">
-              Voir mes contacts
+              {t('empty.cta')}
             </a>
           </div>
         ) : (
@@ -688,7 +699,7 @@ export default function MatchingPage() {
               <div key={contactId}>
                 {/* Contact header */}
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="h-7 w-7 rounded-full bg-theme-active flex items-center justify-center text-[10px] font-semibold text-theme-secondary shrink-0">
+                  <div className="h-7 w-7 rounded-full bg-theme-active flex items-center justify-center text-xs font-semibold text-theme-secondary shrink-0">
                     {group.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                   <h2 className="text-sm font-semibold text-theme-primary">{group.name}</h2>

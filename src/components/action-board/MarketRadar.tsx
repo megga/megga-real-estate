@@ -24,7 +24,7 @@ export default function MarketRadar() {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-theme-primary">Radar marché</h3>
-        <div className="flex items-center gap-3 text-[10px]">
+        <div className="flex items-center gap-3 text-xs">
           {newListings.length > 0 && <span className="text-emerald-500 font-medium">{newListings.length} nouveaux</span>}
           {priceDrops.length > 0 && <span className="text-blue-500 font-medium">{priceDrops.length} baisses</span>}
           {removed.length > 0 && <span className="text-theme-muted">{removed.length} retirés</span>}
@@ -42,15 +42,15 @@ export default function MarketRadar() {
                 <p className="text-xs text-theme-primary truncate">
                   {change.listing_title || `${change.listing_type} ${change.listing_rooms ?? ''}p`}
                 </p>
-                <p className="text-[10px] text-theme-tertiary truncate">
+                <p className="text-xs text-theme-tertiary truncate">
                   {change.listing_city}{change.listing_canton ? ` (${change.listing_canton})` : ''}
                   {change.new_price ? ` — ${formatCHF(change.new_price)}` : ''}
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <span className={cn('text-[10px] font-medium', config.text)}>{config.label}</span>
+                <span className={cn('text-xs font-medium', config.text)}>{config.label}</span>
                 {change.change_pct != null && change.change_pct !== 0 && (
-                  <p className={cn('text-[10px]', change.change_pct < 0 ? 'text-blue-500' : 'text-amber-500')}>
+                  <p className={cn('text-xs', change.change_pct < 0 ? 'text-blue-500' : 'text-amber-500')}>
                     {change.change_pct > 0 ? '+' : ''}{change.change_pct}%
                   </p>
                 )}
@@ -63,7 +63,7 @@ export default function MarketRadar() {
       {totalChanges > 6 && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full text-center text-[10px] font-medium text-theme-tertiary hover:text-theme-primary mt-2 py-1 transition-colors"
+          className="w-full text-center text-xs font-medium text-theme-tertiary hover:text-theme-primary mt-2 py-1 transition-colors"
         >
           {expanded ? 'Voir moins' : `Voir les ${totalChanges - 6} autres`}
         </button>

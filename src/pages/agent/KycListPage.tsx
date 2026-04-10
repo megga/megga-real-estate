@@ -207,7 +207,7 @@ function CreateKycModal({ onClose, onCreated }: CreateKycModalProps) {
               maxLength={2}
               className="w-full h-10 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
-            <p className="text-[11px] text-theme-tertiary mt-1">Code pays ISO 2 lettres (CH, FR, DE...)</p>
+            <p className="text-xs text-theme-tertiary mt-1">Code pays ISO 2 lettres (CH, FR, DE...)</p>
           </div>
 
           {/* Montant */}
@@ -494,28 +494,28 @@ export default function KycListPage() {
                 <th className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('contact')}
-                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary capitalize hover:text-theme-primary"
                   >
                     Contact
                     <SortIcon field="contact" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="text-left px-4 py-3">
-                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Type</span>
+                  <span className="text-xs font-semibold text-theme-secondary capitalize">Type</span>
                 </th>
                 <th className="text-left px-4 py-3">
-                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">PEP/S</span>
+                  <span className="text-xs font-semibold text-theme-secondary capitalize">PEP/S</span>
                 </th>
                 <th className="text-left px-4 py-3">
-                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Risque</span>
+                  <span className="text-xs font-semibold text-theme-secondary capitalize">Risque</span>
                 </th>
                 <th className="text-left px-4 py-3">
-                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Statut</span>
+                  <span className="text-xs font-semibold text-theme-secondary capitalize">Statut</span>
                 </th>
                 <th className="text-left px-4 py-3">
                   <button
                     onClick={() => toggleSort('completion')}
-                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary capitalize hover:text-theme-primary"
                   >
                     Progression
                     <SortIcon field="completion" sortField={sortField} sortDir={sortDir} />
@@ -524,14 +524,14 @@ export default function KycListPage() {
                 <th className="text-left px-4 py-3 hidden lg:table-cell">
                   <button
                     onClick={() => toggleSort('updated')}
-                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary uppercase tracking-wider hover:text-theme-primary"
+                    className="flex items-center gap-1 text-xs font-semibold text-theme-secondary capitalize hover:text-theme-primary"
                   >
                     Créé
                     <SortIcon field="updated" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </th>
                 <th className="text-right px-4 py-3">
-                  <span className="text-xs font-semibold text-theme-secondary uppercase tracking-wider">Actions</span>
+                  <span className="text-xs font-semibold text-theme-secondary capitalize">Actions</span>
                 </th>
               </tr>
             </thead>
@@ -690,7 +690,7 @@ export default function KycListPage() {
                   onClick={() => setPage(p)}
                   className={cn(
                     'h-8 min-w-[32px] px-2 rounded-md text-sm font-medium transition-colors',
-                    p === safePage ? 'bg-accent text-white' : 'text-theme-secondary hover:bg-transparent'
+                    p === safePage ? 'bg-theme-active text-theme-primary' : 'text-theme-secondary hover:bg-transparent'
                   )}
                 >
                   {p}

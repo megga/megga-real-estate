@@ -2,15 +2,27 @@
   "title": "Pipeline",
   "deals_count": "{{count}} deals",
   "new_deal": "New deal",
-  "view": { "kanban": "Kanban", "list": "List" },
+  "view": {
+    "kanban": "Kanban",
+    "list": "List"
+  },
   "kpi": {
     "active": "Active",
     "pipeline_value": "Pipeline value",
     "at_risk": "At risk",
     "conversion": "Conversion"
   },
-  "filter": { "agent": "Agent", "stage": "Stage" },
-  "column": { "contact": "Contact", "property": "Property", "price": "Price", "stage": "Stage", "activity": "Activity" },
+  "filter": {
+    "agent": "Agent",
+    "stage": "Stage"
+  },
+  "column": {
+    "contact": "Contact",
+    "property": "Property",
+    "price": "Price",
+    "stage": "Stage",
+    "activity": "Activity"
+  },
   "drop_target": "Drop here",
   "empty_title": "Create your first deal to track your transactions",
   "empty_subtitle": "Each transaction follows a 14-stage pipeline.",
@@ -18,6 +30,8 @@
     "title": "Mark as lost?",
     "message": "The deal for {{name}} will be moved to the \"Lost\" column.",
     "reason_label": "Reason for loss *",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
     "reasons": {
       "budget": "Insufficient budget",
       "competitor": "Property purchased elsewhere",
@@ -26,5 +40,18 @@
       "price": "Price too high",
       "other": "Other reason"
     }
+  },
+  "search": "Search...",
+  "clear": "Clear",
+  "dropHere": "Drop here",
+  "overdueReminder": "Overdue reminder",
+  "lost": {
+    "select": "Select...",
+    "budget": "Insufficient budget",
+    "competitor": "Property bought elsewhere",
+    "financing": "Financing rejected",
+    "withdrawal": "Client withdrawal",
+    "price": "Price too high",
+    "other": "Other reason"
   }
 }

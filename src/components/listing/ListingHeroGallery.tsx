@@ -36,8 +36,8 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
     return (
       <div className="w-full h-[40vh] bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">Aucune photo disponible</p>
+          <Building2 className="h-12 w-12 text-gray-500 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">Aucune photo disponible</p>
         </div>
       </div>
     )
@@ -146,12 +146,19 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
           }}
         >
           {photos.map((photo, i) => (
-            <div key={i} className="w-full flex-shrink-0 snap-center">
+            <div
+              key={i}
+              className="w-full flex-shrink-0 snap-center cursor-pointer"
+              role="button"
+              tabIndex={0}
+              aria-label={`Photo ${i + 1}`}
+              onClick={() => onOpenLightbox(i)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLightbox(i) } }}
+            >
               <img
                 src={photo}
                 alt={i === 0 ? title : ''}
                 className="w-full h-full object-cover"
-                onClick={() => onOpenLightbox(i)}
                 loading={i > 2 ? 'lazy' : undefined}
                 decoding="async"
               />

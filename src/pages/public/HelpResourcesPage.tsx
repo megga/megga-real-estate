@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowRight } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -46,6 +47,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 // ── Page ────────────────────────────────────────────────────────────────
 
 export default function HelpResourcesPage() {
+  const { t } = useTranslation('common')
   const groups = buildSectionGroups()
 
   return (
@@ -55,10 +57,10 @@ export default function HelpResourcesPage() {
       {/* ── Header ── */}
       <div className="max-w-6xl mx-auto px-6 md:px-10 pt-16 pb-12 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
-          Ressources
+          {t('help.resources')}
         </h1>
         <p className="text-gray-500 mt-3 text-base max-w-lg mx-auto">
-          Parcourez tous les guides et tutoriels disponibles.
+          {t('help.resourcesSubtitle')}
         </p>
 
         {/* Search */}
@@ -66,8 +68,8 @@ export default function HelpResourcesPage() {
           <HelpSearchBar />
         </div>
 
-        <p className="text-sm text-gray-400 mt-3">
-          {ALL_ARTICLES.length} articles disponibles
+        <p className="text-sm text-gray-500 mt-3">
+          {t('help.articlesAvailable', { count: ALL_ARTICLES.length })}
         </p>
       </div>
 
@@ -96,7 +98,7 @@ export default function HelpResourcesPage() {
               </div>
 
               {/* Category badge */}
-              <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+              <span className="text-xs font-medium text-gray-500 capitalize">
                 {CATEGORY_LABELS[group.category]}
               </span>
 
@@ -125,15 +127,15 @@ export default function HelpResourcesPage() {
             <SupportIllustration className="w-full max-w-[360px] h-auto" />
           </div>
           <div className="md:w-[45%] flex flex-col justify-center p-8 md:p-10">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">Contactez-nous</h3>
-            <p className="text-[15px] text-gray-500 mb-6 leading-relaxed">
-              Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
+            <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">{t('help.contactUs')}</h3>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              {t('help.contactSubtitle')}
             </p>
             <Link
               to="/aide/contact"
               className="h-11 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center w-fit"
             >
-              Contactez-nous
+              {t('help.contactUs')}
             </Link>
           </div>
         </div>

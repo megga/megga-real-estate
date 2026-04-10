@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search,
@@ -99,6 +100,7 @@ const AUTOPLAY_MS = 3000;
 const VISIBLE_LABELS = 5;
 
 export default function WhyMegga() {
+  const { t } = useTranslation('common');
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -143,10 +145,10 @@ export default function WhyMegga() {
         {/* Section header */}
         <div className="text-center mb-10">
           <h2 className="text-2xl font-bold text-gray-900">
-            Tout ce dont vous avez besoin
+            {t('home.everythingYouNeed')}
           </h2>
           <p className="text-sm text-gray-500 mt-2">
-            Une plateforme complète pour gérer votre activité immobilière
+            {t('home.completePlatform')}
           </p>
         </div>
 
@@ -278,7 +280,7 @@ export default function WhyMegga() {
                           {feature.badges.map((badge) => (
                             <span
                               key={badge}
-                              className="bg-white/20 backdrop-blur-sm text-white/80 text-[10px] font-medium px-2.5 py-1 rounded-full"
+                              className="bg-white/20 backdrop-blur-sm text-white/80 text-xs font-medium px-2.5 py-1 rounded-full"
                             >
                               {badge}
                             </span>

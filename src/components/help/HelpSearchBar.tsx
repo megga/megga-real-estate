@@ -85,7 +85,7 @@ export default function HelpSearchBar() {
   return (
     <div ref={containerRef} className="relative w-full max-w-xl mx-auto">
       <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-500" />
         <input
           ref={inputRef}
           type="text"
@@ -99,7 +99,7 @@ export default function HelpSearchBar() {
         {query && (
           <button
             onClick={() => { setQuery(''); setOpen(false) }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
           >
             <X className="h-4 w-4" />
           </button>
@@ -121,7 +121,7 @@ export default function HelpSearchBar() {
                         i === activeIndex ? 'bg-gray-50' : ''
                       }`}
                     >
-                      <Icon className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <Icon className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{article.title}</p>
                         <p className="text-xs text-gray-500 truncate">{CATEGORY_LABELS[article.category]} &middot; {article.description}</p>
@@ -142,7 +142,7 @@ export default function HelpSearchBar() {
                 >
                   Demander à MEGGA AI
                 </a>
-                <span className="text-gray-300">|</span>
+                <span className="text-gray-500">|</span>
                 <a
                   href="mailto:support@megga.ch"
                   className="text-xs text-accent hover:underline"

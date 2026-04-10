@@ -1,1 +1,97 @@
-{}
+{
+  "title": "Automatisation",
+  "rulesActive": "{{count}} règle active",
+  "rulesActive_plural": "{{count}} règles actives",
+  "remindersActive": "{{count}} relance en cours",
+  "remindersActive_plural": "{{count}} relances en cours",
+  "newRule": "Nouvelle règle",
+  "tabs": {
+    "reminders": "Relances",
+    "rules": "Règles",
+    "templates": "Templates"
+  },
+  "toProcess": "À traiter",
+  "pending": "En attente",
+  "noReminders": "Aucune relance en attente",
+  "noRemindersDesc": "Configurez des règles d'automatisation pour ne plus oublier de suivre vos clients.",
+  "bannerInfo": "Les relances créent des rappels par défaut. L'envoi automatique nécessite une activation explicite par règle.",
+  "newTemplate": "Nouveau template",
+  "rule": {
+    "title": "Nouvelle règle",
+    "name": "Nom de la règle",
+    "namePlaceholder": "Ex: Relance J+3 après envoi",
+    "trigger": "Déclencheur",
+    "action": "Action",
+    "delay": "Délai (jours)",
+    "template": "Template",
+    "templateOptional": "optionnel",
+    "none": "Aucun",
+    "cancel": "Annuler",
+    "create": "Créer la règle",
+    "generated": "{{count}} générées",
+    "inProgress": "{{count}} en cours",
+    "lastTriggered": "Dernière : {{date}}",
+    "day": "{{count}} jour",
+    "day_plural": "{{count}} jours",
+    "autoSend": "Envoi automatique",
+    "autoSendDesc": "Si activé, le message sera envoyé sans validation agent",
+    "triggerLabel": "Déclencheur",
+    "actionLabel": "Action",
+    "delayLabel": "Délai",
+    "templateLabel": "Template",
+    "duplicate": "Dupliquer",
+    "delete": "Supprimer"
+  },
+  "triggers": {
+    "property_sent": "Quand un bien est envoyé à un client",
+    "visit_completed": "Quand une visite est effectuée",
+    "lead_inactive": "Quand un lead est inactif",
+    "document_missing": "Quand un document KYC est manquant",
+    "new_match": "Quand un nouveau match est trouvé"
+  },
+  "triggerShort": {
+    "property_sent": "Envoi de bien",
+    "visit_completed": "Visite effectuée",
+    "lead_inactive": "Lead inactif",
+    "document_missing": "Doc manquant",
+    "new_match": "Nouveau match"
+  },
+  "actions": {
+    "create_reminder": "Créer un rappel pour l'agent",
+    "send_email": "Envoyer un email au client",
+    "notify_agent": "Notification agent",
+    "create_task": "Créer une tâche"
+  },
+  "actionShort": {
+    "create_reminder": "Rappel agent",
+    "send_email": "Email client",
+    "notify_agent": "Notification",
+    "create_task": "Tâche"
+  },
+  "templateModal": {
+    "new": "Nouveau template",
+    "edit": "Modifier le template",
+    "name": "Nom",
+    "namePlaceholder": "Ex: Relance après envoi de bien",
+    "category": "Catégorie",
+    "channel": "Canal",
+    "channelEmail": "Email",
+    "channelNotification": "Notification",
+    "subject": "Objet email",
+    "subjectPlaceholder": "Ex: Suite à notre sélection de biens",
+    "body": "Corps du message",
+    "bodyPlaceholder": "Bonjour {{contact.first_name}},\n\n...",
+    "variables": "Variables",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "create": "Créer le template"
+  },
+  "categories": {
+    "follow_up": "Relance",
+    "post_visit": "Post-visite",
+    "property_presentation": "Présentation bien",
+    "seller_update": "Mise à jour vendeur",
+    "visit_confirmation": "Confirmation visite",
+    "objection_response": "Réponse objection"
+  }
+}

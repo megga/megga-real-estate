@@ -199,7 +199,7 @@ function getUrgencyBadge(daysOnMarket: number, isHot: boolean, isNew: boolean): 
   if (isNew || daysOnMarket <= 3) return { label: 'Nouveau', className: 'bg-accent/10 text-accent' }
   if (isHot) return { label: 'Forte demande', className: 'bg-red-50 text-red-600' }
   if (daysOnMarket > 90) return { label: `${daysOnMarket}j en ligne — Négociable ?`, className: 'bg-amber-50 text-amber-700' }
-  if (daysOnMarket > 30) return { label: `${daysOnMarket}j en ligne`, className: 'bg-gray-100 text-gray-600' }
+  if (daysOnMarket > 30) return { label: `${daysOnMarket}j en ligne`, className: 'bg-theme-hover text-theme-secondary' }
   return null
 }
 
@@ -235,15 +235,15 @@ function PropertyTaxSection({ price, canton, chargesMonthly }: { price: number; 
 
   return (
     <div className="space-y-3">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Estimation fiscale</p>
+      <p className="text-xs font-semibold text-theme-tertiary capitalize">Estimation fiscale</p>
       <div className="space-y-2">
         {/* Monthly cost */}
         <div className="flex justify-between items-baseline">
-          <span className="text-sm text-gray-500">Coût mensuel estimé</span>
-          <span className="text-base font-bold text-gray-900">{formatCHF(monthlyCost.totalMonthly)}/mois</span>
+          <span className="text-sm text-theme-tertiary">Coût mensuel estimé</span>
+          <span className="text-base font-bold text-theme-primary">{formatCHF(monthlyCost.totalMonthly)}/mois</span>
         </div>
         {/* Breakdown */}
-        <div className="text-xs text-gray-400 space-y-1">
+        <div className="text-xs text-theme-muted space-y-1">
           <div className="flex justify-between">
             <span>Hypothèque (taux imputé 5%)</span>
             <span>{formatCHF(monthlyCost.monthlyMortgageCost)}</span>
@@ -262,24 +262,24 @@ function PropertyTaxSection({ price, canton, chargesMonthly }: { price: number; 
         {/* Canton info */}
         <div className="pt-1">
           {taxInfo?.hasPropertyTax ? (
-            <p className="text-[10px] text-gray-400">
+            <p className="text-xs text-theme-muted">
               Taux : {taxInfo.ratePerMille}‰ ({taxInfo.level === 'communal' ? 'variable par commune' : 'taux cantonal'}) — {annualTax !== null ? `${formatCHF(annualTax)}/an` : ''}
             </p>
           ) : (
-            <p className="text-[10px] text-green-600 font-medium">
+            <p className="text-xs text-green-600 font-medium">
               Pas d'impôt foncier dans le canton de {taxInfo?.name || canton}
             </p>
           )}
         </div>
       </div>
-      <p className="text-[10px] text-gray-300 italic">Estimation indicative — valeur fiscale ≈ 70% du prix marché</p>
+      <p className="text-xs text-theme-muted italic">Estimation indicative — valeur fiscale ≈ 70% du prix marché</p>
     </div>
   )
 }
 
 function SectionNav({ activeId, onNavigate, sections }: { activeId: string; onNavigate: (id: string) => void; sections: typeof BASE_SECTIONS }) {
   return (
-    <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+    <div className="sticky top-0 z-10 bg-theme-card border-b border-theme-border-subtle">
       <div className="flex gap-1 px-6 overflow-x-auto scrollbar-hide -mb-px">
         {sections.map((s) => (
           <button
@@ -288,13 +288,13 @@ function SectionNav({ activeId, onNavigate, sections }: { activeId: string; onNa
             className={cn(
               'px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors relative',
               activeId === s.id
-                ? 'text-gray-900 bg-gray-50'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/50'
+                ? 'text-theme-primary bg-theme-section'
+                : 'text-theme-tertiary hover:text-theme-secondary hover:bg-theme-section/50'
             )}
           >
             {s.label}
             {s.id === 'preview-market' && (
-              <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-accent/10 text-accent">Nouveau</span>
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs font-semibold rounded bg-accent/10 text-accent">Nouveau</span>
             )}
             {activeId === s.id && (
               <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full" />
@@ -444,7 +444,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full h-11 border border-gray-200 text-gray-700 hover:border-gray-400 hover:text-gray-900 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
+        className="w-full h-11 border border-theme-border text-theme-secondary hover:border-theme-active hover:text-theme-primary font-medium rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
       >
         <Sparkles className="w-4.5 h-4.5" />
         Demandez à MEGGA AI
@@ -455,7 +455,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
   // ── Open state: chat panel ──
   const chatPanel = (
     <div className={cn(
-      'rounded-lg border border-accent/20 overflow-hidden bg-white',
+      'rounded-lg border border-accent/20 overflow-hidden bg-theme-card',
       isMobile && 'fixed bottom-0 left-0 right-0 z-50 rounded-b-none max-h-[70vh] shadow-[0_-8px_30px_rgba(0,0,0,0.12)]'
     )}>
       {/* Header */}
@@ -480,7 +480,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
               <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Sparkles className="w-3.5 h-3.5 text-accent" />
               </div>
-              <div className="bg-gray-50 px-3.5 py-2.5 rounded-lg rounded-bl-sm text-xs leading-relaxed text-gray-600">
+              <div className="bg-theme-section px-3.5 py-2.5 rounded-lg rounded-bl-sm text-xs leading-relaxed text-theme-secondary">
                 {labels.welcome}
               </div>
             </div>
@@ -492,7 +492,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
                   <button
                     key={s.label}
                     onClick={() => sendMessage(s.prompt)}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-100 text-xs font-medium text-gray-600 hover:border-accent/30 hover:bg-accent/5 hover:text-accent transition-all text-left"
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-theme-border-subtle text-xs font-medium text-theme-secondary hover:border-accent/30 hover:bg-accent/5 hover:text-accent transition-all text-left"
                   >
                     <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                     {s.label}
@@ -514,7 +514,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
               'max-w-[80%] px-3.5 py-2.5 rounded-lg text-xs leading-relaxed',
               msg.role === 'user'
                 ? 'bg-accent text-white rounded-br-sm'
-                : 'bg-gray-50 text-gray-700 rounded-bl-sm'
+                : 'bg-theme-section text-theme-secondary rounded-bl-sm'
             )}>
               {msg.content}
             </div>
@@ -526,11 +526,11 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
             <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-3.5 h-3.5 text-accent animate-pulse" />
             </div>
-            <div className="bg-gray-50 px-3.5 py-2.5 rounded-lg rounded-bl-sm">
+            <div className="bg-theme-section px-3.5 py-2.5 rounded-lg rounded-bl-sm">
               <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="w-1.5 h-1.5 bg-theme-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 bg-theme-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 bg-theme-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -539,19 +539,19 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-100 p-3 flex gap-2">
+      <div className="border-t border-theme-border-subtle p-3 flex gap-2">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
           placeholder={labels.placeholder}
-          className="flex-1 h-9 px-3.5 text-sm bg-transparent border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-gray-700 placeholder:text-gray-400"
+          className="flex-1 h-9 px-3.5 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-secondary placeholder:text-theme-muted"
           autoFocus
         />
         <button
           onClick={() => sendMessage(input)}
           disabled={!input.trim() || isLoading}
-          className="h-9 w-9 rounded-lg bg-accent text-white flex items-center justify-center hover:bg-accent/90 transition-colors disabled:opacity-40"
+          className="h-9 w-9 rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active flex items-center justify-center transition-colors disabled:opacity-40"
         >
           <Send className="w-4 h-4" />
         </button>
@@ -720,20 +720,20 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
   const content = (
     <div className={cn(
-      'flex flex-col bg-white',
+      'flex flex-col bg-theme-card',
       inline
         ? 'h-full'
-        : 'fixed top-0 bottom-0 left-1/2 -translate-x-1/2 z-[80] animate-in fade-in duration-200 shadow-2xl border-x border-gray-200 w-[95%] max-w-[1400px]'
+        : 'fixed top-0 bottom-0 left-1/2 -translate-x-1/2 z-[80] animate-in fade-in duration-200 shadow-2xl border-x border-theme-border w-[95%] max-w-[1400px]'
     )}>
 
       {/* ── Zillow-style header bar ── */}
       <div className={cn(
-        'relative flex items-center justify-between shrink-0 border-b border-gray-100/80',
+        'relative flex items-center justify-between shrink-0 border-b border-theme-border-subtle',
         inline ? 'h-11 px-4' : 'h-14 px-4 md:px-6 lg:px-8'
       )}>
         <button
           onClick={onClose}
-          className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
         >
           <ChevronLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Retour</span>
@@ -742,7 +742,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
         <div className="flex items-center gap-1">
           <button
             onClick={() => setIsFavorite(!isFavorite)}
-            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
           >
             <Heart className={cn('h-3.5 w-3.5', isFavorite && 'fill-red-500 text-red-500')} />
             <span className="hidden sm:inline">Sauvegarder</span>
@@ -755,13 +755,13 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                 navigator.clipboard.writeText(window.location.href)
               }
             }}
-            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
           >
             <Share2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Partager</span>
           </button>
           <button
-            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
           >
             <MoreHorizontal className="h-3.5 w-3.5" />
           </button>
@@ -773,8 +773,8 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-[400px]">
-              <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
-              <p className="text-sm text-gray-500">Chargement...</p>
+              <div className="h-8 w-8 border-2 border-theme-border border-t-accent rounded-full animate-spin mb-4" />
+              <p className="text-sm text-theme-tertiary">Chargement...</p>
             </div>
           ) : listing ? (
             <>
@@ -789,7 +789,11 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     {/* Main photo — spans 2 cols + 2 rows */}
                     <div
                       className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer group"
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Photo principale"
                       onClick={() => openLightbox(0)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(0) } }}
                     >
                       <img
                         src={photos[photoIndex]}
@@ -804,7 +808,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                             'absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm transition-colors z-10',
                             showStaged
                               ? 'bg-accent/90 text-white'
-                              : 'bg-white/90 text-gray-700 hover:bg-white'
+                              : 'bg-white/90 text-theme-secondary hover:bg-white'
                           )}
                         >
                           <span className="text-sm">✨</span>
@@ -812,7 +816,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                         </button>
                       )}
                       {showStaged && hasStagedPhotos && (
-                        <div className="absolute top-4 left-4 bg-accent/80 text-white text-[10px] font-semibold px-2 py-0.5 rounded z-10">
+                        <div className="absolute top-4 left-4 bg-accent/80 text-white text-xs font-semibold px-2 py-0.5 rounded z-10">
                           MEGGA Staging
                         </div>
                       )}
@@ -836,7 +840,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       {photoCount >= 2 && (
                         <button
                           onClick={(e) => { e.stopPropagation(); openLightbox(0) }}
-                          className="absolute bottom-3 right-3 bg-white text-gray-900 text-xs font-semibold px-3.5 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm"
+                          className="absolute bottom-3 right-3 bg-theme-card text-theme-primary text-xs font-semibold px-3.5 py-2 rounded-lg border border-theme-border hover:bg-theme-section transition-colors flex items-center gap-2"
                         >
                           <Images className="w-3.5 h-3.5" />
                           Voir les {photoCount} photos
@@ -845,10 +849,10 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     </div>
                   </div>
                 ) : (
-                  <div className="h-[300px] bg-gray-100 flex items-center justify-center">
+                  <div className="h-[300px] bg-theme-hover flex items-center justify-center">
                     <div className="text-center">
-                      <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                      <p className="text-sm text-gray-400">Aucune photo disponible</p>
+                      <Building2 className="h-12 w-12 text-theme-muted mx-auto mb-2" />
+                      <p className="text-sm text-theme-muted">Aucune photo disponible</p>
                     </div>
                   </div>
                 )}
@@ -903,8 +907,8 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     </button>
                   </>
                 ) : (
-                  <div className="h-[200px] bg-gray-100 flex items-center justify-center">
-                    <Building2 className="h-10 w-10 text-gray-300" />
+                  <div className="h-[200px] bg-theme-hover flex items-center justify-center">
+                    <Building2 className="h-10 w-10 text-theme-muted" />
                   </div>
                 )}
               </div>
@@ -932,28 +936,28 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     </div>
 
                     <div className="flex items-baseline gap-3">
-                      <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
+                      <h2 className="text-3xl md:text-4xl font-bold text-theme-primary tracking-tight">
                         {formatCHF(listing.price)}
                       </h2>
                       {pricePerM2 > 0 && (
-                        <span className="text-sm text-gray-400">{formatCHF(pricePerM2)}/m²</span>
+                        <span className="text-sm text-theme-muted">{formatCHF(pricePerM2)}/m²</span>
                       )}
                     </div>
 
-                    <p className="mt-1 text-gray-500 text-base">
+                    <p className="mt-1 text-theme-tertiary text-base">
                       {listing.address}, {listing.postal_code} {listing.city} ({listing.canton})
                     </p>
 
                     {/* Specs — compact inline */}
-                    <div className="flex flex-wrap items-center gap-1.5 mt-3 text-sm text-gray-600">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-3 text-sm text-theme-secondary">
                       {listing.rooms > 0 && <span className="font-medium">{listing.rooms} pièces</span>}
-                      {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-300">·</span>}
+                      {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-theme-muted">·</span>}
                       {listing.bedrooms > 0 && <span className="font-medium">{listing.bedrooms} chambres</span>}
-                      {listing.bedrooms > 0 && listing.bathrooms > 0 && <span className="text-gray-300">·</span>}
+                      {listing.bedrooms > 0 && listing.bathrooms > 0 && <span className="text-theme-muted">·</span>}
                       {listing.bathrooms > 0 && <span className="font-medium">{listing.bathrooms} sdb</span>}
-                      {listing.bathrooms > 0 && listing.surface_m2 > 0 && <span className="text-gray-300">·</span>}
+                      {listing.bathrooms > 0 && listing.surface_m2 > 0 && <span className="text-theme-muted">·</span>}
                       {listing.surface_m2 > 0 && <span className="font-medium">{listing.surface_m2.toLocaleString('fr-CH')} m²</span>}
-                      {listing.type && <><span className="text-gray-300">·</span><span>{TYPE_LABELS[listing.type] || listing.type}</span></>}
+                      {listing.type && <><span className="text-theme-muted">·</span><span>{TYPE_LABELS[listing.type] || listing.type}</span></>}
                     </div>
 
                     {/* — property details moved to Caractéristiques section — */}
@@ -975,7 +979,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       )}
                       <EnergyLabelBadge label={listing.energy_label} minergie={listing.minergie_label} />
                       {listing.days_on_market > 3 && (
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <span className="flex items-center gap-1 text-xs text-theme-muted">
                           <Clock className="h-3 w-3" />
                           {listing.days_on_market}j
                         </span>
@@ -986,18 +990,18 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     {walkScore && walkScore.score > 0 && (
                       <div className="flex items-center gap-2 mt-3">
                         <span className={cn('text-xs font-semibold', walkScore.color)}>{walkScore.score}</span>
-                        <span className="text-xs text-gray-400">Walkabilité — {walkScore.label}</span>
+                        <span className="text-xs text-theme-muted">Walkabilité — {walkScore.label}</span>
                       </div>
                     )}
 
-                    <div className="border-t border-gray-100 my-6" />
+                    <div className="border-t border-theme-border-subtle my-6" />
 
                     {/* Description */}
                     {listing.description && (
                       <div>
-                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Description</h3>
+                        <h3 className="text-xs font-semibold text-theme-muted capitalize mb-3">Description</h3>
                         <div className={cn(
-                          'text-gray-600 text-[15px] leading-relaxed',
+                          'text-theme-secondary text-sm leading-relaxed',
                           !descExpanded && 'line-clamp-4'
                         )}>
                           {listing.description.split('\n\n').map((p, i) => (
@@ -1022,7 +1026,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     {/* Points forts — with icons */}
                     {features.length > 0 && (
                       <div className="mt-6">
-                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Points forts</h3>
+                        <h3 className="text-xs font-semibold text-theme-muted capitalize mb-3">Points forts</h3>
                         <div className="flex flex-wrap gap-2">
                           {(Array.isArray(features) ? features : Object.keys(features)).map((f, i) => {
                             const label = typeof f === 'string' ? f : String(f)
@@ -1030,9 +1034,9 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                             return (
                               <span
                                 key={i}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 text-gray-600 text-sm"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-theme-section text-theme-secondary text-sm"
                               >
-                                <Icon className="w-4 h-4 text-gray-500" />
+                                <Icon className="w-4 h-4 text-theme-tertiary" />
                                 {label}
                               </span>
                             )
@@ -1046,8 +1050,8 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                   {/* ── SECTION: Floor Plan Interactif ── */}
                   {listing.floor_plan_url && listing.floor_plan_hotspots.length > 0 && (
-                    <div id="preview-plan" className="mt-10 pt-8 border-t border-gray-100">
-                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Plan interactif</h3>
+                    <div id="preview-plan" className="mt-10 pt-8 border-t border-theme-border-subtle">
+                      <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Plan interactif</h3>
                       <InteractiveFloorPlan
                         floorPlanUrl={listing.floor_plan_url}
                         hotspots={listing.floor_plan_hotspots}
@@ -1068,23 +1072,23 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   )}
 
                   {/* ── SECTION: Details / Caractéristiques ── */}
-                  <div id="preview-details" className="mt-10 pt-8 border-t border-gray-100">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Caractéristiques</h3>
+                  <div id="preview-details" className="mt-10 pt-8 border-t border-theme-border-subtle">
+                    <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Caractéristiques</h3>
                     <div className="grid grid-cols-2 gap-x-6">
                       {characteristics.map(({ label, value }, i) => (
-                        <div key={i} className={cn('flex items-center justify-between py-2.5 px-2', i % 2 === 0 ? 'bg-gray-50/60' : '')}>
-                          <span className="text-sm text-gray-500">{label}</span>
-                          <span className="text-sm font-medium text-gray-900">{value}</span>
+                        <div key={i} className={cn('flex items-center justify-between py-2.5 px-2', i % 2 === 0 ? 'bg-theme-section/60' : '')}>
+                          <span className="text-sm text-theme-tertiary">{label}</span>
+                          <span className="text-sm font-medium text-theme-primary">{value}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* ── SECTION: Map ── */}
-                  <div id="preview-map" className="mt-10 pt-8 border-t border-gray-100">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Localisation</h3>
+                  <div id="preview-map" className="mt-10 pt-8 border-t border-theme-border-subtle">
+                    <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Localisation</h3>
                     {listing.lat && listing.lng && MAPBOX_TOKEN ? (
-                      <div className="h-[250px] rounded-lg overflow-hidden border border-gray-100">
+                      <div className="h-[250px] rounded-lg overflow-hidden border border-theme-border-subtle">
                         <MapGL
                           initialViewState={{ latitude: listing.lat, longitude: listing.lng, zoom: 14 }}
                           mapboxAccessToken={MAPBOX_TOKEN}
@@ -1103,37 +1107,37 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                         </MapGL>
                       </div>
                     ) : (
-                      <div className="h-[200px] rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
+                      <div className="h-[200px] rounded-lg bg-theme-section border border-theme-border-subtle flex items-center justify-center">
                         <div className="text-center">
-                          <MapPin className="h-6 w-6 text-gray-300 mx-auto mb-1" />
-                          <p className="text-sm text-gray-500">{listing.address}, {listing.city}</p>
+                          <MapPin className="h-6 w-6 text-theme-muted mx-auto mb-1" />
+                          <p className="text-sm text-theme-tertiary">{listing.address}, {listing.city}</p>
                         </div>
                       </div>
                     )}
                   </div>
 
                   {/* ── SECTION: Quartier ── */}
-                  <div id="preview-quartier" className="mt-10 pt-8 border-t border-gray-100">
+                  <div id="preview-quartier" className="mt-10 pt-8 border-t border-theme-border-subtle">
                     <NeighborhoodSection lat={listing.lat} lng={listing.lng} canton={listing.canton} city={listing.city} compact />
                   </div>
 
                   {/* ── SECTION: Market ── */}
-                  <div id="preview-market" className="mt-10 pt-8 border-t border-gray-100 pb-6">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Analyse du marché</h3>
+                  <div id="preview-market" className="mt-10 pt-8 border-t border-theme-border-subtle pb-6">
+                    <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Analyse du marché</h3>
                     <div className="space-y-4">
                       {marketTemp && <MarketTemperatureBadge temperature={marketTemp} />}
                       {isMarket && rawId && <PriceHistoryChart marketListingId={rawId} />}
                       <NaturalHazardBadge lat={listing.lat} lng={listing.lng} />
                       {!marketTemp && !(isMarket && rawId) && !listing.lat && (
-                        <p className="text-sm text-gray-400 py-4 text-center">Données marché non disponibles pour ce bien</p>
+                        <p className="text-sm text-theme-muted py-4 text-center">Données marché non disponibles pour ce bien</p>
                       )}
                     </div>
                   </div>
 
                   {/* ── SECTION: Similar listings ── */}
                   {similarListings.length > 0 && (
-                    <div id="preview-similaires" className="mt-10 pt-8 border-t border-gray-100 pb-6">
-                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Biens similaires</h3>
+                    <div id="preview-similaires" className="mt-10 pt-8 border-t border-theme-border-subtle pb-6">
+                      <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Biens similaires</h3>
                       <div className="grid grid-cols-2 gap-3">
                         {similarListings.slice(0, 4).map((sl) => {
                           const photo = sl.photos?.[0]
@@ -1150,9 +1154,9 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                                 window.history.replaceState(null, '', `?${params.toString()}`)
                                 window.dispatchEvent(new PopStateEvent('popstate'))
                               }}
-                              className="rounded-lg border border-gray-100 overflow-hidden hover:border-gray-200 hover:shadow-md transition-all text-left group"
+                              className="rounded-lg border border-theme-border-subtle overflow-hidden hover:border-theme-border transition-all text-left group"
                             >
-                              <div className="aspect-[4/3] overflow-hidden bg-gray-100">
+                              <div className="aspect-[4/3] overflow-hidden bg-theme-hover">
                                 {photo ? (
                                   <img
                                     src={photo}
@@ -1163,18 +1167,18 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
-                                    <Building2 className="h-8 w-8 text-gray-300" />
+                                    <Building2 className="h-8 w-8 text-theme-muted" />
                                   </div>
                                 )}
                               </div>
                               <div className="p-3">
-                                <p className="text-sm font-semibold text-gray-900">
+                                <p className="text-sm font-semibold text-theme-primary">
                                   {formatCHF(sl.price)}
                                 </p>
-                                <p className="text-xs text-gray-500 truncate mt-0.5">{sl.address}, {sl.city}</p>
-                                <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                                <p className="text-xs text-theme-tertiary truncate mt-0.5">{sl.address}, {sl.city}</p>
+                                <div className="flex items-center gap-2 text-xs text-theme-muted mt-1">
                                   {sl.rooms > 0 && <span>{sl.rooms} pièces</span>}
-                                  {sl.rooms > 0 && sl.surface_m2 > 0 && <span className="text-gray-300">·</span>}
+                                  {sl.rooms > 0 && sl.surface_m2 > 0 && <span className="text-theme-muted">·</span>}
                                   {sl.surface_m2 > 0 && <span>{formatSurface(sl.surface_m2)}</span>}
                                 </div>
                               </div>
@@ -1188,13 +1192,13 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                 </div>
 
                 {/* ── RIGHT: Sticky CTA sidebar (desktop) ── */}
-                <div className="hidden md:block w-[340px] flex-shrink-0 border-l border-gray-100">
+                <div className="hidden md:block w-[340px] flex-shrink-0 border-l border-theme-border-subtle">
                   <div className="sticky top-[49px] p-6 space-y-4 max-h-[calc(92vh-420px)] overflow-y-auto scrollbar-hide">
 
                     {/* Primary CTA */}
                     <button
                       onClick={() => setShowDatePicker(true)}
-                      className="w-full h-12 border border-gray-200 text-gray-900 font-semibold rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors"
+                      className="w-full h-12 border border-theme-border text-theme-primary font-semibold rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors"
                     >
                       <CalendarDays className="w-5 h-5" />
                       Planifier une visite
@@ -1203,7 +1207,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     {/* Secondary CTA */}
                     <button
                       onClick={() => setShowContactModal(true)}
-                      className="w-full h-11 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-900 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
+                      className="w-full h-11 bg-theme-card border border-theme-border hover:border-theme-active hover:bg-theme-section text-theme-primary font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
                     >
                       <Phone className="w-5 h-5" />
                       Contacter l'agent
@@ -1225,10 +1229,10 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       <button
                         onClick={() => setIsFavorite(!isFavorite)}
                         className={cn(
-                          'flex-1 h-10 bg-white border text-sm font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors',
+                          'flex-1 h-10 bg-theme-card border text-sm font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors',
                           isFavorite
                             ? 'border-red-200 bg-red-50 text-red-500'
-                            : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                            : 'border-theme-border hover:border-theme-active text-theme-secondary'
                         )}
                       >
                         <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
@@ -1241,7 +1245,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                             'h-10 w-10 border rounded-lg flex items-center justify-center transition-colors flex-shrink-0',
                             isCompared
                               ? 'bg-accent border-accent text-white'
-                              : 'bg-white border-gray-200 hover:border-gray-300 text-gray-600'
+                              : 'bg-theme-card border-theme-border hover:border-theme-active text-theme-secondary'
                           )}
                           aria-label={isCompared ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
                         >
@@ -1263,19 +1267,19 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                             setTimeout(() => setShareCopied(false), 2000)
                           }
                         }}
-                        className="flex-1 h-10 bg-white border border-gray-200 hover:border-gray-300 text-gray-600 text-sm font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                        className="flex-1 h-10 bg-theme-card border border-theme-border hover:border-theme-active text-theme-secondary text-sm font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors"
                       >
                         {shareCopied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
                         {shareCopied ? 'Copié' : 'Partager'}
                       </button>
                     </div>
 
-                    <div className="border-t border-gray-100 my-2" />
+                    <div className="border-t border-theme-border-subtle my-2" />
 
                     {/* Ask MEGGA AI — positioned high for visibility */}
                     <AskMeggaAI listing={listing} walkScore={walkScore} marketTemp={marketTemp ?? null} />
 
-                    <div className="border-t border-gray-100 my-2" />
+                    <div className="border-t border-theme-border-subtle my-2" />
 
                     {/* Agency info */}
                     {listing.agency_name && (
@@ -1292,7 +1296,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       />
                     )}
 
-                    <div className="border-t border-gray-100 my-2" />
+                    <div className="border-t border-theme-border-subtle my-2" />
 
                     {/* Property tax estimate */}
                     {listing.canton && (
@@ -1302,7 +1306,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                           canton={listing.canton}
                           chargesMonthly={listing.charges_monthly}
                         />
-                        <div className="border-t border-gray-100 my-2" />
+                        <div className="border-t border-theme-border-subtle my-2" />
                       </>
                     )}
 
@@ -1321,12 +1325,12 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
               <Footer />
 
               {/* ── Mobile CTA bar ── */}
-              <div className="md:hidden sticky bottom-0 bg-white border-t border-gray-100 p-4 flex gap-3 z-40">
-                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold border border-gray-200 text-gray-900 rounded-lg hover:border-accent hover:text-accent transition-colors">
+              <div className="md:hidden sticky bottom-0 bg-theme-card border-t border-theme-border-subtle p-4 flex gap-3 z-40">
+                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold border border-theme-border text-theme-primary rounded-lg hover:border-accent hover:text-accent transition-colors">
                   <CalendarDays className="h-4 w-4" />
                   Visite
                 </button>
-                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-medium border border-gray-200 text-gray-700 rounded-lg hover:border-gray-300 transition-colors">
+                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:border-theme-active transition-colors">
                   <Phone className="h-4 w-4" />
                   Appeler
                 </button>
@@ -1334,7 +1338,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                   onClick={() => setIsFavorite(!isFavorite)}
                   className={cn(
                     'h-11 w-11 rounded-lg border flex items-center justify-center transition-colors',
-                    isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 text-gray-500'
+                    isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'border-theme-border text-theme-tertiary'
                   )}
                 >
                   <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
@@ -1348,7 +1352,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-[300px]">
-              <p className="text-sm text-gray-500">Bien non trouvé</p>
+              <p className="text-sm text-theme-tertiary">Bien non trouvé</p>
             </div>
           )}
         </div>

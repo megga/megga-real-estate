@@ -214,7 +214,11 @@ export default function FloorPlanEditor({
 
               <div
                 ref={containerRef}
+                role="button"
+                tabIndex={0}
+                aria-label="Cliquez pour placer un hotspot"
                 onClick={handlePlanClick}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (containerRef.current) { const rect = containerRef.current.getBoundingClientRect(); const synth = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2, target: e.target, nativeEvent: { offsetX: rect.width / 2, offsetY: rect.height / 2 } } as unknown as React.MouseEvent<HTMLDivElement>; handlePlanClick(synth) } } }}
                 className="relative rounded-lg overflow-hidden border border-theme-border cursor-crosshair select-none"
               >
                 <img
@@ -346,7 +350,7 @@ export default function FloorPlanEditor({
                   <div
                     key={`label-${hs.id}`}
                     style={{ left: `${hs.x}%`, top: `${hs.y}%` }}
-                    className="absolute translate-x-[-50%] translate-y-3 text-[10px] font-medium bg-gray-900 text-white px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap z-[5]"
+                    className="absolute translate-x-[-50%] translate-y-3 text-xs font-medium bg-gray-900 text-white px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap z-[5]"
                   >
                     {hs.label}
                   </div>
@@ -371,7 +375,7 @@ export default function FloorPlanEditor({
                         </span>
                       ))}
                     </div>
-                    <span className="text-[10px] text-theme-muted whitespace-nowrap ml-2">
+                    <span className="text-xs text-theme-muted whitespace-nowrap ml-2">
                       {hotspots.reduce((n, h) => n + h.photoUrls.length, 0)}/{photos.length} photos taguées
                     </span>
                   </div>

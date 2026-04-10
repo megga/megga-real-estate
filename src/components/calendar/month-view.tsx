@@ -161,7 +161,7 @@ export function MonthView({
         {WEEKDAY_LABELS.map((label) => (
           <div
             key={label}
-            className="px-2 py-2 text-center text-xs font-medium text-theme-tertiary uppercase tracking-wider"
+            className="px-2 py-2 text-center text-xs font-medium text-theme-tertiary capitalize"
           >
             {label}
           </div>
@@ -183,6 +183,8 @@ export function MonthView({
               return (
                 <div
                   key={key}
+                  role="gridcell"
+                  tabIndex={0}
                   className={cn(
                     'border-r border-theme-border/50 last:border-r-0 px-1 py-1 min-h-0 overflow-hidden cursor-pointer transition-colors',
                     !inMonth && 'opacity-40',
@@ -192,6 +194,12 @@ export function MonthView({
                   )}
                   onClick={(e) => {
                     if (!(e.target as HTMLElement).closest('[data-event-pill]')) {
+                      onSlotClick?.(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 10, 0))
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
                       onSlotClick?.(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 10, 0))
                     }
                   }}
@@ -234,7 +242,7 @@ export function MonthView({
                             onEventClick?.(event)
                           }}
                           className={cn(
-                            'w-full text-left text-[10px] leading-tight px-1.5 py-0.5 rounded truncate transition-all cursor-grab active:cursor-grabbing',
+                            'w-full text-left text-xs leading-tight px-1.5 py-0.5 rounded truncate transition-all cursor-grab active:cursor-grabbing',
                             isSelected
                               ? cn(styles.border, 'text-white')
                               : cn(styles.bg, styles.text, 'hover:brightness-90'),
@@ -247,7 +255,7 @@ export function MonthView({
                       )
                     })}
                     {dayEvents.length > MAX_VISIBLE_EVENTS && (
-                      <span className="text-[10px] text-theme-tertiary px-1.5">
+                      <span className="text-xs text-theme-tertiary px-1.5">
                         +{dayEvents.length - MAX_VISIBLE_EVENTS} de plus
                       </span>
                     )}

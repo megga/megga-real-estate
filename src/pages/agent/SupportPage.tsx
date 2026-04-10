@@ -112,12 +112,12 @@ export default function SupportPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-theme-section">
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted uppercase tracking-wider">#</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted uppercase tracking-wider">Sujet</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted uppercase tracking-wider">Client</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted uppercase tracking-wider">Statut</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted uppercase tracking-wider">SLA</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted uppercase tracking-wider">Prio</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted capitalize">#</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted capitalize">Sujet</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted capitalize">Client</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted capitalize">Statut</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted capitalize">SLA</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-theme-muted capitalize">Prio</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-border-subtle">

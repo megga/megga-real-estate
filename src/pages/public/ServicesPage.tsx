@@ -27,6 +27,7 @@ import {
   Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
@@ -203,7 +204,7 @@ function CompareRow({
 
 // ─── Demo request modal ───────────────────────────────────────────────────────
 
-function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function DemoModal({ open, onClose, t }: { open: boolean; onClose: () => void; t: (key: string) => string }) {
   const [submitted, setSubmitted] = useState(false)
   const backdropRef = useRef<HTMLDivElement>(null)
 
@@ -231,7 +232,7 @@ function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
         >
-          <X className="w-5 h-5 text-gray-400" />
+          <X className="w-5 h-5 text-gray-500" />
         </button>
 
         {submitted ? (
@@ -239,15 +240,15 @@ function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
             <div className="bg-emerald-50 rounded-full p-4 w-16 h-16 mx-auto flex items-center justify-center">
               <Check className="w-8 h-8 text-emerald-600" />
             </div>
-            <h3 className="text-xl font-semibold text-primary mt-5">Demande envoyée</h3>
+            <h3 className="text-xl font-semibold text-primary mt-5">{t('services.demo.requestSent')}</h3>
             <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
-              Notre équipe vous contactera dans les 24 heures pour planifier votre démonstration.
+              {t('services.demo.requestSentDesc')}
             </p>
             <button
               onClick={onClose}
               className="mt-6 bg-primary text-white rounded-full px-6 h-10 text-sm font-medium hover:bg-primary/90 transition-all"
             >
-              Fermer
+              {t('services.demo.close')}
             </button>
           </div>
         ) : (
@@ -257,8 +258,8 @@ function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                 <Mail className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-primary">Demander une démo</h3>
-                <p className="text-xs text-gray-400">Découvrez MEGGA en 30 minutes</p>
+                <h3 className="text-lg font-semibold text-primary">{t('services.demo.title')}</h3>
+                <p className="text-xs text-gray-500">{t('services.demo.subtitle')}</p>
               </div>
             </div>
 
@@ -270,7 +271,7 @@ function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
               className="space-y-4"
             >
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Nom complet</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t('services.demo.fullName')}</label>
                 <input
                   type="text"
                   required
@@ -279,7 +280,7 @@ function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Email professionnel</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t('services.demo.proEmail')}</label>
                 <input
                   type="email"
                   required
@@ -288,30 +289,30 @@ function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Agence / Société</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t('services.demo.agency')}</label>
                 <input
                   type="text"
-                  placeholder="Nom de votre agence"
+                  placeholder={t('services.demo.agencyPlaceholder')}
                   className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Message (optionnel)</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t('services.demo.message')}</label>
                 <textarea
                   rows={3}
-                  placeholder="Vos questions ou besoins spécifiques..."
+                  placeholder={t('services.demo.messagePlaceholder')}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-none"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full bg-accent text-white rounded-full h-11 text-sm font-medium hover:bg-accent/90 shadow-sm transition-all inline-flex items-center justify-center gap-2"
+                className="w-full rounded-full h-11 text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-all inline-flex items-center justify-center gap-2"
               >
                 <Send className="w-4 h-4" />
-                Envoyer la demande
+                {t('services.demo.send')}
               </button>
-              <p className="text-[11px] text-gray-400 text-center">
-                Nous vous répondrons sous 24h. Aucun engagement.
+              <p className="text-xs text-gray-500 text-center">
+                {t('services.demo.noObligation')}
               </p>
             </form>
           </>
@@ -323,47 +324,15 @@ function DemoModal({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 // ─── FAQ Accordion ────────────────────────────────────────────────────────────
 
-const faqItems = [
-  {
-    q: 'Puis-je tester gratuitement ?',
-    a: "Oui. Le plan Starter est 100% gratuit, sans limite de temps et sans carte bancaire. Vous pouvez gérer jusqu'à 5 biens actifs et accéder au CRM basique, à la recherche IA et au portail vendeur.",
-  },
-  {
-    q: 'Comment fonctionne la conformité LAB/KYC ?',
-    a: "MEGGA génère automatiquement un dossier KYC structuré pour chaque transaction : identification du client, classification du risque, checklist réglementaire et upload de documents. Chaque validation requiert une action humaine (human-in-the-loop) et un audit trail complet est conservé.",
-  },
-  {
-    q: 'Est-ce que mes données sont hébergées en Suisse ?',
-    a: "Nos bases de données sont hébergées sur des serveurs conformes aux exigences suisses en matière de protection des données. Nous utilisons Supabase avec chiffrement au repos et en transit.",
-  },
-  {
-    q: 'Puis-je migrer depuis un autre CRM ?',
-    a: "Oui. MEGGA supporte l'import CSV pour vos contacts, biens et transactions. Notre équipe peut aussi vous accompagner pour une migration assistée depuis HubSpot, Salesforce ou tout autre outil.",
-  },
-  {
-    q: 'Quelle est la différence entre Pro et Agency ?',
-    a: "Le plan Pro est conçu pour les agents indépendants (jusqu'à 25 biens). Le plan Agency ajoute le multi-utilisateurs, le branding personnalisé, les intégrations API, un manager de compte dédié et un nombre illimité de biens.",
-  },
-  {
-    q: "Comment fonctionne l'estimation IA ?",
-    a: "Notre modèle analyse plus de 47'000 transactions immobilières suisses et 70 critères (localisation, surface, étage, état, proximité transports, etc.) pour produire une fourchette de prix en temps réel. L'estimation est indicative et ne remplace pas une expertise officielle.",
-  },
-  {
-    q: 'Puis-je changer de plan à tout moment ?',
-    a: "Oui, vous pouvez upgrader ou downgrader votre plan à tout moment depuis les paramètres de votre compte. Le changement prend effet immédiatement avec un prorata sur la période en cours.",
-  },
-  {
-    q: 'La publication multicanal est-elle incluse ?',
-    a: "La publication sur MEGGA est incluse dans tous les plans. La diffusion sur ImmoScout24 et Homegate est disponible à partir du plan Pro. Vos annonces sont synchronisées automatiquement : une modification sur MEGGA se répercute sur tous les portails.",
-  },
-]
+const FAQ_COUNT_SERVICES = 8
 
-function FaqAccordion() {
+function FaqAccordion({ t }: { t: (key: string) => string }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
     <div className="max-w-3xl mx-auto mt-14 space-y-3">
-      {faqItems.map((item, i) => {
+      {Array.from({ length: FAQ_COUNT_SERVICES }).map((_, i) => {
+        const item = { q: t(`services.faq.${i}.q`), a: t(`services.faq.${i}.a`) }
         const isOpen = openIndex === i
         return (
           <div
@@ -377,7 +346,7 @@ function FaqAccordion() {
               <span className="text-sm font-medium text-primary pr-4">{item.q}</span>
               <ChevronDown
                 className={cn(
-                  'w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200',
+                  'w-4 h-4 text-gray-500 flex-shrink-0 transition-transform duration-200',
                   isOpen && 'rotate-180'
                 )}
               />
@@ -544,15 +513,6 @@ const proModules = [
   },
 ]
 
-const compareRows = [
-  { before: 'CRM séparé (HubSpot, Excel...)', after: 'CRM immobilier intégré et gratuit' },
-  { before: 'KYC en emails et classeurs', after: 'Dossier LAB/KYC automatisé et auditable' },
-  { before: 'Documents Word manuels', after: 'Génération automatique depuis les données' },
-  { before: 'Vendeur dans le noir', after: 'Portail vendeur 24/7 temps réel' },
-  { before: 'Publication portail par portail', after: 'Multi-diffusion en 1 clic' },
-  { before: 'Estimation approximative', after: "Estimation IA — 47'000 transactions" },
-  { before: 'CHF 200-800/mois/listing', after: 'Dès CHF 0 — plan gratuit' },
-]
 
 interface PlanData {
   name: string
@@ -662,6 +622,7 @@ const testimonials = [
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function ServicesPage() {
+  const { t } = useTranslation('common')
   const [isAnnual, setIsAnnual] = useState(false)
   const [demoOpen, setDemoOpen] = useState(false)
 
@@ -701,7 +662,7 @@ export default function ServicesPage() {
   return (
     <>
       <Navbar />
-      <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
+      <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} t={t} />
       <main>
         {/* ═══ Section 1 — Hero ═══ */}
         <RevealSection className="bg-gradient-to-b from-gray-50/80 to-white py-24 md:py-32 relative overflow-hidden">
@@ -718,30 +679,29 @@ export default function ServicesPage() {
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 text-center relative z-10">
             <SectionBadge variant="primary">
               <Layers className="w-3.5 h-3.5" />
-              Plateforme tout-en-un
+              {t('services.hero.badge')}
             </SectionBadge>
 
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary max-w-4xl mx-auto leading-tight mt-6">
-              La plateforme immobilière suisse qui pense comme un agent
+              {t('services.hero.title')}
             </h1>
 
             <p className="text-gray-500 text-lg max-w-2xl mx-auto mt-5">
-              Recherche IA, estimation, CRM, conformité LAB/KYC, portail vendeur — tout dans une
-              seule plateforme.
+              {t('services.hero.subtitle')}
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
               <button
                 onClick={() => scrollTo('particuliers')}
-                className="bg-accent text-white rounded-full px-7 h-12 font-medium text-base hover:bg-accent/90 shadow-sm hover:shadow-md transition-all"
+                className="rounded-full px-7 h-12 font-medium text-base border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-all"
               >
-                Je suis un particulier
+                {t('services.hero.individual')}
               </button>
               <button
                 onClick={() => scrollTo('professionnels')}
                 className="bg-white border border-gray-200 text-primary rounded-full px-7 h-12 font-medium text-base hover:bg-gray-50 shadow-sm transition-all"
               >
-                Je suis un professionnel
+                {t('services.hero.professional')}
               </button>
             </div>
           </div>
@@ -751,12 +711,12 @@ export default function ServicesPage() {
         <RevealSection id="particuliers" className="bg-white py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             <div className="text-center">
-              <SectionBadge>Pour les particuliers</SectionBadge>
+              <SectionBadge>{t('services.individuals.badge')}</SectionBadge>
               <h2 className="text-2xl md:text-3xl font-bold text-primary mt-4">
-                Achetez, louez, vendez — simplement.
+                {t('services.individuals.title')}
               </h2>
               <p className="text-gray-500 max-w-2xl mx-auto mt-3">
-                Des outils puissants, une expérience intuitive.
+                {t('services.individuals.subtitle')}
               </p>
             </div>
 
@@ -769,7 +729,7 @@ export default function ServicesPage() {
                 const Icon = card.icon
                 return (
                   <StaggerCard
-                    key={card.title}
+                    key={i}
                     index={i}
                     visible={particuliersReveal.visible}
                     className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
@@ -783,14 +743,14 @@ export default function ServicesPage() {
                       <Icon className={cn('w-7 h-7', card.iconColor)} />
                     </div>
 
-                    <h3 className="text-xl font-semibold text-primary mt-5">{card.title}</h3>
-                    <p className="text-sm text-gray-500 leading-relaxed mt-3">{card.description}</p>
+                    <h3 className="text-xl font-semibold text-primary mt-5">{t(`services.individuals.${i}.title`)}</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed mt-3">{t(`services.individuals.${i}.description`)}</p>
 
                     <div className="border-t border-gray-100 mt-6 pt-4 space-y-2">
-                      {card.features.map((f) => (
-                        <div key={f} className="flex items-center gap-2">
+                      {[0, 1, 2].map((fi) => (
+                        <div key={fi} className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-accent flex-shrink-0" />
-                          <span className="text-sm text-gray-600">{f}</span>
+                          <span className="text-sm text-gray-600">{t(`services.individuals.${i}.features.${fi}`)}</span>
                         </div>
                       ))}
                     </div>
@@ -799,7 +759,7 @@ export default function ServicesPage() {
                       to={card.href}
                       className="text-accent font-medium text-sm mt-5 inline-flex items-center gap-1 hover:gap-2 transition-all"
                     >
-                      {card.cta}
+                      {t(`services.individuals.${i}.cta`)}
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                   </StaggerCard>
@@ -813,12 +773,12 @@ export default function ServicesPage() {
         <RevealSection id="professionnels" className="bg-gray-50 py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             <div className="text-center">
-              <SectionBadge variant="primary">Pour les agents & agences</SectionBadge>
+              <SectionBadge variant="primary">{t('services.professionals.badge')}</SectionBadge>
               <h2 className="text-2xl md:text-3xl font-bold text-primary mt-4">
-                L'OS des transactions immobilières suisses
+                {t('services.professionals.title')}
               </h2>
               <p className="text-gray-500 max-w-2xl mx-auto mt-3">
-                9 modules intégrés. Zéro outil externe. Tout est inclus.
+                {t('services.professionals.subtitle')}
               </p>
             </div>
 
@@ -845,21 +805,21 @@ export default function ServicesPage() {
                       >
                         <Icon className={cn('w-5 h-5', mod.iconColor)} />
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300">
+                      <span className="text-xs font-bold capitalize text-gray-500">
                         {mod.letter}
                       </span>
                     </div>
 
                     <h3 className="text-base font-semibold text-primary mt-4 group-hover:text-accent transition-colors">
-                      {mod.title}
+                      {t(`services.modules.${i}.title`)}
                     </h3>
-                    <p className="text-sm text-gray-500 leading-relaxed mt-1.5">{mod.desc}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed mt-1.5">{t(`services.modules.${i}.desc`)}</p>
 
                     <div className="flex flex-wrap gap-1.5 mt-3">
-                      {mod.tags.map((tag) => (
+                      {t(`services.modules.${i}.tags`).split(',').map((tag) => (
                         <span
                           key={tag}
-                          className="bg-gray-100 text-gray-500 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                          className="bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full"
                         >
                           {tag}
                         </span>
@@ -870,7 +830,7 @@ export default function ServicesPage() {
                       to={mod.href}
                       className="text-accent font-medium text-xs mt-4 inline-flex items-center gap-1 hover:gap-2 transition-all opacity-0 group-hover:opacity-100"
                     >
-                      En savoir plus
+                      {t('services.professionals.learnMore')}
                       <ArrowRight className="w-3 h-3" />
                     </Link>
                   </StaggerCard>
@@ -884,9 +844,9 @@ export default function ServicesPage() {
         <RevealSection className="bg-white py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             <div className="text-center">
-              <SectionBadge variant="primary">Le changement</SectionBadge>
+              <SectionBadge variant="primary">{t('services.compare.badge')}</SectionBadge>
               <h2 className="text-2xl md:text-3xl font-bold text-primary mt-4">
-                Avant MEGGA vs Avec MEGGA
+                {t('services.compare.title')}
               </h2>
             </div>
 
@@ -894,22 +854,22 @@ export default function ServicesPage() {
               {/* Header — desktop */}
               <div className="hidden md:flex">
                 <div className="w-1/2 bg-red-50 text-red-700 font-semibold text-sm py-3 px-6">
-                  Sans MEGGA
+                  {t('services.compare.without')}
                 </div>
                 <div className="w-1/2 bg-emerald-50 text-emerald-700 font-semibold text-sm py-3 px-6">
-                  Avec MEGGA
+                  {t('services.compare.with')}
                 </div>
               </div>
               {/* Header — mobile */}
               <div className="md:hidden bg-gradient-to-r from-red-50 to-emerald-50 py-3 px-5 text-center text-xs font-semibold text-gray-600">
-                Avant → Après MEGGA
+                {t('services.compare.mobileBefore')}
               </div>
               {/* Rows */}
-              {compareRows.map((row, i) => (
+              {Array.from({ length: 7 }).map((_, i) => (
                 <CompareRow
                   key={i}
-                  before={row.before}
-                  after={row.after}
+                  before={t(`services.compare.${i}.before`)}
+                  after={t(`services.compare.${i}.after`)}
                   even={i % 2 === 1}
                 />
               ))}
@@ -921,12 +881,12 @@ export default function ServicesPage() {
         <RevealSection className="bg-gray-50 py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             <div className="text-center">
-              <SectionBadge>Tarification</SectionBadge>
+              <SectionBadge>{t('services.pricing.badge')}</SectionBadge>
               <h2 className="text-2xl md:text-3xl font-bold text-primary mt-4">
-                Des tarifs transparents, enfin.
+                {t('services.pricing.title')}
               </h2>
               <p className="text-gray-500 max-w-2xl mx-auto mt-3">
-                30 à 50% moins cher que les portails traditionnels.
+                {t('services.pricing.subtitle')}
               </p>
 
               {/* Toggle */}
@@ -941,7 +901,7 @@ export default function ServicesPage() {
                         : 'text-gray-500 cursor-pointer'
                     )}
                   >
-                    Mensuel
+                    {t('services.pricing.monthly')}
                   </button>
                   <button
                     onClick={() => setIsAnnual(true)}
@@ -952,11 +912,11 @@ export default function ServicesPage() {
                         : 'text-gray-500 cursor-pointer'
                     )}
                   >
-                    Annuel
+                    {t('services.pricing.annual')}
                   </button>
                 </div>
                 {isAnnual && (
-                  <span className="text-accent text-xs font-medium">Économisez 20%</span>
+                  <span className="text-accent text-xs font-medium">{t('services.pricing.save20')}</span>
                 )}
               </div>
             </div>
@@ -985,13 +945,13 @@ export default function ServicesPage() {
                   >
                     {plan.popular && (
                       <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-white text-xs font-medium px-3 py-1 rounded-full">
-                        Populaire
+                        {t('services.pricing.popular')}
                       </span>
                     )}
 
                     <div className="p-8 pb-6">
-                      <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-                        {plan.name}
+                      <p className="text-sm font-medium text-gray-500 capitalize">
+                        {t(`services.plans.${i}.name`)}
                       </p>
                       {price !== null ? (
                         <div className="mt-2">
@@ -1003,19 +963,19 @@ export default function ServicesPage() {
                           >
                             CHF {price}
                           </span>
-                          <span className="text-sm text-gray-400">/mois</span>
+                          <span className="text-sm text-gray-500">{t('services.pricing.perMonth')}</span>
                         </div>
                       ) : (
-                        <p className="text-2xl font-bold text-primary mt-2">Sur mesure</p>
+                        <p className="text-2xl font-bold text-primary mt-2">{t('services.pricing.custom')}</p>
                       )}
-                      <p className="text-sm text-gray-400 mt-1">{plan.tagline}</p>
+                      <p className="text-sm text-gray-500 mt-1">{t(`services.plans.${i}.tagline`)}</p>
                     </div>
 
                     <div className="border-t border-gray-100" />
 
                     <div className="p-8 pt-6">
                       <div className="space-y-3">
-                        {plan.features.map((f) => (
+                        {t(`services.plans.${i}.features`).split(',').map((f) => (
                           <div key={f} className="flex items-center gap-2">
                             <Check
                               className={cn(
@@ -1024,7 +984,7 @@ export default function ServicesPage() {
                                   ? 'text-accent'
                                   : plan.buttonVariant === 'primary'
                                     ? 'text-primary'
-                                    : 'text-gray-300'
+                                    : 'text-gray-500'
                               )}
                             />
                             <span className="text-sm text-gray-500">{f}</span>
@@ -1033,13 +993,13 @@ export default function ServicesPage() {
                       </div>
 
                       {plan.name === 'Pro' && (
-                        <p className="text-xs text-gray-400 italic mt-2">
-                          Tout Starter inclus
+                        <p className="text-xs text-gray-500 italic mt-2">
+                          {t('services.pricing.allStarterIncluded')}
                         </p>
                       )}
                       {plan.name === 'Enterprise' && (
-                        <p className="text-xs text-gray-400 italic mt-2">
-                          Tout Agency inclus
+                        <p className="text-xs text-gray-500 italic mt-2">
+                          {t('services.pricing.allAgencyIncluded')}
                         </p>
                       )}
 
@@ -1048,7 +1008,7 @@ export default function ServicesPage() {
                           onClick={() => setDemoOpen(true)}
                           className="rounded-full w-full h-11 text-sm font-medium mt-6 transition-all border border-gray-200 text-primary hover:bg-gray-50 cursor-pointer"
                         >
-                          Nous contacter
+                          {t('services.pricing.contactUs')}
                         </button>
                       ) : (
                         <Link
@@ -1056,14 +1016,14 @@ export default function ServicesPage() {
                           className={cn(
                             'rounded-full w-full h-11 text-sm font-medium mt-6 transition-all flex items-center justify-center',
                             plan.buttonVariant === 'accent' &&
-                              'bg-accent text-white hover:bg-accent/90 shadow-sm',
+                              'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active',
                             plan.buttonVariant === 'primary' &&
-                              'bg-primary text-white hover:bg-primary/90',
+                              'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active',
                             plan.buttonVariant === 'outline' &&
                               'border border-gray-200 text-primary hover:bg-gray-50'
                           )}
                         >
-                          Commencer
+                          {t('services.pricing.getStarted')}
                         </Link>
                       )}
                     </div>
@@ -1084,11 +1044,11 @@ export default function ServicesPage() {
               {
                 icon: Database,
                 value: `${formatNumber(count47k)}+`,
-                label: 'Transactions analysées',
+                label: t('services.stats.transactionsAnalyzed'),
               },
-              { icon: MapPin, value: count26.toString(), label: 'Cantons couverts' },
-              { icon: Zap, value: '< 2s', label: 'Temps de réponse IA', static: true },
-              { icon: TrendingDown, value: '30-50%', label: 'Moins cher', static: true },
+              { icon: MapPin, value: count26.toString(), label: t('services.stats.cantonsCovered') },
+              { icon: Zap, value: '< 2s', label: t('services.stats.aiResponseTime'), static: true },
+              { icon: TrendingDown, value: '30-50%', label: t('services.stats.cheaper'), static: true },
             ].map((stat) => {
               const Icon = stat.icon
               return (
@@ -1108,9 +1068,9 @@ export default function ServicesPage() {
         <RevealSection className="bg-gray-50 py-20">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             <div className="text-center">
-              <SectionBadge variant="primary">Témoignages</SectionBadge>
+              <SectionBadge variant="primary">{t('services.testimonials.badge')}</SectionBadge>
               <h2 className="text-2xl md:text-3xl font-bold text-primary mt-4">
-                Ils font confiance à MEGGA
+                {t('services.testimonials.title')}
               </h2>
             </div>
 
@@ -1119,9 +1079,9 @@ export default function ServicesPage() {
               className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12"
             >
               {/* eslint-disable-next-line react-hooks/refs */}
-              {testimonials.map((t, i) => (
+              {testimonials.map((testimonial, i) => (
                 <StaggerCard
-                  key={t.name}
+                  key={testimonial.name}
                   index={i}
                   visible={testimonialsReveal.visible}
                   className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm hover:shadow-md transition-all"
@@ -1133,21 +1093,21 @@ export default function ServicesPage() {
                   </div>
 
                   <p className="text-sm text-gray-600 leading-relaxed mt-4 italic">
-                    &laquo;&nbsp;{t.quote}&nbsp;&raquo;
+                    &laquo;&nbsp;{t(`services.testimonials.${i}.quote`)}&nbsp;&raquo;
                   </p>
 
                   <div className="border-t border-gray-100 mt-6 pt-4 flex items-center gap-3">
                     <div
                       className={cn(
                         'w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold',
-                        t.color
+                        testimonial.color
                       )}
                     >
-                      {t.initials}
+                      {testimonial.initials}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-primary">{t.name}</p>
-                      <p className="text-xs text-gray-400">{t.company}</p>
+                      <p className="text-sm font-semibold text-primary">{testimonial.name}</p>
+                      <p className="text-xs text-gray-500">{testimonial.company}</p>
                     </div>
                   </div>
                 </StaggerCard>
@@ -1160,15 +1120,15 @@ export default function ServicesPage() {
         <RevealSection className="bg-white py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             <div className="text-center">
-              <SectionBadge variant="primary">Questions fréquentes</SectionBadge>
+              <SectionBadge variant="primary">{t('services.faq.badge')}</SectionBadge>
               <h2 className="text-2xl md:text-3xl font-bold text-primary mt-4">
-                Vous avez des questions ?
+                {t('services.faq.title')}
               </h2>
               <p className="text-gray-500 max-w-2xl mx-auto mt-3">
-                Les réponses aux questions les plus courantes sur MEGGA.
+                {t('services.faq.subtitle')}
               </p>
             </div>
-            <FaqAccordion />
+            <FaqAccordion t={t} />
           </div>
         </RevealSection>
 
@@ -1187,10 +1147,10 @@ export default function ServicesPage() {
             />
 
             <h2 className="text-3xl md:text-4xl font-bold relative z-10">
-              Prêt à transformer votre activité ?
+              {t('services.cta.title')}
             </h2>
             <p className="text-white/60 mt-3 relative z-10 max-w-xl mx-auto">
-              Rejoignez les agences suisses qui accélèrent leurs transactions avec MEGGA.
+              {t('services.cta.subtitle')}
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10 relative z-10">
@@ -1198,18 +1158,18 @@ export default function ServicesPage() {
                 to="/register"
                 className="bg-white text-primary rounded-full px-8 h-12 font-medium hover:bg-gray-100 shadow-md transition-all inline-flex items-center justify-center"
               >
-                Créer mon compte
+                {t('services.cta.createAccount')}
               </Link>
               <button
                 onClick={() => setDemoOpen(true)}
                 className="border border-white/30 text-white rounded-full px-8 h-12 font-medium hover:bg-white/10 transition-all"
               >
-                Voir une démo
+                {t('services.cta.seeDemo')}
               </button>
             </div>
 
             <p className="text-white/30 text-xs mt-5 relative z-10">
-              Gratuit · Sans carte bancaire · Prêt en 2 minutes
+              {t('services.cta.footer')}
             </p>
           </div>
         </section>

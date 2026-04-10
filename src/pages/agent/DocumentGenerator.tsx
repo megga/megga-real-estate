@@ -461,7 +461,7 @@ export default function DocumentGenerator() {
                         />
                       )}
                       {field.hint && (
-                        <p className="text-[11px] text-theme-tertiary mt-1">{field.hint}</p>
+                        <p className="text-xs text-theme-tertiary mt-1">{field.hint}</p>
                       )}
                     </div>
                   ))}
@@ -506,7 +506,7 @@ export default function DocumentGenerator() {
           <div className="rounded-xl border border-theme-border overflow-hidden">
             <div className="px-5 py-3 border-b border-theme-border flex items-center justify-between">
               <h3 className="text-sm font-semibold text-theme-primary">Aperçu du document</h3>
-              <span className="text-[10px] font-medium text-theme-tertiary bg-theme-section px-2 py-0.5 rounded">PDF</span>
+              <span className="text-xs font-medium text-theme-tertiary bg-theme-section px-2 py-0.5 rounded">PDF</span>
             </div>
 
             {/* Document preview */}
@@ -529,7 +529,7 @@ export default function DocumentGenerator() {
                 {/* Content sections */}
                 {sectionEntries.map(([sectionName, fields]) => (
                   <div key={sectionName}>
-                    <h3 className="text-sm font-semibold text-theme-primary mb-3 uppercase tracking-wider">
+                    <h3 className="text-sm font-semibold text-theme-primary mb-3 capitalize">
                       {sectionName}
                     </h3>
                     <div className="space-y-2">
@@ -569,7 +569,7 @@ export default function DocumentGenerator() {
                       <div className="border-b border-theme-border w-full" />
                     </div>
                   </div>
-                  <p className="text-[10px] text-theme-tertiary mt-6 text-center">
+                  <p className="text-xs text-theme-tertiary mt-6 text-center">
                     Document généré via MEGGA Real Estate — {new Date().toLocaleDateString('fr-CH')}
                   </p>
                 </div>

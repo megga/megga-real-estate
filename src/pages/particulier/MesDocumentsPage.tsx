@@ -215,43 +215,43 @@ export default function MesDocumentsPage() {
           <div className="flex items-center gap-2">
             <p className={cn('font-medium text-theme-primary truncate', compact ? 'text-xs' : 'text-sm')}>{doc.name}</p>
             {doc.required && (
-              <span className="text-[10px] text-theme-tertiary border border-theme-border rounded px-1 py-px shrink-0">obligatoire</span>
+              <span className="text-xs text-theme-tertiary border border-theme-border rounded px-1 py-px shrink-0">obligatoire</span>
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-[10px] text-theme-muted">{cat.label}</span>
+            <span className="text-xs text-theme-muted">{cat.label}</span>
             {doc.uploaded_at && (
               <>
-                <span className="text-[10px] text-theme-muted">·</span>
-                <span className="text-[10px] text-theme-muted">{formatDate(doc.uploaded_at)}</span>
+                <span className="text-xs text-theme-muted">·</span>
+                <span className="text-xs text-theme-muted">{formatDate(doc.uploaded_at)}</span>
               </>
             )}
             {doc.size_kb && (
               <>
-                <span className="text-[10px] text-theme-muted">·</span>
-                <span className="text-[10px] text-theme-muted">{formatSize(doc.size_kb)}</span>
+                <span className="text-xs text-theme-muted">·</span>
+                <span className="text-xs text-theme-muted">{formatSize(doc.size_kb)}</span>
               </>
             )}
             {compact && doc.status === 'validated' && doc.validated_at && (
               <>
-                <span className="text-[10px] text-theme-muted">·</span>
-                <span className="text-[10px] text-theme-muted">validé le {formatDate(doc.validated_at)}</span>
+                <span className="text-xs text-theme-muted">·</span>
+                <span className="text-xs text-theme-muted">validé le {formatDate(doc.validated_at)}</span>
               </>
             )}
           </div>
 
           {/* Expiry — only signal that uses color (amber) */}
           {isExpiring && (
-            <p className="text-[10px] text-theme-secondary mt-0.5">
+            <p className="text-xs text-theme-secondary mt-0.5">
               Expire dans {daysUntilExpiry(doc.expires_at!)} jour{daysUntilExpiry(doc.expires_at!) > 1 ? 's' : ''}
             </p>
           )}
           {isExpired && (
-            <p className="text-[10px] text-theme-tertiary mt-0.5">Expiré</p>
+            <p className="text-xs text-theme-tertiary mt-0.5">Expiré</p>
           )}
 
           {!compact && doc.status === 'pending' && doc.uploaded_at && (
-            <p className="text-[11px] text-theme-muted mt-1">
+            <p className="text-xs text-theme-muted mt-1">
               Déposé le {formatDate(doc.uploaded_at)} — en cours de vérification
             </p>
           )}
@@ -260,13 +260,13 @@ export default function MesDocumentsPage() {
             <div className="mt-1.5 space-y-0.5">
               <p className="text-xs text-theme-tertiary">{docHelp.help}</p>
               {docHelp.cost && (
-                <p className="text-[11px] text-theme-muted">Coût estimé : {docHelp.cost}</p>
+                <p className="text-xs text-theme-muted">Coût estimé : {docHelp.cost}</p>
               )}
             </div>
           )}
 
           {doc.status === 'missing' && doc.required_for && (
-            <p className="text-[11px] text-theme-tertiary mt-1">
+            <p className="text-xs text-theme-tertiary mt-1">
               Nécessaire avant : {doc.required_for}
             </p>
           )}
@@ -453,7 +453,7 @@ export default function MesDocumentsPage() {
               {validatedCollapsed && (
                 <button
                   onClick={() => setValidatedCollapsed(false)}
-                  className={cn('text-[11px] text-theme-muted px-1 hover:text-theme-secondary transition-colors', FOCUS_RING, 'rounded')}
+                  className={cn('text-xs text-theme-muted px-1 hover:text-theme-secondary transition-colors', FOCUS_RING, 'rounded')}
                 >
                   {validatedDocs.length} document{validatedDocs.length > 1 ? 's' : ''} validé{validatedDocs.length > 1 ? 's' : ''} — cliquer pour afficher
                 </button>
@@ -547,7 +547,7 @@ export default function MesDocumentsPage() {
                   <MessageSquare className="h-3.5 w-3.5" />
                   Contacter mon agent
                 </button>
-                <p className="text-[11px] text-theme-muted mt-1.5">
+                <p className="text-xs text-theme-muted mt-1.5">
                   Un message pré-rempli sera envoyé concernant ce document.
                 </p>
               </div>

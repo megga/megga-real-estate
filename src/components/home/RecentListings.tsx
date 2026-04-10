@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Heart, ArrowRight, Clock } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 
@@ -112,6 +113,7 @@ const RECENT: RecentListing[] = [
 ]
 
 export default function RecentListings() {
+  const { t } = useTranslation('common')
   return (
     <section className="py-12 md:py-16 bg-[var(--color-bg-section,#F9FAFB)]">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
@@ -119,17 +121,17 @@ export default function RecentListings() {
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2 className="text-2xl md:text-3xl font-semibold text-primary">
-              Dernières annonces
+              {t('home.recentListings')}
             </h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Publiées récemment sur MEGGA
+            <p className="text-sm text-gray-500 mt-1">
+              {t('home.recentSubtitle')}
             </p>
           </div>
           <Link
             to="/acheter"
             className="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors group"
           >
-            Voir toutes les annonces
+            {t('home.viewAllListings')}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
@@ -159,13 +161,13 @@ export default function RecentListings() {
                   <Heart className="w-4 h-4 text-gray-500" />
                 </button>
                 {/* Badge nouveau */}
-                <span className="absolute top-2.5 left-2.5 bg-accent text-white text-[10px] font-semibold px-2 py-0.5 rounded-badge uppercase tracking-wide">
-                  Nouveau
+                <span className="absolute top-2.5 left-2.5 bg-accent text-white text-xs font-semibold px-2 py-0.5 rounded-badge capitalize">
+                  {t('home.newBadge')}
                 </span>
                 {/* Time ago */}
                 <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-2 py-0.5">
                   <Clock className="w-2.5 h-2.5 text-white/70" />
-                  <span className="text-[10px] text-white/80 font-medium">
+                  <span className="text-xs text-white/80 font-medium">
                     {listing.timeAgo}
                   </span>
                 </div>
@@ -178,7 +180,7 @@ export default function RecentListings() {
                     {formatCHF(listing.price)}
                   </span>
                   {listing.priceLabel && (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500">
                       {listing.priceLabel}
                     </span>
                   )}
@@ -186,7 +188,7 @@ export default function RecentListings() {
                 <p className="text-xs md:text-sm text-gray-500 mt-0.5 truncate">
                   {listing.address}
                 </p>
-                <p className="text-[11px] md:text-xs text-gray-400 mt-1.5">
+                <p className="text-xs md:text-xs text-gray-500 mt-1.5">
                   {listing.rooms} pièces · {listing.bedrooms} ch · {listing.surface} m²
                 </p>
               </div>
@@ -203,7 +205,7 @@ export default function RecentListings() {
               'hover:text-accent/80 transition-colors'
             )}
           >
-            Voir toutes les annonces
+            {t('home.viewAllListings')}
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

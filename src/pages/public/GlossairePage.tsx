@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Search } from 'lucide-react';
@@ -220,6 +221,7 @@ const GLOSSARY_TERMS: GlossaryTerm[] = [
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 export default function GlossairePage() {
+  const { t } = useTranslation('common');
   const [search, setSearch] = useState('');
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -270,21 +272,21 @@ export default function GlossairePage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Glossaire immobilier suisse
+            {t('glossary.title')}
           </h1>
           <p className="text-gray-500 text-base">
-            Tous les termes essentiels de l'immobilier suisse expliqués simplement.
+            {t('glossary.subtitle')}
           </p>
         </div>
 
         {/* Search bar */}
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un terme..."
+            placeholder={t('glossary.searchPlaceholder')}
             className="w-full h-11 pl-10 pr-4 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-colors"
           />
         </div>
@@ -303,7 +305,7 @@ export default function GlossairePage() {
                     ? 'bg-gray-900 text-white'
                     : available
                       ? 'text-gray-600 hover:bg-gray-100'
-                      : 'text-gray-300 cursor-default'
+                      : 'text-gray-500 cursor-default'
                 }`}
               >
                 {letter}
@@ -316,7 +318,7 @@ export default function GlossairePage() {
         <div ref={contentRef}>
           {filteredTerms.length === 0 && (
             <p className="text-gray-500 text-sm py-12 text-center">
-              Aucun terme ne correspond a votre recherche.
+              {t('glossary.noResults')}
             </p>
           )}
 

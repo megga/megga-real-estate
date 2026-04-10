@@ -30,9 +30,9 @@ function AnomalyRow({ anomaly }: { anomaly: PipelineAnomaly }) {
       <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', style.dot)} />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-theme-primary truncate">{anomaly.title}</p>
-        <p className="text-[10px] text-theme-tertiary truncate">{anomaly.description}</p>
+        <p className="text-xs text-theme-tertiary truncate">{anomaly.description}</p>
       </div>
-      <span className="text-[10px] font-medium text-theme-secondary shrink-0">{anomaly.actionLabel}</span>
+      <span className="text-xs font-medium text-theme-secondary shrink-0">{anomaly.actionLabel}</span>
     </Link>
   )
 }
@@ -64,10 +64,10 @@ export default function PipelineHealth() {
         </div>
         <div className="flex items-center gap-2">
           {criticalCount > 0 && (
-            <span className="text-[10px] font-medium text-red-500">{criticalCount} critique{criticalCount > 1 ? 's' : ''}</span>
+            <span className="text-xs font-medium text-red-500">{criticalCount} critique{criticalCount > 1 ? 's' : ''}</span>
           )}
           {warningCount > 0 && (
-            <span className="text-[10px] font-medium text-amber-500">{warningCount} attention</span>
+            <span className="text-xs font-medium text-amber-500">{warningCount} attention</span>
           )}
         </div>
       </div>
@@ -96,7 +96,7 @@ export default function PipelineHealth() {
       {health.anomalies.length > 5 && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full text-center text-[10px] font-medium text-theme-tertiary hover:text-theme-primary mt-2 py-1 transition-colors"
+          className="w-full text-center text-xs font-medium text-theme-tertiary hover:text-theme-primary mt-2 py-1 transition-colors"
         >
           {expanded ? 'Voir moins' : `Voir les ${health.anomalies.length - 5} autres`}
         </button>

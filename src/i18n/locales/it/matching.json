@@ -1,1 +1,57 @@
-{}
+{
+  "title": "Matching",
+  "subtitle": "Acquirenti ↔ Immobili compatibili",
+  "runMatching": "Avvia matching",
+  "running": "Analisi in corso...",
+  "portfolio": "Portafoglio",
+  "market": "Mercato",
+  "kpi": {
+    "totalMatches": "Match totali",
+    "toSend": "Da inviare",
+    "sent": "Inviati",
+    "contacts": "Contatti"
+  },
+  "filter": {
+    "all": "Tutti",
+    "suggested": "Da inviare",
+    "sentLabel": "Inviati",
+    "internal": "Interno",
+    "marketLabel": "Mercato",
+    "clear": "Cancella"
+  },
+  "sort": {
+    "score": "Score",
+    "priceAsc": "Prezzo ↑",
+    "priceDesc": "Prezzo ↓",
+    "recent": "Recente"
+  },
+  "empty": {
+    "title": "Aggiunga criteri di ricerca ai Suoi contatti",
+    "desc": "Il matching confronta automaticamente i criteri dei Suoi acquirenti con gli immobili disponibili.",
+    "cta": "Vedi i miei contatti"
+  },
+  "card": {
+    "sendTo": "Invia →",
+    "sentBy": "Inviato tramite {{channel}}",
+    "noPhoto": "Nessuna foto",
+    "seeSheet": "Vedi scheda →"
+  },
+  "preview": {
+    "rooms": "Locali",
+    "bedrooms": "Camere",
+    "surface": "Superficie",
+    "floor": "Piano",
+    "year": "Anno",
+    "charges": "Spese",
+    "features": "Caratteristiche",
+    "compatibilityScore": "Punteggio di compatibilità",
+    "source": "Fonte",
+    "agency": "Agenzia",
+    "pricePerM2": "Prezzo/m²",
+    "online": "Online",
+    "matchFor": "Match per",
+    "close": "Chiudi",
+    "seeAd": "Vedi annuncio",
+    "sendToClient": "Invia al cliente"
+  }
+}

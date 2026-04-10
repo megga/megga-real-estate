@@ -220,7 +220,7 @@ export default function EstimationForm() {
                     'w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-colors',
                     isCompleted && 'bg-success text-white',
                     isActive && 'bg-accent text-white',
-                    !isActive && !isCompleted && 'bg-gray-200 text-gray-400'
+                    !isActive && !isCompleted && 'bg-theme-active text-theme-muted'
                   )}
                 >
                   {isCompleted ? <Check className="w-4 h-4" /> : stepNum}
@@ -228,7 +228,7 @@ export default function EstimationForm() {
                 <span
                   className={cn(
                     'text-xs mt-1.5 whitespace-nowrap',
-                    isActive ? 'font-medium text-primary' : 'text-gray-400'
+                    isActive ? 'font-medium text-primary' : 'text-theme-muted'
                   )}
                 >
                   {label}
@@ -238,7 +238,7 @@ export default function EstimationForm() {
                 <div
                   className={cn(
                     'w-16 md:w-24 h-0.5 mx-3 mt-[-18px]',
-                    step > stepNum ? 'bg-accent' : 'bg-gray-200'
+                    step > stepNum ? 'bg-accent' : 'bg-theme-active'
                   )}
                 />
               )}
@@ -249,7 +249,7 @@ export default function EstimationForm() {
 
       {/* Step 1 */}
       {step === 1 && (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
+        <div className="bg-theme-card rounded-2xl border border-theme-border p-6 md:p-8">
           <h3 className="text-lg font-semibold text-primary mb-6">Type de bien</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             {PROPERTY_TYPES.map((type) => {
@@ -264,10 +264,10 @@ export default function EstimationForm() {
                     'rounded-xl p-4 text-center transition-all cursor-pointer',
                     selected
                       ? 'border-2 border-accent bg-accent/5'
-                      : 'border border-gray-200 hover:border-accent/50 hover:bg-accent/5'
+                      : 'border border-theme-border hover:border-accent/50 hover:bg-accent/5'
                   )}
                 >
-                  <Icon className={cn('w-8 h-8 mx-auto', selected ? 'text-accent' : 'text-gray-400')} />
+                  <Icon className={cn('w-8 h-8 mx-auto', selected ? 'text-accent' : 'text-theme-muted')} />
                   <span className="text-sm font-medium mt-2 block">{type.label}</span>
                 </button>
               )
@@ -275,37 +275,37 @@ export default function EstimationForm() {
           </div>
 
           <div className="mt-6">
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Adresse du bien</label>
+            <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Adresse du bien</label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted" />
               <input
                 type="text"
                 value={formData.address}
                 onChange={(e) => updateField('address', e.target.value)}
                 placeholder="Entrez l'adresse complète (rue, numéro, ville)"
-                className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                className="w-full h-12 pl-10 pr-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
               />
             </div>
           </div>
 
           <div className="mt-4 flex gap-3">
             <div className="w-1/3">
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Code postal</label>
+              <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Code postal</label>
               <input
                 type="text"
                 inputMode="numeric"
                 value={formData.postalCode}
                 onChange={(e) => updateField('postalCode', e.target.value)}
                 placeholder="1201"
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                className="w-full h-12 px-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
               />
             </div>
             <div className="w-2/3">
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Canton</label>
+              <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Canton</label>
               <select
                 value={formData.canton}
                 onChange={(e) => updateField('canton', e.target.value)}
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-white appearance-none cursor-pointer"
+                className="w-full h-12 px-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-theme-card appearance-none cursor-pointer"
               >
                 <option value="">Sélectionner...</option>
                 {CANTONS.map((c) => (
@@ -327,7 +327,7 @@ export default function EstimationForm() {
 
       {/* Step 2 */}
       {step === 2 && (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
+        <div className="bg-theme-card rounded-2xl border border-theme-border p-6 md:p-8">
           <button
             onClick={() => setStep(1)}
             className="flex items-center gap-1.5 text-sm text-accent hover:underline mb-6"
@@ -339,24 +339,24 @@ export default function EstimationForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Surface habitable */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Surface habitable</label>
+              <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Surface habitable</label>
               <div className="relative">
                 <input
                   type="number"
                   value={formData.surface}
                   onChange={(e) => updateField('surface', e.target.value)}
                   placeholder="ex: 95"
-                  className="w-full h-12 px-4 pr-12 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                  className="w-full h-12 px-4 pr-12 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">m²</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-theme-muted">m²</span>
               </div>
             </div>
 
             {/* Surface terrain */}
             {showLandSurface && (
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                  Surface du terrain <span className="text-gray-400 font-normal">(optionnel)</span>
+                <label className="text-sm font-medium text-theme-secondary mb-1.5 block">
+                  Surface du terrain <span className="text-theme-muted font-normal">(optionnel)</span>
                 </label>
                 <div className="relative">
                   <input
@@ -364,20 +364,20 @@ export default function EstimationForm() {
                     value={formData.landSurface}
                     onChange={(e) => updateField('landSurface', e.target.value)}
                     placeholder="ex: 500"
-                    className="w-full h-12 px-4 pr-12 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                    className="w-full h-12 px-4 pr-12 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">m²</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-theme-muted">m²</span>
                 </div>
               </div>
             )}
 
             {/* Nombre de pièces */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Nombre de pièces</label>
+              <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Nombre de pièces</label>
               <select
                 value={formData.rooms}
                 onChange={(e) => updateField('rooms', e.target.value)}
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-white appearance-none cursor-pointer"
+                className="w-full h-12 px-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-theme-card appearance-none cursor-pointer"
               >
                 <option value="">Sélectionner...</option>
                 {ROOM_OPTIONS.map((r) => (
@@ -388,11 +388,11 @@ export default function EstimationForm() {
 
             {/* Nombre de chambres */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Nombre de chambres</label>
+              <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Nombre de chambres</label>
               <select
                 value={formData.bedrooms}
                 onChange={(e) => updateField('bedrooms', e.target.value)}
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-white appearance-none cursor-pointer"
+                className="w-full h-12 px-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-theme-card appearance-none cursor-pointer"
               >
                 <option value="">Sélectionner...</option>
                 {BEDROOM_OPTIONS.map((b) => (
@@ -403,20 +403,20 @@ export default function EstimationForm() {
 
             {/* Année de construction */}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Année de construction</label>
+              <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Année de construction</label>
               <input
                 type="number"
                 value={formData.yearBuilt}
                 onChange={(e) => updateField('yearBuilt', e.target.value)}
                 placeholder="ex: 1985"
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                className="w-full h-12 px-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
               />
             </div>
           </div>
 
           {/* État général */}
           <div className="mt-6">
-            <label className="text-sm font-medium text-gray-700 mb-3 block">État général du bien</label>
+            <label className="text-sm font-medium text-theme-secondary mb-3 block">État général du bien</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {CONDITIONS.map((cond) => {
                 const Icon = cond.icon
@@ -430,10 +430,10 @@ export default function EstimationForm() {
                       'rounded-xl p-3 text-center transition-all cursor-pointer',
                       selected
                         ? 'border-2 border-accent bg-accent/5'
-                        : 'border border-gray-200 hover:border-accent/50 hover:bg-accent/5'
+                        : 'border border-theme-border hover:border-accent/50 hover:bg-accent/5'
                     )}
                   >
-                    <Icon className={cn('w-5 h-5 mx-auto', selected ? 'text-accent' : 'text-gray-400')} />
+                    <Icon className={cn('w-5 h-5 mx-auto', selected ? 'text-accent' : 'text-theme-muted')} />
                     <span className="text-xs font-medium mt-1 block">{cond.label}</span>
                   </button>
                 )
@@ -444,21 +444,21 @@ export default function EstimationForm() {
           {/* More details */}
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mt-6 transition-colors"
+            className="flex items-center gap-2 text-sm text-theme-tertiary hover:text-theme-secondary mt-6 transition-colors"
           >
             <ChevronDown className={cn('w-4 h-4 transition-transform', showDetails && 'rotate-180')} />
             Plus de détails
           </button>
 
           {showDetails && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-theme-border-subtle">
               {isApartment && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1.5 block">Étage</label>
+                  <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Étage</label>
                   <select
                     value={formData.floor}
                     onChange={(e) => updateField('floor', e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-white appearance-none cursor-pointer"
+                    className="w-full h-12 px-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-theme-card appearance-none cursor-pointer"
                   >
                     <option value="">Sélectionner...</option>
                     {FLOOR_OPTIONS.map((f) => (
@@ -469,11 +469,11 @@ export default function EstimationForm() {
               )}
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Parking</label>
+                <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Parking</label>
                 <select
                   value={formData.parking}
                   onChange={(e) => updateField('parking', e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-white appearance-none cursor-pointer"
+                  className="w-full h-12 px-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-theme-card appearance-none cursor-pointer"
                 >
                   <option value="">Sélectionner...</option>
                   {PARKING_OPTIONS.map((p) => (
@@ -483,11 +483,11 @@ export default function EstimationForm() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Vue</label>
+                <label className="text-sm font-medium text-theme-secondary mb-1.5 block">Vue</label>
                 <select
                   value={formData.view}
                   onChange={(e) => updateField('view', e.target.value)}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-white appearance-none cursor-pointer"
+                  className="w-full h-12 px-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all bg-theme-card appearance-none cursor-pointer"
                 >
                   <option value="">Sélectionner...</option>
                   {VIEW_OPTIONS.map((v) => (
@@ -497,7 +497,7 @@ export default function EstimationForm() {
               </div>
 
               <div>
-                <label htmlFor="toggle-balcony" className="text-sm font-medium text-gray-700 mb-1.5 block">Balcon / Terrasse</label>
+                <label htmlFor="toggle-balcony" className="text-sm font-medium text-theme-secondary mb-1.5 block">Balcon / Terrasse</label>
                 <div className="flex items-center gap-3">
                   <label
                     htmlFor="toggle-balcony"
@@ -505,7 +505,7 @@ export default function EstimationForm() {
                     aria-checked={formData.hasBalcony}
                     className={cn(
                       'relative w-11 h-6 rounded-full transition-colors cursor-pointer',
-                      formData.hasBalcony ? 'bg-accent' : 'bg-gray-200'
+                      formData.hasBalcony ? 'bg-accent' : 'bg-theme-active'
                     )}
                   >
                     <input
@@ -530,9 +530,9 @@ export default function EstimationForm() {
                         onChange={(e) => updateField('balconySurface', e.target.value)}
                         placeholder="Surface"
                         aria-label="Surface du balcon en m²"
-                        className="w-full h-10 px-3 pr-10 rounded-lg border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-sm outline-none transition-all"
+                        className="w-full h-10 px-3 pr-10 rounded-lg border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-sm outline-none transition-all"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">m²</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-theme-muted">m²</span>
                     </div>
                   )}
                 </div>
@@ -540,14 +540,14 @@ export default function EstimationForm() {
 
               {isApartment && (
                 <div>
-                  <label htmlFor="toggle-elevator" className="text-sm font-medium text-gray-700 mb-1.5 block">Ascenseur</label>
+                  <label htmlFor="toggle-elevator" className="text-sm font-medium text-theme-secondary mb-1.5 block">Ascenseur</label>
                   <label
                     htmlFor="toggle-elevator"
                     role="switch"
                     aria-checked={formData.hasElevator}
                     className={cn(
                       'relative w-11 h-6 rounded-full transition-colors cursor-pointer inline-block',
-                      formData.hasElevator ? 'bg-accent' : 'bg-gray-200'
+                      formData.hasElevator ? 'bg-accent' : 'bg-theme-active'
                     )}
                   >
                     <input
@@ -581,11 +581,11 @@ export default function EstimationForm() {
 
       {/* Step 3 — Loading */}
       {step === 3 && loading && (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 md:p-10 text-center">
+        <div className="bg-theme-card rounded-2xl border border-theme-border p-8 md:p-10 text-center">
           <div className="w-12 h-12 border-3 border-accent border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-base font-medium text-primary mt-6">{loadingText}</p>
           <div className="mt-6 max-w-xs mx-auto">
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-theme-hover rounded-full overflow-hidden">
               <div
                 className="h-full bg-accent rounded-full transition-all duration-100"
                 style={{ width: `${loadingProgress}%` }}
@@ -597,13 +597,13 @@ export default function EstimationForm() {
 
       {/* Step 3 — Result */}
       {step === 3 && showResult && (
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 md:p-10 animate-in fade-in duration-500">
+        <div className="bg-theme-card rounded-2xl border border-theme-border p-6 md:p-10 animate-in fade-in duration-500">
           <div className="text-center">
             <span className="bg-accent/10 text-accent text-sm font-medium px-4 py-1.5 rounded-full inline-block">
               Estimation IA MEGGA
             </span>
-            <p className="text-gray-500 text-sm mt-2">{formData.address}</p>
-            <p className="text-gray-400 text-xs mt-0.5">
+            <p className="text-theme-tertiary text-sm mt-2">{formData.address}</p>
+            <p className="text-theme-muted text-xs mt-0.5">
               {PROPERTY_TYPES.find((t) => t.value === formData.propertyType)?.label} · {formData.rooms} pièces · {formData.surface} m²
             </p>
           </div>
@@ -613,16 +613,16 @@ export default function EstimationForm() {
             <div className="flex items-end justify-center gap-1 mb-2">
               <span className="text-4xl font-bold text-accent">CHF 715'000</span>
             </div>
-            <p className="text-center text-gray-500 text-sm">entre CHF 650'000 et CHF 780'000</p>
+            <p className="text-center text-theme-tertiary text-sm">entre CHF 650'000 et CHF 780'000</p>
 
             <div className="mt-4 flex items-center gap-0.5 max-w-md mx-auto">
-              <div className="flex-1 h-2 bg-gray-200 rounded-l-full" />
+              <div className="flex-1 h-2 bg-theme-active rounded-l-full" />
               <div className="flex-[2] h-3 bg-accent rounded-sm relative">
                 <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-5 bg-accent rounded-sm" />
               </div>
-              <div className="flex-1 h-2 bg-gray-200 rounded-r-full" />
+              <div className="flex-1 h-2 bg-theme-active rounded-r-full" />
             </div>
-            <div className="flex justify-between max-w-md mx-auto mt-1.5 text-xs text-gray-400">
+            <div className="flex justify-between max-w-md mx-auto mt-1.5 text-xs text-theme-muted">
               <span>CHF 650'000</span>
               <span>CHF 780'000</span>
             </div>
@@ -630,24 +630,24 @@ export default function EstimationForm() {
 
           {/* Metrics */}
           <div className="grid grid-cols-2 gap-4 mt-8">
-            <div className="bg-gray-50 rounded-xl p-4">
+            <div className="bg-theme-section rounded-xl p-4">
               <Maximize2 className="w-5 h-5 text-accent mb-2" />
-              <p className="text-xs text-gray-500">Prix au m²</p>
+              <p className="text-xs text-theme-tertiary">Prix au m²</p>
               <p className="text-sm font-semibold text-primary">CHF 7'520/m²</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4">
+            <div className="bg-theme-section rounded-xl p-4">
               <BarChart3 className="w-5 h-5 text-accent mb-2" />
-              <p className="text-xs text-gray-500">Transactions similaires</p>
+              <p className="text-xs text-theme-tertiary">Transactions similaires</p>
               <p className="text-sm font-semibold text-primary">47 dans votre secteur</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4">
+            <div className="bg-theme-section rounded-xl p-4">
               <TrendingUp className="w-5 h-5 text-success mb-2" />
-              <p className="text-xs text-gray-500">Tendance 12 mois</p>
+              <p className="text-xs text-theme-tertiary">Tendance 12 mois</p>
               <p className="text-sm font-semibold text-success">+3.1%</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4">
+            <div className="bg-theme-section rounded-xl p-4">
               <Shield className="w-5 h-5 text-success mb-2" />
-              <p className="text-xs text-gray-500">Indice de confiance</p>
+              <p className="text-xs text-theme-tertiary">Indice de confiance</p>
               <p className="text-sm font-semibold text-success">Élevé</p>
             </div>
           </div>
@@ -659,8 +659,8 @@ export default function EstimationForm() {
             </h4>
             <div className="space-y-2">
               {COMPARABLE_PROPERTIES.map((prop, i) => (
-                <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
-                  <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+                <div key={i} className="flex items-center gap-3 bg-theme-section rounded-lg p-3">
+                  <div className="w-16 h-16 rounded-lg bg-theme-active overflow-hidden flex-shrink-0">
                     <img
                       src={`https://images.unsplash.com/photo-${
                         ['1560448204-e02f11c3d0e2', '1522708323590-d24dbb6b0267', '1600596542815-ffad4c1539a8'][i]
@@ -671,7 +671,7 @@ export default function EstimationForm() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-primary truncate">{prop.address}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-theme-tertiary">
                       {prop.rooms} · {prop.surface} · Vendu {prop.price} · {prop.date}
                     </p>
                   </div>
@@ -681,7 +681,7 @@ export default function EstimationForm() {
           </div>
 
           {/* Disclaimer */}
-          <p className="text-xs text-gray-400 italic mt-6 border-t border-gray-100 pt-4">
+          <p className="text-xs text-theme-muted italic mt-6 border-t border-theme-border-subtle pt-4">
             Cette estimation est fournie à titre indicatif. Elle est basée sur l'analyse statistique de transactions
             similaires dans votre secteur. Pour une évaluation précise prenant en compte les spécificités de votre
             bien, nous recommandons une expertise sur place par un agent certifié.
@@ -723,10 +723,10 @@ export default function EstimationForm() {
           />
 
           {/* Modal */}
-          <div className="relative bg-white rounded-2xl shadow-modal w-full max-w-md p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative bg-theme-card rounded-2xl border border-theme-border w-full max-w-md p-6 md:p-8 animate-in fade-in zoom-in-95 duration-200">
             <button
               onClick={() => setShowLeadModal(false)}
-              className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="absolute top-4 right-4 p-1 rounded-lg text-theme-muted hover:text-theme-secondary hover:bg-theme-hover transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -739,7 +739,7 @@ export default function EstimationForm() {
               <h3 className="text-xl font-semibold text-primary">
                 Votre estimation est prête !
               </h3>
-              <p className="text-sm text-gray-500 mt-1.5">
+              <p className="text-sm text-theme-tertiary mt-1.5">
                 Entrez votre email pour recevoir votre estimation détaillée et accéder à votre résultat.
               </p>
             </div>
@@ -748,11 +748,11 @@ export default function EstimationForm() {
             <div className="space-y-3">
               {/* Email — required */}
               <div>
-                <label htmlFor="lead-email" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                <label htmlFor="lead-email" className="text-sm font-medium text-theme-secondary mb-1.5 block">
                   Email <span className="text-danger">*</span>
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted" />
                   <input
                     id="lead-email"
                     type="email"
@@ -765,7 +765,7 @@ export default function EstimationForm() {
                       'w-full h-12 pl-10 pr-4 rounded-xl border text-base outline-none transition-all',
                       leadEmailError
                         ? 'border-danger focus:border-danger focus:ring-2 focus:ring-danger/20'
-                        : 'border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20'
+                        : 'border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20'
                     )}
                   />
                 </div>
@@ -776,11 +776,11 @@ export default function EstimationForm() {
 
               {/* Name — optional */}
               <div>
-                <label htmlFor="lead-name" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                  Prénom <span className="text-gray-400 font-normal">(optionnel)</span>
+                <label htmlFor="lead-name" className="text-sm font-medium text-theme-secondary mb-1.5 block">
+                  Prénom <span className="text-theme-muted font-normal">(optionnel)</span>
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted" />
                   <input
                     id="lead-name"
                     type="text"
@@ -788,18 +788,18 @@ export default function EstimationForm() {
                     onChange={(e) => setLeadName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLeadSubmit() }}
                     placeholder="Jean"
-                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
                   />
                 </div>
               </div>
 
               {/* Phone — optional */}
               <div>
-                <label htmlFor="lead-phone" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                  Téléphone <span className="text-gray-400 font-normal">(optionnel)</span>
+                <label htmlFor="lead-phone" className="text-sm font-medium text-theme-secondary mb-1.5 block">
+                  Téléphone <span className="text-theme-muted font-normal">(optionnel)</span>
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted" />
                   <input
                     id="lead-phone"
                     type="tel"
@@ -807,7 +807,7 @@ export default function EstimationForm() {
                     onChange={(e) => setLeadPhone(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLeadSubmit() }}
                     placeholder="+41 79 000 00 00"
-                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-gray-200 focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
+                    className="w-full h-12 pl-10 pr-4 rounded-xl border border-theme-border focus:border-accent focus:ring-2 focus:ring-accent/20 text-base outline-none transition-all"
                   />
                 </div>
               </div>
@@ -823,8 +823,8 @@ export default function EstimationForm() {
 
             {/* Trust indicators */}
             <div className="flex items-center justify-center gap-1.5 mt-4">
-              <Lock className="w-3 h-3 text-gray-400" />
-              <p className="text-xs text-gray-400">
+              <Lock className="w-3 h-3 text-theme-muted" />
+              <p className="text-xs text-theme-muted">
                 Vos données sont protégées et ne seront jamais partagées.
               </p>
             </div>

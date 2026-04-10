@@ -1,26 +1,5 @@
+import { useTranslation } from 'react-i18next'
 import { Linkedin, Instagram, Facebook } from 'lucide-react'
-
-const LINKS_RECHERCHER = [
-  { label: 'Acheter', href: '/acheter' },
-  { label: 'Louer', href: '/louer' },
-  { label: 'Estimer', href: '/estimations' },
-  { label: 'Carte interactive', href: '/acheter' },
-]
-
-const LINKS_PRO = [
-  { label: 'CRM immobilier', href: '/services' },
-  { label: 'Publier un bien', href: '/publier' },
-  { label: 'Tarifs agences', href: '/services#tarifs' },
-  { label: 'Devenir partenaire', href: '/register' },
-]
-
-const LINKS_MEGGA = [
-  { label: 'À propos', href: '/services#about' },
-  { label: 'Centre d\'aide', href: '/aide' },
-  { label: 'Nous contacter', href: '/aide/contact' },
-  { label: 'Confidentialité', href: '/privacy' },
-  { label: 'Conditions générales', href: '/privacy' },
-]
 
 function FooterLinkColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
@@ -43,14 +22,38 @@ function FooterLinkColumn({ title, links }: { title: string; links: { label: str
 }
 
 export default function Footer() {
+  const { t } = useTranslation('common')
+
+  const LINKS_RECHERCHER = [
+    { label: t('footer.buy'), href: '/acheter' },
+    { label: t('footer.rent'), href: '/louer' },
+    { label: t('footer.estimate'), href: '/estimations' },
+    { label: t('footer.interactiveMap'), href: '/acheter' },
+  ]
+
+  const LINKS_PRO = [
+    { label: t('footer.realEstateCRM'), href: '/services' },
+    { label: t('footer.publishProperty'), href: '/publier' },
+    { label: t('footer.agencyPricing'), href: '/services#tarifs' },
+    { label: t('footer.becomePartner'), href: '/register' },
+  ]
+
+  const LINKS_MEGGA = [
+    { label: t('footer.about'), href: '/services#about' },
+    { label: t('footer.helpCenter'), href: '/aide' },
+    { label: t('footer.contactUs'), href: '/aide/contact' },
+    { label: t('footer.privacy'), href: '/privacy' },
+    { label: t('footer.terms'), href: '/privacy' },
+  ]
+
   return (
     <footer className="bg-gray-50/50 border-t border-gray-200/60">
 
       {/* ─── Trust bar — Certifications ─── */}
       <div className="border-b border-gray-200/40">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
-          <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-gray-400 text-center mb-5">
-            Certifié et reconnu
+          <p className="text-xs font-medium capitalize text-gray-500 text-center mb-5">
+            {t('footer.certifiedRecognized')}
           </p>
           <div className="flex items-center justify-center gap-10 md:gap-16">
             {/* C2PA */}
@@ -88,8 +91,8 @@ export default function Footer() {
           {/* Column 1 — Brand */}
           <div className="col-span-2 md:col-span-1">
             <img src="/megga-logo.svg" alt="MEGGA" className="h-5" />
-            <p className="text-sm text-gray-400 mt-3 leading-relaxed max-w-[260px]">
-              La plateforme immobilière suisse. Recherche intelligente, conformité intégrée.
+            <p className="text-sm text-gray-500 mt-3 leading-relaxed max-w-[260px]">
+              {t('footer.brandDescription')}
             </p>
             <div className="flex items-center gap-2.5 mt-6">
               {[
@@ -105,7 +108,7 @@ export default function Footer() {
                     aria-label={social.label}
                     className="w-9 h-9 rounded-full border border-gray-200 hover:border-gray-400 hover:bg-white flex items-center justify-center transition-all"
                   >
-                    <Icon className="w-4 h-4 text-gray-400" />
+                    <Icon className="w-4 h-4 text-gray-500" />
                   </a>
                 )
               })}
@@ -113,10 +116,10 @@ export default function Footer() {
           </div>
 
           {/* Column 2 */}
-          <FooterLinkColumn title="Rechercher" links={LINKS_RECHERCHER} />
+          <FooterLinkColumn title={t('footer.search')} links={LINKS_RECHERCHER} />
 
           {/* Column 3 */}
-          <FooterLinkColumn title="Professionnels" links={LINKS_PRO} />
+          <FooterLinkColumn title={t('footer.professionals')} links={LINKS_PRO} />
 
           {/* Column 4 */}
           <FooterLinkColumn title="MEGGA" links={LINKS_MEGGA} />
@@ -124,15 +127,15 @@ export default function Footer() {
 
         {/* ─── Bottom bar ─── */}
         <div className="border-t border-gray-200/60 py-6 flex flex-col md:flex-row justify-between items-center gap-3">
-          <div className="flex items-center gap-3 text-xs text-gray-400">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
             <span>&copy; {new Date().getFullYear()} MEGGA Real Estate</span>
             <span>·</span>
-            <span>Fait en Suisse 🇨🇭</span>
+            <span>{t('footer.madeInSwitzerland')} 🇨🇭</span>
             <span>·</span>
-            <span>Conforme LPD</span>
+            <span>{t('footer.lpd')}</span>
           </div>
-          <p className="text-xs text-gray-400 text-center md:text-right max-w-lg leading-relaxed">
-            Plateforme technologique — les estimations sont indicatives. Données cartographiques swisstopo.
+          <p className="text-xs text-gray-500 text-center md:text-right max-w-lg leading-relaxed">
+            {t('footer.disclaimer')}
           </p>
         </div>
       </div>

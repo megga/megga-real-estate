@@ -67,7 +67,7 @@ function PostponeModal({ visit, onClose }: { visit: SellerVisit; onClose: () => 
               className="w-full px-3 py-2.5 text-sm bg-transparent border border-theme-border rounded-lg resize-none text-theme-primary placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               placeholder="Indiquez vos disponibilités ou la raison du report..."
             />
-            <p className="text-[10px] text-theme-muted mt-1.5">Votre agent sera notifié et vous proposera un nouveau créneau.</p>
+            <p className="text-xs text-theme-muted mt-1.5">Votre agent sera notifié et vous proposera un nouveau créneau.</p>
             <div className="flex justify-end mt-4">
               <button onClick={handleSend} className={cn('h-8 px-4 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors', FOCUS_RING)}>
                 Envoyer la demande
@@ -131,7 +131,7 @@ function FeedbackModal({ visit, onClose }: { visit: SellerVisit; onClose: () => 
               className="w-full px-3 py-2.5 text-sm bg-transparent border border-theme-border rounded-lg resize-none text-theme-primary placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               placeholder="Comment s'est passée la visite de votre côté ?"
             />
-            <p className="text-[10px] text-theme-muted mt-1.5">Votre retour est confidentiel — seul votre agent le verra.</p>
+            <p className="text-xs text-theme-muted mt-1.5">Votre retour est confidentiel — seul votre agent le verra.</p>
             <div className="flex justify-end mt-4">
               <button
                 onClick={handleSend}
@@ -181,7 +181,7 @@ export default function MesVisitesPage() {
       {/* Upcoming visits */}
       {upcoming.length > 0 && (
         <div className="rounded-xl border border-theme-border p-5">
-          <h2 className="text-[10px] text-theme-muted uppercase tracking-wider mb-3">
+          <h2 className="text-xs text-theme-muted capitalize mb-3">
             Prochaines visites
           </h2>
           <div className="space-y-3">
@@ -194,7 +194,7 @@ export default function MesVisitesPage() {
                 <div key={visit.id} className="flex items-center gap-3 rounded-lg border border-theme-border p-4">
                   <div className="shrink-0 text-center">
                     <p className="text-2xl font-semibold text-theme-primary">{visitDate.getDate()}</p>
-                    <p className="text-[10px] text-theme-tertiary uppercase">
+                    <p className="text-xs text-theme-tertiary capitalize">
                       {visitDate.toLocaleDateString('fr-CH', { month: 'short' })}
                     </p>
                   </div>
@@ -236,7 +236,7 @@ export default function MesVisitesPage() {
 
       {/* Past visits */}
       <div className="rounded-xl border border-theme-border p-5">
-        <h2 className="text-[10px] text-theme-muted uppercase tracking-wider mb-4">
+        <h2 className="text-xs text-theme-muted capitalize mb-4">
           Visites passées
         </h2>
 
@@ -262,7 +262,7 @@ export default function MesVisitesPage() {
                       {visit.status === 'done' && (
                         <button
                           onClick={() => setFeedbackVisit(visit)}
-                          className={cn('h-7 px-2.5 rounded-md text-[10px] text-theme-muted hover:text-theme-secondary border border-theme-border-subtle hover:border-theme-active transition-colors flex items-center gap-1', FOCUS_RING)}
+                          className={cn('h-7 px-2.5 rounded-md text-xs text-theme-muted hover:text-theme-secondary border border-theme-border-subtle hover:border-theme-active transition-colors flex items-center gap-1', FOCUS_RING)}
                         >
                           <MessageSquare className="w-3 h-3" />
                           Mon impression
@@ -273,7 +273,7 @@ export default function MesVisitesPage() {
 
                   {visit.feedback && (
                     <div className="ml-6 mt-2">
-                      <p className="text-[10px] text-theme-muted mb-1">Retour de l'acquéreur potentiel :</p>
+                      <p className="text-xs text-theme-muted mb-1">Retour de l'acquéreur potentiel :</p>
                       <p className="text-sm text-theme-secondary italic leading-relaxed">
                         "{visit.feedback}"
                       </p>
@@ -305,7 +305,7 @@ export default function MesVisitesPage() {
       </div>
 
       {/* Note */}
-      <p className="text-[10px] text-theme-muted text-center">
+      <p className="text-xs text-theme-muted text-center">
         Les retours sont anonymisés pour protéger la confidentialité des acquéreurs potentiels.
       </p>
 

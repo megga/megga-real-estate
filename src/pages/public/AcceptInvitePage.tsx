@@ -76,14 +76,14 @@ export default function AcceptInvitePage() {
         {/* Header */}
         <div className="text-center mb-8">
           <span className="text-2xl font-bold text-gray-900 tracking-tight">MEGGA</span>
-          <p className="text-xs text-gray-400 mt-1">Immobilier Suisse</p>
+          <p className="text-xs text-gray-500 mt-1">Immobilier Suisse</p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-8">
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
               <p className="text-sm text-gray-500 mt-3">{t('team.acceptInvite.loading')}</p>
             </div>
           )}
@@ -111,7 +111,7 @@ export default function AcceptInvitePage() {
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <p className="text-xs text-gray-400 mb-1">{t('team.acceptInvite.yourRole')}</p>
+                <p className="text-xs text-gray-500 mb-1">{t('team.acceptInvite.yourRole')}</p>
                 <p className="text-base font-semibold text-gray-900">{t(`team.roles.${invitation.role}`)}</p>
               </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { X, Send, Mail, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -28,6 +29,7 @@ export default function ContactAgentModal({
   listingAddress,
   listingTitle,
 }: ContactAgentModalProps) {
+  const { t } = useTranslation('common')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -66,7 +68,7 @@ export default function ContactAgentModal({
       })
       setSent(true)
     } catch {
-      setError('Une erreur est survenue. Veuillez réessayer.')
+      setError(t('listing.errorOccurred'))
     } finally {
       setSending(false)
     }
@@ -84,11 +86,11 @@ export default function ContactAgentModal({
       <div className="relative bg-white rounded-2xl shadow-sm w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">Contacter l'agent</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t('listing.contactAgent')}</h2>
           <button
             onClick={onClose}
-            aria-label="Fermer"
-            className="h-8 w-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            aria-label={t('actions.close')}
+            className="h-8 w-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -100,15 +102,15 @@ export default function ContactAgentModal({
             <div className="h-14 w-14 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
               <CheckCircle2 className="h-7 w-7 text-emerald-500" />
             </div>
-            <p className="text-base font-semibold text-gray-900 mb-1">Message envoyé</p>
+            <p className="text-base font-semibold text-gray-900 mb-1">{t('listing.messageSent')}</p>
             <p className="text-sm text-gray-500">
-              {agent.name} vous recontactera dans les plus brefs délais.
+              {t('listing.agentWillContact', { name: agent.name })}
             </p>
             <button
               onClick={onClose}
               className="mt-6 h-10 px-6 text-sm font-medium border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
             >
-              Fermer
+              {t('actions.close')}
             </button>
           </div>
         ) : (
@@ -124,7 +126,7 @@ export default function ContactAgentModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-gray-700 block mb-1.5">
-                    Prénom et nom <span className="text-red-400">*</span>
+                    {t('listing.fullName')} <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -137,7 +139,7 @@ export default function ContactAgentModal({
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-700 block mb-1.5">
-                    Téléphone
+                    {t('listing.phone')}
                   </label>
                   <input
                     type="tel"
@@ -154,7 +156,7 @@ export default function ContactAgentModal({
                   Email <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
                   <input
                     type="email"
                     value={email}
@@ -184,8 +186,8 @@ export default function ContactAgentModal({
               )}
 
               {/* Consent */}
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                En envoyant ce message, vous acceptez d'être recontacté(e) par l'agent concernant ce bien.
+              <p className="text-xs text-gray-500 leading-relaxed">
+                {t('listing.consentMessage')}
               </p>
             </div>
 
@@ -196,7 +198,7 @@ export default function ContactAgentModal({
                 onClick={onClose}
                 className="h-9 px-4 text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
-                Annuler
+                {t('actions.cancel')}
               </button>
               <button
                 type="submit"
@@ -210,12 +212,12 @@ export default function ContactAgentModal({
                 {sending ? (
                   <>
                     <div className="h-3.5 w-3.5 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
-                    Envoi...
+                    {t('listing.sending')}
                   </>
                 ) : (
                   <>
                     <Send className="h-3.5 w-3.5" />
-                    Envoyer
+                    {t('actions.send')}
                   </>
                 )}
               </button>

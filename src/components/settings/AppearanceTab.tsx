@@ -247,7 +247,7 @@ function RadiusPreview({ radius, accentHex }: { radius: BorderRadiusTheme; accen
         <div className="w-10 h-1.5 rounded-sm bg-theme-primary/20" />
         <div className="w-16 h-1.5 rounded-sm bg-theme-primary/10" />
         <span
-          className="text-[9px] font-medium px-1.5 py-0.5 text-white transition-all duration-300"
+          className="text-xs font-medium px-1.5 py-0.5 text-white transition-all duration-300"
           style={{ borderRadius: rBadge, backgroundColor: accentHex }}
         >
           Actif
@@ -338,7 +338,7 @@ export default function AppearanceTab() {
                   {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                 </button>
                 <span className={cn(
-                  'text-[10px] transition-colors duration-200',
+                  'text-xs transition-colors duration-200',
                   isSelected ? 'text-theme-primary font-medium' : 'text-theme-tertiary'
                 )}>
                   {preset.label}
@@ -376,7 +376,7 @@ export default function AppearanceTab() {
               )}
             </button>
             <span className={cn(
-              'text-[10px] transition-colors duration-200',
+              'text-xs transition-colors duration-200',
               preferences.accentColor === 'custom' ? 'text-theme-primary font-medium' : 'text-theme-tertiary'
             )}>
               Custom
@@ -469,7 +469,7 @@ export default function AppearanceTab() {
                 {opt.label}
               </span>
               {opt.hint && (
-                <span className="text-[10px] text-theme-tertiary -mt-1">{opt.hint}</span>
+                <span className="text-xs text-theme-tertiary -mt-1">{opt.hint}</span>
               )}
             </div>
           ))}

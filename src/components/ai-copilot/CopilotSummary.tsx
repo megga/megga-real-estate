@@ -15,7 +15,7 @@ export default function CopilotSummary({ summary, isRefreshing, onRefresh, class
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-sm font-semibold text-theme-primary">Résumé IA</h3>
-            <span className="text-[10px] text-theme-muted">estimation IA</span>
+            <span className="text-xs text-theme-muted">estimation IA</span>
           </div>
           <p className={cn('text-sm text-theme-secondary leading-relaxed', isRefreshing && 'opacity-50')}>
             {summary}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Heart, Share2, Calculator, CalendarDays, Mail } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import AgentCard from './AgentCard'
@@ -29,6 +30,8 @@ export default function ListingSidebar({
   onVisit,
   onCalculator,
 }: ListingSidebarProps) {
+  const { t } = useTranslation('common')
+
   return (
     <div className="hidden lg:block w-[360px] flex-shrink-0">
       <div className="sticky top-28 space-y-4">
@@ -39,7 +42,7 @@ export default function ListingSidebar({
           </p>
           {listing.charges_monthly > 0 && (
             <p className="text-sm text-gray-500">
-              Charges : {formatCHF(listing.charges_monthly)}/mois
+              {t('listing.charges', { amount: formatCHF(listing.charges_monthly) })}
             </p>
           )}
 
@@ -49,7 +52,7 @@ export default function ListingSidebar({
             className="w-full h-12 mt-5 flex items-center justify-center gap-2 text-sm font-semibold border border-gray-200 text-gray-900 rounded-lg hover:border-accent hover:text-accent transition-colors"
           >
             <Mail className="h-4 w-4" />
-            Contacter l'agent
+            {t('listing.contactAgent')}
           </button>
 
           {/* Secondary CTA */}
@@ -58,7 +61,7 @@ export default function ListingSidebar({
             className="w-full h-11 mt-2 flex items-center justify-center gap-2 text-sm font-medium border border-gray-200 text-gray-700 rounded-lg hover:border-accent hover:text-accent hover:bg-gray-50 transition-colors"
           >
             <CalendarDays className="h-4 w-4" />
-            Planifier une visite
+            {t('listing.planVisit')}
           </button>
 
           {/* Action row */}
@@ -73,7 +76,7 @@ export default function ListingSidebar({
               )}
             >
               <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
-              {isFavorite ? 'Sauvegardé' : 'Sauvegarder'}
+              {isFavorite ? t('listing.saved') : t('listing.save')}
             </button>
             <button className="h-10 w-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
               <Share2 className="h-4 w-4" />
@@ -86,13 +89,13 @@ export default function ListingSidebar({
             className="w-full h-11 mt-3 flex items-center justify-center gap-2 text-sm font-medium text-gray-500 border border-gray-100 rounded-lg hover:text-accent hover:border-gray-200 transition-colors"
           >
             <Calculator className="h-4 w-4" />
-            Puis-je acheter ce bien ?
+            {t('listing.canIAfford')}
           </button>
         </div>
 
         {/* Agent card */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-3">Votre contact</p>
+          <p className="text-xs font-medium text-gray-500 capitalize mb-3">{t('listing.yourContact')}</p>
           <AgentCard variant="default" agent={listing.agent} />
         </div>
       </div>

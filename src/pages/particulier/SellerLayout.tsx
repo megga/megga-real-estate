@@ -100,7 +100,7 @@ function SellerLayoutInner() {
       {!isCol && (
         <div className="mx-3 mt-3 mb-2 p-3 rounded-lg bg-theme-hover/50">
           <p className="text-xs font-medium text-theme-primary truncate">{property.title}</p>
-          <p className="text-[10px] text-theme-tertiary truncate mt-0.5">{property.address}, {property.city}</p>
+          <p className="text-xs text-theme-tertiary truncate mt-0.5">{property.address}, {property.city}</p>
         </div>
       )}
 
@@ -108,7 +108,7 @@ function SellerLayoutInner() {
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
         {!isCol && (
           <div className="mb-1 px-3">
-            <span className="text-[10px] uppercase tracking-[0.08em] text-theme-tertiary font-medium select-none">
+            <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
               Mon espace
             </span>
           </div>
@@ -174,21 +174,21 @@ function SellerLayoutInner() {
         {/* Agent contact */}
         {!isCol && (
           <div className="mx-2 mb-2 p-3 rounded-lg hover:bg-theme-hover transition-colors">
-            <p className="text-[10px] text-theme-tertiary uppercase tracking-wider mb-2">Votre agent</p>
+            <p className="text-xs text-theme-tertiary capitalize mb-2">Votre agent</p>
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-full bg-accent text-white text-[10px] font-semibold flex items-center justify-center shrink-0">
+              <div className="h-7 w-7 rounded-full bg-accent text-white text-xs font-semibold flex items-center justify-center shrink-0">
                 {agent.name.split(' ').map(n => n[0]).join('')}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-theme-primary truncate">{agent.name}</p>
-                <p className="text-[10px] text-theme-tertiary">MEGGA Immobilier</p>
+                <p className="text-xs text-theme-tertiary">MEGGA Immobilier</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5 mt-2">
-              <a href={`tel:${agent.phone}`} className="flex-1 h-7 rounded-md border border-theme-border flex items-center justify-center gap-1 text-[10px] text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+              <a href={`tel:${agent.phone}`} className="flex-1 h-7 rounded-md border border-theme-border flex items-center justify-center gap-1 text-xs text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
                 <Phone className="w-3 h-3" /> Appeler
               </a>
-              <a href={`mailto:${agent.email}`} className="flex-1 h-7 rounded-md border border-theme-border flex items-center justify-center gap-1 text-[10px] text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
+              <a href={`mailto:${agent.email}`} className="flex-1 h-7 rounded-md border border-theme-border flex items-center justify-center gap-1 text-xs text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
                 <Mail className="w-3 h-3" /> Email
               </a>
             </div>
@@ -272,7 +272,7 @@ function SellerLayoutInner() {
           </button>
           <div className="ml-3 flex items-center gap-2">
             <div className="h-6 w-6 bg-theme-primary rounded flex items-center justify-center">
-              <span className="text-[9px] font-bold text-theme-inverse">GG</span>
+              <span className="text-xs font-bold text-theme-inverse">GG</span>
             </div>
             <span className="text-sm font-bold text-theme-primary">MEGGA</span>
           </div>

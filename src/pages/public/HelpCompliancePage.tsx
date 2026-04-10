@@ -14,7 +14,7 @@ export default function HelpCompliancePage() {
     <div className="min-h-screen bg-white">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-8">
+        <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
           <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">Conformité</span>
@@ -36,7 +36,7 @@ export default function HelpCompliancePage() {
                 className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
               >
                 <span className="text-sm font-medium text-gray-900 pr-4">{faq.question}</span>
-                <ChevronDown className={cn('h-4 w-4 text-gray-400 flex-shrink-0 transition-transform', openIdx === i && 'rotate-180')} />
+                <ChevronDown className={cn('h-4 w-4 text-gray-500 flex-shrink-0 transition-transform', openIdx === i && 'rotate-180')} />
               </button>
               {openIdx === i && (
                 <div className="px-4 pb-4">

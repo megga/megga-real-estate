@@ -60,7 +60,7 @@ export default function BottomTabBar() {
               >
                 {active && <div className="w-1 h-1 rounded-full bg-accent mb-0.5" />}
                 <tab.icon className="h-5 w-5" />
-                <span className="text-[10px]">{tab.label}</span>
+                <span className="text-xs">{tab.label}</span>
               </button>
             )
           })}
@@ -75,7 +75,7 @@ export default function BottomTabBar() {
           >
             {(moreOpen || isMoreActive) && !moreOpen && <div className="w-1 h-1 rounded-full bg-accent mb-0.5" />}
             <MoreHorizontal className="h-5 w-5" />
-            <span className="text-[10px]">Plus</span>
+            <span className="text-xs">Plus</span>
           </button>
         </div>
       </nav>

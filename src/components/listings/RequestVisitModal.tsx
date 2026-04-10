@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { X, CalendarDays, Check, Loader2, Video, MapPin, ArrowRight, ArrowLeft, Building2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBookVisit } from '@/hooks/useVisits'
@@ -18,7 +19,7 @@ const MORNING_SLOTS = ['09:00', '10:00', '11:00']
 const AFTERNOON_SLOTS = ['14:00', '15:00', '16:00', '17:00']
 
 const BUDGET_OPTIONS = ['< CHF 500K', 'CHF 500K – 1M', 'CHF 1M – 2M', '> CHF 2M']
-const FINANCING_OPTIONS = ['Pas encore', 'En cours', 'Pré-approuvé']
+const FINANCING_KEYS = ['financingNotYet', 'financingInProgress', 'financingPreApproved'] as const
 
 type VisitType = 'sur_place' | 'video'
 type VideoPlatform = 'google_meet' | 'facetime'
@@ -49,6 +50,7 @@ function isTomorrow(date: Date): boolean {
 }
 
 export default function RequestVisitModal({ listingAddress, propertyId, agencyId, listingPhoto, listingPrice, open, onClose }: RequestVisitModalProps) {
+  const { t } = useTranslation('common')
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -92,9 +94,9 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
     summaryParts.push(selectedDateObj.toLocaleDateString('fr-CH', { weekday: 'short', day: 'numeric' }))
   }
   if (selectedTime) summaryParts.push(`à ${selectedTime}`)
-  if (visitType === 'video') summaryParts.push('Vidéo')
-  else summaryParts.push('Sur place')
-  const continueLabel = canGoStep2 ? summaryParts.join(' · ') : 'Continuer'
+  if (visitType === 'video') summaryParts.push(t('listing.videoCall'))
+  else summaryParts.push(t('listing.onSite'))
+  const continueLabel = canGoStep2 ? summaryParts.join(' · ') : t('listing.continue')
 
   function resetForm() {
     setStep(1)
@@ -135,7 +137,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label="Demander une visite">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={t('listing.requestVisit')}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-2xl sm:rounded-xl border border-gray-100 w-full sm:max-w-md mx-0 sm:mx-4 max-h-[92vh] overflow-hidden flex flex-col">
 
@@ -145,11 +147,8 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
             <div className="h-14 w-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5">
               <Check className="h-7 w-7 text-emerald-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Demande envoyée</h3>
-            <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-              Un email de confirmation a été envoyé à <span className="font-medium text-gray-700">{email}</span>.
-              <br />L'agent vous contactera pour confirmer.
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900">{t('listing.requestSent')}</h3>
+            <p className="text-sm text-gray-500 mt-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: t('listing.confirmationSent', { email }) }} />
           </div>
         ) : (
           <>
@@ -161,7 +160,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                   <img src={listingPhoto} alt="" className="w-full h-full object-cover opacity-80" decoding="async" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Building2 className="h-8 w-8 text-gray-300" />
+                    <Building2 className="h-8 w-8 text-gray-500" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />
@@ -169,7 +168,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
 
               {/* Title overlay */}
               <div className="absolute bottom-0 left-0 right-0 px-5 pb-3">
-                <h3 className="text-base font-semibold text-white">Demander une visite</h3>
+                <h3 className="text-base font-semibold text-white">{t('listing.requestVisit')}</h3>
                 <p className="text-xs text-white/80 truncate">{listingAddress}{listingPrice ? ` — ${listingPrice}` : ''}</p>
               </div>
 
@@ -177,7 +176,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
               <button
                 onClick={onClose}
                 className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-black/50 transition-colors"
-                aria-label="Fermer"
+                aria-label={t('listing.close')}
               >
                 <X className="h-4 w-4 text-white" />
               </button>
@@ -192,9 +191,9 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
             {/* [Fix 5] Social proof bar */}
             <div className="flex items-center gap-1.5 px-5 py-2 bg-gray-50 border-b border-gray-100 flex-shrink-0">
               <Clock className="h-3 w-3 text-emerald-500" />
-              <span className="text-[11px] text-gray-500">Réponse moyenne sous 2h</span>
-              <span className="text-[11px] text-gray-300 mx-1">·</span>
-              <span className="text-[11px] text-gray-500">Visite gratuite et sans engagement</span>
+              <span className="text-xs text-gray-500">{t('listing.avgResponseTime')}</span>
+              <span className="text-xs text-gray-500 mx-1">·</span>
+              <span className="text-xs text-gray-500">{t('listing.freeVisit')}</span>
             </div>
 
             {/* Scrollable content */}
@@ -204,7 +203,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                 <div className="p-5 space-y-5 animate-in fade-in duration-200">
                   {/* Date */}
                   <div>
-                    <label className="text-sm font-medium text-gray-900 mb-2.5 block">Quand souhaitez-vous visiter ?</label>
+                    <label className="text-sm font-medium text-gray-900 mb-2.5 block">{t('listing.whenVisit')}</label>
                     <div className="grid grid-cols-5 gap-2">
                       {dates.map((d) => {
                         const key = d.toISOString().split('T')[0]
@@ -226,11 +225,11 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                           >
                             {/* [Fix 2] "Demain" label on first date */}
                             {tomorrow && (
-                              <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-medium text-accent bg-white px-1">Demain</span>
+                              <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs font-medium text-accent bg-white px-1">{t('listing.tomorrow')}</span>
                             )}
-                            <span className="capitalize text-[10px]">{dayName}</span>
+                            <span className="capitalize text-xs">{dayName}</span>
                             <span className="text-lg font-bold mt-0.5">{dayNum}</span>
-                            <span className="text-gray-400 text-[10px]">{monthName}</span>
+                            <span className="text-gray-500 text-xs">{monthName}</span>
                           </button>
                         )
                       })}
@@ -240,10 +239,10 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                   {/* Time — morning / afternoon */}
                   {selectedDate && (
                     <div className="animate-in slide-in-from-bottom-2 duration-200">
-                      <label className="text-sm font-medium text-gray-900 mb-2.5 block">Créneau préféré</label>
+                      <label className="text-sm font-medium text-gray-900 mb-2.5 block">{t('listing.preferredSlot')}</label>
                       <div className="space-y-2.5">
                         <div>
-                          <p className="text-[11px] text-gray-400 mb-1.5">Matin</p>
+                          <p className="text-xs text-gray-500 mb-1.5">{t('listing.morning')}</p>
                           <div className="flex gap-2">
                             {MORNING_SLOTS.map(t => (
                               <Pill key={t} selected={selectedTime === t} onClick={() => setSelectedTime(selectedTime === t ? '' : t)} className="flex-1 text-center">
@@ -253,7 +252,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                           </div>
                         </div>
                         <div>
-                          <p className="text-[11px] text-gray-400 mb-1.5">Après-midi</p>
+                          <p className="text-xs text-gray-500 mb-1.5">{t('listing.afternoon')}</p>
                           <div className="flex gap-2">
                             {AFTERNOON_SLOTS.map(t => (
                               <Pill key={t} selected={selectedTime === t} onClick={() => setSelectedTime(selectedTime === t ? '' : t)} className="flex-1 text-center">
@@ -269,7 +268,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                   {/* Visit type */}
                   {selectedDate && (
                     <div className="animate-in slide-in-from-bottom-2 duration-200">
-                      <label className="text-sm font-medium text-gray-900 mb-2.5 block">Comment visiter ?</label>
+                      <label className="text-sm font-medium text-gray-900 mb-2.5 block">{t('listing.howVisit')}</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
@@ -280,7 +279,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                           )}
                         >
                           <MapPin className="h-4 w-4" />
-                          Sur place
+                          {t('listing.onSite')}
                         </button>
                         <button
                           type="button"
@@ -291,7 +290,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                           )}
                         >
                           <Video className="h-4 w-4" />
-                          Vidéo
+                          {t('listing.videoCall')}
                         </button>
                       </div>
 
@@ -305,10 +304,10 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                               FaceTime
                             </Pill>
                           </div>
-                          <p className="text-[11px] text-gray-400 mt-1.5">
+                          <p className="text-xs text-gray-500 mt-1.5">
                             {videoPlatform === 'google_meet'
-                              ? 'Un lien Meet sera envoyé dans l\'email de confirmation.'
-                              : 'Fonctionne sur iPhone, iPad, Mac et navigateur web.'
+                              ? t('listing.meetLinkInfo')
+                              : t('listing.facetimeInfo')
                             }
                           </p>
                         </div>
@@ -325,7 +324,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                       'w-full h-11 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2',
                       canGoStep2
                         ? 'border border-gray-900 text-gray-900 hover:bg-gray-50'
-                        : 'border border-gray-200 text-gray-300 cursor-not-allowed'
+                        : 'border border-gray-200 text-gray-500 cursor-not-allowed'
                     )}
                   >
                     {continueLabel}
@@ -345,7 +344,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                     className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors -mt-1"
                   >
                     <ArrowLeft className="h-3 w-3" />
-                    Modifier la date
+                    {t('listing.changeDate')}
                   </button>
 
                   {/* Summary of step 1 */}
@@ -360,9 +359,9 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
 
                   {/* Contact info with labels */}
                   <div className="space-y-3">
-                    <label className="text-sm font-medium text-gray-900 block">Vos coordonnées</label>
+                    <label className="text-sm font-medium text-gray-900 block">{t('listing.yourDetails')}</label>
                     <div>
-                      <label className="text-[11px] text-gray-500 mb-1 block">Nom complet</label>
+                      <label className="text-xs text-gray-500 mb-1 block">{t('listing.fullNameLabel')}</label>
                       <input
                         type="text"
                         value={name}
@@ -375,7 +374,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] text-gray-500 mb-1 block">Email</label>
+                        <label className="text-xs text-gray-500 mb-1 block">{t('listing.emailLabel')}</label>
                         <input
                           type="email"
                           value={email}
@@ -387,7 +386,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] text-gray-500 mb-1 block">Téléphone</label>
+                        <label className="text-xs text-gray-500 mb-1 block">{t('listing.phoneLabel')}</label>
                         <input
                           type="tel"
                           value={phone}
@@ -402,12 +401,12 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
 
                   {/* Pré-qualification — human-friendly */}
                   <div className="border-t border-gray-100 pt-4 space-y-3">
-                    <p className="text-sm font-medium text-gray-900">Quelques infos pour préparer la visite</p>
-                    <p className="text-[11px] text-gray-400 -mt-2">Optionnel — aide l'agent à mieux vous accompagner</p>
+                    <p className="text-sm font-medium text-gray-900">{t('listing.prepareVisitTitle')}</p>
+                    <p className="text-xs text-gray-500 -mt-2">{t('listing.prepareVisitOptional')}</p>
 
                     {/* [Fix 4] Budget pills in 2x2 grid on mobile */}
                     <div>
-                      <label className="text-[11px] text-gray-500 mb-1.5 block">Budget estimé</label>
+                      <label className="text-xs text-gray-500 mb-1.5 block">{t('listing.estimatedBudget')}</label>
                       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5">
                         {BUDGET_OPTIONS.map(b => (
                           <Pill key={b} selected={budget === b} onClick={() => setBudget(budget === b ? '' : b)} className="text-center">
@@ -418,20 +417,23 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-gray-500 mb-1.5 block">Financement hypothécaire</label>
+                      <label className="text-xs text-gray-500 mb-1.5 block">{t('listing.mortgageFinancing')}</label>
                       <div className="flex flex-wrap gap-1.5">
-                        {FINANCING_OPTIONS.map(f => (
-                          <Pill key={f} selected={financing === f} onClick={() => setFinancing(financing === f ? '' : f)}>
-                            {f}
-                          </Pill>
-                        ))}
+                        {FINANCING_KEYS.map(key => {
+                          const label = t(`listing.${key}`)
+                          return (
+                            <Pill key={key} selected={financing === key} onClick={() => setFinancing(financing === key ? '' : key)}>
+                              {label}
+                            </Pill>
+                          )
+                        })}
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[11px] text-gray-500 mb-1.5 block">Première visite pour ce type de bien ?</label>
+                      <label className="text-xs text-gray-500 mb-1.5 block">{t('listing.firstVisitQuestion')}</label>
                       <div className="flex gap-1.5">
-                        {[{ label: 'Oui', val: true }, { label: 'Non', val: false }].map(({ label, val }) => (
+                        {[{ label: t('listing.yes'), val: true }, { label: t('listing.no'), val: false }].map(({ label, val }) => (
                           <Pill key={label} selected={firstVisit === val} onClick={() => setFirstVisit(firstVisit === val ? null : val)}>
                             {label}
                           </Pill>
@@ -442,13 +444,13 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
 
                   {/* [Fix 8] Message — 1 row, expands on focus */}
                   <div>
-                    <label className="text-[11px] text-gray-500 mb-1 block">Message pour l'agent</label>
+                    <label className="text-xs text-gray-500 mb-1 block">{t('listing.messageForAgent')}</label>
                     <textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onFocus={() => setMessageFocused(true)}
                       onBlur={() => { if (!message) setMessageFocused(false) }}
-                      placeholder="Questions, contraintes horaires..."
+                      placeholder={t('listing.messagePlaceholder')}
                       rows={messageFocused || message ? 3 : 1}
                       className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none transition-all duration-200"
                     />
@@ -463,7 +465,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                       'w-full h-11 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2',
                       canSubmit && !bookVisit.isPending
                         ? 'border border-gray-900 text-gray-900 hover:bg-gray-50'
-                        : 'border border-gray-200 text-gray-300 cursor-not-allowed'
+                        : 'border border-gray-200 text-gray-500 cursor-not-allowed'
                     )}
                   >
                     {bookVisit.isPending ? (
@@ -471,12 +473,12 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
                     ) : (
                       <CalendarDays className="h-4 w-4" />
                     )}
-                    {bookVisit.isPending ? 'Envoi en cours...' : 'Envoyer la demande'}
+                    {bookVisit.isPending ? t('listing.submitting') : t('listing.submitRequest')}
                   </button>
 
                   {bookVisit.isError && (
                     <p className="text-xs text-red-500 text-center">
-                      Une erreur est survenue. Veuillez réessayer.
+                      {t('listing.errorOccurred')}
                     </p>
                   )}
                 </div>

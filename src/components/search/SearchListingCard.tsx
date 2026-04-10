@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Heart, Building2, GitCompareArrows, Check,
   DoorOpen, BedDouble, Maximize, ChevronLeft, ChevronRight,
@@ -30,6 +31,7 @@ export default function SearchListingCard({
   medianPricePerM2 = 0,
   onPreview,
 }: SearchListingCardProps) {
+  const { t } = useTranslation('common')
   const cardRef = useRef<HTMLDivElement>(null)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const photos = listing.photos?.length ? listing.photos : []
@@ -45,7 +47,10 @@ export default function SearchListingCard({
   return (
     <div
       ref={cardRef}
+      role="button"
+      tabIndex={0}
       onClick={() => onPreview?.(listing.id)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPreview?.(listing.id) } }}
       className={cn(
         'block bg-white border rounded-lg transition-all duration-200 overflow-hidden group cursor-pointer',
         isHovered
@@ -66,7 +71,7 @@ export default function SearchListingCard({
           />
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <Building2 className="h-12 w-12 text-gray-300" />
+            <Building2 className="h-12 w-12 text-gray-500" />
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
@@ -74,7 +79,7 @@ export default function SearchListingCard({
           <div
             className={cn(
               badge.bg,
-              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2 py-0.5 rounded-md backdrop-blur-sm'
+              'absolute top-3 left-3 text-white text-xs font-semibold px-2 py-0.5 rounded-md backdrop-blur-sm'
             )}
           >
             {badge.label}
@@ -83,7 +88,7 @@ export default function SearchListingCard({
         <div className="absolute top-3 right-3 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.() }}
-            aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            aria-label={isFav ? t('search.removeFromFavorites') : t('search.addToFavorites')}
             className={cn(
               'h-7 w-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
               isFav ? 'bg-white/95' : 'bg-black/15 hover:bg-black/25'
@@ -93,7 +98,7 @@ export default function SearchListingCard({
           </button>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare?.() }}
-            aria-label={isCompared ? 'Retirer de la comparaison' : 'Comparer'}
+            aria-label={isCompared ? t('search.removeFromCompare') : t('search.compare')}
             className={cn(
               'h-7 w-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
               isCompared ? 'bg-white/95 ring-1 ring-accent/40' : 'bg-black/15 hover:bg-black/25'
@@ -122,7 +127,7 @@ export default function SearchListingCard({
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p - 1) }}
                 className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
-                aria-label="Photo précédente"
+                aria-label={t('search.previousPhoto')}
               >
                 <ChevronLeft className="h-4 w-4 text-white" />
               </button>
@@ -131,7 +136,7 @@ export default function SearchListingCard({
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p + 1) }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
-                aria-label="Photo suivante"
+                aria-label={t('search.nextPhoto')}
               >
                 <ChevronRight className="h-4 w-4 text-white" />
               </button>
@@ -156,7 +161,7 @@ export default function SearchListingCard({
                 />
               ))}
             </div>
-            <span className="absolute bottom-3 right-3 text-[10px] font-medium text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2 py-0.5 z-[1]">
+            <span className="absolute bottom-3 right-3 text-xs font-medium text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2 py-0.5 z-[1]">
               {currentPhoto + 1}/{photos.length}
             </span>
           </>
@@ -165,11 +170,11 @@ export default function SearchListingCard({
       <div className="p-4">
         <div className="flex items-baseline gap-2">
           <span className="text-lg font-bold text-gray-900">
-            <span className="text-sm font-normal text-gray-400">CHF </span>
-            {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? '/mois' : ''}
+            <span className="text-sm font-normal text-gray-500">CHF </span>
+            {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? t('search.perMonth') : ''}
           </span>
           {listing.price_per_m2 && listing.price_per_m2 > 0 && listing.surface_m2 > 0 && (
-            <span className="text-[11px] text-gray-400">
+            <span className="text-xs text-gray-500">
               CHF {Math.round(listing.price_per_m2).toLocaleString('fr-CH')}/m²
             </span>
           )}
@@ -177,39 +182,39 @@ export default function SearchListingCard({
         <p className="text-sm text-gray-500 mt-1 truncate">
           {listing.address}, {listing.city}
         </p>
-        <div className="flex items-center text-[13px] text-gray-500 mt-2 gap-1">
+        <div className="flex items-center text-sm text-gray-500 mt-2 gap-1">
           {listing.rooms > 0 && (
             <span className="flex items-center gap-1">
-              <DoorOpen className="h-3.5 w-3.5 text-gray-400" />
-              {listing.rooms} pièces
+              <DoorOpen className="h-3.5 w-3.5 text-gray-500" />
+              {listing.rooms} {t('search.rooms')}
             </span>
           )}
           {listing.bedrooms > 0 && (
             <>
-              <span className="text-gray-300 mx-0.5">·</span>
+              <span className="text-gray-500 mx-0.5">·</span>
               <span className="flex items-center gap-1">
-                <BedDouble className="h-3.5 w-3.5 text-gray-400" />
-                {listing.bedrooms} ch.
+                <BedDouble className="h-3.5 w-3.5 text-gray-500" />
+                {listing.bedrooms} {t('search.bedrooms')}
               </span>
             </>
           )}
-          <span className="text-gray-300 mx-0.5">·</span>
+          <span className="text-gray-500 mx-0.5">·</span>
           <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5 text-gray-400" />
+            <Maximize className="h-3.5 w-3.5 text-gray-500" />
             {formatSurface(listing.surface_m2)}
           </span>
         </div>
         {listing.description && (
-          <p className="text-xs text-gray-400 mt-2 line-clamp-1">{listing.description}</p>
+          <p className="text-xs text-gray-500 mt-2 line-clamp-1">{listing.description}</p>
         )}
         {(listing.agency_name || listing.days_on_market !== undefined) && (
           <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-50">
             {listing.agency_name && (
-              <span className="text-[11px] text-gray-400 truncate max-w-[60%]">{listing.agency_name}</span>
+              <span className="text-xs text-gray-500 truncate max-w-[60%]">{listing.agency_name}</span>
             )}
             {listing.days_on_market !== undefined && (
-              <span className="text-[11px] text-gray-400">
-                {listing.days_on_market <= 1 ? "Aujourd'hui" : listing.days_on_market <= 7 ? `il y a ${listing.days_on_market}j` : `${listing.days_on_market}j`}
+              <span className="text-xs text-gray-500">
+                {listing.days_on_market <= 1 ? t('search.today') : listing.days_on_market <= 7 ? t('search.daysAgo', { count: listing.days_on_market }) : t('search.daysOnline', { count: listing.days_on_market })}
               </span>
             )}
           </div>

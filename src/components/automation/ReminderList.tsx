@@ -45,7 +45,7 @@ export default function ReminderList({ reminders, onDone, onSnooze, onCancel }: 
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-theme-primary truncate">{rem.title}</p>
                 {isTriggered && (
-                  <span className="text-[10px] font-medium text-amber-500 shrink-0">À traiter</span>
+                  <span className="text-xs font-medium text-amber-500 shrink-0">À traiter</span>
                 )}
               </div>
               {rem.description && (
@@ -54,12 +54,12 @@ export default function ReminderList({ reminders, onDone, onSnooze, onCancel }: 
             </div>
 
             {/* Channel */}
-            <span className="text-[10px] text-theme-tertiary shrink-0 hidden sm:block">
+            <span className="text-xs text-theme-tertiary shrink-0 hidden sm:block">
               {CHANNEL_LABEL[rem.channel]}
             </span>
 
             {/* Date */}
-            <span className="text-[10px] text-theme-tertiary shrink-0 w-20 text-right hidden sm:block">
+            <span className="text-xs text-theme-tertiary shrink-0 w-20 text-right hidden sm:block">
               {isPast ? formatRelativeDate(rem.triggerAt) : formatDate(rem.triggerAt)}
             </span>
 

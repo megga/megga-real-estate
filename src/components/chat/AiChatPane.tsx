@@ -222,7 +222,7 @@ export default function AiChatPane({ pendingPrompt, onPromptConsumed }: { pendin
               className="flex flex-col items-center justify-center h-full px-6"
             >
               {/* Greeting */}
-              <motion.h1 variants={welcomeItem} className="text-xl md:text-[22px] font-semibold text-theme-primary text-center tracking-tight">
+              <motion.h1 variants={welcomeItem} className="text-xl md:text-2xl font-semibold text-theme-primary text-center tracking-tight">
                 Bonjour {firstName}
               </motion.h1>
               <motion.p variants={welcomeItem} className="text-sm text-theme-muted mt-1.5 text-center max-w-sm leading-relaxed">
@@ -330,7 +330,7 @@ export default function AiChatPane({ pendingPrompt, onPromptConsumed }: { pendin
             isLoading={isTyping}
             disabled={isTyping}
           />
-          <p className="text-[10px] text-theme-muted text-center mt-2">
+          <p className="text-xs text-theme-muted text-center mt-2">
             MEGGA AI peut faire des erreurs. Les suggestions sont indicatives.
           </p>
         </div>

@@ -86,5 +86,839 @@
     "de": "Deutsch",
     "en": "English",
     "it": "Italiano"
+  },
+  "home": {
+    "interactiveMap": "Mappa interattiva",
+    "popularAreas": "Quartieri popolari",
+    "exploreSearchedAreas": "Esplora le zone più ricercate",
+    "nearYou": "vicino a voi",
+    "exploreMap": "Esplora la mappa",
+    "avgPrice": "Prezzo medio",
+    "listings": "Annunci",
+    "propertiesCount": "{{count}} immobili",
+    "viewProperties": "Vedi gli immobili",
+    "mostSearchedIn": "Più cercati a {{city}}",
+    "exploreFullMap": "Esplora la mappa completa",
+    "featuredProperties": "Immobili in evidenza",
+    "featuredSubtitle": "Scoprite la nostra selezione di immobili eccezionali in Svizzera",
+    "rooms": "{{count}} locali",
+    "bedrooms": "{{count}} cam.",
+    "recentListings": "Ultimi annunci",
+    "recentSubtitle": "Pubblicati di recente su MEGGA",
+    "viewAllListings": "Vedi tutti gli annunci",
+    "newBadge": "Nuovo",
+    "buyTitle": "Comprare",
+    "buyDesc": "Trovate il vostro immobile ideale tra migliaia di annunci verificati in tutta la Svizzera.",
+    "buyCta": "Cerca un immobile",
+    "rentTitle": "Affittare",
+    "rentDesc": "Appartamenti, case, coabitazioni — sfogliate le offerte di locazione disponibili.",
+    "rentCta": "Vedi gli affitti",
+    "estimateTitle": "Stimare",
+    "estimateDesc": "Ottenete una stima del vostro immobile in pochi secondi grazie alla nostra analisi di mercato.",
+    "estimateCta": "Stima il mio immobile",
+    "testimonials": "Testimonianze",
+    "whatUsersSay": "Cosa dicono i nostri utenti",
+    "everythingYouNeed": "Tutto ciò di cui avete bisogno",
+    "completePlatform": "Una piattaforma completa per gestire la vostra attività immobiliare",
+    "integrationsPartners": "Integrazioni & partner"
+  },
+  "footer": {
+    "certifiedRecognized": "Certificato e riconosciuto",
+    "brandDescription": "La piattaforma immobiliare svizzera. Ricerca intelligente, conformità integrata.",
+    "search": "Cercare",
+    "buy": "Comprare",
+    "rent": "Affittare",
+    "estimate": "Stimare",
+    "interactiveMap": "Mappa interattiva",
+    "professionals": "Professionisti",
+    "realEstateCRM": "CRM immobiliare",
+    "publishProperty": "Pubblica un immobile",
+    "agencyPricing": "Prezzi agenzia",
+    "becomePartner": "Diventa partner",
+    "about": "Chi siamo",
+    "helpCenter": "Centro assistenza",
+    "contactUs": "Contattaci",
+    "privacy": "Privacy",
+    "terms": "Condizioni generali",
+    "madeInSwitzerland": "Made in Switzerland",
+    "lpd": "Conforme LPD",
+    "disclaimer": "Piattaforma tecnologica — le stime sono indicative. Dati cartografici swisstopo."
+  },
+  "auth": {
+    "professionalSpace": "Area professionale",
+    "welcomeToMegga": "Benvenuti su MEGGA",
+    "loginOrCreate": "Accedi o crea il tuo account",
+    "continueWithGoogle": "Continua con Google",
+    "continueWithFacebook": "Continua con Facebook",
+    "or": "o",
+    "email": "Email",
+    "emailPlaceholder": "voi@esempio.ch",
+    "continue": "Continua",
+    "backToPersonal": "Torna al conto personale",
+    "youArePro": "Sei un professionista?",
+    "agentSpace": "Area agente",
+    "welcomeBack": "Bentornato!",
+    "password": "Password",
+    "passwordPlaceholder": "La vostra password",
+    "forgotPassword": "Password dimenticata?",
+    "signIn": "Accedi",
+    "createAccount": "Crea il tuo account",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "passwordMin": "min 8 caratteri",
+    "createMyAccount": "Crea il mio account",
+    "acceptTerms": "Creando un account, accettate i nostri",
+    "termsOfUse": "condizioni d'uso",
+    "and": "e la nostra",
+    "privacyPolicy": "politica sulla privacy",
+    "forgotPasswordTitle": "Password dimenticata",
+    "resetLinkSent": "Invieremo un link di ripristino a",
+    "sendLink": "Invia link",
+    "emailSent": "Email inviata",
+    "checkInbox": "Controlla la tua casella di posta su",
+    "clickResetLink": "Clicca sul link per reimpostare la password.",
+    "backToLogin": "Torna al login",
+    "swissPlatform": "La piattaforma immobiliare svizzera",
+    "propertiesAnalyzed": "38.000+ immobili analizzati in 26 cantoni",
+    "facebookSoon": "Facebook sarà disponibile presto",
+    "passwordError": "La password deve contenere almeno 8 caratteri",
+    "back": "Indietro"
+  },
+  "privacy": {
+    "title": "Politica sulla privacy",
+    "lastUpdated": "Ultimo aggiornamento: 26 marzo 2026"
+  },
+  "glossary": {
+    "title": "Glossario immobiliare svizzero",
+    "subtitle": "Tutti i termini essenziali del settore immobiliare svizzero spiegati semplicemente.",
+    "searchPlaceholder": "Cerca un termine...",
+    "noResults": "Nessun termine corrisponde alla vostra ricerca."
+  },
+  "help": {
+    "howCanWeHelp": "Come possiamo",
+    "helpYou": "aiutarvi",
+    "guidesSubtitle": "Guide, tutorial e risposte rapide per ottenere il massimo da MEGGA.",
+    "popular": "Popolari",
+    "popularArticles": "Articoli popolari",
+    "popularArticlesDesc": "Risposte rapide alle domande frequenti.",
+    "readArticle": "Leggi l'articolo",
+    "browseAllGuides": "Sfoglia tutte le guide",
+    "contactUs": "Contattaci",
+    "contactSubtitle": "Fate la vostra domanda al nostro assistente IA per una risposta istantanea, o inviate un ticket al nostro team.",
+    "iAmAgent": "Sono agente immobiliare",
+    "iAmSeller": "Vendo il mio immobile",
+    "iAmBuyer": "Cerco un immobile",
+    "resources": "Risorse",
+    "resourcesSubtitle": "Sfoglia tutte le guide e i tutorial disponibili.",
+    "articlesAvailable": "{{count}} articoli disponibili",
+    "contactSupport": "Contatta il supporto",
+    "contactSupportDesc": "Alcune domande per indirizzarvi nel posto giusto.",
+    "changeProfile": "Cambia profilo",
+    "sendRequest": "Invia una richiesta",
+    "sendRequestDesc": "Descrivete la vostra richiesta, vi rispondiamo entro 24 ore lavorative.",
+    "category": "Categoria",
+    "chooseCategory": "Scegli una categoria",
+    "yourName": "Il vostro nome",
+    "yourEmail": "La vostra email",
+    "subject": "Oggetto",
+    "describeRequest": "Descrivete la vostra richiesta",
+    "errorOccurred": "Si è verificato un errore. Si prega di riprovare.",
+    "sendMyRequest": "Invia la mia richiesta",
+    "requestSent": "La vostra richiesta è stata inviata",
+    "ticketNumber": "Numero ticket",
+    "replyWithin24h": "Vi risponderemo a {{email}} entro 24 ore lavorative.",
+    "trackTicket": "Segui il mio ticket",
+    "backToHelpCenter": "Torna al centro assistenza",
+    "quickStart": "Avvio rapido",
+    "quickStartTitle": "Inizia con MEGGA in 5 minuti",
+    "quickStartSubtitle": "La guida essenziale per il vostro primo giorno.",
+    "screenshotComing": "Screenshot in arrivo",
+    "readFullGuide": "Leggi la guida completa",
+    "youAreReady": "Siete pronti!",
+    "needHelp": "Hai bisogno di aiuto? Chiedi a MEGGA AI o sfoglia le guide.",
+    "browseGuides": "Sfoglia le guide",
+    "sendTicket": "Invia un ticket",
+    "iAmSellerOwner": "Sono proprietario o venditore",
+    "iAmBuyerTenant": "Sono acquirente o inquilino"
+  },
+  "onboarding": {
+    "steps": {
+      "profile": "Profilo",
+      "contacts": "Contatti",
+      "done": "Tutto pronto!"
+    },
+    "profile": {
+      "title": "Il Suo profilo",
+      "subtitle": "Alcune informazioni per personalizzare la Sua esperienza.",
+      "firstName": "Nome",
+      "lastName": "Cognome",
+      "phone": "Telefono",
+      "canton": "Cantone",
+      "language": "Lingua",
+      "saving": "Salvataggio...",
+      "continue": "Continua"
+    },
+    "contacts": {
+      "title": "I Suoi contatti",
+      "subtitle": "Importi i Suoi clienti esistenti o esplori con dati demo.",
+      "importCsv": "Importa file CSV / vCard",
+      "importCsvDesc": "Importi i Suoi contatti da un file esistente.",
+      "addManually": "Aggiungi manualmente",
+      "addManuallyDesc": "Crei da 1 a 10 contatti rapidamente.",
+      "seedDemo": "Esplora con dati demo",
+      "seedDemoDesc": "10 contatti, 5 immobili, 3 transazioni — dati svizzeri realistici.",
+      "seeding": "Creazione in corso...",
+      "skip": "Salta questo passaggio →",
+      "addTitle": "Aggiungere contatti",
+      "addSubtitle": "Crei alcuni contatti per iniziare.",
+      "addContact": "Aggiungi un contatto",
+      "back": "← Indietro",
+      "saving": "Salvataggio...",
+      "saveAndContinue": "Salva e continua",
+      "importedCount": "{{count}} contatti importati",
+      "crmReady": "Il Suo CRM è pronto.",
+      "buyer": "Acquirente",
+      "seller": "Venditore"
+    },
+    "done": {
+      "title": "Il Suo spazio è pronto",
+      "subtitle": "Il Suo Action Board La guida quotidianamente — follow-up, match, visite, tutto centralizzato.",
+      "dataEurope": "Dati in Europa",
+      "compliant": "Conforme nFADP",
+      "loading": "Caricamento...",
+      "access": "Accedi al mio dashboard"
+    }
+  },
+  "search": {
+    "saveThisSearch": "Salva questa ricerca",
+    "searchSaved": "Ricerca salvata",
+    "willReceiveAlerts": "Riceverai avvisi {{frequency}}",
+    "frequencyDaily": "giornalieri",
+    "frequencyWeekly": "settimanali",
+    "frequencyInstant": "istantanei",
+    "maxSearchesReached": "Hai raggiunto il numero massimo di ricerche salvate.",
+    "searchName": "Nome della ricerca",
+    "mySearch": "La mia ricerca",
+    "matchingProperties": "{{count}} immobili corrispondono a questa ricerca",
+    "emailAlerts": "Avvisi email",
+    "emailAlertsDesc": "Ricevi nuovi immobili via email",
+    "frequency": "Frequenza",
+    "daily": "Giornaliero",
+    "weekly": "Settimanale",
+    "emailAddress": "Indirizzo email",
+    "mySavedSearches": "Le mie ricerche salvate",
+    "noSavedSearches": "Nessuna ricerca salvata",
+    "noSavedSearchesDesc": "Salva una ricerca per ritrovare i tuoi filtri rapidamente.",
+    "disableAlerts": "Disattiva avvisi",
+    "enableAlerts": "Attiva avvisi",
+    "properties": "immobili",
+    "alert": "Avviso",
+    "mySearches": "Le mie ricerche",
+    "saveSearchToReceiveAlerts": "Salva una ricerca per ricevere avvisi quando nuovi immobili corrispondenti vengono pubblicati.",
+    "alertsOn": "Avvisi attivi",
+    "alertsOff": "Avvisi disattivati",
+    "myAlerts": "I miei avvisi",
+    "noActiveAlerts": "Nessun avviso attivo",
+    "noActiveAlertsDesc": "Attiva gli avvisi su una ricerca salvata per essere informato sui nuovi immobili.",
+    "viewResults": "Vedi risultati",
+    "disable": "Disattiva",
+    "myFavorites": "I miei preferiti",
+    "noFavorites": "Nessun preferito",
+    "noFavoritesDesc": "Clicca sul cuore per salvare un immobile.",
+    "affordabilityCalculator": "Calcolatore di accessibilità",
+    "affordabilityRules": "Basato sulle regole ipotecarie svizzere: max 33% del reddito lordo, min 20% di capitale proprio, tasso imputato 5%.",
+    "grossAnnualIncome": "Reddito lordo annuale",
+    "availableEquity": "Capitale proprio disponibile",
+    "calculate": "Calcola",
+    "canAfford": "Puoi permetterti questo immobile",
+    "insufficientEquity": "Capitale proprio insufficiente",
+    "accessibleWithConditions": "Accessibile a condizioni",
+    "maxAccessiblePrice": "Prezzo massimo accessibile",
+    "maxMonthlyCharges": "Spese mensili massime",
+    "requiredEquity": "Capitale proprio richiesto",
+    "annualCharges": "Spese annuali",
+    "viewPropertiesInBudget": "Vedi immobili nel mio budget",
+    "affordabilityDisclaimer": "Stima indicativa basata sulle regole ipotecarie svizzere standard.",
+    "realEstateAgent": "Agente immobiliare",
+    "startConversation": "Inizia una conversazione",
+    "askAgentQuestions": "Fai domande su un immobile o richiedi un appuntamento.",
+    "suggestion.available": "Questo immobile è ancora disponibile?",
+    "suggestion.planVisit": "Vorrei pianificare una visita",
+    "suggestion.extraCosts": "Quali sono i costi aggiuntivi?",
+    "yourMessage": "Il tuo messaggio...",
+    "writeToAgent": "Scrivi a un agente...",
+    "secureMessaging": "Messaggistica sicura MEGGA",
+    "rooms": "locali",
+    "bedrooms": "cam.",
+    "removeFromFavorites": "Rimuovi dai preferiti",
+    "addToFavorites": "Aggiungi ai preferiti",
+    "removeFromCompare": "Rimuovi dal confronto",
+    "compare": "Confronta",
+    "perMonth": "/mese",
+    "today": "Oggi",
+    "daysAgo": "{{count}}g fa",
+    "daysOnline": "{{count}}g",
+    "previousPhoto": "Foto precedente",
+    "nextPhoto": "Foto successiva",
+    "type": "Tipo",
+    "price": "Prezzo",
+    "roomsFilter": "Locali",
+    "more": "Altro",
+    "moreWithCount": "Altro ({{count}})",
+    "relevance": "Pertinenza",
+    "clearFilters": "Cancella filtri",
+    "saveSearch": "Salva questa ricerca",
+    "recenterMap": "Ricentra la mappa",
+    "drawZone": "Disegna una zona sulla mappa",
+    "mapTools": "Strumenti",
+    "mapStyle3D": "3D",
+    "mapStyleSatellite": "Satellite",
+    "mapStyleLight": "Chiaro",
+    "mapStyleDark": "Scuro",
+    "heatmap": "Mappa termica prezzi",
+    "immersive": "Immersivo",
+    "nRooms": "{{count}} locali",
+    "nRoomsShort": "{{count}}l.",
+    "canton": "Cantone",
+    "realEstate": "Immobiliare",
+    "loadMore": "Carica altri risultati",
+    "typeConfirmed": "Tipo ✓",
+    "clearSearch": "Cancella ricerca",
+    "reset": "Reimposta"
+  },
+  "listing": {
+    "contactAgent": "Contatta l'agente",
+    "errorOccurred": "Si è verificato un errore. Riprova.",
+    "messageSent": "Messaggio inviato",
+    "agentWillContact": "{{name}} vi ricontatterà al più presto.",
+    "fullName": "Nome completo",
+    "phone": "Telefono",
+    "email": "Email",
+    "message": "Messaggio",
+    "consentMessage": "Inviando questo modulo, accettate che i vostri dati vengano trasmessi all'agente per gestire la vostra richiesta.",
+    "sending": "Invio in corso...",
+    "charges": "Spese: {{amount}}/mese",
+    "planVisit": "Pianifica una visita",
+    "saved": "Salvato",
+    "save": "Salva",
+    "canIAfford": "Posso permettermelo?",
+    "yourContact": "Il vostro contatto",
+    "requestVisit": "Richiedi una visita",
+    "requestSent": "Richiesta inviata",
+    "confirmationSent": "Un'email di conferma è stata inviata a <strong>{{email}}</strong>. L'agente vi contatterà per confermare.",
+    "avgResponseTime": "Risposta media entro 2 ore",
+    "freeVisit": "Visita gratuita e senza impegno",
+    "whenVisit": "Quando desiderate visitare?",
+    "tomorrow": "Domani",
+    "preferredSlot": "Fascia oraria preferita",
+    "morning": "Mattina",
+    "afternoon": "Pomeriggio",
+    "howVisit": "Come desiderate visitare?",
+    "onSite": "Sul posto",
+    "videoCall": "Video",
+    "meetLinkInfo": "Un link Meet sarà inviato nell'email di conferma.",
+    "facetimeInfo": "Funziona su iPhone, iPad, Mac e browser web.",
+    "continue": "Continua",
+    "changeDate": "Modifica data",
+    "yourDetails": "I vostri dati",
+    "fullNameLabel": "Nome completo",
+    "emailLabel": "Email",
+    "phoneLabel": "Telefono",
+    "prepareVisitTitle": "Alcune informazioni per preparare la visita",
+    "prepareVisitOptional": "Facoltativo — aiuta l'agente ad assistervi meglio",
+    "estimatedBudget": "Budget stimato",
+    "mortgageFinancing": "Finanziamento ipotecario",
+    "financingNotYet": "Non ancora",
+    "financingInProgress": "In corso",
+    "financingPreApproved": "Pre-approvato",
+    "firstVisitQuestion": "Prima visita per questo tipo di immobile?",
+    "yes": "Sì",
+    "no": "No",
+    "messageForAgent": "Messaggio per l'agente",
+    "messagePlaceholder": "Domande, vincoli orari...",
+    "submitting": "Invio in corso...",
+    "submitRequest": "Invia richiesta",
+    "close": "Chiudi"
+  },
+  "invite": {
+    "swissRealEstate": "Immobiliare svizzero"
+  },
+  "estimations": {
+    "hero": {
+      "badge": "Alimentato dall'IA",
+      "title": "Quanto vale il vostro immobile?",
+      "subtitle": "Ottenete una stima precisa in 2 minuti, basata sull'analisi IA di migliaia di transazioni immobiliari svizzere.",
+      "transactions": "47'000+ transazioni analizzate",
+      "free": "Gratuito e senza impegno",
+      "result": "Risultato in 2 minuti"
+    },
+    "howItWorks": {
+      "0": {
+        "title": "Dati di mercato",
+        "description": "Analisi dei prezzi di vendita reali nel vostro comune e quartiere."
+      },
+      "1": {
+        "title": "47'000+ transazioni",
+        "description": "Database alimentato dal Swiss Real Estate Datapool e dai registri fondiari."
+      },
+      "2": {
+        "title": "IA predittiva",
+        "description": "Algoritmo addestrato sulle specificità del mercato immobiliare svizzero — cantone per cantone."
+      },
+      "3": {
+        "title": "Aggiornamento trimestrale",
+        "description": "Dati ricalibrati ogni trimestre per riflettere le tendenze attuali del mercato."
+      },
+      "title": "Come funziona la nostra stima?"
+    },
+    "priceTable": {
+      "title": "Prezzi medi al m² in Svizzera",
+      "updated": "Dati aggiornati — Marzo 2026",
+      "canton": "Cantone",
+      "apartment": "Appartamento (CHF/m²)",
+      "house": "Casa (CHF/m²)",
+      "trend": "Tendenza 12 mesi",
+      "seeAll": "Vedi tutti i cantoni"
+    },
+    "faq": {
+      "0": {
+        "q": "Come viene calcolata la stima?",
+        "a": "Il nostro algoritmo analizza le transazioni recenti nel vostro comune (fino a 47'000 vendite), la superficie abitabile, il numero di locali, l'anno di costruzione, lo stato dell'immobile e 50 criteri legati alla posizione per generare una fascia di prezzo."
+      },
+      "1": {
+        "q": "Quanto è affidabile la stima?",
+        "a": "La stima online fornisce una fascia indicativa affidabile per gli immobili standard. Per immobili atipici (lusso, storici, terreni edificabili), raccomandiamo una valutazione in loco da parte di un agente certificato."
+      },
+      "2": {
+        "q": "La stima è davvero gratuita?",
+        "a": "Sì, 100% gratuita e senza impegno. Non avete alcun obbligo di vendere o contattare un agente dopo aver ricevuto la vostra stima."
+      },
+      "3": {
+        "q": "Quali tipi di immobili posso stimare?",
+        "a": "Appartamenti, case, ville, terreni edificabili e locali commerciali in tutta la Svizzera (26 cantoni)."
+      },
+      "4": {
+        "q": "Come ottenere una stima più precisa?",
+        "a": "Dopo la stima online, potete richiedere una valutazione gratuita in loco da parte di un agente MEGGA certificato."
+      },
+      "5": {
+        "q": "Con quale frequenza vengono aggiornati i dati?",
+        "a": "I nostri modelli vengono ricalibrati ogni trimestre sulla base delle ultime transazioni registrate e degli annunci in corso sul mercato svizzero."
+      },
+      "6": {
+        "q": "Posso stimare un immobile per un acquisto?",
+        "a": "Assolutamente. Lo strumento è utilizzato sia dai venditori che dagli acquirenti che vogliono verificare se il prezzo richiesto corrisponde alla realtà del mercato."
+      },
+      "title": "Domande frequenti"
+    },
+    "cta": {
+      "title": "Pronti a conoscere il valore del vostro immobile?",
+      "subtitle": "Stima gratuita, risultato istantaneo, dati svizzeri aggiornati.",
+      "button": "Stima adesso",
+      "footer": "Gratuito · Senza impegno · 2 minuti"
+    }
+  },
+  "services": {
+    "hero": {
+      "badge": "Piattaforma tutto-in-uno",
+      "title": "La piattaforma immobiliare svizzera che pensa come un agente",
+      "subtitle": "Ricerca IA, stima, CRM, conformità LAB/KYC, portale venditore — tutto in una piattaforma.",
+      "individual": "Sono un privato",
+      "professional": "Sono un professionista"
+    },
+    "individuals": {
+      "0": {
+        "title": "Ricerca conversazionale",
+        "description": "Descrivete il vostro immobile ideale in linguaggio naturale. La nostra IA comprende i vostri criteri e vi propone i migliori immobili — senza toccare un singolo filtro.",
+        "features": {
+          "0": "Ricerca multilingue FR/DE/EN/IT",
+          "1": "Mappa Mapbox interattiva con pin",
+          "2": "Avvisi personalizzati tramite IA"
+        },
+        "cta": "Inizia ora"
+      },
+      "1": {
+        "title": "Stima gratuita in 2 minuti",
+        "description": "Ottenete una fascia di prezzo basata su 47'000+ transazioni svizzere e 70 criteri di analisi.",
+        "features": {
+          "0": "Fascia di prezzo in tempo reale",
+          "1": "Immobili comparabili nel vostro quartiere",
+          "2": "Prezzo al m² aggiornato per cantone"
+        },
+        "cta": "Stima il mio immobile"
+      },
+      "2": {
+        "title": "Vendete al miglior prezzo",
+        "description": "Dalla stima al notaio. Un agente certificato vi accompagna e il vostro immobile è visibile su tutti i portali svizzeri.",
+        "features": {
+          "0": "Portale venditore 24/7",
+          "1": "Distribuzione ImmoScout24 + Homegate",
+          "2": "Commissione 30-50% più economica"
+        },
+        "cta": "Vendi il mio immobile"
+      },
+      "badge": "Per i privati",
+      "title": "Comprate, affittate, vendete — semplicemente.",
+      "subtitle": "Strumenti potenti, esperienza intuitiva."
+    },
+    "professionals": {
+      "badge": "Per agenti e agenzie",
+      "title": "Il sistema operativo per le transazioni immobiliari svizzere",
+      "subtitle": "9 moduli integrati. Zero strumenti esterni. Tutto incluso.",
+      "learnMore": "Scopri di più"
+    },
+    "modules": {
+      "0": {
+        "title": "CRM transazionale",
+        "desc": "Centralizzate contatti, scoring e pipeline in un unico strumento.",
+        "tags": "Scoring IA,Kanban,Importazione CSV,Deduplicazione"
+      },
+      "1": {
+        "title": "Pipeline transazionale",
+        "desc": "Ogni transazione = un workflow gestito dalla A alla Z.",
+        "tags": "Checklist dinamica,Avvisi blocco,ETA closing"
+      },
+      "2": {
+        "title": "Onboarding cliente",
+        "desc": "Raccolta informazioni automatizzata con percorso guidato.",
+        "tags": "Portale sicuro,OCR,Promemoria auto"
+      },
+      "3": {
+        "title": "Conformità LAB/KYC",
+        "desc": "Dossier verificabile, conforme alla legislazione svizzera.",
+        "tags": "Classificazione rischio,Human-in-the-loop,Audit trail"
+      },
+      "4": {
+        "title": "Generazione documenti",
+        "desc": "Mandati, buoni visita, offerte — generati in 1 clic.",
+        "tags": "Modelli,PDF/DOCX,Precompilazione"
+      },
+      "5": {
+        "title": "Portale venditore",
+        "desc": "Visibilità premium 24/7 per i vostri clienti venditori.",
+        "tags": "Tracciamento visite,Offerte,Messaggi,Reporting"
+      },
+      "6": {
+        "title": "Pubblicazione multicanale",
+        "desc": "Pubblicate su MEGGA + ImmoScout24 + Homegate in 1 clic.",
+        "tags": "Multi-portale,Descrizione IA,Foto ottimizzate"
+      },
+      "7": {
+        "title": "Copilota IA",
+        "desc": "IA contestuale sui vostri veri dossier — non un gadget.",
+        "tags": "Prossima azione,Redazione,Scoring lead"
+      },
+      "8": {
+        "title": "Audit trail",
+        "desc": "Tracciabilità totale: chi, quando, cosa, perché.",
+        "tags": "Diario narrativo,Esportazione audit,Storico completo"
+      }
+    },
+    "compare": {
+      "0": {
+        "before": "CRM separato (HubSpot, Excel...)",
+        "after": "CRM immobiliare integrato e gratuito"
+      },
+      "1": {
+        "before": "KYC in email e cartelle",
+        "after": "Dossier LAB/KYC automatizzato e verificabile"
+      },
+      "2": {
+        "before": "Documenti Word manuali",
+        "after": "Generazione automatica dai dati"
+      },
+      "3": {
+        "before": "Venditore al buio",
+        "after": "Portale venditore 24/7 in tempo reale"
+      },
+      "4": {
+        "before": "Pubblicazione portale per portale",
+        "after": "Multi-distribuzione in 1 clic"
+      },
+      "5": {
+        "before": "Stima approssimativa",
+        "after": "Stima IA — 47'000 transazioni"
+      },
+      "6": {
+        "before": "CHF 200-800/mese/annuncio",
+        "after": "Da CHF 0 — piano gratuito"
+      },
+      "badge": "Il cambiamento",
+      "title": "Prima di MEGGA vs Con MEGGA",
+      "without": "Senza MEGGA",
+      "with": "Con MEGGA",
+      "mobileBefore": "Prima → Dopo MEGGA"
+    },
+    "pricing": {
+      "badge": "Prezzi",
+      "title": "Prezzi trasparenti, finalmente.",
+      "subtitle": "Dal 30 al 50% più economico dei portali tradizionali.",
+      "monthly": "Mensile",
+      "annual": "Annuale",
+      "save20": "Risparmia il 20%",
+      "popular": "Popolare",
+      "perMonth": "/mese",
+      "custom": "Su misura",
+      "allStarterIncluded": "Tutto Starter incluso",
+      "allAgencyIncluded": "Tutto Agency incluso",
+      "contactUs": "Contattateci",
+      "getStarted": "Inizia ora"
+    },
+    "plans": {
+      "0": {
+        "name": "Starter",
+        "tagline": "Per iniziare",
+        "features": "5 immobili attivi,CRM base,Ricerca IA,Portale venditore,Supporto email"
+      },
+      "1": {
+        "name": "Pro",
+        "tagline": "Per agenti indipendenti",
+        "features": "25 immobili attivi,CRM completo + scoring,Pipeline transazionale,Conformità LAB/KYC,Generazione documenti,Pubblicazione multicanale,Copilota IA,Supporto prioritario"
+      },
+      "2": {
+        "name": "Agency",
+        "tagline": "Per le agenzie",
+        "features": "Immobili illimitati,Multi-utente,Branding personalizzato,API e integrazioni,Audit trail completo,Formazione dedicata,Account manager,SLA garantito"
+      },
+      "3": {
+        "name": "Enterprise",
+        "tagline": "Per i gruppi",
+        "features": "Tutto Agency incluso,Multi-agenzia,SSO / SAML,SLA 99.9%,Supporto dedicato 24/7"
+      }
+    },
+    "stats": {
+      "transactionsAnalyzed": "Transazioni analizzate",
+      "cantonsCovered": "Cantoni coperti",
+      "aiResponseTime": "Tempo di risposta IA",
+      "cheaper": "Più economico"
+    },
+    "testimonials": {
+      "0": {
+        "quote": "Il CRM integrato ha cambiato la mia routine quotidiana. Niente più equilibrismi tra HubSpot e Excel. E il portale venditore impressiona sistematicamente i miei clienti."
+      },
+      "1": {
+        "quote": "La pubblicazione multicanale mi fa risparmiare 2 ore per annuncio. La stima IA mi aiuta a inquadrare le aspettative dei venditori dal primo appuntamento."
+      },
+      "2": {
+        "quote": "Con la mia clientela internazionale, la conformità LAB/KYC integrata è indispensabile. Il dossier è pulito, verificabile e rassicura tutti."
+      },
+      "badge": "Testimonianze",
+      "title": "Si fidano di MEGGA"
+    },
+    "faq": {
+      "0": {
+        "q": "Posso provare gratuitamente?",
+        "a": "Sì. Il piano Starter è 100% gratuito, senza limiti di tempo e senza carta di credito. Potete gestire fino a 5 immobili attivi e accedere al CRM base, alla ricerca IA e al portale venditore."
+      },
+      "1": {
+        "q": "Come funziona la conformità LAB/KYC?",
+        "a": "MEGGA genera automaticamente un dossier KYC strutturato per ogni transazione: identificazione del cliente, classificazione del rischio, checklist regolamentare e upload documenti. Ogni validazione richiede un'azione umana (human-in-the-loop) e un audit trail completo viene mantenuto."
+      },
+      "2": {
+        "q": "I miei dati sono ospitati in Svizzera?",
+        "a": "I nostri database sono ospitati su server conformi ai requisiti svizzeri di protezione dei dati. Utilizziamo Supabase con crittografia a riposo e in transito."
+      },
+      "3": {
+        "q": "Posso migrare da un altro CRM?",
+        "a": "Sì. MEGGA supporta l'importazione CSV per i vostri contatti, immobili e transazioni. Il nostro team può anche assistervi in una migrazione da HubSpot, Salesforce o qualsiasi altro strumento."
+      },
+      "4": {
+        "q": "Qual è la differenza tra Pro e Agency?",
+        "a": "Il piano Pro è progettato per agenti indipendenti (fino a 25 immobili). Il piano Agency aggiunge multi-utente, branding personalizzato, integrazioni API, un account manager dedicato e immobili illimitati."
+      },
+      "5": {
+        "q": "Come funziona la stima IA?",
+        "a": "Il nostro modello analizza oltre 47'000 transazioni immobiliari svizzere e 70 criteri per produrre una fascia di prezzo in tempo reale. La stima è indicativa e non sostituisce una perizia ufficiale."
+      },
+      "6": {
+        "q": "Posso cambiare piano in qualsiasi momento?",
+        "a": "Sì, potete aggiornare o ridurre il vostro piano in qualsiasi momento dalle impostazioni del vostro account. La modifica ha effetto immediato con prorata sul periodo in corso."
+      },
+      "7": {
+        "q": "La pubblicazione multicanale è inclusa?",
+        "a": "La pubblicazione su MEGGA è inclusa in tutti i piani. La distribuzione su ImmoScout24 e Homegate è disponibile dal piano Pro. I vostri annunci vengono sincronizzati automaticamente."
+      },
+      "badge": "Domande frequenti",
+      "title": "Avete domande?",
+      "subtitle": "Le risposte alle domande più comuni su MEGGA."
+    },
+    "cta": {
+      "title": "Pronti a trasformare la vostra attività?",
+      "subtitle": "Unitevi alle agenzie svizzere che accelerano le loro transazioni con MEGGA.",
+      "createAccount": "Crea il mio account",
+      "seeDemo": "Vedi una demo",
+      "footer": "Gratuito · Senza carta di credito · Pronto in 2 minuti"
+    },
+    "demo": {
+      "requestSent": "Richiesta inviata",
+      "requestSentDesc": "Il nostro team vi contatterà entro 24 ore per pianificare la vostra demo.",
+      "close": "Chiudi",
+      "title": "Richiedi una demo",
+      "subtitle": "Scoprite MEGGA in 30 minuti",
+      "fullName": "Nome completo",
+      "proEmail": "Email professionale",
+      "agency": "Agenzia / Società",
+      "agencyPlaceholder": "Nome della vostra agenzia",
+      "message": "Messaggio (opzionale)",
+      "messagePlaceholder": "Le vostre domande o esigenze specifiche...",
+      "send": "Invia richiesta",
+      "noObligation": "Vi risponderemo entro 24h. Senza impegno."
+    }
+  },
+  "sell": {
+    "hero": {
+      "badge": "38'000+ immobili analizzati in tempo reale",
+      "title1": "Quanto vale",
+      "title2": "il vostro immobile",
+      "subtitle": "Ottenete una stima gratuita e istantanea basata sui dati del mercato svizzero",
+      "addressPlaceholder": "Inserite l'indirizzo del vostro immobile...",
+      "estimate": "Stima",
+      "orSelectType": "o selezionate un tipo di immobile",
+      "propertiesAnalyzed": "Immobili analizzati",
+      "cantonsCovered": "Cantoni coperti",
+      "averagePrecision": "Precisione media",
+      "confidential": "Confidenziale",
+      "instantResult": "Risultato istantaneo",
+      "free": "100% gratuito"
+    },
+    "types": {
+      "apartment": "Appartamento",
+      "house": "Casa",
+      "villa": "Villa",
+      "land": "Terreno",
+      "commercial": "Commerciale"
+    },
+    "conditions": {
+      "new": "Nuovo",
+      "renovated": "Ristrutturato",
+      "good": "Buono stato",
+      "refresh": "Da rinfrescare",
+      "renovate": "Da ristrutturare"
+    },
+    "wizard": {
+      "stepOf": "Passo {{step}} di 5",
+      "questionOf": "Domanda {{current}}/{{total}}",
+      "back": "Indietro",
+      "continue": "Continua",
+      "skip": "Salta",
+      "skipStep": "Salta questo passaggio",
+      "step1": {
+        "title": "Dove si trova il vostro immobile?",
+        "subtitle": "Iniziate a digitare per ottenere suggerimenti",
+        "placeholder": "Via, numero, città..."
+      },
+      "step2": {
+        "rooms": "Quanti locali?",
+        "bedrooms": "Quante camere?",
+        "surfaceHabitable": "Qual è la superficie abitabile?",
+        "surfaceParcelle": "Qual è la superficie della parcella?",
+        "floor": "A quale piano?",
+        "landSurface": "Qual è la superficie del terreno?",
+        "parking": "Quanti posti auto?",
+        "view": "Che vista avete?",
+        "landZone": "Qual è la zona?",
+        "commercialType": "Che tipo di immobile commerciale?",
+        "condition": "Qual è lo stato generale?",
+        "summary": "Verificate le vostre informazioni",
+        "summarySubtitle": "Modificate se necessario prima di continuare",
+        "socialProof": "12'500+ proprietari hanno già stimato il loro immobile su MEGGA"
+      },
+      "step3": {
+        "title": "Aggiungete delle foto",
+        "subtitle": "Opzionale — le foto migliorano la precisione del {{percent}}%",
+        "dropzone": "Trascinate le vostre foto qui",
+        "dropzoneSubtitle": "o cliccate per selezionare (max 10)",
+        "photosCount": "{{count}}/10 foto",
+        "seeEstimation": "Vedi la mia stima"
+      },
+      "step4": {
+        "title": "Ultimo passaggio",
+        "subtitle": "Un esperto della vostra regione vi contatterà entro {{hours}}h",
+        "estimation": "Stima",
+        "review": "Rivedi",
+        "fullName": "Nome completo",
+        "email": "Email",
+        "phone": "Telefono",
+        "phoneOptional": "opzionale",
+        "whenSell": "Quando desiderate vendere?",
+        "uploadingPhotos": "Caricamento foto...",
+        "sending": "Invio...",
+        "sendRequest": "Invia la mia richiesta",
+        "error": "Si è verificato un errore. Riprovate.",
+        "dataProtected": "I vostri dati sono protetti e non saranno mai condivisi."
+      }
+    },
+    "motivations": {
+      "immediate": "Il prima possibile",
+      "3months": "Entro 3 mesi",
+      "6months": "Entro 6 mesi",
+      "exploring": "Sto esplorando le opzioni"
+    },
+    "views": {
+      "lake": "Lago",
+      "mountain": "Montagna",
+      "open": "Vista aperta",
+      "none": "Nessuna"
+    },
+    "landZones": {
+      "constructible": "Edificabile",
+      "agricole": "Agricola",
+      "mixte": "Mista"
+    },
+    "commercialTypes": {
+      "bureau": "Ufficio",
+      "commerce": "Negozio",
+      "restaurant": "Ristorante",
+      "entrepot": "Magazzino"
+    },
+    "parking": {
+      "none": "Nessuno"
+    },
+    "steps": {
+      "address": "Indirizzo",
+      "details": "Dettagli",
+      "photos": "Foto",
+      "contact": "Contatto",
+      "estimation": "Stima"
+    },
+    "estimation": {
+      "modifyInfo": "Modifica informazioni",
+      "insufficientData": "Dati insufficienti per stimare questo immobile.",
+      "yourEstimation": "La vostra stima",
+      "min": "Min",
+      "max": "Max",
+      "pricePerM2": "Prezzo al m²",
+      "comparableCount": "Immobili confrontati",
+      "confidenceLow": "Bassa",
+      "confidenceMedium": "Media",
+      "confidenceHigh": "Alta",
+      "confidence": "Fiducia",
+      "similarProperties": "Immobili simili venduti recentemente",
+      "disclaimer": "Stima indicativa basata sull'analisi di immobili simili nella vostra zona. Per una valutazione precisa, un agente certificato può visitare gratuitamente il vostro immobile.",
+      "contactExpert": "Essere contattati da un esperto",
+      "noObligation": "Senza impegno",
+      "freeService": "100% gratuito",
+      "responseTime": "Risposta entro 24h",
+      "insufficientPrecise": "Dati insufficienti per calcolare una stima precisa."
+    },
+    "loading": {
+      "analyzing": "Analisi del vostro immobile...",
+      "comparing": "Confronto con 38'000+ immobili...",
+      "localMarket": "Analisi del mercato locale...",
+      "calculating": "Calcolo della fascia di prezzo..."
+    },
+    "success": {
+      "thanks": "Grazie {{name}}!",
+      "requestSent": "La vostra richiesta è stata inviata. Un esperto immobiliare della vostra regione vi contatterà presto.",
+      "estimation": "Stima",
+      "range": "Fascia",
+      "nextSteps": "Prossimi passi",
+      "step1": "Un esperto vi chiama entro 24h",
+      "step2": "Visita gratuita del vostro immobile",
+      "step3": "Proposta di mandato personalizzata",
+      "confirmationSent": "Conferma inviata a",
+      "backHome": "Torna alla home",
+      "estimateAnother": "Stima un altro immobile"
+    }
   }
 }

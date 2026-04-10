@@ -32,7 +32,7 @@ function renderMarkdown(content: string) {
       elements.push(
         <ul key={`list-${elements.length}`} className="list-disc pl-6 space-y-2 mb-5">
           {listItems.map((item, j) => (
-            <li key={j} className="text-[15px] text-gray-700 leading-7" dangerouslySetInnerHTML={{ __html: inlineFormat(item) }} />
+            <li key={j} className="text-sm text-gray-700 leading-7" dangerouslySetInnerHTML={{ __html: inlineFormat(item) }} />
           ))}
         </ul>
       )
@@ -43,7 +43,7 @@ function renderMarkdown(content: string) {
   function inlineFormat(text: string): string {
     return text
       .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
-      .replace(/`(.+?)`/g, '<code class="text-[13px] bg-gray-100 px-1.5 py-0.5 rounded font-mono text-gray-800">$1</code>')
+      .replace(/`(.+?)`/g, '<code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded font-mono text-gray-800">$1</code>')
       .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-600 hover:underline">$1</a>')
   }
 
@@ -83,7 +83,7 @@ function renderMarkdown(content: string) {
         const body = rows.slice(1).map(r => r.split('|').filter(Boolean).map(c => c.trim()))
         elements.push(
           <div key={i} className="overflow-x-auto mb-6 mt-3 rounded-lg border border-gray-200">
-            <table className="w-full text-[15px]">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   {header.map((h, j) => (
@@ -111,7 +111,7 @@ function renderMarkdown(content: string) {
     } else {
       flushList()
       elements.push(
-        <p key={i} className="text-[15px] text-gray-700 leading-7 mb-4" dangerouslySetInnerHTML={{ __html: inlineFormat(line) }} />
+        <p key={i} className="text-sm text-gray-700 leading-7 mb-4" dangerouslySetInnerHTML={{ __html: inlineFormat(line) }} />
       )
     }
     i++
@@ -157,7 +157,7 @@ export default function HelpArticlePage() {
 
       <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-10 flex-wrap">
+        <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-10 flex-wrap">
           <Link to="/aide" className="hover:text-gray-600 transition-colors">
             Centre d'aide
           </Link>
@@ -175,7 +175,7 @@ export default function HelpArticlePage() {
           <div className="flex-1 min-w-0">
             {/* Title area */}
             <div className="mb-10">
-              <span className="text-xs font-medium text-blue-600 uppercase tracking-wider">
+              <span className="text-xs font-medium text-blue-600 capitalize">
                 {article.section}
               </span>
               <h1 className="text-3xl font-bold text-gray-900 mt-2 leading-tight">
@@ -201,7 +201,7 @@ export default function HelpArticlePage() {
               {/* Table of Contents */}
               {headings.length > 0 && (
                 <div className="mb-8">
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  <h4 className="text-xs font-semibold text-gray-500 capitalize mb-3">
                     Sur cette page
                   </h4>
                   <nav className="space-y-2">
@@ -221,7 +221,7 @@ export default function HelpArticlePage() {
               {/* Related articles */}
               {related.length > 0 && (
                 <div className="pt-6 border-t border-gray-100">
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  <h4 className="text-xs font-semibold text-gray-500 capitalize mb-3">
                     Articles liés
                   </h4>
                   <div className="space-y-3">
@@ -248,7 +248,7 @@ export default function HelpArticlePage() {
           </div>
           <div className="md:w-[45%] flex flex-col justify-center p-8 md:p-10">
             <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">Contactez-nous</h3>
-            <p className="text-[15px] text-gray-500 mb-6 leading-relaxed">
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
               Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
             </p>
             <Link

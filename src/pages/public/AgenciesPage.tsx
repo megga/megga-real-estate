@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, MapPin, Globe, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
@@ -74,7 +75,7 @@ function AgencyCard({ agency }: { agency: { id: string; name: string; slug: stri
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden') }}
           />
         ) : null}
-        <span className={cn('text-sm font-bold text-gray-400', agency.logo_url && 'hidden')}>{initials}</span>
+        <span className={cn('text-sm font-bold text-gray-500', agency.logo_url && 'hidden')}>{initials}</span>
       </div>
 
       {/* Info */}
@@ -84,7 +85,7 @@ function AgencyCard({ agency }: { agency: { id: string; name: string; slug: stri
         </h3>
         <div className="flex items-center gap-1.5 mt-1">
           {agency.city && (
-            <span className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="flex items-center gap-1 text-xs text-gray-500">
               <MapPin className="w-3 h-3" />
               {agency.city}{agency.canton ? ` (${agency.canton})` : ''}
             </span>
@@ -94,7 +95,7 @@ function AgencyCard({ agency }: { agency: { id: string; name: string; slug: stri
 
       {/* Website indicator */}
       {agency.website_url && (
-        <Globe className="w-4 h-4 text-gray-300 flex-shrink-0" />
+        <Globe className="w-4 h-4 text-gray-500 flex-shrink-0" />
       )}
     </Link>
   )
@@ -103,6 +104,7 @@ function AgencyCard({ agency }: { agency: { id: string; name: string; slug: stri
 // ─── Page ───────────────────────────────────────────────────
 
 export default function AgenciesPage() {
+  const { t } = useTranslation('directory')
   const { data: agencies, isLoading } = useAgencies()
   const [search, setSearch] = useState('')
   const [canton, setCanton] = useState('')
@@ -131,21 +133,21 @@ export default function AgenciesPage() {
       {/* Hero */}
       <div className="max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-10">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
-          Agences immobilières en Suisse
+          {t('agencies.title')}
         </h1>
         <p className="mt-3 text-gray-500 text-lg max-w-2xl">
-          {agencies?.length.toLocaleString('fr-CH') || '...'} agences référencées dans toute la Suisse.
+          {t('agencies.subtitle', { count: agencies?.length.toLocaleString('fr-CH') || '...' })}
         </p>
 
         {/* Search + filters */}
         <div className="flex flex-col sm:flex-row gap-3 mt-8">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher une agence..."
+              placeholder={t('agencies.searchPlaceholder')}
               className="w-full h-11 pl-10 pr-4 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
           </div>
@@ -156,10 +158,10 @@ export default function AgenciesPage() {
               onClick={() => setCantonOpen(!cantonOpen)}
               className="h-11 px-4 text-sm font-medium border border-gray-200 rounded-lg flex items-center gap-2 hover:border-gray-300 transition-colors min-w-[160px] justify-between"
             >
-              <span className={canton ? 'text-gray-900' : 'text-gray-400'}>
-                {canton ? CANTON_LABELS[canton] || canton : 'Tous les cantons'}
+              <span className={canton ? 'text-gray-900' : 'text-gray-500'}>
+                {canton ? CANTON_LABELS[canton] || canton : t('agencies.allCantons')}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
             </button>
             {cantonOpen && (
               <div className="absolute right-0 sm:left-0 mt-1.5 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 max-h-72 overflow-y-auto">
@@ -167,7 +169,7 @@ export default function AgenciesPage() {
                   onClick={() => { setCanton(''); setCantonOpen(false) }}
                   className={cn('w-full text-left px-4 py-2 text-sm hover:bg-gray-50', !canton && 'font-medium text-gray-900 bg-gray-50')}
                 >
-                  Tous les cantons
+                  {t('agencies.allCantons')}
                 </button>
                 {CANTONS.map(c => (
                   <button
@@ -175,7 +177,7 @@ export default function AgenciesPage() {
                     onClick={() => { setCanton(c); setCantonOpen(false) }}
                     className={cn('w-full text-left px-4 py-2 text-sm hover:bg-gray-50', canton === c && 'font-medium text-gray-900 bg-gray-50')}
                   >
-                    {CANTON_LABELS[c] || c} <span className="text-gray-300 ml-1">({c})</span>
+                    {CANTON_LABELS[c] || c} <span className="text-gray-500 ml-1">({c})</span>
                   </button>
                 ))}
               </div>
@@ -188,14 +190,14 @@ export default function AgenciesPage() {
       <div className="max-w-5xl mx-auto px-4 md:px-6 pb-20">
         {/* Counter */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-gray-400">
-            {filtered.length.toLocaleString('fr-CH')} agence{filtered.length > 1 ? 's' : ''}
-            {canton && ` en ${CANTON_LABELS[canton] || canton}`}
-            {withLogo > 0 && ` · ${withLogo} avec logo`}
+          <p className="text-sm text-gray-500">
+            {filtered.length > 1 ? t('agencies.count_plural', { count: filtered.length.toLocaleString('fr-CH') }) : t('agencies.count', { count: filtered.length })}
+            {canton && ` ${t('agencies.inCanton', { canton: CANTON_LABELS[canton] || canton })}`}
+            {withLogo > 0 && ` · ${t('agencies.withLogo', { count: withLogo })}`}
           </p>
           {search && (
             <button onClick={() => setSearch('')} className="text-xs text-accent hover:underline">
-              Effacer la recherche
+              {t('agencies.clearSearch')}
             </button>
           )}
         </div>
@@ -208,7 +210,7 @@ export default function AgenciesPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-400">Aucune agence trouvée</p>
+            <p className="text-gray-500">{t('agencies.noResult')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

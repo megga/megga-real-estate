@@ -23,19 +23,19 @@ export default function FavoritesLoginPrompt() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg border border-gray-200 p-5 relative">
+      <div className="max-w-md mx-auto bg-theme-card rounded-xl border border-theme-border p-5 relative">
         <button
           onClick={dismissLoginPrompt}
-          className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-3 right-3 p-1 text-theme-tertiary hover:text-theme-secondary transition-colors"
           aria-label="Fermer"
         >
           <X className="h-4 w-4" />
         </button>
 
-        <p className="text-sm font-medium text-gray-900 mb-1">
+        <p className="text-sm font-medium text-theme-primary mb-1">
           Connectez-vous pour sauvegarder vos favoris
         </p>
-        <p className="text-xs text-gray-500 mb-4">
+        <p className="text-xs text-theme-tertiary mb-4">
           Retrouvez vos biens favoris sur tous vos appareils.
         </p>
 
@@ -43,7 +43,7 @@ export default function FavoritesLoginPrompt() {
           <Link
             to="/login"
             onClick={dismissLoginPrompt}
-            className="flex-1 h-9 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 h-9 rounded-lg border border-theme-border text-sm font-medium text-theme-secondary hover:bg-theme-hover transition-colors flex items-center justify-center gap-2"
           >
             <GoogleIcon className="h-4 w-4" />
             Google
@@ -51,7 +51,7 @@ export default function FavoritesLoginPrompt() {
           <Link
             to="/login"
             onClick={dismissLoginPrompt}
-            className="flex-1 h-9 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 h-9 rounded-lg border border-theme-border text-sm font-medium text-theme-secondary hover:bg-theme-hover transition-colors flex items-center justify-center gap-2"
           >
             Email
           </Link>
@@ -59,7 +59,7 @@ export default function FavoritesLoginPrompt() {
 
         <button
           onClick={dismissLoginPrompt}
-          className="w-full text-xs text-gray-400 hover:text-gray-600 mt-3 transition-colors"
+          className="w-full text-xs text-theme-tertiary hover:text-theme-secondary mt-3 transition-colors"
         >
           Pas maintenant
         </button>

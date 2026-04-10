@@ -211,7 +211,7 @@ export default function CustomTemplatePage() {
                   errors[`s_${section.id}`] && 'border-red-500'
                 )}
               />
-              <span className="text-[10px] text-theme-tertiary">{section.fields.length} champ{section.fields.length > 1 ? 's' : ''}</span>
+              <span className="text-xs text-theme-tertiary">{section.fields.length} champ{section.fields.length > 1 ? 's' : ''}</span>
               <button onClick={() => toggleSection(section.id)} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-theme-hover transition-colors">
                 {section.collapsed ? <ChevronDown className="w-3.5 h-3.5 text-theme-muted" /> : <ChevronUp className="w-3.5 h-3.5 text-theme-muted" />}
               </button>

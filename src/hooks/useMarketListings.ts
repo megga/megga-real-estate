@@ -2,6 +2,7 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import { applyPlaceholders } from '@/lib/placeholderData'
+import type { PostgrestFilterBuilder } from '@supabase/postgrest-js'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -38,8 +39,11 @@ const PAGE_SIZE = 50
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
+// Supabase query builder type after .select() — constrains to PostgrestFilterBuilder chain
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyFilters(query: any, filters: MarketFilters) {
+type MarketListingsQuery = PostgrestFilterBuilder<any, any, any, any>
+
+function applyFilters<Q extends MarketListingsQuery>(query: Q, filters: MarketFilters): Q {
   let q = query.in('status', ['active', 'price_reduced'])
   q = q.eq('transaction_type', filters.context || 'buy')
   q = q.gt('price', 0) // Exclure les biens sans prix (prix sur demande)
@@ -71,8 +75,7 @@ function applyFilters(query: any, filters: MarketFilters) {
   return q
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applySorting(query: any, sort: MarketFilters['sort']) {
+function applySorting<Q extends MarketListingsQuery>(query: Q, sort: MarketFilters['sort']): Q {
   switch (sort) {
     case 'price_asc': return query.order('price', { ascending: true, nullsFirst: false })
     case 'price_desc': return query.order('price', { ascending: false, nullsFirst: false })

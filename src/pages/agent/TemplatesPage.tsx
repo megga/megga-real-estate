@@ -191,7 +191,10 @@ export default function TemplatesPage() {
                     {templates.map(template => (
                       <div
                         key={template.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => navigate(`/dashboard/documents/generate?template=${template.id}`)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/dashboard/documents/generate?template=${template.id}`) } }}
                         className="rounded-xl border border-theme-border p-4 group hover:border-theme-active cursor-pointer transition-all"
                       >
                         {/* Row 1: title + badges */}
@@ -201,16 +204,16 @@ export default function TemplatesPage() {
                           </p>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {template.isCustom && (
-                              <span className="text-[10px] font-semibold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-semibold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
                                 Perso
                               </span>
                             )}
                             {template.isPremium && (
-                              <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
                                 Pro
                               </span>
                             )}
-                            <span className="text-[10px] font-medium text-theme-tertiary bg-theme-section px-1.5 py-0.5 rounded">
+                            <span className="text-xs font-medium text-theme-tertiary bg-theme-section px-1.5 py-0.5 rounded">
                               {template.format}
                             </span>
                           </div>
@@ -223,7 +226,7 @@ export default function TemplatesPage() {
 
                         {/* Bottom: usage + CTA */}
                         <div className="flex items-center justify-between mt-3 pt-3 border-t border-theme-border">
-                          <span className="text-[10px] text-theme-muted">
+                          <span className="text-xs text-theme-muted">
                             Utilisé {template.usageCount} fois
                           </span>
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

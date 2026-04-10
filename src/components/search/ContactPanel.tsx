@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Send, Building2, CheckCheck, ArrowUp } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useMessaging, type Message } from '@/hooks/useMessaging'
@@ -25,19 +26,20 @@ function AgentAvatar({ size = 'sm' }: { size?: 'sm' | 'md' }) {
 // ─── Day separator ──────────────────────────────────────────────────────────
 
 function DaySeparator({ date }: { date: Date }) {
+  const { t } = useTranslation('common')
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
 
   const label = date.toDateString() === today.toDateString()
-    ? "Aujourd'hui"
+    ? t('time.today')
     : date.toDateString() === yesterday.toDateString()
-      ? 'Hier'
+      ? t('time.yesterday')
       : date.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' })
 
   return (
     <div className="flex justify-center py-3">
-      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider px-3 py-0.5 rounded-full bg-gray-50">
+      <span className="text-xs text-gray-500 font-medium capitalize px-3 py-0.5 rounded-full bg-gray-50">
         {label}
       </span>
     </div>
@@ -79,7 +81,7 @@ function MessageBubble({ msg, isFirstInGroup, isLastInGroup }: {
       <div className={cn('max-w-[82%]')}>
         <div
           className={cn(
-            'px-3 py-2 text-[13px] leading-[1.45] whitespace-pre-line',
+            'px-3 py-2 text-sm leading-[1.45] whitespace-pre-line',
             isMe
               ? cn('bg-accent text-white', myRadius)
               : cn('bg-gray-100 text-gray-900', theirRadius)
@@ -91,9 +93,9 @@ function MessageBubble({ msg, isFirstInGroup, isLastInGroup }: {
         {/* Timestamp + read status — only on last of group */}
         {isLastInGroup && (
           <div className={cn('flex items-center gap-1 mt-0.5', isMe ? 'justify-end pr-1' : 'justify-start pl-1')}>
-            <span className="text-[10px] text-gray-400">{time}</span>
+            <span className="text-xs text-gray-500">{time}</span>
             {isMe && (
-              <CheckCheck className={cn('h-3 w-3', msg.read_at ? 'text-accent' : 'text-gray-300')} />
+              <CheckCheck className={cn('h-3 w-3', msg.read_at ? 'text-accent' : 'text-gray-500')} />
             )}
           </div>
         )}
@@ -105,6 +107,7 @@ function MessageBubble({ msg, isFirstInGroup, isLastInGroup }: {
 // ─── Main panel ─────────────────────────────────────────────────────────────
 
 export default function ContactPanel({ onBack, selectedListing }: Props) {
+  const { t } = useTranslation('common')
   const { user, profile } = useAuth()
   const [draft, setDraft] = useState('')
   const [threadId, setThreadId] = useState<string | null>(null)
@@ -263,14 +266,14 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
 
       {/* ─── Header ─── */}
       <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-100 shrink-0">
-        <button onClick={onBack} className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer" aria-label="Retour">
+        <button onClick={onBack} className="text-gray-500 hover:text-gray-600 transition-colors cursor-pointer" aria-label="Retour">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <AgentAvatar size="md" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-gray-900">MEGGA</p>
-          <p className="text-[10px] text-gray-400 truncate">
-            {selectedListing ? `${selectedListing.address}, ${selectedListing.city}` : 'Agent immobilier'}
+          <p className="text-xs text-gray-500 truncate">
+            {selectedListing ? `${selectedListing.address}, ${selectedListing.city}` : t('search.realEstateAgent')}
           </p>
         </div>
       </div>
@@ -284,14 +287,14 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
                 <img src={selectedListing.photos[0]} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Building2 className="h-4 w-4 text-gray-300" />
+                  <Building2 className="h-4 w-4 text-gray-500" />
                 </div>
               )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-gray-900">{formatCHF(selectedListing.price)}</p>
-              <p className="text-[11px] text-gray-500 truncate">{selectedListing.address}, {selectedListing.city}</p>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-500 truncate">{selectedListing.address}, {selectedListing.city}</p>
+              <p className="text-xs text-gray-500">
                 {selectedListing.rooms > 0 && `${selectedListing.rooms}p.`}
                 {selectedListing.rooms > 0 && selectedListing.surface_m2 > 0 && ' · '}
                 {selectedListing.surface_m2 > 0 && `${selectedListing.surface_m2} m²`}
@@ -306,24 +309,24 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
         {!hasMessages && (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center mb-3">
-              <Send className="h-5 w-5 text-gray-300" />
+              <Send className="h-5 w-5 text-gray-500" />
             </div>
-            <p className="text-sm font-medium text-gray-700">Démarrez la conversation</p>
-            <p className="text-xs text-gray-400 mt-1 leading-relaxed max-w-[220px]">
-              Posez vos questions sur ce bien à l'agent immobilier.
+            <p className="text-sm font-medium text-gray-700">{t('search.startConversation')}</p>
+            <p className="text-xs text-gray-500 mt-1 leading-relaxed max-w-[220px]">
+              {t('search.askAgentQuestions')}
             </p>
 
             {/* Quick suggestions */}
             <div className="flex flex-col gap-1.5 mt-4 w-full max-w-[240px]">
               {[
-                'Est-ce que ce bien est encore disponible ?',
-                'Puis-je planifier une visite ?',
-                'Quels sont les frais annexes ?',
+                t('search.suggestion.available'),
+                t('search.suggestion.planVisit'),
+                t('search.suggestion.extraCosts'),
               ].map(suggestion => (
                 <button
                   key={suggestion}
                   onClick={() => setDraft(suggestion)}
-                  className="text-left text-[11px] text-gray-500 px-3 py-2 rounded-xl border border-gray-100 hover:border-gray-300 hover:text-gray-700 transition-colors cursor-pointer"
+                  className="text-left text-xs text-gray-500 px-3 py-2 rounded-xl border border-gray-100 hover:border-gray-300 hover:text-gray-700 transition-colors cursor-pointer"
                 >
                   {suggestion}
                 </button>
@@ -347,9 +350,9 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
             value={draft}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder={selectedListing ? 'Votre message...' : 'Écrivez à l\'agent...'}
+            placeholder={selectedListing ? t('search.yourMessage') : t('search.writeToAgent')}
             rows={1}
-            className="flex-1 text-[13px] text-gray-900 bg-transparent resize-none outline-none min-h-[36px] max-h-[120px] py-1.5 placeholder:text-gray-400 leading-[1.4]"
+            className="flex-1 text-sm text-gray-900 bg-transparent resize-none outline-none min-h-[36px] max-h-[120px] py-1.5 placeholder:text-gray-400 leading-[1.4]"
           />
           <button
             onClick={handleSend}
@@ -357,10 +360,10 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
             className={cn(
               'h-7 w-7 rounded-full flex items-center justify-center shrink-0 transition-all mb-0.5',
               draft.trim()
-                ? 'bg-accent text-white hover:bg-accent/90 cursor-pointer'
-                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                ? 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active cursor-pointer'
+                : 'bg-gray-100 text-gray-500 cursor-not-allowed'
             )}
-            aria-label="Envoyer"
+            aria-label={t('actions.send')}
           >
             {isSending || creating ? (
               <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -369,8 +372,8 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
             )}
           </button>
         </div>
-        <p className="text-[9px] text-gray-300 text-center mt-1.5">
-          Messagerie sécurisée MEGGA
+        <p className="text-xs text-gray-500 text-center mt-1.5">
+          {t('search.secureMessaging')}
         </p>
       </div>
     </div>

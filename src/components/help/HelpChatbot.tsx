@@ -597,7 +597,7 @@ export default function HelpChatbot() {
   return createPortal(
     <div className="fixed bottom-6 right-6 z-[100]">
       <div
-        className="w-[400px] h-[min(700px,calc(100vh-80px))] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:w-[400px] h-[min(700px,calc(100vh-80px))] bg-theme-card rounded-2xl shadow-2xl flex flex-col overflow-hidden"
         style={{ animation: 'intercom-slide 0.25s ease-out' }}
       >
 
@@ -611,12 +611,12 @@ export default function HelpChatbot() {
                 className="absolute top-5 right-5 h-8 w-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
                 aria-label="Fermer"
               >
-                <X className="h-5 w-5 text-gray-400" />
+                <X className="h-5 w-5 text-gray-500" />
               </button>
               <div className="mb-14">
                 <img src="/megga-gg-icon.svg" alt="MEGGA" className="h-10 w-auto" style={{ filter: 'brightness(0) invert(1)' }} />
               </div>
-              <h2 className="text-[26px] font-bold text-white leading-tight">
+              <h2 className="text-2xl font-bold text-white leading-tight">
                 Bonjour 👋<br />
                 Comment pouvons-nous vous aider ?
               </h2>
@@ -626,11 +626,11 @@ export default function HelpChatbot() {
             <div className="flex-1 overflow-y-auto scrollbar-hide -mt-8 relative z-10">
               {/* Status */}
               <div className="mx-4 mb-3">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4 flex items-center gap-3">
+                <div className="bg-theme-card rounded-xl border border-theme-border px-5 py-4 flex items-center gap-3">
                   <CheckCircle className="h-6 w-6 text-emerald-500 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-emerald-600">Status: Tous les systèmes opérationnels</p>
-                    <p className="text-xs text-gray-400">Mis à jour le {new Date().toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' })}</p>
+                    <p className="text-xs text-theme-muted">Mis à jour le {new Date().toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' })}</p>
                   </div>
                 </div>
               </div>
@@ -639,18 +639,18 @@ export default function HelpChatbot() {
               <div className="mx-4 mb-3">
                 <button
                   onClick={() => { setShowChat(true); setTab('conversations') }}
-                  className="w-full bg-white rounded-xl border border-gray-200 shadow-sm px-5 py-4 flex items-center justify-between hover:shadow-md transition-shadow"
+                  className="w-full bg-theme-card rounded-xl border border-theme-border px-5 py-4 flex items-center justify-between hover:bg-theme-hover transition-colors"
                 >
-                  <span className="text-[15px] font-semibold text-gray-900">Envoyez-nous un message</span>
+                  <span className="text-sm font-semibold text-theme-primary">Envoyez-nous un message</span>
                   <svg className="h-6 w-6 flex-shrink-0" viewBox="0 0 28 28" fill="none"><path d="M3 5.5c0-1.5 1.6-2.4 2.8-1.6L24 14l-18.2 10.1c-1.2.7-2.8-.1-2.8-1.6V16l10-2L3 12V5.5z" fill="#3B9EFF" /></svg>
                 </button>
               </div>
 
               {/* Help sections */}
               <div className="mx-4 mb-4">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100">
-                    <span className="text-[15px] font-semibold text-gray-900">{pageContext ? `Aide — ${pageContext.label}` : 'Trouver une réponse'}</span>
+                <div className="bg-theme-card rounded-xl border border-theme-border overflow-hidden">
+                  <div className="px-5 py-4 flex items-center justify-between border-b border-theme-border-subtle">
+                    <span className="text-sm font-semibold text-theme-primary">{pageContext ? `Aide — ${pageContext.label}` : 'Trouver une réponse'}</span>
                     <Search className="h-5 w-5 text-blue-500" />
                   </div>
                   {contextualSections.map((section, i) => (
@@ -658,11 +658,11 @@ export default function HelpChatbot() {
                       key={section.slug}
                       onClick={() => goToArticle(section.category, section.slug)}
                       className={cn(
-                        "w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-gray-50 transition-colors",
-                        i < HELP_SECTIONS.length - 1 && "border-b border-gray-50"
+                        "w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-theme-hover transition-colors",
+                        i < HELP_SECTIONS.length - 1 && "border-b border-theme-border-subtle"
                       )}
                     >
-                      <span className="text-sm text-gray-600">{section.title}</span>
+                      <span className="text-sm text-theme-secondary">{section.title}</span>
                       <ChevronRight className="h-4 w-4 text-blue-500 flex-shrink-0" />
                     </button>
                   ))}
@@ -678,71 +678,71 @@ export default function HelpChatbot() {
         {(tab === 'conversations' || showChat) && (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Header with stacked avatars */}
-            <div className="bg-white px-4 py-3 flex items-center justify-between flex-shrink-0 border-b border-gray-200">
+            <div className="bg-theme-card px-4 py-3 flex items-center justify-between flex-shrink-0 border-b border-theme-border">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => { setShowChat(false); setTab('home') }}
                   className="h-8 w-8 flex items-center justify-center"
                   aria-label="Retour"
                 >
-                  <ChevronLeft className="h-5 w-5 text-gray-500" />
+                  <ChevronLeft className="h-5 w-5 text-theme-tertiary" />
                 </button>
                 <div className="flex items-center -space-x-2">
                   <img src="/avatar-austin.svg" alt="" className="h-9 w-9 rounded-full border-2 border-white object-cover" />
                   <img src="/avatar-eliza.svg" alt="" className="h-9 w-9 rounded-full border-2 border-white object-cover" />
                   <img src="/avatar-stanley.svg" alt="" className="h-9 w-9 rounded-full border-2 border-white object-cover" />
                 </div>
-                <span className="text-sm font-semibold text-gray-900">MEGGA</span>
+                <span className="text-sm font-semibold text-theme-primary">MEGGA</span>
               </div>
               <button
                 onClick={() => setOpen(false)}
                 className="h-8 w-8 flex items-center justify-center"
                 aria-label="Fermer"
               >
-                <X className="h-5 w-5 text-gray-500" />
+                <X className="h-5 w-5 text-theme-tertiary" />
               </button>
             </div>
 
             {/* Messages area */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-hide bg-white">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-hide bg-theme-card">
 
               {/* ── Consent screen ── */}
               {!accepted && (
                 <div className="space-y-3">
-                  <div className="rounded-2xl border border-gray-200 p-4">
+                  <div className="rounded-2xl border border-theme-border p-4">
                     <div className="flex gap-3">
                       <div className="h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-blue-500 text-[10px] font-bold">i</span>
+                        <span className="text-blue-500 text-xs font-bold">i</span>
                       </div>
-                      <p className="text-sm text-gray-500 leading-relaxed">
+                      <p className="text-sm text-theme-tertiary leading-relaxed">
                         Notre équipe est à votre disposition pour répondre à toutes vos questions. Les réponses peuvent prendre quelques instants. Merci pour votre patience.
                       </p>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200 p-4">
-                    <p className="text-[15px] text-gray-900 leading-relaxed mb-3">
+                  <div className="rounded-2xl border border-theme-border p-4">
+                    <p className="text-sm text-theme-primary leading-relaxed mb-3">
                       Bonjour ! Je suis un assistant alimenté par l'IA pour MEGGA.
                     </p>
-                    <p className="text-[15px] text-gray-600 leading-relaxed mb-3">
+                    <p className="text-sm text-theme-secondary leading-relaxed mb-3">
                       Votre utilisation de ce chatbot et les données de chat seront conservées et utilisées par MEGGA pour vous offrir un meilleur support, conformément à notre <Link to="/privacy" className="underline text-blue-600" onClick={() => setOpen(false)}>politique de confidentialité</Link>.
                     </p>
-                    <p className="text-[15px] text-gray-900 leading-relaxed">
+                    <p className="text-sm text-theme-primary leading-relaxed">
                       Veuillez indiquer si vous acceptez ces conditions d'utilisation.
                     </p>
                   </div>
-                  <p className="text-xs text-gray-400 mb-6">MEGGA AI · À l'instant</p>
+                  <p className="text-xs text-theme-muted mb-6">MEGGA AI · À l'instant</p>
 
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={handleAccept}
-                      className="h-9 px-5 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                      className="h-9 px-5 rounded-full border border-theme-border text-sm font-medium text-theme-secondary hover:border-theme-active hover:bg-theme-hover transition-colors"
                     >
                       Accepter
                     </button>
                     <button
                       onClick={() => { setAccepted(false); setShowChat(false); setTab('home') }}
-                      className="h-9 px-5 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-colors"
+                      className="h-9 px-5 rounded-full border border-theme-border text-sm font-medium text-theme-secondary hover:border-theme-active hover:bg-theme-hover transition-colors"
                     >
                       Refuser
                     </button>
@@ -762,8 +762,8 @@ export default function HelpChatbot() {
                     {/* System message (conversation ID + pills) */}
                     {msg.role === 'system' && (
                       <div className="space-y-3">
-                        <div className="rounded-2xl border border-gray-200 p-4">
-                          <p className="text-[15px] text-gray-900 leading-relaxed whitespace-pre-line">
+                        <div className="rounded-2xl border border-theme-border p-4">
+                          <p className="text-sm text-theme-primary leading-relaxed whitespace-pre-line">
                             {msg.content.split('**').map((part, i) =>
                               i % 2 === 1 ? <strong key={i} className="font-bold">{part}</strong> : part
                             )}
@@ -777,7 +777,7 @@ export default function HelpChatbot() {
                               <button
                                 key={pill}
                                 onClick={() => handleSelectCategory(pill)}
-                                className="px-5 py-2.5 rounded-full bg-white text-gray-700 text-sm font-medium whitespace-nowrap shadow-[0_2px_8px_rgba(0,0,0,0.12),0_1px_3px_rgba(0,0,0,0.06)] hover:bg-blue-500 hover:text-white hover:shadow-[0_4px_16px_rgba(59,130,246,0.35)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] text-right"
+                                className="px-5 py-2.5 rounded-full bg-theme-card text-theme-secondary text-sm font-medium whitespace-nowrap border border-theme-border hover:bg-blue-500 hover:text-white hover:border-blue-500 hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] text-right"
                               >
                                 {pill}
                               </button>
@@ -803,7 +803,7 @@ export default function HelpChatbot() {
                         </div>
                         {isLastInGroup && (
                           <div className="flex items-center gap-1 mt-0.5 px-1 justify-end">
-                            <time className="text-[10px] text-gray-400">{formatTime(msg.timestamp)}</time>
+                            <time className="text-xs text-theme-muted">{formatTime(msg.timestamp)}</time>
                             <CheckCheck className="w-3 h-3 text-accent" />
                           </div>
                         )}
@@ -825,7 +825,7 @@ export default function HelpChatbot() {
 
                           <div className="max-w-[80%]">
                             <div className={cn(
-                              "px-3.5 py-2 text-sm leading-[1.4] whitespace-pre-line bg-gray-100 text-gray-800",
+                              "px-3.5 py-2 text-sm leading-[1.4] whitespace-pre-line bg-theme-hover text-theme-primary",
                               isFirstInGroup && isLastInGroup && "rounded-[20px]",
                               isFirstInGroup && !isLastInGroup && "rounded-[20px] rounded-bl-md",
                               !isFirstInGroup && isLastInGroup && "rounded-[20px] rounded-tl-md",
@@ -841,9 +841,9 @@ export default function HelpChatbot() {
                                   <button
                                     key={a.slug}
                                     onClick={() => goToArticle(a.category, a.slug)}
-                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100 hover:border-blue-200 transition-all text-left"
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-theme-section border border-theme-border-subtle hover:border-blue-200 transition-all text-left"
                                   >
-                                    <span className="flex-1 text-xs text-gray-700">{a.title}</span>
+                                    <span className="flex-1 text-xs text-theme-secondary">{a.title}</span>
                                     <ChevronRight className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                                   </button>
                                 ))}
@@ -853,10 +853,10 @@ export default function HelpChatbot() {
                             {/* Escalate to ticket */}
                             {msg.shouldEscalate && (
                               <div className="mt-2 space-y-2">
-                                <p className="text-xs text-gray-500 ml-1">Souhaitez-vous créer un ticket pour un suivi personnalisé ?</p>
+                                <p className="text-xs text-theme-tertiary ml-1">Souhaitez-vous créer un ticket pour un suivi personnalisé ?</p>
                                 <button
                                   onClick={handleCreateTicket}
-                                  className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent text-white text-xs font-medium hover:bg-accent/90 transition-colors"
+                                  className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-theme-border text-theme-secondary text-xs font-medium hover:text-theme-primary hover:border-theme-active transition-colors"
                                 >
                                   <Send className="h-3.5 w-3.5" />
                                   Créer un ticket · {conversationId}
@@ -867,7 +867,7 @@ export default function HelpChatbot() {
                         </div>
                         {isLastInGroup && (
                           <div className="flex items-center gap-1 mt-0.5 pl-9">
-                            <time className="text-[10px] text-gray-400">{formatTime(msg.timestamp)}</time>
+                            <time className="text-xs text-theme-muted">{formatTime(msg.timestamp)}</time>
                           </div>
                         )}
                       </div>
@@ -882,11 +882,11 @@ export default function HelpChatbot() {
                   <div className="h-7 w-7 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="h-3.5 w-3.5 text-white" />
                   </div>
-                  <div className="bg-gray-100 rounded-[20px] rounded-bl-md px-4 py-2.5">
+                  <div className="bg-theme-hover rounded-[20px] rounded-bl-md px-4 py-2.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-theme-muted animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-theme-muted animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-theme-muted animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
                 </div>
@@ -895,12 +895,12 @@ export default function HelpChatbot() {
 
             {/* Input — Dashboard MEGGA AI style */}
             {accepted && selectedCategory && (
-              <div className="px-3 py-3 bg-white flex-shrink-0 relative" style={{ animation: 'intercom-fade-up 0.3s ease-out' }}>
+              <div className="px-3 py-3 bg-theme-card flex-shrink-0 relative" style={{ animation: 'intercom-fade-up 0.3s ease-out' }}>
 
                 {/* Emoji Picker popup */}
                 {showEmoji && (
-                  <div className="absolute bottom-full left-0 right-0 mb-2 z-50 overflow-hidden rounded-xl border border-gray-200 shadow-lg" style={{ animation: 'intercom-fade-up 0.2s ease-out' }}>
-                    <Suspense fallback={<div className="w-full h-[280px] bg-white flex items-center justify-center text-sm text-gray-400">Chargement...</div>}>
+                  <div className="absolute bottom-full left-0 right-0 mb-2 z-50 overflow-hidden rounded-xl border border-theme-border" style={{ animation: 'intercom-fade-up 0.2s ease-out' }}>
+                    <Suspense fallback={<div className="w-full h-[280px] bg-theme-card flex items-center justify-center text-sm text-theme-muted">Chargement...</div>}>
                       <div style={{ height: '280px' }}>
                         <EmojiPicker data={emojiData} onEmojiSelect={handleEmojiSelect} locale="fr" theme="light" previewPosition="none" skinTonePosition="none" perLine={9} maxFrequentRows={1} />
                       </div>
@@ -910,15 +910,15 @@ export default function HelpChatbot() {
 
                 {/* GIF Picker popup */}
                 {showGif && (
-                  <div className="absolute bottom-full left-2 right-2 mb-2 z-50 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden" style={{ animation: 'intercom-fade-up 0.2s ease-out' }}>
-                    <div className="p-3 border-b border-gray-100">
-                      <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-gray-100">
-                        <Search className="h-3.5 w-3.5 text-gray-400" />
+                  <div className="absolute bottom-full left-2 right-2 mb-2 z-50 bg-theme-card rounded-xl border border-theme-border overflow-hidden" style={{ animation: 'intercom-fade-up 0.2s ease-out' }}>
+                    <div className="p-3 border-b border-theme-border-subtle">
+                      <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-theme-hover">
+                        <Search className="h-3.5 w-3.5 text-theme-muted" />
                         <input
                           value={gifQuery}
                           onChange={e => searchGifs(e.target.value)}
                           placeholder="Rechercher un GIF..."
-                          className="flex-1 text-sm bg-transparent outline-none text-gray-900 placeholder:text-gray-400"
+                          className="flex-1 text-sm bg-transparent outline-none text-theme-primary placeholder:text-theme-muted"
                           autoFocus
                         />
                       </div>
@@ -934,8 +934,8 @@ export default function HelpChatbot() {
                         </button>
                       ))}
                     </div>
-                    <div className="px-3 py-2 border-t border-gray-100 flex justify-end">
-                      <button onClick={() => setShowGif(false)} className="text-xs text-gray-400 hover:text-gray-600">Fermer</button>
+                    <div className="px-3 py-2 border-t border-theme-border-subtle flex justify-end">
+                      <button onClick={() => setShowGif(false)} className="text-xs text-theme-muted hover:text-theme-secondary">Fermer</button>
                     </div>
                   </div>
                 )}
@@ -947,16 +947,16 @@ export default function HelpChatbot() {
                 {isRecording ? (
                   <>
                   <div
-                    className="rounded-2xl border border-gray-200 bg-white px-2 py-2 flex items-center gap-2"
+                    className="rounded-2xl border border-theme-border bg-theme-card px-2 py-2 flex items-center gap-2"
                     style={{ animation: 'recording-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                   >
                     {/* Cancel button */}
                     <button
                       onClick={cancelRecording}
-                      className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all flex-shrink-0"
+                      className="h-10 w-10 rounded-full bg-theme-hover flex items-center justify-center hover:bg-theme-active active:scale-95 transition-all flex-shrink-0"
                       aria-label="Annuler"
                     >
-                      <X className="h-5 w-5 text-gray-600" />
+                      <X className="h-5 w-5 text-theme-secondary" />
                     </button>
 
                     {/* Real-time waveform — Web Audio API driven */}
@@ -975,7 +975,7 @@ export default function HelpChatbot() {
                     </div>
 
                     {/* Timer */}
-                    <span className="text-xs text-gray-400 tabular-nums flex-shrink-0 w-10 text-right">
+                    <span className="text-xs text-theme-muted tabular-nums flex-shrink-0 w-10 text-right">
                       {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
                     </span>
 
@@ -991,7 +991,7 @@ export default function HelpChatbot() {
                   </>
                 ) : (
                   /* ═══ Normal input mode ═══ */
-                  <div className="rounded-2xl border border-gray-200 bg-white p-2 focus-within:border-accent/60 transition-colors">
+                  <div className="rounded-2xl border border-theme-border bg-theme-card p-2 focus-within:border-accent/60 transition-colors">
                     {/* Textarea */}
                     <textarea
                       ref={inputRef}
@@ -1000,7 +1000,7 @@ export default function HelpChatbot() {
                       onKeyDown={handleKeyDown}
                       placeholder="Écrivez votre message..."
                       rows={1}
-                      className="w-full bg-transparent px-2 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none min-h-[36px] max-h-[120px] scrollbar-hide"
+                      className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none resize-none min-h-[36px] max-h-[120px] scrollbar-hide"
                     />
 
                     {/* Actions bar */}
@@ -1010,21 +1010,21 @@ export default function HelpChatbot() {
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           aria-label="Joindre un fichier"
-                          className="h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                          className="h-7 w-7 rounded-full flex items-center justify-center text-theme-muted hover:text-theme-secondary hover:bg-theme-hover transition-colors"
                         >
                           <Paperclip className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => { setShowEmoji(!showEmoji); setShowGif(false) }}
                           aria-label="Emoji"
-                          className={cn("h-7 w-7 rounded-full flex items-center justify-center transition-colors", showEmoji ? "text-accent bg-accent/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}
+                          className={cn("h-7 w-7 rounded-full flex items-center justify-center transition-colors", showEmoji ? "text-accent bg-accent/10" : "text-theme-muted hover:text-theme-secondary hover:bg-theme-hover")}
                         >
                           <Smile className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => { setShowGif(!showGif); setShowEmoji(false) }}
                           aria-label="GIF"
-                          className={cn("h-7 px-1.5 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors", showGif ? "text-accent bg-accent/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}
+                          className={cn("h-7 px-1.5 rounded-full flex items-center justify-center text-xs font-bold transition-colors", showGif ? "text-accent bg-accent/10" : "text-theme-muted hover:text-theme-secondary hover:bg-theme-hover")}
                         >
                           GIF
                         </button>
@@ -1035,7 +1035,7 @@ export default function HelpChatbot() {
                         <button
                           onClick={startRecording}
                           aria-label="Mémo vocal"
-                          className="h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                          className="h-7 w-7 rounded-full flex items-center justify-center text-theme-muted hover:text-theme-secondary hover:bg-theme-hover transition-colors"
                         >
                           <Mic className="h-4 w-4" />
                         </button>
@@ -1045,7 +1045,7 @@ export default function HelpChatbot() {
                           aria-label="Envoyer"
                           className={cn(
                             'h-7 w-7 rounded-full flex items-center justify-center transition-colors',
-                            input.trim() ? 'bg-gray-900 text-white' : 'text-gray-400'
+                            input.trim() ? 'bg-gray-900 text-white' : 'text-theme-muted'
                           )}
                         >
                           <ArrowUp className="h-3.5 w-3.5" />
@@ -1072,22 +1072,22 @@ export default function HelpChatbot() {
             <div className="bg-gray-900 px-5 py-4 flex items-center justify-between flex-shrink-0">
               <p className="text-base font-semibold text-white">Aide</p>
               <button onClick={() => setOpen(false)} className="h-8 w-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors" aria-label="Fermer">
-                <X className="h-5 w-5 text-gray-400" />
+                <X className="h-5 w-5 text-gray-500" />
               </button>
             </div>
 
             <div className="px-4 pt-4 pb-2 flex-shrink-0">
-              <div className="flex items-center gap-2 h-11 px-4 rounded-xl bg-gray-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 border border-transparent focus-within:border-blue-300 transition-all">
-                <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 h-11 px-4 rounded-xl bg-theme-hover focus-within:bg-theme-card focus-within:ring-2 focus-within:ring-blue-100 border border-transparent focus-within:border-blue-300 transition-all">
+                <Search className="h-4 w-4 text-theme-muted flex-shrink-0" />
                 <input
                   ref={searchInputRef}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Rechercher dans l'aide..."
-                  className="flex-1 text-sm bg-transparent outline-none text-gray-900 placeholder:text-gray-400"
+                  className="flex-1 text-sm bg-transparent outline-none text-theme-primary placeholder:text-theme-muted"
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="p-0.5"><X className="h-3.5 w-3.5 text-gray-400" /></button>
+                  <button onClick={() => setSearchQuery('')} className="p-0.5"><X className="h-3.5 w-3.5 text-theme-muted" /></button>
                 )}
               </div>
             </div>
@@ -1098,29 +1098,29 @@ export default function HelpChatbot() {
                   <div className="space-y-1 mt-2">
                     {searchResults.map(article => (
                       <button key={article.slug} onClick={() => goToArticle(article.category, article.slug)}
-                        className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors text-left">
+                        className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-theme-hover transition-colors text-left">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{article.title}</p>
-                          <p className="text-xs text-gray-500 truncate">{article.description}</p>
+                          <p className="text-sm font-medium text-theme-primary">{article.title}</p>
+                          <p className="text-xs text-theme-tertiary truncate">{article.description}</p>
                         </div>
                         <ChevronRight className="h-4 w-4 text-blue-500 flex-shrink-0 ml-2" />
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-10">Aucun résultat pour « {searchQuery} »</p>
+                  <p className="text-sm text-theme-muted text-center py-10">Aucun résultat pour « {searchQuery} »</p>
                 )
               ) : (
                 <div className="mt-2">
                   {contextualSections.map((section, i) => (
                     <button key={section.slug} onClick={() => goToArticle(section.category, section.slug)}
-                      className={cn("w-full flex items-center justify-between py-3.5 text-left", i < HELP_SECTIONS.length - 1 && "border-b border-gray-100")}>
-                      <span className="text-sm text-gray-700">{section.title}</span>
+                      className={cn("w-full flex items-center justify-between py-3.5 text-left", i < HELP_SECTIONS.length - 1 && "border-b border-theme-border-subtle")}>
+                      <span className="text-sm text-theme-secondary">{section.title}</span>
                       <ChevronRight className="h-4 w-4 text-blue-500 flex-shrink-0" />
                     </button>
                   ))}
                   <Link to="/aide/ressources" onClick={() => setOpen(false)}
-                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-300 transition-colors">
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-theme-border text-sm font-medium text-theme-secondary hover:border-theme-active transition-colors">
                     Voir tous les articles <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
@@ -1163,18 +1163,18 @@ export default function HelpChatbot() {
 
 function BottomTabs({ tab, setTab, setShowChat }: { tab: Tab; setTab: (t: Tab) => void; setShowChat: (v: boolean) => void }) {
   return (
-    <div className="flex items-center border-t border-gray-200 bg-white flex-shrink-0">
+    <div className="flex items-center border-t border-theme-border bg-theme-card flex-shrink-0">
       <button onClick={() => { setTab('home'); setShowChat(false) }}
-        className={cn("flex-1 flex flex-col items-center gap-1 py-3 transition-colors", tab === 'home' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')}>
-        <Home className="h-5 w-5" /><span className="text-[11px] font-medium">Accueil</span>
+        className={cn("flex-1 flex flex-col items-center gap-1 py-3 transition-colors", tab === 'home' ? 'text-blue-500' : 'text-theme-muted hover:text-theme-secondary')}>
+        <Home className="h-5 w-5" /><span className="text-xs font-medium">Accueil</span>
       </button>
       <button onClick={() => { setTab('conversations'); setShowChat(true) }}
-        className={cn("flex-1 flex flex-col items-center gap-1 py-3 transition-colors", tab === 'conversations' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')}>
-        <MessageSquare className="h-5 w-5" /><span className="text-[11px] font-medium">Conversations</span>
+        className={cn("flex-1 flex flex-col items-center gap-1 py-3 transition-colors", tab === 'conversations' ? 'text-blue-500' : 'text-theme-muted hover:text-theme-secondary')}>
+        <MessageSquare className="h-5 w-5" /><span className="text-xs font-medium">Conversations</span>
       </button>
       <button onClick={() => { setTab('help'); setShowChat(false) }}
-        className={cn("flex-1 flex flex-col items-center gap-1 py-3 transition-colors", tab === 'help' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')}>
-        <HelpCircle className="h-5 w-5" /><span className="text-[11px] font-medium">Aide</span>
+        className={cn("flex-1 flex flex-col items-center gap-1 py-3 transition-colors", tab === 'help' ? 'text-blue-500' : 'text-theme-muted hover:text-theme-secondary')}>
+        <HelpCircle className="h-5 w-5" /><span className="text-xs font-medium">Aide</span>
       </button>
     </div>
   )

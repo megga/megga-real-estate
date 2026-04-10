@@ -12,34 +12,14 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import EstimationForm from '@/components/estimation/EstimationForm'
 
-const HOW_IT_WORKS = [
-  {
-    icon: Database,
-    title: 'Données du marché',
-    description: 'Analyse des prix de vente réels dans votre commune et votre quartier.',
-  },
-  {
-    icon: BarChart3,
-    title: "47'000+ transactions",
-    description: 'Base de données alimentée par le Swiss Real Estate Datapool et les registres fonciers.',
-  },
-  {
-    icon: Brain,
-    title: 'IA prédictive',
-    description: "Algorithme entraîné sur les spécificités du marché immobilier suisse — canton par canton.",
-  },
-  {
-    icon: RefreshCw,
-    title: 'Mise à jour trimestrielle',
-    description: 'Données recalibrées chaque trimestre pour refléter les tendances actuelles du marché.',
-  },
-]
+const HOW_IT_WORKS_ICONS = [Database, BarChart3, Brain, RefreshCw]
 
 const PRICE_DATA = [
   { canton: 'Genève', apt: "13'200", house: "13'100", trend: '+3.1%' },
@@ -54,36 +34,7 @@ const PRICE_DATA = [
   { canton: 'Tessin', apt: "6'800", house: "6'300", trend: '+1.2%' },
 ]
 
-const FAQ_ITEMS = [
-  {
-    q: "Comment est calculée l'estimation ?",
-    a: "Notre algorithme analyse les transactions récentes dans votre commune (jusqu'à 47'000 ventes), la surface habitable, le nombre de pièces, l'année de construction, l'état du bien et 50 critères liés à l'emplacement (transports, écoles, commerces, qualité de l'air) pour générer une fourchette de prix.",
-  },
-  {
-    q: "Quelle est la fiabilité de l'estimation ?",
-    a: "L'estimation en ligne fournit une fourchette indicative fiable pour les biens standards. Pour les biens atypiques (propriété de luxe, bien historique, terrain constructible), nous recommandons une évaluation sur place par un agent certifié pour affiner le résultat.",
-  },
-  {
-    q: "L'estimation est-elle vraiment gratuite ?",
-    a: "Oui, 100% gratuite et sans engagement. Vous n'avez aucune obligation de vendre ou de contacter un agent après avoir reçu votre estimation.",
-  },
-  {
-    q: 'Quels types de biens puis-je estimer ?',
-    a: 'Appartements, maisons, villas, terrains constructibles et locaux commerciaux dans toute la Suisse (26 cantons).',
-  },
-  {
-    q: 'Comment obtenir une estimation plus précise ?',
-    a: "Après l'estimation en ligne, vous pouvez demander une évaluation gratuite sur place par un agent MEGGA certifié. L'agent inspectera le bien, analysera les comparables du quartier et établira un dossier complet d'analyse de marché.",
-  },
-  {
-    q: 'À quelle fréquence les données sont-elles mises à jour ?',
-    a: 'Nos modèles sont recalibrés chaque trimestre à partir des dernières transactions enregistrées et des annonces en cours sur le marché suisse.',
-  },
-  {
-    q: 'Puis-je estimer un bien pour un achat ?',
-    a: "Absolument. L'outil est utilisé aussi bien par les vendeurs qui souhaitent connaître la valeur de leur bien que par les acheteurs qui veulent vérifier si le prix demandé correspond à la réalité du marché.",
-  },
-]
+const FAQ_COUNT = 7
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
@@ -96,7 +47,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       >
         <span className="text-base font-medium text-primary pr-4">{q}</span>
         <ChevronDown
-          className={cn('w-5 h-5 text-gray-400 flex-shrink-0 transition-transform', open && 'rotate-180')}
+          className={cn('w-5 h-5 text-gray-500 flex-shrink-0 transition-transform', open && 'rotate-180')}
         />
       </button>
       <div
@@ -112,6 +63,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function EstimationsPage() {
+  const { t } = useTranslation('common')
   usePageMeta({
     title: 'Estimation immobilière gratuite en Suisse',
     description:
@@ -134,27 +86,26 @@ export default function EstimationsPage() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 text-center">
           <span className="bg-accent/10 text-accent text-xs font-medium px-3 py-1 rounded-full inline-flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            Propulsé par l'IA
+            {t('estimations.hero.badge')}
           </span>
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary mt-4">
-            Combien vaut votre bien immobilier ?
+            {t('estimations.hero.title')}
           </h1>
           <p className="text-gray-500 text-lg max-w-2xl mx-auto mt-4">
-            Obtenez une estimation précise en 2 minutes, basée sur l'analyse IA de milliers de transactions
-            immobilières suisses.
+            {t('estimations.hero.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mt-8">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Database className="w-5 h-5 text-accent" />
-              47'000+ transactions analysées
+              {t('estimations.hero.transactions')}
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Shield className="w-5 h-5 text-success" />
-              Gratuit et sans engagement
+              {t('estimations.hero.free')}
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Clock className="w-5 h-5 text-accent" />
-              Résultat en 2 minutes
+              {t('estimations.hero.result')}
             </div>
           </div>
         </div>
@@ -169,21 +120,18 @@ export default function EstimationsPage() {
       <section className="bg-white py-16 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-2xl font-semibold text-center text-primary">
-            Comment fonctionne notre estimation ?
+            {t('estimations.howItWorks.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
-            {HOW_IT_WORKS.map((item) => {
-              const Icon = item.icon
-              return (
-                <div key={item.title} className="bg-gray-50 rounded-xl p-6 text-center">
+            {HOW_IT_WORKS_ICONS.map((Icon, i) => (
+                <div key={i} className="bg-gray-50 rounded-xl p-6 text-center">
                   <div className="bg-accent/10 rounded-full p-3 mx-auto mb-4 w-fit">
                     <Icon className="w-6 h-6 text-accent" />
                   </div>
-                  <h3 className="text-base font-semibold text-primary mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-500">{item.description}</p>
+                  <h3 className="text-base font-semibold text-primary mb-2">{t(`estimations.howItWorks.${i}.title`)}</h3>
+                  <p className="text-sm text-gray-500">{t(`estimations.howItWorks.${i}.description`)}</p>
                 </div>
-              )
-            })}
+              ))}
           </div>
         </div>
       </section>
@@ -191,25 +139,25 @@ export default function EstimationsPage() {
       {/* Section 4 — Prix au m² par canton */}
       <section className="bg-gray-50 py-16 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-semibold text-center text-primary">Prix moyens au m² en Suisse</h2>
-          <p className="text-gray-400 text-sm text-center mt-1">Données actualisées — Mars 2026</p>
+          <h2 className="text-2xl font-semibold text-center text-primary">{t('estimations.priceTable.title')}</h2>
+          <p className="text-gray-500 text-sm text-center mt-1">{t('estimations.priceTable.updated')}</p>
 
           <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden mt-8">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
-                      Canton
+                    <th className="text-left px-4 py-3 text-xs font-semibold capitalize text-gray-600">
+                      {t('estimations.priceTable.canton')}
                     </th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
-                      Appartement (CHF/m²)
+                    <th className="text-right px-4 py-3 text-xs font-semibold capitalize text-gray-600">
+                      {t('estimations.priceTable.apartment')}
                     </th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
-                      Maison (CHF/m²)
+                    <th className="text-right px-4 py-3 text-xs font-semibold capitalize text-gray-600">
+                      {t('estimations.priceTable.house')}
                     </th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold uppercase text-gray-600 tracking-wider">
-                      Tendance 12 mois
+                    <th className="text-right px-4 py-3 text-xs font-semibold capitalize text-gray-600">
+                      {t('estimations.priceTable.trend')}
                     </th>
                   </tr>
                 </thead>
@@ -245,7 +193,7 @@ export default function EstimationsPage() {
           </div>
           <p className="text-center mt-4">
             <button className="text-accent text-sm font-medium hover:underline">
-              Voir tous les cantons &rarr;
+              {t('estimations.priceTable.seeAll')} &rarr;
             </button>
           </p>
         </div>
@@ -254,10 +202,10 @@ export default function EstimationsPage() {
       {/* Section 5 — FAQ */}
       <section className="bg-white py-16 px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-semibold text-center text-primary">Questions fréquentes</h2>
+          <h2 className="text-2xl font-semibold text-center text-primary">{t('estimations.faq.title')}</h2>
           <div className="max-w-3xl mx-auto mt-10">
-            {FAQ_ITEMS.map((item) => (
-              <FaqItem key={item.q} q={item.q} a={item.a} />
+            {Array.from({ length: FAQ_COUNT }).map((_, i) => (
+              <FaqItem key={i} q={t(`estimations.faq.${i}.q`)} a={t(`estimations.faq.${i}.a`)} />
             ))}
           </div>
         </div>
@@ -267,18 +215,18 @@ export default function EstimationsPage() {
       <section className="px-4 lg:px-8 mb-16">
         <div className="bg-primary text-white py-16 rounded-3xl max-w-7xl mx-auto">
           <div className="text-center px-4">
-            <h2 className="text-2xl md:text-3xl font-bold">Prêt à connaître la valeur de votre bien ?</h2>
+            <h2 className="text-2xl md:text-3xl font-bold">{t('estimations.cta.title')}</h2>
             <p className="text-white/70 mt-2">
-              Estimation gratuite, résultat instantané, données suisses actualisées.
+              {t('estimations.cta.subtitle')}
             </p>
             <Button
               onClick={scrollToForm}
               variant="secondary"
               className="mt-6 rounded-full px-8 h-12 font-medium bg-white text-primary hover:bg-gray-100"
             >
-              Estimer maintenant <ArrowRight className="w-4 h-4 ml-1" />
+              {t('estimations.cta.button')} <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
-            <p className="text-white/40 text-xs mt-3">Gratuit · Sans engagement · 2 minutes</p>
+            <p className="text-white/40 text-xs mt-3">{t('estimations.cta.footer')}</p>
           </div>
         </div>
       </section>

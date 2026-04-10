@@ -143,7 +143,7 @@ export default function MonDossierPage() {
           <img src={property.photo} alt={property.title} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5">
-            <p className="text-white/60 text-[10px] font-medium uppercase tracking-wider mb-1">
+            <p className="text-white/60 text-xs font-medium capitalize mb-1">
               {property.mandate_type === 'exclusive' ? 'Mandat exclusif' : 'Mandat simple'}
             </p>
             <h1 className="text-xl md:text-2xl font-semibold text-white">{property.title}</h1>
@@ -161,7 +161,7 @@ export default function MonDossierPage() {
       {/* Notifications — what's new */}
       {notifications.length > 0 && (
         <div className="rounded-xl border border-theme-border p-5">
-          <h2 className="text-[10px] text-theme-muted uppercase tracking-wider mb-3">Nouveautés</h2>
+          <h2 className="text-xs text-theme-muted capitalize mb-3">Nouveautés</h2>
           <div className="space-y-0">
             {notifications.map((notif, i) => (
               <div key={notif.id} className={cn('flex items-center gap-3 py-2.5', i < notifications.length - 1 && 'border-b border-theme-border-subtle')}>
@@ -186,7 +186,7 @@ export default function MonDossierPage() {
 
       {/* Next action — what the seller should do */}
       <div className="rounded-xl border border-theme-border p-4">
-        <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-2">Prochaine action recommandée</p>
+        <p className="text-xs text-theme-muted capitalize mb-2">Prochaine action recommandée</p>
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm font-medium text-theme-primary">{nextAction.label}</p>
@@ -211,7 +211,7 @@ export default function MonDossierPage() {
           { label: 'Jours en vente', value: String(kpis.days_on_market), sub: 'depuis publication' },
         ].map((kpi) => (
           <div key={kpi.label} className="rounded-xl border border-theme-border p-4">
-            <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-2">{kpi.label}</p>
+            <p className="text-xs text-theme-muted capitalize mb-2">{kpi.label}</p>
             <p className="text-2xl font-semibold text-theme-primary">{kpi.value}</p>
             <p className="text-xs text-theme-muted mt-0.5">{kpi.sub}</p>
           </div>
@@ -221,8 +221,8 @@ export default function MonDossierPage() {
       {/* Mandate progress with tooltips */}
       <div className="rounded-xl border border-theme-border p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[10px] text-theme-muted uppercase tracking-wider">Avancement de la vente</h2>
-          <div className="flex items-center gap-1 text-[10px] text-theme-muted">
+          <h2 className="text-xs text-theme-muted capitalize">Avancement de la vente</h2>
+          <div className="flex items-center gap-1 text-xs text-theme-muted">
             <HelpCircle className="w-3 h-3" />
             <span>Survolez une étape</span>
           </div>
@@ -240,14 +240,14 @@ export default function MonDossierPage() {
               >
                 <div className={cn('h-1.5 w-full rounded-full transition-colors', isCompleted ? 'bg-theme-primary' : 'bg-theme-border')} />
                 <p className={cn(
-                  'text-[10px] mt-2 text-center leading-tight',
+                  'text-xs mt-2 text-center leading-tight',
                   isCurrent ? 'text-theme-primary font-semibold' : isCompleted ? 'text-theme-secondary' : 'text-theme-muted'
                 )}>
                   {step.label}
                 </p>
                 {/* Tooltip */}
                 {hoveredStep === step.key && STEP_HELP[step.key] && (
-                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-30 w-56 bg-theme-primary text-theme-inverse text-[11px] leading-relaxed px-3 py-2 rounded-lg pointer-events-none animate-in fade-in-0 duration-100">
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-30 w-56 bg-theme-primary text-theme-inverse text-xs leading-relaxed px-3 py-2 rounded-lg pointer-events-none animate-in fade-in-0 duration-100">
                     {STEP_HELP[step.key]}
                   </div>
                 )}
@@ -265,14 +265,14 @@ export default function MonDossierPage() {
       {/* Recent activity with filters */}
       <div className="rounded-xl border border-theme-border p-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[10px] text-theme-muted uppercase tracking-wider">Activité récente</h2>
+          <h2 className="text-xs text-theme-muted capitalize">Activité récente</h2>
           <div className="flex items-center gap-1">
             {ACTIVITY_FILTERS.map(f => (
               <button
                 key={f.key}
                 onClick={() => { setActivityFilter(f.key); setShowAllActivity(false) }}
                 className={cn(
-                  'h-6 px-2 rounded text-[10px] transition-colors',
+                  'h-6 px-2 rounded text-xs transition-colors',
                   FOCUS_RING,
                   activityFilter === f.key
                     ? 'bg-theme-active text-theme-primary font-medium'

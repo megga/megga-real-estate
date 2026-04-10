@@ -50,7 +50,7 @@ export default function ListingSimilarCarousel({ listings }: ListingSimilarCarou
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Building2 className="h-10 w-10 text-gray-300" />
+                      <Building2 className="h-10 w-10 text-gray-500" />
                     </div>
                   )}
                 </div>
@@ -62,7 +62,7 @@ export default function ListingSimilarCarousel({ listings }: ListingSimilarCarou
                   <p className="text-sm text-gray-500 mt-0.5 truncate">{sl.address}, {sl.city}</p>
                   <div className="flex items-center gap-2 text-sm text-gray-500 mt-1.5">
                     {sl.rooms > 0 && <span>{sl.rooms} pièces</span>}
-                    {sl.rooms > 0 && sl.surface_m2 > 0 && <span className="text-gray-300">·</span>}
+                    {sl.rooms > 0 && sl.surface_m2 > 0 && <span className="text-gray-500">·</span>}
                     {sl.surface_m2 > 0 && <span>{formatSurface(sl.surface_m2)}</span>}
                   </div>
                 </div>

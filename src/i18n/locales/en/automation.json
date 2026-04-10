@@ -1,1 +1,97 @@
-{}
+{
+  "title": "Automation",
+  "rulesActive": "{{count}} active rule",
+  "rulesActive_plural": "{{count}} active rules",
+  "remindersActive": "{{count}} reminder in progress",
+  "remindersActive_plural": "{{count}} reminders in progress",
+  "newRule": "New rule",
+  "tabs": {
+    "reminders": "Reminders",
+    "rules": "Rules",
+    "templates": "Templates"
+  },
+  "toProcess": "To process",
+  "pending": "Pending",
+  "noReminders": "No pending reminders",
+  "noRemindersDesc": "Set up automation rules to never forget to follow up with your clients.",
+  "bannerInfo": "Reminders create alerts by default. Automatic sending requires explicit activation per rule.",
+  "newTemplate": "New template",
+  "rule": {
+    "title": "New rule",
+    "name": "Rule name",
+    "namePlaceholder": "E.g.: Follow-up D+3 after sending",
+    "trigger": "Trigger",
+    "action": "Action",
+    "delay": "Delay (days)",
+    "template": "Template",
+    "templateOptional": "optional",
+    "none": "None",
+    "cancel": "Cancel",
+    "create": "Create rule",
+    "generated": "{{count}} generated",
+    "inProgress": "{{count}} in progress",
+    "lastTriggered": "Last: {{date}}",
+    "day": "{{count}} day",
+    "day_plural": "{{count}} days",
+    "autoSend": "Automatic sending",
+    "autoSendDesc": "If enabled, the message will be sent without agent validation",
+    "triggerLabel": "Trigger",
+    "actionLabel": "Action",
+    "delayLabel": "Delay",
+    "templateLabel": "Template",
+    "duplicate": "Duplicate",
+    "delete": "Delete"
+  },
+  "triggers": {
+    "property_sent": "When a property is sent to a client",
+    "visit_completed": "When a visit is completed",
+    "lead_inactive": "When a lead is inactive",
+    "document_missing": "When a KYC document is missing",
+    "new_match": "When a new match is found"
+  },
+  "triggerShort": {
+    "property_sent": "Property sent",
+    "visit_completed": "Visit completed",
+    "lead_inactive": "Lead inactive",
+    "document_missing": "Missing doc",
+    "new_match": "New match"
+  },
+  "actions": {
+    "create_reminder": "Create agent reminder",
+    "send_email": "Send email to client",
+    "notify_agent": "Agent notification",
+    "create_task": "Create task"
+  },
+  "actionShort": {
+    "create_reminder": "Agent reminder",
+    "send_email": "Client email",
+    "notify_agent": "Notification",
+    "create_task": "Task"
+  },
+  "templateModal": {
+    "new": "New template",
+    "edit": "Edit template",
+    "name": "Name",
+    "namePlaceholder": "E.g.: Follow-up after property send",
+    "category": "Category",
+    "channel": "Channel",
+    "channelEmail": "Email",
+    "channelNotification": "Notification",
+    "subject": "Email subject",
+    "subjectPlaceholder": "E.g.: Following our property selection",
+    "body": "Message body",
+    "bodyPlaceholder": "Hello {{contact.first_name}},\n\n...",
+    "variables": "Variables",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create template"
+  },
+  "categories": {
+    "follow_up": "Follow-up",
+    "post_visit": "Post-visit",
+    "property_presentation": "Property presentation",
+    "seller_update": "Seller update",
+    "visit_confirmation": "Visit confirmation",
+    "objection_response": "Objection response"
+  }
+}

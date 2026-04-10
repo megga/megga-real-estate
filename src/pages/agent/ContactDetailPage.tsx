@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Mail, Zap,
   MessageSquare, Home, FileText, Shield, Star, Clock, ArrowRight,
@@ -29,14 +30,9 @@ const scoreConfig: Record<string, { label: string; dot: string; text: string }> 
   cold: { label: 'Cold', dot: 'bg-blue-400',   text: 'text-blue-400' },
 }
 
-const typeConfig: Record<string, { label: string }> = {
-  buyer:    { label: 'Acheteur' },
-  seller:   { label: 'Vendeur' },
-  investor: { label: 'Investisseur' },
-  tenant:   { label: 'Locataire' },
-  landlord: { label: 'Bailleur' },
-  both:     { label: 'Acheteur/Vendeur' },
-  lead:     { label: 'Lead' },
+const typeKeys: Record<string, string> = {
+  buyer: 'type.buyer', seller: 'type.seller', investor: 'type.investor',
+  tenant: 'type.tenant', landlord: 'type.landlord', both: 'type.both', lead: 'type.lead',
 }
 
 // ── Timeline event config ─────────────────────────────────────────────────
@@ -52,33 +48,34 @@ function timelineIcon(action: string) {
   return <Clock className="h-3 w-3" />
 }
 
-function timelineLabel(event: TimelineEvent): string {
+function timelineLabel(event: TimelineEvent, t: (key: string, opts?: Record<string, string>) => string): string {
   const meta = event.metadata || {}
+  const suffix = (detail?: string) => detail ? ` — ${detail}` : ''
   switch (event.action) {
     case 'stage_change':
-      return `Pipeline : ${String(meta.from_stage ?? '')} → ${TRANSACTION_STAGE_LABELS[String(meta.to_stage ?? '') as TransactionStage] ?? meta.to_stage}`
+      return t('timeline.stageChange', { from: String(meta.from_stage ?? ''), to: TRANSACTION_STAGE_LABELS[String(meta.to_stage ?? '') as TransactionStage] ?? String(meta.to_stage ?? '') })
     case 'email_sent':
-      return `Email envoyé${meta.subject ? ` — ${meta.subject}` : ''}`
+      return t('timeline.emailSent') + suffix(meta.subject as string)
     case 'visit_planned':
-      return `Visite planifiée${meta.property_title ? ` — ${meta.property_title}` : ''}`
+      return t('timeline.visitPlanned') + suffix(meta.property_title as string)
     case 'visit_done':
-      return `Visite effectuée${meta.property_title ? ` — ${meta.property_title}` : ''}`
+      return t('timeline.visitDone') + suffix(meta.property_title as string)
     case 'property_sent':
-      return `Bien envoyé${meta.property_title ? ` — ${meta.property_title}` : ''}`
+      return t('timeline.propertySent') + suffix(meta.property_title as string)
     case 'note_added':
-      return `Note ajoutée`
+      return t('timeline.noteAdded')
     case 'document_uploaded':
-      return `Document uploadé${meta.document_name ? ` — ${meta.document_name}` : ''}`
+      return t('timeline.documentUploaded') + suffix(meta.document_name as string)
     case 'kyc_created':
-      return `Dossier KYC créé`
+      return t('timeline.kycCreated')
     case 'seller_lead_created':
-      return `Lead vendeur créé`
+      return t('timeline.sellerLeadCreated')
     case 'contact_created':
-      return `Contact créé`
+      return t('timeline.contactCreated')
     case 'affordability_check':
-      return `Vérification accessibilité`
+      return t('timeline.affordabilityCheck')
     case 'match_sent':
-      return `Matching envoyé${meta.property_title ? ` — ${meta.property_title}` : ''}`
+      return t('timeline.matchSent') + suffix(meta.property_title as string)
     default:
       return event.action.replace(/_/g, ' ')
   }
@@ -144,7 +141,7 @@ function useAiSummary(contact: Contact | undefined) {
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const defaultSummary = contact
-    ? `${contact.first_name} ${contact.last_name} — ${typeConfig[contact.type]?.label ?? contact.type}. Contact créé le ${formatDate(contact.created_at)}.${contact.last_interaction_at ? ` Dernière interaction ${formatRelativeDate(contact.last_interaction_at)}.` : ''}`
+    ? `${contact.first_name} ${contact.last_name} — ${contact.type}. Contact créé le ${formatDate(contact.created_at)}.${contact.last_interaction_at ? ` Dernière interaction ${formatRelativeDate(contact.last_interaction_at)}.` : ''}`
     : null
 
   const refresh = useCallback(async () => {
@@ -196,6 +193,7 @@ function useAiSummary(contact: Contact | undefined) {
 export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { t } = useTranslation('contacts')
   const { setActiveContact } = useCopilotContext()
   const [showEdit, setShowEdit] = useState(false)
   const [matchingTab, setMatchingTab] = useState<'internal' | 'external'>('internal')
@@ -245,14 +243,14 @@ export default function ContactDetailPage() {
 
     if (contact.type === 'buyer' || contact.type === 'both') {
       if (daysSinceContact != null && daysSinceContact > 14) {
-        return { title: 'Relancer', description: `Aucune interaction depuis ${daysSinceContact} jours.`, actionLabel: 'Appeler', score: undefined }
+        return { title: t('detail.followUp'), description: t('detail.noInteractionDays', { days: daysSinceContact }), actionLabel: t('detail.call'), score: undefined }
       }
-      return { title: 'Envoyer une sélection de biens', description: 'Proposer des biens correspondant aux critères de recherche.', actionLabel: 'Voir les matchs', score: undefined }
+      return { title: t('detail.sendSelection'), description: t('detail.sendSelectionDesc'), actionLabel: t('detail.seeMatches'), score: undefined }
     }
     if (contact.type === 'seller') {
-      return { title: 'Faire un point vendeur', description: 'Mettre à jour le vendeur sur l\'activité récente.', actionLabel: 'Appeler', score: undefined }
+      return { title: t('detail.sellerUpdate'), description: t('detail.sellerUpdateDesc'), actionLabel: t('detail.call'), score: undefined }
     }
-    return { title: 'Qualifier le contact', description: 'Premier contact pour qualifier le besoin.', actionLabel: 'Appeler', score: undefined }
+    return { title: t('detail.qualify'), description: t('detail.qualifyDesc'), actionLabel: t('detail.call'), score: undefined }
   }, [contact])
 
   // Set copilot context
@@ -289,22 +287,22 @@ export default function ContactDetailPage() {
   if (isError || !contact) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
-        <p className="text-lg font-medium text-theme-secondary mb-1">Contact introuvable</p>
-        <p className="text-sm text-theme-muted mb-4">Ce contact n'existe pas ou a été supprimé.</p>
+        <p className="text-lg font-medium text-theme-secondary mb-1">{t('detail.notFound')}</p>
+        <p className="text-sm text-theme-muted mb-4">{t('detail.notFoundDesc')}</p>
         <Link to="/dashboard/contacts" className="text-sm text-accent hover:text-accent/80 font-medium">
-          ← Retour aux contacts
+          ← {t('detail.backToContacts')}
         </Link>
       </div>
     )
   }
 
   const sc = scoreConfig[contact.score ?? 'cold'] ?? scoreConfig.cold
-  const tc = typeConfig[contact.type] ?? { label: contact.type }
+  const tcLabel = typeKeys[contact.type] ? t(typeKeys[contact.type]) : contact.type
 
   const showBuyer  = ['buyer', 'investor', 'lead', 'both'].includes(contact.type)
   const showSeller = ['seller', 'both'].includes(contact.type)
 
-  const propertyTitle = transactions[0]?.property?.title ?? 'Bien en vente'
+  const propertyTitle = transactions[0]?.property?.title ?? t('detail.propertyForSale')
   const propertyAddress = transactions[0]?.property?.address ?? ''
 
   const handleCreatePortal = () => {
@@ -364,16 +362,16 @@ export default function ContactDetailPage() {
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <h1 className="text-2xl font-semibold text-theme-primary">{fullName}</h1>
-              <span className="text-xs font-medium text-theme-secondary">{tc.label}</span>
+              <span className="text-xs font-medium text-theme-secondary">{tcLabel}</span>
               <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', sc.text)}>
                 <span className={cn('h-1.5 w-1.5 rounded-full', sc.dot)} />
                 {sc.label}
               </span>
             </div>
             <p className="text-sm text-theme-muted">
-              Contact créé le {formatDate(contact.created_at)}
+              {t('detail.createdOn', { date: formatDate(contact.created_at) })}
               {contact.source ? ` · ${contact.source}` : ''}
-              {contact.last_interaction_at ? ` · Dernière interaction ${formatRelativeDate(contact.last_interaction_at)}` : ''}
+              {contact.last_interaction_at ? ` · ${t('detail.lastInteraction', { date: formatRelativeDate(contact.last_interaction_at) })}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -381,10 +379,10 @@ export default function ContactDetailPage() {
               onClick={() => setShowEdit(true)}
               className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
             >
-              Éditer
+              {t('detail.edit')}
             </button>
             <button className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors">
-              Envoyer un message
+              {t('detail.sendMessage')}
             </button>
           </div>
         </div>
@@ -434,20 +432,20 @@ export default function ContactDetailPage() {
       {/* Portail vendeur (sellers only) */}
       {showSeller && (
         <div className="rounded-xl border border-theme-border p-5">
-          <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">
-            Portail vendeur
+          <h2 className="text-sm font-semibold text-theme-primary capitalize mb-3">
+            {t('detail.sellerPortal')}
           </h2>
 
           {!existingPortal ? (
             <div className="text-center py-4">
               <p className="text-xs text-theme-tertiary mb-3">
-                Créez un portail pour que {contact.first_name} puisse suivre la vente de son bien en temps réel.
+                {t('detail.createPortalDesc', { name: contact.first_name })}
               </p>
               <button
                 onClick={handleCreatePortal}
                 className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
               >
-                Créer le portail vendeur
+                {t('detail.createPortal')}
               </button>
             </div>
           ) : (
@@ -460,7 +458,7 @@ export default function ContactDetailPage() {
                   onClick={handleCopyLink}
                   className="shrink-0 h-7 px-2.5 rounded-md text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
                 >
-                  {portalCopied ? '✓ Copié' : 'Copier'}
+                  {portalCopied ? `✓ ${t('detail.copied')}` : t('detail.copy')}
                 </button>
               </div>
               <div className="flex items-center gap-2">
@@ -469,7 +467,7 @@ export default function ContactDetailPage() {
                   disabled={inviteSending}
                   className="flex-1 h-8 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-30"
                 >
-                  {inviteSending ? 'Envoi...' : inviteSent ? '✓ Invitation envoyée' : 'Envoyer par email'}
+                  {inviteSending ? t('detail.sending') : inviteSent ? `✓ ${t('detail.invitationSent')}` : t('detail.sendByEmail')}
                 </button>
                 <a
                   href={getPortalUrl(existingPortal.token)}
@@ -477,11 +475,11 @@ export default function ContactDetailPage() {
                   rel="noopener noreferrer"
                   className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center"
                 >
-                  Prévisualiser
+                  {t('detail.preview')}
                 </a>
               </div>
-              <div className="flex items-center gap-4 text-[10px] text-theme-muted pt-1">
-                <span>Portail actif</span>
+              <div className="flex items-center gap-4 text-xs text-theme-muted pt-1">
+                <span>{t('detail.portalActive')}</span>
               </div>
             </div>
           )}
@@ -493,15 +491,15 @@ export default function ContactDetailPage() {
         <div className="lg:col-span-1 space-y-4">
           {/* Contact info */}
           <div className="rounded-xl border border-theme-border p-5">
-            <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Informations</h2>
+            <h2 className="text-sm font-semibold text-theme-primary capitalize mb-3">{t('detail.information')}</h2>
             <div className="space-y-0.5">
-              <InfoRow label="Email" value={contact.email} />
-              <InfoRow label="Téléphone" value={contact.phone} />
-              <InfoRow label="WhatsApp" value={contact.whatsapp_phone} />
-              <InfoRow label="Nationalité" value={contact.nationality} />
-              <InfoRow label="Langue" value={contact.language} />
+              <InfoRow label={t('detail.email')} value={contact.email} />
+              <InfoRow label={t('detail.phone')} value={contact.phone} />
+              <InfoRow label={t('detail.whatsapp')} value={contact.whatsapp_phone} />
+              <InfoRow label={t('detail.nationality')} value={contact.nationality} />
+              <InfoRow label={t('detail.language')} value={contact.language} />
               <InfoRow
-                label="Dernière interaction"
+                label={t('detail.lastInteractionLabel')}
                 value={contact.last_interaction_at ? formatRelativeDate(contact.last_interaction_at) : undefined}
               />
               {contact.tags && contact.tags.length > 0 && (
@@ -509,7 +507,7 @@ export default function ContactDetailPage() {
                   <span className="text-xs text-theme-tertiary">Tags</span>
                   <div className="flex flex-wrap gap-1 justify-end">
                     {contact.tags.map((tag) => (
-                      <span key={tag} className="text-[10px] text-theme-secondary border border-theme-border px-1.5 py-0.5 rounded">
+                      <span key={tag} className="text-xs text-theme-secondary border border-theme-border px-1.5 py-0.5 rounded">
                         {tag}
                       </span>
                     ))}
@@ -522,23 +520,23 @@ export default function ContactDetailPage() {
           {/* Search criteria */}
           {contact.search_criteria && (
             <div className="rounded-xl border border-theme-border p-5">
-              <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Critères de recherche</h2>
+              <h2 className="text-sm font-semibold text-theme-primary capitalize mb-3">{t('detail.searchCriteria')}</h2>
               <div className="space-y-0.5">
-                <InfoRow label="Type de bien" value={contact.search_criteria.type} />
+                <InfoRow label={t('detail.propertyType')} value={contact.search_criteria.type} />
                 {(contact.search_criteria.budget_min != null || contact.search_criteria.budget_max != null) && (
                   <InfoRow
-                    label="Budget"
+                    label={t('detail.budget')}
                     value={`${contact.search_criteria.budget_min ? formatCHF(contact.search_criteria.budget_min) : '–'} – ${contact.search_criteria.budget_max ? formatCHF(contact.search_criteria.budget_max) : '–'}`}
                   />
                 )}
                 {contact.search_zones && contact.search_zones.length > 0 && (
-                  <InfoRow label="Zones" value={contact.search_zones.join(', ')} />
+                  <InfoRow label={t('detail.zones')} value={contact.search_zones.join(', ')} />
                 )}
                 {contact.search_criteria.rooms_min != null && (
-                  <InfoRow label="Pièces min." value={`${contact.search_criteria.rooms_min} pièces`} />
+                  <InfoRow label={t('detail.minRooms')} value={t('detail.rooms', { count: contact.search_criteria.rooms_min })} />
                 )}
                 {contact.search_criteria.surface_min != null && (
-                  <InfoRow label="Surface min." value={`${contact.search_criteria.surface_min} m²`} />
+                  <InfoRow label={t('detail.minSurface')} value={`${contact.search_criteria.surface_min} m²`} />
                 )}
               </div>
             </div>
@@ -546,12 +544,12 @@ export default function ContactDetailPage() {
 
           {/* Notes */}
           <div className="rounded-xl border border-theme-border p-5">
-            <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">Notes</h2>
+            <h2 className="text-sm font-semibold text-theme-primary capitalize mb-3">{t('detail.notes')}</h2>
             <textarea
               defaultValue={contact.notes ?? ''}
               rows={4}
               className="w-full text-sm text-theme-primary bg-transparent border border-theme-border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
-              placeholder="Ajouter des notes..."
+              placeholder={t('detail.notesPlaceholder')}
             />
           </div>
         </div>
@@ -560,15 +558,15 @@ export default function ContactDetailPage() {
         <div className="lg:col-span-2 space-y-4">
           {/* Transactions */}
           <div className="rounded-xl border border-theme-border p-5">
-            <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider mb-3">
-              Transactions liées
+            <h2 className="text-sm font-semibold text-theme-primary capitalize mb-3">
+              {t('detail.linkedTransactions')}
               {transactions.length > 0 && (
                 <span className="ml-2 text-xs font-normal text-theme-muted">({transactions.length})</span>
               )}
             </h2>
 
             {transactions.length === 0 ? (
-              <p className="text-sm text-theme-muted py-4 text-center">Aucune transaction en cours</p>
+              <p className="text-sm text-theme-muted py-4 text-center">{t('detail.noTransactions')}</p>
             ) : (
               <div className="space-y-3">
                 {transactions.map((tx, i) => {
@@ -584,7 +582,7 @@ export default function ContactDetailPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-theme-primary truncate group-hover:text-accent transition-colors">
-                          {tx.property?.title ?? tx.property?.address ?? 'Bien sans titre'}
+                          {tx.property?.title ?? tx.property?.address ?? t('detail.untitledProperty')}
                         </p>
                         <p className="text-xs text-theme-tertiary mt-0.5">
                           {stageLabel} · {formatRelativeDate(tx.updated_at)}
@@ -604,7 +602,7 @@ export default function ContactDetailPage() {
           {showBuyer && (
             <div className="rounded-xl border border-theme-border p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider">Matching</h2>
+                <h2 className="text-sm font-semibold text-theme-primary capitalize">Matching</h2>
                 <div className="flex items-center gap-1">
                   {(['internal', 'external'] as const).map((tab) => (
                     <button
@@ -617,9 +615,9 @@ export default function ContactDetailPage() {
                           : 'text-theme-tertiary hover:text-theme-secondary'
                       )}
                     >
-                      {tab === 'internal' ? 'Portefeuille' : 'Marché'}
+                      {tab === 'internal' ? t('detail.portfolio') : t('detail.market')}
                       {tab === 'external' && externalListings && externalListings.length > 0 && (
-                        <span className="ml-1 text-[10px] text-theme-muted">{externalListings.length}</span>
+                        <span className="ml-1 text-xs text-theme-muted">{externalListings.length}</span>
                       )}
                     </button>
                   ))}
@@ -639,25 +637,28 @@ export default function ContactDetailPage() {
                   )}
                   {externalError && !isLoadingExternal && (
                     <div className="text-center py-8">
-                      <p className="text-xs text-theme-tertiary">Impossible de charger les données du marché</p>
-                      <button onClick={() => refetchExternal()} className="mt-1 text-xs text-accent hover:text-accent/80 transition-colors">Réessayer</button>
+                      <p className="text-xs text-theme-tertiary">{t('detail.cannotLoadMarket')}</p>
+                      <button onClick={() => refetchExternal()} className="mt-1 text-xs text-accent hover:text-accent/80 transition-colors">{t('detail.retry')}</button>
                     </div>
                   )}
                   {!isLoadingExternal && !externalError && externalListings && externalListings.length === 0 && (
-                    <p className="text-xs text-theme-muted text-center py-8">Aucun bien trouvé sur le marché pour ces critères</p>
+                    <p className="text-xs text-theme-muted text-center py-8">{t('detail.noMarketResults')}</p>
                   )}
                   {!isLoadingExternal && !contact.search_criteria && (
-                    <p className="text-xs text-theme-muted text-center py-8">Aucun critère de recherche défini pour ce contact</p>
+                    <p className="text-xs text-theme-muted text-center py-8">{t('detail.noSearchCriteria')}</p>
                   )}
                   {externalListings && externalListings.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-[10px] text-theme-muted mb-2">{externalListings.length} résultat{externalListings.length > 1 ? 's' : ''} · RealAdvisor</p>
+                      <p className="text-xs text-theme-muted mb-2">{t(externalListings.length > 1 ? 'detail.results_plural' : 'detail.results', { count: externalListings.length })} · RealAdvisor</p>
                       {externalListings.slice(0, 6).map(listing => (
                         <div
                           key={listing.external_id}
+                          role="button"
+                          tabIndex={0}
                           onClick={() => navigate(`/dashboard/marche/${listing.external_id}`, {
                             state: { listing, contactName: fullName },
                           })}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/dashboard/marche/${listing.external_id}`, { state: { listing, contactName: fullName } }) } }}
                           className="flex items-center gap-3 py-2 border-b border-theme-border-subtle last:border-0 group cursor-pointer hover:bg-theme-hover rounded-lg px-1 -mx-1 transition-colors"
                         >
                           {listing.photo_url ? (
@@ -666,18 +667,18 @@ export default function ContactDetailPage() {
                             <div className="h-12 w-16 rounded-lg bg-theme-section shrink-0" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-theme-primary truncate">{listing.price > 0 ? formatCHF(listing.price) : 'Prix sur demande'}</p>
+                            <p className="text-sm font-medium text-theme-primary truncate">{listing.price > 0 ? formatCHF(listing.price) : t('detail.priceOnRequest')}</p>
                             <p className="text-xs text-theme-tertiary truncate">{listing.address || listing.city}{listing.rooms ? ` · ${listing.rooms}p.` : ''}{listing.surface_m2 ? ` · ${listing.surface_m2} m²` : ''}</p>
-                            {listing.source_agency && <p className="text-[10px] text-theme-muted truncate">via {listing.source_agency}</p>}
+                            {listing.source_agency && <p className="text-xs text-theme-muted truncate">via {listing.source_agency}</p>}
                           </div>
                           <span className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-xs text-theme-tertiary">
-                            Voir →
+                            {t('detail.see')} →
                           </span>
                         </div>
                       ))}
                       {externalListings.length > 6 && (
                         <Link to="/dashboard/matching" className="block text-xs text-accent hover:text-accent/80 text-center pt-2 transition-colors">
-                          Voir les {externalListings.length} résultats →
+                          {t('detail.seeAllResults', { count: externalListings.length })} →
                         </Link>
                       )}
                     </div>
@@ -690,8 +691,8 @@ export default function ContactDetailPage() {
           {/* Activity timeline */}
           <div className="rounded-xl border border-theme-border p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-theme-primary uppercase tracking-wider">
-                Historique d'activité
+              <h2 className="text-sm font-semibold text-theme-primary capitalize">
+                {t('detail.activityHistory')}
               </h2>
               {timelineLoading && (
                 <div className="h-3.5 w-3.5 border-2 border-theme-border border-t-accent rounded-full animate-spin" />
@@ -699,7 +700,7 @@ export default function ContactDetailPage() {
             </div>
 
             {!timelineLoading && timeline.length === 0 && (
-              <p className="text-sm text-theme-muted py-4 text-center">Aucune activité enregistrée</p>
+              <p className="text-sm text-theme-muted py-4 text-center">{t('detail.noActivity')}</p>
             )}
 
             {timeline.length > 0 && (
@@ -716,7 +717,7 @@ export default function ContactDetailPage() {
                       {timelineIcon(event.action)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-theme-primary">{timelineLabel(event)}</p>
+                      <p className="text-sm text-theme-primary">{timelineLabel(event, t)}</p>
                       <p className="text-xs text-theme-tertiary mt-0.5">
                         {formatDate(event.created_at)} · {formatRelativeDate(event.created_at)}
                         {event.actor_name ? ` · ${event.actor_name}` : ''}

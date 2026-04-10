@@ -258,7 +258,7 @@ export function EventContextMenu({
       <Separator />
 
       {/* Visit status */}
-      <div className="px-2 py-1 text-[10px] text-white/40">Statut</div>
+      <div className="px-2 py-1 text-xs text-white/40">Statut</div>
       {VISIT_STATUSES.map((s) => (
         <MenuItem key={s.value} onSelect={() => handleStatusSelect(s.value)}>
           <span className={cn("size-2 rounded-full shrink-0", s.dotClass)} />
@@ -282,7 +282,7 @@ export function EventContextMenu({
       >
         {CALENDAR_ACCOUNTS.map((account) => (
           <React.Fragment key={account.email}>
-            <div className="px-2 py-1 text-[10px] text-white/40">
+            <div className="px-2 py-1 text-xs text-white/40">
               {account.email}
             </div>
             {account.calendars.map((cal) => (

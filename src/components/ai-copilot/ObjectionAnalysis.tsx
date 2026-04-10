@@ -70,8 +70,8 @@ export default function ObjectionAnalysis({
         <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center">
           <BarChart3 className="h-4 w-4 text-amber-600" />
         </div>
-        <h2 className="text-sm font-semibold text-primary-900 uppercase tracking-wider">Analyse des objections</h2>
-        <span className="text-[10px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1">
+        <h2 className="text-sm font-semibold text-primary-900 capitalize">Analyse des objections</h2>
+        <span className="text-xs font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1">
           <Sparkles className="h-2.5 w-2.5" />
           Analyse IA
         </span>
@@ -86,7 +86,7 @@ export default function ObjectionAnalysis({
         <div>
           <div className="flex items-center gap-1.5 mb-3">
             <ThumbsDown className="h-3.5 w-3.5 text-primary-400" />
-            <span className="text-xs font-semibold text-primary-700 uppercase tracking-wider">Objections récurrentes</span>
+            <span className="text-xs font-semibold text-primary-700 capitalize">Objections récurrentes</span>
           </div>
           <div className="space-y-2">
             {objections.map((obj, i) => (
@@ -98,7 +98,7 @@ export default function ObjectionAnalysis({
                       {obj.count}x ({obj.percentage}%)
                     </span>
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-theme-hover rounded-full overflow-hidden">
                     <div
                       className={cn(
                         'h-full rounded-full transition-all',
@@ -118,14 +118,14 @@ export default function ObjectionAnalysis({
           <div className="pt-3 border-t border-border">
             <div className="flex items-center gap-1.5 mb-3">
               <AlertTriangle className="h-3.5 w-3.5 text-primary-400" />
-              <span className="text-xs font-semibold text-primary-700 uppercase tracking-wider">Points faibles identifiés</span>
+              <span className="text-xs font-semibold text-primary-700 capitalize">Points faibles identifiés</span>
             </div>
             <div className="space-y-2">
               {weaknesses.map((w, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', SEVERITY_CONFIG[w.severity]?.cls?.split(' ')[0] || 'bg-gray-300')} />
+                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', SEVERITY_CONFIG[w.severity]?.cls?.split(' ')[0] || 'bg-theme-active')} />
                   <span className="text-sm text-primary-700">{w.label}</span>
-                  <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-badge ml-auto flex-shrink-0', SEVERITY_CONFIG[w.severity]?.cls)}>
+                  <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-badge ml-auto flex-shrink-0', SEVERITY_CONFIG[w.severity]?.cls)}>
                     {w.severity === 'high' ? 'Impact fort' : w.severity === 'medium' ? 'Impact modéré' : 'Impact faible'}
                   </span>
                 </div>
@@ -139,7 +139,7 @@ export default function ObjectionAnalysis({
           <div className="pt-3 border-t border-border">
             <div className="flex items-center gap-1.5 mb-3">
               <Lightbulb className="h-3.5 w-3.5 text-primary-400" />
-              <span className="text-xs font-semibold text-primary-700 uppercase tracking-wider">Suggestions d'ajustement</span>
+              <span className="text-xs font-semibold text-primary-700 capitalize">Suggestions d'ajustement</span>
             </div>
             <div className="space-y-2">
               {suggestions.map((s, i) => (
@@ -154,7 +154,7 @@ export default function ObjectionAnalysis({
       </div>
 
       {/* Disclaimer */}
-      <p className="text-[10px] text-gray-400 mt-4 text-center">
+      <p className="text-xs text-theme-tertiary mt-4 text-center">
         Analyse IA des retours de visite — données anonymisées.
       </p>
     </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Check, Upload, UserPlus, Sparkles, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -10,14 +11,16 @@ import { CANTONS } from '@/lib/constants'
 
 // ── Step indicator (monochrome) ───────────────────────────────────────────
 
-const STEPS = ['Profil', 'Contacts', "C'est prêt !"]
+// Step labels are loaded from translations in the component
+const STEP_KEYS = ['onboarding.steps.profile', 'onboarding.steps.contacts', 'onboarding.steps.done']
 
 function StepIndicator({ current }: { current: number }) {
+  const { t } = useTranslation('common')
   return (
     <div className="flex items-center justify-center gap-8 mb-10">
-      {STEPS.map((label, i) => (
+      {STEP_KEYS.map((key, i) => (
         <button
-          key={label}
+          key={key}
           className={cn(
             'text-sm pb-2 border-b-2 transition-colors cursor-default',
             i === current
@@ -27,7 +30,7 @@ function StepIndicator({ current }: { current: number }) {
                 : 'text-theme-muted border-transparent'
           )}
         >
-          {i + 1}. {label}
+          {i + 1}. {t(key)}
         </button>
       ))}
     </div>
@@ -37,6 +40,7 @@ function StepIndicator({ current }: { current: number }) {
 // ── Step 1: Profile ───────────────────────────────────────────────────────
 
 function StepProfile({ onNext }: { onNext: () => void }) {
+  const { t } = useTranslation('common')
   const { profile, refreshProfile } = useAuth()
   const [firstName, setFirstName] = useState(profile?.full_name?.split(' ')[0] ?? '')
   const [lastName, setLastName] = useState(profile?.full_name?.split(' ').slice(1).join(' ') ?? '')
@@ -69,28 +73,28 @@ function StepProfile({ onNext }: { onNext: () => void }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-theme-primary">Votre profil</h2>
-        <p className="text-sm text-theme-secondary mt-1">Quelques informations pour personnaliser votre expérience.</p>
+        <h2 className="text-xl font-semibold text-theme-primary">{t('onboarding.profile.title')}</h2>
+        <p className="text-sm text-theme-secondary mt-1">{t('onboarding.profile.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-theme-primary mb-1.5">Prénom *</label>
-          <input value={firstName} onChange={e => setFirstName(e.target.value)} className={inputClasses} placeholder="Prénom" />
+          <label className="block text-sm font-medium text-theme-primary mb-1.5">{t('onboarding.profile.firstName')} *</label>
+          <input value={firstName} onChange={e => setFirstName(e.target.value)} className={inputClasses} placeholder={t('onboarding.profile.firstName')} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-theme-primary mb-1.5">Nom *</label>
-          <input value={lastName} onChange={e => setLastName(e.target.value)} className={inputClasses} placeholder="Nom" />
+          <label className="block text-sm font-medium text-theme-primary mb-1.5">{t('onboarding.profile.lastName')} *</label>
+          <input value={lastName} onChange={e => setLastName(e.target.value)} className={inputClasses} placeholder={t('onboarding.profile.lastName')} />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-theme-primary mb-1.5">Téléphone</label>
+        <label className="block text-sm font-medium text-theme-primary mb-1.5">{t('onboarding.profile.phone')}</label>
         <input value={phone} onChange={e => setPhone(e.target.value)} className={inputClasses} placeholder="+41 22 000 00 00" />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-theme-primary mb-1.5">Canton *</label>
+        <label className="block text-sm font-medium text-theme-primary mb-1.5">{t('onboarding.profile.canton')} *</label>
         <div className="flex flex-wrap gap-1.5">
           {CANTONS.map(c => (
             <button
@@ -108,7 +112,7 @@ function StepProfile({ onNext }: { onNext: () => void }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-theme-primary mb-1.5">Langue</label>
+        <label className="block text-sm font-medium text-theme-primary mb-1.5">{t('onboarding.profile.language')}</label>
         <div className="flex gap-2">
           {['FR', 'DE', 'EN', 'IT'].map(l => (
             <button
@@ -131,7 +135,7 @@ function StepProfile({ onNext }: { onNext: () => void }) {
           disabled={!isValid || saving}
           className="h-10 px-6 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40"
         >
-          {saving ? 'Enregistrement...' : 'Continuer'}
+          {saving ? t('onboarding.profile.saving') : t('onboarding.profile.continue')}
         </button>
       </div>
     </div>
@@ -149,6 +153,7 @@ interface MiniContact {
 }
 
 function StepContacts({ onNext }: { onNext: () => void }) {
+  const { t } = useTranslation('common')
   const { profile, refreshProfile } = useAuth()
   const createContact = useCreateContact()
   const navigate = useNavigate()
@@ -228,12 +233,12 @@ function StepContacts({ onNext }: { onNext: () => void }) {
           <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
             <Check className="h-6 w-6 text-emerald-500" />
           </div>
-          <p className="text-lg font-semibold text-theme-primary">{importedCount} contacts importés</p>
-          <p className="text-sm text-theme-secondary mt-1">Votre CRM est prêt.</p>
+          <p className="text-lg font-semibold text-theme-primary">{t('onboarding.contacts.importedCount', { count: importedCount })}</p>
+          <p className="text-sm text-theme-secondary mt-1">{t('onboarding.contacts.crmReady')}</p>
         </div>
         <div className="flex justify-end">
           <button onClick={handleContinue} className="h-10 px-6 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors">
-            Continuer
+            {t('onboarding.profile.continue')}
           </button>
         </div>
       </div>
@@ -245,8 +250,8 @@ function StepContacts({ onNext }: { onNext: () => void }) {
     return (
       <div className="space-y-5">
         <div>
-          <h2 className="text-xl font-semibold text-theme-primary">Ajouter des contacts</h2>
-          <p className="text-sm text-theme-secondary mt-1">Créez quelques contacts pour démarrer.</p>
+          <h2 className="text-xl font-semibold text-theme-primary">{t('onboarding.contacts.addTitle')}</h2>
+          <p className="text-sm text-theme-secondary mt-1">{t('onboarding.contacts.addSubtitle')}</p>
         </div>
 
         <div className="space-y-3">
@@ -256,8 +261,8 @@ function StepContacts({ onNext }: { onNext: () => void }) {
               <input value={c.lastName} onChange={e => updateRow(i, 'lastName', e.target.value)} placeholder="Nom" className={cn(inputClasses, 'flex-1')} />
               <input value={c.email} onChange={e => updateRow(i, 'email', e.target.value)} placeholder="Email" className={cn(inputClasses, 'flex-1')} />
               <select value={c.type} onChange={e => updateRow(i, 'type', e.target.value)} className={cn(inputClasses, 'w-28')}>
-                <option value="buyer">Acheteur</option>
-                <option value="seller">Vendeur</option>
+                <option value="buyer">{t('onboarding.contacts.buyer')}</option>
+                <option value="seller">{t('onboarding.contacts.seller')}</option>
               </select>
               {contacts.length > 1 && (
                 <button onClick={() => removeRow(i)} className="text-theme-muted hover:text-red-400 transition-colors">
@@ -269,19 +274,19 @@ function StepContacts({ onNext }: { onNext: () => void }) {
         </div>
 
         <button onClick={addRow} className="flex items-center gap-1.5 text-xs text-theme-secondary hover:text-theme-primary transition-colors">
-          <Plus className="h-3.5 w-3.5" /> Ajouter un contact
+          <Plus className="h-3.5 w-3.5" /> {t('onboarding.contacts.addContact')}
         </button>
 
         <div className="flex items-center justify-between pt-2">
           <button onClick={() => setMode('choose')} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-            ← Retour
+            {t('onboarding.contacts.back')}
           </button>
           <button
             onClick={handleManualSave}
             disabled={!hasValid || createContact.isPending}
             className="h-10 px-6 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40"
           >
-            {createContact.isPending ? 'Enregistrement...' : 'Enregistrer et continuer'}
+            {createContact.isPending ? t('onboarding.contacts.saving') : t('onboarding.contacts.saveAndContinue')}
           </button>
         </div>
       </div>
@@ -292,8 +297,8 @@ function StepContacts({ onNext }: { onNext: () => void }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-theme-primary">Vos contacts</h2>
-        <p className="text-sm text-theme-secondary mt-1">Importez vos clients existants ou explorez avec des données de démo.</p>
+        <h2 className="text-xl font-semibold text-theme-primary">{t('onboarding.contacts.title')}</h2>
+        <p className="text-sm text-theme-secondary mt-1">{t('onboarding.contacts.subtitle')}</p>
       </div>
 
       <div className="grid gap-3">
@@ -305,8 +310,8 @@ function StepContacts({ onNext }: { onNext: () => void }) {
             <Upload className="h-5 w-5 text-theme-secondary" />
           </div>
           <div>
-            <p className="text-sm font-medium text-theme-primary">Importer un fichier CSV / vCard</p>
-            <p className="text-xs text-theme-tertiary mt-0.5">Importez vos contacts depuis un fichier existant.</p>
+            <p className="text-sm font-medium text-theme-primary">{t('onboarding.contacts.importCsv')}</p>
+            <p className="text-xs text-theme-tertiary mt-0.5">{t('onboarding.contacts.importCsvDesc')}</p>
           </div>
         </button>
 
@@ -318,8 +323,8 @@ function StepContacts({ onNext }: { onNext: () => void }) {
             <UserPlus className="h-5 w-5 text-theme-secondary" />
           </div>
           <div>
-            <p className="text-sm font-medium text-theme-primary">Ajouter manuellement</p>
-            <p className="text-xs text-theme-tertiary mt-0.5">Créez 1 à 10 contacts rapidement.</p>
+            <p className="text-sm font-medium text-theme-primary">{t('onboarding.contacts.addManually')}</p>
+            <p className="text-xs text-theme-tertiary mt-0.5">{t('onboarding.contacts.addManuallyDesc')}</p>
           </div>
         </button>
 
@@ -332,15 +337,15 @@ function StepContacts({ onNext }: { onNext: () => void }) {
             <Sparkles className="h-5 w-5 text-theme-secondary" />
           </div>
           <div>
-            <p className="text-sm font-medium text-theme-primary">{seeding ? 'Création en cours...' : 'Explorer avec des données de démo'}</p>
-            <p className="text-xs text-theme-tertiary mt-0.5">10 contacts, 5 biens, 3 transactions — données réalistes suisses.</p>
+            <p className="text-sm font-medium text-theme-primary">{seeding ? t('onboarding.contacts.seeding') : t('onboarding.contacts.seedDemo')}</p>
+            <p className="text-xs text-theme-tertiary mt-0.5">{t('onboarding.contacts.seedDemoDesc')}</p>
           </div>
         </button>
       </div>
 
       <div className="flex justify-end pt-2">
         <button onClick={handleContinue} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-          Passer cette étape →
+          {t('onboarding.contacts.skip')}
         </button>
       </div>
     </div>
@@ -350,6 +355,7 @@ function StepContacts({ onNext }: { onNext: () => void }) {
 // ── Step 3: Done ──────────────────────────────────────────────────────────
 
 function StepDone() {
+  const { t } = useTranslation('common')
   const { profile, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [finishing, setFinishing] = useState(false)
@@ -375,16 +381,16 @@ function StepDone() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold text-theme-primary">Votre espace est prêt</h2>
+        <h2 className="text-2xl font-semibold text-theme-primary">{t('onboarding.done.title')}</h2>
         <p className="text-sm text-theme-secondary mt-2 max-w-sm mx-auto">
-          Votre Action Board vous guide au quotidien — relances, matchs, visites, tout est centralisé.
+          {t('onboarding.done.subtitle')}
         </p>
       </div>
 
       <div className="flex items-center justify-center gap-6 text-xs text-theme-muted">
-        <span>Données en Europe</span>
+        <span>{t('onboarding.done.dataEurope')}</span>
         <span>·</span>
-        <span>Conforme nFADP</span>
+        <span>{t('onboarding.done.compliant')}</span>
       </div>
 
       <button
@@ -392,7 +398,7 @@ function StepDone() {
         disabled={finishing}
         className="h-11 px-8 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40"
       >
-        {finishing ? 'Chargement...' : 'Accéder à mon dashboard'}
+        {finishing ? t('onboarding.done.loading') : t('onboarding.done.access')}
       </button>
     </div>
   )

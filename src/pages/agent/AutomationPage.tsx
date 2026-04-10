@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import {
   Zap, Plus, Clock, Mail, Bell, FileText,
   ChevronDown, ChevronUp, X, Pencil, Trash2,
@@ -19,29 +20,11 @@ const labelClasses = 'block text-sm font-medium text-theme-primary mb-1.5'
 
 // ── Trigger / Action options ──────────────────────────────────────────────
 
-const TRIGGER_OPTIONS = [
-  { value: 'property_sent', label: 'Quand un bien est envoyé à un client' },
-  { value: 'visit_completed', label: 'Quand une visite est effectuée' },
-  { value: 'lead_inactive', label: 'Quand un lead est inactif' },
-  { value: 'document_missing', label: 'Quand un document KYC est manquant' },
-  { value: 'new_match', label: 'Quand un nouveau match est trouvé' },
-] as const
+const TRIGGER_VALUES = ['property_sent', 'visit_completed', 'lead_inactive', 'document_missing', 'new_match'] as const
 
-const ACTION_OPTIONS = [
-  { value: 'create_reminder', label: 'Créer un rappel pour l\'agent' },
-  { value: 'send_email', label: 'Envoyer un email au client' },
-  { value: 'notify_agent', label: 'Notification agent' },
-  { value: 'create_task', label: 'Créer une tâche' },
-] as const
+const ACTION_VALUES = ['create_reminder', 'send_email', 'notify_agent', 'create_task'] as const
 
-const CATEGORY_OPTIONS = [
-  { value: 'follow_up', label: 'Relance' },
-  { value: 'post_visit', label: 'Post-visite' },
-  { value: 'property_presentation', label: 'Présentation bien' },
-  { value: 'seller_update', label: 'Mise à jour vendeur' },
-  { value: 'visit_confirmation', label: 'Confirmation visite' },
-  { value: 'objection_response', label: 'Réponse objection' },
-] as const
+const CATEGORY_VALUES = ['follow_up', 'post_visit', 'property_presentation', 'seller_update', 'visit_confirmation', 'objection_response'] as const
 
 // ── New Rule Modal ────────────────────────────────────────────────────────
 
@@ -50,14 +33,15 @@ function NewRuleModal({ templates, onClose, onSave }: {
   onClose: () => void
   onSave: (rule: Omit<AutomationRule, 'id' | 'generatedCount' | 'activeCount' | 'lastTriggeredAt'>) => void
 }) {
+  const { t } = useTranslation('automation')
   const [name, setName] = useState('')
-  const [trigger, setTrigger] = useState<string>(TRIGGER_OPTIONS[0].value)
-  const [action, setAction] = useState<string>(ACTION_OPTIONS[0].value)
+  const [trigger, setTrigger] = useState<string>(TRIGGER_VALUES[0])
+  const [action, setAction] = useState<string>(ACTION_VALUES[0])
   const [delayDays, setDelayDays] = useState(3)
   const [templateId, setTemplateId] = useState<string | null>(null)
 
-  const triggerLabel = TRIGGER_OPTIONS.find(o => o.value === trigger)?.label ?? ''
-  const actionLabel = ACTION_OPTIONS.find(o => o.value === action)?.label ?? ''
+  const triggerLabel = t(`triggers.${trigger}`)
+  const actionLabel = t(`actions.${action}`)
 
   const canSave = name.trim().length > 0
 
@@ -81,7 +65,7 @@ function NewRuleModal({ templates, onClose, onSave }: {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="rounded-xl border border-theme-border bg-theme-card w-full max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <h3 className="text-base font-semibold text-theme-primary">Nouvelle règle</h3>
+          <h3 className="text-base font-semibold text-theme-primary">{t('rule.title')}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
             <X className="w-4 h-4 text-theme-tertiary" />
           </button>
@@ -89,34 +73,34 @@ function NewRuleModal({ templates, onClose, onSave }: {
 
         <div className="p-5 space-y-4">
           <div>
-            <label className={labelClasses}>Nom de la règle</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Relance J+3 après envoi" className={inputClasses} />
+            <label className={labelClasses}>{t('rule.name')}</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('rule.namePlaceholder')} className={inputClasses} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelClasses}>Déclencheur</label>
+              <label className={labelClasses}>{t('rule.trigger')}</label>
               <select value={trigger} onChange={e => setTrigger(e.target.value)} className={inputClasses}>
-                {TRIGGER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {TRIGGER_VALUES.map(v => <option key={v} value={v}>{t(`triggers.${v}`)}</option>)}
               </select>
             </div>
             <div>
-              <label className={labelClasses}>Action</label>
+              <label className={labelClasses}>{t('rule.action')}</label>
               <select value={action} onChange={e => setAction(e.target.value)} className={inputClasses}>
-                {ACTION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {ACTION_VALUES.map(v => <option key={v} value={v}>{t(`actions.${v}`)}</option>)}
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelClasses}>Délai (jours)</label>
+              <label className={labelClasses}>{t('rule.delay')}</label>
               <input type="number" min={1} max={90} value={delayDays} onChange={e => setDelayDays(Number(e.target.value))} className={inputClasses} />
             </div>
             <div>
-              <label className={labelClasses}>Template <span className="text-theme-muted font-normal">(optionnel)</span></label>
+              <label className={labelClasses}>{t('rule.template')} <span className="text-theme-muted font-normal">({t('rule.templateOptional')})</span></label>
               <select value={templateId ?? ''} onChange={e => setTemplateId(e.target.value || null)} className={inputClasses}>
-                <option value="">Aucun</option>
+                <option value="">{t('rule.none')}</option>
                 {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
@@ -125,14 +109,14 @@ function NewRuleModal({ templates, onClose, onSave }: {
 
         <div className="flex items-center justify-end gap-3 p-5 border-t border-theme-border">
           <button onClick={onClose} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-            Annuler
+            {t('rule.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={!canSave}
             className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Créer la règle
+            {t('rule.create')}
           </button>
         </div>
       </div>
@@ -148,6 +132,7 @@ function TemplateModal({ template, onClose, onSave }: {
   onClose: () => void
   onSave: (data: Omit<MessageTemplate, 'id'>) => void
 }) {
+  const { t } = useTranslation('automation')
   const isEdit = !!template
   const [name, setName] = useState(template?.name ?? '')
   const [category, setCategory] = useState(template?.category ?? 'follow_up')
@@ -173,7 +158,7 @@ function TemplateModal({ template, onClose, onSave }: {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="rounded-xl border border-theme-border bg-theme-card w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <h3 className="text-base font-semibold text-theme-primary">{isEdit ? 'Modifier le template' : 'Nouveau template'}</h3>
+          <h3 className="text-base font-semibold text-theme-primary">{isEdit ? t('templateModal.edit') : t('templateModal.new')}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
             <X className="w-4 h-4 text-theme-tertiary" />
           </button>
@@ -181,58 +166,58 @@ function TemplateModal({ template, onClose, onSave }: {
 
         <div className="p-5 space-y-4">
           <div>
-            <label className={labelClasses}>Nom</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Relance après envoi de bien" className={inputClasses} />
+            <label className={labelClasses}>{t('templateModal.name')}</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('templateModal.namePlaceholder')} className={inputClasses} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelClasses}>Catégorie</label>
+              <label className={labelClasses}>{t('templateModal.category')}</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className={inputClasses}>
-                {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {CATEGORY_VALUES.map(v => <option key={v} value={v}>{t(`categories.${v}`)}</option>)}
               </select>
             </div>
             <div>
-              <label className={labelClasses}>Canal</label>
+              <label className={labelClasses}>{t('templateModal.channel')}</label>
               <select value={channel} onChange={e => setChannel(e.target.value as 'email' | 'notification')} className={inputClasses}>
-                <option value="email">Email</option>
-                <option value="notification">Notification</option>
+                <option value="email">{t('templateModal.channelEmail')}</option>
+                <option value="notification">{t('templateModal.channelNotification')}</option>
               </select>
             </div>
           </div>
 
           {channel === 'email' && (
             <div>
-              <label className={labelClasses}>Objet email</label>
-              <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Ex: Suite à notre sélection de biens" className={inputClasses} />
+              <label className={labelClasses}>{t('templateModal.subject')}</label>
+              <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder={t('templateModal.subjectPlaceholder')} className={inputClasses} />
             </div>
           )}
 
           <div>
-            <label className={labelClasses}>Corps du message</label>
+            <label className={labelClasses}>{t('templateModal.body')}</label>
             <textarea
               value={body}
               onChange={e => setBody(e.target.value)}
               rows={6}
-              placeholder={'Bonjour {{contact.first_name}},\n\n...'}
+              placeholder={t('templateModal.bodyPlaceholder')}
               className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none font-mono"
             />
-            <p className="text-[10px] text-theme-muted mt-1">
-              Variables : {'{{contact.first_name}}'}, {'{{property.address}}'}, {'{{property.price}}'}, {'{{agent.full_name}}'}, {'{{agency.name}}'}
+            <p className="text-xs text-theme-muted mt-1">
+              {t('templateModal.variables')} : {'{{contact.first_name}}'}, {'{{property.address}}'}, {'{{property.price}}'}, {'{{agent.full_name}}'}, {'{{agency.name}}'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 p-5 border-t border-theme-border">
           <button onClick={onClose} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-            Annuler
+            {t('templateModal.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={!canSave}
             className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isEdit ? 'Enregistrer' : 'Créer le template'}
+            {isEdit ? t('templateModal.save') : t('templateModal.create')}
           </button>
         </div>
       </div>
@@ -243,19 +228,12 @@ function TemplateModal({ template, onClose, onSave }: {
 
 // ── Trigger config ──────────────────────────────────────────────────────────
 
-const TRIGGER_CONFIG: Record<string, { icon: typeof Mail; dot: string; shortLabel: string }> = {
-  property_sent: { icon: Mail, dot: 'bg-blue-500', shortLabel: 'Envoi de bien' },
-  visit_completed: { icon: Clock, dot: 'bg-teal-500', shortLabel: 'Visite effectuée' },
-  lead_inactive: { icon: Bell, dot: 'bg-amber-500', shortLabel: 'Lead inactif' },
-  document_missing: { icon: FileText, dot: 'bg-red-500', shortLabel: 'Doc manquant' },
-  new_match: { icon: Zap, dot: 'bg-purple-500', shortLabel: 'Nouveau match' },
-}
-
-const ACTION_SHORT: Record<string, string> = {
-  create_reminder: 'Rappel agent',
-  send_email: 'Email client',
-  notify_agent: 'Notification',
-  create_task: 'Tâche',
+const TRIGGER_CONFIG: Record<string, { icon: typeof Mail; dot: string; shortKey: string }> = {
+  property_sent: { icon: Mail, dot: 'bg-blue-500', shortKey: 'triggerShort.property_sent' },
+  visit_completed: { icon: Clock, dot: 'bg-teal-500', shortKey: 'triggerShort.visit_completed' },
+  lead_inactive: { icon: Bell, dot: 'bg-amber-500', shortKey: 'triggerShort.lead_inactive' },
+  document_missing: { icon: FileText, dot: 'bg-red-500', shortKey: 'triggerShort.document_missing' },
+  new_match: { icon: Zap, dot: 'bg-purple-500', shortKey: 'triggerShort.new_match' },
 }
 
 // ── Rule Card ───────────────────────────────────────────────────────────────
@@ -273,9 +251,10 @@ function RuleCard({
   onDuplicate: () => void
   onDelete: () => void
 }) {
+  const { t } = useTranslation('automation')
   const [expanded, setExpanded] = useState(false)
-  const config = TRIGGER_CONFIG[rule.triggerEvent] || { icon: Zap, dot: 'bg-theme-tertiary', shortLabel: rule.triggerEvent }
-  const actionShort = ACTION_SHORT[rule.action] || rule.action
+  const config = TRIGGER_CONFIG[rule.triggerEvent] || { icon: Zap, dot: 'bg-theme-tertiary', shortKey: rule.triggerEvent }
+  const actionShort = t(`actionShort.${rule.action}`, rule.action)
 
   return (
     <div className={cn(
@@ -290,18 +269,18 @@ function RuleCard({
 
           {/* Stats */}
           <div className="text-right shrink-0 hidden sm:block">
-            <span className="text-xs text-theme-secondary">{rule.generatedCount} générées</span>
+            <span className="text-xs text-theme-secondary">{t('rule.generated', { count: rule.generatedCount })}</span>
             {rule.activeCount > 0 && (
-              <span className="text-[10px] text-amber-500 ml-1.5">{rule.activeCount} en cours</span>
+              <span className="text-xs text-amber-500 ml-1.5">{t('rule.inProgress', { count: rule.activeCount })}</span>
             )}
           </div>
 
           {/* Hover actions */}
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            <button onClick={onDuplicate} className="h-7 w-7 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-theme-primary hover:bg-theme-active transition-colors" title="Dupliquer">
+            <button onClick={onDuplicate} className="h-7 w-7 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-theme-primary hover:bg-theme-active transition-colors" title={t('rule.duplicate')}>
               <Plus className="h-3.5 w-3.5" />
             </button>
-            <button onClick={onDelete} className="h-7 w-7 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-red-500 hover:bg-theme-active transition-colors" title="Supprimer">
+            <button onClick={onDelete} className="h-7 w-7 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-red-500 hover:bg-theme-active transition-colors" title={t('rule.delete')}>
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -318,19 +297,19 @@ function RuleCard({
 
         {/* Row 2: badges — aligned under the title (offset by dot + gap) */}
         <div className="flex items-center gap-1.5 mt-1.5 ml-5 flex-wrap">
-          <span className="text-[10px] font-medium text-theme-secondary bg-theme-section px-1.5 py-0.5 rounded">
-            {config.shortLabel}
+          <span className="text-xs font-medium text-theme-secondary bg-theme-section px-1.5 py-0.5 rounded">
+            {t(config.shortKey)}
           </span>
-          <span className="text-[10px] text-theme-tertiary">→</span>
-          <span className="text-[10px] font-medium text-theme-secondary bg-theme-section px-1.5 py-0.5 rounded">
+          <span className="text-xs text-theme-tertiary">→</span>
+          <span className="text-xs font-medium text-theme-secondary bg-theme-section px-1.5 py-0.5 rounded">
             {actionShort}
           </span>
-          <span className="text-[10px] text-theme-tertiary">·</span>
-          <span className="text-[10px] font-medium text-theme-secondary">J+{rule.delayDays}</span>
+          <span className="text-xs text-theme-tertiary">·</span>
+          <span className="text-xs font-medium text-theme-secondary">J+{rule.delayDays}</span>
           {rule.lastTriggeredAt && (
             <>
-              <span className="text-[10px] text-theme-tertiary">·</span>
-              <span className="text-[10px] text-theme-tertiary">Dernière : {formatRelativeDate(rule.lastTriggeredAt)}</span>
+              <span className="text-xs text-theme-tertiary">·</span>
+              <span className="text-xs text-theme-tertiary">{t('rule.lastTriggered', { date: formatRelativeDate(rule.lastTriggeredAt) })}</span>
             </>
           )}
         </div>
@@ -340,20 +319,20 @@ function RuleCard({
         <div className="px-4 pb-4 pt-0 border-t border-theme-border">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3">
             <div>
-              <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Déclencheur</p>
+              <p className="text-xs text-theme-muted capitalize mb-1">{t('rule.triggerLabel')}</p>
               <p className="text-sm text-theme-primary">{rule.triggerLabel}</p>
             </div>
             <div>
-              <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Action</p>
+              <p className="text-xs text-theme-muted capitalize mb-1">{t('rule.actionLabel')}</p>
               <p className="text-sm text-theme-primary">{rule.actionLabel}</p>
             </div>
             <div>
-              <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Délai</p>
-              <p className="text-sm text-theme-primary">{rule.delayDays} jour{rule.delayDays > 1 ? 's' : ''}</p>
+              <p className="text-xs text-theme-muted capitalize mb-1">{t('rule.delayLabel')}</p>
+              <p className="text-sm text-theme-primary">{t(rule.delayDays > 1 ? 'rule.day_plural' : 'rule.day', { count: rule.delayDays })}</p>
             </div>
             <div>
-              <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Template</p>
-              <p className="text-sm text-theme-primary">{rule.templateId || 'Aucun'}</p>
+              <p className="text-xs text-theme-muted capitalize mb-1">{t('rule.templateLabel')}</p>
+              <p className="text-sm text-theme-primary">{rule.templateId || t('rule.none')}</p>
             </div>
           </div>
 
@@ -361,8 +340,8 @@ function RuleCard({
           <div className="mt-4 p-3 rounded-lg bg-theme-section border border-theme-border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-theme-primary">Envoi automatique</p>
-                <p className="text-[10px] text-theme-muted">Si activé, le message sera envoyé sans validation agent</p>
+                <p className="text-xs font-medium text-theme-primary">{t('rule.autoSend')}</p>
+                <p className="text-xs text-theme-muted">{t('rule.autoSendDesc')}</p>
               </div>
               <Switch checked={rule.autoSend} onCheckedChange={onToggleAutoSend} />
             </div>
@@ -382,16 +361,8 @@ function TemplateCard({ template, onEdit, onDelete }: {
 }) {
   const [expanded, setExpanded] = useState(false)
 
-  const channelLabel = template.channel === 'email' ? 'Email' : 'Notification'
-
-  const categoryLabels: Record<string, string> = {
-    follow_up: 'Relance',
-    post_visit: 'Post-visite',
-    property_presentation: 'Présentation bien',
-    seller_update: 'Mise à jour vendeur',
-    visit_confirmation: 'Confirmation visite',
-    objection_response: 'Réponse objection',
-  }
+  const { t } = useTranslation('automation')
+  const channelLabel = template.channel === 'email' ? t('templateModal.channelEmail') : t('templateModal.channelNotification')
 
   return (
     <div className="rounded-xl border border-theme-border overflow-hidden group">
@@ -402,22 +373,22 @@ function TemplateCard({ template, onEdit, onDelete }: {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-theme-primary">{template.name}</p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] font-medium text-theme-secondary bg-theme-section px-1.5 py-0.5 rounded-badge">
-              {categoryLabels[template.category] || template.category}
+            <span className="text-xs font-medium text-theme-secondary bg-theme-section px-1.5 py-0.5 rounded-badge">
+              {t(`categories.${template.category}`, template.category)}
             </span>
-            <span className="text-[10px] text-theme-tertiary">
+            <span className="text-xs text-theme-tertiary">
               {channelLabel}
             </span>
           </div>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
           {onEdit && (
-            <button onClick={onEdit} className="h-7 w-7 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-theme-primary hover:bg-theme-active transition-colors" title="Modifier">
+            <button onClick={onEdit} className="h-7 w-7 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-theme-primary hover:bg-theme-active transition-colors" title={t('templateModal.edit')}>
               <Pencil className="h-3.5 w-3.5" />
             </button>
           )}
           {onDelete && (
-            <button onClick={onDelete} className="h-7 w-7 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-red-500 hover:bg-theme-active transition-colors" title="Supprimer">
+            <button onClick={onDelete} className="h-7 w-7 rounded-lg flex items-center justify-center text-theme-tertiary hover:text-red-500 hover:bg-theme-active transition-colors" title={t('rule.delete')}>
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
@@ -429,19 +400,19 @@ function TemplateCard({ template, onEdit, onDelete }: {
         <div className="px-4 pb-4 border-t border-theme-border">
           {template.subject && (
             <div className="mt-3">
-              <p className="text-xs text-theme-muted mb-1">Objet</p>
+              <p className="text-xs text-theme-muted mb-1">{t('templateModal.subject')}</p>
               <p className="text-sm text-theme-primary">{template.subject}</p>
             </div>
           )}
           <div className="mt-3">
-            <p className="text-xs text-theme-muted mb-1">Corps du message</p>
+            <p className="text-xs text-theme-muted mb-1">{t('templateModal.body')}</p>
             <pre className="text-xs text-theme-secondary bg-theme-section rounded-lg p-3 whitespace-pre-wrap font-sans leading-relaxed">
               {template.body}
             </pre>
           </div>
           <div className="mt-2">
-            <p className="text-[10px] text-theme-muted">
-              Variables : {'{{contact.first_name}}'}, {'{{property.address}}'}, {'{{property.price}}'}, {'{{agent.full_name}}'}, etc.
+            <p className="text-xs text-theme-muted">
+              {t('templateModal.variables')} : {'{{contact.first_name}}'}, {'{{property.address}}'}, {'{{property.price}}'}, {'{{agent.full_name}}'}, etc.
             </p>
           </div>
         </div>
@@ -453,6 +424,7 @@ function TemplateCard({ template, onEdit, onDelete }: {
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AutomationPage() {
+  const { t } = useTranslation('automation')
   const { active, triggered, pending, markAsDone, snooze, cancel } = useReminders()
   const { rules, toggleRule, toggleAutoSend, addRule, deleteRule, duplicateRule } = useAutomationRules()
   const [bannerDismissed, setBannerDismissed] = useState(false)
@@ -469,9 +441,9 @@ export default function AutomationPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-theme-primary">Automatisation</h1>
+          <h1 className="text-2xl font-semibold text-theme-primary">{t('title')}</h1>
           <p className="text-sm text-theme-muted mt-0.5">
-            {activeRules} règle{activeRules > 1 ? 's' : ''} active{activeRules > 1 ? 's' : ''} · {active.length} relance{active.length > 1 ? 's' : ''} en cours
+            {t(activeRules > 1 ? 'rulesActive_plural' : 'rulesActive', { count: activeRules })} · {t(active.length > 1 ? 'remindersActive_plural' : 'remindersActive', { count: active.length })}
           </p>
         </div>
         <button
@@ -479,7 +451,7 @@ export default function AutomationPage() {
           className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
-          Nouvelle règle
+          {t('newRule')}
         </button>
       </div>
 
@@ -487,14 +459,14 @@ export default function AutomationPage() {
       <Tabs defaultValue="reminders">
         <TabsList>
           <TabsTrigger value="reminders">
-            Relances
+            {t('tabs.reminders')}
             {active.length > 0 && <span className="ml-1.5 w-2 h-2 rounded-full bg-red-500" />}
           </TabsTrigger>
           <TabsTrigger value="rules">
-            Règles
+            {t('tabs.rules')}
           </TabsTrigger>
           <TabsTrigger value="templates">
-            Templates
+            {t('tabs.templates')}
           </TabsTrigger>
         </TabsList>
 
@@ -506,7 +478,7 @@ export default function AutomationPage() {
               <div>
                 <h2 className="text-sm font-semibold text-theme-primary mb-2 flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-amber-500" />
-                  À traiter ({triggered.length})
+                  {t('toProcess')} ({triggered.length})
                 </h2>
                 <ReminderList reminders={triggered} onDone={markAsDone} onSnooze={snooze} onCancel={cancel} />
               </div>
@@ -517,7 +489,7 @@ export default function AutomationPage() {
               <div>
                 <h2 className="text-sm font-semibold text-theme-primary mb-2 flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-theme-tertiary" />
-                  En attente ({pending.length})
+                  {t('pending')} ({pending.length})
                 </h2>
                 <ReminderList reminders={pending} onDone={markAsDone} onSnooze={snooze} onCancel={cancel} />
               </div>
@@ -528,8 +500,8 @@ export default function AutomationPage() {
                 <div className="h-12 w-12 rounded-full bg-theme-active flex items-center justify-center mx-auto mb-3">
                   <Clock className="h-6 w-6 text-theme-tertiary" />
                 </div>
-                <p className="text-sm font-medium text-theme-secondary">Aucune relance en attente</p>
-                <p className="text-xs text-theme-tertiary mt-1">Configurez des règles d'automatisation pour ne plus oublier de suivre vos clients.</p>
+                <p className="text-sm font-medium text-theme-secondary">{t('noReminders')}</p>
+                <p className="text-xs text-theme-tertiary mt-1">{t('noRemindersDesc')}</p>
               </div>
             )}
           </div>
@@ -543,7 +515,7 @@ export default function AutomationPage() {
               <div className="flex items-center gap-2 p-2.5 rounded-lg border border-theme-border">
                 <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                 <p className="text-xs text-theme-secondary flex-1">
-                  Les relances créent des rappels par défaut. L'envoi automatique nécessite une activation explicite par règle.
+                  {t('bannerInfo')}
                 </p>
                 <button onClick={() => setBannerDismissed(true)} className="h-6 w-6 rounded flex items-center justify-center text-theme-tertiary hover:text-theme-primary transition-colors shrink-0">
                   <X className="h-3.5 w-3.5" />
@@ -573,7 +545,7 @@ export default function AutomationPage() {
                 className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
               >
                 <Plus className="h-3 w-3" />
-                Nouveau template
+                {t('newTemplate')}
               </button>
             </div>
             {templates.map((tpl) => (

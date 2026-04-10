@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -63,6 +64,7 @@ const TESTIMONIALS: Testimonial[] = [
 ]
 
 export default function Testimonials() {
+  const { t } = useTranslation('common')
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
@@ -94,11 +96,11 @@ export default function Testimonials() {
         {/* Header */}
         <div className="flex items-end justify-between mb-10">
           <div>
-            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em]">
-              Témoignages
+            <p className="text-xs font-medium text-gray-500 capitalize">
+              {t('home.testimonials')}
             </p>
             <h2 className="text-2xl md:text-3xl font-semibold text-primary mt-1">
-              Ce qu'en disent nos utilisateurs
+              {t('home.whatUsersSay')}
             </h2>
           </div>
 
@@ -170,7 +172,7 @@ export default function Testimonials() {
                 />
                 <div>
                   <p className="text-sm font-semibold text-primary">{t.name}</p>
-                  <p className="text-xs text-gray-400">{t.role}</p>
+                  <p className="text-xs text-gray-500">{t.role}</p>
                 </div>
               </div>
             </div>

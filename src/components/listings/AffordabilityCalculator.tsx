@@ -155,7 +155,7 @@ export default function AffordabilityCalculator({ price, open, onClose }: Afford
               </div>
 
               {/* Disclaimer */}
-              <p className="text-[11px] text-gray-400 pt-1">
+              <p className="text-xs text-gray-500 pt-1">
                 Estimation indicative basee sur le taux impute de 5%, amortissement 1%, entretien 1%. Les conditions effectives dependent de votre banque.
               </p>
             </div>

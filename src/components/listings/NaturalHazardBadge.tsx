@@ -26,7 +26,7 @@ function HazardLine({ label, level, icon: Icon }: {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2 text-xs text-gray-600">
-        <Icon className="h-3.5 w-3.5 text-gray-400" />
+        <Icon className="h-3.5 w-3.5 text-gray-500" />
         {label}
       </div>
       <div className="flex items-center gap-1.5">
@@ -78,7 +78,7 @@ export default function NaturalHazardBadge({ lat, lng, compact = false, classNam
         <HazardLine label="Avalanche" level={hazards.avalanche} icon={Snowflake} />
       </div>
 
-      <p className="text-[10px] text-gray-300 mt-3">
+      <p className="text-xs text-gray-500 mt-3">
         Source : Office federal de l'environnement (OFEV)
       </p>
     </div>

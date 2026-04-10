@@ -193,7 +193,7 @@ export default function ActionCard({
           <div className="flex items-baseline gap-2 mt-0.5 pl-8">
             <p className="text-xs text-theme-secondary line-clamp-1 leading-relaxed">{description}</p>
             <span className={cn(
-              'text-[10px] shrink-0',
+              'text-xs shrink-0',
               isOverdue ? 'text-red-500' : 'text-theme-secondary'
             )}>
               · {timestamp}
@@ -205,7 +205,7 @@ export default function ActionCard({
         <div className="flex items-center gap-1.5 shrink-0 ml-1 md:opacity-0 md:translate-x-2 md:group-hover:opacity-100 md:group-hover:translate-x-0 transition-all duration-200">
           <button
             onClick={(e) => { e.stopPropagation(); onAction() }}
-            className="h-7 min-h-[44px] md:min-h-0 px-3 rounded-lg text-[11px] font-medium text-theme-secondary hover:text-theme-primary bg-theme-hover hover:bg-theme-active border border-theme-border transition-all duration-150"
+            className="h-7 min-h-[44px] md:min-h-0 px-3 rounded-lg text-xs font-medium text-theme-secondary hover:text-theme-primary bg-theme-hover hover:bg-theme-active border border-theme-border transition-all duration-150"
           >
             <span>{actionLabel}</span>
           </button>

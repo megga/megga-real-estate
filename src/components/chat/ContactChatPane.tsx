@@ -32,7 +32,7 @@ function ThreadAvatar({ initials }: { initials: string; type: 'buyer' | 'seller'
 // Small avatar for message groups
 function MiniAvatar({ initials }: { initials: string; type: 'buyer' | 'seller' }) {
   return (
-    <div className="h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-semibold bg-theme-hover text-theme-secondary">
+    <div className="h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold bg-theme-hover text-theme-secondary">
       {initials}
     </div>
   )
@@ -58,7 +58,7 @@ function BubbleContent({ content, isAgent }: { content: string; isAgent: boolean
   return (
     <>
       <div className={cn(
-        'text-[12px] leading-snug mb-1.5 px-2.5 py-1.5 rounded-md border-l-2',
+        'text-xs leading-snug mb-1.5 px-2.5 py-1.5 rounded-md border-l-2',
         isAgent ? 'bg-white/10 border-white/40 text-white/80' : 'bg-theme-section border-accent/40 text-theme-secondary'
       )}>
         {quoteLine}
@@ -327,7 +327,7 @@ export default function ContactChatPane({
                 {/* Day separator */}
                 {showDaySeparator && (
                   <div className="flex justify-center py-4">
-                    <span className="text-[10px] text-theme-muted font-medium uppercase tracking-wider px-3 py-1 rounded-full bg-theme-section">{dayLabel}</span>
+                    <span className="text-xs text-theme-muted font-medium capitalize px-3 py-1 rounded-full bg-theme-section">{dayLabel}</span>
                   </div>
                 )}
 
@@ -424,7 +424,7 @@ export default function ContactChatPane({
             <div className="flex items-center gap-2 mb-1.5 px-3 py-2 rounded-lg bg-theme-section border-l-2 border-accent">
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-accent">{replyTo.senderName}</p>
-                <p className="text-[12px] text-theme-secondary truncate">{replyTo.content}</p>
+                <p className="text-xs text-theme-secondary truncate">{replyTo.content}</p>
               </div>
               <button onClick={() => setReplyTo(null)} aria-label="Annuler la réponse" className="p-1 rounded-md hover:bg-theme-hover flex-shrink-0">
                 <X className="w-3 h-3 text-theme-muted" />
@@ -453,7 +453,7 @@ export default function ContactChatPane({
             <div className="w-72 h-full overflow-y-auto scrollbar-hide p-4 space-y-4">
               {/* Close */}
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-theme-muted uppercase tracking-wider">Profil</p>
+                <p className="text-xs font-medium text-theme-muted capitalize">Profil</p>
                 <button onClick={() => setShowInfoPanel(false)} aria-label="Fermer le profil" className="p-1 rounded-md hover:bg-theme-hover transition-colors">
                   <X className="w-3.5 h-3.5 text-theme-muted" />
                 </button>
@@ -495,7 +495,7 @@ export default function ContactChatPane({
               {contactData?.ai_seriousness_score != null && (
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] text-theme-muted flex items-center gap-1">
+                    <span className="text-xs text-theme-muted flex items-center gap-1">
                       <Flame className="w-3 h-3" />
                       Score sérieux
                     </span>
@@ -512,14 +512,14 @@ export default function ContactChatPane({
                       style={{ width: `${contactData.ai_seriousness_score}%` }}
                     />
                   </div>
-                  <p className="text-[10px] text-theme-muted mt-1 italic">estimation IA</p>
+                  <p className="text-xs text-theme-muted mt-1 italic">estimation IA</p>
                 </div>
               )}
 
               {/* 2. Phone + Email — clickable */}
               <div className="space-y-2">
                 {(contactData?.phone || contactData?.email) && (
-                  <p className="text-xs font-medium text-theme-muted uppercase tracking-wider">Contact</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize">Contact</p>
                 )}
                 {contactData?.phone && (
                   <a href={`tel:${contactData.phone}`} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-theme-hover transition-colors group">
@@ -528,7 +528,7 @@ export default function ContactChatPane({
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs text-theme-primary group-hover:text-accent transition-colors">{contactData.phone}</p>
-                      <p className="text-[10px] text-theme-muted">Téléphone</p>
+                      <p className="text-xs text-theme-muted">Téléphone</p>
                     </div>
                   </a>
                 )}
@@ -539,7 +539,7 @@ export default function ContactChatPane({
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs text-theme-primary group-hover:text-accent transition-colors truncate">{contactData.email}</p>
-                      <p className="text-[10px] text-theme-muted">Email</p>
+                      <p className="text-xs text-theme-muted">Email</p>
                     </div>
                   </a>
                 )}
@@ -549,13 +549,13 @@ export default function ContactChatPane({
                       <div className="h-9 w-9 rounded-full bg-theme-section flex items-center justify-center">
                         <Phone className="w-4 h-4 text-theme-secondary" />
                       </div>
-                      <span className="text-[10px] text-theme-muted">Appeler</span>
+                      <span className="text-xs text-theme-muted">Appeler</span>
                     </button>
                     <button className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-theme-hover transition-colors">
                       <div className="h-9 w-9 rounded-full bg-theme-section flex items-center justify-center">
                         <Mail className="w-4 h-4 text-theme-secondary" />
                       </div>
-                      <span className="text-[10px] text-theme-muted">Email</span>
+                      <span className="text-xs text-theme-muted">Email</span>
                     </button>
                   </div>
                 )}
@@ -564,7 +564,7 @@ export default function ContactChatPane({
               {/* 3. Pipeline stage */}
               {contactData && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-2">Pipeline</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Pipeline</p>
                   <div className="flex items-center gap-2 p-2.5 rounded-lg bg-theme-section">
                     <GitBranch className="w-3.5 h-3.5 text-theme-muted flex-shrink-0" />
                     <span className="text-xs text-theme-secondary">Aucun deal actif</span>
@@ -575,7 +575,7 @@ export default function ContactChatPane({
               {/* 4. Last interaction */}
               {contactData?.last_interaction_at && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-2">Dernière interaction</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Dernière interaction</p>
                   <div className="flex items-center gap-2 p-2.5 rounded-lg bg-theme-section">
                     <Clock className="w-3.5 h-3.5 text-theme-muted flex-shrink-0" />
                     <span className="text-xs text-theme-secondary">
@@ -588,7 +588,7 @@ export default function ContactChatPane({
               {/* 5. Budget (buyers only) */}
               {contactData && thread.contact_type === 'buyer' && (contactData.budget_announced || contactData.budget_estimated_ai) && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-2">Budget</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Budget</p>
                   <div className="space-y-1.5">
                     {contactData.budget_announced != null && (
                       <div className="flex items-center justify-between p-2.5 rounded-lg bg-theme-section">
@@ -616,17 +616,17 @@ export default function ContactChatPane({
               {contactData && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium text-theme-muted uppercase tracking-wider">Tags</p>
+                    <p className="text-xs font-medium text-theme-muted capitalize">Tags</p>
                     <button
                       onClick={() => setShowTagInput(p => !p)}
-                      className="text-[10px] text-theme-muted hover:text-theme-primary transition-colors"
+                      className="text-xs text-theme-muted hover:text-theme-primary transition-colors"
                     >
                       + Ajouter
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(contactData.tags || []).map((tag) => (
-                      <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-theme-active text-theme-primary">
+                      <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-theme-active text-theme-primary">
                         {tag}
                         <button onClick={() => removeTag(tag)} aria-label={`Retirer le tag ${tag}`} className="hover:text-red-500 transition-colors">
                           <X className="w-2.5 h-2.5" />
@@ -634,7 +634,7 @@ export default function ContactChatPane({
                       </span>
                     ))}
                     {(contactData.tags || []).length === 0 && !showTagInput && (
-                      <span className="text-[10px] text-theme-muted">Aucun tag</span>
+                      <span className="text-xs text-theme-muted">Aucun tag</span>
                     )}
                   </div>
                   <AnimatePresence>
@@ -674,11 +674,11 @@ export default function ContactChatPane({
               {contactData && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium text-theme-muted uppercase tracking-wider flex items-center gap-1">
+                    <p className="text-xs font-medium text-theme-muted capitalize flex items-center gap-1">
                       <StickyNote className="w-3 h-3" />
                       Notes
                     </p>
-                    {isSavingNote && <span className="text-[10px] text-theme-muted">Sauvegarde...</span>}
+                    {isSavingNote && <span className="text-xs text-theme-muted">Sauvegarde...</span>}
                   </div>
                   <textarea
                     value={noteDraft ?? ''}
@@ -694,7 +694,7 @@ export default function ContactChatPane({
               {/* 8. Next Best Action IA */}
               {contactData?.ai_seriousness_score != null && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2 flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     Prochaine action
                   </p>
@@ -706,14 +706,14 @@ export default function ContactChatPane({
                         ? 'Envoyer des biens similaires pour maintenir l\'intérêt'
                         : 'Relancer avec un nouveau bien ou une baisse de prix'}
                     </p>
-                    <p className="text-[10px] text-theme-muted mt-1 italic">estimation IA</p>
+                    <p className="text-xs text-theme-muted mt-1 italic">estimation IA</p>
                   </div>
                 </div>
               )}
 
               {/* 9. Historique rapide — 3 derniers événements */}
               <div>
-                <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-2 flex items-center gap-1">
+                <p className="text-xs font-medium text-theme-muted capitalize mb-2 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   Activité récente
                 </p>
@@ -725,8 +725,8 @@ export default function ContactChatPane({
                         msg.sender_type === 'agent' ? 'bg-accent' : 'bg-theme-muted'
                       )} />
                       <div className="min-w-0">
-                        <p className="text-[10px] text-theme-secondary truncate">{msg.content}</p>
-                        <p className="text-[9px] text-theme-muted">
+                        <p className="text-xs text-theme-secondary truncate">{msg.content}</p>
+                        <p className="text-xs text-theme-muted">
                           {new Date(msg.created_at).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' })}
                           {' · '}
                           {msg.sender_type === 'agent' ? 'Vous' : thread.contact_name.split(' ')[0]}
@@ -735,7 +735,7 @@ export default function ContactChatPane({
                     </div>
                   ))}
                   {messages.length === 0 && (
-                    <p className="text-[10px] text-theme-muted">Aucune activité</p>
+                    <p className="text-xs text-theme-muted">Aucune activité</p>
                   )}
                 </div>
               </div>
@@ -743,7 +743,7 @@ export default function ContactChatPane({
               {/* 10. Compatibilité matching */}
               {allMatches.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-2">Matching</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Matching</p>
                   <Link
                     to={thread.contact_id ? `/dashboard/matching?contact=${thread.contact_id}` : '/dashboard/matching'}
                     className="flex items-center gap-3 p-2.5 rounded-lg bg-theme-section hover:bg-theme-hover transition-colors group"
@@ -756,7 +756,7 @@ export default function ContactChatPane({
                         {allMatches.length} bien{allMatches.length > 1 ? 's' : ''} compatible{allMatches.length > 1 ? 's' : ''}
                       </p>
                       {allMatches[0] && (
-                        <p className="text-[10px] text-theme-muted truncate">
+                        <p className="text-xs text-theme-muted truncate">
                           Meilleur : {allMatches[0].score}% — {allMatches[0].listing?.title || 'Bien'}
                         </p>
                       )}
@@ -768,7 +768,7 @@ export default function ContactChatPane({
               {/* 11. Biens envoyés */}
               {sentMatches.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-2">Biens envoyés</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Biens envoyés</p>
                   <div className="space-y-1.5">
                     {sentMatches.slice(0, 3).map((match) => {
                       const title = match.listing?.title || 'Bien'
@@ -779,11 +779,11 @@ export default function ContactChatPane({
                             <Building2 className="w-3.5 h-3.5 text-theme-muted" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-[10px] text-theme-primary truncate">{title}</p>
-                            {price ? <p className="text-[10px] text-theme-muted">{formatCHF(price)}</p> : null}
+                            <p className="text-xs text-theme-primary truncate">{title}</p>
+                            {price ? <p className="text-xs text-theme-muted">{formatCHF(price)}</p> : null}
                           </div>
                           <span className={cn(
-                            'text-[9px] font-medium px-1.5 py-0.5 rounded-full',
+                            'text-xs font-medium px-1.5 py-0.5 rounded-full',
                             match.status === 'interested' ? 'bg-emerald-500/10 text-emerald-500' :
                             match.status === 'visit_planned' ? 'bg-amber-500/10 text-amber-500' :
                             'bg-theme-active text-theme-secondary'
@@ -796,7 +796,7 @@ export default function ContactChatPane({
                       )
                     })}
                     {sentMatches.length > 3 && (
-                      <p className="text-[10px] text-theme-muted text-center">+{sentMatches.length - 3} autre{sentMatches.length - 3 > 1 ? 's' : ''}</p>
+                      <p className="text-xs text-theme-muted text-center">+{sentMatches.length - 3} autre{sentMatches.length - 3 > 1 ? 's' : ''}</p>
                     )}
                   </div>
                 </div>
@@ -830,7 +830,7 @@ export default function ContactChatPane({
               {/* Property info — expandable mini-fiche */}
               {thread.property_title && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-3">Bien lié</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-3">Bien lié</p>
                   <button
                     onClick={() => setPropertyExpanded(p => !p)}
                     className="w-full rounded-xl border border-theme-border hover:border-theme-active transition-colors overflow-hidden text-left"
@@ -910,7 +910,7 @@ export default function ContactChatPane({
                                     propertyData.status === 'sold' ? 'bg-red-500' :
                                     'bg-theme-muted'
                                   )} />
-                                  <span className="text-[10px] text-theme-muted capitalize">
+                                  <span className="text-xs text-theme-muted capitalize">
                                     {propertyData.status === 'active' ? 'Actif' :
                                      propertyData.status === 'reserved' ? 'Réservé' :
                                      propertyData.status === 'sold' ? 'Vendu' :
@@ -955,7 +955,7 @@ export default function ContactChatPane({
 
               {/* Conversation stats */}
               <div>
-                <p className="text-xs font-medium text-theme-muted uppercase tracking-wider mb-3">Conversation</p>
+                <p className="text-xs font-medium text-theme-muted capitalize mb-3">Conversation</p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-theme-secondary">Messages</span>

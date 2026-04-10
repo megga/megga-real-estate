@@ -80,6 +80,8 @@ export function WeekViewGrid({
             return (
               <div
                 key={`${day.date.toISOString()}-${hourSlot.hour}`}
+                role="gridcell"
+                tabIndex={0}
                 className={cn(
                   "border-theme-border border-b border-l cursor-pointer hover:bg-accent/5 transition-colors",
                   isWeekend && "bg-calendar-weekend",
@@ -89,6 +91,15 @@ export function WeekViewGrid({
                   const slotDate = new Date(day.date);
                   slotDate.setHours(hourSlot.hour, 0, 0, 0);
                   onSlotClick(slotDate);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!onSlotClick) return;
+                    const slotDate = new Date(day.date);
+                    slotDate.setHours(hourSlot.hour, 0, 0, 0);
+                    onSlotClick(slotDate);
+                  }
                 }}
               />
             );

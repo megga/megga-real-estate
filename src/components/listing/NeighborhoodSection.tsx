@@ -88,9 +88,9 @@ export default function NeighborhoodSection({ lat, lng, canton, city, compact }:
                     <Icon className={cn('h-4.5 w-4.5', textColor)} />
                   </div>
                   <p className="text-xs font-semibold text-gray-900">{config.label}</p>
-                  <p className="text-[11px] text-gray-500">{cat.count} lieu{cat.count > 1 ? 'x' : ''}</p>
+                  <p className="text-xs text-gray-500">{cat.count} lieu{cat.count > 1 ? 'x' : ''}</p>
                   {cat.nearest && (
-                    <p className="text-[11px] text-gray-400 mt-0.5">{formatDistance(cat.nearest.distanceM)}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{formatDistance(cat.nearest.distanceM)}</p>
                   )}
                 </div>
               )
@@ -115,7 +115,7 @@ export default function NeighborhoodSection({ lat, lng, canton, city, compact }:
       {/* No data state */}
       {!isLoading && !hasData && !station && (
         <div className="flex items-center gap-2.5 p-4 bg-gray-50 rounded-lg">
-          <MapPin className="h-5 w-5 text-gray-300" />
+          <MapPin className="h-5 w-5 text-gray-500" />
           <p className="text-sm text-gray-500">Données du quartier non disponibles pour cette localisation</p>
         </div>
       )}

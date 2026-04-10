@@ -9,8 +9,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, skipOnboardingCheck }: ProtectedRouteProps) {
   const { profile } = useAuth()
 
-  // BYPASS: skip auth (demo mode) — keep onboarding redirect
-  // TODO: re-enable full auth (loading, user, Navigate to /login) when Supabase auth is production-ready
+  // Auth bypass active (demo mode) — re-enable loading/user/Navigate guards when Supabase auth is production-ready
   if (!skipOnboardingCheck && profile && profile.onboarding_completed === false) {
     return <Navigate to="/dashboard/onboarding" replace />
   }

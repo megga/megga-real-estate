@@ -23,6 +23,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 import Navbar from '@/components/layout/Navbar'
 import BuyerSidebar from '@/components/search/BuyerSidebar'
 import Footer from '@/components/layout/Footer'
@@ -35,19 +36,19 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 // ─── Constants ───────────────────────────────────────────
 
 const PROPERTY_TYPES = [
-  { value: 'apartment', label: 'Appartement', icon: Building2 },
-  { value: 'house', label: 'Maison', icon: Home },
-  { value: 'villa', label: 'Villa', icon: Castle },
-  { value: 'land', label: 'Terrain', icon: Trees },
-  { value: 'commercial', label: 'Commercial', icon: Store },
+  { value: 'apartment', labelKey: 'sell.types.apartment', icon: Building2 },
+  { value: 'house', labelKey: 'sell.types.house', icon: Home },
+  { value: 'villa', labelKey: 'sell.types.villa', icon: Castle },
+  { value: 'land', labelKey: 'sell.types.land', icon: Trees },
+  { value: 'commercial', labelKey: 'sell.types.commercial', icon: Store },
 ] as const
 
 const CONDITIONS = [
-  { value: 'new', label: 'Neuf', icon: Sparkles },
-  { value: 'renovated', label: 'Rénové', icon: Wrench },
-  { value: 'good', label: 'Bon état', icon: ThumbsUp },
-  { value: 'refresh', label: 'À rafraîchir', icon: Paintbrush },
-  { value: 'renovate', label: 'À rénover', icon: HardHat },
+  { value: 'new', labelKey: 'sell.conditions.new', icon: Sparkles },
+  { value: 'renovated', labelKey: 'sell.conditions.renovated', icon: Wrench },
+  { value: 'good', labelKey: 'sell.conditions.good', icon: ThumbsUp },
+  { value: 'refresh', labelKey: 'sell.conditions.refresh', icon: Paintbrush },
+  { value: 'renovate', labelKey: 'sell.conditions.renovate', icon: HardHat },
 ] as const
 
 const ROOM_OPTIONS = ['1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5', '6', '6.5', '7', '8+']
@@ -57,28 +58,28 @@ const BEDROOM_OPTIONS = ['1', '2', '3', '4', '5', '6+']
 const FLOOR_OPTIONS = ['RDC', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10+', 'Attique']
 const PARKING_OPTIONS = ['0', '1', '2', '3+']
 const VIEW_TYPES = [
-  { value: 'lake', label: 'Lac' },
-  { value: 'mountain', label: 'Montagne' },
-  { value: 'open', label: 'Vue dégagée' },
-  { value: 'none', label: 'Aucune' },
+  { value: 'lake', labelKey: 'sell.views.lake' },
+  { value: 'mountain', labelKey: 'sell.views.mountain' },
+  { value: 'open', labelKey: 'sell.views.open' },
+  { value: 'none', labelKey: 'sell.views.none' },
 ] as const
 const LAND_ZONES = [
-  { value: 'constructible', label: 'Constructible' },
-  { value: 'agricole', label: 'Agricole' },
-  { value: 'mixte', label: 'Mixte' },
+  { value: 'constructible', labelKey: 'sell.landZones.constructible' },
+  { value: 'agricole', labelKey: 'sell.landZones.agricole' },
+  { value: 'mixte', labelKey: 'sell.landZones.mixte' },
 ] as const
 const COMMERCIAL_TYPES = [
-  { value: 'bureau', label: 'Bureau' },
-  { value: 'commerce', label: 'Commerce' },
-  { value: 'restaurant', label: 'Restaurant' },
-  { value: 'entrepot', label: 'Entrepôt' },
+  { value: 'bureau', labelKey: 'sell.commercialTypes.bureau' },
+  { value: 'commerce', labelKey: 'sell.commercialTypes.commerce' },
+  { value: 'restaurant', labelKey: 'sell.commercialTypes.restaurant' },
+  { value: 'entrepot', labelKey: 'sell.commercialTypes.entrepot' },
 ] as const
 
 const MOTIVATIONS = [
-  { value: 'immediate', label: 'Dès que possible' },
-  { value: '3months', label: 'Dans les 3 mois' },
-  { value: '6months', label: 'Dans les 6 mois' },
-  { value: 'exploring', label: "J'explore les options" },
+  { value: 'immediate', labelKey: 'sell.motivations.immediate' },
+  { value: '3months', labelKey: 'sell.motivations.3months' },
+  { value: '6months', labelKey: 'sell.motivations.6months' },
+  { value: 'exploring', labelKey: 'sell.motivations.exploring' },
 ] as const
 
 const CANTON_LABELS: Record<string, string> = {
@@ -143,71 +144,59 @@ interface FormData {
   motivation: string
 }
 
-const STEP_LABELS = ['Adresse', 'Détails', 'Photos', 'Contact', 'Estimation']
+const STEP_LABEL_KEYS = ['sell.steps.address', 'sell.steps.details', 'sell.steps.photos', 'sell.steps.contact', 'sell.steps.estimation']
 
 // ─── Component ───────────────────────────────────────────
 
 // ─── Substep definitions per property type ──────────────
 type SubStepDef = { id: string; question: string; type: 'pills' | 'input' | 'toggle'; required?: boolean }
 
-function getSubSteps(propertyType: string): SubStepDef[] {
+function getSubSteps(propertyType: string, t: (key: string) => string): SubStepDef[] {
   const common: SubStepDef[] = []
 
   if (['apartment', 'house', 'villa'].includes(propertyType)) {
     common.push(
-      { id: 'rooms', question: 'Combien de pièces ?', type: 'pills' },
-      { id: 'bedrooms', question: 'Combien de chambres ?', type: 'pills' },
+      { id: 'rooms', question: t('sell.wizard.step2.rooms'), type: 'pills' },
+      { id: 'bedrooms', question: t('sell.wizard.step2.bedrooms'), type: 'pills' },
     )
   }
 
   common.push({
     id: 'surface',
-    question: propertyType === 'land' ? 'Quelle est la surface de la parcelle ?' : 'Quelle est la surface habitable ?',
+    question: propertyType === 'land' ? t('sell.wizard.step2.surfaceParcelle') : t('sell.wizard.step2.surfaceHabitable'),
     type: 'input',
   })
 
-  // Type-specific
   if (propertyType === 'apartment') {
-    common.push(
-      { id: 'floor', question: 'À quel étage ?', type: 'pills' },
-    )
+    common.push({ id: 'floor', question: t('sell.wizard.step2.floor'), type: 'pills' })
   }
   if (['house', 'villa'].includes(propertyType)) {
     common.push(
-      { id: 'landSurface', question: 'Quelle est la surface du terrain ?', type: 'input' },
-      { id: 'parkingSpaces', question: 'Combien de places de parking ?', type: 'pills' },
+      { id: 'landSurface', question: t('sell.wizard.step2.landSurface'), type: 'input' },
+      { id: 'parkingSpaces', question: t('sell.wizard.step2.parking'), type: 'pills' },
     )
   }
   if (propertyType === 'villa') {
-    common.push(
-      { id: 'viewType', question: 'Quelle vue avez-vous ?', type: 'pills' },
-    )
+    common.push({ id: 'viewType', question: t('sell.wizard.step2.view'), type: 'pills' })
   }
   if (propertyType === 'land') {
-    common.push(
-      { id: 'landZone', question: 'Quelle est la zone ?', type: 'pills' },
-    )
+    common.push({ id: 'landZone', question: t('sell.wizard.step2.landZone'), type: 'pills' })
   }
   if (propertyType === 'commercial') {
-    common.push(
-      { id: 'commercialType', question: 'Quel type de bien commercial ?', type: 'pills' },
-    )
+    common.push({ id: 'commercialType', question: t('sell.wizard.step2.commercialType'), type: 'pills' })
   }
 
-  // Condition for all except land
   if (propertyType !== 'land') {
-    common.push(
-      { id: 'condition', question: 'Quel est l\'état général ?', type: 'pills' },
-    )
+    common.push({ id: 'condition', question: t('sell.wizard.step2.condition'), type: 'pills' })
   }
 
-  // Summary (always last)
-  common.push({ id: 'summary', question: 'Vérifiez vos informations', type: 'pills' })
+  common.push({ id: 'summary', question: t('sell.wizard.step2.summary'), type: 'pills' })
 
   return common
 }
 
 export default function VendrePage() {
+  const { t } = useTranslation('common')
   const [step, setStep] = useState(0) // 0 = hero, 1-4 = wizard steps
   const [subStep, setSubStep] = useState(0) // substep within step 2
   const [form, setForm] = useState<FormData>({
@@ -527,28 +516,28 @@ export default function VendrePage() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-              38'000+ biens analysés en temps réel
+              {t('sell.hero.badge')}
             </div>
 
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 tracking-tight leading-[1.05]">
-              Combien vaut
+              {t('sell.hero.title1')}
               <br />
-              <span className="text-blue-600">votre bien</span> ?
+              <span className="text-blue-600">{t('sell.hero.title2')}</span> ?
             </h1>
             <p className="text-lg md:text-xl text-gray-500 mt-6 max-w-xl mx-auto leading-relaxed">
-              Obtenez une estimation gratuite et instantanée basée sur les données du marché suisse
+              {t('sell.hero.subtitle')}
             </p>
 
             {/* Search bar — Zillow style address input */}
             <div className="mt-10 max-w-xl mx-auto">
               <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                 <input
                   type="text"
                   value={geoQuery}
                   onChange={e => searchGeo(e.target.value)}
                   onFocus={() => { if (geoResults.length > 0) setGeoOpen(true) }}
-                  placeholder="Entrez l'adresse de votre bien..."
+                  placeholder={t('sell.hero.addressPlaceholder')}
                   className="w-full h-14 md:h-16 pl-12 pr-40 text-base md:text-lg text-gray-900 placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 shadow-lg shadow-gray-200/50 transition-all"
                 />
                 <button
@@ -558,10 +547,10 @@ export default function VendrePage() {
                     'absolute right-2 top-1/2 -translate-y-1/2 h-10 md:h-12 px-6 md:px-8 rounded-xl text-sm md:text-base font-semibold transition-all',
                     form.address
                       ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                   )}
                 >
-                  Estimer
+                  {t('sell.hero.estimate')}
                 </button>
 
                 {/* Geocoding dropdown */}
@@ -573,7 +562,7 @@ export default function VendrePage() {
                         onClick={() => selectGeoResult(r)}
                         className="flex items-center gap-3 w-full px-4 py-3.5 text-left hover:bg-gray-50 transition-colors"
                       >
-                        <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
                         <span className="text-sm text-gray-700 truncate">{r.place_name}</span>
                       </button>
                     ))}
@@ -584,7 +573,7 @@ export default function VendrePage() {
 
             {/* Or select property type */}
             <div className="mt-8">
-              <p className="text-sm text-gray-400 mb-4">ou sélectionnez un type de bien</p>
+              <p className="text-sm text-gray-500 mb-4">{t('sell.hero.orSelectType')}</p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {PROPERTY_TYPES.map(type => {
                   const Icon = type.icon
@@ -595,7 +584,7 @@ export default function VendrePage() {
                       className="flex items-center gap-2 h-10 px-5 rounded-full border border-gray-200 text-sm font-medium text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-all hover:shadow-sm"
                     >
                       <Icon className="w-4 h-4" />
-                      {type.label}
+                      {t(type.labelKey)}
                     </button>
                   )
                 })}
@@ -606,28 +595,28 @@ export default function VendrePage() {
             <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-8">
               <div className="text-center">
                 <p className="text-3xl font-bold text-gray-900">38'000+</p>
-                <p className="text-xs text-gray-500 mt-1">Biens analysés</p>
+                <p className="text-xs text-gray-500 mt-1">{t('sell.hero.propertiesAnalyzed')}</p>
               </div>
               <div className="hidden sm:block w-px h-10 bg-gray-200" />
               <div className="text-center">
                 <p className="text-3xl font-bold text-gray-900">26</p>
-                <p className="text-xs text-gray-500 mt-1">Cantons couverts</p>
+                <p className="text-xs text-gray-500 mt-1">{t('sell.hero.cantonsCovered')}</p>
               </div>
               <div className="hidden sm:block w-px h-10 bg-gray-200" />
               <div className="text-center">
                 <p className="text-3xl font-bold text-gray-900">±5%</p>
-                <p className="text-xs text-gray-500 mt-1">Précision moyenne</p>
+                <p className="text-xs text-gray-500 mt-1">{t('sell.hero.averagePrecision')}</p>
               </div>
             </div>
 
             {/* Reassurance */}
             <div className="mt-8 flex items-center justify-center gap-6">
               {[
-                { icon: Lock, text: 'Confidentiel' },
-                { icon: Sparkles, text: 'Résultat instantané' },
-                { icon: User, text: '100% gratuit' },
+                { icon: Lock, text: t('sell.hero.confidential') },
+                { icon: Sparkles, text: t('sell.hero.instantResult') },
+                { icon: User, text: t('sell.hero.free') },
               ].map(item => (
-                <span key={item.text} className="flex items-center gap-1.5 text-xs text-gray-400">
+                <span key={item.text} className="flex items-center gap-1.5 text-xs text-gray-500">
                   <item.icon className="w-3.5 h-3.5" />
                   {item.text}
                 </span>
@@ -643,7 +632,7 @@ export default function VendrePage() {
 
           {/* Progress bar — smooth across steps + substeps */}
           {(() => {
-            const subSteps = step === 2 ? getSubSteps(form.propertyType) : []
+            const subSteps = step === 2 ? getSubSteps(form.propertyType, t) : []
             const totalSubSteps = subSteps.length || 1
             // Step 1 = 25%, Step 2 = 25-50% (split across substeps), Step 3 = 75%, Step 4 = 100%
             let progress = 0
@@ -652,15 +641,15 @@ export default function VendrePage() {
             else if (step === 3) progress = 60
             else if (step === 4) progress = 80
             const currentLabel = step === 2 && subStep < subSteps.length
-              ? subSteps[subStep]?.question?.split('?')[0]?.replace('Combien de ', '').replace('Quelle est la ', '').replace('Quel est l\'', '').replace('Quelle ', '').replace('Quel ', '').replace('À quel ', '') || STEP_LABELS[step - 1]
-              : STEP_LABELS[step - 1]
+              ? subSteps[subStep]?.question?.split('?')[0]?.replace('Combien de ', '').replace('Quelle est la ', '').replace('Quel est l\'', '').replace('Quelle ', '').replace('Quel ', '').replace('À quel ', '') || t(STEP_LABEL_KEYS[step - 1])
+              : t(STEP_LABEL_KEYS[step - 1])
             return (
               <div className="mb-10">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-gray-500">
-                    {step === 2 ? `Question ${subStep + 1}/${totalSubSteps}` : `Étape ${step} sur 5`}
+                    {step === 2 ? t('sell.wizard.questionOf', { current: subStep + 1, total: totalSubSteps }) : t('sell.wizard.stepOf', { step })}
                   </span>
-                  <span className="text-xs text-gray-400 capitalize">{currentLabel}</span>
+                  <span className="text-xs text-gray-500 capitalize">{currentLabel}</span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
@@ -677,22 +666,22 @@ export default function VendrePage() {
             <div className="space-y-8">
               <div>
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                  Où se trouve votre bien ?
+                  {t('sell.wizard.step1.title')}
                 </h2>
                 <p className="text-base text-gray-500">
-                  Commencez à taper l'adresse pour obtenir des suggestions
+                  {t('sell.wizard.step1.subtitle')}
                 </p>
               </div>
 
               <div className="relative">
                 <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                   <input
                     type="text"
                     value={geoQuery}
                     onChange={e => searchGeo(e.target.value)}
                     onFocus={() => { if (geoResults.length) setGeoOpen(true) }}
-                    placeholder="Rue, numero, ville..."
+                    placeholder={t('sell.wizard.step1.placeholder')}
                     autoFocus
                     className="w-full h-14 pl-12 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base text-gray-900 placeholder:text-gray-400 outline-none transition-all"
                   />
@@ -707,7 +696,7 @@ export default function VendrePage() {
                         onClick={() => selectGeoResult(r)}
                         className="w-full text-left px-4 py-3.5 text-sm hover:bg-gray-50 transition-colors flex items-start gap-3 border-b border-gray-50 last:border-0"
                       >
-                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
                         <span className="text-gray-700">{r.place_name}</span>
                       </button>
                     ))}
@@ -719,9 +708,9 @@ export default function VendrePage() {
               <div className="flex items-center justify-between pt-2">
                 <button
                   onClick={() => setStep(0)}
-                  className="text-sm text-gray-400 hover:text-gray-900 transition-colors"
+                  className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
                 >
-                  Retour
+                  {t('sell.wizard.back')}
                 </button>
                 <button
                   onClick={goNext}
@@ -730,10 +719,10 @@ export default function VendrePage() {
                     'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                     step1Valid
                       ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                   )}
                 >
-                  Continuer
+                  {t('sell.wizard.continue')}
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -742,7 +731,7 @@ export default function VendrePage() {
 
           {/* Step 2 — Conversational substeps (one question per screen) */}
           {step === 2 && (() => {
-            const subSteps = getSubSteps(form.propertyType)
+            const subSteps = getSubSteps(form.propertyType, t)
             const current = subSteps[subStep]
             if (!current) return null
 
@@ -766,16 +755,15 @@ export default function VendrePage() {
               const fields = subSteps.filter(s => s.id !== 'summary')
               const getValue = (id: string): string => {
                 const v = form[id as keyof FormData]
-                if (typeof v === 'boolean') return v ? 'Oui' : 'Non'
+                if (typeof v === 'boolean') return v ? t('listing.yes') : t('listing.no')
                 if (typeof v === 'string') {
-                  // Translate known values
-                  const labels: Record<string, string> = {
-                    lake: 'Lac', mountain: 'Montagne', open: 'Vue dégagée', none: 'Aucune',
-                    constructible: 'Constructible', agricole: 'Agricole', mixte: 'Mixte',
-                    bureau: 'Bureau', commerce: 'Commerce', restaurant: 'Restaurant', entrepot: 'Entrepôt',
-                    new: 'Neuf', renovated: 'Rénové', good: 'Bon état', refresh: 'À rafraîchir', renovate: 'À rénover',
+                  const labelKeys: Record<string, string> = {
+                    lake: 'sell.views.lake', mountain: 'sell.views.mountain', open: 'sell.views.open', none: 'sell.views.none',
+                    constructible: 'sell.landZones.constructible', agricole: 'sell.landZones.agricole', mixte: 'sell.landZones.mixte',
+                    bureau: 'sell.commercialTypes.bureau', commerce: 'sell.commercialTypes.commerce', restaurant: 'sell.commercialTypes.restaurant', entrepot: 'sell.commercialTypes.entrepot',
+                    new: 'sell.conditions.new', renovated: 'sell.conditions.renovated', good: 'sell.conditions.good', refresh: 'sell.conditions.refresh', renovate: 'sell.conditions.renovate',
                   }
-                  return labels[v] || v || '—'
+                  return labelKeys[v] ? t(labelKeys[v]) : (v || '—')
                 }
                 return String(v || '—')
               }
@@ -790,9 +778,9 @@ export default function VendrePage() {
                 <div className="text-center space-y-6 animate-[fadeSlideIn_0.3s_ease-out]">
                   <style>{`@keyframes fadeSlideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }`}</style>
                   <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                    Vérifiez vos informations
+                    {t('sell.wizard.step2.summary')}
                   </h2>
-                  <p className="text-base text-gray-500">Modifiez si nécessaire avant de continuer</p>
+                  <p className="text-base text-gray-500">{t('sell.wizard.step2.summarySubtitle')}</p>
                   <div className="max-w-md mx-auto space-y-2 text-left">
                     {fields.map((f, i) => (
                       <button
@@ -808,14 +796,14 @@ export default function VendrePage() {
                     ))}
                   </div>
                   <div className="flex items-center justify-between pt-4 max-w-md mx-auto">
-                    <button onClick={goSubBack} className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5">
-                      <ArrowLeft className="w-4 h-4" /> Retour
+                    <button onClick={goSubBack} className="text-sm text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1.5">
+                      <ArrowLeft className="w-4 h-4" /> {t('sell.wizard.back')}
                     </button>
                     <button
                       onClick={() => { setSubStep(0); goNext() }}
                       className="h-11 px-8 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-colors flex items-center gap-2"
                     >
-                      Continuer <ArrowRight className="w-4 h-4" />
+                      {t('sell.wizard.continue')} <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -887,7 +875,7 @@ export default function VendrePage() {
                         autoFocus
                         className="w-full h-14 px-5 pr-14 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-lg text-gray-900 text-center placeholder:text-gray-300 outline-none transition-all"
                       />
-                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm text-gray-400">m²</span>
+                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm text-gray-500">m²</span>
                     </div>
                     <button
                       onClick={() => { if (form.surface) setSubStep(s => s + 1) }}
@@ -896,10 +884,10 @@ export default function VendrePage() {
                         'mt-6 h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 mx-auto',
                         form.surface
                           ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                       )}
                     >
-                      Continuer <ArrowRight className="w-4 h-4" />
+                      {t('sell.wizard.continue')} <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 )}
@@ -925,7 +913,7 @@ export default function VendrePage() {
                         autoFocus
                         className="w-full h-14 px-5 pr-14 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-lg text-gray-900 text-center placeholder:text-gray-300 outline-none transition-all"
                       />
-                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm text-gray-400">m²</span>
+                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm text-gray-500">m²</span>
                     </div>
                     <button
                       onClick={() => { if (form.landSurface) setSubStep(s => s + 1) }}
@@ -934,13 +922,13 @@ export default function VendrePage() {
                         'mt-6 h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 mx-auto',
                         form.landSurface
                           ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                       )}
                     >
-                      Continuer <ArrowRight className="w-4 h-4" />
+                      {t('sell.wizard.continue')} <ArrowRight className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setSubStep(s => s + 1)} className="block mx-auto mt-3 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2">
-                      Passer
+                    <button onClick={() => setSubStep(s => s + 1)} className="block mx-auto mt-3 text-xs text-gray-500 hover:text-gray-600 underline underline-offset-2">
+                      {t('sell.wizard.skip')}
                     </button>
                   </div>
                 )}
@@ -948,7 +936,7 @@ export default function VendrePage() {
                 {/* ── Parking ── */}
                 {current.id === 'parkingSpaces' && (
                   <PillGrid
-                    options={PARKING_OPTIONS.map(p => ({ value: p, label: p === '0' ? 'Aucun' : p }))}
+                    options={PARKING_OPTIONS.map(p => ({ value: p, label: p === '0' ? t('sell.parking.none') : p }))}
                     value={form.parkingSpaces}
                     field="parkingSpaces"
                   />
@@ -957,7 +945,7 @@ export default function VendrePage() {
                 {/* ── View (villa) ── */}
                 {current.id === 'viewType' && (
                   <PillGrid
-                    options={VIEW_TYPES.map(v => ({ value: v.value, label: v.label }))}
+                    options={VIEW_TYPES.map(v => ({ value: v.value, label: t(v.labelKey) }))}
                     value={form.viewType}
                     field="viewType"
                   />
@@ -966,7 +954,7 @@ export default function VendrePage() {
                 {/* ── Land zone ── */}
                 {current.id === 'landZone' && (
                   <PillGrid
-                    options={LAND_ZONES.map(z => ({ value: z.value, label: z.label }))}
+                    options={LAND_ZONES.map(z => ({ value: z.value, label: t(z.labelKey) }))}
                     value={form.landZone}
                     field="landZone"
                   />
@@ -975,7 +963,7 @@ export default function VendrePage() {
                 {/* ── Commercial type ── */}
                 {current.id === 'commercialType' && (
                   <PillGrid
-                    options={COMMERCIAL_TYPES.map(c => ({ value: c.value, label: c.label }))}
+                    options={COMMERCIAL_TYPES.map(c => ({ value: c.value, label: t(c.labelKey) }))}
                     value={form.commercialType}
                     field="commercialType"
                     columns="4"
@@ -985,7 +973,7 @@ export default function VendrePage() {
                 {/* ── Condition ── */}
                 {current.id === 'condition' && (
                   <PillGrid
-                    options={CONDITIONS.map(c => ({ value: c.value, label: c.label }))}
+                    options={CONDITIONS.map(c => ({ value: c.value, label: t(c.labelKey) }))}
                     value={form.condition}
                     field="condition"
                     columns="5"
@@ -996,23 +984,23 @@ export default function VendrePage() {
                 {current.type !== 'input' && (
                   <button
                     onClick={goSubBack}
-                    className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5 mx-auto pt-4"
+                    className="text-sm text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1.5 mx-auto pt-4"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Retour
+                    <ArrowLeft className="w-4 h-4" /> {t('sell.wizard.back')}
                   </button>
                 )}
                 {current.type === 'input' && (
                   <button
                     onClick={goSubBack}
-                    className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5 mx-auto"
+                    className="text-sm text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1.5 mx-auto"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Retour
+                    <ArrowLeft className="w-4 h-4" /> {t('sell.wizard.back')}
                   </button>
                 )}
 
                 {/* Social proof */}
-                <p className="text-xs text-gray-300 mt-8">
-                  12'500+ propriétaires ont déjà estimé leur bien sur MEGGA
+                <p className="text-xs text-gray-500 mt-8">
+                  {t('sell.wizard.step2.socialProof')}
                 </p>
               </div>
             )
@@ -1025,10 +1013,10 @@ export default function VendrePage() {
             <div className="space-y-8">
               <div>
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                  Ajoutez des photos
+                  {t('sell.wizard.step3.title')}
                 </h2>
                 <p className="text-base text-gray-500">
-                  Optionnel — les photos améliorent la précision de <span className="font-medium text-gray-700">40%</span>
+                  {t('sell.wizard.step3.subtitle', { percent: 40 })}
                 </p>
               </div>
 
@@ -1039,12 +1027,12 @@ export default function VendrePage() {
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-gray-200 rounded-xl p-10 text-center cursor-pointer hover:border-gray-400 transition-colors"
               >
-                <Upload className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                <Upload className="w-8 h-8 text-gray-500 mx-auto mb-3" />
                 <p className="text-sm text-gray-600 font-medium">
-                  Glissez vos photos ici
+                  {t('sell.wizard.step3.dropzone')}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  ou cliquez pour sélectionner (max 10)
+                <p className="text-xs text-gray-500 mt-1">
+                  {t('sell.wizard.step3.dropzoneSubtitle')}
                 </p>
                 <input
                   ref={fileInputRef}
@@ -1073,15 +1061,15 @@ export default function VendrePage() {
                 </div>
               )}
 
-              <p className="text-xs text-gray-400">
-                {form.photos.length}/10 photos
+              <p className="text-xs text-gray-500">
+                {t('sell.wizard.step3.photosCount', { count: form.photos.length })}
               </p>
 
               {/* Navigation */}
               <div className="flex items-center justify-between pt-2">
                 <button
                   onClick={goBack}
-                  className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5"
+                  className="text-sm text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1.5"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Retour
@@ -1093,7 +1081,7 @@ export default function VendrePage() {
                     'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                     step3Valid
                       ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                   )}
                 >
                   Voir mon estimation
@@ -1105,7 +1093,7 @@ export default function VendrePage() {
               <div className="text-center">
                 <button
                   onClick={triggerEstimation}
-                  className="text-sm text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
+                  className="text-sm text-gray-500 hover:text-gray-600 transition-colors underline underline-offset-2"
                 >
                   Passer cette étape
                 </button>
@@ -1141,7 +1129,7 @@ export default function VendrePage() {
                   </div>
                   <button
                     onClick={() => { setShowEstimation(true) }}
-                    className="ml-auto text-xs text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0"
+                    className="ml-auto text-xs text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
                   >
                     Revoir
                   </button>
@@ -1153,7 +1141,7 @@ export default function VendrePage() {
                   Nom complet
                 </label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <input
                     type="text"
                     value={form.contactName}
@@ -1170,7 +1158,7 @@ export default function VendrePage() {
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <input
                     type="email"
                     value={form.contactEmail}
@@ -1183,10 +1171,10 @@ export default function VendrePage() {
 
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Telephone <span className="text-gray-400 font-normal">(optionnel)</span>
+                  Telephone <span className="text-gray-500 font-normal">(optionnel)</span>
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <input
                     type="tel"
                     value={form.contactPhone}
@@ -1213,7 +1201,7 @@ export default function VendrePage() {
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       )}
                     >
-                      {m.label}
+                      {t(m.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -1223,7 +1211,7 @@ export default function VendrePage() {
               <div className="flex items-center justify-between pt-2">
                 <button
                   onClick={() => { setShowEstimation(true) }}
-                  className="text-sm text-gray-400 hover:text-gray-900 transition-colors flex items-center gap-1.5"
+                  className="text-sm text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1.5"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Retour
@@ -1235,7 +1223,7 @@ export default function VendrePage() {
                     'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                     step4Valid && !uploading && !sellerLead.isPending
                       ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                   )}
                 >
                   {(uploading || sellerLead.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -1250,8 +1238,8 @@ export default function VendrePage() {
               )}
 
               <div className="flex items-center justify-center gap-1.5 pt-2">
-                <Lock className="w-3 h-3 text-gray-400" />
-                <p className="text-xs text-gray-400">
+                <Lock className="w-3 h-3 text-gray-500" />
+                <p className="text-xs text-gray-500">
                   Vos donnees sont protegees et ne seront jamais partagees.
                 </p>
               </div>
@@ -1276,7 +1264,9 @@ function SuccessScreen({
   estimation: EstimationResult | undefined
   onReset: () => void
 }) {
-  const typeLabel = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.label || form.propertyType
+  const { t } = useTranslation('common')
+  const typeEntry = PROPERTY_TYPES.find(pt => pt.value === form.propertyType)
+  const typeLabel = typeEntry ? t(typeEntry.labelKey) : form.propertyType
   const firstName = form.contactName.split(' ')[0] || form.contactName
 
   return (
@@ -1306,25 +1296,25 @@ function SuccessScreen({
               <img src={URL.createObjectURL(form.photos[0])} alt="" className="h-16 w-16 rounded-xl object-cover" />
             ) : (
               <div className="h-16 w-16 rounded-xl bg-white border border-gray-200 flex items-center justify-center">
-                {(() => { const Icon = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.icon || Building2; return <Icon className="w-6 h-6 text-gray-400" /> })()}
+                {(() => { const Icon = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.icon || Building2; return <Icon className="w-6 h-6 text-gray-500" /> })()}
               </div>
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900">{typeLabel}{form.rooms && ` · ${form.rooms} pièces`}</p>
               <p className="text-xs text-gray-500 truncate">{form.address}</p>
-              {form.surface && <p className="text-xs text-gray-400 mt-0.5">{form.surface} m²</p>}
+              {form.surface && <p className="text-xs text-gray-500 mt-0.5">{form.surface} m²</p>}
             </div>
           </div>
 
           {/* Estimation */}
           {estimation?.estimation && (
             <div className="p-5 border-t border-gray-100">
-              <p className="text-xs text-gray-400 mb-1">Estimation</p>
+              <p className="text-xs text-gray-500 mb-1">Estimation</p>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCHF(estimation.estimation)}
               </p>
               {estimation.estimation_min && estimation.estimation_max && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Fourchette : {formatCHF(estimation.estimation_min)} — {formatCHF(estimation.estimation_max)}
                 </p>
               )}
@@ -1333,7 +1323,7 @@ function SuccessScreen({
 
           {/* Next steps */}
           <div className="p-5 border-t border-gray-100 space-y-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Prochaines étapes</p>
+            <p className="text-xs font-semibold text-gray-500 capitalize">Prochaines étapes</p>
             {[
               { step: '1', text: 'Un expert vous appelle sous 24h', done: false },
               { step: '2', text: 'Visite gratuite de votre bien', done: false },
@@ -1347,7 +1337,7 @@ function SuccessScreen({
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 mt-6">
+        <p className="text-xs text-gray-500 mt-6">
           Confirmation envoyée à <span className="font-medium text-gray-600">{form.contactEmail}</span>
         </p>
 
@@ -1434,7 +1424,9 @@ function EstimationResultView({
   form: FormData
   onContinue: () => void
 }) {
-  const typeLabel = PROPERTY_TYPES.find(t => t.value === form.propertyType)?.label || form.propertyType
+  const { t } = useTranslation('common')
+  const typeEntry = PROPERTY_TYPES.find(pt => pt.value === form.propertyType)
+  const typeLabel = typeEntry ? t(typeEntry.labelKey) : form.propertyType
 
   const confidencePercent = { low: 33, medium: 65, high: 92 }[estimation.confidence] || 65
   const confidenceLabel = { low: 'Faible', medium: 'Moyen', high: 'Élevé' }[estimation.confidence] || 'Moyen'
@@ -1461,7 +1453,7 @@ function EstimationResultView({
             <div className="mt-6 max-w-md mx-auto">
               <div className="flex items-end gap-1 justify-center h-12">
                 <div className="flex-1 flex flex-col items-center">
-                  <span className="text-xs text-gray-400 mb-1">Min</span>
+                  <span className="text-xs text-gray-500 mb-1">Min</span>
                   <div className="w-full h-6 bg-blue-100 rounded-l-lg" />
                   <span className="text-sm font-medium text-gray-600 mt-1">{formatCHF(estimation.estimation_min)}</span>
                 </div>
@@ -1471,7 +1463,7 @@ function EstimationResultView({
                   <span className="text-sm font-bold text-gray-900 mt-1">{formatCHF(estimation.estimation)}</span>
                 </div>
                 <div className="flex-1 flex flex-col items-center">
-                  <span className="text-xs text-gray-400 mb-1">Max</span>
+                  <span className="text-xs text-gray-500 mb-1">Max</span>
                   <div className="w-full h-6 bg-blue-100 rounded-r-lg" />
                   <span className="text-sm font-medium text-gray-600 mt-1">{formatCHF(estimation.estimation_max)}</span>
                 </div>
@@ -1530,14 +1522,14 @@ function EstimationResultView({
                     <img src={comp.photo_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="w-6 h-6 text-gray-300" />
+                      <ImageIcon className="w-6 h-6 text-gray-500" />
                     </div>
                   )}
                 </div>
                 <div className="p-4">
                   <p className="text-base font-bold text-gray-900">{formatCHF(comp.price)}</p>
                   <p className="text-sm text-gray-500 mt-0.5 truncate">{comp.address || comp.city}</p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {comp.rooms ? `${comp.rooms}p. · ` : ''}{comp.surface_m2} m²
                     {comp.price_per_m2 && ` · ${formatCHF(comp.price_per_m2)}/m²`}
                   </p>
@@ -1549,7 +1541,7 @@ function EstimationResultView({
       )}
 
       {/* ── Disclaimer ── */}
-      <p className="text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100">
+      <p className="text-xs text-gray-500 mt-8 pt-4 border-t border-gray-100">
         Estimation indicative basée sur l'analyse de biens similaires dans votre secteur. Pour une évaluation précise, un agent certifié peut visiter votre bien gratuitement.
       </p>
 
@@ -1562,7 +1554,7 @@ function EstimationResultView({
         <ArrowRight className="w-5 h-5" />
       </button>
 
-      <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-4">
+      <p className="text-center text-xs text-gray-500 mt-3 flex items-center justify-center gap-4">
         <span>Sans engagement</span>
         <span>·</span>
         <span>100% gratuit</span>
