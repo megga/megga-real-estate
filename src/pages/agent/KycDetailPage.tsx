@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   useKycCase, useKycDocuments, useKycAuditEvents,
   useValidateKycCase, useUpdateKycNotes, useUploadKycDocument,
-  useScreenKycCase, useUpdateKycItem,
+  useScreenKycCase, useUpdateKycItem, useUpdateKycDocumentStatus,
 } from '@/hooks/useKyc'
 import type { KycStatus, KycChecklistItem, KycDocument, KycAuditEvent, DocumentCategory } from '@/types/kyc'
 import {
@@ -108,6 +108,7 @@ export default function KycDetailPage() {
   const uploadMutation = useUploadKycDocument()
   const screenMutation = useScreenKycCase()
   const toggleItemMutation = useUpdateKycItem()
+  const updateDocStatusMutation = useUpdateKycDocumentStatus()
 
   // Initialize notes from DB
   if (kyc && !notesInitialized) {
@@ -145,8 +146,8 @@ export default function KycDetailPage() {
   }
 
   function handleSaveNotes() {
-    if (!id || !notes.trim()) return
-    notesMutation.mutate({ id, notes: notes.trim() })
+    if (!id || !notes.trim() || !profile) return
+    notesMutation.mutate({ id, notes: notes.trim(), actorId: profile.id })
   }
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -176,9 +177,9 @@ export default function KycDetailPage() {
   }
 
   async function handleUpdateDocStatus(docId: string, status: 'validated' | 'rejected') {
-    await supabase.from('documents').update({ status }).eq('id', docId)
-    // Refresh documents
-    window.location.reload()
+    if (!profile) return
+    // LBA art. 7 — audit trail obligatoire + invalidation React Query (fix LBA-C2)
+    await updateDocStatusMutation.mutateAsync({ documentId: docId, status, actorId: profile.id })
   }
 
   function handleScreening() {
@@ -196,7 +197,8 @@ export default function KycDetailPage() {
   }
 
   function handleToggleItem(itemId: string, currentCompleted: boolean) {
-    toggleItemMutation.mutate({ id: itemId, is_completed: !currentCompleted })
+    if (!profile) return
+    toggleItemMutation.mutate({ id: itemId, is_completed: !currentCompleted, actorId: profile.id })
   }
 
   // ─── Loading / Error / Not found ──────────────────────────────────────────

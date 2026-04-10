@@ -13,6 +13,7 @@ import PasswordGate from '@/components/layout/PasswordGate'
 import AgentLayout from '@/components/layout/AgentLayout'
 import ActionBoardPage from '@/pages/agent/ActionBoardPage'
 import FavoritesLoginPrompt from '@/components/auth/FavoritesLoginPrompt'
+import CookieBanner from '@/components/CookieBanner'
 
 // Lazy-loaded public pages
 const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
@@ -259,6 +260,7 @@ export default function App() {
             </Routes>
           </Suspense>
           <FavoritesLoginPrompt />
+          <CookieBanner />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

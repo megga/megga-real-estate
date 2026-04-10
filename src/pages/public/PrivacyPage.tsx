@@ -2,6 +2,18 @@ import { useTranslation } from 'react-i18next'
 
 export default function PrivacyPage() {
   const { t } = useTranslation('common')
+
+  const transferItems = [
+    'anthropic',
+    'google',
+    'stripe',
+    'resend',
+    'mapbox',
+    'posthog',
+    'supabase',
+    'dilisense',
+  ] as const
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-4 py-16">
@@ -52,20 +64,36 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">5. Services tiers</h2>
-            <p>Nous utilisons les services suivants :</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">5. Services tiers (sous-traitants)</h2>
+            <p>{t('privacy.subprocessors.extraIntro')}</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
-              <li><strong>Supabase</strong> (hébergement, base de données, authentification) — UE</li>
-              <li><strong>Cloudflare</strong> (hébergement, CDN) — Global</li>
-              <li><strong>Resend</strong> (envoi d'emails transactionnels)</li>
-              <li><strong>Stripe</strong> (paiements et abonnements)</li>
-              <li><strong>Google Calendar API</strong> (synchronisation calendrier, si activé par l'utilisateur)</li>
-              <li><strong>Anthropic Claude API</strong> (assistance IA, copilote métier)</li>
+              <li>{t('privacy.subprocessors.supabase')}</li>
+              <li>{t('privacy.subprocessors.cloudflare')}</li>
+              <li>{t('privacy.subprocessors.resend')}</li>
+              <li>{t('privacy.subprocessors.stripe')}</li>
+              <li>{t('privacy.subprocessors.google')}</li>
+              <li>{t('privacy.subprocessors.anthropic')}</li>
+              <li>{t('privacy.subprocessors.dilisense')}</li>
+              <li>{t('privacy.subprocessors.mapbox')}</li>
+              <li>{t('privacy.subprocessors.posthog')}</li>
+              <li>{t('privacy.subprocessors.microsoft')}</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">6. Durée de conservation</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              6. {t('privacy.transfers.heading')}
+            </h2>
+            <p>{t('privacy.transfers.intro')}</p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              {transferItems.map((key) => (
+                <li key={key}>{t(`privacy.transfers.items.${key}`)}</li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">7. Durée de conservation</h2>
             <p>
               Les données personnelles sont conservées pendant la durée de votre relation contractuelle avec nous,
               puis archivées conformément aux obligations légales suisses (10 ans pour les données financières et KYC).
@@ -74,7 +102,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">7. Vos droits</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">8. Vos droits</h2>
             <p>Conformément à la Loi fédérale sur la protection des données (LPD), vous disposez des droits suivants :</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
               <li>Droit d'accès à vos données personnelles</li>
@@ -90,7 +118,28 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">8. Sécurité</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              9. {t('privacy.complaint.heading')}
+            </h2>
+            <p>{t('privacy.complaint.body')}</p>
+            <p className="mt-2">
+              <strong>{t('privacy.complaint.address')}</strong>
+            </p>
+            <p className="mt-1">
+              {t('privacy.complaint.website')}
+              <a
+                href="https://www.edoeb.admin.ch"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline"
+              >
+                https://www.edoeb.admin.ch
+              </a>
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">10. Sécurité</h2>
             <p>
               Nous mettons en œuvre des mesures techniques et organisationnelles appropriées pour protéger vos données :
               chiffrement en transit (TLS) et au repos, contrôle d'accès par rôles (RLS), audit trail,
@@ -99,7 +148,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">9. Contact</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">11. Contact</h2>
             <p>
               Pour toute question relative à la protection de vos données :<br />
               <strong>MEGGA Real Estate</strong><br />

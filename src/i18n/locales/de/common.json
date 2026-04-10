@@ -186,7 +186,59 @@
   },
   "privacy": {
     "title": "Datenschutzrichtlinie",
-    "lastUpdated": "Letzte Aktualisierung: 26. März 2026"
+    "lastUpdated": "Letzte Aktualisierung: 11. April 2026",
+    "transfers": {
+      "heading": "Datenübermittlungen ausserhalb der Schweiz und der EU",
+      "intro": "Einige unserer Auftragsverarbeiter befinden sich in den Vereinigten Staaten. Die Übermittlungen erfolgen auf Grundlage der Standardvertragsklauseln (SCCs) der Europäischen Kommission oder durch den Beitritt zum EU-US Data Privacy Framework (DPF).",
+      "tableHeader": {
+        "provider": "Anbieter",
+        "purpose": "Zweck",
+        "location": "Standort",
+        "basis": "Rechtsgrundlage"
+      },
+      "items": {
+        "anthropic": "Anthropic (Claude API) — KI-Assistenz — Vereinigte Staaten — SCCs / DPF",
+        "google": "Google Cloud (Calendar API, Gemini) — Kalenderintegration, KI — Vereinigte Staaten — DPF",
+        "stripe": "Stripe — Zahlungen und Abonnements — Vereinigte Staaten — DPF",
+        "resend": "Resend — Transaktions-E-Mails — Vereinigte Staaten — SCCs",
+        "mapbox": "Mapbox — Karten und Geolokalisierung — Vereinigte Staaten — SCCs",
+        "posthog": "PostHog — Produkt-Analytik — Europäische Union (eu.posthog.com)",
+        "supabase": "Supabase — Hosting, Datenbank, Authentifizierung — Europäische Union (eu-west-1, Irland)",
+        "dilisense": "Dilisense — PEP-/Sanktions-Screening (GwG) — Europäische Union"
+      }
+    },
+    "subprocessors": {
+      "extraIntro": "Vollständige Liste unserer Auftragsverarbeiter und ihrer Zwecke:",
+      "anthropic": "Anthropic (Claude API) — KI-Assistenz, Fachcopilot",
+      "supabase": "Supabase — Hosting, Datenbank, Authentifizierung",
+      "cloudflare": "Cloudflare — CDN, DDoS-Schutz",
+      "stripe": "Stripe — Zahlungen und Abonnements",
+      "resend": "Resend — Transaktions-E-Mails",
+      "google": "Google (Calendar API, Gemini) — Kalendersynchronisation, KI",
+      "dilisense": "Dilisense — PEP-/Sanktions-Screening (Zweck: GwG-Compliance)",
+      "mapbox": "Mapbox — Karten und Immobiliensuche",
+      "posthog": "PostHog — Produkt-Analytik (einwilligungsbasiert)",
+      "microsoft": "Microsoft Outlook — Kalendersynchronisation (Agent-Tools-Integration)"
+    },
+    "complaint": {
+      "heading": "Beschwerderecht bei der Aufsichtsbehörde",
+      "body": "Gemäss Art. 49 revDSG haben Sie das Recht, eine Beschwerde beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) einzureichen, wenn Sie der Ansicht sind, dass die Verarbeitung Ihrer Daten gegen das Gesetz verstösst.",
+      "address": "Adresse: Feldeggweg 1, 3003 Bern",
+      "website": "Webseite: "
+    }
+  },
+  "cookieBanner": {
+    "title": "Wir respektieren Ihre Privatsphäre",
+    "description": "Wir verwenden essenzielle Cookies, damit die Seite funktioniert. Mit Ihrer Zustimmung verwenden wir zusätzlich Statistik-Cookies, um unsere Dienste zu verbessern. Sie können Ihre Einstellungen jederzeit ändern.",
+    "acceptAll": "Alle akzeptieren",
+    "rejectNonEssential": "Nicht-essenzielle ablehnen",
+    "managePreferences": "Einstellungen verwalten",
+    "savePreferences": "Speichern",
+    "essentials": "Essenzielle Cookies (erforderlich)",
+    "essentialsDescription": "Erforderlich für das Funktionieren der Seite (Authentifizierung, Sicherheit).",
+    "analytics": "Statistiken (Opt-in)",
+    "analyticsDescription": "Helfen uns zu verstehen, wie Sie MEGGA nutzen, um den Dienst zu verbessern.",
+    "privacyLink": "Mehr erfahren in unserer Datenschutzrichtlinie"
   },
   "glossary": {
     "title": "Schweizer Immobilien-Glossar",
@@ -621,7 +673,7 @@
       },
       "1": {
         "before": "KYC per E-Mail und Ordner",
-        "after": "Automatisiertes und prüfbares LAB/KYC-Dossier"
+        "after": "Strukturiertes, prüfbares und konformes LAB/KYC-Dossier"
       },
       "2": {
         "before": "Manuelle Word-Dokumente",

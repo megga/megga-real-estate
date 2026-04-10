@@ -283,8 +283,9 @@ export default function KycListPage() {
   }, [screenMutation])
 
   const handleStatusChange = useCallback((id: string, status: KycStatus) => {
-    statusMutation.mutate({ id, status })
-  }, [statusMutation])
+    if (!profile) return
+    statusMutation.mutate({ id, status, actorId: profile.id })
+  }, [statusMutation, profile])
 
   const handleValidate = useCallback((id: string) => {
     if (!profile) return

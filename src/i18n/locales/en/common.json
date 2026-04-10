@@ -186,7 +186,59 @@
   },
   "privacy": {
     "title": "Privacy policy",
-    "lastUpdated": "Last updated: March 26, 2026"
+    "lastUpdated": "Last updated: April 11, 2026",
+    "transfers": {
+      "heading": "Data transfers outside Switzerland and the EU",
+      "intro": "Some of our subprocessors are located in the United States. Transfers are governed by the European Commission's Standard Contractual Clauses (SCCs) or by adherence to the EU-US Data Privacy Framework (DPF).",
+      "tableHeader": {
+        "provider": "Provider",
+        "purpose": "Purpose",
+        "location": "Location",
+        "basis": "Legal basis"
+      },
+      "items": {
+        "anthropic": "Anthropic (Claude API) — AI assistance — United States — SCCs / DPF",
+        "google": "Google Cloud (Calendar API, Gemini) — Calendar integration, AI — United States — DPF",
+        "stripe": "Stripe — Payments and subscriptions — United States — DPF",
+        "resend": "Resend — Transactional emails — United States — SCCs",
+        "mapbox": "Mapbox — Mapping and geolocation — United States — SCCs",
+        "posthog": "PostHog — Product analytics — European Union (eu.posthog.com)",
+        "supabase": "Supabase — Hosting, database, authentication — European Union (eu-west-1, Ireland)",
+        "dilisense": "Dilisense — PEP/Sanctions screening (AML) — European Union"
+      }
+    },
+    "subprocessors": {
+      "extraIntro": "Full list of our subprocessors and their purposes:",
+      "anthropic": "Anthropic (Claude API) — AI assistance, domain copilot",
+      "supabase": "Supabase — Hosting, database, authentication",
+      "cloudflare": "Cloudflare — CDN, DDoS protection",
+      "stripe": "Stripe — Payments and subscriptions",
+      "resend": "Resend — Transactional emails",
+      "google": "Google (Calendar API, Gemini) — Calendar sync, AI",
+      "dilisense": "Dilisense — PEP/Sanctions screening (purpose: AML compliance)",
+      "mapbox": "Mapbox — Mapping and property search",
+      "posthog": "PostHog — Product analytics (consent-based)",
+      "microsoft": "Microsoft Outlook — Calendar sync (agent tools integration)"
+    },
+    "complaint": {
+      "heading": "Right to file a complaint with the supervisory authority",
+      "body": "Pursuant to art. 49 revFADP, you have the right to file a complaint with the Federal Data Protection and Information Commissioner (FDPIC) if you believe that the processing of your data violates the law.",
+      "address": "Address: Feldeggweg 1, 3003 Bern",
+      "website": "Website: "
+    }
+  },
+  "cookieBanner": {
+    "title": "We respect your privacy",
+    "description": "We use essential cookies to make the site work. With your consent, we also use analytics cookies to improve our services. You can change your preferences at any time.",
+    "acceptAll": "Accept all",
+    "rejectNonEssential": "Reject non-essential",
+    "managePreferences": "Manage preferences",
+    "savePreferences": "Save",
+    "essentials": "Essential cookies (required)",
+    "essentialsDescription": "Required for the site to work (authentication, security).",
+    "analytics": "Analytics (opt-in)",
+    "analyticsDescription": "Help us understand how you use MEGGA to improve the service.",
+    "privacyLink": "Learn more in our privacy policy"
   },
   "glossary": {
     "title": "Swiss real estate glossary",
@@ -621,7 +673,7 @@
       },
       "1": {
         "before": "KYC in emails and spreadsheets",
-        "after": "Automated and auditable LAB/KYC file"
+        "after": "Structured, auditable and compliant LAB/KYC file"
       },
       "2": {
         "before": "Manual Word documents",

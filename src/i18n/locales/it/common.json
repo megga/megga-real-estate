@@ -186,7 +186,59 @@
   },
   "privacy": {
     "title": "Politica sulla privacy",
-    "lastUpdated": "Ultimo aggiornamento: 26 marzo 2026"
+    "lastUpdated": "Ultimo aggiornamento: 11 aprile 2026",
+    "transfers": {
+      "heading": "Trasferimenti di dati al di fuori della Svizzera e dell'UE",
+      "intro": "Alcuni dei nostri responsabili del trattamento si trovano negli Stati Uniti. I trasferimenti sono disciplinati dalle Clausole Contrattuali Standard (SCCs) della Commissione europea o dall'adesione all'EU-US Data Privacy Framework (DPF).",
+      "tableHeader": {
+        "provider": "Fornitore",
+        "purpose": "Finalità",
+        "location": "Sede",
+        "basis": "Base legale"
+      },
+      "items": {
+        "anthropic": "Anthropic (Claude API) — Assistenza IA — Stati Uniti — SCCs / DPF",
+        "google": "Google Cloud (Calendar API, Gemini) — Integrazione calendario, IA — Stati Uniti — DPF",
+        "stripe": "Stripe — Pagamenti e abbonamenti — Stati Uniti — DPF",
+        "resend": "Resend — Email transazionali — Stati Uniti — SCCs",
+        "mapbox": "Mapbox — Mappe e geolocalizzazione — Stati Uniti — SCCs",
+        "posthog": "PostHog — Analytics di prodotto — Unione Europea (eu.posthog.com)",
+        "supabase": "Supabase — Hosting, database, autenticazione — Unione Europea (eu-west-1, Irlanda)",
+        "dilisense": "Dilisense — Screening PEP/Sanzioni (LRD) — Unione Europea"
+      }
+    },
+    "subprocessors": {
+      "extraIntro": "Elenco completo dei nostri responsabili del trattamento e delle loro finalità:",
+      "anthropic": "Anthropic (Claude API) — Assistenza IA, copilota professionale",
+      "supabase": "Supabase — Hosting, database, autenticazione",
+      "cloudflare": "Cloudflare — CDN, protezione DDoS",
+      "stripe": "Stripe — Pagamenti e abbonamenti",
+      "resend": "Resend — Email transazionali",
+      "google": "Google (Calendar API, Gemini) — Sincronizzazione calendario, IA",
+      "dilisense": "Dilisense — Screening PEP/Sanzioni (finalità: conformità LRD)",
+      "mapbox": "Mapbox — Mappe e ricerca immobili",
+      "posthog": "PostHog — Analytics di prodotto (soggetto a consenso)",
+      "microsoft": "Microsoft Outlook — Sincronizzazione calendario (integrazione strumenti agente)"
+    },
+    "complaint": {
+      "heading": "Diritto di reclamo all'autorità di controllo",
+      "body": "In conformità all'art. 49 nLPD, hai il diritto di presentare un reclamo all'Incaricato federale della protezione dei dati e della trasparenza (IFPDT) se ritieni che il trattamento dei tuoi dati violi la legge.",
+      "address": "Indirizzo: Feldeggweg 1, 3003 Berna",
+      "website": "Sito web: "
+    }
+  },
+  "cookieBanner": {
+    "title": "Rispettiamo la tua privacy",
+    "description": "Utilizziamo cookie essenziali per il funzionamento del sito. Con il tuo consenso, utilizziamo anche cookie statistici per migliorare i nostri servizi. Puoi modificare le tue preferenze in qualsiasi momento.",
+    "acceptAll": "Accetta tutto",
+    "rejectNonEssential": "Rifiuta non essenziali",
+    "managePreferences": "Gestisci preferenze",
+    "savePreferences": "Salva",
+    "essentials": "Cookie essenziali (obbligatori)",
+    "essentialsDescription": "Necessari per il funzionamento del sito (autenticazione, sicurezza).",
+    "analytics": "Statistiche (opt-in)",
+    "analyticsDescription": "Ci aiutano a capire come usi MEGGA per migliorare il servizio.",
+    "privacyLink": "Scopri di più nella nostra politica sulla privacy"
   },
   "glossary": {
     "title": "Glossario immobiliare svizzero",
@@ -621,7 +673,7 @@
       },
       "1": {
         "before": "KYC in email e cartelle",
-        "after": "Dossier LAB/KYC automatizzato e verificabile"
+        "after": "Dossier LAB/KYC strutturato, verificabile e conforme"
       },
       "2": {
         "before": "Documenti Word manuali",
