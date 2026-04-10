@@ -142,25 +142,8 @@ CREATE INDEX IF NOT EXISTS idx_documents_retention_until
   WHERE retention_until IS NOT NULL;
 
 -- ============================================================================
--- 5. AUDIT — log this migration
+-- 5. AUDIT — migration logging removed (activity_events.actor_id is UUID)
 -- ============================================================================
-
-INSERT INTO activity_events (
-  actor_id, action, entity_type, entity_id, metadata, created_at
-)
-VALUES (
-  'system',
-  'migration_applied',
-  'compliance',
-  '20260411_001',
-  jsonb_build_object(
-    'migration', '20260411_001_kyc_retention_and_storage_rls',
-    'fixes', jsonb_build_array('LBA-C1', 'LBA-C4'),
-    'description', 'KYC storage RLS agency-scoped + 10-year retention trigger'
-  ),
-  now()
-)
-ON CONFLICT DO NOTHING;
 
 COMMIT;
 
