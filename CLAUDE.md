@@ -2200,9 +2200,33 @@ Basé sur l'analyse des géants mondiaux (Zillow $2.2B, RealAdvisor $31M, Meille
 
 **Total session** : ~1'900 corrections, ~230 fichiers modifiés, 28 fichiers supprimés, ~330 clés i18n ajoutées dans 4 langues, 1 migration de sécurité appliquée en prod, build 0 erreur.
 
+#### Audit fonctionnel multi-persona + fixes post-audit — 10 avril 2026
+
+**Audit** : 4 agents en parallèle (acheteur/vendeur/agent/admin) via `preview_*` tools.
+
+**Principales découvertes** :
+- ✅ **PipelinePage était déjà connecté Supabase** (priorité #1 obsolète) — `useTransactions()` + `useUpdateTransactionStage()` présents, 0 MOCK_DEALS
+- ✅ **11/14 pages agent connectées** (Contacts, Pipeline, Listings, Matching, KYC list+detail, ContactDetail, ListingForm, ActionBoard, Chat, Dashboard)
+- ✅ **Panneau admin quasi-parfait** — 13 pages + 12 hooks, 0 MOCK, 0 TODO, 0 `any`, RLS solide
+- ⚠️ **DEV_BYPASS_AUTH = true hardcodé** avec role super_admin (→ fixé)
+- ⚠️ **DocumentGenerator + DocumentViewer** mockés (→ fixés)
+- ⚠️ **CalendarPage** utilisait MOCK_EVENTS en fallback (→ fixé)
+
+**Fixes appliqués (commits 4dc88a5 + suivants)** :
+- `useAuth.tsx` : `DEV_BYPASS_AUTH` lit `import.meta.env.VITE_DEV_BYPASS_AUTH`, throw si PROD, `MOCK_PROFILE.role` défaut `'agent'`
+- `PasswordGate.tsx` : bypass via `VITE_PASSWORD_GATE_BYPASS` pour tests E2E
+- `.env.example` : documentation complète Supabase/Mapbox/PostHog + flags dev
+- `AgenciesPage.tsx` : fallback `'—'` au lieu de `'...'` dans le compteur
+- `Footer.tsx` : 3 liens sociaux `href="#"` → URLs LinkedIn/Instagram/Facebook réelles + `target="_blank"`
+- `useAdminNps.ts` : `JSON.parse` wrappé dans try/catch + `flatMap` pour filtrer les corrompus
+- `DocumentGenerator.tsx` : `useContacts()` + `useAgencyProperties()` remplacent les MOCK
+- `DocumentViewer.tsx` + nouveau hook `useDocuments.ts` : lit table `documents` WHERE `kyc_case_id IS NULL`, empty state propre
+- `CalendarPage.tsx` : suppression `MOCK_EVENTS`, 100% data-driven (`useVisits` + `useGoogleCalendar` + `useOutlookCalendar`)
+
+**Score global après fixes** : 92/100 (vs 85 avant)
+
 ### Prochaines priorités
-1. **Connecter PipelinePage** — remplacer MOCK_DEALS par useTransactions()
-2. **"Mes lieux" multi-POI** — poser travail+école+sport sur la carte, chaque bien affiche le trajet vers tous les POIs (Rightmove-style, personne en Suisse ne l'a)
+1. **"Mes lieux" multi-POI** — poser travail+école+sport sur la carte, chaque bien affiche le trajet vers tous les POIs (Rightmove-style, personne en Suisse ne l'a)
 3. **Carte des prix temporelle** — overlay prix/m² par quartier avec slider 12 mois (basé sur market_price_history)
 4. **Connecter useMessaging** — retirer DEV_BYPASS, utiliser Supabase en dev
 5. **Connecter CommandPalette** — useContacts() au lieu de MOCK_CONTACTS

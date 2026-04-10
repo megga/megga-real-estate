@@ -136,7 +136,7 @@ export default function AgenciesPage() {
           {t('agencies.title')}
         </h1>
         <p className="mt-3 text-gray-500 text-lg max-w-2xl">
-          {t('agencies.subtitle', { count: agencies?.length.toLocaleString('fr-CH') || '...' })}
+          {t('agencies.subtitle', { count: agencies?.length?.toLocaleString('fr-CH') ?? '—' })}
         </p>
 
         {/* Search + filters */}

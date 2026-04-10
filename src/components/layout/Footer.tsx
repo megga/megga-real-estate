@@ -96,15 +96,17 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-2.5 mt-6">
               {[
-                { icon: Linkedin, href: '#', label: 'LinkedIn' },
-                { icon: Instagram, href: '#', label: 'Instagram' },
-                { icon: Facebook, href: '#', label: 'Facebook' },
+                { icon: Linkedin, href: 'https://www.linkedin.com/company/megga-real-estate', label: 'LinkedIn' },
+                { icon: Instagram, href: 'https://www.instagram.com/megga.ch', label: 'Instagram' },
+                { icon: Facebook, href: 'https://www.facebook.com/megga.ch', label: 'Facebook' },
               ].map((social) => {
                 const Icon = social.icon
                 return (
                   <a
                     key={social.label}
                     href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     aria-label={social.label}
                     className="w-9 h-9 rounded-full border border-gray-200 hover:border-gray-400 hover:bg-white flex items-center justify-center transition-all"
                   >

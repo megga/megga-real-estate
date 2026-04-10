@@ -1,16 +1,18 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft, Download, Printer, Share2, Trash2,
-  FileText, Clock, User, CheckCircle2, AlertCircle,
+  FileText, Clock, CheckCircle2, AlertCircle,
   ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Maximize2,
   MoreHorizontal, Send, Copy,
 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useGeneratedDocuments, useGeneratedDocument, type GeneratedDocumentRow } from '@/hooks/useDocuments'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
+// UI-level shape utilisé par la vue (mappé depuis la table `documents` Supabase)
 interface GeneratedDocument {
   id: string
   templateName: string
@@ -22,82 +24,30 @@ interface GeneratedDocument {
   pages: number
 }
 
-// ─── MOCK DATA ──────────────────────────────────────────────────────────────
+const TYPE_TO_TEMPLATE_LABEL: Record<string, string> = {
+  mandate: 'Mandat de vente',
+  visit_voucher: 'Bon de visite',
+  property_sheet: 'Fiche bien',
+  offer: 'Offre d\'achat',
+  contract: 'Contrat',
+  other: 'Document',
+}
 
-const MOCK_DOCUMENTS: GeneratedDocument[] = [
-  {
-    id: 'doc-001',
-    templateName: 'Bon de visite',
-    templateId: 'bon-visite',
-    createdAt: '2026-03-18T14:30:00',
-    createdBy: 'Gregory Lyonnet',
-    status: 'signed',
+function mapRowToDocument(row: GeneratedDocumentRow): GeneratedDocument {
+  const rawStatus = (row.status ?? 'draft').toLowerCase()
+  const status: GeneratedDocument['status'] =
+    rawStatus === 'sent' || rawStatus === 'signed' || rawStatus === 'archived' ? rawStatus : 'draft'
+  return {
+    id: row.id,
+    templateName: TYPE_TO_TEMPLATE_LABEL[row.type] ?? row.name ?? 'Document',
+    templateId: row.type,
+    createdAt: row.created_at,
+    createdBy: row.uploaded_by ?? '—',
+    status,
+    fields: {},
     pages: 1,
-    fields: {
-      visitor_name: 'Marie Dupont',
-      visitor_email: 'marie.dupont@gmail.com',
-      visitor_phone: '+41 79 123 45 67',
-      property_address: 'Rue du Rhône 42',
-      property_city: 'Genève',
-      property_type: 'Appartement',
-      property_rooms: '4',
-      property_surface: '95',
-      property_price: '1250000',
-      visit_date: '2026-03-18',
-      visit_time: '14:00',
-      agent_name: 'Gregory Lyonnet',
-      notes: 'La cliente est très intéressée par la luminosité et la vue sur le lac.',
-    },
-  },
-  {
-    id: 'doc-002',
-    templateName: 'Offre d\'achat',
-    templateId: 'offre-achat',
-    createdAt: '2026-03-17T09:15:00',
-    createdBy: 'Gregory Lyonnet',
-    status: 'sent',
-    pages: 2,
-    fields: {
-      buyer_name: 'Jean-Pierre Müller',
-      buyer_address: 'Avenue de la Gare 15, 1003 Lausanne',
-      buyer_email: 'jp.muller@bluewin.ch',
-      buyer_phone: '+41 78 456 78 90',
-      property_address: 'Chemin des Crêts 8',
-      property_city: 'Carouge',
-      asking_price: '980000',
-      offer_price: '950000',
-      validity_days: '10',
-      conditions: 'Obtention du financement hypothécaire. Résultat satisfaisant de l\'expertise technique.',
-      financing: 'Hypothèque bancaire',
-      desired_date: '2026-06-01',
-    },
-  },
-  {
-    id: 'doc-003',
-    templateName: 'Mandat de vente exclusif',
-    templateId: 'mandat-exclusif',
-    createdAt: '2026-03-15T16:00:00',
-    createdBy: 'Gregory Lyonnet',
-    status: 'draft',
-    pages: 3,
-    fields: {
-      seller_name: 'Sophie Bertrand',
-      seller_address: 'Route de Florissant 55, 1206 Genève',
-      seller_email: 'sophie.b@sunrise.ch',
-      seller_phone: '+41 76 890 12 34',
-      property_address: 'Rue de la Servette 12',
-      property_city: 'Genève',
-      property_type: 'Appartement',
-      property_rooms: '5',
-      property_surface: '120',
-      asking_price: '1450000',
-      commission_pct: '3',
-      duration_months: '6',
-      start_date: '2026-03-15',
-      special_conditions: 'Le vendeur souhaite rester dans les lieux jusqu\'au 31 août 2026.',
-    },
-  },
-]
+  }
+}
 
 const STATUS_CONFIG = {
   draft: { label: 'Brouillon', color: 'bg-theme-active text-theme-secondary', icon: FileText },
@@ -117,18 +67,26 @@ export default function DocumentViewer() {
   const [currentPage, setCurrentPage] = useState(1)
   const [showActions, setShowActions] = useState(false)
 
-  // Find document or show list
-  const doc = docId ? MOCK_DOCUMENTS.find(d => d.id === docId) : null
+  // Supabase hooks — remplace les anciens MOCK_DOCUMENTS
+  const { data: documentsRows = [], isLoading: isLoadingList } = useGeneratedDocuments()
+  const { data: singleRow, isLoading: isLoadingSingle } = useGeneratedDocument(docId)
+
+  const documents = useMemo(() => documentsRows.map(mapRowToDocument), [documentsRows])
+  const doc = singleRow ? mapRowToDocument(singleRow) : null
 
   // ─── DOCUMENT LIST VIEW ─────────────────────────────────────────────────
 
   if (!doc) {
+    // Si un docId est fourni mais rien trouvé (et loading fini) : document inexistant
+    const notFound = docId && !isLoadingSingle && !singleRow
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-theme-primary">Documents générés</h1>
-            <p className="text-sm text-theme-tertiary mt-1">{MOCK_DOCUMENTS.length} documents</p>
+            <p className="text-sm text-theme-tertiary mt-1">
+              {isLoadingList ? 'Chargement...' : `${documents.length} document${documents.length > 1 ? 's' : ''}`}
+            </p>
           </div>
           <Button onClick={() => navigate('/dashboard/templates/generate')} className="gap-2">
             <FileText className="w-4 h-4" />
@@ -136,14 +94,20 @@ export default function DocumentViewer() {
           </Button>
         </div>
 
+        {notFound && (
+          <div className="rounded-xl border border-theme-border p-4 text-sm text-theme-secondary">
+            Document introuvable. Il a peut-être été supprimé.
+          </div>
+        )}
+
         <div className="space-y-2">
-          {MOCK_DOCUMENTS.map(doc => {
-            const statusConf = STATUS_CONFIG[doc.status]
+          {documents.map(item => {
+            const statusConf = STATUS_CONFIG[item.status]
             const StatusIcon = statusConf.icon
             return (
               <button
-                key={doc.id}
-                onClick={() => navigate(`/dashboard/documents/view?id=${doc.id}`)}
+                key={item.id}
+                onClick={() => navigate(`/dashboard/documents/view?id=${item.id}`)}
                 className="w-full bg-theme-card rounded-xl border border-theme-border-subtle p-4 hover:-translate-y-0.5 transition-all cursor-pointer group text-left flex items-center gap-4"
               >
                 {/* Icon */}
@@ -155,7 +119,7 @@ export default function DocumentViewer() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-theme-primary group-hover:text-accent transition-colors truncate">
-                      {doc.templateName}
+                      {item.templateName}
                     </h3>
                     <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
                       <StatusIcon className="w-3 h-3" />
@@ -164,14 +128,10 @@ export default function DocumentViewer() {
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-theme-tertiary">
                     <span className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
-                      {Object.values(doc.fields)[0]}
-                    </span>
-                    <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {new Date(doc.createdAt).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(item.createdAt).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
-                    <span>{doc.pages} page{doc.pages > 1 ? 's' : ''}</span>
+                    <span>{item.pages} page{item.pages > 1 ? 's' : ''}</span>
                   </div>
                 </div>
 
@@ -182,7 +142,7 @@ export default function DocumentViewer() {
           })}
         </div>
 
-        {MOCK_DOCUMENTS.length === 0 && (
+        {!isLoadingList && documents.length === 0 && (
           <div className="text-center py-16">
             <FileText className="w-12 h-12 text-theme-tertiary mx-auto mb-4" />
             <p className="text-sm font-medium text-theme-muted">Aucun document généré</p>

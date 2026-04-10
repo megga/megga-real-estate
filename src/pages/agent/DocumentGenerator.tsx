@@ -7,6 +7,8 @@ import {
 import { cn, formatCHF } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useCustomTemplates } from '@/hooks/useCustomTemplates'
+import { useContacts } from '@/hooks/useContacts'
+import { useAgencyProperties } from '@/hooks/useProperties'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -27,20 +29,6 @@ interface TemplateConfig {
   description: string
   fields: FieldConfig[]
 }
-
-// ─── MOCK CONTACTS / PROPERTIES (for AI pre-fill) ──────────────────────────
-
-const MOCK_CONTACTS = [
-  { id: 'c1', name: 'Marie Dupont', email: 'marie.dupont@gmail.com', phone: '+41 79 123 45 67', address: 'Rue de Lausanne 12, 1201 Genève' },
-  { id: 'c2', name: 'Pierre Müller', email: 'p.muller@bluewin.ch', phone: '+41 78 234 56 78', address: 'Chemin des Crêts 8, 1227 Carouge' },
-  { id: 'c3', name: 'Sophie Bertrand', email: 'sophie.b@outlook.com', phone: '+41 76 345 67 89', address: 'Rue de la Servette 12, 1202 Genève' },
-]
-
-const MOCK_PROPERTIES = [
-  { id: 'p1', address: 'Rue du Rhône 42', city: 'Genève', type: 'apartment', rooms: 4, surface: 120, price: 1250000 },
-  { id: 'p2', address: 'Chemin des Crêts 8', city: 'Carouge', type: 'house', rooms: 6, surface: 180, price: 980000 },
-  { id: 'p3', address: 'Rue de la Servette 12', city: 'Genève', type: 'apartment', rooms: 3, surface: 85, price: 750000 },
-]
 
 // ─── TEMPLATE CONFIGS ───────────────────────────────────────────────────────
 
@@ -180,6 +168,10 @@ export default function DocumentGenerator() {
   const [selectedContact, setSelectedContact] = useState('')
   const [selectedProperty, setSelectedProperty] = useState('')
 
+  // Hooks Supabase — remplace les anciens MOCK_CONTACTS / MOCK_PROPERTIES
+  const { contacts } = useContacts()
+  const { data: properties = [] } = useAgencyProperties()
+
   const templateConfig = selectedTemplate ? allConfigs[selectedTemplate] ?? null : null
 
   function handleFieldChange(name: string, value: string) {
@@ -194,21 +186,19 @@ export default function DocumentGenerator() {
 
   function handlePrefillContact(contactId: string) {
     setSelectedContact(contactId)
-    const contact = MOCK_CONTACTS.find(c => c.id === contactId)
+    const contact = contacts.find(c => c.id === contactId)
     if (!contact) return
-    // Auto-fill contact fields
+    const fullName = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim()
     const mapping: Record<string, string> = {
-      visitor_name: contact.name,
-      visitor_email: contact.email,
-      visitor_phone: contact.phone,
-      buyer_name: contact.name,
-      buyer_email: contact.email,
-      buyer_phone: contact.phone,
-      buyer_address: contact.address,
-      seller_name: contact.name,
-      seller_email: contact.email,
-      seller_phone: contact.phone,
-      seller_address: contact.address,
+      visitor_name: fullName,
+      visitor_email: contact.email ?? '',
+      visitor_phone: contact.phone ?? '',
+      buyer_name: fullName,
+      buyer_email: contact.email ?? '',
+      buyer_phone: contact.phone ?? '',
+      seller_name: fullName,
+      seller_email: contact.email ?? '',
+      seller_phone: contact.phone ?? '',
     }
     setFormData(prev => {
       const updated = { ...prev }
@@ -223,17 +213,17 @@ export default function DocumentGenerator() {
 
   function handlePrefillProperty(propertyId: string) {
     setSelectedProperty(propertyId)
-    const prop = MOCK_PROPERTIES.find(p => p.id === propertyId)
+    const prop = properties.find(p => p.id === propertyId)
     if (!prop) return
     setFormData(prev => ({
       ...prev,
-      property_address: prop.address,
-      property_city: prop.city,
-      property_type: prop.type,
-      property_rooms: String(prop.rooms),
-      property_surface: String(prop.surface),
-      property_price: String(prop.price),
-      asking_price: String(prop.price),
+      property_address: prop.address ?? '',
+      property_city: prop.city ?? '',
+      property_type: prop.type ?? '',
+      property_rooms: prop.rooms != null ? String(prop.rooms) : '',
+      property_surface: prop.surface_m2 != null ? String(prop.surface_m2) : '',
+      property_price: prop.price != null ? String(prop.price) : '',
+      asking_price: prop.price != null ? String(prop.price) : '',
     }))
   }
 
@@ -393,8 +383,8 @@ export default function DocumentGenerator() {
                   className={inputClasses}
                 >
                   <option value="">Sélectionner un contact...</option>
-                  {MOCK_CONTACTS.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                  {contacts.map(c => (
+                    <option key={c.id} value={c.id}>{`${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || c.email}</option>
                   ))}
                 </select>
               </div>
@@ -406,7 +396,7 @@ export default function DocumentGenerator() {
                   className={inputClasses}
                 >
                   <option value="">Sélectionner un bien...</option>
-                  {MOCK_PROPERTIES.map(p => (
+                  {properties.map(p => (
                     <option key={p.id} value={p.id}>{p.address}, {p.city}</option>
                   ))}
                 </select>

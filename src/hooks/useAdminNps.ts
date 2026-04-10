@@ -33,17 +33,22 @@ export function useAdminNps() {
         .order('created_at', { ascending: false })
       if (error) throw error
 
-      const responses: NpsResponse[] = (data ?? []).map(n => {
-        const parsed = JSON.parse(n.content)
-        return {
-          id: n.id,
-          rating: parsed.rating ?? 0,
-          comment: parsed.comment ?? '',
-          user_email: parsed.user_email ?? null,
-          user_name: parsed.user_name ?? null,
-          agency_id: parsed.agency_id ?? null,
-          role: parsed.role ?? null,
-          submitted_at: parsed.submitted_at ?? n.created_at,
+      // Parse chaque réponse avec try/catch — un enregistrement corrompu ne doit pas crasher toute la page
+      const responses: NpsResponse[] = (data ?? []).flatMap(n => {
+        try {
+          const parsed = JSON.parse(n.content)
+          return [{
+            id: n.id,
+            rating: parsed.rating ?? 0,
+            comment: parsed.comment ?? '',
+            user_email: parsed.user_email ?? null,
+            user_name: parsed.user_name ?? null,
+            agency_id: parsed.agency_id ?? null,
+            role: parsed.role ?? null,
+            submitted_at: parsed.submitted_at ?? n.created_at,
+          }]
+        } catch {
+          return []
         }
       })
 

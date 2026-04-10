@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 import { WeekView } from '@/components/calendar/week-view'
 import { MonthView } from '@/components/calendar/month-view'
 import type { CalendarEvent, EventColor, ViewType } from '@/components/calendar/week-view-types'
-import { MOCK_EVENTS } from '@/components/calendar/mock-events'
 import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
 import { detectConflicts, expandRecurringEvents } from '@/lib/event-utils'
 import VisitFeedbackDialog from '@/components/calendar/VisitFeedbackDialog'
@@ -35,9 +34,9 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
-  // Local events = all mock events initially (drag/edit works on all of them)
-  // When Supabase visits exist, mock visits are replaced by real ones.
-  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>(() => [...MOCK_EVENTS])
+  // Événements locaux (créés à la volée dans la page avant persistance, drafts).
+  // La source de vérité reste Supabase (useVisits) + Google + Outlook.
+  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([])
 
   // Compute visible range for Google Calendar fetch
   const gcalRange = useMemo(() => {
@@ -64,18 +63,14 @@ export default function CalendarPage() {
     removeFromOutlook,
   } = useOutlookCalendar(gcalRange)
 
-  // Merge: Supabase visits + Google events + Outlook events + local events
+  // Merge: Supabase visits + Google events + Outlook events + drafts locaux
   const events = useMemo(() => {
     const merged: CalendarEvent[] = []
 
-    if (supabaseVisits.length > 0) {
-      merged.push(...supabaseVisits)
-      // Exclude mock visits (blue with visitStatus) — replaced by Supabase visits
-      const nonVisitLocal = localEvents.filter((e) => !(e.color === 'blue' && e.visitStatus))
-      merged.push(...nonVisitLocal)
-    } else {
-      merged.push(...localEvents)
-    }
+    merged.push(...supabaseVisits)
+    // Drafts locaux qui ne sont pas des visites (les visites sont persistées via useVisits)
+    const nonVisitLocal = localEvents.filter((e) => !(e.color === 'blue' && e.visitStatus))
+    merged.push(...nonVisitLocal)
 
     // Add Google Calendar events (purple, read-only)
     if (googleEvents.length > 0) {
