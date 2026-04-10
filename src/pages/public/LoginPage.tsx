@@ -185,7 +185,7 @@ export default function LoginPage() {
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen flex">
+    <main id="main-content" className="min-h-screen flex">
       {/* Left: Form */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white relative">
         {/* Facebook toast */}
@@ -501,6 +501,6 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

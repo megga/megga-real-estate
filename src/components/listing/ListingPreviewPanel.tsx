@@ -733,6 +733,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
       )}>
         <button
           onClick={onClose}
+          aria-label="Retour"
           className="flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -742,6 +743,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
         <div className="flex items-center gap-1">
           <button
             onClick={() => setIsFavorite(!isFavorite)}
+            aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
             className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
           >
             <Heart className={cn('h-3.5 w-3.5', isFavorite && 'fill-red-500 text-red-500')} />
@@ -755,12 +757,14 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                 navigator.clipboard.writeText(window.location.href)
               }
             }}
+            aria-label="Partager"
             className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
           >
             <Share2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Partager</span>
           </button>
           <button
+            aria-label="Plus d'options"
             className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
           >
             <MoreHorizontal className="h-3.5 w-3.5" />
@@ -901,6 +905,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                     {/* Photo counter — tap to open lightbox */}
                     <button
                       onClick={() => openLightbox(mobilePhotoIndex)}
+                      aria-label="Voir toutes les photos"
                       className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full"
                     >
                       {mobilePhotoIndex + 1}/{photoCount}

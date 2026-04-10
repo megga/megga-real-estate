@@ -201,38 +201,38 @@ function ProfileTab() {
         {/* Username-style row */}
         <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
           <div className="sm:w-40 shrink-0">
-            <p className="text-sm font-medium text-theme-primary">{t('profile.firstName')}</p>
+            <label htmlFor="profile-firstName" className="text-sm font-medium text-theme-primary">{t('profile.firstName')}</label>
           </div>
-          <input type="text" value={form.firstName} onChange={e => update('firstName', e.target.value)} className={inputClasses} />
+          <input id="profile-firstName" type="text" value={form.firstName} onChange={e => update('firstName', e.target.value)} className={inputClasses} />
         </div>
 
         <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
           <div className="sm:w-40 shrink-0">
-            <p className="text-sm font-medium text-theme-primary">{t('profile.lastName')}</p>
+            <label htmlFor="profile-lastName" className="text-sm font-medium text-theme-primary">{t('profile.lastName')}</label>
           </div>
-          <input type="text" value={form.lastName} onChange={e => update('lastName', e.target.value)} className={inputClasses} />
+          <input id="profile-lastName" type="text" value={form.lastName} onChange={e => update('lastName', e.target.value)} className={inputClasses} />
         </div>
 
         <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
           <div className="sm:w-40 shrink-0">
-            <p className="text-sm font-medium text-theme-primary">{t('profile.email')}</p>
+            <label htmlFor="profile-email" className="text-sm font-medium text-theme-primary">{t('profile.email')}</label>
             <p className="text-xs text-theme-tertiary">{t('profile.emailHint')}</p>
           </div>
-          <input type="email" value={form.email} readOnly className={readonlyClasses} />
+          <input id="profile-email" type="email" value={form.email} readOnly className={readonlyClasses} />
         </div>
 
         <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
           <div className="sm:w-40 shrink-0">
-            <p className="text-sm font-medium text-theme-primary">{t('profile.phone')}</p>
+            <label htmlFor="profile-phone" className="text-sm font-medium text-theme-primary">{t('profile.phone')}</label>
           </div>
-          <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className={inputClasses} />
+          <input id="profile-phone" type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className={inputClasses} />
         </div>
 
         <div className="py-4 border-b border-theme-border flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-8">
           <div className="sm:w-40 shrink-0">
-            <p className="text-sm font-medium text-theme-primary">{t('profile.role')}</p>
+            <label htmlFor="profile-role" className="text-sm font-medium text-theme-primary">{t('profile.role')}</label>
           </div>
-          <input type="text" value={form.role} onChange={e => update('role', e.target.value)} className={inputClasses} />
+          <input id="profile-role" type="text" value={form.role} onChange={e => update('role', e.target.value)} className={inputClasses} />
         </div>
 
         {/* Language selector */}
@@ -241,9 +241,10 @@ function ProfileTab() {
 
       {/* Bio section */}
       <div className={cn(cardClasses, 'p-6')}>
-        <h2 className="text-base font-semibold text-theme-primary">{t('profile.bio')}</h2>
+        <label htmlFor="profile-bio" className="text-base font-semibold text-theme-primary">{t('profile.bio')}</label>
         <p className="text-sm text-theme-tertiary mt-0.5 mb-4">{t('profile.bioHint')}</p>
         <textarea
+          id="profile-bio"
           value={form.bio}
           onChange={e => update('bio', e.target.value)}
           rows={3}

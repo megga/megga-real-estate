@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useState } from 'react'
 import { X, Building2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { Modal } from '@/components/ui/modal'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface CompareDrawerProps {
@@ -91,26 +91,7 @@ function PhotoCarousel({ photos, title }: { photos: string[]; title: string }) {
 // ─── Main drawer ───
 
 export default function CompareDrawer({ listings, open, onClose, onRemove }: CompareDrawerProps) {
-  const drawerRef = useRef<HTMLDivElement>(null)
-
-  // Escape key handler
-  useEffect(() => {
-    if (!open) return
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [open, onClose])
-
-  // Focus trap
-  useEffect(() => {
-    if (!open || !drawerRef.current) return
-    const firstFocusable = drawerRef.current.querySelector<HTMLElement>('button, [tabindex]')
-    firstFocusable?.focus()
-  }, [open])
-
-  if (!open || listings.length === 0) return null
+  if (listings.length === 0) return null
 
   // Find best value per row for highlighting
   function getBestIndex(row: CompareRow): number | null {
@@ -130,32 +111,16 @@ export default function CompareDrawer({ listings, open, onClose, onRemove }: Com
   const gridCols = listings.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
   const gridColsWithLabel = listings.length === 2 ? 'grid-cols-[120px_1fr_1fr]' : 'grid-cols-[120px_1fr_1fr_1fr]'
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Comparer ${listings.length} biens`}
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Comparer ${listings.length} bien${listings.length > 1 ? 's' : ''}`}
+      size="lg"
+      contentClassName="scrollbar-hide"
+      ariaLabel={`Comparer ${listings.length} biens`}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div
-        ref={drawerRef}
-        className="relative bg-white rounded-t-xl sm:rounded-xl border border-gray-100 w-full sm:max-w-3xl mx-0 sm:mx-4 max-h-[85vh] overflow-y-auto scrollbar-hide"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-xl">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Comparer {listings.length} bien{listings.length > 1 ? 's' : ''}
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Fermer la comparaison"
-          >
-            <X className="h-4 w-4 text-gray-500" />
-          </button>
-        </div>
-
+      <>
         {/* Photos row with carousel */}
         <div className={cn('grid border-b border-gray-100', gridCols)}>
           {listings.map((l) => (
@@ -198,8 +163,7 @@ export default function CompareDrawer({ listings, open, onClose, onRemove }: Com
             )
           })}
         </div>
-      </div>
-    </div>,
-    document.body
+      </>
+    </Modal>
   )
 }

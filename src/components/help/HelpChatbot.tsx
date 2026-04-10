@@ -1028,6 +1028,7 @@ export default function HelpChatbot() {
                       onChange={e => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Écrivez votre message..."
+                      aria-label="Message"
                       rows={1}
                       className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none resize-none min-h-[36px] max-h-[120px] scrollbar-hide"
                     />

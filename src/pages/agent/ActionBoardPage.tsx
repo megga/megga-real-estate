@@ -23,12 +23,15 @@ interface SectionConfig {
   hideWhenEmpty?: boolean
 }
 
+// WCAG 2.1 AA: les couleurs -400 ne passent pas le ratio 4.5:1 sur fond clair.
+// Utilisation de -700 pour garantir la lisibilité en light mode.
+// En dark mode les classes -700 restent suffisantes (bg-theme-card = #2A2A2A).
 const SECTIONS: SectionConfig[] = [
   {
     key: 'urgencies',
     titleKey: 'actionBoard.sections.urgencies',
     borderColor: 'border-red-500/40',
-    iconColor: 'text-red-400',
+    iconColor: 'text-red-700 dark:text-red-400',
     emptyKey: 'actionBoard.empty.urgencies',
     hideWhenEmpty: true,
   },
@@ -36,28 +39,28 @@ const SECTIONS: SectionConfig[] = [
     key: 'followUps',
     titleKey: 'actionBoard.sections.followUps',
     borderColor: 'border-amber-500/40',
-    iconColor: 'text-amber-400',
+    iconColor: 'text-amber-700 dark:text-amber-400',
     emptyKey: 'actionBoard.empty.followUps',
   },
   {
     key: 'matches',
     titleKey: 'actionBoard.sections.matches',
     borderColor: 'border-blue-500/40',
-    iconColor: 'text-blue-400',
+    iconColor: 'text-blue-700 dark:text-blue-400',
     emptyKey: 'actionBoard.empty.matches',
   },
   {
     key: 'visits',
     titleKey: 'actionBoard.sections.visits',
     borderColor: 'border-cyan-500/40',
-    iconColor: 'text-cyan-400',
+    iconColor: 'text-cyan-700 dark:text-cyan-400',
     emptyKey: 'actionBoard.empty.visits',
   },
   {
     key: 'suggestions',
     titleKey: 'actionBoard.sections.suggestions',
     borderColor: 'border-emerald-500/40',
-    iconColor: 'text-emerald-400',
+    iconColor: 'text-emerald-700 dark:text-emerald-400',
     emptyKey: 'actionBoard.empty.suggestions',
   },
 ]
@@ -65,11 +68,11 @@ const SECTIONS: SectionConfig[] = [
 // ── Badge colors for counter pills ───────────────────────────────────────────
 
 const BADGE_COLORS: Record<string, string> = {
-  urgencies: 'bg-red-500/15 text-red-400',
-  followUps: 'bg-amber-500/15 text-amber-400',
-  matches: 'bg-blue-500/15 text-blue-400',
-  visits: 'bg-cyan-500/15 text-cyan-400',
-  suggestions: 'bg-emerald-500/15 text-emerald-400',
+  urgencies: 'bg-red-500/15 text-red-700 dark:text-red-400',
+  followUps: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+  matches: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
+  visits: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400',
+  suggestions: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
 }
 
 // ── Action Section ───────────────────────────────────────────────────────────

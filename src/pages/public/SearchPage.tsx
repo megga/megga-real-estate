@@ -324,11 +324,14 @@ export default function SearchPage() {
 
   return (
     <div className="h-screen flex bg-white">
+      {/* ─── WCAG 1.3.1 — h1 caché visuellement pour screen readers ─── */}
+      <h1 className="sr-only">Biens à vendre en Suisse</h1>
+
       {/* ─── LEFT SIDEBAR (Zillow-style) ─── */}
       {!mapImmersive && <BuyerSidebar activeView={sidebarView} onViewChange={setSidebarView} />}
 
       {/* ─── RIGHT CONTENT ─── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <main id="main-content" className="flex-1 flex flex-col overflow-hidden">
       {!mapImmersive && <Navbar />}
 
       {/* ─── UNIFIED STICKY BAR: Search + Filters ─── */}
@@ -1020,7 +1023,7 @@ export default function SearchPage() {
         }}
       />
 
-    </div>
+    </main>
     </div>
   )
 }

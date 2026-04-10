@@ -135,6 +135,10 @@ export default function Navbar() {
   const isTransparent = isHome && !scrolled && !mobileOpen
 
   return (
+    <>
+      <a href="#main-content" className="skip-link">
+        Aller au contenu principal
+      </a>
     <header
       className={cn(
         'h-[72px] sticky top-0 z-50 transition-all duration-300',
@@ -146,7 +150,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center">
 
         {/* ─── LEFT: Navigation links (desktop) ─── */}
-        <nav className="hidden md:flex items-center gap-0.5 flex-1">
+        <nav aria-label="Navigation principale" className="hidden md:flex items-center gap-0.5 flex-1">
           {leftLinks.map((link) => {
             const isActive = location.pathname === link.href
             return (
@@ -223,7 +227,7 @@ export default function Navbar() {
         </button>
 
         {/* ─── CENTER: Logo ─── */}
-        <Link to="/" className="flex-shrink-0 mx-auto md:mx-0 md:flex-none md:absolute md:left-1/2 md:-translate-x-1/2">
+        <Link to="/" aria-label="MEGGA - Accueil" className="flex-shrink-0 mx-auto md:mx-0 md:flex-none md:absolute md:left-1/2 md:-translate-x-1/2">
           <img
             src="/megga-logo.svg"
             alt="MEGGA"
@@ -240,6 +244,7 @@ export default function Navbar() {
           <div className="relative" ref={langRef}>
             <button
               onClick={() => setLangOpen(!langOpen)}
+              aria-label="Changer de langue"
               className={cn(
                 'flex items-center gap-1 h-8 px-2.5 text-xs font-medium rounded-lg transition-all duration-150',
                 isTransparent
@@ -411,7 +416,7 @@ export default function Navbar() {
           mobileOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 border-b-0'
         )}
       >
-        <nav className="flex flex-col px-4 py-3 gap-0.5">
+        <nav aria-label="Menu mobile" className="flex flex-col px-4 py-3 gap-0.5">
           {mobileLinks.map((link) => {
             const isActive = location.pathname === link.href
             return (
@@ -508,5 +513,6 @@ export default function Navbar() {
         </nav>
       </div>
     </header>
+    </>
   )
 }

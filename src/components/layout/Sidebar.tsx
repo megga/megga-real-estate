@@ -208,7 +208,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
       )}
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1 scrollbar-hide">
+      <nav aria-label="Navigation agent" className="flex-1 overflow-y-auto overflow-x-hidden py-1 scrollbar-hide">
         {adminMode ? (
           /* ── Admin Mode ── */
           <>

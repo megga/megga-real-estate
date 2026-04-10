@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
-import { X, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Modal } from '@/components/ui/modal'
 import { useAuth } from '@/hooks/useAuth'
 import { useContacts } from '@/hooks/useContacts'
 import { useAgencyListings } from '@/hooks/useListings'
@@ -75,25 +75,15 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
     }
   }
 
-  if (!open) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={handleClose}>
-      <div
-        className="bg-theme-card rounded-xl border border-theme-border w-full max-w-md max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <div>
-            <h3 className="text-base font-semibold text-theme-primary">{title}</h3>
-            <p className="text-xs text-theme-tertiary mt-0.5">Créez un deal dans votre pipeline.</p>
-          </div>
-          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
-            <X className="w-4 h-4 text-theme-tertiary" />
-          </button>
-        </div>
-
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title={title}
+      description="Créez un deal dans votre pipeline."
+      size="md"
+    >
+      <>
         {/* Form */}
         <div className="p-5 space-y-4">
           {/* Contact + Bien */}
@@ -228,8 +218,7 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
             Créer
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+      </>
+    </Modal>
   )
 }

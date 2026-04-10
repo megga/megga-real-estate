@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { X, CalendarDays, Check, Loader2, Video, MapPin, ArrowRight, ArrowLeft, Building2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Modal } from '@/components/ui/modal'
 import { useBookVisit } from '@/hooks/useVisits'
 
 interface RequestVisitModalProps {
@@ -76,8 +76,6 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
     }
   }, [step])
 
-  if (!open) return null
-
   const dates = Array.from({ length: 5 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() + i + 1)
@@ -136,11 +134,16 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
     setTimeout(() => { onClose(); setSubmitted(false); resetForm() }, 2500)
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={t('listing.requestVisit')}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl sm:rounded-xl border border-gray-100 w-full sm:max-w-md mx-0 sm:mx-4 max-h-[92vh] overflow-hidden flex flex-col">
-
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="md"
+      hideCloseButton
+      ariaLabel={t('listing.requestVisit')}
+      contentClassName="flex flex-col"
+    >
+      <>
         {/* ── Success state ── */}
         {submitted ? (
           <div className="p-10 text-center">
@@ -486,8 +489,7 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
             </form>
           </>
         )}
-      </div>
-    </div>,
-    document.body
+      </>
+    </Modal>
   )
 }

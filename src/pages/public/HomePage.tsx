@@ -17,6 +17,7 @@ export default function HomePage() {
       <Navbar />
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
 
+      <main id="main-content">
       {/* Hero */}
       <section className="relative min-h-[560px] flex items-center justify-center overflow-hidden">
         <img
@@ -49,6 +50,7 @@ export default function HomePage() {
       <WhyMegga />
 
       <Testimonials />
+      </main>
 
       <Footer />
     </div>

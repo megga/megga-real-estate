@@ -164,6 +164,7 @@ export default function HelpCenterPage() {
     <div className="min-h-screen bg-white">
       <Navbar />
 
+      <main id="main-content">
       {/* ── Hero section ── */}
       <div className="max-w-4xl mx-auto px-6 md:px-10 pt-20 md:pt-28 pb-16 md:pb-20 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight leading-[1.1]">
@@ -267,6 +268,7 @@ export default function HelpCenterPage() {
       <div className="fixed bottom-6 right-6 z-50">
         <HelpChatbot />
       </div>
+      </main>
 
       <Footer />
     </div>

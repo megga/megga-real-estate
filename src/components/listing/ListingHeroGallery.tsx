@@ -94,6 +94,7 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
           <button
             className="col-span-2 row-span-1 relative overflow-hidden group"
             onClick={() => onOpenLightbox(1)}
+            aria-label="Voir la photo 2"
           >
             <img
               src={photo2}
@@ -124,6 +125,7 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
             <div className="absolute bottom-4 right-4">
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenLightbox(0) }}
+                aria-label={`Voir toutes les ${photoCount} photos`}
                 className="bg-white/90 backdrop-blur-sm text-gray-900 text-sm font-medium px-4 py-2 rounded-lg shadow-sm hover:bg-white transition-colors flex items-center gap-2"
               >
                 <Images className="h-4 w-4" />

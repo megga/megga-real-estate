@@ -470,7 +470,7 @@ export default function VendrePage() {
       <div className="min-h-screen bg-white">
         <Navbar />
         <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
-        <div className="max-w-2xl mx-auto px-4 py-10 flex flex-col justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
+        <main id="main-content" className="max-w-2xl mx-auto px-4 py-10 flex flex-col justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
           <button
             onClick={goBack}
             className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-8 transition-colors"
@@ -495,7 +495,7 @@ export default function VendrePage() {
               </button>
             </div>
           )}
-        </div>
+        </main>
         <Footer />
       </div>
     )
@@ -506,6 +506,7 @@ export default function VendrePage() {
       <Navbar />
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
 
+      <main id="main-content">
       {/* ─── Hero Section — Zillow/Redfin style ─── */}
       {step === 0 && (
         <section className="relative flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 72px)' }}>
@@ -1247,6 +1248,7 @@ export default function VendrePage() {
           )}
         </div>
       )}
+      </main>
 
       <Footer />
     </div>
@@ -1273,7 +1275,7 @@ function SuccessScreen({
     <div className="min-h-screen bg-white">
       <Navbar />
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
-      <div className="max-w-lg mx-auto px-4 text-center flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
+      <main id="main-content" className="max-w-lg mx-auto px-4 text-center flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
         <style>{`@keyframes draw { to { stroke-dashoffset: 0; } } @keyframes scaleIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }`}</style>
 
         {/* Animated success icon */}
@@ -1356,7 +1358,7 @@ function SuccessScreen({
             Estimer un autre bien
           </button>
         </div>
-      </div>
+      </main>
       <Footer />
     </div>
   )

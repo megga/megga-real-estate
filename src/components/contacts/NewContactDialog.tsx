@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
-import { X, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Modal } from '@/components/ui/modal'
 import { useCreateContact } from '@/hooks/useContacts'
 import type { ContactType } from '@/types/contact'
 import type { ContactScore } from '@/lib/constants'
@@ -92,25 +92,15 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
     }
   }
 
-  if (!open) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={handleClose}>
-      <div
-        className="bg-theme-card rounded-xl border border-theme-border w-full max-w-md max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <div>
-            <h3 className="text-base font-semibold text-theme-primary">Nouveau contact</h3>
-            <p className="text-xs text-theme-tertiary mt-0.5">Ajoutez un contact à votre CRM.</p>
-          </div>
-          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
-            <X className="w-4 h-4 text-theme-tertiary" />
-          </button>
-        </div>
-
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title="Nouveau contact"
+      description="Ajoutez un contact à votre CRM."
+      size="md"
+    >
+      <>
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* Nom */}
@@ -275,8 +265,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
             Créer
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+      </>
+    </Modal>
   )
 }

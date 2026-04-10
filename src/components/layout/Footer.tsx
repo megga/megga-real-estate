@@ -3,7 +3,7 @@ import { Linkedin, Instagram, Facebook } from 'lucide-react'
 
 function FooterLinkColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
-    <div>
+    <nav aria-label={title}>
       <h4 className="text-xs font-semibold text-gray-900 mb-4">{title}</h4>
       <ul className="space-y-2.5">
         {links.map((link) => (
@@ -17,7 +17,7 @@ function FooterLinkColumn({ title, links }: { title: string; links: { label: str
           </li>
         ))}
       </ul>
-    </div>
+    </nav>
   )
 }
 

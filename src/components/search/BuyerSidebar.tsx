@@ -46,6 +46,8 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
         }}
         className="group relative flex flex-col items-center mb-2 cursor-pointer"
         title={item.label}
+        aria-label={item.label}
+        aria-pressed={activeView === item.id}
       >
         {/* Icon container — background only here */}
         <div
@@ -86,6 +88,7 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
 
   return (
     <nav
+      aria-label="Outils acheteur"
       className={cn(
         'flex flex-col items-center w-[90px] shrink-0 bg-white border-r border-gray-200 h-full',
         className
