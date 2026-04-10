@@ -3,13 +3,16 @@ import { useState, useCallback } from 'react'
 const SITE_PASSWORD = 'gg'
 const STORAGE_KEY = 'megga-site-access'
 
+// Bypass en dev si VITE_PASSWORD_GATE_BYPASS=true dans .env.local (utile pour tests E2E)
+const BYPASS_GATE = import.meta.env.DEV && import.meta.env.VITE_PASSWORD_GATE_BYPASS === 'true'
+
 interface PasswordGateProps {
   children: React.ReactNode
 }
 
 export default function PasswordGate({ children }: PasswordGateProps) {
   const [authorized, setAuthorized] = useState(() =>
-    sessionStorage.getItem(STORAGE_KEY) === 'true'
+    BYPASS_GATE || sessionStorage.getItem(STORAGE_KEY) === 'true'
   )
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)

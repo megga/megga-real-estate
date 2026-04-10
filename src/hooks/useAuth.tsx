@@ -6,8 +6,13 @@ import { isAgentRole, isParticulierRole } from '@/types/auth'
 
 export type { UserRole, UserProfile } from '@/types/auth'
 
-// DEV_BYPASS: set to true to skip auth and use a mock user
-const DEV_BYPASS_AUTH = true
+// DEV_BYPASS: active uniquement en dev ET si VITE_DEV_BYPASS_AUTH=true dans .env.local
+// Ne jamais activer en prod — même si la constante est forcée, ce check empêche l'app de démarrer.
+const DEV_BYPASS_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
+
+if (DEV_BYPASS_AUTH && import.meta.env.PROD) {
+  throw new Error('[SECURITY] DEV_BYPASS_AUTH ne peut pas être actif en production.')
+}
 
 interface AuthContextType {
   session: Session | null
@@ -27,10 +32,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Rôle mock par défaut = 'agent' (le plus sûr). Pour tester super_admin en dev,
+// set VITE_DEV_BYPASS_ROLE=super_admin dans .env.local
+const MOCK_ROLE = (import.meta.env.VITE_DEV_BYPASS_ROLE as UserRole | undefined) ?? 'agent'
+
 const MOCK_USER = {
   id: 'dev-mock-user',
   email: 'agent@megga.ch',
-  user_metadata: { full_name: 'Gregory Lyonnet', role: 'super_admin' },
+  user_metadata: { full_name: 'Gregory Lyonnet', role: MOCK_ROLE },
   app_metadata: {},
   aud: 'authenticated',
   created_at: '2026-01-01T00:00:00Z',
@@ -40,7 +49,7 @@ const MOCK_PROFILE: UserProfile = {
   id: 'dev-mock-user',
   email: 'agent@megga.ch',
   full_name: 'Gregory Lyonnet',
-  role: 'super_admin',
+  role: MOCK_ROLE,
   avatar_url: null,
   phone: null,
   canton: 'GE',
