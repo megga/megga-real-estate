@@ -225,6 +225,18 @@ serve(async (req: Request) => {
     const body: CopilotRequest = await req.json()
     const { action = 'chat', message, context, history = [], language = 'fr' } = body
 
+    // ── Auth check (skip for public buyer search) ───────────────────────────
+    const isPublicSearch = context?.search_mode === 'public_buyer'
+    if (!isPublicSearch) {
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ error: 'Authentication required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     if (!message && action === 'chat') {
       return new Response(
         JSON.stringify({ error: 'message is required' }),

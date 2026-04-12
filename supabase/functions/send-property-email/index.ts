@@ -157,9 +157,9 @@ serve(async (req) => {
       })
     }
 
-    const RESEND_KEY = Deno.env.get('RESEND_KEY')
-    if (!RESEND_KEY) {
-      return new Response(JSON.stringify({ error: 'RESEND_KEY not configured' }), {
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+    if (!RESEND_API_KEY) {
+      return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
@@ -178,7 +178,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_KEY}`,
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
         from: `MEGGA Immobilier <noreply@megga.ch>`,

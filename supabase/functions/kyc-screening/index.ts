@@ -101,6 +101,15 @@ serve(async (req) => {
   }
 
   try {
+    // ── Auth check ──────────────────────────────────────────────────────────
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const apiKey = Deno.env.get('DILISENSE_API_KEY')
     if (!apiKey) {
       return new Response(

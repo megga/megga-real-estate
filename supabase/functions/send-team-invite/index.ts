@@ -224,8 +224,8 @@ serve(async (req) => {
       }
 
       // Send email
-      const RESEND_KEY = Deno.env.get('RESEND_KEY')
-      if (RESEND_KEY) {
+      const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+      if (RESEND_API_KEY) {
         const origin = req.headers.get('origin') || 'https://megga.ch'
         const html = buildInviteEmailHtml({
           inviterName: profile.full_name,
@@ -238,7 +238,7 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${RESEND_KEY}`,
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
           },
           body: JSON.stringify({
             from: 'MEGGA Immobilier <noreply@megga.ch>',
@@ -344,8 +344,8 @@ serve(async (req) => {
     if (insertError) throw insertError
 
     // Send email via Resend
-    const RESEND_KEY = Deno.env.get('RESEND_KEY')
-    if (RESEND_KEY) {
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+    if (RESEND_API_KEY) {
       const origin = req.headers.get('origin') || 'https://megga.ch'
       const html = buildInviteEmailHtml({
         inviterName: profile.full_name,
@@ -358,7 +358,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${RESEND_KEY}`,
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
         },
         body: JSON.stringify({
           from: 'MEGGA Immobilier <noreply@megga.ch>',

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { PlanType } from '@/lib/plans'
 
 interface Subscription {
@@ -21,14 +22,16 @@ interface Subscription {
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
 export function useSubscription() {
+  const { user } = useAuth()
   const queryClient = useQueryClient()
 
   const { data: subscription, isLoading, error } = useQuery({
     queryKey: ['subscription'],
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('*')
+        .select('id, agency_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_start, current_period_end, cancel_at_period_end, created_at')
         .maybeSingle()
       if (error) throw error
       return data as Subscription | null

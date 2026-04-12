@@ -275,6 +275,19 @@ serve(async (req) => {
   try {
     const { to, subject: overrideSubject, template, data }: SendEmailRequest = await req.json()
 
+    // ── Auth check (skip for public templates) ──────────────────────────────
+    const PUBLIC_TEMPLATES = ['ticket_confirmation', 'visit_confirmation_buyer']
+    const isPublicTemplate = PUBLIC_TEMPLATES.includes(template)
+    if (!isPublicTemplate) {
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ error: 'Authentication required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     if (!to) {
       return new Response(JSON.stringify({ error: 'Missing "to" field' }), { status: 400, headers: corsHeaders })
     }

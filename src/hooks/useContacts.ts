@@ -27,6 +27,9 @@ export function useContacts(filters?: ContactFilters) {
   const contactsQuery = useQuery({
     queryKey: ['contacts', profile?.agency_id, filters],
     queryFn: async () => {
+      // SELECT * kept intentionally — Contact type requires all columns and Supabase
+      // generated types don't support partial column inference well. RLS agency-scoping
+      // ensures only authorized data is returned.
       let query = supabase.from('contacts').select('*')
 
       if (filters?.type) query = query.eq('type', filters.type)

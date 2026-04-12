@@ -82,7 +82,7 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
       // 1. Fetch portal by token
       const { data: portal, error: portalErr } = await supabase
         .from('seller_portals')
-        .select('*')
+        .select('id, agency_id, contact_id, property_id, agent_id, status, created_at, expires_at, last_viewed_at, view_count')
         .eq('token', token)
         .single()
 

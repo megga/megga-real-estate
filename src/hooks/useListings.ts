@@ -1,10 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { Listing, ListingFilters } from '@/types/listing'
 
 export function useListings(filters?: ListingFilters) {
+  const { user } = useAuth()
   return useQuery({
     queryKey: ['listings', filters],
+    enabled: !!user,
     queryFn: async () => {
       let query = supabase
         .from('listings')
@@ -42,8 +45,10 @@ export function useListing(id: string | undefined) {
 }
 
 export function useAgencyListings() {
+  const { user } = useAuth()
   return useQuery({
     queryKey: ['agency-listings'],
+    enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('listings')

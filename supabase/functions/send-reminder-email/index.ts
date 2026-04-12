@@ -159,9 +159,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const RESEND_KEY = Deno.env.get('RESEND_KEY')
-    if (!RESEND_KEY) {
-      throw new Error('RESEND_KEY not configured')
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+    if (!RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY not configured')
     }
 
     const { reminder_id, agency_id } = (await req.json()) as RequestBody
@@ -261,7 +261,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_KEY}`,
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
         from: `MEGGA Immobilier <noreply@megga.ch>`,

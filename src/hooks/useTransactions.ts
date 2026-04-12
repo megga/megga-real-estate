@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { Transaction, TransactionStatus, MandateType } from '@/types/transaction'
 import type { TransactionStage } from '@/lib/constants'
 
@@ -10,8 +11,10 @@ interface TransactionFilters {
 }
 
 export function useTransactions(filters?: TransactionFilters) {
+  const { user } = useAuth()
   return useQuery({
     queryKey: ['transactions', filters],
+    enabled: !!user,
     queryFn: async () => {
       let query = supabase
         .from('transactions')
