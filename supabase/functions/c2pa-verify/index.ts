@@ -58,7 +58,7 @@ serve(async (req: Request) => {
 
     try {
       // Tentative de chargement c2pa-wasm (peut échouer si non supporté)
-      // @ts-ignore — dynamic import conditionnel
+      // @ts-expect-error — dynamic import conditionnel, c2pa-wasm peut ne pas être disponible
       const c2pa = await import('npm:c2pa-wasm')
       if (c2pa && typeof c2pa.read === 'function') {
         const result = await c2pa.read(new Uint8Array(photoBuffer))

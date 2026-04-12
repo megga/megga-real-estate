@@ -122,7 +122,7 @@ serve(async (req: Request) => {
             // Note: ce n'est PAS un certificat C2PA officiel, mais une preuve
             // interne que la photo n'a pas été modifiée depuis l'upload
             signed = true
-            method = 'megga_shield'
+            method = `megga_shield:${hashHex.slice(0, 16)}`
 
             // On pourrait stocker le hash dans une table dédiée
             // Pour le MVP, on marque juste le bien comme vérifié
