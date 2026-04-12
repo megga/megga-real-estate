@@ -18,8 +18,8 @@ export default function HomePage() {
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
 
       <main id="main-content">
-      {/* Hero */}
-      <section className="relative min-h-[560px] flex items-center justify-center overflow-hidden">
+      {/* Hero — -mt-[72px] pulls the section behind the transparent Navbar */}
+      <section className="relative min-h-[560px] -mt-[72px] flex items-center justify-center overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
           alt=""
