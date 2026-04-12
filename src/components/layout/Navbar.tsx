@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark, HelpCircle, Globe, ChevronDown, Users, Building2, UserPlus } from 'lucide-react'
+import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark, HelpCircle, Globe, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useAvatar } from '@/hooks/useAvatar'
@@ -13,11 +13,23 @@ const leftLinks = [
   { label: 'Vendre', href: '/vendre' },
 ]
 
-const proDropdownItems = [
-  { label: 'Trouver un agent', href: '/agents', icon: Users, desc: 'Trouvez un courtier' },
-  { label: 'Trouver une agence', href: '/agences', icon: Building2, desc: 'Annuaire des agences' },
-  { label: 'Créer un profil', href: '/devenir-agent', icon: UserPlus, desc: 'Rejoignez MEGGA' },
-]
+const proDropdownLeft = {
+  title: 'Trouver un professionnel',
+  items: [
+    { label: 'Agents immobiliers', href: '/agents' },
+    { label: 'Agences immobilières', href: '/agences' },
+  ],
+}
+
+const proDropdownRight = {
+  title: 'Je suis un professionnel',
+  items: [
+    { label: 'Solutions agent', href: '/services' },
+    { label: 'Tarifs agences', href: '/services#tarifs' },
+    { label: 'Centre de ressources', href: '/aide' },
+    { label: 'Créer un compte agent', href: '/register' },
+  ],
+}
 
 const mobileLinks = [
   { label: 'Acheter', href: '/acheter' },
@@ -65,7 +77,8 @@ export default function Navbar() {
   const [langOpen, setLangOpen] = useState(false)
   const [agentDropOpen, setAgentDropOpen] = useState(false)
   const agentDropRef = useRef<HTMLDivElement>(null)
-  const [_scrolled, setScrolled] = useState(false)
+  // Scroll state gardé pour Phase 2 (navbar transparente sur hero overlay)
+  const [, setScrolled] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const langRef = useRef<HTMLDivElement>(null)
 
@@ -175,42 +188,62 @@ export default function Navbar() {
             )
           })}
 
-          {/* Trouver un agent — dropdown */}
-          <div className="relative" ref={agentDropRef}>
+          {/* Professionnels — mega dropdown 2 colonnes (hover) */}
+          <div
+            className="relative"
+            ref={agentDropRef}
+            onMouseEnter={() => setAgentDropOpen(true)}
+            onMouseLeave={() => setAgentDropOpen(false)}
+          >
             <button
-              onClick={() => setAgentDropOpen(!agentDropOpen)}
               className={cn(
                 'flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium transition-all duration-150',
-                (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agences') || location.pathname === '/devenir-agent')
-                  ? isTransparent ? 'text-white' : 'text-theme-primary'
-                  : isTransparent ? 'text-white/80 hover:text-white' : 'text-theme-tertiary hover:text-theme-primary'
+                (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agences') || location.pathname.startsWith('/services'))
+                  ? 'text-theme-primary'
+                  : 'text-theme-tertiary hover:text-theme-primary'
               )}
             >
               Professionnels
               <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', agentDropOpen && 'rotate-180')} />
             </button>
             {agentDropOpen && (
-              <div className="absolute left-0 mt-2 w-56 bg-theme-card rounded-xl border border-theme-border py-2 z-50">
-                {proDropdownItems.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      onClick={() => setAgentDropOpen(false)}
-                      className={cn(
-                        'flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-theme-hover',
-                        location.pathname === item.href ? 'bg-theme-hover' : ''
-                      )}
-                    >
-                      <Icon className="w-4 h-4 text-theme-muted flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-theme-primary">{item.label}</p>
-                        <p className="text-xs text-theme-muted">{item.desc}</p>
-                      </div>
-                    </Link>
-                  )
-                })}
+              <div className="absolute left-0 mt-0 pt-2 z-50">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-lg py-5 px-6 flex gap-10 min-w-[480px]">
+                  {/* Colonne gauche */}
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">{proDropdownLeft.title}</p>
+                    <div className="space-y-1">
+                      {proDropdownLeft.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setAgentDropOpen(false)}
+                          className="block text-sm text-blue-600 hover:text-blue-800 hover:underline py-1 transition-colors"
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Séparateur vertical */}
+                  <div className="w-px bg-gray-200" />
+                  {/* Colonne droite */}
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900 mb-3">{proDropdownRight.title}</p>
+                    <div className="space-y-1">
+                      {proDropdownRight.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setAgentDropOpen(false)}
+                          className="block text-sm text-blue-600 hover:text-blue-800 hover:underline py-1 transition-colors"
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

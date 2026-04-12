@@ -251,7 +251,7 @@ export default function ContactDetailPage() {
       return { title: t('detail.sellerUpdate'), description: t('detail.sellerUpdateDesc'), actionLabel: t('detail.call'), score: undefined }
     }
     return { title: t('detail.qualify'), description: t('detail.qualifyDesc'), actionLabel: t('detail.call'), score: undefined }
-  }, [contact])
+  }, [contact, t])
 
   // Set copilot context
   useEffect(() => {
