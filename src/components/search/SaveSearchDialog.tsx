@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Bell, BellOff } from 'lucide-react'
+import { Bell, BellOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSavedSearches, generateSearchName, type SavedSearchFilters } from '@/hooks/useSavedSearches'
+import Modal from '@/components/ui/modal'
 
 interface SaveSearchDialogProps {
   open: boolean
@@ -21,8 +21,6 @@ export default function SaveSearchDialog({ open, onClose, filters, resultsCount 
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily')
   const [saved, setSaved] = useState(false)
 
-  if (!open) return null
-
   function handleSave() {
     if (!name.trim()) return
     saveSearch(name.trim(), filters, alertEnabled, frequency, email || undefined, resultsCount)
@@ -30,19 +28,8 @@ export default function SaveSearchDialog({ open, onClose, filters, resultsCount 
     setTimeout(() => { setSaved(false); onClose() }, 1500)
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[90] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <h3 className="text-base font-semibold text-gray-900">{t('search.saveThisSearch')}</h3>
-          <button onClick={onClose} className="h-8 w-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
+  return (
+    <Modal open={open} onClose={onClose} title={t('search.saveThisSearch')} size="sm">
         {saved ? (
           <div className="px-5 py-10 text-center">
             <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
@@ -149,8 +136,6 @@ export default function SaveSearchDialog({ open, onClose, filters, resultsCount 
             </button>
           </div>
         )}
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }

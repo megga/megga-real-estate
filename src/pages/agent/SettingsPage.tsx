@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Camera,
-  X,
   Loader2,
   MoreHorizontal,
 } from 'lucide-react'
+import Modal from '@/components/ui/modal'
 import { cn, formatRelativeDate } from '@/lib/utils'
 
 import { supabase } from '@/lib/supabase'
@@ -20,7 +20,7 @@ import { STRIPE_PRICES } from '@/lib/constants'
 import AvatarCropModal from '@/components/profile/AvatarCropModal'
 import AppearanceTab from '@/components/settings/AppearanceTab'
 import PageTransition from '@/components/layout/PageTransition'
-import { Modal } from '@/components/ui/modal'
+
 
 /* ─── Tab Types ─── */
 
@@ -628,15 +628,8 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div className="rounded-xl border border-theme-border bg-theme-page w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <h3 className="text-lg font-semibold text-theme-primary">{t('team.inviteModal.title')}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
-            <X className="w-5 h-5 text-theme-muted" />
-          </button>
-        </div>
+  return (
+    <Modal open onClose={onClose} title={t('team.inviteModal.title')} size="md">
         <div className="p-5 space-y-4">
           <div>
             <label className={labelClasses}>{t('team.inviteModal.email')}</label>
@@ -674,9 +667,7 @@ function InviteMemberModal({ onClose }: { onClose: () => void }) {
             {inviteMutation.isPending ? t('team.inviteModal.sending') : t('team.inviteModal.send')}
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }
 
@@ -692,15 +683,8 @@ function ChangeRoleModal({ member, onClose, onConfirm }: { member: TeamMemberTyp
     } catch { /* RLS will block unauthorized changes */ }
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div className="rounded-xl border border-theme-border bg-theme-page w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <h3 className="text-base font-semibold text-theme-primary">{t('team.changeRole.title')}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
-            <X className="w-4 h-4 text-theme-muted" />
-          </button>
-        </div>
+  return (
+    <Modal open onClose={onClose} title={t('team.changeRole.title')} size="sm">
         <div className="p-5 space-y-3">
           <p className="text-sm text-theme-secondary">{t('team.changeRole.subtitle', { name: member.full_name })}</p>
           <div className="flex flex-wrap gap-2">
@@ -731,9 +715,7 @@ function ChangeRoleModal({ member, onClose, onConfirm }: { member: TeamMemberTyp
             {t('team.changeRole.confirm')}
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }
 
@@ -748,11 +730,9 @@ function RemoveMemberModal({ member, onClose, onConfirm }: { member: TeamMemberT
     } catch { /* handled by React Query */ }
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div className="rounded-xl border border-theme-border bg-theme-page w-full max-w-sm" onClick={e => e.stopPropagation()}>
+  return (
+    <Modal open onClose={onClose} title={t('team.remove.title')} size="sm">
         <div className="p-5 space-y-3">
-          <h3 className="text-base font-semibold text-theme-primary">{t('team.remove.title')}</h3>
           <p className="text-sm text-theme-secondary">{t('team.remove.message', { name: member.full_name })}</p>
         </div>
         <div className="flex items-center gap-3 p-5 border-t border-theme-border">
@@ -765,9 +745,7 @@ function RemoveMemberModal({ member, onClose, onConfirm }: { member: TeamMemberT
             {t('team.remove.confirm')}
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }
 

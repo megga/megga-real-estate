@@ -1,8 +1,8 @@
-import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Bell, BellOff, Trash2, Search } from 'lucide-react'
+import { Bell, BellOff, Trash2, Search } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useSavedSearches, type SavedSearchFilters } from '@/hooks/useSavedSearches'
+import Modal from '@/components/ui/modal'
 
 interface SavedSearchesListProps {
   open: boolean
@@ -31,22 +31,8 @@ export default function SavedSearchesList({ open, onClose, onApplyFilters }: Sav
   const { t } = useTranslation('common')
   const { searches, deleteSearch, toggleAlert } = useSavedSearches()
 
-  if (!open) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[90] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-          <h3 className="text-base font-semibold text-gray-900">{t('search.mySavedSearches')}</h3>
-          <button onClick={onClose} className="h-8 w-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* List */}
+  return (
+    <Modal open={open} onClose={onClose} title={t('search.mySavedSearches')} size="md">
         <div className="overflow-y-auto flex-1 scrollbar-hide">
           {searches.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-6">
@@ -111,8 +97,6 @@ export default function SavedSearchesList({ open, onClose, onApplyFilters }: Sav
             </div>
           )}
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }

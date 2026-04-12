@@ -138,6 +138,15 @@ serve(async (req) => {
   }
 
   try {
+    // ── Auth check (agent-only — sending property emails requires authentication) ──
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
+      )
+    }
+
     const body: SendRequest = await req.json()
 
     // Validate required fields

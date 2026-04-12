@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
-import { X, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import { useSendMatchToClient, type MatchResult } from '@/hooks/useMatching'
+import Modal from '@/components/ui/modal'
 
 interface SendMatchDialogProps {
   open: boolean
@@ -50,26 +50,16 @@ export default function SendMatchDialog({ open, match, contactName: propContactN
     }
   }
 
-  if (!open || !match || !listing) return null
+  if (!match || !listing) return null
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-      <div
-        className="bg-theme-card border border-theme-border rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-5 border-b border-theme-border">
-          <div>
-            <h3 className="text-base font-semibold text-theme-primary">Envoyer le bien à {name}</h3>
-            <p className="text-xs text-theme-tertiary mt-0.5">
-              {listing.title} — {formatCHF(listing.price)} — Score {match.score}%
-            </p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-theme-hover transition-colors">
-            <X className="w-4 h-4 text-theme-tertiary" />
-          </button>
-        </div>
-
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Envoyer le bien à ${name}`}
+      description={`${listing.title} — ${formatCHF(listing.price)} — Score ${match.score}%`}
+      size="md"
+    >
         <div className="p-5 space-y-4">
           <div>
             <label className="block text-sm font-medium text-theme-primary mb-1.5">Canal d&apos;envoi</label>
@@ -123,8 +113,6 @@ export default function SendMatchDialog({ open, match, contactName: propContactN
             Envoyer
           </button>
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }

@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react'
-import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -11,6 +10,7 @@ import { PROPERTY_TYPE_LABELS, PROPERTY_STATUS_LABELS } from '@/lib/constants'
 import type { PropertyStatus } from '@/lib/constants'
 import { useAgencyProperties, useDeleteProperty } from '@/hooks/useProperties'
 import PageTransition from '@/components/layout/PageTransition'
+import Modal from '@/components/ui/modal'
 
 const ITEMS_PER_PAGE = 9
 
@@ -364,28 +364,23 @@ export default function ListingsPage() {
         )}
 
         {/* Delete confirmation modal */}
-        {deleteId && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteId(null)} />
-            <div className="relative bg-theme-card rounded-xl border border-theme-border p-6 max-w-sm w-full mx-4">
-              <h3 className="text-base font-semibold text-theme-primary">{t('delete_dialog.title')}</h3>
-              <p className="text-sm text-theme-secondary mt-2">{t('delete_dialog.message')}</p>
-              <div className="flex justify-end gap-3 mt-6">
-                <button onClick={() => setDeleteId(null)} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-                  {t('cancel')}
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleteProperty.isPending}
-                  className="h-9 px-4 text-sm font-medium border border-red-300 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-50"
-                >
-                  {deleteProperty.isPending ? t('deleting') : t('delete_button')}
-                </button>
-              </div>
+        <Modal open={!!deleteId} onClose={() => setDeleteId(null)} title={t('delete_dialog.title')} size="sm">
+          <div className="p-5">
+            <p className="text-sm text-theme-secondary">{t('delete_dialog.message')}</p>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setDeleteId(null)} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
+                {t('cancel')}
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteProperty.isPending}
+                className="h-9 px-4 text-sm font-medium border border-red-300 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-50"
+              >
+                {deleteProperty.isPending ? t('deleting') : t('delete_button')}
+              </button>
             </div>
-          </div>,
-          document.body
-        )}
+          </div>
+        </Modal>
       </div>
     </PageTransition>
   )

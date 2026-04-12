@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { X, ZoomIn, ZoomOut, RotateCcw, RotateCw, Trash2, Undo2 } from 'lucide-react'
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Trash2, Undo2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Modal from '@/components/ui/modal'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -229,21 +230,8 @@ export default function AvatarCropModal({ open, imageSrc, existingAvatar, onSave
     onSave(outputCanvas.toDataURL('image/jpeg', 0.9))
   }
 
-  if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-
-      <div className="relative w-full max-w-[380px] mx-4 bg-theme-page rounded-xl border border-theme-border overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-theme-border">
-          <h2 className="text-base font-semibold text-theme-primary">Photo de profil</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-theme-hover transition-colors">
-            <X className="w-4 h-4 text-theme-muted" />
-          </button>
-        </div>
-
+    <Modal open={open} onClose={onClose} title="Photo de profil" size="sm">
         {/* Canvas area */}
         <div className="flex items-center justify-center px-6 pt-5 pb-2">
           <canvas
@@ -329,8 +317,7 @@ export default function AvatarCropModal({ open, imageSrc, existingAvatar, onSave
             Enregistrer
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

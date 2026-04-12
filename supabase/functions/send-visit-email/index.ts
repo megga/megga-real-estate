@@ -60,6 +60,18 @@ serve(async (req) => {
   try {
     const { type, visit_id, agency_id }: RequestBody = await req.json()
 
+    // ── Auth check (skip for buyer confirmations — public booking flow) ─────
+    const PUBLIC_TYPES = ['confirmation_buyer']
+    if (!PUBLIC_TYPES.includes(type)) {
+      const authHeader = req.headers.get('Authorization')
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ error: 'Authentication required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,

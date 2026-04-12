@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createPortal } from 'react-dom'
-import { useFocusTrap } from '@/hooks/useFocusTrap'
-import { Plus, X, Trash2, Megaphone, Eye, EyeOff } from 'lucide-react'
+import { Plus, Trash2, Megaphone, Eye, EyeOff } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import { useChangelog } from '@/hooks/useChangelog'
+import Modal from '@/components/ui/modal'
 
 export default function AdminChangelogPage() {
   const { t } = useTranslation('admin')
@@ -14,7 +13,6 @@ export default function AdminChangelogPage() {
   const [content, setContent] = useState('')
   const [version, setVersion] = useState('')
   const [published, setPublished] = useState(true)
-  const focusTrapRef = useFocusTrap(showCreate)
 
   function handleCreate() {
     if (!title.trim()) return
@@ -101,83 +99,70 @@ export default function AdminChangelogPage() {
       )}
 
       {/* Create modal */}
-      {showCreate && createPortal(
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
-          <div ref={focusTrapRef} className="relative bg-theme-card rounded-xl border border-theme-border p-6 w-full max-w-lg mx-4">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-semibold text-theme-primary">{t('changelog.modal.title')}</h3>
-              <button onClick={() => setShowCreate(false)} aria-label={t('common.close')} className="h-8 w-8 rounded-full flex items-center justify-center text-theme-secondary hover:text-theme-primary hover:bg-theme-hover transition-colors">
-                <X className="h-4 w-4" />
-              </button>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t('changelog.modal.title')} size="md">
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.version')}</label>
+              <input
+                type="text"
+                value={version}
+                onChange={e => setVersion(e.target.value)}
+                placeholder={t('changelog.modal.versionPlaceholder')}
+                className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
+              />
             </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.version')}</label>
-                  <input
-                    type="text"
-                    value={version}
-                    onChange={e => setVersion(e.target.value)}
-                    placeholder={t('changelog.modal.versionPlaceholder')}
-                    className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <button
-                    onClick={() => setPublished(!published)}
-                    className={cn(
-                      'h-9 px-3 rounded-lg text-sm flex items-center gap-2 transition-colors',
-                      published ? 'bg-admin-accent/10 text-admin-accent' : 'bg-theme-hover text-theme-muted'
-                    )}
-                  >
-                    {published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                    {published ? t('changelog.modal.published') : t('changelog.modal.draft')}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.titleLabel')}</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  placeholder={t('changelog.modal.titlePlaceholder')}
-                  autoFocus
-                  className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.description')}</label>
-                <textarea
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  rows={5}
-                  placeholder={t('changelog.modal.descriptionPlaceholder')}
-                  className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setShowCreate(false)} className="h-9 px-4 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-                {t('common.cancel')}
-              </button>
+            <div className="flex items-end">
               <button
-                onClick={handleCreate}
-                disabled={!title.trim()}
-                className="h-9 px-4 text-sm font-medium border border-theme-border text-theme-primary rounded-lg hover:border-admin-accent hover:text-admin-accent transition-colors disabled:opacity-50"
+                onClick={() => setPublished(!published)}
+                className={cn(
+                  'h-9 px-3 rounded-lg text-sm flex items-center gap-2 transition-colors',
+                  published ? 'bg-admin-accent/10 text-admin-accent' : 'bg-theme-hover text-theme-muted'
+                )}
               >
-                {t('common.publish')}
+                {published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                {published ? t('changelog.modal.published') : t('changelog.modal.draft')}
               </button>
             </div>
           </div>
-        </div>,
-        document.body
-      )}
+
+          <div>
+            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.titleLabel')}</label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder={t('changelog.modal.titlePlaceholder')}
+              autoFocus
+              className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.description')}</label>
+            <textarea
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              rows={5}
+              placeholder={t('changelog.modal.descriptionPlaceholder')}
+              className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 mt-5">
+            <button onClick={() => setShowCreate(false)} className="h-9 px-4 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={!title.trim()}
+              className="h-9 px-4 text-sm font-medium border border-theme-border text-theme-primary rounded-lg hover:border-admin-accent hover:text-admin-accent transition-colors disabled:opacity-50"
+            >
+              {t('common.publish')}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

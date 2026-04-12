@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { createPortal } from 'react-dom'
-import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useTranslation } from 'react-i18next'
-import { X, AlertTriangle, Trash2, Building2 } from 'lucide-react'
+import { Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Modal from '@/components/ui/modal'
 
 interface ModerationActionDialogProps {
   open: boolean
@@ -32,13 +31,9 @@ export default function ModerationActionDialog({
   const { t } = useTranslation('admin')
   const [selectedReason, setSelectedReason] = useState<string | null>(null)
   const [customReason, setCustomReason] = useState('')
-  const focusTrapRef = useFocusTrap(open)
-
-  if (!open) return null
 
   const isFlag = action === 'flag'
   const actionLabel = isFlag ? t('moderation.flagTitle') : t('moderation.removeTitle')
-  const ActionIcon = isFlag ? AlertTriangle : Trash2
 
   const finalReason = selectedReason === '__custom' ? customReason.trim() : selectedReason ?? ''
 
@@ -55,18 +50,9 @@ export default function ModerationActionDialog({
     onClose()
   }
 
-  return createPortal(
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
-      <div ref={focusTrapRef} className="relative bg-theme-card rounded-xl border border-theme-border p-6 max-w-md w-full mx-4">
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 p-1 rounded-md text-theme-tertiary hover:text-theme-primary transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
+  return (
+    <Modal open={open} onClose={handleClose} title={actionLabel} size="md">
+      <div className="p-6">
         {/* Property preview */}
         <div className="flex items-center gap-3 mb-5">
           {propertyPhoto ? (
@@ -85,12 +71,6 @@ export default function ModerationActionDialog({
           <div className="min-w-0">
             <p className="text-sm font-medium text-theme-primary truncate">{propertyTitle}</p>
           </div>
-        </div>
-
-        {/* Action label */}
-        <div className="flex items-center gap-2 mb-4">
-          <ActionIcon className={cn('h-4 w-4', isFlag ? 'text-amber-500' : 'text-red-500')} />
-          <h3 className="text-sm font-semibold text-theme-primary">{actionLabel}</h3>
         </div>
 
         {/* Reason pills */}
@@ -159,7 +139,6 @@ export default function ModerationActionDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   )
 }
