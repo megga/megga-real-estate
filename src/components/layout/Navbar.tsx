@@ -207,8 +207,8 @@ export default function Navbar() {
               <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', agentDropOpen && 'rotate-180')} />
             </button>
             {agentDropOpen && (
-              <div className="absolute left-0 mt-0 pt-2 z-50">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-lg py-5 px-6 flex gap-10 min-w-[480px]">
+              <div className="fixed left-0 right-0 top-[72px] z-50">
+                <div className="bg-white border-b border-gray-200 py-6 px-8 flex gap-12 max-w-7xl mx-auto">
                   {/* Colonne gauche */}
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-900 mb-3">{proDropdownLeft.title}</p>
