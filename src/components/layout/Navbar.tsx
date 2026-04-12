@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark, HelpCircle, Globe, ChevronDown } from 'lucide-react'
+import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useAvatar } from '@/hooks/useAvatar'
@@ -77,6 +77,8 @@ export default function Navbar() {
   const [langOpen, setLangOpen] = useState(false)
   const [agentDropOpen, setAgentDropOpen] = useState(false)
   const agentDropRef = useRef<HTMLDivElement>(null)
+  const [mgmtOpen, setMgmtOpen] = useState(false)
+  const mgmtTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // Scroll state gardé pour Phase 2 (navbar transparente sur hero overlay)
   const [, setScrolled] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -173,7 +175,7 @@ export default function Navbar() {
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  'px-3.5 py-1.5 text-sm font-medium transition-all duration-150',
+                  'px-3.5 py-1.5 text-[15px] font-medium transition-all duration-150',
                   isActive
                     ? isTransparent
                       ? 'text-white'
@@ -192,8 +194,8 @@ export default function Navbar() {
           <div
             className="relative"
             ref={agentDropRef}
-            onMouseEnter={() => setAgentDropOpen(true)}
-            onMouseLeave={() => setAgentDropOpen(false)}
+            onMouseEnter={() => { clearTimeout((agentDropRef.current as unknown as { _closeTimer?: ReturnType<typeof setTimeout> })?._closeTimer); setAgentDropOpen(true) }}
+            onMouseLeave={() => { (agentDropRef.current as unknown as { _closeTimer?: ReturnType<typeof setTimeout> })._closeTimer = setTimeout(() => setAgentDropOpen(false), 150) }}
           >
             <button
               aria-haspopup="true"
@@ -207,7 +209,7 @@ export default function Navbar() {
                 if (e.key === 'Escape') setAgentDropOpen(false)
               }}
               className={cn(
-                'flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium transition-all duration-150',
+                'flex items-center gap-1 px-3.5 py-1.5 text-[15px] font-medium transition-all duration-150',
                 agentDropOpen
                   ? 'text-theme-primary'
                   : (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agences') || location.pathname.startsWith('/services'))
@@ -216,13 +218,14 @@ export default function Navbar() {
               )}
             >
               Professionnels
-              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', agentDropOpen && 'rotate-180')} />
             </button>
             {agentDropOpen && (
               <div
                 className="fixed left-[90px] right-0 top-[72px] z-50"
                 role="menu"
                 aria-label="Menu Professionnels"
+                onMouseEnter={() => { clearTimeout((agentDropRef.current as unknown as { _closeTimer?: ReturnType<typeof setTimeout> })?._closeTimer); setAgentDropOpen(true) }}
+                onMouseLeave={() => { (agentDropRef.current as unknown as { _closeTimer?: ReturnType<typeof setTimeout> })._closeTimer = setTimeout(() => setAgentDropOpen(false), 150) }}
                 onKeyDown={(e) => { if (e.key === 'Escape') setAgentDropOpen(false) }}
               >
                 <div className="bg-white border-b border-l border-gray-200 py-6 px-8 grid grid-cols-2 gap-0">
@@ -294,68 +297,217 @@ export default function Navbar() {
 
         {/* ─── RIGHT: Actions (desktop) ─── */}
         <div className="hidden md:flex items-center gap-1 flex-1 justify-end">
-          {/* Language selector */}
-          <div className="relative" ref={langRef}>
+          {/* Language selector — même style intégré que Professionnels */}
+          <div
+            className="relative"
+            ref={langRef}
+            onMouseEnter={() => setLangOpen(true)}
+            onMouseLeave={() => setLangOpen(false)}
+          >
             <button
               onClick={() => setLangOpen(!langOpen)}
+              aria-haspopup="true"
+              aria-expanded={langOpen}
               aria-label="Changer de langue"
               className={cn(
-                'flex items-center gap-1 h-8 px-2.5 text-xs font-medium rounded-lg transition-all duration-150',
-                isTransparent
-                  ? 'text-white/70 hover:text-white hover:bg-white/10'
-                  : 'text-theme-muted hover:text-theme-secondary hover:bg-theme-hover'
+                'flex items-center gap-1 h-9 px-3 text-[15px] font-medium transition-all duration-150',
+                langOpen ? 'text-theme-primary' : 'text-theme-tertiary hover:text-theme-primary'
               )}
             >
-              <Globe className="w-3.5 h-3.5" />
-              {currentLang}
-              <ChevronDown className="w-3 h-3" />
+              {currentLang.toUpperCase()}
             </button>
             {langOpen && (
-              <div className="absolute right-0 mt-1.5 w-40 bg-theme-card rounded-xl border border-theme-border py-1 z-50">
-                {LANGUAGES.map(lang => (
-                  <button
-                    key={lang.code}
-                    onClick={() => {
-                      setCurrentLang(lang.code)
-                      localStorage.setItem('megga-language', lang.code)
-                      setLangOpen(false)
-                    }}
-                    className={cn(
-                      'w-full text-left px-3.5 py-2 text-sm transition-colors',
-                      currentLang === lang.code
-                        ? 'text-theme-primary font-medium bg-theme-hover'
-                        : 'text-theme-secondary hover:bg-theme-hover'
-                    )}
-                  >
-                    <span className="font-medium">{lang.code}</span>
-                    <span className="text-theme-muted ml-2">{lang.label}</span>
-                  </button>
-                ))}
+              <div
+                className="absolute right-0 top-full pt-1 z-50"
+                role="menu"
+                aria-label="Sélection de la langue"
+                onMouseEnter={() => setLangOpen(true)}
+                onMouseLeave={() => setLangOpen(false)}
+              >
+                <div className="bg-white border border-gray-200 rounded-lg py-3 px-4 min-w-[180px] shadow-sm">
+                  <p className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Langue</p>
+                  <div className="space-y-0.5">
+                    {LANGUAGES.map(lang => (
+                      <button
+                        key={lang.code}
+                        role="menuitem"
+                        onClick={() => {
+                          setCurrentLang(lang.code)
+                          localStorage.setItem('megga-language', lang.code)
+                          setLangOpen(false)
+                        }}
+                        className={cn(
+                          'w-full text-left rounded-lg px-3 py-2 text-sm transition-colors -mx-1',
+                          currentLang === lang.code
+                            ? 'text-theme-primary font-medium bg-gray-50'
+                            : 'text-theme-secondary hover:bg-gray-50'
+                        )}
+                      >
+                        <span className="font-medium">{lang.code}</span>
+                        <span className="text-gray-500 ml-2">{lang.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Aide */}
-          <Link
-            to="/aide"
-            className={cn(
-              'flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium rounded-lg transition-all duration-150',
-              isTransparent
-                ? 'text-white/70 hover:text-white hover:bg-white/10'
-                : location.pathname.startsWith('/aide')
-                  ? 'text-theme-primary bg-theme-hover'
-                  : 'text-theme-muted hover:text-theme-secondary hover:bg-theme-hover'
-            )}
+          {/* Management — dropdown CRM features */}
+          <div
+            className="relative"
+            onMouseEnter={() => setMgmtOpen(true)}
+            onMouseLeave={() => { mgmtTimer.current = setTimeout(() => setMgmtOpen(false), 150) }}
           >
-            <HelpCircle className="w-3.5 h-3.5" />
-            Aide
-          </Link>
+            <button
+              onClick={() => setMgmtOpen(!mgmtOpen)}
+              aria-haspopup="true"
+              aria-expanded={mgmtOpen}
+              className={cn(
+                'flex items-center gap-1 h-9 px-3 text-[15px] font-medium transition-all duration-150',
+                mgmtOpen || location.pathname.startsWith('/dashboard')
+                  ? 'text-theme-primary'
+                  : 'text-theme-tertiary hover:text-theme-primary'
+              )}
+            >
+              Management
+            </button>
+            {mgmtOpen && (
+              <div
+                className="fixed left-[90px] right-0 top-[72px] z-50"
+                role="menu"
+                aria-label="Menu Management"
+                onMouseEnter={() => { clearTimeout(mgmtTimer.current); setMgmtOpen(true) }}
+                onMouseLeave={() => { mgmtTimer.current = setTimeout(() => setMgmtOpen(false), 150) }}
+              >
+                <div
+                  className="bg-white border-b border-l border-gray-200"
+                  style={{ animation: 'mgmt-reveal 0.2s ease-out' }}
+                >
+                  {/* ── Quick Actions Row ────────────────────────────── */}
+                  <div className="px-8 pt-5 pb-4 flex items-center gap-2.5 border-b border-gray-100">
+                    {[
+                      { label: 'Nouveau contact', href: '/dashboard/contacts', icon: '+' },
+                      { label: 'Nouveau bien', href: '/dashboard/listings/new', icon: '+' },
+                      { label: 'Nouvelle transaction', href: '/dashboard/pipeline', icon: '+' },
+                      { label: 'Dossier KYC', href: '/dashboard/kyc', icon: '⬡' },
+                    ].map((action, i) => (
+                      <Link
+                        key={action.href}
+                        to={action.href}
+                        onClick={() => setMgmtOpen(false)}
+                        className="inline-flex items-center gap-1.5 h-8 px-3.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-full hover:bg-white hover:border-gray-300 hover:shadow-sm transition-all duration-150"
+                        style={{ animationDelay: `${i * 40}ms` }}
+                      >
+                        <span className="text-gray-400 text-[10px]">{action.icon}</span>
+                        {action.label}
+                      </Link>
+                    ))}
+                  </div>
+
+                  {/* ── Two Column Grid ───────────────────────────────── */}
+                  <div className="px-8 py-5 grid grid-cols-2 gap-0">
+                    {/* CRM & Outils */}
+                    <div className="pr-8 border-r border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-3">CRM & Outils</p>
+                      <div className="space-y-px">
+                        {([
+                          { label: 'Dashboard', href: '/dashboard', desc: 'Vue d\'ensemble', dot: 'bg-emerald-400', count: null },
+                          { label: 'Contacts', href: '/dashboard/contacts', desc: 'Acheteurs, vendeurs, leads', dot: 'bg-emerald-400', count: '47' },
+                          { label: 'Pipeline', href: '/dashboard/pipeline', desc: 'Suivi des transactions', dot: 'bg-amber-400', count: '12' },
+                          { label: 'Matching', href: '/dashboard/matching', desc: 'Acheteurs ↔ biens', dot: 'bg-blue-400', count: '5' },
+                          { label: 'KYC / Compliance', href: '/dashboard/kyc', desc: 'Dossiers LAB/KYC', dot: 'bg-red-400', count: '3' },
+                        ] as const).map((item, i) => (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            role="menuitem"
+                            onClick={() => setMgmtOpen(false)}
+                            className="flex items-center gap-3 rounded-lg px-3 py-2.5 -mx-2 transition-all duration-150 hover:bg-gray-50 group"
+                            style={{ animation: 'mgmt-item-in 0.25s ease-out both', animationDelay: `${80 + i * 40}ms` }}
+                          >
+                            {/* Health dot */}
+                            <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', item.dot)} />
+                            {/* Label + desc */}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{item.label}</span>
+                              <span className="block text-xs text-gray-400 mt-0.5 truncate">{item.desc}</span>
+                            </div>
+                            {/* Counter */}
+                            {item.count && (
+                              <span className="text-xs font-semibold text-gray-500 tabular-nums bg-gray-100 rounded-md px-2 py-0.5 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                {item.count}
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Ressources */}
+                    <div className="pl-8">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-3">Ressources</p>
+                      <div className="space-y-px">
+                        {([
+                          { label: 'Documents', href: '/dashboard/documents', desc: 'Mandats, bons de visite', count: '12' },
+                          { label: 'Automatisation', href: '/dashboard/automation', desc: 'Relances et règles', count: '8' },
+                          { label: 'Calendrier', href: '/dashboard/calendar', desc: 'Visites, rendez-vous', count: '3' },
+                          { label: 'Centre d\'aide', href: '/aide', desc: 'Guides et tutoriels', count: null },
+                          { label: 'Paramètres', href: '/dashboard/settings', desc: 'Profil, équipe, abonnement', count: null },
+                        ] as const).map((item, i) => (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            role="menuitem"
+                            onClick={() => setMgmtOpen(false)}
+                            className="flex items-center gap-3 rounded-lg px-3 py-2.5 -mx-2 transition-all duration-150 hover:bg-gray-50 group"
+                            style={{ animation: 'mgmt-item-in 0.25s ease-out both', animationDelay: `${80 + i * 40}ms` }}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{item.label}</span>
+                              <span className="block text-xs text-gray-400 mt-0.5 truncate">{item.desc}</span>
+                            </div>
+                            {item.count && (
+                              <span className="text-xs font-semibold text-gray-500 tabular-nums bg-gray-100 rounded-md px-2 py-0.5 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                                {item.count}
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── AI Banner ─────────────────────────────────────── */}
+                  <div className="px-8 py-3 border-t border-gray-100 bg-gradient-to-r from-blue-50/80 via-white to-white">
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setMgmtOpen(false)}
+                      className="flex items-center gap-2.5 group"
+                    >
+                      <span className="flex items-center justify-center w-5 h-5 rounded-md bg-blue-100 text-blue-600 text-[10px]">✦</span>
+                      <span className="text-xs text-gray-600">
+                        <span className="font-semibold text-gray-900">3 relances en retard</span>
+                        <span className="mx-1.5 text-gray-300">·</span>
+                        <span>2 matchs trouvés</span>
+                        <span className="mx-1.5 text-gray-300">·</span>
+                        <span>1 visite aujourd'hui</span>
+                      </span>
+                      <span className="ml-auto text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                        Voir tout →
+                      </span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Publier */}
           <Link
             to="/publier"
             className={cn(
-              'flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-lg transition-all duration-150',
+              'flex items-center gap-1.5 h-9 px-3 text-[15px] font-medium transition-all duration-150',
               isTransparent
                 ? 'text-white/80 hover:text-white hover:bg-white/10'
                 : 'text-theme-tertiary hover:text-theme-primary hover:bg-theme-hover'

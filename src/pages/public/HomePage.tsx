@@ -19,7 +19,7 @@ export default function HomePage() {
 
       <main id="main-content">
       {/* Hero */}
-      <section className="relative min-h-[560px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
           alt=""
@@ -32,7 +32,7 @@ export default function HomePage() {
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           }}
         />
-        <div className="relative z-10 w-full px-4 md:px-6 pt-28 pb-20 md:pt-32 md:pb-28">
+        <div className="relative z-10 w-full px-4 md:px-6 pt-28 pb-24 md:pt-36 md:pb-36">
           <HeroSearch />
         </div>
       </section>
