@@ -16,18 +16,18 @@ const leftLinks = [
 const proDropdownLeft = {
   title: 'Trouver un professionnel',
   items: [
-    { label: 'Agents immobiliers', href: '/agents' },
-    { label: 'Agences immobilières', href: '/agences' },
+    { label: 'Agents immobiliers', href: '/agents', desc: 'Trouvez un courtier dans votre région' },
+    { label: 'Agences immobilières', href: '/agences', desc: 'Annuaire des agences en Suisse' },
   ],
 }
 
 const proDropdownRight = {
   title: 'Je suis un professionnel',
   items: [
-    { label: 'Solutions agent', href: '/services' },
-    { label: 'Tarifs agences', href: '/services#tarifs' },
-    { label: 'Centre de ressources', href: '/aide' },
-    { label: 'Créer un compte agent', href: '/register' },
+    { label: 'Solutions agent', href: '/services', desc: 'CRM, KYC, matching, IA' },
+    { label: 'Tarifs agences', href: '/services#tarifs', desc: 'Plans Starter, Pro et Entreprise' },
+    { label: 'Centre de ressources', href: '/aide', desc: 'Guides, tutoriels et FAQ' },
+    { label: 'Créer un compte agent', href: '/register', desc: 'Gratuit, sans engagement' },
   ],
 }
 
@@ -188,7 +188,7 @@ export default function Navbar() {
             )
           })}
 
-          {/* Professionnels — mega dropdown 2 colonnes (hover) */}
+          {/* Professionnels — mega dropdown 2 colonnes (hover + keyboard) */}
           <div
             className="relative"
             ref={agentDropRef}
@@ -196,49 +196,68 @@ export default function Navbar() {
             onMouseLeave={() => setAgentDropOpen(false)}
           >
             <button
+              aria-haspopup="true"
+              aria-expanded={agentDropOpen}
+              onClick={() => setAgentDropOpen(!agentDropOpen)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+                  e.preventDefault()
+                  setAgentDropOpen(true)
+                }
+                if (e.key === 'Escape') setAgentDropOpen(false)
+              }}
               className={cn(
                 'flex items-center gap-1 px-3.5 py-1.5 text-sm font-medium transition-all duration-150',
-                (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agences') || location.pathname.startsWith('/services'))
+                agentDropOpen
                   ? 'text-theme-primary'
-                  : 'text-theme-tertiary hover:text-theme-primary'
+                  : (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agences') || location.pathname.startsWith('/services'))
+                    ? 'text-theme-primary'
+                    : 'text-theme-tertiary hover:text-theme-primary'
               )}
             >
               Professionnels
-              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', agentDropOpen && 'rotate-180')} />
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', agentDropOpen && 'rotate-180')} />
             </button>
             {agentDropOpen && (
-              <div className="fixed left-[90px] right-0 top-[72px] z-50">
-                <div className="bg-white border-b border-l border-gray-200 py-6 px-8 flex gap-12">
+              <div
+                className="fixed left-[90px] right-0 top-[72px] z-50"
+                role="menu"
+                aria-label="Menu Professionnels"
+                onKeyDown={(e) => { if (e.key === 'Escape') setAgentDropOpen(false) }}
+              >
+                <div className="bg-white border-b border-l border-gray-200 py-6 px-8 grid grid-cols-2 gap-0">
                   {/* Colonne gauche */}
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900 mb-3">{proDropdownLeft.title}</p>
-                    <div className="space-y-1">
+                  <div className="pr-8 border-r border-gray-200">
+                    <p className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">{proDropdownLeft.title}</p>
+                    <div className="space-y-0.5">
                       {proDropdownLeft.items.map((item) => (
                         <Link
                           key={item.href}
                           to={item.href}
+                          role="menuitem"
                           onClick={() => setAgentDropOpen(false)}
-                          className="block text-sm text-blue-600 hover:text-blue-800 hover:underline py-1 transition-colors"
+                          className="block rounded-lg px-3 py-2.5 -mx-3 transition-colors hover:bg-gray-50 group"
                         >
-                          {item.label}
+                          <span className="text-sm font-medium text-blue-600 group-hover:text-blue-700">{item.label}</span>
+                          <span className="block text-xs text-gray-500 mt-0.5">{item.desc}</span>
                         </Link>
                       ))}
                     </div>
                   </div>
-                  {/* Séparateur vertical */}
-                  <div className="w-px bg-gray-200" />
                   {/* Colonne droite */}
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900 mb-3">{proDropdownRight.title}</p>
-                    <div className="space-y-1">
+                  <div className="pl-8">
+                    <p className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">{proDropdownRight.title}</p>
+                    <div className="space-y-0.5">
                       {proDropdownRight.items.map((item) => (
                         <Link
                           key={item.href}
                           to={item.href}
+                          role="menuitem"
                           onClick={() => setAgentDropOpen(false)}
-                          className="block text-sm text-blue-600 hover:text-blue-800 hover:underline py-1 transition-colors"
+                          className="block rounded-lg px-3 py-2.5 -mx-3 transition-colors hover:bg-gray-50 group"
                         >
-                          {item.label}
+                          <span className="text-sm font-medium text-blue-600 group-hover:text-blue-700">{item.label}</span>
+                          <span className="block text-xs text-gray-500 mt-0.5">{item.desc}</span>
                         </Link>
                       ))}
                     </div>
