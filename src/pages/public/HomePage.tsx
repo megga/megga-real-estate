@@ -19,7 +19,7 @@ export default function HomePage() {
 
       <main id="main-content">
       {/* Hero */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[calc(100vh-72px)] flex items-center justify-center overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
           alt=""
