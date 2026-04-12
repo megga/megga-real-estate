@@ -4,7 +4,7 @@ import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 import {
   ArrowLeft, Check, Save, Send,
-  Upload, X, GripVertical, Loader2, ChevronDown,
+  Upload, X, GripVertical, Loader2, ChevronDown, ShieldCheck,
   Minus, Plus, MapPin, PenLine, Copy, Link2, FileText,
   Building2, Home as HomeIcon, Castle, Store, Mountain,
 } from 'lucide-react'
@@ -27,6 +27,7 @@ import { useExtractPropertyPdf, type ExtractedPropertyData } from '@/hooks/useEx
 import { useExtractPropertyUrl } from '@/hooks/useExtractPropertyUrl'
 import { useCreateListing } from '@/hooks/useListings'
 import { useAuth } from '@/hooks/useAuth'
+import { useSignPhotos } from '@/hooks/useC2pa'
 import { useVirtualStaging, STAGING_STYLES, ROOM_TYPES, type StagingStyle, type RoomType } from '@/hooks/useVirtualStaging'
 import FloorPlanEditor from '@/components/listings/FloorPlanEditor'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
@@ -838,7 +839,8 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
 
 // ─── Step 4: Photos (refonte drag-and-drop) ───
 
-function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps }: {
+function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId }: {
+  propertyId?: string
   form: UseFormReturn<ListingFormData>
   pendingFiles: File[]
   setPendingFiles: React.Dispatch<React.SetStateAction<File[]>>
@@ -1018,6 +1020,11 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps }: {
         form.setValue('photos', [...currentPhotos, url])
       }} />}
 
+      {/* C2PA — Certification des photos */}
+      {allPhotos.length > 0 && (
+        <C2paCertifySection propertyId={propertyId} photoUrls={allPhotos.filter(u => u.startsWith('http'))} />
+      )}
+
       {/* Floor Plan Interactif */}
       {floorPlanProps && !floorPlanProps.canAccess && (
         <UpgradePrompt
@@ -1044,6 +1051,90 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps }: {
 }
 
 // ─── MEGGA Staging Section ───
+
+// ── C2PA Certification Section ────────────────────────────────────────────
+
+function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; photoUrls: string[] }) {
+  const signPhotos = useSignPhotos()
+  const [signed, setSigned] = useState(false)
+
+  if (photoUrls.length === 0) return null
+
+  // Si pas encore de propertyId (brouillon), on ne peut pas signer
+  if (!propertyId) {
+    return (
+      <div className="rounded-xl border border-theme-border p-4 mt-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-theme-primary">Certification C2PA</p>
+            <p className="text-xs text-theme-tertiary">Sauvegardez le bien pour certifier les photos</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-xl border border-theme-border p-4 mt-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            signed || signPhotos.isSuccess ? 'bg-emerald-50' : 'bg-theme-hover'
+          )}>
+            <ShieldCheck className={cn(
+              'w-4 h-4',
+              signed || signPhotos.isSuccess ? 'text-emerald-600' : 'text-theme-muted'
+            )} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-theme-primary">
+              {signed || signPhotos.isSuccess ? 'Photos certifiées C2PA' : 'Certification C2PA'}
+            </p>
+            <p className="text-xs text-theme-tertiary">
+              {signed || signPhotos.isSuccess
+                ? `${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''} signée${photoUrls.length > 1 ? 's' : ''} cryptographiquement`
+                : 'Signez vos photos pour prouver leur authenticité'
+              }
+            </p>
+          </div>
+        </div>
+        {!(signed || signPhotos.isSuccess) && (
+          <button
+            onClick={() => {
+              signPhotos.mutate(
+                { propertyId, photoUrls },
+                { onSuccess: () => setSigned(true) }
+              )
+            }}
+            disabled={signPhotos.isPending}
+            className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {signPhotos.isPending ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Certification...
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Certifier
+              </>
+            )}
+          </button>
+        )}
+      </div>
+      {signPhotos.isError && (
+        <p className="text-xs text-red-600 mt-2">
+          Erreur lors de la certification. Réessayez ultérieurement.
+        </p>
+      )}
+    </div>
+  )
+}
 
 function StagingSection({ photos, propertyId, onStagedPhoto }: {
   photos: string[]
@@ -2238,6 +2329,7 @@ export default function ListingFormPage() {
                 <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
                   <Step4
                     form={form}
+                    propertyId={id}
                     pendingFiles={pendingFiles}
                     setPendingFiles={setPendingFiles}
                     floorPlanProps={{

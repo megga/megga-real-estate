@@ -20,6 +20,7 @@ import ListingMap from '@/components/listing/ListingMap'
 import ListingMarketSection from '@/components/listing/ListingMarketSection'
 import ListingSimilarCarousel from '@/components/listing/ListingSimilarCarousel'
 import ListingSidebar from '@/components/listing/ListingSidebar'
+import C2PaBadge from '@/components/listing/C2PaBadge'
 import ListingLightbox from '@/components/listing/ListingLightbox'
 import ListingMobileBar from '@/components/listing/ListingMobileBar'
 import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
@@ -249,6 +250,14 @@ export default function ListingPage() {
           {/* Left: Content */}
           <div className="flex-1 min-w-0">
             <ListingHeader listing={listing} />
+            {(listing as { c2pa_verified?: boolean; c2pa_verified_at?: string }).c2pa_verified && (
+              <div className="mb-4">
+                <C2PaBadge
+                  verified={(listing as { c2pa_verified?: boolean }).c2pa_verified || false}
+                  verifiedAt={(listing as { c2pa_verified_at?: string }).c2pa_verified_at}
+                />
+              </div>
+            )}
             <ListingDescription description={listing.description} />
             <ListingFeatures features={listing.features} />
 
