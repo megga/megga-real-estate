@@ -65,7 +65,7 @@ export default function Navbar() {
   const [langOpen, setLangOpen] = useState(false)
   const [agentDropOpen, setAgentDropOpen] = useState(false)
   const agentDropRef = useRef<HTMLDivElement>(null)
-  const [scrolled, setScrolled] = useState(false)
+  const [_scrolled, setScrolled] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const langRef = useRef<HTMLDivElement>(null)
 
@@ -80,7 +80,7 @@ export default function Navbar() {
     return saved || 'FR'
   })
 
-  const isHome = location.pathname === '/'
+  // const isHome = location.pathname === '/' // Phase 2: réactiver si hero transparent
 
   // Scroll detection
   useEffect(() => {
@@ -132,7 +132,9 @@ export default function Navbar() {
     navigate('/')
   }
 
-  const isTransparent = isHome && !scrolled && !mobileOpen
+  // Navbar toujours opaque — le mode transparent est désactivé car le hero
+  // ne chevauche pas la navbar (pas de -mt-[72px] sur la section hero).
+  const isTransparent = false
 
   return (
     <>
