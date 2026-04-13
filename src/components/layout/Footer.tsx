@@ -108,7 +108,7 @@ export default function Footer() {
       </div>
 
       {/* Illustration skyline — compacte */}
-      <div className="w-full overflow-hidden h-28 relative opacity-50">
+      <div className="w-full overflow-hidden h-48 md:h-56 relative opacity-50">
         <img
           src="/illustration-footer.svg"
           alt=""
