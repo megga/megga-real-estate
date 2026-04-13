@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Testimonial {
@@ -42,7 +42,7 @@ const TESTIMONIALS: Testimonial[] = [
     name: 'Thomas Weber',
     role: 'Agent immobilier, Zurich',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80',
-    rating: 5,
+    rating: 4,
     quote: "La conformité LAB/KYC était mon cauchemar. Avec MEGGA, les dossiers sont structurés, traçables et je ne rate plus aucune pièce.",
   },
   {
@@ -58,7 +58,7 @@ const TESTIMONIALS: Testimonial[] = [
     name: 'Pierre Schneider',
     role: "Directeur d'agence, Berne",
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&q=80',
-    rating: 5,
+    rating: 4,
     quote: "On a migré toute l'agence sur MEGGA en une semaine. La publication multicanal et le copilote IA ont boosté notre productivité.",
   },
 ]
@@ -86,34 +86,33 @@ export default function Testimonials() {
   function scroll(direction: 'left' | 'right') {
     const el = scrollRef.current
     if (!el) return
-    const amount = direction === 'left' ? -360 : 360
-    el.scrollBy({ left: amount, behavior: 'smooth' })
+    el.scrollBy({ left: direction === 'left' ? -380 : 380, behavior: 'smooth' })
   }
 
   return (
-    <section className="py-16 md:py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 md:px-6">
+    <section className="py-16 md:py-24 bg-gray-50/60">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
         {/* Header */}
         <div className="flex items-end justify-between mb-10">
           <div>
-            <p className="text-xs font-medium text-gray-500 capitalize">
-              {t('home.testimonials')}
-            </p>
-            <h2 className="text-2xl md:text-3xl font-semibold text-primary mt-1">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
               {t('home.whatUsersSay')}
             </h2>
+            <p className="text-sm text-gray-400 mt-2">
+              {t('home.testimonials')}
+            </p>
           </div>
 
-          {/* Desktop arrows */}
           <div className="hidden md:flex items-center gap-2">
             <button
               onClick={() => scroll('left')}
               disabled={!canScrollLeft}
+              aria-label="Précédent"
               className={cn(
-                'w-10 h-10 rounded-full border flex items-center justify-center transition-all',
+                'w-10 h-10 rounded-full border flex items-center justify-center transition-all cursor-pointer',
                 canScrollLeft
-                  ? 'border-gray-200 text-gray-600 hover:border-accent hover:text-accent cursor-pointer'
-                  : 'border-gray-100 text-gray-200 cursor-not-allowed'
+                  ? 'border-gray-200 text-gray-600 hover:border-gray-400'
+                  : 'border-gray-100 text-gray-200 cursor-default'
               )}
             >
               <ChevronLeft className="w-5 h-5" />
@@ -121,11 +120,12 @@ export default function Testimonials() {
             <button
               onClick={() => scroll('right')}
               disabled={!canScrollRight}
+              aria-label="Suivant"
               className={cn(
-                'w-10 h-10 rounded-full border flex items-center justify-center transition-all',
+                'w-10 h-10 rounded-full border flex items-center justify-center transition-all cursor-pointer',
                 canScrollRight
-                  ? 'border-gray-200 text-gray-600 hover:border-accent hover:text-accent cursor-pointer'
-                  : 'border-gray-100 text-gray-200 cursor-not-allowed'
+                  ? 'border-gray-200 text-gray-600 hover:border-gray-400'
+                  : 'border-gray-100 text-gray-200 cursor-default'
               )}
             >
               <ChevronRight className="w-5 h-5" />
@@ -136,43 +136,45 @@ export default function Testimonials() {
         {/* Carousel */}
         <div
           ref={scrollRef}
-          className="flex gap-5 overflow-x-auto scrollbar-none snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0"
+          className="flex gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0"
         >
-          {TESTIMONIALS.map((t) => (
+          {TESTIMONIALS.map((testimonial) => (
             <div
-              key={t.id}
-              className="flex-shrink-0 w-[320px] md:w-[360px] snap-start bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200"
+              key={testimonial.id}
+              className="flex-shrink-0 w-[300px] md:w-[360px] snap-start bg-white rounded-xl border border-gray-100 p-6 flex flex-col transition-colors duration-300 hover:border-gray-200"
             >
-              {/* Quote icon */}
-              <Quote className="w-8 h-8 text-accent/15 mb-3" />
-
-              {/* Quote text */}
-              <p className="text-sm text-gray-600 leading-relaxed min-h-[80px]">
-                &ldquo;{t.quote}&rdquo;
+              {/* Quote */}
+              <p className="text-sm text-gray-600 leading-relaxed flex-1">
+                &ldquo;{testimonial.quote}&rdquo;
               </p>
 
               {/* Stars */}
-              <div className="flex gap-0.5 mt-4">
-                {Array.from({ length: t.rating }).map((_, i) => (
+              <div className="flex gap-0.5 mt-5">
+                {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
-                    className="w-3.5 h-3.5 fill-amber-400 text-amber-400"
+                    className={cn(
+                      'w-3.5 h-3.5',
+                      i < testimonial.rating
+                        ? 'fill-gray-900 text-gray-900'
+                        : 'fill-gray-200 text-gray-200'
+                    )}
                   />
                 ))}
               </div>
 
               {/* Author */}
-              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
+              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
                 <img
-                  src={t.avatar}
-                  alt={t.name}
-                  className="w-10 h-10 rounded-full object-cover"
+                  src={testimonial.avatar}
+                  alt={testimonial.name}
+                  className="w-9 h-9 rounded-full object-cover grayscale"
                   loading="lazy"
                   decoding="async"
                 />
                 <div>
-                  <p className="text-sm font-semibold text-primary">{t.name}</p>
-                  <p className="text-xs text-gray-500">{t.role}</p>
+                  <p className="text-sm font-semibold text-gray-900">{testimonial.name}</p>
+                  <p className="text-xs text-gray-400">{testimonial.role}</p>
                 </div>
               </div>
             </div>
