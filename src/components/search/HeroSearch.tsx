@@ -30,22 +30,20 @@ export default function HeroSearch() {
         {/* Search input */}
         <form
           onSubmit={handleSubmit}
-          className="mt-6 w-full relative"
+          className="mt-6 max-w-sm relative"
         >
           <label htmlFor="hero-search" className="sr-only">
             Rechercher un bien immobilier
           </label>
           <div
             className={`
-              flex items-center gap-3 px-5 py-3.5
-              bg-white/[0.08] backdrop-blur-md
-              border border-white/[0.12]
-              rounded-full
+              flex items-center gap-3 px-4 py-3
+              bg-white rounded-full
               transition-all duration-300
-              ${isFocused ? 'bg-white/[0.12] border-white/[0.22]' : 'hover:bg-white/[0.10] hover:border-white/[0.16]'}
+              ${isFocused ? 'ring-2 ring-accent/30' : ''}
             `}
           >
-            <Search className="w-4.5 h-4.5 text-white/40 shrink-0" />
+            <Search className="w-4 h-4 text-gray-400 shrink-0" />
             <input
               id="hero-search"
               type="text"
@@ -54,7 +52,7 @@ export default function HeroSearch() {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder="Genève, 4 pièces, vue lac..."
-              className="flex-1 text-sm md:text-base text-white placeholder-white/35 font-light bg-transparent outline-none min-w-0 tracking-wide"
+              className="flex-1 text-sm text-gray-900 placeholder-gray-400 bg-transparent outline-none min-w-0"
             />
           </div>
         </form>
