@@ -10,6 +10,7 @@ const CARDS = [
     ctaKey: 'home.buyCta',
     href: '/acheter',
     icon: Home,
+    illustration: '/illustrations/acheter.svg',
   },
   {
     number: '02',
@@ -18,6 +19,7 @@ const CARDS = [
     ctaKey: 'home.rentCta',
     href: '/louer',
     icon: Key,
+    illustration: '/illustrations/louer.svg',
   },
   {
     number: '03',
@@ -26,6 +28,7 @@ const CARDS = [
     ctaKey: 'home.estimateCta',
     href: '/estimations',
     icon: TrendingUp,
+    illustration: undefined,
   },
 ] as const;
 
@@ -44,11 +47,20 @@ export default function BentoCards() {
                 to={card.href}
                 className="group relative bg-white p-8 md:p-10 flex flex-col justify-between min-h-[280px] transition-colors duration-300 hover:bg-gray-50"
               >
-                {/* Number + Icon */}
+                {/* Illustration or Number */}
                 <div className="flex items-start justify-between">
-                  <span className="text-6xl md:text-7xl font-black text-gray-100 leading-none select-none transition-colors duration-300 group-hover:text-gray-200">
-                    {card.number}
-                  </span>
+                  {card.illustration ? (
+                    <img
+                      src={card.illustration}
+                      alt=""
+                      className="w-28 h-28 md:w-32 md:h-32 object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-6xl md:text-7xl font-black text-gray-100 leading-none select-none transition-colors duration-300 group-hover:text-gray-200">
+                      {card.number}
+                    </span>
+                  )}
                   <Icon className="w-5 h-5 text-gray-300 mt-2 transition-colors duration-300 group-hover:text-gray-900" />
                 </div>
 
