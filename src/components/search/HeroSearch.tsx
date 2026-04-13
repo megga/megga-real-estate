@@ -18,20 +18,15 @@ export default function HeroSearch() {
 
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto">
-      {/* Editorial title — font-light, generous spacing */}
+      {/* Editorial title */}
       <h1
-        className="text-4xl md:text-5xl lg:text-6xl font-light text-white text-center tracking-wide"
+        className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center tracking-wide"
         style={{ lineHeight: '1.12' }}
       >
-        Votre prochain
+        Trouvez votre bien.
         <br />
-        chez-vous
+        <span className="font-bold">partout en Suisse</span>
       </h1>
-
-      {/* Single-line subtitle */}
-      <p className="text-base md:text-lg text-white/60 font-light text-center mt-5 md:mt-6 tracking-wide">
-        Trouvez votre bien partout en Suisse
-      </p>
 
       {/* Minimal search input */}
       <form
