@@ -30,7 +30,7 @@ export default function HeroSearch() {
         {/* Search input */}
         <form
           onSubmit={handleSubmit}
-          className="mt-6 w-full relative"
+          className="mt-6 self-stretch relative"
         >
           <label htmlFor="hero-search" className="sr-only">
             Rechercher un bien immobilier
