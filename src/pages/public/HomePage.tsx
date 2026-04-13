@@ -23,7 +23,7 @@ export default function HomePage() {
         <img
           src="/hero-megga.jpg"
           alt="Villa d'architecte en Suisse avec vue sur le lac et les Alpes"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover object-[center_40%]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         <div className="relative z-10 w-full px-4 md:px-6 pb-16 md:pb-24">
