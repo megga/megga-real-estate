@@ -98,10 +98,10 @@ export default function Footer() {
           </div>
           <div className="flex items-center gap-4">
             <a href="https://c2pa.org" target="_blank" rel="noopener noreferrer" className="opacity-40 hover:opacity-70 transition-opacity">
-              <img src="/c2pa-logo.svg" alt="C2PA" className="h-5" />
+              <img src="/c2pa-logo.svg" alt="C2PA" className="h-9" />
             </a>
             <a href="https://www.swissmadesoftware.org" target="_blank" rel="noopener noreferrer" className="opacity-40 hover:opacity-70 transition-opacity">
-              <img src="/sms-logo.svg" alt="Swiss Made Software" className="h-6" />
+              <img src="/sms-logo.svg" alt="Swiss Made Software" className="h-10" />
             </a>
           </div>
         </div>
