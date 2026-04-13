@@ -20,12 +20,12 @@ export default function HeroSearch() {
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto">
       {/* Editorial title */}
       <h1
-        className="text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center tracking-wide"
+        className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white text-center tracking-wide"
         style={{ lineHeight: '1.12' }}
       >
         Trouvez votre bien.
         <br />
-        <span className="font-bold">Partout en Suisse.</span>
+        <span className="font-extrabold">Partout en Suisse.</span>
       </h1>
 
       {/* Minimal search input */}
