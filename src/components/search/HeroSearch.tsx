@@ -29,13 +29,6 @@ export default function HeroSearch() {
           Partout en Suisse.
         </h1>
 
-        <p
-          className="text-sm md:text-base text-white/70 font-light mt-4 tracking-wide"
-          style={{ textShadow: '0 1px 10px rgba(0,0,0,0.5)' }}
-        >
-          Rechercher un bien immobilier
-        </p>
-
         {/* Search input */}
         <form
           onSubmit={handleSubmit}
