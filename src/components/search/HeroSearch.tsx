@@ -40,7 +40,7 @@ export default function HeroSearch() {
               flex items-center gap-3 px-4 py-3
               bg-white rounded-full
               transition-all duration-300
-              ${isFocused ? 'ring-2 ring-accent/30' : ''}
+              ${isFocused ? '' : ''}
             `}
           >
             <Search className="w-4 h-4 text-gray-400 shrink-0" />
