@@ -1,4 +1,5 @@
-import { MapPin } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 
 const CITIES = [
   {
@@ -41,42 +42,45 @@ const CITIES = [
 ];
 
 export default function ExploreCities() {
+  const { t } = useTranslation('common');
+
   return (
-    <section className="py-12 md:py-16">
+    <section className="py-14 md:py-20">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900">
-          Explorer par ville
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+          {t('home.exploreCities', 'Explorer par ville')}
         </h2>
-        <p className="text-gray-500 mt-2">
-          Parcourez les biens disponibles dans les principales villes suisses
+        <p className="text-sm text-gray-400 mt-2">
+          {t('home.exploreCitiesSubtitle', 'Parcourez les biens disponibles dans les principales villes suisses')}
         </p>
 
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 auto-rows-[160px] md:auto-rows-[180px]">
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 auto-rows-[140px] md:auto-rows-[180px]">
           {CITIES.map((city) => (
-            <a
+            <Link
               key={city.name}
-              href="/acheter"
-              className={`relative rounded-2xl overflow-hidden group cursor-pointer ${
+              to={`/acheter?canton=${city.canton}`}
+              className={`relative rounded-xl overflow-hidden group ${
                 city.large ? 'col-span-2 row-span-2 md:col-span-1 md:row-span-2' : ''
               }`}
             >
               <img
                 src={city.imageUrl}
                 alt={city.name}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                loading="lazy"
+                decoding="async"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent transition-opacity duration-300 group-hover:from-black/70" />
               <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-white/70" />
-                  <span className="text-white font-semibold text-lg">{city.name}</span>
-                  <span className="text-white/50 text-sm ml-1">{city.canton}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-white font-bold text-lg">{city.name}</span>
+                  <span className="text-white/40 text-xs">{city.canton}</span>
                 </div>
-                <p className="text-white/60 text-sm mt-0.5">
+                <p className="text-white/50 text-xs mt-1">
                   {city.count.toLocaleString('fr-CH')} biens
                 </p>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { Linkedin, Instagram, Facebook } from 'lucide-react'
 
 function FooterLinkColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
@@ -8,12 +9,12 @@ function FooterLinkColumn({ title, links }: { title: string; links: { label: str
       <ul className="space-y-2.5">
         {links.map((link) => (
           <li key={link.label}>
-            <a
-              href={link.href}
-              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            <Link
+              to={link.href}
+              className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
             >
               {link.label}
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
@@ -28,7 +29,6 @@ export default function Footer() {
     { label: t('footer.buy'), href: '/acheter' },
     { label: t('footer.rent'), href: '/louer' },
     { label: t('footer.estimate'), href: '/estimations' },
-    { label: t('footer.interactiveMap'), href: '/acheter' },
   ]
 
   const LINKS_PRO = [
@@ -47,54 +47,18 @@ export default function Footer() {
   ]
 
   return (
-    <footer className="bg-gray-50/50 border-t border-gray-200/60">
-
-      {/* ─── Trust bar — Certifications ─── */}
-      <div className="border-b border-gray-200/40">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
-          <p className="text-xs font-medium capitalize text-gray-500 text-center mb-5">
-            {t('footer.certifiedRecognized')}
-          </p>
-          <div className="flex items-center justify-center gap-10 md:gap-16">
-            {/* C2PA */}
-            <a
-              href="https://c2pa.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="opacity-70 hover:opacity-100 transition-opacity shrink-0"
-              title="Coalition for Content Provenance and Authenticity"
-            >
-              <img src="/c2pa-logo.svg" alt="C2PA — Coalition for Content Provenance and Authenticity" className="h-8 md:h-9" />
-            </a>
-
-            {/* Separator */}
-            <div className="w-px h-10 bg-gray-200" />
-
-            {/* Swiss Made Software */}
-            <a
-              href="https://www.swissmadesoftware.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="opacity-70 hover:opacity-100 transition-opacity shrink-0"
-              title="Swiss Made Software"
-            >
-              <img src="/sms-logo.svg" alt="Swiss Made Software" className="h-10 md:h-11" />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Main footer ─── */}
+    <footer className="border-t border-gray-100">
+      {/* Main footer */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-        <div className="py-12 md:py-14 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-[2.2fr_1fr_1fr_1fr] gap-10 md:gap-8">
+        <div className="py-12 md:py-14 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-10 md:gap-8">
 
           {/* Column 1 — Brand */}
           <div className="col-span-2 md:col-span-1">
             <img src="/megga-logo.svg" alt="MEGGA" className="h-5" />
-            <p className="text-sm text-gray-500 mt-3 leading-relaxed max-w-[260px]">
+            <p className="text-sm text-gray-400 mt-3 leading-relaxed max-w-[260px]">
               {t('footer.brandDescription')}
             </p>
-            <div className="flex items-center gap-2.5 mt-6">
+            <div className="flex items-center gap-2 mt-5">
               {[
                 { icon: Linkedin, href: 'https://www.linkedin.com/company/megga-real-estate', label: 'LinkedIn' },
                 { icon: Instagram, href: 'https://www.instagram.com/megga.ch', label: 'Instagram' },
@@ -108,42 +72,44 @@ export default function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={social.label}
-                    className="w-9 h-9 rounded-full border border-gray-200 hover:border-gray-400 hover:bg-white flex items-center justify-center transition-all"
+                    className="w-8 h-8 rounded-full border border-gray-200 hover:border-gray-400 flex items-center justify-center transition-colors"
                   >
-                    <Icon className="w-4 h-4 text-gray-500" />
+                    <Icon className="w-3.5 h-3.5 text-gray-400" />
                   </a>
                 )
               })}
             </div>
           </div>
 
-          {/* Column 2 */}
+          {/* Columns 2-4 */}
           <FooterLinkColumn title={t('footer.search')} links={LINKS_RECHERCHER} />
-
-          {/* Column 3 */}
           <FooterLinkColumn title={t('footer.professionals')} links={LINKS_PRO} />
-
-          {/* Column 4 */}
           <FooterLinkColumn title="MEGGA" links={LINKS_MEGGA} />
         </div>
 
-        {/* ─── Bottom bar ─── */}
-        <div className="border-t border-gray-200/60 py-6 flex flex-col md:flex-row justify-between items-center gap-3">
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span>&copy; {new Date().getFullYear()} MEGGA Real Estate</span>
-            <span>·</span>
-            <span>{t('footer.madeInSwitzerland')} 🇨🇭</span>
-            <span>·</span>
+        {/* Bottom bar */}
+        <div className="border-t border-gray-100 py-5 flex flex-col md:flex-row justify-between items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span>&copy; {new Date().getFullYear()} MEGGA</span>
+            <span className="text-gray-200">·</span>
             <span>{t('footer.lpd')}</span>
           </div>
-          <p className="text-xs text-gray-500 text-center md:text-right max-w-lg leading-relaxed">
-            {t('footer.disclaimer')}
-          </p>
+          <div className="flex items-center gap-4">
+            <a href="https://c2pa.org" target="_blank" rel="noopener noreferrer" className="opacity-40 hover:opacity-70 transition-opacity">
+              <img src="/c2pa-logo.svg" alt="C2PA" className="h-9" />
+            </a>
+            <a href="https://www.swissmadesoftware.org" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity">
+              <svg viewBox="4 7 44 38" className="h-9 w-auto flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
+                <path d="M45.28,42.51H9.24c-1.76,0-3.18-1.43-3.18-3.18v-20.16c0-.43.09-.86.26-1.26l3.07-7.15c.5-1.17,1.65-1.92,2.92-1.92h13.36c1.3,0,2.47.79,2.95,2,0,0,.51,1.26,1,2.5h15.66c1.76,0,3.18,1.42,3.18,3.18v22.81c0,1.76-1.42,3.18-3.18,3.18M21.43,25.97c-1.03,0-1.57.79-1.57,1.57s.54,1.57,1.57,1.57h4.33v4.34c0,1.03.78,1.57,1.57,1.57s1.57-.54,1.57-1.57v-4.34h4.33c1.03,0,1.57-.79,1.57-1.57s-.54-1.57-1.57-1.57h-4.33v-4.34c0-1.03-.78-1.57-1.57-1.57s-1.57.54-1.57,1.57v4.34h-4.33" fill="#E42321"/>
+              </svg>
+              <img src="/sms-wordmark.svg" alt="Swiss Made Software" className="h-9 w-auto object-contain" loading="lazy" decoding="async" />
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* ─── Illustration skyline ─── */}
-      <div className="w-full overflow-hidden">
+      {/* Illustration skyline */}
+      <div className="max-w-7xl mx-auto px-4 opacity-40">
         <img
           src="/illustration-footer.svg"
           alt=""

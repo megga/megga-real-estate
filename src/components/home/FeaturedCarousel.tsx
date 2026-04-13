@@ -12,7 +12,6 @@ interface FeaturedListing {
   bedrooms: number;
   surface: number;
   imageUrl: string;
-  isHot?: boolean;
   badge?: string;
 }
 
@@ -26,7 +25,7 @@ const FEATURED: FeaturedListing[] = [
     bedrooms: 2,
     surface: 95,
     imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80',
-    isHot: true,
+    badge: 'Hot price',
   },
   {
     id: '2',
@@ -59,7 +58,6 @@ const FEATURED: FeaturedListing[] = [
     bedrooms: 3,
     surface: 160,
     imageUrl: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=800&q=80',
-    isHot: true,
   },
   {
     id: '5',
@@ -109,7 +107,7 @@ export default function FeaturedCarousel() {
     const el = scrollRef.current;
     if (!el) return;
     const cardWidth = el.querySelector('div')?.offsetWidth ?? 340;
-    el.scrollBy({ left: direction === 'left' ? -cardWidth - 24 : cardWidth + 24, behavior: 'smooth' });
+    el.scrollBy({ left: direction === 'left' ? -cardWidth - 20 : cardWidth + 20, behavior: 'smooth' });
   }
 
   return (
@@ -118,10 +116,10 @@ export default function FeaturedCarousel() {
         {/* Header */}
         <div className="flex items-end justify-between">
           <div>
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
               {t('home.featuredProperties')}
             </h2>
-            <p className="text-gray-500 mt-2">
+            <p className="text-gray-400 text-sm mt-2">
               {t('home.featuredSubtitle')}
             </p>
           </div>
@@ -129,9 +127,10 @@ export default function FeaturedCarousel() {
             <button
               onClick={() => scroll('left')}
               disabled={!canScrollLeft}
+              aria-label="Précédent"
               className={cn(
                 'w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center transition-all cursor-pointer',
-                canScrollLeft ? 'hover:bg-gray-50 hover:border-gray-300 text-gray-700' : 'opacity-30 cursor-default'
+                canScrollLeft ? 'hover:border-gray-400 text-gray-600' : 'opacity-20 cursor-default'
               )}
             >
               <ChevronLeft className="w-5 h-5" />
@@ -139,9 +138,10 @@ export default function FeaturedCarousel() {
             <button
               onClick={() => scroll('right')}
               disabled={!canScrollRight}
+              aria-label="Suivant"
               className={cn(
                 'w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center transition-all cursor-pointer',
-                canScrollRight ? 'hover:bg-gray-50 hover:border-gray-300 text-gray-700' : 'opacity-30 cursor-default'
+                canScrollRight ? 'hover:border-gray-400 text-gray-600' : 'opacity-20 cursor-default'
               )}
             >
               <ChevronRight className="w-5 h-5" />
@@ -153,30 +153,30 @@ export default function FeaturedCarousel() {
         <div
           ref={scrollRef}
           className="mt-8 flex gap-5 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2"
-          style={{ scrollPaddingLeft: '0px' }}
         >
           {FEATURED.map((listing) => (
             <div
               key={listing.id}
-              className="snap-start shrink-0 w-[300px] md:w-[340px] bg-white rounded-[var(--radius-card)] shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-shadow duration-200 overflow-hidden group cursor-pointer"
+              className="snap-start shrink-0 w-[300px] md:w-[340px] rounded-xl border border-gray-100 overflow-hidden group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:border-gray-200"
             >
               {/* Photo */}
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img
                   src={listing.imageUrl}
                   alt={listing.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  loading="lazy"
+                  decoding="async"
                 />
-                <button className="absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition cursor-pointer">
-                  <Heart className="w-4 h-4 text-gray-600" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <button
+                  aria-label="Ajouter aux favoris"
+                  className="absolute top-3 right-3 w-8 h-8 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white cursor-pointer"
+                >
+                  <Heart className="w-3.5 h-3.5 text-gray-700" />
                 </button>
-                {listing.isHot && (
-                  <span className="absolute top-3 left-3 bg-danger text-white text-xs font-medium px-2 py-0.5 rounded-[var(--radius-badge)]">
-                    Hot price
-                  </span>
-                )}
-                {listing.badge && !listing.isHot && (
-                  <span className="absolute top-3 left-3 bg-accent text-white text-xs font-medium px-2 py-0.5 rounded-[var(--radius-badge)]">
+                {listing.badge && (
+                  <span className="absolute top-3 left-3 text-xs font-medium text-white bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full">
                     {listing.badge}
                   </span>
                 )}
@@ -184,13 +184,15 @@ export default function FeaturedCarousel() {
 
               {/* Info */}
               <div className="p-4">
-                <span className="text-xl font-bold text-gray-900">{formatCHF(listing.price)}</span>
-                <p className="text-sm text-gray-500 mt-1 truncate">{listing.address}</p>
-                <div className="flex items-center gap-1.5 mt-2 text-sm text-gray-500">
-                  <span>{t('home.rooms', { count: listing.rooms })}</span>
-                  <span>·</span>
-                  <span>{t('home.bedrooms', { count: listing.bedrooms })}</span>
-                  <span>·</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-lg font-bold text-gray-900">{formatCHF(listing.price)}</span>
+                </div>
+                <p className="text-sm text-gray-400 mt-1 truncate">{listing.address}</p>
+                <div className="flex items-center gap-1.5 mt-2.5 text-xs text-gray-500">
+                  <span>{listing.rooms} pièces</span>
+                  <span className="text-gray-300">·</span>
+                  <span>{listing.bedrooms} ch</span>
+                  <span className="text-gray-300">·</span>
                   <span>{listing.surface} m²</span>
                 </div>
               </div>
