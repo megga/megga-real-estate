@@ -25,7 +25,7 @@ export default function HeroSearch() {
       >
         Trouvez votre bien.
         <br />
-        <span className="font-bold">partout en Suisse</span>
+        <span className="font-bold">Partout en Suisse.</span>
       </h1>
 
       {/* Minimal search input */}
