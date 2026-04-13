@@ -76,11 +76,62 @@ serve(async (req: Request) => {
         let signed = false
         let method = 'none'
 
-        if (provider === 'trufo') {
-          // ── Trufo API ────────────────────────────────────────────────
+        if (provider === 'capture') {
+          // ── Capture (Numbers Protocol) — C2PA signing avec certificat officiel ──
+          // Flow : 1) upload image → get nid  2) POST c2pa/ → get signed URL
+          const captureToken = Deno.env.get('CAPTURE_API_TOKEN')
+          if (captureToken) {
+            // Step 1: Télécharger la photo et l'uploader sur Capture
+            const photoResponse = await fetch(photoUrl)
+            if (photoResponse.ok) {
+              const photoBlob = await photoResponse.blob()
+              const formData = new FormData()
+              formData.append('asset_file', photoBlob, 'photo.jpg')
+              formData.append('caption', `MEGGA Real Estate - Property ${propertyId}`)
+              formData.append('meta', JSON.stringify({
+                proof: { hash: '', mimeType: photoBlob.type, timestamp: new Date().toISOString() },
+                information: [
+                  { provider: 'MEGGA Real Estate', name: 'platform', value: 'megga.ch' },
+                  { provider: 'MEGGA Real Estate', name: 'property_id', value: propertyId },
+                ],
+              }))
+
+              const registerResponse = await fetch('https://api.numbersprotocol.io/api/v3/assets/', {
+                method: 'POST',
+                headers: { 'Authorization': `token ${captureToken}` },
+                body: formData,
+              })
+
+              if (registerResponse.ok) {
+                const registerData = await registerResponse.json()
+                const nid = registerData.nid || registerData.id
+
+                if (nid) {
+                  // Step 2: Signer avec C2PA
+                  const c2paResponse = await fetch(`https://api.numbersprotocol.io/api/v3/assets/${nid}/c2pa/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `token ${captureToken}` },
+                  })
+
+                  if (c2paResponse.ok) {
+                    signed = true
+                    method = `capture:${nid}`
+                  } else {
+                    const c2paErr = await c2paResponse.text()
+                    method = `capture_c2pa_error:${c2paResponse.status}:${c2paErr.slice(0, 100)}`
+                  }
+                }
+              } else {
+                const regErr = await registerResponse.text()
+                method = `capture_register_error:${registerResponse.status}:${regErr.slice(0, 100)}`
+              }
+            }
+          }
+        } else if (provider === 'trufo') {
+          // ── Trufo API (Coming Soon — fallback si activé) ─────────────
           const trufoKey = Deno.env.get('TRUFO_API_KEY')
           if (trufoKey) {
-            const trufoResponse = await fetch('https://api.trufo.ai/v1/encode', {
+            const trufoResponse = await fetch('https://api.trufo.ai/v1/c2pa/sign', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${trufoKey}`,
@@ -103,29 +154,19 @@ serve(async (req: Request) => {
         } else if (provider === 'wasm') {
           // ── c2pa-wasm ────────────────────────────────────────────────
           // Phase 2 : intégration c2pa-wasm quand le support Deno est confirmé
-          // Pour l'instant, fallback sur MEGGA
           method = 'wasm_pending'
         }
 
-        // ── Fallback MEGGA Shield (toujours exécuté si pas signé) ────
-        if (!signed) {
-          // Télécharger la photo pour calculer le hash
-          const photoResponse = await fetch(photoUrl)
-          if (photoResponse.ok) {
-            const buffer = await photoResponse.arrayBuffer()
-            // SHA-256 hash de la photo originale
+        // ── Fallback MEGGA Shield (seulement si pas de provider error) ────
+        if (!signed && (method === 'none' || method === 'wasm_pending')) {
+          const photoResponse2 = await fetch(photoUrl)
+          if (photoResponse2.ok) {
+            const buffer = await photoResponse2.arrayBuffer()
             const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
             const hashArray = Array.from(new Uint8Array(hashBuffer))
             const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-
-            // Stocker le hash dans les metadata (preuve d'intégrité)
-            // Note: ce n'est PAS un certificat C2PA officiel, mais une preuve
-            // interne que la photo n'a pas été modifiée depuis l'upload
             signed = true
             method = `megga_shield:${hashHex.slice(0, 16)}`
-
-            // On pourrait stocker le hash dans une table dédiée
-            // Pour le MVP, on marque juste le bien comme vérifié
           }
         }
 
@@ -167,6 +208,7 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: allSigned,
         propertyId,
+        provider,
         results,
         method: signingMethod,
         verifiedAt: allSigned ? new Date().toISOString() : null,
