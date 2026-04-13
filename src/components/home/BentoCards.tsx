@@ -28,7 +28,7 @@ const CARDS = [
     ctaKey: 'home.estimateCta',
     href: '/estimations',
     icon: TrendingUp,
-    illustration: undefined,
+    illustration: '/illustrations/estimer.svg',
   },
 ] as const;
 
