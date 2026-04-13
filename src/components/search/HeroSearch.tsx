@@ -52,7 +52,7 @@ export default function HeroSearch() {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder="Genève, 4 pièces, vue lac..."
-              className="flex-1 text-sm text-gray-900 placeholder-gray-400 bg-transparent outline-none min-w-0"
+              className="flex-1 text-sm text-gray-900 placeholder-gray-400 bg-transparent outline-none focus:outline-none focus:ring-0 min-w-0"
             />
           </div>
         </form>
