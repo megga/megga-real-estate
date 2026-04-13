@@ -19,7 +19,7 @@ export default function HomePage() {
 
       <main id="main-content">
       {/* Hero — editorial, photo-first */}
-      <section className="relative h-[calc(100vh-72px)] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[75vh] flex items-center justify-center overflow-hidden">
         <img
           src="/hero-megga.jpg"
           alt="Villa d'architecte en Suisse avec vue sur le lac et les Alpes"
