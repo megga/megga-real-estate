@@ -108,7 +108,7 @@ export default function Footer() {
       </div>
 
       {/* Illustration skyline */}
-      <div className="max-w-4xl mx-auto px-4 opacity-40">
+      <div className="max-w-6xl mx-auto px-4 opacity-40">
         <img
           src="/illustration-footer.svg"
           alt=""
