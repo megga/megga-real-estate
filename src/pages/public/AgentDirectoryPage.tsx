@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search, MapPin, ChevronRight, Star, Shield, Phone, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -193,7 +193,12 @@ function FaqSection() {
 
 export default function AgentDirectoryPage() {
   const { t } = useTranslation('directory')
-  const [filters, setFilters] = useState<DirectoryFilters>({ ...DEFAULT_FILTERS, type: 'agents' })
+  const [searchParams] = useSearchParams()
+  const [filters, setFilters] = useState<DirectoryFilters>(() => ({
+    ...DEFAULT_FILTERS,
+    type: 'agents',
+    query: searchParams.get('q') || '',
+  }))
   const { data, isLoading } = useAgentDirectory(filters)
 
   function updateFilters(partial: Partial<DirectoryFilters>) {
