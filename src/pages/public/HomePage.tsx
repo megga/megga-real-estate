@@ -21,8 +21,8 @@ export default function HomePage() {
       {/* Hero */}
       <section className="relative min-h-[calc(100vh-72px)] flex items-center justify-center overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&q=80"
-          alt=""
+          src="/hero-megga.jpg"
+          alt="Agent immobilier et client devant une villa d'architecte en Suisse"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/55 to-black/25" />
