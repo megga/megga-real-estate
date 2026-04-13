@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Search } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 type SearchMode = 'biens' | 'agents' | 'agences';
 
