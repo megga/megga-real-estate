@@ -1718,11 +1718,24 @@ STRIPE_WEBHOOK_SECRET   → Stripe webhook signature
 #### Salesforce retiré — 28 mars 2026
 - Edge Function, tables, secrets, documentation retirés (payant, hors scope MVP)
 
-#### C2PA / MEGGA Shield — exploration en cours
+#### C2PA / MEGGA Shield — intégration complète 13 avril 2026
 - **Objectif** : certifier l'authenticité des photos immobilières (badge "Photos vérifiées C2PA")
-- **3 niveaux planifiés** : Badge vérification (L1), Détection IA/retouche à l'upload (L2), Signature à la source (L3)
-- **Statut** : en discussion avec partenaire Thomas pour l'API/SDK
-- **Différenciateur** : aucun portail suisse ne certifie les photos aujourd'hui
+- **Membership C2PA** : MEGGA est membre de l'organisation C2PA sur GitHub (`github.com/c2pa-org`)
+- **Architecture multi-provider** implémentée dans `supabase/functions/c2pa-sign/index.ts` :
+  - `capture` : Numbers Protocol / Capture API (token configuré, mais endpoint C2PA supprimé 410 Gone)
+  - `trufo` : Trufo Provenance API (Coming Soon — API pas encore lancée)
+  - `wasm` : c2pa-wasm (Phase 2 — dépend du support WASM dans Deno Edge Functions)
+  - `megga` : MEGGA Shield (défaut actuel — hash SHA-256, preuve d'intégrité interne, 0 CHF)
+- **Edge Functions déployées** : `c2pa-sign` (auth JWT, multi-provider) + `c2pa-verify` (public, détection JUMBF)
+- **Hook React** : `src/hooks/useC2pa.ts` — `useSignPhotos()`, `useVerifyPhoto()`, `usePropertyC2paStatus()`
+- **UI agent** : bouton "Certifier" dans `ListingFormPage.tsx` Step 4 (photos), spinner + badge vert
+- **UI public** : `C2PaBadge` dans `ListingPreviewPanel.tsx:940` + `ListingPage.tsx`
+- **DB** : colonnes `c2pa_verified` + `c2pa_verified_at` sur `properties` et `market_listings` (migration `20260330_004`)
+- **Trust bar** : logo C2PA dans la barre partenaires homepage
+- **Provider actuel** : MEGGA Shield (hash SHA-256, 0 CHF). En attente Trufo API launch pour signing C2PA officiel.
+- **Secrets configurés** : `CAPTURE_API_TOKEN`, `C2PA_PROVIDER=capture` (prêt à basculer sur `trufo` quand dispo)
+- **Recherche fournisseurs** (avril 2026) : Trufo ($600/an cert OU API Coming Soon), SSL.com (prix non publié, enterprise), DigiCert (beta gratuite), Capture (endpoint C2PA supprimé), Cloudflare Images (gratuit mais signé "Cloudflare" pas "MEGGA")
+- **Différenciateur** : aucun portail immobilier suisse ne certifie les photos aujourd'hui
 
 #### Fiche bien premium (ListingPreviewPanel) — 28-29 mars 2026
 - **Redesign complet** du modal de preview : galerie 3 colonnes + lightbox clavier, layout 2 colonnes (scroll + sticky CTA)
