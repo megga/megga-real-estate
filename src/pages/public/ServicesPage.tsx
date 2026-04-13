@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import WhyMegga from '@/components/home/WhyMegga'
 
 // ─── Scroll reveal hook ───────────────────────────────────────────────────────
 
@@ -1173,6 +1174,7 @@ export default function ServicesPage() {
             </p>
           </div>
         </section>
+        <WhyMegga />
       </main>
       <Footer />
     </>
