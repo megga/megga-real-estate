@@ -1,36 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Home, Key, TrendingUp } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const CARDS = [
-  {
-    number: '01',
-    titleKey: 'home.buyTitle',
-    descKey: 'home.buyDesc',
-    ctaKey: 'home.buyCta',
-    href: '/acheter',
-    icon: Home,
-    illustration: '/illustrations/acheter.svg',
-  },
-  {
-    number: '02',
-    titleKey: 'home.rentTitle',
-    descKey: 'home.rentDesc',
-    ctaKey: 'home.rentCta',
-    href: '/louer',
-    icon: Key,
-    illustration: '/illustrations/louer.svg',
-  },
-  {
-    number: '03',
-    titleKey: 'home.estimateTitle',
-    descKey: 'home.estimateDesc',
-    ctaKey: 'home.estimateCta',
-    href: '/estimations',
-    icon: TrendingUp,
-    illustration: '/illustrations/estimer.svg',
-  },
-] as const;
 
 export default function BentoCards() {
   const { t } = useTranslation('common');
@@ -38,50 +8,83 @@ export default function BentoCards() {
   return (
     <section className="py-16 md:py-24">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-200 rounded-2xl overflow-hidden">
-          {CARDS.map((card) => {
-            const Icon = card.icon;
-            return (
-              <Link
-                key={card.titleKey}
-                to={card.href}
-                className="group relative bg-white p-8 md:p-10 flex flex-col justify-between min-h-[280px] transition-colors duration-300 hover:bg-gray-50"
-              >
-                {/* Illustration or Number */}
-                <div className="flex items-start justify-between">
-                  {card.illustration ? (
-                    <img
-                      src={card.illustration}
-                      alt=""
-                      className="w-28 h-28 md:w-32 md:h-32 object-contain"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="text-6xl md:text-7xl font-black text-gray-100 leading-none select-none transition-colors duration-300 group-hover:text-gray-200">
-                      {card.number}
-                    </span>
-                  )}
-                  <Icon className="w-5 h-5 text-gray-300 mt-2 transition-colors duration-300 group-hover:text-gray-900" />
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
 
-                {/* Content */}
-                <div className="mt-auto">
-                  <h3 className="text-lg font-bold text-gray-900">
-                    {t(card.titleKey)}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-                    {t(card.descKey)}
-                  </p>
+          {/* Card 01 — Acheter (grande, 2/3 largeur) */}
+          <Link
+            to="/acheter"
+            className="group md:col-span-2 md:row-span-2 relative bg-amber-50/60 rounded-2xl p-8 md:p-12 flex flex-col justify-between min-h-[320px] md:min-h-[480px] overflow-hidden transition-colors duration-300 hover:bg-amber-50"
+          >
+            <img
+              src="/illustrations/acheter.svg"
+              alt=""
+              className="absolute right-4 md:right-10 top-6 md:top-10 w-48 md:w-72 lg:w-80 h-auto opacity-90 transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="relative z-10 mt-auto max-w-sm">
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">
+                {t('home.buyTitle')}
+              </h3>
+              <p className="text-sm md:text-base text-gray-500 mt-3 leading-relaxed">
+                {t('home.buyDesc')}
+              </p>
+              <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <span>{t('home.buyCta')}</span>
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+              </div>
+            </div>
+          </Link>
 
-                  {/* CTA */}
-                  <div className="mt-5 flex items-center gap-2 text-sm font-medium text-gray-900">
-                    <span>{t(card.ctaKey)}</span>
-                    <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+          {/* Card 02 — Louer (petite, 1/3) */}
+          <Link
+            to="/louer"
+            className="group relative bg-blue-50/50 rounded-2xl p-7 md:p-8 flex flex-col justify-between min-h-[240px] overflow-hidden transition-colors duration-300 hover:bg-blue-50/80"
+          >
+            <img
+              src="/illustrations/louer.svg"
+              alt=""
+              className="absolute right-3 top-4 w-28 md:w-32 h-auto opacity-85 transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="relative z-10 mt-auto">
+              <h3 className="text-xl font-bold text-gray-900">
+                {t('home.rentTitle')}
+              </h3>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                {t('home.rentDesc')}
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <span>{t('home.rentCta')}</span>
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Card 03 — Estimer (petite, 1/3) */}
+          <Link
+            to="/estimations"
+            className="group relative bg-emerald-50/50 rounded-2xl p-7 md:p-8 flex flex-col justify-between min-h-[240px] overflow-hidden transition-colors duration-300 hover:bg-emerald-50/80"
+          >
+            <img
+              src="/illustrations/estimer.svg"
+              alt=""
+              className="absolute right-3 top-4 w-28 md:w-32 h-auto opacity-85 transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="relative z-10 mt-auto">
+              <h3 className="text-xl font-bold text-gray-900">
+                {t('home.estimateTitle')}
+              </h3>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                {t('home.estimateDesc')}
+              </p>
+              <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <span>{t('home.estimateCta')}</span>
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+              </div>
+            </div>
+          </Link>
+
         </div>
       </div>
     </section>
