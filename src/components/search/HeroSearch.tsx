@@ -19,14 +19,12 @@ export default function HeroSearch() {
   return (
     <div className="w-full flex justify-center md:justify-end">
       {/* Text block — left-aligned text, positioned right on desktop */}
-      <div className="flex flex-col items-center md:items-start w-full max-w-xl">
+      <div className="flex flex-col items-center md:items-start w-full max-w-lg">
         <h1
           className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-wide text-center md:text-left"
           style={{ lineHeight: '1.12', textShadow: '0 2px 20px rgba(0,0,0,0.6), 0 1px 6px rgba(0,0,0,0.4)' }}
         >
-          Trouvez votre bien.
-          <br />
-          Partout en Suisse.
+          Trouvez votre bien. Partout&nbsp;en&nbsp;Suisse.
         </h1>
 
         {/* Search input */}
