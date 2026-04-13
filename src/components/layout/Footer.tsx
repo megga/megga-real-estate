@@ -92,8 +92,6 @@ export default function Footer() {
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <span>&copy; {new Date().getFullYear()} MEGGA</span>
             <span className="text-gray-200">·</span>
-            <span>{t('footer.madeInSwitzerland')} 🇨🇭</span>
-            <span className="text-gray-200">·</span>
             <span>{t('footer.lpd')}</span>
           </div>
           <div className="flex items-center gap-4">
