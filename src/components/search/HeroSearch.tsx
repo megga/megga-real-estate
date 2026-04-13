@@ -20,7 +20,7 @@ export default function HeroSearch() {
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto">
       {/* Editorial title — font-light, generous spacing */}
       <h1
-        className="text-4xl md:text-6xl lg:text-7xl font-light text-white text-center tracking-wide"
+        className="text-4xl md:text-5xl lg:text-6xl font-light text-white text-center tracking-wide"
         style={{ lineHeight: '1.12' }}
       >
         Votre prochain
