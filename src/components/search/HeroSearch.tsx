@@ -21,7 +21,7 @@ export default function HeroSearch() {
       {/* Text block — left-aligned text, positioned right on desktop */}
       <div className="flex flex-col items-center md:items-start w-full max-w-2xl">
         <h1
-          className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-wide text-center md:text-left"
+          className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-wide text-center md:text-left uppercase"
           style={{ lineHeight: '1.12', textShadow: '0 2px 20px rgba(0,0,0,0.6), 0 1px 6px rgba(0,0,0,0.4)' }}
         >
           Trouvez votre bien. Partout&nbsp;en&nbsp;Suisse.
