@@ -1,5 +1,6 @@
 import { Send, Calendar } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
+import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 interface MatchScoreCardProps {
   match: {
     id: string
@@ -46,7 +47,7 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
         <div className="w-28 sm:w-36 flex-shrink-0">
           {property.photos?.[0] ? (
             <img
-              src={property.photos[0]}
+              src={optimizeImageUrl(property.photos[0], IMAGE_PRESETS.card)}
               alt={property.title}
               className="h-full w-full object-cover"
             />

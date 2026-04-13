@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Images, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 import { buildGalleryMedia } from '@/lib/galleryMedia'
 import VideoPlayer from '@/components/listing/VideoPlayer'
 import type { PhotoTag } from '@/types/floorPlan'
@@ -61,7 +62,7 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLightbox(heroIndex) } }}
           >
             <img
-              src={photos[heroIndex]}
+              src={optimizeImageUrl(photos[heroIndex], IMAGE_PRESETS.full)}
               alt={title}
               className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
             />
@@ -97,7 +98,7 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
             aria-label="Voir la photo 2"
           >
             <img
-              src={photo2}
+              src={optimizeImageUrl(photo2, IMAGE_PRESETS.preview)}
               alt=""
               className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
             />
@@ -116,7 +117,7 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
               <VideoPlayer src={videoUrl} mode="thumbnail" className="w-full h-full" onClick={() => onOpenLightbox(media.findIndex(m => m.type === 'video'))} />
             ) : (
               <img
-                src={photo3}
+                src={optimizeImageUrl(photo3, IMAGE_PRESETS.preview)}
                 alt=""
                 className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
               />
@@ -158,7 +159,7 @@ export default function ListingHeroGallery({ photos, videoUrl, title, onOpenLigh
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLightbox(i) } }}
             >
               <img
-                src={photo}
+                src={optimizeImageUrl(photo, IMAGE_PRESETS.preview)}
                 alt={i === 0 ? title : ''}
                 className="w-full h-full object-cover"
                 loading={i > 2 ? 'lazy' : undefined}

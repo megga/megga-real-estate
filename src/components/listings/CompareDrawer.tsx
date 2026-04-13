@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Building2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 import { Modal } from '@/components/ui/modal'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
@@ -62,7 +63,7 @@ function PhotoCarousel({ photos, title }: { photos: string[]; title: string }) {
 
   return (
     <div className="relative w-full h-full group">
-      <img src={photos[idx]} alt={title} className="w-full h-full object-cover" decoding="async" />
+      <img src={optimizeImageUrl(photos[idx], IMAGE_PRESETS.preview)} alt={title} className="w-full h-full object-cover" decoding="async" />
       {count > 1 && (
         <>
           <button

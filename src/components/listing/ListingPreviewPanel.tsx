@@ -9,6 +9,7 @@ import {
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check, GitCompareArrows,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 import Footer from '@/components/layout/Footer'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
 import { useQuery } from '@tanstack/react-query'
@@ -800,7 +801,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(0) } }}
                     >
                       <img
-                        src={photos[photoIndex]}
+                        src={optimizeImageUrl(photos[photoIndex], IMAGE_PRESETS.full)}
                         alt={listing.title}
                         className="w-full h-full object-cover"
                       />
@@ -828,18 +829,18 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                     {/* Top-right photos */}
                     <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 2" onClick={() => openLightbox(1)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(1) } }}>
-                      <img src={photos[1] || photos[0]} alt="Photo du bien" className="w-full h-full object-cover" />
+                      <img src={optimizeImageUrl(photos[1] || photos[0], IMAGE_PRESETS.preview)} alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
                     <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 3" onClick={() => openLightbox(2)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(2) } }}>
-                      <img src={photos[2] || photos[0]} alt="Photo du bien" className="w-full h-full object-cover" />
+                      <img src={optimizeImageUrl(photos[2] || photos[0], IMAGE_PRESETS.preview)} alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
 
                     {/* Bottom-right photos */}
                     <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 4" onClick={() => openLightbox(3)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(3) } }}>
-                      <img src={photos[3] || photos[1] || photos[0]} alt="Photo du bien" className="w-full h-full object-cover" />
+                      <img src={optimizeImageUrl(photos[3] || photos[1] || photos[0], IMAGE_PRESETS.preview)} alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
                     <div className="overflow-hidden cursor-pointer relative" role="button" tabIndex={0} aria-label="Photo 5" onClick={() => openLightbox(4)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(4) } }}>
-                      <img src={photos[4] || photos[2] || photos[0]} alt="Photo du bien" className="w-full h-full object-cover" />
+                      <img src={optimizeImageUrl(photos[4] || photos[2] || photos[0], IMAGE_PRESETS.preview)} alt="Photo du bien" className="w-full h-full object-cover" />
                       {/* "See all X photos" button */}
                       {photoCount >= 2 && (
                         <button
@@ -879,7 +880,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                       {photos.map((photo, i) => (
                         <div key={i} className="w-full flex-shrink-0 snap-center">
                           <img
-                            src={photo}
+                            src={optimizeImageUrl(photo, IMAGE_PRESETS.preview)}
                             alt={i === 0 ? listing.title : ''}
                             className="w-full h-full object-cover"
                             onClick={() => openLightbox(i)}
@@ -1164,7 +1165,7 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                               <div className="aspect-[4/3] overflow-hidden bg-theme-hover">
                                 {photo ? (
                                   <img
-                                    src={photo}
+                                    src={optimizeImageUrl(photo, IMAGE_PRESETS.card)}
                                     alt={sl.title}
                                     className="w-full h-full object-cover transition-transform duration-300"
                                     loading="lazy"

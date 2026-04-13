@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, BedDouble, DoorOpen, Maximize, Building2, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 
 export interface ListingCardData {
   id: string
@@ -78,7 +79,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
             {photos.map((photo, i) => (
               <div key={i} className="w-full h-full flex-shrink-0 snap-center">
                 <img
-                  src={photo}
+                  src={optimizeImageUrl(photo, IMAGE_PRESETS.card)}
                   alt={i === 0 ? listing.title : ''}
                   className="w-full h-full object-cover"
                   loading={i > 0 ? 'lazy' : undefined}

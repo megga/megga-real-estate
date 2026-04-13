@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
 import { formatCHF, formatSurface } from '@/lib/utils'
+import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface ListingSimilarCarouselProps {
@@ -42,7 +43,7 @@ export default function ListingSimilarCarousel({ listings }: ListingSimilarCarou
                 <div className="aspect-[4/3] overflow-hidden bg-gray-100">
                   {photo ? (
                     <img
-                      src={photo}
+                      src={optimizeImageUrl(photo, IMAGE_PRESETS.card)}
                       alt={sl.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
