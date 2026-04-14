@@ -128,7 +128,7 @@ export default function App() {
   return (
     <PasswordGate>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <Suspense fallback={<PageLoader />}>
             <Routes>
