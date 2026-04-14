@@ -1,0 +1,29 @@
+name: 🔐 Security Audit — Vérification hebdo RLS + policies + Edge Functions
+
+on:
+  schedule:
+    # Chaque lundi à 7h03 UTC (= 9h03 Suisse été / 8h03 Suisse hiver)
+    - cron: '3 7 * * 1'
+  workflow_dispatch: # Permet de lancer manuellement depuis GitHub Actions
+
+jobs:
+  security-audit:
+    name: Audit RLS + policies + Edge Functions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run security audit
+        run: node scripts/security-audit.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

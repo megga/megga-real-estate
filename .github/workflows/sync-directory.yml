@@ -1,9 +1,10 @@
-name: 📋 Sync Directory — Mise à jour hebdomadaire annuaire agents
+name: 📋 Sync Directory — Mise à jour quotidienne annuaire agents
 
 on:
   schedule:
-    # Chaque lundi à 7h du matin (heure suisse = 5h UTC)
-    - cron: '0 5 * * 1'
+    # Tous les jours à 3h07 UTC (= 5h07 Suisse été / 4h07 Suisse hiver)
+    # L'offset à :07 évite la contention avec les crons pile sur l'heure
+    - cron: '7 3 * * *'
   workflow_dispatch: # Permet de lancer manuellement depuis GitHub Actions
 
 env:
