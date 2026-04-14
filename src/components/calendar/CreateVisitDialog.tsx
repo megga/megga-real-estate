@@ -9,7 +9,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import type { CalendarEvent, EventColor, RecurrenceFrequency } from '@/components/calendar/week-view-types'
-import { MOCK_CONTACTS, MOCK_AGENT_LISTINGS } from '@/lib/mockData'
+import { useContacts } from '@/hooks/useContacts'
+import { useAgencyProperties } from '@/hooks/useProperties'
 
 // ── Event type config ──
 
@@ -96,6 +97,14 @@ function CreateVisitForm({
 }) {
   const d = initialDate ?? new Date()
 
+  // Real Supabase data — replaces MOCK_CONTACTS / MOCK_AGENT_LISTINGS
+  const { contacts } = useContacts()
+  const { data: agencyProperties = [] } = useAgencyProperties()
+  const properties = useMemo(
+    () => agencyProperties.filter((p) => p.status === 'active'),
+    [agencyProperties]
+  )
+
   const [eventType, setEventType] = useState<MeggaEventType>('visit')
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(format(d, 'yyyy-MM-dd'))
@@ -111,12 +120,12 @@ function CreateVisitForm({
   const handlePropertyChange = useCallback((newPropertyId: string) => {
     setPropertyId(newPropertyId)
     if (newPropertyId) {
-      const property = MOCK_AGENT_LISTINGS.find((p) => p.id === newPropertyId)
+      const property = properties.find((p) => p.id === newPropertyId)
       if (property) {
         setLocation(`${property.address}, ${property.city}`)
       }
     }
-  }, [])
+  }, [properties])
 
   // Build display title
   const displayTitle = useMemo(() => {
@@ -124,10 +133,10 @@ function CreateVisitForm({
     if (title) return title
 
     const contact = contactId
-      ? MOCK_CONTACTS.find((c) => c.id === contactId)
+      ? contacts.find((c) => c.id === contactId)
       : null
     const property = propertyId
-      ? MOCK_AGENT_LISTINGS.find((p) => p.id === propertyId)
+      ? properties.find((p) => p.id === propertyId)
       : null
 
     const parts: string[] = []
@@ -136,7 +145,7 @@ function CreateVisitForm({
     else if (contact) parts.push(`— ${contact.first_name} ${contact.last_name}`)
 
     return parts.join(' ') || config.label
-  }, [eventType, title, contactId, propertyId])
+  }, [eventType, title, contactId, propertyId, contacts, properties])
 
   const handleSubmit = useCallback(() => {
     const [year, month, day] = date.split('-').map(Number)
@@ -297,7 +306,7 @@ function CreateVisitForm({
           className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">— Aucun contact —</option>
-          {MOCK_CONTACTS.map((c) => (
+          {contacts.map((c) => (
             <option key={c.id} value={c.id}>
               {c.first_name} {c.last_name} ({c.type === 'buyer' ? 'Acheteur' : c.type === 'seller' ? 'Vendeur' : c.type})
             </option>
@@ -316,7 +325,7 @@ function CreateVisitForm({
           className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         >
           <option value="">— Aucun bien —</option>
-          {MOCK_AGENT_LISTINGS.map((p) => (
+          {properties.map((p) => (
             <option key={p.id} value={p.id}>
               {p.title} — {p.address}, {p.city}
             </option>
