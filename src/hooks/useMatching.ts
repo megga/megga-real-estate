@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { matchContactAgainstListings, matchAllBuyers, type MatchResult as MockMatchResult } from '@/lib/matching'
 
 // ── Supabase match shape ────────────────────────────────────────────────────
 
@@ -209,11 +208,11 @@ export function useMatching(contactId?: string) {
   const queryClient = useQueryClient()
   const agencyId = profile?.agency_id
 
-  // ── Load matches from Supabase, fallback to mock ──
+  // ── Load matches from Supabase ──
   const { data: matches = [], isLoading } = useQuery({
     queryKey: ['matches', agencyId, contactId],
     queryFn: async (): Promise<MatchResult[]> => {
-      if (!agencyId) return fallbackToMock(contactId)
+      if (!agencyId) return []
 
       let query = supabase
         .from('matches')
@@ -231,12 +230,6 @@ export function useMatching(contactId?: string) {
       if (error) throw error
 
       const supabaseMatches = (data || []) as SupabaseMatchResult[]
-
-      // If Supabase returns empty, fallback to mock data
-      if (supabaseMatches.length === 0) {
-        return fallbackToMock(contactId)
-      }
-
       return supabaseMatches.map(supabaseToMatch)
     },
     enabled: true,
@@ -245,9 +238,6 @@ export function useMatching(contactId?: string) {
   // ── Update match status ──
   const sendMatchMutation = useMutation({
     mutationFn: async ({ matchId, channel }: { matchId: string; channel: string }) => {
-      // Skip Supabase update for mock matches
-      if (matchId.startsWith('match-')) return
-
       const { error } = await supabase
         .from('matches')
         .update({
@@ -265,8 +255,6 @@ export function useMatching(contactId?: string) {
 
   const ignoreMatchMutation = useMutation({
     mutationFn: async (matchId: string) => {
-      if (matchId.startsWith('match-')) return
-
       const { error } = await supabase
         .from('matches')
         .update({ status: 'ignored' })
@@ -314,20 +302,6 @@ export function useMatching(contactId?: string) {
     runMatching: (targetContactId: string) => runMatchingMutation.mutate(targetContactId),
     isRunning: runMatchingMutation.isPending,
   }
-}
-
-// ── Mock fallback (uses existing mock engine) ───────────────────────────────
-
-function fallbackToMock(contactId?: string): MatchResult[] {
-  const mockResults: MockMatchResult[] = contactId
-    ? matchContactAgainstListings(contactId)
-    : matchAllBuyers()
-
-  return mockResults.map((m) => ({
-    ...m,
-    marketListingId: null,
-    source: 'internal' as const,
-  }))
 }
 
 // ── Re-exports for compatibility with main's MatchingPanel/SendMatchDialog ──

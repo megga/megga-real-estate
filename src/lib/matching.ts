@@ -1,11 +1,9 @@
-import { MOCK_LISTINGS, MOCK_CONTACTS, type MockListing, type MockContact } from './mockData'
-
 export interface MatchResult {
   id: string
   contactId: string
   contactName: string
   propertyId: string
-  listing: MockListing
+  listing: ScoringListing
   score: number
   reasons: MatchReasons
   status: 'suggested' | 'sent' | 'visit_planned' | 'interested' | 'rejected' | 'ignored'
@@ -20,6 +18,37 @@ export interface MatchReasons {
   type: { match: boolean; score: number; detail: string }
   rooms: { match: boolean; score: number; detail: string }
   features: { match: boolean; score: number; detail: string }
+}
+
+// Minimal shapes consumed by the scoring engine. Kept local so matching.ts
+// has no dependency on mock or Supabase-specific types.
+export interface ScoringListing {
+  id: string
+  price: number
+  city: string
+  canton: string
+  type: string
+  rooms: number
+  surface_m2: number
+  features: Record<string, string>
+  status: string
+}
+
+export interface ScoringSearchCriteria {
+  budget_min: number
+  budget_max: number
+  location: string
+  property_type: string
+  rooms_min: number
+  surface_min: number
+}
+
+export interface ScoringContact {
+  id: string
+  first_name: string
+  last_name: string
+  type: string
+  search_criteria: ScoringSearchCriteria | null
 }
 
 // ── Scoring Engine ──────────────────────────────────────────────────────────
@@ -121,7 +150,7 @@ function scoreFeatures(listingFeatures: Record<string, string>): { score: number
   return { score: s, detail: found.length > 0 ? `${found.length} extras` : 'Aucun extra' }
 }
 
-export function calculateMatchScore(listing: MockListing, contact: MockContact): MatchResult | null {
+export function calculateMatchScore(listing: ScoringListing, contact: ScoringContact): MatchResult | null {
   if (!contact.search_criteria) return null
   if (contact.type === 'seller') return null
   if (listing.status !== 'active') return null
@@ -159,31 +188,4 @@ export function calculateMatchScore(listing: MockListing, contact: MockContact):
     sentAt: null,
     createdAt: new Date().toISOString(),
   }
-}
-
-// Run matching for a specific contact against all active listings
-export function matchContactAgainstListings(contactId: string): MatchResult[] {
-  const contact = MOCK_CONTACTS.find((c) => c.id === contactId)
-  if (!contact) return []
-
-  return MOCK_LISTINGS
-    .map((listing) => calculateMatchScore(listing, contact))
-    .filter((r): r is MatchResult => r !== null)
-    .sort((a, b) => b.score - a.score)
-}
-
-// Run matching for all buyers against all listings
-export function matchAllBuyers(): MatchResult[] {
-  const buyers = MOCK_CONTACTS.filter((c) => c.type === 'buyer' || c.type === 'both')
-  const results: MatchResult[] = []
-
-  for (const contact of buyers) {
-    const matches = MOCK_LISTINGS
-      .map((listing) => calculateMatchScore(listing, contact))
-      .filter((r): r is MatchResult => r !== null)
-
-    results.push(...matches)
-  }
-
-  return results.sort((a, b) => b.score - a.score)
 }
