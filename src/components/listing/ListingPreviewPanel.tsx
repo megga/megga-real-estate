@@ -338,11 +338,23 @@ const AI_SUGGESTIONS: Record<string, Array<{ label: string; prompt: string }>> =
     { label: 'Négociation', prompt: 'Comment négocier le prix de ce bien ? Quelle offre serait raisonnable ?' },
     { label: 'Frais à prévoir', prompt: 'Quels sont tous les frais à prévoir en plus du prix d\'achat ?' },
   ],
+  fr_rent: [
+    { label: 'Loyer juste ?', prompt: 'Est-ce que ce loyer est cohérent avec le marché pour ce quartier et cette surface ?' },
+    { label: 'Charges incluses ?', prompt: 'Quelles charges sont typiquement incluses ou en supplément du loyer en Suisse ?' },
+    { label: 'Garantie loyer', prompt: 'Comment fonctionne la garantie de loyer en Suisse (art. 257e CO) ? Quels sont mes droits ?' },
+    { label: 'Dossier candidat', prompt: 'Quels documents préparer pour mon dossier de candidature (attestation de non-poursuite, etc.) ?' },
+  ],
   de: [
     { label: 'Guter Preis?', prompt: 'Ist diese Immobilie im Vergleich zum Markt gut bewertet?' },
     { label: 'Risiken?', prompt: 'Welche potenziellen Risiken gibt es bei dieser Immobilie?' },
     { label: 'Verhandlung', prompt: 'Wie kann ich den Preis verhandeln? Welches Angebot wäre angemessen?' },
     { label: 'Nebenkosten', prompt: 'Welche zusätzlichen Kosten kommen zum Kaufpreis hinzu?' },
+  ],
+  de_rent: [
+    { label: 'Miete fair?', prompt: 'Ist diese Miete im Vergleich zum Markt angemessen für diese Lage und Fläche?' },
+    { label: 'Nebenkosten?', prompt: 'Welche Nebenkosten sind in der Schweiz üblicherweise in der Miete enthalten oder zusätzlich?' },
+    { label: 'Mietkaution', prompt: 'Wie funktioniert die Mietkaution in der Schweiz (Art. 257e OR)?' },
+    { label: 'Bewerbung', prompt: 'Welche Dokumente brauche ich für meine Mietbewerbung (Betreibungsauszug, etc.)?' },
   ],
   en: [
     { label: 'Good price?', prompt: 'Is this property well priced compared to the market?' },
@@ -350,11 +362,23 @@ const AI_SUGGESTIONS: Record<string, Array<{ label: string; prompt: string }>> =
     { label: 'Negotiation', prompt: 'How should I negotiate the price? What would be a reasonable offer?' },
     { label: 'Extra costs', prompt: 'What additional costs should I expect on top of the purchase price?' },
   ],
+  en_rent: [
+    { label: 'Fair rent?', prompt: 'Is this rent fair compared to the market for this area and size?' },
+    { label: 'Charges?', prompt: 'What utility charges are typically included in or added to the rent in Switzerland?' },
+    { label: 'Deposit', prompt: 'How does a rental deposit work in Switzerland (art. 257e CO)?' },
+    { label: 'Application', prompt: 'What documents do I need for my rental application (debt enforcement certificate, etc.)?' },
+  ],
   it: [
     { label: 'Buon prezzo?', prompt: 'Questo immobile ha un buon prezzo rispetto al mercato?' },
     { label: 'Rischi?', prompt: 'Quali sono i rischi potenziali di questo immobile?' },
     { label: 'Negoziazione', prompt: 'Come posso negoziare il prezzo? Quale offerta sarebbe ragionevole?' },
     { label: 'Costi extra', prompt: 'Quali costi aggiuntivi devo prevedere oltre al prezzo di acquisto?' },
+  ],
+  it_rent: [
+    { label: 'Affitto giusto?', prompt: 'Questo affitto è corretto rispetto al mercato per questa zona e superficie?' },
+    { label: 'Spese incluse?', prompt: 'Quali spese sono tipicamente incluse o aggiuntive all\'affitto in Svizzera?' },
+    { label: 'Cauzione', prompt: 'Come funziona la cauzione in Svizzera (art. 257e CO)?' },
+    { label: 'Candidatura', prompt: 'Quali documenti preparare per la candidatura (certificato di non-pignoramento, ecc.)?' },
   ],
 }
 
@@ -383,13 +407,15 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
   // Detect language
   const lang = (localStorage.getItem('megga-language') || navigator.language.split('-')[0] || 'fr').slice(0, 2)
   const validLang = ['fr', 'de', 'en', 'it'].includes(lang) ? lang : 'fr'
-  const suggestions = AI_SUGGESTIONS[validLang] || AI_SUGGESTIONS.fr
+  const isRent = listing.transaction_type === 'rent'
+  const suggestionsKey = isRent ? `${validLang}_rent` : validLang
+  const suggestions = AI_SUGGESTIONS[suggestionsKey] || AI_SUGGESTIONS[validLang] || AI_SUGGESTIONS.fr
   const labels = AI_LANG_LABELS[validLang] || AI_LANG_LABELS.fr
 
-  // Build context
+  // Build context (rent-aware labels)
   const context = [
     `Bien : ${listing.title}`,
-    `Prix : ${formatCHF(listing.price)}`,
+    isRent ? `Loyer : ${formatCHF(listing.price)}/mois` : `Prix : ${formatCHF(listing.price)}`,
     listing.surface_m2 > 0 ? `Surface : ${listing.surface_m2} m²` : '',
     listing.price > 0 && listing.surface_m2 > 0 ? `Prix/m² : ${formatCHF(Math.round(listing.price / listing.surface_m2))}` : '',
     `Type : ${TYPE_LABELS[listing.type] || listing.type}, ${listing.rooms} pièces, ${listing.bedrooms} chambres`,
@@ -1373,14 +1399,33 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
               {/* ── Mobile CTA bar ── */}
               <div className="md:hidden sticky bottom-0 bg-theme-card border-t border-theme-border-subtle p-4 flex gap-3 z-40">
-                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold border border-theme-border text-theme-primary rounded-lg hover:border-accent hover:text-accent transition-colors">
-                  <CalendarDays className="h-4 w-4" />
-                  Visite
-                </button>
-                <button className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:border-theme-active transition-colors">
-                  <Phone className="h-4 w-4" />
-                  Appeler
-                </button>
+                {listing.transaction_type === 'rent' ? (
+                  /* Rental — single CTA "Contacter la régie" */
+                  <button
+                    onClick={() => document.getElementById('preview-regie-contact')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                    className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold border border-theme-border text-theme-primary rounded-lg hover:border-accent hover:text-accent transition-colors"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Contacter la régie
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setShowDatePicker(true)}
+                      className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold border border-theme-border text-theme-primary rounded-lg hover:border-accent hover:text-accent transition-colors"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                      Visite
+                    </button>
+                    <button
+                      onClick={() => setShowContactModal(true)}
+                      className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:border-theme-active transition-colors"
+                    >
+                      <Phone className="h-4 w-4" />
+                      Appeler
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => setIsFavorite(!isFavorite)}
                   className={cn(
