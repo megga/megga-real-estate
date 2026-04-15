@@ -16,7 +16,7 @@ import {
   SortableContext, rectSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { cn, formatCHF } from '@/lib/utils'
+import { cn, formatCHF, formatRent } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
 import type { PropertyType } from '@/lib/constants'
 import ListingGenerator from '@/components/ai-copilot/ListingGenerator'
@@ -72,8 +72,9 @@ const step2Schema = z.object({
   lng: optionalNumber,
 })
 
-const step3Schema = z.object({
-  price: z.coerce.number().min(1000, 'Minimum CHF 1\'000'),
+const step3SchemaBase = z.object({
+  transaction_type: z.enum(['buy', 'rent']).default('buy'),
+  price: z.coerce.number(),
   charges_monthly: z.preprocess(
     (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
     z.number().min(0).optional()
@@ -83,6 +84,23 @@ const step3Schema = z.object({
   }),
   features: z.array(z.string()).optional(),
   availability_date: z.string().optional(),
+  deposit_months: z.coerce.number().int().min(1).max(3).optional(),
+  is_furnished: z.boolean().optional(),
+})
+
+const step3Schema = step3SchemaBase.superRefine((d, ctx) => {
+  if (d.transaction_type === 'rent') {
+    if (!d.price || d.price < 100 || d.price > 50000) {
+      ctx.addIssue({ code: 'custom', path: ['price'], message: 'Loyer entre CHF 100 et 50\'000/mois' })
+    }
+    if (!d.availability_date) {
+      ctx.addIssue({ code: 'custom', path: ['availability_date'], message: 'Date requise pour une location' })
+    }
+  } else {
+    if (!d.price || d.price < 50000) {
+      ctx.addIssue({ code: 'custom', path: ['price'], message: 'Minimum CHF 50\'000' })
+    }
+  }
 })
 
 const step4Schema = z.object({
@@ -94,7 +112,7 @@ const step5Schema = z.object({
   tags: z.array(z.string()).optional(),
 })
 
-const fullSchema = step1Schema.merge(step2Schema).merge(step3Schema).merge(step4Schema).merge(step5Schema)
+const fullSchema = step1Schema.merge(step2Schema).merge(step3SchemaBase).merge(step4Schema).merge(step5Schema)
 
 type ListingFormData = z.infer<typeof fullSchema>
 
@@ -124,6 +142,13 @@ const TAG_OPTIONS = [
 ]
 
 const stepSchemas = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema] as const
+const stepShapes = [
+  step1Schema.shape,
+  step2Schema.shape,
+  step3SchemaBase.shape,
+  step4Schema.shape,
+  step5Schema.shape,
+] as const
 
 const PROPERTY_TYPE_DESCRIPTIONS: Record<string, string> = {
   apartment: 'PPE ou locatif',
@@ -227,7 +252,7 @@ function NumberStepper({
 
 // ─── Field helpers ───
 
-function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
+function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return (
     <label htmlFor={htmlFor} className="block text-sm font-medium text-theme-primary mb-1.5">
       {children}
@@ -583,9 +608,13 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
   const price = watch('price')
   const surface = watch('surface_m2')
   const availabilityDate = watch('availability_date')
+  const txType = watch('transaction_type') ?? 'buy'
+  const isRent = txType === 'rent'
+  const depositMonths = watch('deposit_months')
+  const isFurnished = watch('is_furnished') ?? false
 
-  // Price per m² calculation
-  const pricePerM2 = price > 0 && surface > 0 ? Math.round(price / surface) : null
+  // Price per m² calculation (buy only)
+  const pricePerM2 = !isRent && price > 0 && surface > 0 ? Math.round(price / surface) : null
 
   function toggleFeature(feature: string) {
     const current = features
@@ -619,16 +648,19 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
       <div className="rounded-xl border border-theme-border p-5 bg-theme-section/30">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <FieldLabel htmlFor="price">Prix de vente</FieldLabel>
+            <FieldLabel htmlFor="price">{isRent ? 'Loyer mensuel' : 'Prix de vente'}</FieldLabel>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-theme-muted font-medium">CHF</span>
               <input
                 id="price"
                 type="number"
                 {...register('price')}
-                placeholder="720000"
+                placeholder={isRent ? '2500' : '720000'}
                 className={cn(inputClass, 'pl-14 text-lg font-semibold h-12')}
               />
+              {isRent && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-theme-muted">/mois</span>
+              )}
             </div>
             <FieldError message={errors.price?.message} />
           </div>
@@ -650,12 +682,67 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
         {/* Price summary badges */}
         {price > 0 && (
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-theme-border/50 mt-3">
-            <span className="text-sm font-semibold text-theme-primary">{formatCHF(price)}</span>
+            <span className="text-sm font-semibold text-theme-primary">
+              {isRent ? formatRent(price) : formatCHF(price)}
+            </span>
             {pricePerM2 && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-theme-active text-theme-primary">
                 {formatCHF(pricePerM2)}/m²
               </span>
             )}
+          </div>
+        )}
+
+        {/* Rental-only: deposit (caution) */}
+        {isRent && (
+          <div className="pt-4 border-t border-theme-border/50 mt-3">
+            <FieldLabel>Caution (mois de loyer)</FieldLabel>
+            <div className="flex gap-2">
+              {[1, 2, 3].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setValue('deposit_months', n, { shouldValidate: true, shouldDirty: true })}
+                  className={cn(
+                    'h-9 px-4 rounded-lg text-sm transition-colors',
+                    depositMonths === n
+                      ? 'bg-theme-active text-theme-primary font-medium'
+                      : 'text-theme-secondary hover:text-theme-primary border border-theme-border'
+                  )}
+                  aria-pressed={depositMonths === n}
+                >
+                  {n} mois
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Rental-only: furnished toggle */}
+        {isRent && (
+          <div className="pt-4 border-t border-theme-border/50 mt-3">
+            <FieldLabel>Meublé</FieldLabel>
+            <div className="flex gap-2">
+              {[
+                { value: false, label: 'Non meublé' },
+                { value: true, label: 'Meublé' },
+              ].map((opt) => (
+                <button
+                  key={String(opt.value)}
+                  type="button"
+                  onClick={() => setValue('is_furnished', opt.value, { shouldValidate: true, shouldDirty: true })}
+                  className={cn(
+                    'h-9 px-4 rounded-lg text-sm transition-colors',
+                    isFurnished === opt.value
+                      ? 'bg-theme-active text-theme-primary font-medium'
+                      : 'text-theme-secondary hover:text-theme-primary border border-theme-border'
+                  )}
+                  aria-pressed={isFurnished === opt.value}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -722,7 +809,11 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
 
       {/* Availability date */}
       <div>
-        <FieldLabel htmlFor="availability_date">Disponibilité</FieldLabel>
+        <FieldLabel htmlFor="availability_date">
+          Disponibilité
+          {isRent && <span className="ml-1 text-red-500" aria-hidden="true">*</span>}
+          {isRent && <span className="sr-only">(requis)</span>}
+        </FieldLabel>
         <div className="flex flex-wrap gap-2 mb-3">
           {AVAILABILITY_OPTIONS.map((opt) => {
             // Check if current date matches quick option
@@ -752,6 +843,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
           {...register('availability_date')}
           className={inputClass}
         />
+        <FieldError message={errors.availability_date?.message} />
         {availabilityDate && (
           <p className="text-xs text-theme-muted mt-1">
             {new Date(availabilityDate).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -1838,6 +1930,8 @@ export default function ListingFormPage() {
         condition: (pdfData.condition as ListingFormData['condition']) ?? undefined,
         availability_date: '',
         features: pdfData.features ?? [],
+        deposit_months: undefined,
+        is_furnished: false,
         photos: ('photos' in pdfData && Array.isArray(pdfData.photos)) ? pdfData.photos : [],
         description: pdfData.description ?? '',
         tags: [],
@@ -1868,6 +1962,8 @@ export default function ListingFormPage() {
       condition: (existingProperty.condition as ListingFormData['condition']) ?? undefined,
       availability_date: existingProperty.availability_date ?? '',
       features: Array.isArray(existingProperty.features) ? existingProperty.features : [],
+      deposit_months: existingProperty.deposit_months ?? undefined,
+      is_furnished: existingProperty.is_furnished ?? false,
       photos: existingProperty.photos ?? [],
       description: existingProperty.description ?? '',
       tags: [],
@@ -1898,6 +1994,8 @@ export default function ListingFormPage() {
       condition: undefined,
       availability_date: '',
       features: [],
+      deposit_months: undefined,
+      is_furnished: false,
       photos: [],
       description: '',
       tags: [],
@@ -1979,7 +2077,7 @@ export default function ListingFormPage() {
       return false
     }
 
-    const stepFields = Object.keys(schema.shape) as (keyof ListingFormData)[]
+    const stepFields = Object.keys(stepShapes[currentStep - 1]) as (keyof ListingFormData)[]
     stepFields.forEach((field) => form.clearErrors(field))
     return true
   }
@@ -2011,6 +2109,8 @@ export default function ListingFormPage() {
       charges_monthly: values.charges_monthly,
       mandate_type: values.mandate_type,
       condition: values.condition,
+      deposit_months: values.deposit_months ?? null,
+      is_furnished: values.is_furnished ?? false,
       availability_date: values.availability_date || null,
       address: values.address,
       city: values.city,
@@ -2242,7 +2342,13 @@ export default function ListingFormPage() {
                   key={v}
                   type="button"
                   disabled={isEditMode}
-                  onClick={() => form.setValue('transaction_type', v, { shouldValidate: true, shouldDirty: true })}
+                  onClick={() => {
+                    form.setValue('transaction_type', v, { shouldValidate: true, shouldDirty: true })
+                    // When switching to rent, default deposit to 3 months if not set
+                    if (v === 'rent' && !form.getValues('deposit_months')) {
+                      form.setValue('deposit_months', 3, { shouldDirty: true })
+                    }
+                  }}
                   className={cn(
                     'h-9 px-4 rounded-lg text-sm transition-colors',
                     isActive
