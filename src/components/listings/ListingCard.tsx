@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, BedDouble, DoorOpen, Maximize, Building2, ChevronLeft, ChevronRight, Play } from 'lucide-react'
-import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { cn, formatCHF, formatRent, formatSurface } from '@/lib/utils'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 
 export interface ListingCardData {
@@ -41,6 +41,11 @@ export interface ListingCardData {
   price_per_m2?: number
   days_on_market?: number
   price_drop_pct?: number
+  // Rental support
+  transaction_type?: 'buy' | 'rent'
+  is_furnished?: boolean
+  deposit_months?: number | null
+  external_regie?: { name?: string; phone?: string; email?: string; website?: string } | null
 }
 
 interface ListingCardProps {
@@ -177,7 +182,9 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
         <div className="flex items-start justify-between gap-2 mb-1">
           <span className="text-lg font-semibold text-gray-900">
             <span className="text-sm font-normal text-gray-500">CHF </span>
-            {formatCHF(listing.price).replace('CHF ', '')}
+            {listing.transaction_type === 'rent'
+              ? formatRent(listing.price).replace('CHF ', '')
+              : formatCHF(listing.price).replace('CHF ', '')}
           </span>
         </div>
 
@@ -200,6 +207,12 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
             <Maximize className="h-3.5 w-3.5" />
             {formatSurface(listing.surface_m2)}
           </span>
+          {listing.transaction_type === 'rent' && listing.is_furnished && (
+            <>
+              <span className="text-gray-500">·</span>
+              <span className="text-xs text-gray-500">Meublé</span>
+            </>
+          )}
         </div>
       </div>
     </Link>

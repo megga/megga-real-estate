@@ -13,7 +13,7 @@ import MapGL, {
 import Supercluster from 'supercluster'
 import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, RotateCcw, Pause, Play, Maximize, Minimize, School, TrainFront, ShoppingBag, TreePine, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
-import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import type { MapPoint } from '@/hooks/useMarketListings'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -84,17 +84,7 @@ interface MapViewProps {
   className?: string
 }
 
-function formatPricePin(price: number, context?: string): string {
-  if (context === 'rent') {
-    if (price >= 10000) return `${Math.round(price / 1000)}K/m`
-    return `${price.toLocaleString('fr-CH').replace(/\s/g, "'")}/m`
-  }
-  if (price >= 1000000) {
-    const m = price / 1000000
-    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
-  }
-  return `${Math.round(price / 1000)}K`
-}
+// formatPricePin imported from @/lib/utils (shared helper)
 
 // Point-in-polygon (ray casting algorithm)
 function pointInPolygon(point: [number, number], polygon: [number, number][]): boolean {
@@ -456,11 +446,15 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   // Build supercluster index — light clustering at low zoom, individual prices at high zoom
   const supercluster = useMemo(() => {
-    const sc = new Supercluster<{ listing: ListingCardData }>({
+    const sc = new Supercluster<{ listing: ListingCardData }, { minPrice: number; context: 'buy' | 'rent' }>({
       radius: 35,
       maxZoom: 14,
-      map: (props) => ({ minPrice: props.listing.price }),
-      reduce: (acc, props) => { acc.minPrice = Math.min(acc.minPrice, props.minPrice) },
+      map: (props) => ({ minPrice: props.listing.price, context: (props.listing.context as 'buy' | 'rent') || 'buy' }),
+      reduce: (acc, props) => {
+        acc.minPrice = Math.min(acc.minPrice, props.minPrice)
+        // Context: all pins in a view share the same context, keep first encountered
+        if (acc.context !== props.context) acc.context = props.context
+      },
     })
     sc.load(points)
     return sc
@@ -794,6 +788,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           if (isCluster) {
             const pointCount = props.point_count as number
             const minPrice = props.minPrice as number
+            const clusterContext = (props.context as 'buy' | 'rent') || 'buy'
             return (
               <Marker key={`cluster-${cluster.id}`} longitude={lng} latitude={lat} anchor="center">
                 <button
@@ -804,7 +799,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   }}
                   className="rounded-full text-xs font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2 bg-gray-900 text-white border-white/80 hover:scale-110 hover:bg-gray-800 flex items-center gap-1"
                 >
-                  {formatPricePin(minPrice)}
+                  {formatPricePin(minPrice, clusterContext)}
                   <span className="text-xs font-normal text-white/60">+{pointCount}</span>
                 </button>
               </Marker>
@@ -812,7 +807,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           }
 
           // Individual pin — dark pill with price (Zillow-style)
-          const listing = cluster.properties.listing
+          const listing = (cluster.properties as { listing: ListingCardData }).listing
           const isHovered = hoveredId === listing.id
           const isSelected = selectedListing?.id === listing.id
           const activePolygon = closedPolygon

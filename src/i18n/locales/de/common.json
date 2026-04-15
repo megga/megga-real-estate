@@ -978,5 +978,18 @@
       "backHome": "Zurück zur Startseite",
       "estimateAnother": "Ein weiteres Objekt schätzen"
     }
+  },
+  "rental": {
+    "priceLabel": "Monatliche Miete",
+    "filterFurnished": "Möbliert",
+    "filterAvailableNow": "Sofort verfügbar",
+    "badgeFurnished": "Möbliert",
+    "deposit": "Kaution: {{count}} Monate",
+    "availableOn": "Verfügbar ab {{date}}",
+    "contactRegie": "Verwaltung kontaktieren",
+    "regieContact": "Verwaltung kontaktieren",
+    "regieCtaCall": "Anrufen",
+    "regieCtaEmail": "Schreiben",
+    "perMonth": "/Monat"
   }
 }

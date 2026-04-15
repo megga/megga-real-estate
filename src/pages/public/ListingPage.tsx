@@ -79,6 +79,10 @@ function transformSupabaseToListing(data: Record<string, any>, source: 'market' 
     },
     floor_plan_url: (data.floor_plan_url as string) || null,
     floor_plan_hotspots: (data.floor_plan_hotspots as FloorPlanHotspot[]) || [],
+    transaction_type: ((data.transaction_type as string) || 'buy') as 'buy' | 'rent',
+    is_furnished: !!data.is_furnished,
+    deposit_months: (data.deposit_months as number | null | undefined) ?? null,
+    external_regie: (data.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null,
   }
 }
 

@@ -978,5 +978,18 @@
       "backHome": "Back to home",
       "estimateAnother": "Estimate another property"
     }
+  },
+  "rental": {
+    "priceLabel": "Monthly rent",
+    "filterFurnished": "Furnished",
+    "filterAvailableNow": "Available now",
+    "badgeFurnished": "Furnished",
+    "deposit": "Deposit: {{count}} months",
+    "availableOn": "Available from {{date}}",
+    "contactRegie": "Contact agency",
+    "regieContact": "Contact agency",
+    "regieCtaCall": "Call",
+    "regieCtaEmail": "Email",
+    "perMonth": "/month"
   }
 }

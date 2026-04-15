@@ -95,6 +95,11 @@ function transformToCardData(
   ml: Record<string, unknown>,
   source: 'market' | 'internal' = 'market'
 ): ListingCardData {
+  const txType = (ml.transaction_type as 'buy' | 'rent') || 'buy'
+  const isFurnished = !!ml.is_furnished
+  const depositMonths = (ml.deposit_months as number | null | undefined) ?? null
+  const externalRegie = (ml.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null
+
   if (source === 'internal') {
     return {
       id: `internal-${ml.id}`,
@@ -107,13 +112,17 @@ function transformToCardData(
       surface_m2: Number(ml.surface_m2) || 0,
       photos: (ml.photos as string[]) || [],
       type: (ml.type as string) || 'apartment',
-      context: 'buy',
+      context: txType,
       description: (ml.description as string) || '',
       canton: (ml.canton as string) || '',
       published_at: (ml.published_at as string) || (ml.created_at as string),
       lat: ml.lat as number | undefined,
       lng: ml.lng as number | undefined,
       is_exclusive: true,
+      transaction_type: txType,
+      is_furnished: isFurnished,
+      deposit_months: depositMonths,
+      external_regie: externalRegie,
     }
   }
 
@@ -128,7 +137,7 @@ function transformToCardData(
     surface_m2: Number(ml.surface_m2) || 0,
     photos: (ml.photos as string[]) || [],
     type: (ml.type as string) || 'apartment',
-    context: 'buy',
+    context: txType,
     description: (ml.description as string) || '',
     canton: (ml.canton as string) || '',
     published_at: (ml.first_seen_at as string) || (ml.created_at as string),
@@ -140,6 +149,10 @@ function transformToCardData(
     agency_name: ml.agency_name as string | undefined,
     price_per_m2: ml.price_per_m2 as number | undefined,
     days_on_market: ml.days_on_market as number | undefined,
+    transaction_type: txType,
+    is_furnished: isFurnished,
+    deposit_months: depositMonths,
+    external_regie: externalRegie,
     price_drop_pct: (() => {
       const initial = Number(ml.price_at_first_seen || ml.price)
       const current = Number(ml.current_price ?? ml.price ?? 0)
