@@ -86,6 +86,12 @@ const step3SchemaBase = z.object({
   availability_date: z.string().optional(),
   deposit_months: z.coerce.number().int().min(1).max(3).optional(),
   is_furnished: z.boolean().optional(),
+  external_regie: z.object({
+    name: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+    website: z.string().optional(),
+  }).optional(),
 })
 
 const step3Schema = step3SchemaBase.superRefine((d, ctx) => {
@@ -773,6 +779,39 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
         </div>
         <FieldError message={errors.mandate_type?.message} />
       </div>
+
+      {/* Rental-only: external regie (optional) */}
+      {isRent && (
+        <details className="rounded-xl border border-theme-border p-4 group">
+          <summary className="text-sm font-medium text-theme-primary cursor-pointer select-none flex items-center justify-between">
+            <span>Régie externe (optionnel — sinon l'agence publie sous son nom)</span>
+            <ChevronDown className="w-4 h-4 text-theme-secondary transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+            {[
+              { field: 'name', label: 'Nom régie', placeholder: 'Régie Bernard SA', type: 'text' },
+              { field: 'phone', label: 'Téléphone', placeholder: '+41 22 555 00 00', type: 'tel' },
+              { field: 'email', label: 'Email', placeholder: 'contact@regie.ch', type: 'email' },
+              { field: 'website', label: 'Site web', placeholder: 'https://regie.ch', type: 'url' },
+            ].map((f) => (
+              <div key={f.field}>
+                <FieldLabel htmlFor={`regie_${f.field}`}>{f.label}</FieldLabel>
+                <input
+                  id={`regie_${f.field}`}
+                  type={f.type}
+                  placeholder={f.placeholder}
+                  value={(watch('external_regie') as Record<string, string> | undefined)?.[f.field] ?? ''}
+                  onChange={(e) => {
+                    const current = watch('external_regie') ?? {}
+                    setValue('external_regie', { ...current, [f.field]: e.target.value }, { shouldDirty: true })
+                  }}
+                  className={inputClass}
+                />
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       {/* Features — categorized */}
       <div>
@@ -1932,6 +1971,7 @@ export default function ListingFormPage() {
         features: pdfData.features ?? [],
         deposit_months: undefined,
         is_furnished: false,
+        external_regie: undefined,
         photos: ('photos' in pdfData && Array.isArray(pdfData.photos)) ? pdfData.photos : [],
         description: pdfData.description ?? '',
         tags: [],
@@ -1964,6 +2004,7 @@ export default function ListingFormPage() {
       features: Array.isArray(existingProperty.features) ? existingProperty.features : [],
       deposit_months: existingProperty.deposit_months ?? undefined,
       is_furnished: existingProperty.is_furnished ?? false,
+      external_regie: existingProperty.external_regie ?? undefined,
       photos: existingProperty.photos ?? [],
       description: existingProperty.description ?? '',
       tags: [],
@@ -1996,6 +2037,7 @@ export default function ListingFormPage() {
       features: [],
       deposit_months: undefined,
       is_furnished: false,
+      external_regie: undefined,
       photos: [],
       description: '',
       tags: [],
@@ -2111,6 +2153,7 @@ export default function ListingFormPage() {
       condition: values.condition,
       deposit_months: values.deposit_months ?? null,
       is_furnished: values.is_furnished ?? false,
+      external_regie: values.external_regie ?? null,
       availability_date: values.availability_date || null,
       address: values.address,
       city: values.city,
@@ -2547,8 +2590,17 @@ export default function ListingFormPage() {
               <div className="flex items-center gap-3 mt-2 text-xs text-theme-muted">
                 {form.watch('rooms') && <span>{form.watch('rooms')}p.</span>}
                 {form.watch('surface_m2') && <span>{form.watch('surface_m2')} m²</span>}
-                {form.watch('price') && <span className="font-medium text-theme-primary">{formatCHF(Number(form.watch('price')))}</span>}
+                {form.watch('price') && (
+                  <span className="font-medium text-theme-primary">
+                    {form.watch('transaction_type') === 'rent'
+                      ? formatRent(Number(form.watch('price')))
+                      : formatCHF(Number(form.watch('price')))}
+                  </span>
+                )}
               </div>
+              {form.watch('transaction_type') === 'rent' && form.watch('is_furnished') && (
+                <p className="text-xs text-theme-muted mt-1">· Meublé</p>
+              )}
             </div>
 
             {/* Completion */}
