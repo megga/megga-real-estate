@@ -1,5 +1,5 @@
-import { Navigate } from 'react-router-dom'
+import SearchPage from './SearchPage'
 
 export default function LouerPage() {
-  return <Navigate to="/search?context=rent" replace />
+  return <SearchPage context="rent" />
 }
