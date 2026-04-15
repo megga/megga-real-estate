@@ -341,7 +341,7 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
   })
   // @ts-expect-error EdgeRuntime is Supabase-specific Deno global
   if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-    // @ts-expect-error
+    // @ts-expect-error EdgeRuntime.waitUntil is Supabase-specific Deno global
     EdgeRuntime.waitUntil(p)
   } else {
     // Fallback : await avant de return (moins optimal, rallonge la réponse)
