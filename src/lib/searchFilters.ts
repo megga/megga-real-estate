@@ -21,6 +21,8 @@ export interface Filters {
   lifestyleTags: string[]
   energyLabel: string
   sort: SortOption
+  isFurnished: boolean
+  availableNow: boolean
 }
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
@@ -306,6 +308,8 @@ export function parseFiltersFromParams(params: URLSearchParams): Filters {
     lifestyleTags: params.get('lifestyle')?.split(',').filter(Boolean) || [],
     energyLabel: params.get('energyLabel') || '',
     sort: (params.get('sort') as SortOption) || 'relevance',
+    isFurnished: params.get('furnished') === '1',
+    availableNow: params.get('available') === '1',
   }
 }
 
@@ -325,6 +329,8 @@ export function filtersToParams(filters: Filters): Record<string, string> {
   if (filters.lifestyleTags.length) p.lifestyle = filters.lifestyleTags.join(',')
   if (filters.energyLabel) p.energyLabel = filters.energyLabel
   if (filters.sort !== 'relevance') p.sort = filters.sort
+  if (filters.isFurnished) p.furnished = '1'
+  if (filters.availableNow) p.available = '1'
   return p
 }
 
@@ -364,6 +370,8 @@ export function toServerFilters(filters: Filters): MarketFilters {
   }
 
   if (filters.energyLabel) sf.energyLabel = filters.energyLabel
+  if (filters.isFurnished) sf.isFurnished = true
+  if (filters.availableNow) sf.availableNow = true
 
   return sf
 }

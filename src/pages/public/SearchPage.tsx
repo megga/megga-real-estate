@@ -52,10 +52,30 @@ import {
 
 // ─── MAIN SEARCH PAGE ───────────────────────────────────────────────────────
 
-export default function SearchPage() {
+interface SearchPageProps {
+  context?: 'buy' | 'rent'
+}
+
+export default function SearchPage({ context }: SearchPageProps = {}) {
   const { t } = useTranslation('common')
   const [searchParams, setSearchParams] = useSearchParams()
-  const [filters, setFilters] = useState<Filters>(() => parseFiltersFromParams(searchParams))
+  const [filters, setFilters] = useState<Filters>(() => {
+    const parsed = parseFiltersFromParams(searchParams)
+    return context ? { ...parsed, context } : parsed
+  })
+
+  // Keep filters.context in sync if the prop changes (e.g. route switch)
+  useEffect(() => {
+    if (context && filters.context !== context) {
+      setFilters((prev) => ({
+        ...prev,
+        context,
+        // Reset 'recommended' sort when switching to rent (not relevant)
+        sort: context === 'rent' && prev.sort === 'recommended' ? 'relevance' : prev.sort,
+      }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [context])
   const [hoveredListing, setHoveredListing] = useState<string>()
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
@@ -325,10 +345,12 @@ export default function SearchPage() {
   return (
     <div className="h-screen flex bg-white">
       {/* ─── WCAG 1.3.1 — h1 caché visuellement pour screen readers ─── */}
-      <h1 className="sr-only">Biens à vendre en Suisse</h1>
+      <h1 className="sr-only">
+        {filters.context === 'rent' ? 'Biens à louer en Suisse' : 'Biens à vendre en Suisse'}
+      </h1>
 
       {/* ─── LEFT SIDEBAR (Zillow-style) ─── */}
-      {!mapImmersive && <BuyerSidebar activeView={sidebarView} onViewChange={setSidebarView} />}
+      {!mapImmersive && <BuyerSidebar activeView={sidebarView} onViewChange={setSidebarView} context={filters.context} />}
 
       {/* ─── RIGHT CONTENT ─── */}
       <main id="main-content" className="flex-1 flex flex-col overflow-hidden">
@@ -388,6 +410,34 @@ export default function SearchPage() {
                 <FilterOption key={r} selected={filters.rooms === r} onClick={() => updateFilter({ rooms: filters.rooms === r ? '' : r })}>{r} pièces</FilterOption>
               ))}
             </FilterPill>
+
+            {/* Rental-only filters: Meublé + Disponible immédiatement */}
+            {filters.context === 'rent' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => updateFilter({ isFurnished: !filters.isFurnished })}
+                  className={cn(
+                    'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+                    filters.isFurnished ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  )}
+                  aria-pressed={filters.isFurnished}
+                >
+                  Meublé
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateFilter({ availableNow: !filters.availableNow })}
+                  className={cn(
+                    'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+                    filters.availableNow ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  )}
+                  aria-pressed={filters.availableNow}
+                >
+                  Dispo immédiate
+                </button>
+              </>
+            )}
 
             {/* "Plus" filter — wide panel with grid layout */}
             {(() => {
@@ -541,13 +591,13 @@ export default function SearchPage() {
               </button>
             )}
 
-            {/* Sort pill */}
+            {/* Sort pill — "recommended" hidden in rent context */}
             <FilterPill
               label={SORT_OPTIONS.find(o => o.value === filters.sort)?.label || t('search.relevance')}
               active={filters.sort !== 'relevance'}
               dark
             >
-              {SORT_OPTIONS.map((opt) => (
+              {SORT_OPTIONS.filter((opt) => filters.context !== 'rent' || opt.value !== 'recommended').map((opt) => (
                 <FilterOption key={opt.value} selected={filters.sort === opt.value} onClick={() => updateFilter({ sort: opt.value })}>{opt.label}</FilterOption>
               ))}
             </FilterPill>

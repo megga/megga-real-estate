@@ -23,12 +23,15 @@ interface Props {
   activeView?: string
   onViewChange?: (view: string) => void
   className?: string
+  context?: 'buy' | 'rent'
 }
 
-export default function BuyerSidebar({ activeView = 'search', onViewChange, className }: Props) {
+export default function BuyerSidebar({ activeView = 'search', onViewChange, className, context = 'buy' }: Props) {
   const { count: favCount } = useFavorites()
   const { user } = useAuth()
   const navigate = useNavigate()
+  // Calculator (accessibility hypothecaire) only relevant for buy context
+  const navItems = context === 'rent' ? NAV_ITEMS.filter(item => item.id !== 'calculator') : NAV_ITEMS
 
   function renderItem(item: typeof NAV_ITEMS[0]) {
     const isActive = activeView === item.id
@@ -100,7 +103,7 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
       )}
       {/* Icons area */}
       <div className="flex flex-col items-center pt-4 pb-5 flex-1">
-        {NAV_ITEMS.map(renderItem)}
+        {navItems.map(renderItem)}
         <div className="w-8 h-px bg-gray-200 my-2" />
         {BOTTOM_ITEMS.map(renderItem)}
       </div>

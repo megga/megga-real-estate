@@ -23,6 +23,8 @@ export interface MarketFilters {
   q?: string
   energyLabel?: string
   maxDaysOnMarket?: number
+  isFurnished?: boolean
+  availableNow?: boolean
 }
 
 export interface MapPoint {
@@ -69,6 +71,8 @@ function applyFilters<Q extends MarketListingsQuery>(query: Q, filters: MarketFi
     }
   }
   if (filters.maxDaysOnMarket) q = q.lte('days_on_market', filters.maxDaysOnMarket)
+  if (filters.isFurnished) q = q.eq('is_furnished', true)
+  if (filters.availableNow) q = q.lte('availability_date', new Date().toISOString().slice(0, 10))
   if (filters.q) {
     q = q.or(`title.ilike.%${filters.q}%,city.ilike.%${filters.q}%,address.ilike.%${filters.q}%,canton.ilike.%${filters.q}%`)
   }
