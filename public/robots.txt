@@ -1,0 +1,12 @@
+# MEGGA Real Estate — robots.txt
+# Note: the site is currently under noindex globally (see index.html <meta name="robots" content="noindex">)
+# This file documents the intended crawl policy when noindex is lifted.
+
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /portail/
+Disallow: /auth/
+
+Sitemap: https://megga.ch/sitemap.xml

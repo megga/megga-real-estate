@@ -348,6 +348,8 @@
     }
   },
   "search": {
+    "seoTitle": "Biens à vendre en Suisse",
+    "seoDescription": "Parcourez les biens à vendre en Suisse. Filtrez par canton, prix, pièces, surface et caractéristiques.",
     "saveThisSearch": "Sauvegarder cette recherche",
     "searchSaved": "Recherche sauvegardée",
     "willReceiveAlerts": "Vous recevrez des alertes {{frequency}}",
@@ -984,12 +986,14 @@
     "filterFurnished": "Meublé",
     "filterAvailableNow": "Dispo immédiate",
     "badgeFurnished": "Meublé",
-    "deposit": "Caution : {{count}} mois",
+    "deposit": "Garantie de loyer : {{count}} mois",
     "availableOn": "Disponible le {{date}}",
     "contactRegie": "Contacter la régie",
-    "regieContact": "Contacter la régie",
+    "regieContact": "Contacter la régie / gérance",
     "regieCtaCall": "Appeler",
     "regieCtaEmail": "Écrire",
-    "perMonth": "/mois"
+    "perMonth": "/mois",
+    "seoTitle": "Biens à louer en Suisse",
+    "seoDescription": "Découvrez les appartements, maisons et villas à louer en Suisse. Filtrez par canton, loyer, pièces, meublé et disponibilité."
   }
 }

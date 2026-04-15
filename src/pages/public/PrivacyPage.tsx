@@ -42,13 +42,33 @@ export default function PrivacyPage() {
           </section>
 
           <section>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">2 bis. Données spécifiques à la location</h2>
+            <p>
+              Lorsque vous recherchez un bien à louer ou soumettez un dossier candidat-locataire via la Plateforme,
+              nous traitons en plus les catégories de données suivantes :
+            </p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li><strong>Pièces justificatives</strong> : attestation de non-poursuite, fiches de salaire, pièce d'identité, permis de séjour</li>
+              <li><strong>Situation financière</strong> : revenus déclarés, situation professionnelle, références antérieures</li>
+              <li><strong>Garantie de loyer</strong> : montant (plafonné à 3 mois conformément à l'art. 257e CO), organisme de caution</li>
+              <li><strong>Communications régie</strong> : échanges avec la régie ou gérance concernant le dossier, la visite et le bail</li>
+            </ul>
+            <p className="mt-2">
+              Ces données sont transmises uniquement à la régie ou gérance concernée et conservées pendant la durée
+              nécessaire à la constitution du dossier, puis au maximum <strong>6 mois</strong> après le refus ou la fin
+              du processus de location, sauf obligation légale contraire.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Finalités du traitement</h2>
             <p>Vos données sont traitées pour :</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
               <li>Fournir et améliorer les services de la Plateforme</li>
               <li>Gérer votre compte utilisateur et vos préférences</li>
               <li>Faciliter les transactions immobilières (matching, visites, offres)</li>
-              <li>Assurer la conformité réglementaire (LAB/KYC)</li>
+              <li>Instruire les dossiers candidat-locataire et les transmettre aux régies concernées (uniquement avec votre consentement explicite)</li>
+              <li>Assurer la conformité réglementaire (LAB/KYC pour les transactions de vente, droit du bail suisse pour les locations)</li>
               <li>Synchroniser vos visites avec des services tiers (Google Calendar)</li>
               <li>Envoyer des communications transactionnelles (confirmations, relances)</li>
             </ul>
