@@ -377,15 +377,10 @@ async function runSweep(supabase: any, syncStartAt: string, totalSeen: number, t
 
 // ─── Main handler ────────────────────────────────────────────────
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-
+// ─── Background worker : fait TOUT le travail après la réponse HTTP ────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, serviceKey)
-
-    const body: SyncRequest = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
     const offset = body.offset ?? 0
     const syncStartAt = body.sync_start_at ?? new Date().toISOString()
     const mode = body.mode ?? 'chunk'
@@ -396,10 +391,8 @@ serve(async (req) => {
     if (mode === 'sweep') {
       console.log(`[sweep] totalSeen=${stats.upserted} totalExpected=${totalExpected} syncStartAt=${syncStartAt}`)
       const sweep = await runSweep(supabase, syncStartAt, stats.upserted, totalExpected)
-      return new Response(
-        JSON.stringify({ ok: true, mode: 'sweep', sync_start_at: syncStartAt, stats, sweep }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      console.log(`[sweep done] removed=${sweep.removed} skipped_safety=${sweep.skipped_safety}`)
+      return
     }
 
     // ─── CHUNK MODE ───
@@ -436,22 +429,41 @@ serve(async (req) => {
     stats.chunks++
     console.log(`[chunk ${stats.chunks}] offset=${offset}→${currentOffset} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected} noMore=${noMore}`)
 
-    // ─── Decide next action ───
+    // ─── Chain next action ───
     if (noMore) {
-      // Trigger sweep after small delay (allows other work to complete)
       await selfInvoke({ mode: 'sweep', sync_start_at: syncStartAt, stats, total_expected: totalExpected })
-      return new Response(
-        JSON.stringify({ ok: true, done: true, triggered: 'sweep', stats, total_expected: totalExpected }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     } else {
-      // Continue next chunk
       await selfInvoke({ mode: 'chunk', offset: currentOffset + PAGE_SIZE, sync_start_at: syncStartAt, stats, total_expected: totalExpected })
-      return new Response(
-        JSON.stringify({ ok: true, done: false, triggered: 'next_chunk', next_offset: currentOffset + PAGE_SIZE, stats }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     }
+  } catch (err) {
+    console.error('flatfox-sync background error:', err)
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, serviceKey)
+
+    const body: SyncRequest = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
+
+    // Fire-and-forget : on démarre le worker en arrière-plan et on répond
+    // immédiatement pour éviter tout timeout côté pg_net / caller HTTP.
+    const work = runBackground(body, supabase)
+    // @ts-expect-error EdgeRuntime is Supabase-specific Deno global
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      // @ts-expect-error EdgeRuntime.waitUntil keeps the isolate alive until promise resolves
+      EdgeRuntime.waitUntil(work)
+    }
+    // Fallback (dev/local) : on laisse le worker tourner mais on répond quand même
+
+    return new Response(
+      JSON.stringify({ ok: true, accepted: true, mode: body.mode ?? 'chunk', offset: body.offset ?? 0 }),
+      { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   } catch (err) {
     console.error('flatfox-sync error:', err)
     return new Response(
