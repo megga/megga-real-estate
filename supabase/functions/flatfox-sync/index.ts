@@ -23,8 +23,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const FLATFOX_BASE = 'https://flatfox.ch'
 const PAGE_SIZE = 100
-const CHUNK_PAGES = 25 // 25 pages × ~1s delay = ~25s par invocation
-const DELAY_MS = 1000
+const CHUNK_PAGES = 5  // 5 pages × ~1.5s (fetch + upsert + delay) = ~8s par invocation
+const DELAY_MS = 300   // 300ms entre pages (Flatfox ne rate-limite pas, on reste poli)
 const USER_AGENT = 'MEGGA Real Estate Sync (contact: tech@megga.ch)'
 
 // Safety : ne JAMAIS sweeper si on a upserté moins de N% du total attendu
@@ -352,8 +352,16 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
 // ─── Sweep : marque 'removed' les biens Flatfox non vus depuis sync_start_at ───
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function runSweep(supabase: any, syncStartAt: string, totalSeen: number, totalExpected: number): Promise<{ removed: number; skipped_safety: boolean }> {
+async function runSweep(supabase: any, syncStartAt: string, _totalSeen: number, totalExpected: number): Promise<{ removed: number; skipped_safety: boolean }> {
+  // Count via DB (plus fiable que stats fragmentés entre chunks parallèles)
+  const { count: actuallySeen } = await supabase
+    .from('market_listings')
+    .select('id', { count: 'exact', head: true })
+    .eq('source_portal', 'flatfox')
+    .gte('last_seen_at', syncStartAt)
+  const totalSeen = actuallySeen ?? 0
   const ratio = totalExpected > 0 ? totalSeen / totalExpected : 0
+  console.log(`[sweep check] totalSeen=${totalSeen} totalExpected=${totalExpected} ratio=${Math.round(ratio * 100)}%`)
   if (ratio < SAFETY_MIN_RATIO) {
     console.warn(`⚠️ Safety skip: only ${Math.round(ratio * 100)}% of expected listings upserted (${totalSeen}/${totalExpected}, threshold ${Math.round(SAFETY_MIN_RATIO * 100)}%). Sweep skipped to avoid wipe.`)
     return { removed: 0, skipped_safety: true }
@@ -396,22 +404,42 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
     }
 
     // ─── CHUNK MODE ───
+    // Stratégie anti-kill : on fait un peek sur la première page pour connaître
+    // le total et décider si on a une suite. Puis on SCHEDULE tout de suite le
+    // chunk suivant (ou le sweep) AVANT de faire le travail. Comme ça, même si
+    // l'isolate se fait tuer mid-chunk, le prochain est déjà en queue.
     const nowIso = new Date().toISOString()
+    const firstPage = await fetchFlatfoxPage(offset)
+    if (totalExpected === 0 && firstPage.count) totalExpected = firstPage.count
+    const firstResults = firstPage.results || []
+
+    if (firstResults.length === 0) {
+      // Fin du sync → déclenche le sweep
+      console.log(`[chunk] reached end at offset=${offset}, triggering sweep`)
+      await selfInvoke({ mode: 'sweep', sync_start_at: syncStartAt, stats, total_expected: totalExpected })
+      return
+    }
+
+    // Schedule la suite SEULEMENT si Flatfox signale qu'il y a encore des résultats
+    // après notre chunk courant. Évite de pre-scheduler un chunk vide qui déclencherait
+    // un sweep prématuré.
+    const nextOffset = offset + (CHUNK_PAGES * PAGE_SIZE)
+    if (totalExpected === 0 || nextOffset < totalExpected) {
+      await selfInvoke({ mode: 'chunk', offset: nextOffset, sync_start_at: syncStartAt, stats, total_expected: totalExpected })
+    } else {
+      // Ce chunk est le dernier → il déclenchera le sweep après son travail
+      console.log(`[chunk] last chunk (offset=${offset}, nextOffset=${nextOffset} >= total=${totalExpected})`)
+    }
+
+    // Maintenant, le travail du chunk courant (peut se faire tuer sans casser la chaîne)
     let currentOffset = offset
     let pagesThisChunk = 0
-    let noMore = false
 
-    while (pagesThisChunk < CHUNK_PAGES) {
-      const page = await fetchFlatfoxPage(currentOffset)
-      if (totalExpected === 0 && page.count) totalExpected = page.count
-
-      const results = page.results || []
+    // Page 1 déjà fetched (firstPage)
+    const processPage = async (results: FlatfoxListing[]) => {
       stats.fetched += results.length
       stats.pages++
       pagesThisChunk++
-
-      if (results.length === 0) { noMore = true; break }
-
       const rows: Record<string, unknown>[] = []
       for (const r of results) {
         const row = mapListingToRow(r, nowIso)
@@ -421,19 +449,33 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       const { upserted, errors } = await upsertRows(supabase, rows)
       stats.upserted += upserted
       stats.errors += errors
+    }
 
-      if (!page.next) { noMore = true; break }
+    await processPage(firstResults)
+    if (!firstPage.next) {
+      console.log(`[chunk done-early] offset=${offset} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected}`)
+      return
+    }
+
+    let reachedEnd = !firstPage.next
+    while (pagesThisChunk < CHUNK_PAGES) {
       currentOffset += PAGE_SIZE
       await sleep(DELAY_MS)
+      const page = await fetchFlatfoxPage(currentOffset)
+      const results = page.results || []
+      if (results.length === 0) { reachedEnd = true; break }
+      await processPage(results)
+      if (!page.next) { reachedEnd = true; break }
     }
     stats.chunks++
-    console.log(`[chunk ${stats.chunks}] offset=${offset}→${currentOffset} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected} noMore=${noMore}`)
+    console.log(`[chunk ${stats.chunks}] offset=${offset}→${currentOffset} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected} reachedEnd=${reachedEnd}`)
 
-    // ─── Chain next action ───
-    if (noMore) {
+    // Si ce chunk est le dernier (API signale fin OU nextOffset au-delà du total),
+    // et qu'on n'a PAS pré-scheduled un chunk suivant, on déclenche le sweep nous-même.
+    const weScheduledNext = totalExpected === 0 || nextOffset < totalExpected
+    if (reachedEnd && !weScheduledNext) {
+      console.log(`[chunk] last chunk completed, triggering sweep`)
       await selfInvoke({ mode: 'sweep', sync_start_at: syncStartAt, stats, total_expected: totalExpected })
-    } else {
-      await selfInvoke({ mode: 'chunk', offset: currentOffset + PAGE_SIZE, sync_start_at: syncStartAt, stats, total_expected: totalExpected })
     }
   } catch (err) {
     console.error('flatfox-sync background error:', err)
