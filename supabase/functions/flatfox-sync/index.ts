@@ -321,31 +321,29 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-// ─── Self-invoke (fire-and-forget) ────────────────────────────────
-
+// ─── Self-invoke : lance le prochain isolate et ATTEND sa réponse ─────────
+// On attend l'acknowledgement 202 du serveur pour garantir que le prochain
+// chunk a démarré avant de rendre la main. Coût : ~200-500ms par chunk.
 async function selfInvoke(body: SyncRequest): Promise<void> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const url = `${supabaseUrl}/functions/v1/flatfox-sync`
-  // Fire-and-forget via EdgeRuntime.waitUntil pour que la requête soit bien envoyée
-  // avant que l'Edge Function ne termine.
-  const p = fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${serviceKey}`,
-    },
-    body: JSON.stringify(body),
-  }).catch((err) => {
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify(body),
+    })
+    // Lire le body pour s'assurer que la connexion est bien fermée proprement
+    await resp.text().catch(() => {})
+    if (!resp.ok) {
+      console.error(`self-invoke got status ${resp.status}`)
+    }
+  } catch (err) {
     console.error('self-invoke failed:', err)
-  })
-  // @ts-expect-error EdgeRuntime is Supabase-specific Deno global
-  if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-    // @ts-expect-error EdgeRuntime.waitUntil is Supabase-specific Deno global
-    EdgeRuntime.waitUntil(p)
-  } else {
-    // Fallback : await avant de return (moins optimal, rallonge la réponse)
-    await p
   }
 }
 
