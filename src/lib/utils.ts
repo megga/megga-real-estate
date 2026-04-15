@@ -46,3 +46,37 @@ export function formatRelativeDate(date: string | Date): string {
 export function formatSurface(m2: number): string {
   return `${m2} m²`
 }
+
+/**
+ * Format rent amount in CHF with monthly suffix
+ * Example: 2500 → "CHF 2'500/mois"
+ */
+export function formatRent(amount: number): string {
+  return `${formatCHF(amount)}/mois`
+}
+
+/**
+ * Format price for map pin display (compact)
+ * Rent: 2500 → "2.5K/mois", 3000 → "3K/mois"
+ * Buy: 1_200_000 → "1.2M", 720_000 → "720K"
+ */
+export function formatPricePin(price: number, transactionType: 'buy' | 'rent' = 'buy'): string {
+  if (transactionType === 'rent') {
+    if (price >= 1000) {
+      const k = price / 1000
+      return k % 1 === 0 ? `${k.toFixed(0)}K/mois` : `${k.toFixed(1)}K/mois`
+    }
+    return `${price}/mois`
+  }
+
+  if (price >= 1_000_000) {
+    const m = price / 1_000_000
+    return m % 1 === 0 ? `${m.toFixed(0)}M` : `${m.toFixed(1)}M`
+  }
+
+  if (price >= 1000) {
+    return `${(price / 1000).toFixed(0)}K`
+  }
+
+  return String(price)
+}
