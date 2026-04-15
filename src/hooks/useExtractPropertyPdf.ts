@@ -21,6 +21,17 @@ export interface ExtractedPropertyData {
   postal_code: string | null
   features: string[]
   mandate_type: 'simple' | 'exclusive' | null
+  // Rental support (extracted by the URL/PDF parsers — null when not detected)
+  transaction_type?: 'buy' | 'rent' | null
+  is_furnished?: boolean | null
+  deposit_months?: number | null
+  availability_date?: string | null
+  external_regie?: {
+    name: string
+    phone: string
+    email: string
+    website?: string | null
+  } | null
   confidence: number
 }
 
