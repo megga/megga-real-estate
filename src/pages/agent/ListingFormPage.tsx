@@ -49,6 +49,7 @@ const optionalNumberRange = (min: number, max: number) => z.preprocess(
 
 const step1Schema = z.object({
   title: z.string().min(5, 'Le titre doit contenir au moins 5 caractères'),
+  transaction_type: z.enum(['buy', 'rent']).default('buy'),
   type: z.enum(['apartment', 'house', 'villa', 'commercial', 'land'], {
     message: 'Sélectionnez un type de bien',
   }),
@@ -1816,6 +1817,7 @@ export default function ListingFormPage() {
     if (pdfData) {
       return {
         title: pdfData.title ?? '',
+        transaction_type: 'buy',
         type: (pdfData.type ?? undefined) as ListingFormData['type'],
         rooms: pdfData.rooms ?? 0.5,
         bedrooms: pdfData.bedrooms ?? 0,
@@ -1845,6 +1847,7 @@ export default function ListingFormPage() {
     if (!existingProperty) return undefined
     return {
       title: duplicateId ? `${existingProperty.title ?? ''} (copie)` : existingProperty.title ?? '',
+      transaction_type: (existingProperty.transaction_type ?? 'buy') as 'buy' | 'rent',
       type: existingProperty.type as ListingFormData['type'],
       rooms: existingProperty.rooms ?? 0,
       bedrooms: existingProperty.bedrooms ?? 0,
@@ -1874,6 +1877,7 @@ export default function ListingFormPage() {
   const form = useForm<ListingFormData>({
     defaultValues: {
       title: '',
+      transaction_type: 'buy',
       type: undefined,
       rooms: 0.5,
       bedrooms: 0,
@@ -1993,6 +1997,7 @@ export default function ListingFormPage() {
     return {
       title: values.title,
       description: values.description,
+      transaction_type: values.transaction_type ?? 'buy',
       type: values.type,
       status,
       price: values.price,
@@ -2227,6 +2232,36 @@ export default function ListingFormPage() {
       <div className="flex gap-6">
         {/* ── Main: Accordion sections ── */}
         <div className="flex-1 min-w-0 space-y-3">
+          {/* Toggle Vente / Location */}
+          <div className="flex items-center gap-2 mb-6">
+            {(['buy', 'rent'] as const).map((v) => {
+              const txType = form.watch('transaction_type') ?? 'buy'
+              const isActive = txType === v
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  disabled={isEditMode}
+                  onClick={() => form.setValue('transaction_type', v, { shouldValidate: true, shouldDirty: true })}
+                  className={cn(
+                    'h-9 px-4 rounded-lg text-sm transition-colors',
+                    isActive
+                      ? 'bg-theme-active text-theme-primary font-medium'
+                      : 'text-theme-secondary hover:text-theme-primary',
+                    isEditMode && 'opacity-50 cursor-not-allowed'
+                  )}
+                  aria-pressed={isActive}
+                >
+                  {v === 'buy' ? 'Vente' : 'Location'}
+                </button>
+              )
+            })}
+            {isEditMode && (
+              <span className="text-xs text-theme-muted ml-2">
+                Le type de transaction est verrouillé en mode édition
+              </span>
+            )}
+          </div>
           <form onSubmit={(e) => e.preventDefault()}>
             {/* Section 1 — Infos générales */}
             <div ref={el => { sectionRefs.current[1] = el }} className="mb-3">
