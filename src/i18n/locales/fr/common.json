@@ -978,5 +978,18 @@
       "backHome": "Retour à l'accueil",
       "estimateAnother": "Estimer un autre bien"
     }
+  },
+  "rental": {
+    "priceLabel": "Loyer mensuel",
+    "filterFurnished": "Meublé",
+    "filterAvailableNow": "Dispo immédiate",
+    "badgeFurnished": "Meublé",
+    "deposit": "Caution : {{count}} mois",
+    "availableOn": "Disponible le {{date}}",
+    "contactRegie": "Contacter la régie",
+    "regieContact": "Contacter la régie",
+    "regieCtaCall": "Appeler",
+    "regieCtaEmail": "Écrire",
+    "perMonth": "/mois"
   }
 }

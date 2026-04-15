@@ -978,5 +978,18 @@
       "backHome": "Torna alla home",
       "estimateAnother": "Stima un altro immobile"
     }
+  },
+  "rental": {
+    "priceLabel": "Affitto mensile",
+    "filterFurnished": "Arredato",
+    "filterAvailableNow": "Disponibile subito",
+    "badgeFurnished": "Arredato",
+    "deposit": "Cauzione: {{count}} mesi",
+    "availableOn": "Disponibile dal {{date}}",
+    "contactRegie": "Contatta l'agenzia",
+    "regieContact": "Contatta l'agenzia",
+    "regieCtaCall": "Chiama",
+    "regieCtaEmail": "Scrivi",
+    "perMonth": "/mese"
   }
 }

@@ -8,7 +8,7 @@ import {
   Clock, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check, GitCompareArrows,
 } from 'lucide-react'
-import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { cn, formatCHF, formatRent, formatSurface, resolveRegieContact } from '@/lib/utils'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 import Footer from '@/components/layout/Footer'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
@@ -26,6 +26,7 @@ import ListingLightbox from '@/components/listing/ListingLightbox'
 import C2PaBadge from '@/components/listing/C2PaBadge'
 import ContactAgentModal from '@/components/listing/ContactAgentModal'
 import AgentCard from '@/components/listing/AgentCard'
+import RegieContactCard from '@/components/listing/RegieContactCard'
 import RequestVisitModal from '@/components/listings/RequestVisitModal'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 import { useNeighborhood, calculateWalkScore } from '@/hooks/useNeighborhood'
@@ -83,6 +84,10 @@ interface TransformedListing {
   photo_tags: PhotoTag[]
   c2pa_verified: boolean
   c2pa_verified_at?: string
+  transaction_type: 'buy' | 'rent'
+  is_furnished: boolean
+  deposit_months: number | null
+  external_regie: { name?: string; phone?: string; email?: string; website?: string } | null
 }
 
 // ─── Transform helpers ──────────────────────────────────────────────────
@@ -127,6 +132,10 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     photo_tags: (data.photo_tags as PhotoTag[]) || [],
     c2pa_verified: !!data.c2pa_verified,
     c2pa_verified_at: (data.c2pa_verified_at as string) || undefined,
+    transaction_type: ((data.transaction_type as string) || 'buy') as 'buy' | 'rent',
+    is_furnished: !!data.is_furnished,
+    deposit_months: (data.deposit_months as number | null | undefined) ?? null,
+    external_regie: (data.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null,
   }
 }
 
@@ -943,10 +952,13 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                     <div className="flex items-baseline gap-3">
                       <h2 className="text-3xl md:text-4xl font-bold text-theme-primary tracking-tight">
-                        {formatCHF(listing.price)}
+                        {listing.transaction_type === 'rent' ? formatRent(listing.price) : formatCHF(listing.price)}
                       </h2>
-                      {pricePerM2 > 0 && (
+                      {listing.transaction_type !== 'rent' && pricePerM2 > 0 && (
                         <span className="text-sm text-theme-muted">{formatCHF(pricePerM2)}/m²</span>
+                      )}
+                      {listing.transaction_type === 'rent' && listing.is_furnished && (
+                        <span className="text-sm text-theme-muted">· Meublé</span>
                       )}
                     </div>
 
@@ -1201,34 +1213,47 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
                 <div className="hidden md:block w-[340px] flex-shrink-0 border-l border-theme-border-subtle">
                   <div className="sticky top-[49px] p-6 space-y-4 max-h-[calc(92vh-420px)] overflow-y-auto scrollbar-hide">
 
-                    {/* Primary CTA */}
-                    <button
-                      onClick={() => setShowDatePicker(true)}
-                      className="w-full h-12 border border-theme-border text-theme-primary font-semibold rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors"
-                    >
-                      <CalendarDays className="w-5 h-5" />
-                      Planifier une visite
-                    </button>
+                    {listing.transaction_type === 'rent' ? (
+                      /* Rental — single CTA scrolls to regie block below */
+                      <button
+                        onClick={() => document.getElementById('preview-regie-contact')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                        className="w-full h-12 border border-theme-border text-theme-primary font-semibold rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors"
+                      >
+                        <Phone className="w-5 h-5" />
+                        Contacter la régie
+                      </button>
+                    ) : (
+                      <>
+                        {/* Primary CTA */}
+                        <button
+                          onClick={() => setShowDatePicker(true)}
+                          className="w-full h-12 border border-theme-border text-theme-primary font-semibold rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors"
+                        >
+                          <CalendarDays className="w-5 h-5" />
+                          Planifier une visite
+                        </button>
 
-                    {/* Secondary CTA */}
-                    <button
-                      onClick={() => setShowContactModal(true)}
-                      className="w-full h-11 bg-theme-card border border-theme-border hover:border-theme-active hover:bg-theme-section text-theme-primary font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <Phone className="w-5 h-5" />
-                      Contacter l'agent
-                    </button>
+                        {/* Secondary CTA */}
+                        <button
+                          onClick={() => setShowContactModal(true)}
+                          className="w-full h-11 bg-theme-card border border-theme-border hover:border-theme-active hover:bg-theme-section text-theme-primary font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
+                        >
+                          <Phone className="w-5 h-5" />
+                          Contacter l'agent
+                        </button>
 
-                    {/* Visit modal (opens via showDatePicker state) */}
-                    <RequestVisitModal
-                      listingAddress={`${listing.address}, ${listing.city}`}
-                      propertyId={listing.id}
-                      agencyId=""
-                      listingPhoto={photos[0]}
-                      listingPrice={formatCHF(listing.price)}
-                      open={showDatePicker}
-                      onClose={() => setShowDatePicker(false)}
-                    />
+                        {/* Visit modal (opens via showDatePicker state) */}
+                        <RequestVisitModal
+                          listingAddress={`${listing.address}, ${listing.city}`}
+                          propertyId={listing.id}
+                          agencyId=""
+                          listingPhoto={photos[0]}
+                          listingPrice={formatCHF(listing.price)}
+                          open={showDatePicker}
+                          onClose={() => setShowDatePicker(false)}
+                        />
+                      </>
+                    )}
 
                     {/* Tertiary actions */}
                     <div className="flex gap-2">
@@ -1287,25 +1312,41 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                     <div className="border-t border-theme-border-subtle my-2" />
 
-                    {/* Agency info */}
-                    {listing.agency_name && (
-                      <AgentCard
-                        variant="compact"
-                        agent={{
-                          name: listing.agency_name,
-                          agency: listing.agency_name,
-                          phone: '',
-                          email: '',
-                          photo: '',
-                        }}
-                        onClick={() => setShowContactModal(true)}
-                      />
+                    {/* Agency / regie info */}
+                    {listing.transaction_type === 'rent' ? (
+                      (() => {
+                        const regie = resolveRegieContact(
+                          { external_regie: listing.external_regie },
+                          listing.agency_name
+                            ? { name: listing.agency_name, phone: '', email: '' }
+                            : null,
+                        )
+                        return regie ? (
+                          <div id="preview-regie-contact">
+                            <RegieContactCard regie={regie} />
+                          </div>
+                        ) : null
+                      })()
+                    ) : (
+                      listing.agency_name && (
+                        <AgentCard
+                          variant="compact"
+                          agent={{
+                            name: listing.agency_name,
+                            agency: listing.agency_name,
+                            phone: '',
+                            email: '',
+                            photo: '',
+                          }}
+                          onClick={() => setShowContactModal(true)}
+                        />
+                      )
                     )}
 
                     <div className="border-t border-theme-border-subtle my-2" />
 
-                    {/* Property tax estimate */}
-                    {listing.canton && (
+                    {/* Property tax estimate — buy only */}
+                    {listing.transaction_type !== 'rent' && listing.canton && (
                       <>
                         <PropertyTaxSection
                           price={listing.price}

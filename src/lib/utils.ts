@@ -56,6 +56,32 @@ export function formatRent(amount: number): string {
 }
 
 /**
+ * Resolve which contact to display for a rental listing.
+ * external_regie (JSONB per-listing override) > agency fallback.
+ * Returns the regie/agency contact object, or null if neither available.
+ */
+export interface RegieContact {
+  name: string
+  phone: string
+  email: string
+  website?: string
+}
+
+export function resolveRegieContact(
+  listing: { external_regie?: Partial<RegieContact> | null },
+  agency: { name?: string; phone?: string; email?: string; website?: string } | null | undefined
+): RegieContact | null {
+  const r = listing.external_regie
+  if (r && r.name && r.phone && r.email) {
+    return { name: r.name, phone: r.phone, email: r.email, website: r.website }
+  }
+  if (agency && agency.name && agency.phone && agency.email) {
+    return { name: agency.name, phone: agency.phone, email: agency.email, website: agency.website }
+  }
+  return null
+}
+
+/**
  * Format price for map pin display (compact)
  * Rent: 2500 → "2.5K/mois", 3000 → "3K/mois"
  * Buy: 1_200_000 → "1.2M", 720_000 → "720K"

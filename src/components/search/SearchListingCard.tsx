@@ -173,7 +173,7 @@ export default function SearchListingCard({
             <span className="text-sm font-normal text-gray-500">CHF </span>
             {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? t('search.perMonth') : ''}
           </span>
-          {listing.price_per_m2 && listing.price_per_m2 > 0 && listing.surface_m2 > 0 && (
+          {listing.context !== 'rent' && listing.price_per_m2 && listing.price_per_m2 > 0 && listing.surface_m2 > 0 && (
             <span className="text-xs text-gray-500">
               CHF {Math.round(listing.price_per_m2).toLocaleString('fr-CH')}/m²
             </span>
@@ -203,6 +203,12 @@ export default function SearchListingCard({
             <Maximize className="h-3.5 w-3.5 text-gray-500" />
             {formatSurface(listing.surface_m2)}
           </span>
+          {listing.context === 'rent' && listing.is_furnished && (
+            <>
+              <span className="text-gray-500 mx-0.5">·</span>
+              <span className="text-xs text-gray-500">{t('rental.badgeFurnished', 'Meublé')}</span>
+            </>
+          )}
         </div>
         {listing.description && (
           <p className="text-xs text-gray-500 mt-2 line-clamp-1">{listing.description}</p>
