@@ -348,6 +348,8 @@
     }
   },
   "search": {
+    "seoTitle": "Properties for sale in Switzerland",
+    "seoDescription": "Browse properties for sale in Switzerland. Filter by canton, price, rooms, surface and features.",
     "saveThisSearch": "Save this search",
     "searchSaved": "Search saved",
     "willReceiveAlerts": "You will receive {{frequency}} alerts",
@@ -990,6 +992,8 @@
     "regieContact": "Contact agency",
     "regieCtaCall": "Call",
     "regieCtaEmail": "Email",
-    "perMonth": "/month"
+    "perMonth": "/month",
+    "seoTitle": "Properties for rent in Switzerland",
+    "seoDescription": "Browse apartments, houses and villas for rent in Switzerland. Filter by canton, rent, rooms, furnished and availability."
   }
 }

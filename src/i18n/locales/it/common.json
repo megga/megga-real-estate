@@ -348,6 +348,8 @@
     }
   },
   "search": {
+    "seoTitle": "Immobili in vendita in Svizzera",
+    "seoDescription": "Sfoglia gli immobili in vendita in Svizzera. Filtra per cantone, prezzo, stanze, superficie e caratteristiche.",
     "saveThisSearch": "Salva questa ricerca",
     "searchSaved": "Ricerca salvata",
     "willReceiveAlerts": "Riceverai avvisi {{frequency}}",
@@ -990,6 +992,8 @@
     "regieContact": "Contatta l'agenzia",
     "regieCtaCall": "Chiama",
     "regieCtaEmail": "Scrivi",
-    "perMonth": "/mese"
+    "perMonth": "/mese",
+    "seoTitle": "Immobili in affitto in Svizzera",
+    "seoDescription": "Scopri appartamenti, case e ville in affitto in Svizzera. Filtra per cantone, affitto, stanze, arredato e disponibilità."
   }
 }

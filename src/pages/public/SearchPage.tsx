@@ -34,6 +34,7 @@ import ListingPreviewPanel from '@/components/listing/ListingPreviewPanel'
 import SaveSearchDialog from '@/components/search/SaveSearchDialog'
 import SavedSearchesList from '@/components/search/SavedSearchesList'
 import { useMarketListings, useMapPoints, useMarketStats } from '@/hooks/useMarketListings'
+import { usePageMeta } from '@/hooks/usePageMeta'
 import { sortByRecommendation } from '@/lib/recommendationScore'
 import { useFavorites } from '@/hooks/useFavorites'
 import { cn } from '@/lib/utils'
@@ -76,6 +77,16 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context])
+
+  // Page meta (SEO) — adapts to context
+  usePageMeta({
+    title: filters.context === 'rent'
+      ? t('rental.seoTitle', 'Biens à louer en Suisse')
+      : t('search.seoTitle', 'Biens à vendre en Suisse'),
+    description: filters.context === 'rent'
+      ? t('rental.seoDescription', 'Découvrez les appartements, maisons et villas à louer en Suisse. Filtrez par canton, loyer, pièces, meublé et disponibilité.')
+      : t('search.seoDescription', 'Parcourez les biens à vendre en Suisse. Filtrez par canton, prix, pièces, surface et caractéristiques.'),
+  })
   const [hoveredListing, setHoveredListing] = useState<string>()
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
