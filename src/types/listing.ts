@@ -19,6 +19,16 @@ export interface Property {
   year_built?: number
   charges_monthly?: number
   mandate_type?: string
+  // Rental support (2026-04-15)
+  transaction_type?: 'buy' | 'rent'
+  deposit_months?: number | null
+  is_furnished?: boolean
+  external_regie?: {
+    name: string
+    phone: string
+    email: string
+    website?: string
+  } | null
   condition?: string
   availability_date?: string
   address: string
