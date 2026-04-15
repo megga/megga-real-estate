@@ -54,14 +54,53 @@ jobs:
 
       - name: Link Supabase project and deploy functions
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # Tolère les échecs individuels : si une fonction plante (import
+        # deno cassé, secret manquant, etc.), on log et on continue les
+        # autres. Le step ne fail que si AUCUNE fonction n'a été déployée.
         run: |
+          set +e  # Désactive fail-fast pour la boucle
+
           supabase link --project-ref eayczugyrvmtqnnmvjod
+          LINK_RC=$?
+          if [ $LINK_RC -ne 0 ]; then
+            echo "::error::supabase link failed (rc=$LINK_RC) — aborting"
+            exit $LINK_RC
+          fi
+
+          SUCCESS=0
+          FAILED=0
+          FAILED_FNS=""
+
           for fn_dir in supabase/functions/*/; do
             fn_name=$(basename "$fn_dir")
             if [ -f "$fn_dir/index.ts" ]; then
-              echo "Deploying $fn_name..."
+              echo "::group::Deploying $fn_name"
               supabase functions deploy "$fn_name" --no-verify-jwt
+              RC=$?
+              echo "::endgroup::"
+              if [ $RC -eq 0 ]; then
+                SUCCESS=$((SUCCESS + 1))
+              else
+                FAILED=$((FAILED + 1))
+                FAILED_FNS="$FAILED_FNS $fn_name"
+                echo "::warning::Deployment of $fn_name failed (rc=$RC) — continuing"
+              fi
             fi
           done
+
+          echo ""
+          echo "═══ Summary ═══"
+          echo "  ✅ Deployed : $SUCCESS"
+          echo "  ❌ Failed   : $FAILED"
+          if [ $FAILED -gt 0 ]; then
+            echo "  Failed functions:$FAILED_FNS"
+          fi
+
+          # Ne fail le step que si TOUTES les fonctions plantent
+          if [ $SUCCESS -eq 0 ] && [ $FAILED -gt 0 ]; then
+            echo "::error::All edge function deployments failed"
+            exit 1
+          fi
+          exit 0
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
