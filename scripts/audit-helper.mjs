@@ -29,6 +29,12 @@ export async function runPersona(personaName, runFn, options = {}) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     locale: 'fr-CH',
+    // Trust Supabase Pro HTTPS cert inside sandboxed environments (Docker,
+    // CI, Cloudflare Workers, etc.) where the system CA bundle may not include
+    // the issuer. Without this, every fetch to *.supabase.co fails with
+    // ERR_CERT_AUTHORITY_INVALID and the audit captures 500+ spurious errors
+    // (see audit bug C3). Safe here — these are test scripts, not prod code.
+    ignoreHTTPSErrors: true,
   });
   const page = await context.newPage();
 

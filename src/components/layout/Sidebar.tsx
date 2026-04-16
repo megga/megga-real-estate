@@ -415,6 +415,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           <button
             onClick={toggleTheme}
             aria-label={theme === 'light' ? 'Activer le mode sombre' : 'Activer le mode clair'}
+            data-testid="theme-toggle"
             className={cn(navRow(isCol, false), 'w-full')}
           >
             {theme === 'light' ? (
