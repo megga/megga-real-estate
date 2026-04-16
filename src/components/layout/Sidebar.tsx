@@ -15,6 +15,7 @@ import { usePreferences } from '@/hooks/usePreferences'
 import { useMessaging } from '@/hooks/useMessaging'
 import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
+import { useOpenTicketCount } from '@/hooks/useOpenTicketCount'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -108,6 +109,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const [adminSearchOpen, setAdminSearchOpen] = useState(false)
   const isMinimalSidebar = preferences.sidebarStyle === 'minimal'
   const unreadCount = (threads || []).reduce((sum, t) => sum + (t.unread_count || 0), 0)
+  const openTicketCount = useOpenTicketCount()
 
   function isActive(href: string) {
     if (href === '/dashboard') return location.pathname === '/dashboard'
@@ -280,11 +282,17 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                         isItemActive && '!bg-admin-accent/8 !text-admin-accent'
                       )}
                     >
-                      <item.icon className={cn('h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]', isItemActive && 'text-admin-accent')} />
+                      <div className="relative flex-shrink-0">
+                        <item.icon className={cn('h-[18px] w-[18px] stroke-[1.8]', isItemActive && 'text-admin-accent')} />
+                        {item.href === '/dashboard/admin/support' && openTicketCount > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
+                        )}
+                      </div>
                       <span className={fadeLabel(isCol)}>{label}</span>
                     </Link>
                     <CollapsedTooltip show={isCol && hoveredItem === item.href}>
                       {label}
+                      {item.href === '/dashboard/admin/support' && openTicketCount > 0 && <span className="ml-1.5 text-red-500">({openTicketCount})</span>}
                     </CollapsedTooltip>
                   </div>
                 )

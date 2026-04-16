@@ -101,6 +101,30 @@ serve(async (req) => {
       }
     }
 
+    // ── Flatfox sync health ──
+    // Track listing count and last sync time so AdminMonitoringPage can show
+    // whether the daily pg_cron sync ran successfully.
+    let flatfoxActiveCount = 0
+    let flatfoxLastSeen: string | null = null
+    try {
+      const [countRes, lastRes] = await Promise.all([
+        supabaseAdmin.from('market_listings').select('id', { count: 'exact', head: true })
+          .eq('source_portal', 'flatfox').eq('status', 'active'),
+        supabaseAdmin.from('market_listings').select('last_seen_at')
+          .eq('source_portal', 'flatfox').order('last_seen_at', { ascending: false }).limit(1),
+      ])
+      flatfoxActiveCount = countRes.count ?? 0
+      flatfoxLastSeen = lastRes.data?.[0]?.last_seen_at ?? null
+    } catch { /* non-critical */ }
+
+    // ── Open support tickets ──
+    let openTickets = 0
+    try {
+      const { count } = await supabaseAdmin.from('support_tickets')
+        .select('id', { count: 'exact', head: true }).in('status', ['new', 'open'])
+      openTickets = count ?? 0
+    } catch { /* non-critical */ }
+
     // ── Store all metrics ──
     const metrics = [
       { metric_type: 'agency_count', metric_value: agencyCount.count ?? 0 },
@@ -111,6 +135,8 @@ serve(async (req) => {
       { metric_type: 'email_count_today', metric_value: emailCount.count ?? 0 },
       { metric_type: 'db_size_mb', metric_value: dbSizeMb },
       { metric_type: 'storage_used_mb', metric_value: storageUsedMb },
+      { metric_type: 'flatfox_active_count', metric_value: flatfoxActiveCount },
+      { metric_type: 'open_tickets', metric_value: openTickets },
     ]
 
     await supabaseAdmin.from('platform_metrics').insert(metrics)
@@ -120,6 +146,7 @@ serve(async (req) => {
       metrics,
       plan: 'pro',
       recorded_at: now.toISOString(),
+      flatfox_last_seen: flatfoxLastSeen,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
