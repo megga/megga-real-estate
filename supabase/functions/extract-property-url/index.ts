@@ -16,6 +16,7 @@ Retourne un JSON strict avec ces champs (utilise null si l'info n'est pas trouv�
   "title": "string — titre de l'annonce",
   "description": "string — description complète du bien",
   "type": "apartment | house | villa | commercial | land",
+  "transaction_type": "buy | rent — déduis depuis le contexte (Flatfox = location dans 95% des cas, RealAdvisor = vente, libellés 'à louer'/'à vendre', présence d'un loyer mensuel vs prix d'achat)",
   "price": number,
   "charges_monthly": number | null,
   "rooms": number,
@@ -32,8 +33,17 @@ Retourne un JSON strict avec ces champs (utilise null si l'info n'est pas trouv�
   "postal_code": "string — NPA",
   "photos": ["string — URLs des photos du bien (les premières 10 max)"],
   "features": ["string — liste des caractéristiques"],
+  "is_furnished": boolean | null,
+  "deposit_months": number | null,
+  "availability_date": "string | null — format ISO YYYY-MM-DD si mentionné",
+  "external_regie": {
+    "name": "string",
+    "phone": "string",
+    "email": "string",
+    "website": "string | null"
+  } | null,
   "source_url": "string — URL source",
-  "source_portal": "string — nom du portail (Homegate, ImmoScout24, RealAdvisor, Comparis, autre)",
+  "source_portal": "string — nom du portail (Homegate, ImmoScout24, RealAdvisor, Comparis, Flatfox, Anibis, Petitesannonces, autre)",
   "reference_id": "string | null — numéro de référence de l'annonce",
   "confidence": number de 0 à 100
 }
@@ -45,6 +55,10 @@ Règles :
 - Pour les photos, extrais les URLs complètes des images (pas les thumbnails, les full-size si possible)
 - Normalise les features : "place de parc" → "parking", "balcon/loggia" → "balcon"
 - Si le portail est identifiable (Homegate, ImmoScout24, etc.), indique-le dans source_portal
+- transaction_type "rent" si la page mentionne loyer/CHF par mois/à louer ; "buy" si prix d'achat/à vendre/CHF total
+- is_furnished : true si l'annonce mentionne explicitement "meublé"/"furnished"/"möbliert"
+- deposit_months : nombre de mois de garantie/caution (1, 2 ou 3 — typique en Suisse), null si non précisé
+- external_regie : à remplir UNIQUEMENT si une régie de gestion est clairement identifiée (nom + au moins phone OU email). Sinon null.
 - Retourne UNIQUEMENT le JSON, pas de texte avant ou après`
 
 // Allowed domains for scraping
@@ -59,6 +73,8 @@ const ALLOWED_DOMAINS = [
   'newhome.ch',
   'propertybase.com',
   'casaone.ch',
+  'anibis.ch',
+  'petitesannonces.ch',
 ]
 
 function isAllowedUrl(url: string): boolean {
