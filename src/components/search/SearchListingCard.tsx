@@ -93,36 +93,22 @@ export default function SearchListingCard({
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.() }}
             aria-label={isFav ? t('search.removeFromFavorites') : t('search.addToFavorites')}
-            className={cn(
-              'h-7 w-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
-              isFav ? 'bg-white/95' : 'bg-black/15 hover:bg-black/25'
-            )}
+            className="cursor-pointer transition-all duration-200 drop-shadow-md"
           >
-            <Heart className={cn('h-3.5 w-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-white/90')} />
+            <Heart className={cn('h-4 w-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-white')} />
           </button>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare?.() }}
             aria-label={isCompared ? t('search.removeFromCompare') : t('search.compare')}
-            className={cn(
-              'h-7 w-7 rounded-full backdrop-blur-md flex items-center justify-center transition-all duration-200 cursor-pointer',
-              isCompared ? 'bg-white/95 ring-1 ring-accent/40' : 'bg-black/15 hover:bg-black/25'
-            )}
+            className="cursor-pointer transition-all duration-200 drop-shadow-md"
           >
-            {isCompared ? <Check className="h-3 w-3 text-accent" /> : <GitCompareArrows className="h-3 w-3 text-white/90" />}
+            {isCompared ? <Check className="h-4 w-4 text-accent" /> : <GitCompareArrows className="h-3.5 w-3.5 text-white" />}
           </button>
         </div>
         {(isFav || isCompared) && (
           <div className="absolute top-3 right-3 flex flex-col gap-1.5 group-hover:hidden">
-            {isFav && (
-              <div className="h-7 w-7 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center">
-                <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
-              </div>
-            )}
-            {isCompared && (
-              <div className="h-7 w-7 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center ring-1 ring-accent/40">
-                <Check className="h-3 w-3 text-accent" />
-              </div>
-            )}
+            {isFav && <Heart className="h-4 w-4 fill-red-500 text-red-500 drop-shadow-md" />}
+            {isCompared && <Check className="h-4 w-4 text-accent drop-shadow-md" />}
           </div>
         )}
         {photos.length > 1 && (
@@ -130,19 +116,19 @@ export default function SearchListingCard({
             {currentPhoto > 0 && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p - 1) }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
+                className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer drop-shadow-md"
                 aria-label={t('search.previousPhoto')}
               >
-                <ChevronLeft className="h-4 w-4 text-white" />
+                <ChevronLeft className="h-5 w-5 text-white" />
               </button>
             )}
             {currentPhoto < photos.length - 1 && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPhoto(p => p + 1) }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-black/30"
+                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer drop-shadow-md"
                 aria-label={t('search.nextPhoto')}
               >
-                <ChevronRight className="h-4 w-4 text-white" />
+                <ChevronRight className="h-5 w-5 text-white" />
               </button>
             )}
           </>
@@ -165,9 +151,6 @@ export default function SearchListingCard({
                 />
               ))}
             </div>
-            <span className="absolute bottom-3 right-3 text-xs font-medium text-white/90 bg-black/40 backdrop-blur-sm rounded-full px-2 py-0.5 z-[1]">
-              {currentPhoto + 1}/{photos.length}
-            </span>
           </>
         )}
       </div>
