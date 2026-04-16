@@ -382,6 +382,16 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [closedPolygon, setClosedPolygon] = useState<[number, number][] | null>(null)
   const [cursorPos, setCursorPos] = useState<[number, number] | null>(null)
 
+  // Throttled cursor position update during draw mode (~30fps is plenty for cursor trail)
+  const cursorThrottleRef = useRef<number>(0)
+  const handleMouseMove = useCallback((e: MapMouseEvent) => {
+    if (!isDrawing || drawPoints.length === 0) return
+    const now = performance.now()
+    if (now - cursorThrottleRef.current < 32) return
+    cursorThrottleRef.current = now
+    setCursorPos([e.lngLat.lng, e.lngLat.lat])
+  }, [isDrawing, drawPoints.length])
+
   // Expose imperative methods to parent
   useImperativeHandle(ref, () => ({
     fitToListings,
@@ -721,11 +731,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         touchPitch
         touchZoomRotate
         terrain={mapStyleId === 'standard' ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined}
-        onMouseMove={(e) => {
-          if (isDrawing && drawPoints.length > 0) {
-            setCursorPos([e.lngLat.lng, e.lngLat.lat])
-          }
-        }}
+        onMouseMove={handleMouseMove}
         onLoad={(e) => {
           const map = e.target
           // Initialize cluster bounds

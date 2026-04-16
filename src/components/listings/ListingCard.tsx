@@ -83,13 +83,18 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
           >
             {photos.map((photo, i) => (
               <div key={i} className="w-full h-full flex-shrink-0 snap-center">
-                <img
-                  src={optimizeImageUrl(photo, IMAGE_PRESETS.card)}
-                  alt={i === 0 ? listing.title : ''}
-                  className="w-full h-full object-cover"
-                  loading={i > 0 ? 'lazy' : undefined}
-                  decoding="async"
-                />
+                {/* Only render images within 1 position of current photo to reduce DOM nodes */}
+                {Math.abs(i - currentPhoto) <= 1 ? (
+                  <img
+                    src={optimizeImageUrl(photo, IMAGE_PRESETS.card)}
+                    alt={i === 0 ? listing.title : ''}
+                    className="w-full h-full object-cover"
+                    loading={i > 0 ? 'lazy' : undefined}
+                    decoding="async"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100" />
+                )}
               </div>
             ))}
           </div>

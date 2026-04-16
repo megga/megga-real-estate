@@ -38,7 +38,7 @@ export interface MapPoint {
   context: 'buy' | 'rent'
 }
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 20
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
@@ -237,7 +237,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
 
         internalQuery = internalQuery
           .order('published_at', { ascending: false })
-          .limit(50)
+          .limit(PAGE_SIZE)
 
         const { data: internalData } = await internalQuery
         if (internalData) {
@@ -279,12 +279,8 @@ export function useMapPoints(filters: MarketFilters = {}) {
   return useQuery({
     queryKey: ['map-points', filters],
     queryFn: async (): Promise<MapPoint[]> => {
-      // Supabase limit max = 1000 par requête, on doit paginer
-      // IMPORTANT: recréer la query à chaque itération car .range() mute l'objet
-      const allPoints: MapPoint[] = []
-      let page = 0
+      // Supabase limit max = 1000 per request — fetch in parallel batches
       const batchSize = 1000
-      let hasMore = true
 
       const buildQuery = () => {
         let q = supabase
@@ -306,14 +302,57 @@ export function useMapPoints(filters: MarketFilters = {}) {
         return q
       }
 
-      while (hasMore) {
+      // 1) Get estimated count to know how many parallel batches to fire
+      const buildCountQuery = () => {
+        let q = supabase
+          .from('market_listings')
+          .select('id', { count: 'estimated', head: true })
+          .eq('status', 'active')
+          .not('lat', 'is', null)
+          .not('lng', 'is', null)
+          .gt('price', 0)
+          .gte('quality_score', 50)
+          .eq('transaction_type', filters.context || 'buy')
+        if (filters.types && filters.types.length > 0) q = q.in('type', filters.types)
+        if (filters.canton) q = q.eq('canton', filters.canton)
+        if (filters.city) q = q.ilike('city', `%${filters.city}%`)
+        if (filters.minPrice) q = q.gte('price', filters.minPrice)
+        if (filters.maxPrice) q = q.lte('price', filters.maxPrice)
+        if (filters.minRooms) q = q.gte('rooms', filters.minRooms)
+        if (filters.minSurface) q = q.gte('surface_m2', filters.minSurface)
+        return q
+      }
+      const { count: estimatedCount } = await buildCountQuery()
+
+      const totalEstimate = estimatedCount ?? 35000 // fallback
+      const numBatches = Math.ceil(totalEstimate / batchSize)
+
+      // 2) Fire all batches in parallel (cap at 40 concurrent to be safe)
+      const batchPromises = Array.from({ length: Math.min(numBatches, 40) }, (_, page) => {
         const from = page * batchSize
         const to = from + batchSize - 1
+        return buildQuery().range(from, to)
+      })
 
-        const { data } = await buildQuery().range(from, to)
+      // Also fetch internal properties in parallel
+      const internalPromise = supabase
+        .from('properties')
+        .select('id, lat, lng, price, type, rooms')
+        .eq('status', 'active')
+        .not('lat', 'is', null)
+        .not('lng', 'is', null)
 
-        if (data && data.length > 0) {
-          for (const d of data) {
+      const [batchResults, { data: internalData }] = await Promise.all([
+        Promise.all(batchPromises),
+        internalPromise,
+      ])
+
+      // 3) Merge results
+      const allPoints: MapPoint[] = []
+
+      for (const result of batchResults) {
+        if (result.data) {
+          for (const d of result.data) {
             allPoints.push({
               id: `market-${d.id}`,
               lat: d.lat as number,
@@ -324,20 +363,8 @@ export function useMapPoints(filters: MarketFilters = {}) {
               context: (d.transaction_type as 'buy' | 'rent') || 'buy',
             })
           }
-          hasMore = data.length === batchSize
-          page++
-        } else {
-          hasMore = false
         }
       }
-
-      // Ajouter aussi les biens internes avec coordonnées
-      const { data: internalData } = await supabase
-        .from('properties')
-        .select('id, lat, lng, price, type, rooms')
-        .eq('status', 'active')
-        .not('lat', 'is', null)
-        .not('lng', 'is', null)
 
       if (internalData) {
         for (const p of internalData) {
@@ -373,12 +400,13 @@ export function useMarketStats(context: 'buy' | 'rent' = 'buy') {
       const { data: typeCounts } = await supabase
         .rpc('count_market_by_type', { p_context: context })
 
-      // Stats globales
+      // Stats globales — use estimated count to avoid sequential scan timeout on 33K+ rows
       const { count: totalCount } = await supabase
         .from('market_listings')
-        .select('id', { count: 'exact', head: true })
+        .select('id', { count: 'estimated', head: true })
         .eq('transaction_type', context)
-        .in('status', ['active', 'price_reduced'])
+        .eq('status', 'active')
+        .gte('quality_score', 50)
 
       return {
         totalCount: totalCount ?? 0,
