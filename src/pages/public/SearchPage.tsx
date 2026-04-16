@@ -168,8 +168,8 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   // Canton stats for mobile filter
   const { data: marketStats } = useMarketStats(filters.context)
 
-  // Convertir filtres UI → filtres serveur
-  const serverFilters = toServerFilters(filters)
+  // Convertir filtres UI → filtres serveur (memoized to avoid new object ref every render)
+  const serverFilters = useMemo(() => toServerFilters(filters), [filters])
 
   // Fetch listings paginées depuis Supabase (filtrage côté serveur)
   const {
@@ -245,6 +245,15 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     },
     []
   )
+
+  // Stable callback for MapView quick filters (avoids new ref every render)
+  const handleQuickFilter = useCallback((qf: { type?: string; maxPrice?: number; minRooms?: number }) => {
+    updateFilter({
+      types: qf.type ? [qf.type] : [],
+      maxPrice: qf.maxPrice ? String(qf.maxPrice) : '',
+      rooms: qf.minRooms ? String(qf.minRooms) : '',
+    })
+  }, [updateFilter])
 
   // Zone filter (polygon drawn on map) + viewport filter ("search as I move")
   const filtered = useMemo(() => {
@@ -789,7 +798,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
         {/* Left panel: filters + results — hidden in immersive mode */}
         <div
           className={cn(
-            'flex flex-col overflow-hidden transition-[width,min-width] duration-300 ease-out',
+            'flex flex-col overflow-hidden',
             mapImmersive && 'hidden',
             !mapImmersive && 'w-full lg:shrink-0',
           )}
@@ -1005,7 +1014,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
         {/* ─── ZONE 5: Map (desktop) ─── */}
         <div
           className={cn(
-            'border-l border-gray-200 transition-[width,flex] duration-300 ease-out overflow-hidden',
+            'border-l border-gray-200 overflow-hidden',
             mapImmersive
               ? 'block flex-1 border-l-0 h-screen'
               : 'sticky top-[124px] h-[calc(100vh-124px)] hidden lg:block lg:flex-1'
@@ -1022,13 +1031,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
             onImmersiveChange={setMapImmersive}
             onSelectListing={openPreview}
             hideTopControls
-            onQuickFilter={(qf) => {
-              updateFilter({
-                types: qf.type ? [qf.type] : [],
-                maxPrice: qf.maxPrice ? String(qf.maxPrice) : '',
-                rooms: qf.minRooms ? String(qf.minRooms) : '',
-              })
-            }}
+            onQuickFilter={handleQuickFilter}
           />
         </div>
       </div>
