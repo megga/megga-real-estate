@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface AdminNotification {
@@ -14,6 +14,13 @@ interface AdminNotification {
 
 export function useAdminNotifications() {
   const queryClient = useQueryClient()
+  // Unique channel name per hook instance to avoid Supabase Realtime channel
+  // name collisions across re-mounts (StrictMode dev OR client-side navigation).
+  // Without this, the second mount throws:
+  //   "cannot add postgres_changes callbacks for realtime:admin-notifications
+  //    after subscribe()"
+  // and crashes every page that uses this hook (audit bug A1).
+  const channelId = useId()
 
   const notifications = useQuery({
     queryKey: ['admin-notifications'],
@@ -40,7 +47,7 @@ export function useAdminNotifications() {
   // Supabase Realtime subscription for instant updates
   useEffect(() => {
     const channel = supabase
-      .channel('admin-notifications')
+      .channel(`admin-notifications-${channelId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -51,7 +58,7 @@ export function useAdminNotifications() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [queryClient])
+  }, [queryClient, channelId])
 
   const unreadCount = (notifications.data ?? []).filter(n => !n.read).length
 
