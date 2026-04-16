@@ -403,7 +403,7 @@ export function useMarketListing(id: string | undefined) {
 
       const { data, error } = await supabase
         .from('market_listings')
-        .select('*')
+        .select('*, agency_profile:agency_profile_id(slug, status)')
         .eq('id', id)
         .single()
 

@@ -66,6 +66,7 @@ interface TransformedListing {
   is_exclusive: boolean
   agency_name: string
   agency_logo_url: string
+  agency_profile_slug: string | null
   lat: number | undefined
   lng: number | undefined
   year_built: number
@@ -115,6 +116,7 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     is_exclusive: source === 'internal',
     agency_name: source === 'market' ? ((data.agency_name as string) || '') : 'MEGGA Real Estate',
     agency_logo_url: (data.agency_logo_url as string) || '',
+    agency_profile_slug: (data.agency_profile as { slug?: string } | null)?.slug ?? null,
     lat: data.lat as number | undefined,
     lng: data.lng as number | undefined,
     year_built: Number(data.year_built) || 0,
@@ -1275,6 +1277,14 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                               </a>
                             )}
                           </div>
+                          {listing.agency_profile_slug && (
+                            <Link
+                              to={`/agences/${listing.agency_profile_slug}`}
+                              className="block w-full text-center text-sm font-semibold text-accent border border-accent/30 hover:bg-accent hover:text-white transition-colors rounded-lg py-2 mt-3"
+                            >
+                              Voir le profil →
+                            </Link>
+                          )}
                         </div>
                       )
                     })()}
