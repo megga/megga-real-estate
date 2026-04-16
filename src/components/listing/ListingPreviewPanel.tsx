@@ -14,7 +14,6 @@ import Footer from '@/components/layout/Footer'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { applyPlaceholders } from '@/lib/placeholderData'
 import MarketTemperatureBadge from '@/components/listings/MarketTemperatureBadge'
 import PriceHistoryChart from '@/components/listings/PriceHistoryChart'
 import NaturalHazardBadge from '@/components/listings/NaturalHazardBadge'
@@ -644,11 +643,10 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
   const isLoading = (isMarket && loadingMarket) || (isInternal && loadingInternal)
 
-  // Build listing object
+  // Build listing object — use real Flatfox data (no placeholders)
   const listing = (() => {
-    const numId = parseInt(rawId || '0', 10) || 0
-    if (isMarket && marketData) return applyPlaceholders(transformListing(marketData, 'market'), numId) as TransformedListing
-    if (isInternal && internalData) return applyPlaceholders(transformListing(internalData, 'internal'), numId) as TransformedListing
+    if (isMarket && marketData) return transformListing(marketData, 'market')
+    if (isInternal && internalData) return transformListing(internalData, 'internal')
     return null
   })()
 
