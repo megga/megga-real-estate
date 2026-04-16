@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, lazy, Suspense } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -28,7 +28,9 @@ import SavedSearchesPanel from '@/components/search/SavedSearchesPanel'
 import AlertsPanel from '@/components/search/AlertsPanel'
 import AccessibilityPanel from '@/components/search/AccessibilityPanel'
 import ContactPanel from '@/components/search/ContactPanel'
-import MapView, { type MapViewHandle } from '@/components/map/MapView'
+// Lazy-load MapView — Mapbox GL is ~470KB gzip, don't block initial list render
+const MapView = lazy(() => import('@/components/map/MapView'))
+import type { MapViewHandle } from '@/components/map/MapView'
 import CompareDrawer from '@/components/listings/CompareDrawer'
 import ListingPreviewPanel from '@/components/listing/ListingPreviewPanel'
 import SaveSearchDialog from '@/components/search/SaveSearchDialog'
@@ -975,18 +977,20 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
           )}
           style={!mapImmersive ? { width: '55%' } : undefined}
         >
-          <MapView
-            ref={mapViewRef}
-            listings={allListings}
-            mapPoints={mapPoints}
-            hoveredId={hoveredListing}
-            onHover={setHoveredListing}
-            onZoneFilter={setZoneFilterIds}
-            onImmersiveChange={setMapImmersive}
-            onSelectListing={openPreview}
-            hideTopControls
-            onQuickFilter={handleQuickFilter}
-          />
+          <Suspense fallback={<div className="w-full h-full bg-gray-50 animate-pulse" />}>
+            <MapView
+              ref={mapViewRef}
+              listings={allListings}
+              mapPoints={mapPoints}
+              hoveredId={hoveredListing}
+              onHover={setHoveredListing}
+              onZoneFilter={setZoneFilterIds}
+              onImmersiveChange={setMapImmersive}
+              onSelectListing={openPreview}
+              hideTopControls
+              onQuickFilter={handleQuickFilter}
+            />
+          </Suspense>
         </div>
       </div>
 
@@ -1002,14 +1006,16 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
       {/* Mobile: Map overlay */}
       {showMobileMap && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <MapView
-            listings={allListings}
-            mapPoints={mapPoints}
-            hoveredId={hoveredListing}
-            onHover={setHoveredListing}
-            onZoneFilter={setZoneFilterIds}
-            onSelectListing={openPreview}
-          />
+          <Suspense fallback={<div className="w-full h-full bg-gray-50 animate-pulse" />}>
+            <MapView
+              listings={allListings}
+              mapPoints={mapPoints}
+              hoveredId={hoveredListing}
+              onHover={setHoveredListing}
+              onZoneFilter={setZoneFilterIds}
+              onSelectListing={openPreview}
+            />
+          </Suspense>
           <button
             onClick={() => setShowMobileMap(false)}
             className="absolute top-4 right-4 h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer z-10"

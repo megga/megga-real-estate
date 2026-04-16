@@ -1,4 +1,4 @@
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 // applyPlaceholders removed — was replacing real Flatfox data (photos,
@@ -271,6 +271,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: keepPreviousData, // keep UI stable during filter changes
   })
 }
 
@@ -280,62 +281,19 @@ export function useMapPoints(filters: MarketFilters = {}) {
   return useQuery({
     queryKey: ['map-points', filters],
     queryFn: async (): Promise<MapPoint[]> => {
-      // Supabase limit max = 1000 per request — fetch in parallel batches
-      const batchSize = 1000
-
-      const buildQuery = () => {
-        let q = supabase
-          .from('market_listings')
-          .select('id, lat, lng, price, current_price, type, rooms, transaction_type')
-          .eq('status', 'active')
-          .not('lat', 'is', null)
-          .not('lng', 'is', null)
-          .gt('price', 0)
-          .gte('quality_score', 50)
-          .eq('transaction_type', filters.context || 'buy')
-        if (filters.types && filters.types.length > 0) q = q.in('type', filters.types)
-        if (filters.canton) q = q.eq('canton', filters.canton)
-        if (filters.city) q = q.ilike('city', `%${filters.city}%`)
-        if (filters.minPrice) q = q.gte('price', filters.minPrice)
-        if (filters.maxPrice) q = q.lte('price', filters.maxPrice)
-        if (filters.minRooms) q = q.gte('rooms', filters.minRooms)
-        if (filters.minSurface) q = q.gte('surface_m2', filters.minSurface)
-        return q
-      }
-
-      // 1) Get estimated count to know how many parallel batches to fire
-      const buildCountQuery = () => {
-        let q = supabase
-          .from('market_listings')
-          .select('id', { count: 'estimated', head: true })
-          .eq('status', 'active')
-          .not('lat', 'is', null)
-          .not('lng', 'is', null)
-          .gt('price', 0)
-          .gte('quality_score', 50)
-          .eq('transaction_type', filters.context || 'buy')
-        if (filters.types && filters.types.length > 0) q = q.in('type', filters.types)
-        if (filters.canton) q = q.eq('canton', filters.canton)
-        if (filters.city) q = q.ilike('city', `%${filters.city}%`)
-        if (filters.minPrice) q = q.gte('price', filters.minPrice)
-        if (filters.maxPrice) q = q.lte('price', filters.maxPrice)
-        if (filters.minRooms) q = q.gte('rooms', filters.minRooms)
-        if (filters.minSurface) q = q.gte('surface_m2', filters.minSurface)
-        return q
-      }
-      const { count: estimatedCount } = await buildCountQuery()
-
-      const totalEstimate = estimatedCount ?? 35000 // fallback
-      const numBatches = Math.ceil(totalEstimate / batchSize)
-
-      // 2) Fire all batches in parallel (cap at 40 concurrent to be safe)
-      const batchPromises = Array.from({ length: Math.min(numBatches, 40) }, (_, page) => {
-        const from = page * batchSize
-        const to = from + batchSize - 1
-        return buildQuery().range(from, to)
+      // Single RPC call returns all points at once (bypasses REST 1000-row limit)
+      const marketPromise = supabase.rpc('get_market_map_points', {
+        p_context: filters.context || 'buy',
+        p_types: filters.types && filters.types.length > 0 ? filters.types : null,
+        p_canton: filters.canton || null,
+        p_city: filters.city || null,
+        p_min_price: filters.minPrice ?? null,
+        p_max_price: filters.maxPrice ?? null,
+        p_min_rooms: filters.minRooms ?? null,
+        p_min_surface: filters.minSurface ?? null,
       })
 
-      // Also fetch internal properties in parallel
+      // Internal properties in parallel
       const internalPromise = supabase
         .from('properties')
         .select('id, lat, lng, price, type, rooms')
@@ -343,27 +301,24 @@ export function useMapPoints(filters: MarketFilters = {}) {
         .not('lat', 'is', null)
         .not('lng', 'is', null)
 
-      const [batchResults, { data: internalData }] = await Promise.all([
-        Promise.all(batchPromises),
+      const [{ data: marketData }, { data: internalData }] = await Promise.all([
+        marketPromise,
         internalPromise,
       ])
 
-      // 3) Merge results
       const allPoints: MapPoint[] = []
 
-      for (const result of batchResults) {
-        if (result.data) {
-          for (const d of result.data) {
-            allPoints.push({
-              id: `market-${d.id}`,
-              lat: d.lat as number,
-              lng: d.lng as number,
-              price: Number(d.current_price ?? d.price ?? 0),
-              type: (d.type as string) || 'apartment',
-              rooms: Number(d.rooms) || 0,
-              context: (d.transaction_type as 'buy' | 'rent') || 'buy',
-            })
-          }
+      if (marketData) {
+        for (const d of marketData as Array<Record<string, unknown>>) {
+          allPoints.push({
+            id: `market-${d.id}`,
+            lat: d.lat as number,
+            lng: d.lng as number,
+            price: Number(d.current_price ?? d.price ?? 0),
+            type: (d.type as string) || 'apartment',
+            rooms: Number(d.rooms) || 0,
+            context: (d.transaction_type as 'buy' | 'rent') || 'buy',
+          })
         }
       }
 
@@ -384,6 +339,7 @@ export function useMapPoints(filters: MarketFilters = {}) {
       return allPoints
     },
     staleTime: 10 * 60 * 1000, // 10 minutes — les points changent rarement
+    placeholderData: keepPreviousData, // keep old points visible during refetch
   })
 }
 

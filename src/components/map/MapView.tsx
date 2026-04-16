@@ -101,7 +101,7 @@ function pointInPolygon(point: [number, number], polygon: [number, number][]): b
 
 const MAP_GL_STYLE = { width: '100%', height: '100%' } as const
 
-const LISTING_LAYERS = ['unclustered-dot', 'unclustered-label', 'cluster-circle', 'cluster-label'] as const
+const LISTING_LAYERS = ['unclustered-dot', 'unclustered-label'] as const
 
 const MAP_STYLES = [
   { id: 'standard', label: '3D', icon: Mountain, url: 'mapbox://styles/mapbox/standard' },
@@ -394,7 +394,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           properties: {
             id: mp.id,
             price: mp.price,
-            priceLabel: formatPricePin(mp.price, mp.context),
+            priceLabel: formatPricePin(mp.price, 'buy'),
             rooms: mp.rooms,
             type: mp.type || '',
             context: mp.context || 'buy',
@@ -406,7 +406,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           properties: {
             id: l.id,
             price: l.price,
-            priceLabel: formatPricePin(l.price, l.context),
+            priceLabel: formatPricePin(l.price, 'buy'),
             rooms: l.rooms,
             type: l.type || '',
             context: l.context || 'buy',
@@ -455,7 +455,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     if (features.length > 0) {
       map.getCanvas().style.cursor = 'pointer'
       const props = features[0].properties
-      if (props?.id && !props?.cluster_id) {
+      if (props?.id) {
         onHover?.(props.id as string)
         const listing = listingsMap.get(props.id as string)
         if (listing) setHoveredPin(listing)
@@ -610,28 +610,15 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       return
     }
     if (!isDrawing) {
-      // Query native layers for listing/cluster clicks
+      // Query native layers for listing clicks
       const map = mapRef.current?.getMap()
       if (map) {
         const features = map.queryRenderedFeatures(e.point, {
           layers: LISTING_LAYERS as unknown as string[],
         })
-        if (features.length > 0) {
-          const feature = features[0]
-          const props = feature.properties
-          if (props?.cluster_id != null) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const src = map.getSource('listings') as any
-            const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number]
-            Promise.resolve(src.getClusterExpansionZoom(props.cluster_id))
-              .then((zoom: number) => {
-                map.flyTo({ center: coords, zoom, duration: 500 })
-              })
-              .catch(() => { /* ignore */ })
-          } else if (props?.id) {
-            const listing = listingsMap.get(props.id as string)
-            if (listing) handlePinClick(listing)
-          }
+        if (features.length > 0 && features[0].properties?.id) {
+          const listing = listingsMap.get(features[0].properties.id as string)
+          if (listing) handlePinClick(listing)
         }
       }
       return
@@ -878,22 +865,17 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </Source>
         )}
 
-        {/* ─── Native Mapbox GL layers for listings (Zillow-style) ─── */}
+        {/* ─── Native Mapbox GL layers for listings (Zillow-style, no clustering) ─── */}
         <Source
           id="listings"
           type="geojson"
           data={listingsGeoJSON}
-          cluster
-          clusterRadius={50}
-          clusterMaxZoom={14}
-          clusterProperties={{ minPrice: [['min'], ['get', 'price']] }}
           promoteId="id"
         >
-          {/* Layer 1: Unclustered dots — visible at low zoom, fade out at high zoom */}
+          {/* Layer 1: Dots — visible at low zoom, fade out at high zoom */}
           <Layer
             id="unclustered-dot"
             type="circle"
-            filter={['!', ['has', 'point_count']]}
             paint={{
               'circle-color': [
                 'case',
@@ -918,11 +900,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
           />
 
-          {/* Layer 2: Unclustered price labels — fade in at high zoom */}
+          {/* Layer 2: Price labels — fade in at high zoom */}
           <Layer
             id="unclustered-label"
             type="symbol"
-            filter={['!', ['has', 'point_count']]}
             layout={{
               'text-field': ['get', 'priceLabel'],
               'text-size': 11,
@@ -945,41 +926,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 12, 0,
                 13, 1,
               ],
-            }}
-          />
-
-          {/* Layer 3: Cluster circles */}
-          <Layer
-            id="cluster-circle"
-            type="circle"
-            filter={['has', 'point_count']}
-            paint={{
-              'circle-color': '#1F2937',
-              'circle-radius': [
-                'step', ['get', 'point_count'],
-                16,
-                10, 20,
-                50, 24,
-                100, 30,
-              ],
-              'circle-stroke-color': 'rgba(255,255,255,0.8)',
-              'circle-stroke-width': 2,
-            }}
-          />
-
-          {/* Layer 4: Cluster count labels */}
-          <Layer
-            id="cluster-label"
-            type="symbol"
-            filter={['has', 'point_count']}
-            layout={{
-              'text-field': ['to-string', ['get', 'point_count']],
-              'text-size': 12,
-              'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-              'text-allow-overlap': true,
-            }}
-            paint={{
-              'text-color': '#FFFFFF',
             }}
           />
         </Source>

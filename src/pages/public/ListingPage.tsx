@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useMarketListings, useMarketListing } from '@/hooks/useMarketListings'
 import { getListingById } from '@/lib/mockData'
-import { applyPlaceholders } from '@/lib/placeholderData'
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/layout/Navbar'
 import AffordabilityCalculator from '@/components/listings/AffordabilityCalculator'
@@ -110,11 +109,10 @@ export default function ListingPage() {
   // ── Transform ──
   const isLoadingData = (isMarketListing && isLoadingMarket) || (isInternalListing && isLoadingInternal)
   const listing = useMemo(() => {
-    const numId = parseInt(rawId || '0', 10) || 0
-    if (isMarketListing && marketData) return applyPlaceholders(transformSupabaseToListing(marketData, 'market'), numId)
-    if (isInternalListing && internalData) return applyPlaceholders(transformSupabaseToListing(internalData, 'internal'), numId)
+    if (isMarketListing && marketData) return transformSupabaseToListing(marketData, 'market')
+    if (isInternalListing && internalData) return transformSupabaseToListing(internalData, 'internal')
     return getListingById(id || '')
-  }, [isMarketListing, isInternalListing, marketData, internalData, rawId, id])
+  }, [isMarketListing, isInternalListing, marketData, internalData, id])
 
   // ── Agent profile (internal listings only) ──
   const { data: agentProfile } = useQuery({

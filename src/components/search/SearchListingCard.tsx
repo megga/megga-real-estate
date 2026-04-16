@@ -155,15 +155,28 @@ export default function SearchListingCard({
         )}
       </div>
       <div className="px-3 py-2.5">
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-bold text-gray-900">
-            <span className="text-sm font-normal text-gray-500">CHF </span>
-            {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? t('search.perMonth') : ''}
-          </span>
-          {listing.context !== 'rent' && listing.price_per_m2 && listing.price_per_m2 > 0 && listing.surface_m2 > 0 && (
-            <span className="text-xs text-gray-500">
-              CHF {Math.round(listing.price_per_m2).toLocaleString('fr-CH')}/m²
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="text-lg font-bold text-gray-900">
+              <span className="text-sm font-normal text-gray-500">CHF </span>
+              {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? t('search.perMonth') : ''}
             </span>
+            {listing.context !== 'rent' && listing.price_per_m2 && listing.price_per_m2 > 0 && listing.surface_m2 > 0 && (
+              <span className="text-xs text-gray-500">
+                CHF {Math.round(listing.price_per_m2).toLocaleString('fr-CH')}/m²
+              </span>
+            )}
+          </div>
+          {listing.agency_logo_url && (
+            <div className="h-10 w-24 flex items-center justify-end shrink-0">
+              <img
+                src={listing.agency_logo_url}
+                alt={listing.agency_name || ''}
+                className="max-h-full max-w-full object-contain"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
           )}
         </div>
         <p className="text-sm text-gray-500 mt-0.5 truncate">
@@ -197,17 +210,6 @@ export default function SearchListingCard({
             </>
           )}
         </div>
-        {listing.agency_logo_url && (
-          <div className="mt-2 pt-2 border-t border-gray-50">
-            <img
-              src={listing.agency_logo_url}
-              alt={listing.agency_name || ''}
-              className="h-5 max-w-[100px] object-contain opacity-60"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-        )}
       </div>
     </div>
   )
