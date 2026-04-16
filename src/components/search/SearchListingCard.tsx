@@ -168,13 +168,15 @@ export default function SearchListingCard({
             )}
           </div>
           {listing.agency_logo_url && (
-            <img
-              src={listing.agency_logo_url}
-              alt={listing.agency_name || ''}
-              className="h-6 max-w-[80px] object-contain shrink-0"
-              loading="lazy"
-              decoding="async"
-            />
+            <div className="h-10 w-24 flex items-center justify-end shrink-0">
+              <img
+                src={listing.agency_logo_url}
+                alt={listing.agency_name || ''}
+                className="max-h-full max-w-full object-contain"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
           )}
         </div>
         <p className="text-sm text-gray-500 mt-0.5 truncate">
