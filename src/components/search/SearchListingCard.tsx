@@ -5,6 +5,7 @@ import {
   DoorOpen, BedDouble, Maximize, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
+import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 import { getSmartBadge } from '@/lib/searchFilters'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
@@ -63,7 +64,7 @@ export default function SearchListingCard({
       <div className="relative aspect-[4/3] overflow-hidden">
         {photos.length > 0 ? (
           <img
-            src={photos[currentPhoto]}
+            src={optimizeImageUrl(photos[currentPhoto], IMAGE_PRESETS.card)}
             alt={listing.title}
             className="w-full h-full object-cover"
             loading="lazy"

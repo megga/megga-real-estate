@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -40,7 +40,9 @@ import { useFavorites } from '@/hooks/useFavorites'
 import { cn } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
 import { useMarketTemperature } from '@/hooks/useMarketInsights'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import SearchListingCard from '@/components/search/SearchListingCard'
+import type { ListingCardData } from '@/components/listings/ListingCard'
 import {
   type Filters,
   SORT_OPTIONS, ROOM_OPTIONS, BEDROOM_OPTIONS, BATHROOM_OPTIONS,
@@ -134,6 +136,16 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const [viewedIds, setViewedIds] = useState<string[]>([])
+  const listScrollRef = useRef<HTMLDivElement>(null)
+  // Track columns for virtualization (1 on mobile, 2 on sm+)
+  const [gridCols, setGridCols] = useState(() => (typeof window !== 'undefined' && window.innerWidth >= 640) ? 2 : 1)
+
+  // Track grid columns for virtualization (responsive)
+  useLayoutEffect(() => {
+    const onResize = () => setGridCols(window.innerWidth >= 640 ? 2 : 1)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   // Persist split ratio + resize map
   useEffect(() => {
@@ -174,6 +186,12 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   // Aplatir les pages en une seule liste
   const allListings = useMemo(() => listingsData?.pages.flatMap((p) => p.listings) ?? [], [listingsData])
   const totalCount = listingsData?.pages[0]?.totalCount ?? 0
+
+  // Memoize price array for PriceRangeDropdown to avoid recalc every render
+  const priceArray = useMemo(
+    () => allListings.map(l => l.price).filter((p): p is number => typeof p === 'number' && p > 0),
+    [allListings]
+  )
 
   // Sync filters to URL
   useEffect(() => {
@@ -246,6 +264,23 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
       }, medianPricePerM2)
     : filtered
   const hasMore = hasNextPage ?? false
+
+  // Group visible listings into rows for virtualization
+  const rows = useMemo(() => {
+    const result: ListingCardData[][] = []
+    for (let i = 0; i < visible.length; i += gridCols) {
+      result.push(visible.slice(i, i + gridCols))
+    }
+    return result
+  }, [visible, gridCols])
+
+  // Virtual row virtualizer — each row is ~400px (aspect-[4/3] image + info)
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => listScrollRef.current,
+    estimateSize: () => 400,
+    overscan: 3,
+  })
 
   const hasActiveFilters =
     filters.types.length > 0 ||
@@ -411,7 +446,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               minPrice={filters.minPrice}
               maxPrice={filters.maxPrice}
               context={filters.context}
-              prices={allListings.map(l => l.price).filter((p): p is number => typeof p === 'number' && p > 0)}
+              prices={priceArray}
               onChange={(min, max) => updateFilter({ minPrice: min, maxPrice: max })}
             />
 
@@ -849,7 +884,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               selectedListing={previewId ? allListings.find(l => l.id === previewId) ?? null : null}
             />
           ) : (
-          <div className="flex-1 overflow-y-auto scrollbar-hide px-4 md:px-6 pt-8 pb-4">
+          <div ref={listScrollRef} className="flex-1 overflow-y-auto scrollbar-hide px-4 md:px-6 pt-8 pb-4">
             {/* Results header — Zillow style */}
             {!isLoadingListings && filtered.length > 0 && (
               <div className="flex items-baseline justify-between mb-4">
@@ -898,21 +933,42 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                {visible.map((listing) => (
-                  <SearchListingCard
-                    key={listing.id}
-                    listing={listing}
-                    onHover={setHoveredListing}
-                    isHovered={hoveredListing === listing.id}
-                    isFavorite={isFavorite(listing.id)}
-                    onToggleFavorite={() => toggleFavorite(listing.id)}
-                    isCompared={compareIds.includes(listing.id)}
-                    onToggleCompare={() => toggleCompare(listing.id)}
-                    medianPricePerM2={medianPricePerM2}
-                    onPreview={openPreview}
-                  />
-                ))}
+              <div
+                style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const row = rows[virtualRow.index]
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      ref={rowVirtualizer.measureElement}
+                      data-index={virtualRow.index}
+                      className="grid gap-4 grid-cols-1 sm:grid-cols-2 pb-4"
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                    >
+                      {row.map((listing) => (
+                        <SearchListingCard
+                          key={listing.id}
+                          listing={listing}
+                          onHover={setHoveredListing}
+                          isHovered={hoveredListing === listing.id}
+                          isFavorite={isFavorite(listing.id)}
+                          onToggleFavorite={() => toggleFavorite(listing.id)}
+                          isCompared={compareIds.includes(listing.id)}
+                          onToggleCompare={() => toggleCompare(listing.id)}
+                          medianPricePerM2={medianPricePerM2}
+                          onPreview={openPreview}
+                        />
+                      ))}
+                    </div>
+                  )
+                })}
               </div>
             )}
 
