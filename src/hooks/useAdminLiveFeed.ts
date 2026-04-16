@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export interface LiveEvent {
@@ -15,6 +15,12 @@ export interface LiveEvent {
 
 export function useAdminLiveFeed(limit = 50) {
   const queryClient = useQueryClient()
+  // Unique channel name per hook instance — see useAdminNotifications for
+  // the same pattern. Without useId(), a re-mount (StrictMode dev OR
+  // client-side navigation) crashes with:
+  //   "cannot add postgres_changes callbacks for realtime:admin-live-feed
+  //    after subscribe()"
+  const channelId = useId()
 
   const events = useQuery({
     queryKey: ['admin-live-feed', limit],
@@ -33,7 +39,7 @@ export function useAdminLiveFeed(limit = 50) {
   // Supabase Realtime — instant updates
   useEffect(() => {
     const channel = supabase
-      .channel('admin-live-feed')
+      .channel(`admin-live-feed-${channelId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -44,7 +50,7 @@ export function useAdminLiveFeed(limit = 50) {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [queryClient])
+  }, [queryClient, channelId])
 
   return {
     events: events.data ?? [],

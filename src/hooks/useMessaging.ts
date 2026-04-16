@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -32,6 +32,12 @@ export interface Message {
 export function useMessaging(threadId: string | null) {
   const { user, profile } = useAuth()
   const queryClient = useQueryClient()
+  // Unique channel name per hook instance — see useAdminNotifications for
+  // the same pattern. Without useId(), opening the same thread twice (or
+  // re-mount in StrictMode dev) crashes with:
+  //   "cannot add postgres_changes callbacks for realtime:messages:<id>
+  //    after subscribe()"
+  const channelId = useId()
 
   // Fetch all threads
   const threadsQuery = useQuery({
@@ -120,7 +126,7 @@ export function useMessaging(threadId: string | null) {
     if (!threadId) return
 
     const channel = supabase
-      .channel(`messages:${threadId}`)
+      .channel(`messages:${threadId}:${channelId}`)
       .on(
         'postgres_changes',
         {
@@ -146,7 +152,7 @@ export function useMessaging(threadId: string | null) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [threadId, user?.id, queryClient])
+  }, [threadId, user?.id, queryClient, channelId])
 
   return {
     threads: threadsQuery.data ?? [],
