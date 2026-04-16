@@ -153,15 +153,6 @@ export default function SearchListingCard({
             </div>
           </>
         )}
-        {listing.agency_logo_url && (
-          <img
-            src={listing.agency_logo_url}
-            alt={listing.agency_name || ''}
-            className="absolute bottom-2 right-2 h-6 max-w-[80px] object-contain bg-white/90 backdrop-blur-sm rounded px-1 py-0.5 z-[1]"
-            loading="lazy"
-            decoding="async"
-          />
-        )}
       </div>
       <div className="px-3 py-2.5">
         <div className="flex items-baseline gap-2">
@@ -206,6 +197,17 @@ export default function SearchListingCard({
             </>
           )}
         </div>
+        {listing.agency_logo_url && (
+          <div className="mt-2 pt-2 border-t border-gray-50">
+            <img
+              src={listing.agency_logo_url}
+              alt={listing.agency_name || ''}
+              className="h-5 max-w-[100px] object-contain opacity-60"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        )}
       </div>
     </div>
   )
