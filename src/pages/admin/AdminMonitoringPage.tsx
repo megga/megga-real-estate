@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe } from 'lucide-react'
+import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe, Home } from 'lucide-react'
 import { useAdminMonitoring } from '@/hooks/useAdminMonitoring'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import { cn, formatRelativeDate } from '@/lib/utils'
 
 type FunctionFilter = 'all' | 'healthy' | 'error' | 'unknown'
@@ -9,6 +11,20 @@ type FunctionFilter = 'all' | 'healthy' | 'error' | 'unknown'
 export default function AdminMonitoringPage() {
   const { t } = useTranslation('admin')
   const { health, healthLoading, healthError, edgeFunctions, edgeFunctionsLoading, errorLogs, errorLogsLoading } = useAdminMonitoring()
+
+  // Flatfox sync status — lightweight query to show in monitoring
+  const flatfoxStats = useQuery({
+    queryKey: ['admin-flatfox-stats'],
+    queryFn: async () => {
+      const [totalRes, recentRes] = await Promise.all([
+        supabase.from('market_listings').select('id', { count: 'exact', head: true }).eq('source_portal', 'flatfox').eq('status', 'active'),
+        supabase.from('market_listings').select('last_seen_at').eq('source_portal', 'flatfox').order('last_seen_at', { ascending: false }).limit(1),
+      ])
+      const lastSeen = recentRes.data?.[0]?.last_seen_at ?? null
+      return { total: totalRes.count ?? 0, lastSeen }
+    },
+    staleTime: 60_000,
+  })
   const [errorSearch, setErrorSearch] = useState('')
   const [fnFilter, setFnFilter] = useState<FunctionFilter>('all')
   const [fnSearch, setFnSearch] = useState('')
@@ -155,6 +171,40 @@ export default function AdminMonitoringPage() {
           </div>
         </div>
       ) : null}
+
+      {/* Flatfox sync status — shows listing count and last sync time */}
+      {flatfoxStats.data && (
+        <div className="rounded-xl border border-theme-border p-4 flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Home className="h-4 w-4 text-theme-secondary" />
+            <span className="text-sm font-medium text-theme-primary">Flatfox Sync</span>
+          </div>
+          <span className="text-sm text-theme-secondary">
+            {flatfoxStats.data.total.toLocaleString('fr-CH')} biens actifs
+          </span>
+          <span className="text-xs text-theme-muted">
+            {flatfoxStats.data.lastSeen
+              ? `Dernier sync : ${formatRelativeDate(flatfoxStats.data.lastSeen)}`
+              : 'Jamais synchronisé'}
+          </span>
+          <span className={cn(
+            'ml-auto flex items-center gap-1.5 text-xs font-medium',
+            flatfoxStats.data.lastSeen && (Date.now() - new Date(flatfoxStats.data.lastSeen).getTime() < 25 * 60 * 60 * 1000)
+              ? 'text-emerald-600'
+              : 'text-amber-600'
+          )}>
+            <span className={cn(
+              'w-2 h-2 rounded-full',
+              flatfoxStats.data.lastSeen && (Date.now() - new Date(flatfoxStats.data.lastSeen).getTime() < 25 * 60 * 60 * 1000)
+                ? 'bg-emerald-500'
+                : 'bg-amber-500'
+            )} />
+            {flatfoxStats.data.lastSeen && (Date.now() - new Date(flatfoxStats.data.lastSeen).getTime() < 25 * 60 * 60 * 1000)
+              ? 'Sync OK'
+              : 'Sync en retard'}
+          </span>
+        </div>
+      )}
 
       {/* Edge Functions table — per-function status */}
       <div className="rounded-xl border border-theme-border p-5">
