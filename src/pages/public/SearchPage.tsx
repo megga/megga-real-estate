@@ -382,7 +382,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
         <div className="px-4 md:px-6 py-4">
 
           {/* Desktop: single unified row — constrained to left panel width */}
-          <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: '35%' }}>
+          <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: '45%' }}>
             {/* Search input — flexible width */}
             <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
               <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
@@ -768,7 +768,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
             mapImmersive && 'hidden',
             !mapImmersive && 'w-full lg:shrink-0',
           )}
-          style={!mapImmersive ? { width: '35%' } : undefined}
+          style={!mapImmersive ? { width: '45%' } : undefined}
         >
 
           {/* Old ZONE 2 + mobile filter button removed — merged into unified bar above */}
@@ -973,7 +973,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               ? 'block flex-1 border-l-0 h-screen'
               : 'sticky top-[124px] h-[calc(100vh-124px)] hidden lg:block lg:flex-1'
           )}
-          style={!mapImmersive ? { width: '65%' } : undefined}
+          style={!mapImmersive ? { width: '55%' } : undefined}
         >
           <MapView
             ref={mapViewRef}
