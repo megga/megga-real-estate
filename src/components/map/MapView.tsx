@@ -394,7 +394,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           properties: {
             id: mp.id,
             price: mp.price,
-            priceLabel: formatPricePin(mp.price, mp.context),
+            priceLabel: formatPricePin(mp.price, 'buy'),
             rooms: mp.rooms,
             type: mp.type || '',
             context: mp.context || 'buy',
@@ -406,7 +406,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           properties: {
             id: l.id,
             price: l.price,
-            priceLabel: formatPricePin(l.price, l.context),
+            priceLabel: formatPricePin(l.price, 'buy'),
             rooms: l.rooms,
             type: l.type || '',
             context: l.context || 'buy',
