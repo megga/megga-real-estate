@@ -1,0 +1,1722 @@
+{
+  "persona": "agent-rent",
+  "startedAt": "2026-04-16T00:42:15.609Z",
+  "endedAt": "2026-04-16T00:42:54.424Z",
+  "base": "http://localhost:5174",
+  "crashed": false,
+  "stepCount": 16,
+  "steps": [
+    {
+      "step": "01-dashboard",
+      "name": "dashboard",
+      "start": "2026-04-16T00:42:15.611Z",
+      "ok": true,
+      "durationMs": 16289
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "name": "listing-form-chooser",
+      "start": "2026-04-16T00:42:31.900Z",
+      "ok": true,
+      "durationMs": 5561
+    },
+    {
+      "step": "03-toggle-rent",
+      "name": "toggle-rent",
+      "start": "2026-04-16T00:42:37.461Z",
+      "ok": true,
+      "durationMs": 1166
+    },
+    {
+      "step": "04-fill-step1",
+      "name": "fill-step1",
+      "start": "2026-04-16T00:42:38.627Z",
+      "ok": true,
+      "durationMs": 116
+    },
+    {
+      "step": "05-reach-price-section",
+      "name": "reach-price-section",
+      "start": "2026-04-16T00:42:38.743Z",
+      "ok": true,
+      "durationMs": 2329
+    },
+    {
+      "step": "06-fill-rent-price",
+      "name": "fill-rent-price",
+      "start": "2026-04-16T00:42:41.073Z",
+      "ok": true,
+      "durationMs": 613
+    },
+    {
+      "step": "07-caution-pills",
+      "name": "caution-pills",
+      "start": "2026-04-16T00:42:41.686Z",
+      "ok": true,
+      "durationMs": 3
+    },
+    {
+      "step": "08-sidebar-preview",
+      "name": "sidebar-preview",
+      "start": "2026-04-16T00:42:41.689Z",
+      "ok": true,
+      "durationMs": 547
+    },
+    {
+      "step": "09-public-louer",
+      "name": "public-louer",
+      "start": "2026-04-16T00:42:42.236Z",
+      "ok": true,
+      "durationMs": 2823
+    },
+    {
+      "step": "10-louer-card-count",
+      "name": "louer-card-count",
+      "start": "2026-04-16T00:42:45.059Z",
+      "ok": true,
+      "durationMs": 5
+    },
+    {
+      "step": "11-louer-no-calculator",
+      "name": "louer-no-calculator",
+      "start": "2026-04-16T00:42:45.064Z",
+      "ok": true,
+      "durationMs": 2
+    },
+    {
+      "step": "12-louer-open-preview",
+      "name": "louer-open-preview",
+      "start": "2026-04-16T00:42:45.066Z",
+      "ok": true,
+      "durationMs": 3
+    },
+    {
+      "step": "13-public-acheter",
+      "name": "public-acheter",
+      "start": "2026-04-16T00:42:45.069Z",
+      "ok": true,
+      "durationMs": 2839
+    },
+    {
+      "step": "14-matching-page",
+      "name": "matching-page",
+      "start": "2026-04-16T00:42:47.909Z",
+      "ok": true,
+      "durationMs": 2894
+    },
+    {
+      "step": "15-contact-types",
+      "name": "contact-types",
+      "start": "2026-04-16T00:42:50.803Z",
+      "ok": true,
+      "durationMs": 3621
+    },
+    {
+      "step": "16-summary",
+      "name": "summary",
+      "start": "2026-04-16T00:42:54.424Z",
+      "ok": true,
+      "durationMs": 0
+    }
+  ],
+  "consoleErrors": [
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "01-dashboard",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "05-reach-price-section",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "06-fill-rent-price",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "06-fill-rent-price",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "06-fill-rent-price",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/listings/new"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Error: An API access token is required to use Mapbox GL. See https://docs.mapbox.com/api/overview/#access-tokens-and-token-scopes\n    at T._makeAPIURL (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:26890:21)\n    at T.normalizeStyleURL (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:26831:80)\n    at Lo.loadURL (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:34485:73)\n    at Lo.load (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:34450:46)\n    at Map._updateStyle (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:46347:101)\n    at Map.setStyle (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:46337:163)\n    at new Map (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:46033:768)\n    at Mapbox._initialize (http://localhost:5174/node_modules/.vite/deps/react-map-gl_mapbox.js?v=db2fce77:459:15)\n    at new Mapbox (http://localhost:5174/node_modules/.vite/deps/react-map-gl_mapbox.js?v=db2fce77:391:8)\n    at http://localhost:5174/node_modules/.vite/deps/react-map-gl_mapbox.js?v=db2fce77:787:26",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "09-public-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/louer"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Error: An API access token is required to use Mapbox GL. See https://docs.mapbox.com/api/overview/#access-tokens-and-token-scopes\n    at T._makeAPIURL (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:26890:21)\n    at T.normalizeStyleURL (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:26831:80)\n    at Lo.loadURL (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:34485:73)\n    at Lo.load (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:34450:46)\n    at Map._updateStyle (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:46347:101)\n    at Map.setStyle (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:46337:163)\n    at new Map (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:46033:768)\n    at Mapbox._initialize (http://localhost:5174/node_modules/.vite/deps/react-map-gl_mapbox.js?v=db2fce77:459:15)\n    at new Mapbox (http://localhost:5174/node_modules/.vite/deps/react-map-gl_mapbox.js?v=db2fce77:391:8)\n    at http://localhost:5174/node_modules/.vite/deps/react-map-gl_mapbox.js?v=db2fce77:787:26",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "13-public-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/acheter"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "14-matching-page",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/matching"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    },
+    {
+      "step": "15-contact-types",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5174/dashboard/contacts"
+    }
+  ],
+  "pageErrors": [
+    {
+      "step": "06-fill-rent-price",
+      "message": "amount.toFixed is not a function",
+      "stack": "TypeError: amount.toFixed is not a function |     at formatCHF (http://localhost:5174/src/lib/utils.ts:16:27) |     at formatRent (http://localhost:5174/src/lib/utils.ts:50:12)"
+    },
+    {
+      "step": "09-public-louer",
+      "message": "Cannot read properties of undefined (reading '0')",
+      "stack": "TypeError: Cannot read properties of undefined (reading '0') |     at Object.ee [as aE] (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:197:20) |     at so.pointRayIntersection (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:33181:8)"
+    },
+    {
+      "step": "13-public-acheter",
+      "message": "Cannot read properties of undefined (reading '0')",
+      "stack": "TypeError: Cannot read properties of undefined (reading '0') |     at Object.ee [as aE] (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:197:20) |     at so.pointRayIntersection (http://localhost:5174/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=db2fce77:33181:8)"
+    }
+  ],
+  "failedRequests": [
+    {
+      "step": "01-dashboard",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Cstatus%2Ctrigger_at%2Cchannel%2Ccontact_id%2Cproperty_id%2Ctransaction_id%2Cmatch_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Ctriggered%29&order=trigger_at.asc&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=id%2Cscore%2Ccreated_at%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%2Cprice%29&agency_id=eq.dev-mock-agency&status=eq.suggested&created_at=gte.2026-04-14T00%3A42%3A16.325Z&order=score.desc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/visits?select=id%2Cscheduled_at%2Cstatus%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28planned%2Cconfirmed%29&scheduled_at=gte.2026-04-16T00%3A00%3A00.000Z&scheduled_at=lte.2026-04-16T23%3A59%3A59.999Z&order=scheduled_at.asc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/seller_leads?select=*&order=created_at.desc&status=eq.new",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Cstatus%2Ctrigger_at%2Cchannel%2Ccontact_id%2Cproperty_id%2Ctransaction_id%2Cmatch_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Ctriggered%29&order=trigger_at.asc&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=id%2Cscore%2Ccreated_at%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%2Cprice%29&agency_id=eq.dev-mock-agency&status=eq.suggested&created_at=gte.2026-04-14T00%3A42%3A16.325Z&order=score.desc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/visits?select=id%2Cscheduled_at%2Cstatus%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28planned%2Cconfirmed%29&scheduled_at=gte.2026-04-16T00%3A00%3A00.000Z&scheduled_at=lte.2026-04-16T23%3A59%3A59.999Z&order=scheduled_at.asc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/seller_leads?select=*&order=created_at.desc&status=eq.new",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Cstatus%2Ctrigger_at%2Cchannel%2Ccontact_id%2Cproperty_id%2Ctransaction_id%2Cmatch_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Ctriggered%29&order=trigger_at.asc&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=id%2Cscore%2Ccreated_at%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%2Cprice%29&agency_id=eq.dev-mock-agency&status=eq.suggested&created_at=gte.2026-04-14T00%3A42%3A16.325Z&order=score.desc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/visits?select=id%2Cscheduled_at%2Cstatus%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28planned%2Cconfirmed%29&scheduled_at=gte.2026-04-16T00%3A00%3A00.000Z&scheduled_at=lte.2026-04-16T23%3A59%3A59.999Z&order=scheduled_at.asc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/seller_leads?select=*&order=created_at.desc&status=eq.new",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Cstatus%2Ctrigger_at%2Cchannel%2Ccontact_id%2Cproperty_id%2Ctransaction_id%2Cmatch_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Ctriggered%29&order=trigger_at.asc&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=id%2Cscore%2Ccreated_at%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%2Cprice%29&agency_id=eq.dev-mock-agency&status=eq.suggested&created_at=gte.2026-04-14T00%3A42%3A16.325Z&order=score.desc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/visits?select=id%2Cscheduled_at%2Cstatus%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28planned%2Cconfirmed%29&scheduled_at=gte.2026-04-16T00%3A00%3A00.000Z&scheduled_at=lte.2026-04-16T23%3A59%3A59.999Z&order=scheduled_at.asc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/seller_leads?select=*&order=created_at.desc&status=eq.new",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Cstatus%2Ctrigger_at%2Cchannel%2Ccontact_id%2Cproperty_id%2Ctransaction_id%2Cmatch_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Ctriggered%29&order=trigger_at.asc&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=id%2Cscore%2Ccreated_at%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%2Cprice%29&agency_id=eq.dev-mock-agency&status=eq.suggested&created_at=gte.2026-04-14T00%3A42%3A24.481Z&order=score.desc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/visits?select=id%2Cscheduled_at%2Cstatus%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28planned%2Cconfirmed%29&scheduled_at=gte.2026-04-16T00%3A00%3A00.000Z&scheduled_at=lte.2026-04-16T23%3A59%3A59.999Z&order=scheduled_at.asc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/seller_leads?select=*&order=created_at.desc&status=eq.new",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Cstatus%2Ctrigger_at%2Cchannel%2Ccontact_id%2Cproperty_id%2Ctransaction_id%2Cmatch_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Ctriggered%29&order=trigger_at.asc&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=id%2Cscore%2Ccreated_at%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%2Cprice%29&agency_id=eq.dev-mock-agency&status=eq.suggested&created_at=gte.2026-04-14T00%3A42%3A24.481Z&order=score.desc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/visits?select=id%2Cscheduled_at%2Cstatus%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28planned%2Cconfirmed%29&scheduled_at=gte.2026-04-16T00%3A00%3A00.000Z&scheduled_at=lte.2026-04-16T23%3A59%3A59.999Z&order=scheduled_at.asc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/seller_leads?select=*&order=created_at.desc&status=eq.new",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Cstatus%2Ctrigger_at%2Cchannel%2Ccontact_id%2Cproperty_id%2Ctransaction_id%2Cmatch_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Ctriggered%29&order=trigger_at.asc&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=id%2Cscore%2Ccreated_at%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%2Cprice%29&agency_id=eq.dev-mock-agency&status=eq.suggested&created_at=gte.2026-04-14T00%3A42%3A24.481Z&order=score.desc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/visits?select=id%2Cscheduled_at%2Cstatus%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28planned%2Cconfirmed%29&scheduled_at=gte.2026-04-16T00%3A00%3A00.000Z&scheduled_at=lte.2026-04-16T23%3A59%3A59.999Z&order=scheduled_at.asc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/seller_leads?select=*&order=created_at.desc&status=eq.new",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Cstatus%2Ctrigger_at%2Cchannel%2Ccontact_id%2Cproperty_id%2Ctransaction_id%2Cmatch_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Ctriggered%29&order=trigger_at.asc&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=id%2Cscore%2Ccreated_at%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%2Cprice%29&agency_id=eq.dev-mock-agency&status=eq.suggested&created_at=gte.2026-04-14T00%3A42%3A24.481Z&order=score.desc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/visits?select=id%2Cscheduled_at%2Cstatus%2Ccontact_id%2Cproperty_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29%2Cproperty%3Aproperties%28title%2Caddress%29&agency_id=eq.dev-mock-agency&status=in.%28planned%2Cconfirmed%29&scheduled_at=gte.2026-04-16T00%3A00%3A00.000Z&scheduled_at=lte.2026-04-16T23%3A59%3A59.999Z&order=scheduled_at.asc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-dashboard",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/seller_leads?select=*&order=created_at.desc&status=eq.new",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/onboarding_checklist?select=step_key%2Ccompleted%2Ccompleted_at&user_id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_changes?select=id%2Cchange_type%2Ctitle%2Ccity%2Ccanton%2Cprice%2Cprevious_price%2Cprice_change_pct%2Cdetected_at&detected_at=gte.2026-04-14T00%3A42%3A31.883Z&order=detected_at.desc&limit=30",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/transactions?select=id%2Cstage%2Cstatus%2Cupdated_at%2Ccontact_buyer_id%2Cproperty%3Aproperties%28title%2Caddress%2Ccity%29%2Cbuyer%3Acontacts%21contact_buyer_id%28first_name%2Clast_name%29&agency_id=eq.dev-mock-agency&status=eq.active&updated_at=lt.2026-04-02T00%3A42%3A31.884Z&stage=not.in.%28%22signed%22%2C%22closed%22%2C%22lost%22%29&order=updated_at.asc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/kyc_cases?select=id%2Cstatus%2Ccreated_at%2Ccontact%3Acontacts%28first_name%2Clast_name%29&agency_id=eq.dev-mock-agency&status=in.%28pending%2Cin_progress%29&created_at=lt.2026-04-06T00%3A42%3A31.884Z&order=created_at.asc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=id%2Cfirst_name%2Clast_name%2Cscore%2Ctype%2Clast_interaction_at&agency_id=eq.dev-mock-agency&score=eq.hot&last_interaction_at=lt.2026-03-26T00%3A42%3A31.884Z&order=last_interaction_at.asc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/reminders?select=id%2Ctype%2Ctrigger_at%2Ccontact_id%2Ccontact%3Acontacts%28first_name%2Clast_name%29&agency_id=eq.dev-mock-agency&status=eq.triggered&trigger_at=lt.2026-04-16T00%3A42%3A31.884Z&order=trigger_at.asc&limit=20",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/properties?select=id%2Ctitle%2Ctype%2Cstatus%2Cprice%2Crooms%2Cbedrooms%2Csurface_m2%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Cphotos%2Ccreated_at%2Cupdated_at%2Clisting%3Alistings%28id%2Cviews_count%2Cfavorites_count%2Cpublished_at%29&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/subscriptions?select=id%2Cagency_id%2Cplan%2Cstatus%2Cstripe_customer_id%2Cstripe_subscription_id%2Ccurrent_period_start%2Ccurrent_period_end%2Ccancel_at_period_end%2Ccreated_at",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/properties?select=id%2Ctitle%2Ctype%2Cstatus%2Cprice%2Crooms%2Cbedrooms%2Csurface_m2%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Cphotos%2Ccreated_at%2Cupdated_at%2Clisting%3Alistings%28id%2Cviews_count%2Cfavorites_count%2Cpublished_at%29&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/subscriptions?select=id%2Cagency_id%2Cplan%2Cstatus%2Cstripe_customer_id%2Cstripe_subscription_id%2Ccurrent_period_start%2Ccurrent_period_end%2Ccancel_at_period_end%2Ccreated_at",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/properties?select=id%2Ctitle%2Ctype%2Cstatus%2Cprice%2Crooms%2Cbedrooms%2Csurface_m2%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Cphotos%2Ccreated_at%2Cupdated_at%2Clisting%3Alistings%28id%2Cviews_count%2Cfavorites_count%2Cpublished_at%29&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/subscriptions?select=id%2Cagency_id%2Cplan%2Cstatus%2Cstripe_customer_id%2Cstripe_subscription_id%2Ccurrent_period_start%2Ccurrent_period_end%2Ccancel_at_period_end%2Ccreated_at",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-listing-form-chooser",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/properties?select=id%2Ctitle%2Ctype%2Cstatus%2Cprice%2Crooms%2Cbedrooms%2Csurface_m2%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Cphotos%2Ccreated_at%2Cupdated_at%2Clisting%3Alistings%28id%2Cviews_count%2Cfavorites_count%2Cpublished_at%29&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/subscriptions?select=id%2Cagency_id%2Cplan%2Cstatus%2Cstripe_customer_id%2Cstripe_subscription_id%2Ccurrent_period_start%2Ccurrent_period_end%2Ccancel_at_period_end%2Ccreated_at",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/properties?select=id%2Ctitle%2Ctype%2Cstatus%2Cprice%2Crooms%2Cbedrooms%2Csurface_m2%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Cphotos%2Ccreated_at%2Cupdated_at%2Clisting%3Alistings%28id%2Cviews_count%2Cfavorites_count%2Cpublished_at%29&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "05-reach-price-section",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "06-fill-rent-price",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "06-fill-rent-price",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/properties?select=id%2Ctitle%2Ctype%2Cstatus%2Cprice%2Crooms%2Cbedrooms%2Csurface_m2%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Cphotos%2Ccreated_at%2Cupdated_at%2Clisting%3Alistings%28id%2Cviews_count%2Cfavorites_count%2Cpublished_at%29&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "06-fill-rent-price",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/saved_searches?select=id%2Cname%2Cfilters%2Calert_enabled%2Calert_frequency%2Calert_email%2Cresults_count%2Ccreated_at&order=created_at.desc&limit=10",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/rpc/count_market_by_canton",
+      "method": "POST",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.rent&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Clat%2Clng%2Cprice%2Ccurrent_price%2Ctype%2Crooms%2Ctransaction_type&status=in.%28active%2Cprice_reduced%29&lat=not.is.null&lng=not.is.null&price=gt.0&quality_score=gte.50&transaction_type=eq.rent&offset=0&limit=1000",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/rpc/count_market_by_type",
+      "method": "POST",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id&transaction_type=eq.rent&status=in.%28active%2Cprice_reduced%29",
+      "method": "HEAD",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/saved_searches?select=id%2Cname%2Cfilters%2Calert_enabled%2Calert_frequency%2Calert_email%2Cresults_count%2Ccreated_at&order=created_at.desc&limit=10",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.rent&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Clat%2Clng%2Cprice%2Ccurrent_price%2Ctype%2Crooms%2Ctransaction_type&status=in.%28active%2Cprice_reduced%29&lat=not.is.null&lng=not.is.null&price=gt.0&quality_score=gte.50&transaction_type=eq.rent&offset=0&limit=1000",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "09-public-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id&transaction_type=eq.rent&status=in.%28active%2Cprice_reduced%29",
+      "method": "HEAD",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/saved_searches?select=id%2Cname%2Cfilters%2Calert_enabled%2Calert_frequency%2Calert_email%2Cresults_count%2Ccreated_at&order=created_at.desc&limit=10",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/rpc/count_market_by_canton",
+      "method": "POST",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Clat%2Clng%2Cprice%2Ccurrent_price%2Ctype%2Crooms%2Ctransaction_type&status=in.%28active%2Cprice_reduced%29&lat=not.is.null&lng=not.is.null&price=gt.0&quality_score=gte.50&transaction_type=eq.buy&offset=0&limit=1000",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/rpc/count_market_by_type",
+      "method": "POST",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id&transaction_type=eq.buy&status=in.%28active%2Cprice_reduced%29",
+      "method": "HEAD",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/saved_searches?select=id%2Cname%2Cfilters%2Calert_enabled%2Calert_frequency%2Calert_email%2Cresults_count%2Ccreated_at&order=created_at.desc&limit=10",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Clat%2Clng%2Cprice%2Ccurrent_price%2Ctype%2Crooms%2Ctransaction_type&status=in.%28active%2Cprice_reduced%29&lat=not.is.null&lng=not.is.null&price=gt.0&quality_score=gte.50&transaction_type=eq.buy&offset=0&limit=1000",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "13-public-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id&transaction_type=eq.buy&status=in.%28active%2Cprice_reduced%29",
+      "method": "HEAD",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=*%2Ccontact%3Acontacts%28first_name%2Clast_name%2Cemail%2Cphone%29%2Cproperty%3Aproperties%28title%2Cprice%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Cfeatures%2Cfloor%2Cyear_built%2Ccharges_monthly%29%2Cmarket_listing%3Amarket_listings%28id%2Ctitle%2Cprice%2Ccurrent_price%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Cbathrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Cfeatures%2Cfloor%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%29&agency_id=eq.dev-mock-agency&order=score.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&type=eq.buyer&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&type=eq.both&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/matches?select=*%2Ccontact%3Acontacts%28first_name%2Clast_name%2Cemail%2Cphone%29%2Cproperty%3Aproperties%28title%2Cprice%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Cfeatures%2Cfloor%2Cyear_built%2Ccharges_monthly%29%2Cmarket_listing%3Amarket_listings%28id%2Ctitle%2Cprice%2Ccurrent_price%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Cbathrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Cfeatures%2Cfloor%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%29&agency_id=eq.dev-mock-agency&order=score.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&type=eq.buyer&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&type=eq.both&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "14-matching-page",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/profiles?select=preferences&id=eq.dev-mock-user",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/message_threads?select=id%2Cagency_id%2Ccontact_id%2Ccontact_name%2Ccontact_type%2Cproperty_id%2Cproperty_title%2Cchannel%2Clast_message_at%2Cunread_count%2Clast_message%2Ccreated_at&order=last_message_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "15-contact-types",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/contacts?select=*&order=created_at.desc",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    }
+  ]
+}

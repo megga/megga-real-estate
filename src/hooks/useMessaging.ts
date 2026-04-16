@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -32,6 +32,12 @@ export interface Message {
 export function useMessaging(threadId: string | null) {
   const { user, profile } = useAuth()
   const queryClient = useQueryClient()
+  // Unique channel name per hook instance — see useAdminNotifications for
+  // the same pattern. Without useId(), opening the same thread twice (or
+  // re-mount in StrictMode dev) crashes with:
+  //   "cannot add postgres_changes callbacks for realtime:messages:<id>
+  //    after subscribe()"
+  const channelId = useId()
 
   // Fetch all threads
   const threadsQuery = useQuery({
@@ -50,7 +56,8 @@ export function useMessaging(threadId: string | null) {
     enabled: !!user,
   })
 
-  // Fetch messages for selected thread
+  // Fetch messages for selected thread (last 500 — long threads load faster
+  // and we avoid pulling years of history on every open).
   const messagesQuery = useQuery({
     queryKey: ['messages', threadId],
     queryFn: async () => {
@@ -58,9 +65,11 @@ export function useMessaging(threadId: string | null) {
         .from('messages')
         .select('id, thread_id, sender_id, sender_type, sender_name, content, read_at, created_at')
         .eq('thread_id', threadId!)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
+        .limit(500)
       if (error) throw error
-      return data as Message[]
+      // Reverse to chronological order for display (most recent at bottom).
+      return ((data ?? []) as Message[]).reverse()
     },
     enabled: !!threadId,
   })
@@ -94,21 +103,25 @@ export function useMessaging(threadId: string | null) {
     },
   })
 
-  // Mark messages as read
+  // Mark messages as read — propagates Supabase errors so the UI can surface
+  // a "couldn't mark as read" state instead of pretending everything's fine.
   const markAsReadMutation = useMutation({
     mutationFn: async () => {
       if (!threadId) return
-      await supabase
+
+      const { error: msgErr } = await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
         .eq('thread_id', threadId)
         .is('read_at', null)
         .neq('sender_id', user?.id ?? '')
+      if (msgErr) throw msgErr
 
-      await supabase
+      const { error: threadErr } = await supabase
         .from('message_threads')
         .update({ unread_count: 0 })
         .eq('id', threadId)
+      if (threadErr) throw threadErr
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['threads'] })
@@ -120,7 +133,7 @@ export function useMessaging(threadId: string | null) {
     if (!threadId) return
 
     const channel = supabase
-      .channel(`messages:${threadId}`)
+      .channel(`messages:${threadId}:${channelId}`)
       .on(
         'postgres_changes',
         {
@@ -131,14 +144,16 @@ export function useMessaging(threadId: string | null) {
         },
         (payload) => {
           const newMsg = payload.new as Message
-          // Only add if not sent by current user (avoid duplicate from optimistic update)
-          if (newMsg.sender_id !== user?.id) {
-            queryClient.setQueryData<Message[]>(['messages', threadId], (old) => [
-              ...(old ?? []),
-              newMsg,
-            ])
-            queryClient.invalidateQueries({ queryKey: ['threads'] })
-          }
+          // Skip own messages (handled by the sendMessage onSuccess refetch).
+          if (newMsg.sender_id === user?.id) return
+          queryClient.setQueryData<Message[]>(['messages', threadId], (old) => {
+            const list = old ?? []
+            // Dedupe — Supabase Realtime can re-deliver the same INSERT on
+            // reconnect, which previously appended the message twice.
+            if (list.some(m => m.id === newMsg.id)) return list
+            return [...list, newMsg]
+          })
+          queryClient.invalidateQueries({ queryKey: ['threads'] })
         }
       )
       .subscribe()
@@ -146,7 +161,7 @@ export function useMessaging(threadId: string | null) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [threadId, user?.id, queryClient])
+  }, [threadId, user?.id, queryClient, channelId])
 
   return {
     threads: threadsQuery.data ?? [],

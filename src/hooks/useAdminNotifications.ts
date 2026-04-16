@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface AdminNotification {
@@ -12,8 +12,44 @@ interface AdminNotification {
   read: boolean
 }
 
+const READ_IDS_KEY = 'megga-admin-read-notifications'
+
+/**
+ * Safely read the persisted list of read notification IDs from localStorage.
+ * Returns [] if the value is missing, malformed JSON, or not an array of
+ * strings — which can happen if the user manually edited localStorage or if
+ * a previous version wrote a different shape.
+ */
+function readReadIds(): string[] {
+  try {
+    const raw = localStorage.getItem(READ_IDS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((x): x is string => typeof x === 'string')
+  } catch {
+    return []
+  }
+}
+
+function writeReadIds(ids: string[]): void {
+  try {
+    localStorage.setItem(READ_IDS_KEY, JSON.stringify(ids))
+  } catch {
+    // Quota exceeded or storage disabled — fail silently. Read state is
+    // best-effort and not worth crashing the admin panel over.
+  }
+}
+
 export function useAdminNotifications() {
   const queryClient = useQueryClient()
+  // Unique channel name per hook instance to avoid Supabase Realtime channel
+  // name collisions across re-mounts (StrictMode dev OR client-side navigation).
+  // Without this, the second mount throws:
+  //   "cannot add postgres_changes callbacks for realtime:admin-notifications
+  //    after subscribe()"
+  // and crashes every page that uses this hook (audit bug A1).
+  const channelId = useId()
 
   const notifications = useQuery({
     queryKey: ['admin-notifications'],
@@ -25,8 +61,9 @@ export function useAdminNotifications() {
         .limit(30)
       if (error) throw error
 
-      // Mark read status from localStorage
-      const readIds: string[] = JSON.parse(localStorage.getItem('megga-admin-read-notifications') ?? '[]')
+      // Mark read status from localStorage (defensive against corrupted
+      // values — see readReadIds).
+      const readIds = readReadIds()
       return (data ?? []).map(n => ({
         ...n,
         metadata: (n.metadata ?? {}) as Record<string, unknown>,
@@ -40,7 +77,7 @@ export function useAdminNotifications() {
   // Supabase Realtime subscription for instant updates
   useEffect(() => {
     const channel = supabase
-      .channel('admin-notifications')
+      .channel(`admin-notifications-${channelId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -51,22 +88,21 @@ export function useAdminNotifications() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [queryClient])
+  }, [queryClient, channelId])
 
   const unreadCount = (notifications.data ?? []).filter(n => !n.read).length
 
   const markAsRead = (id: string) => {
-    const readIds: string[] = JSON.parse(localStorage.getItem('megga-admin-read-notifications') ?? '[]')
+    const readIds = readReadIds()
     if (!readIds.includes(id)) {
-      readIds.push(id)
-      localStorage.setItem('megga-admin-read-notifications', JSON.stringify(readIds))
+      writeReadIds([...readIds, id])
       queryClient.invalidateQueries({ queryKey: ['admin-notifications'] })
     }
   }
 
   const markAllAsRead = () => {
     const allIds = (notifications.data ?? []).map(n => n.id)
-    localStorage.setItem('megga-admin-read-notifications', JSON.stringify(allIds))
+    writeReadIds(allIds)
     queryClient.invalidateQueries({ queryKey: ['admin-notifications'] })
   }
 

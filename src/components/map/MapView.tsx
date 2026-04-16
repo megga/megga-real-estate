@@ -674,6 +674,29 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     return listings.filter((l) => l.lat && l.lng && pointInPolygon([l.lng!, l.lat!], closedPolygon)).length
   }, [closedPolygon, listings])
 
+  // Graceful fallback when VITE_MAPBOX_TOKEN is missing — without this guard,
+  // mapbox-gl crashes deep inside its initialization (`Cannot read properties
+  // of undefined (reading '0')` on pointRayInte…), which previously broke
+  // /louer and /acheter in any env without the token (audit bug B3). We render
+  // a lightweight placeholder so the page itself stays usable; consumers
+  // (SearchPage, etc.) continue to render their list view alongside.
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div className={cn(
+        'relative w-full h-full flex items-center justify-center bg-gray-100 text-gray-500',
+        className
+      )}>
+        <div className="text-center px-6 max-w-sm">
+          <MapPin className="w-8 h-8 mx-auto mb-3 opacity-40" />
+          <p className="text-sm font-medium text-gray-700">Carte indisponible</p>
+          <p className="text-xs text-gray-500 mt-1">
+            La configuration de la carte est manquante. Les biens restent consultables dans la liste.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div ref={containerRef} className={cn(
       'relative w-full h-full [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden [&_.mapboxgl-canvas-container]:bg-[#e8e0d8]',

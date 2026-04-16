@@ -1,0 +1,398 @@
+{
+  "persona": "smoke",
+  "startedAt": "2026-04-16T00:34:36.477Z",
+  "endedAt": "2026-04-16T00:34:40.943Z",
+  "base": "http://localhost:5173",
+  "crashed": false,
+  "stepCount": 3,
+  "steps": [
+    {
+      "step": "01-home",
+      "name": "home",
+      "start": "2026-04-16T00:34:36.478Z",
+      "ok": true,
+      "durationMs": 1790
+    },
+    {
+      "step": "02-acheter",
+      "name": "acheter",
+      "start": "2026-04-16T00:34:38.268Z",
+      "ok": true,
+      "durationMs": 1378
+    },
+    {
+      "step": "03-louer",
+      "name": "louer",
+      "start": "2026-04-16T00:34:39.647Z",
+      "ok": true,
+      "durationMs": 1296
+    }
+  ],
+  "consoleErrors": [
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "01-home",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/"
+    },
+    {
+      "step": "02-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/acheter"
+    },
+    {
+      "step": "02-acheter",
+      "text": "Error: An API access token is required to use Mapbox GL. See https://docs.mapbox.com/api/overview/#access-tokens-and-token-scopes\n    at T._makeAPIURL (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:26890:21)\n    at T.normalizeStyleURL (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:26831:80)\n    at Lo.loadURL (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:34485:73)\n    at Lo.load (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:34450:46)\n    at Map._updateStyle (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:46347:101)\n    at Map.setStyle (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:46337:163)\n    at new Map (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:46033:768)\n    at Mapbox._initialize (http://localhost:5173/node_modules/.vite/deps/react-map-gl_mapbox.js?v=0dd611e2:459:15)\n    at new Mapbox (http://localhost:5173/node_modules/.vite/deps/react-map-gl_mapbox.js?v=0dd611e2:391:8)\n    at http://localhost:5173/node_modules/.vite/deps/react-map-gl_mapbox.js?v=0dd611e2:787:26",
+      "url": "http://localhost:5173/acheter"
+    },
+    {
+      "step": "02-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/acheter"
+    },
+    {
+      "step": "02-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/acheter"
+    },
+    {
+      "step": "02-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/acheter"
+    },
+    {
+      "step": "02-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/acheter"
+    },
+    {
+      "step": "02-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/acheter"
+    },
+    {
+      "step": "02-acheter",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/acheter"
+    },
+    {
+      "step": "03-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/louer"
+    },
+    {
+      "step": "03-louer",
+      "text": "Error: An API access token is required to use Mapbox GL. See https://docs.mapbox.com/api/overview/#access-tokens-and-token-scopes\n    at T._makeAPIURL (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:26890:21)\n    at T.normalizeStyleURL (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:26831:80)\n    at Lo.loadURL (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:34485:73)\n    at Lo.load (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:34450:46)\n    at Map._updateStyle (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:46347:101)\n    at Map.setStyle (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:46337:163)\n    at new Map (http://localhost:5173/node_modules/.vite/deps/mapbox-gl-CI2HtE5C.js?v=bfda313b:46033:768)\n    at Mapbox._initialize (http://localhost:5173/node_modules/.vite/deps/react-map-gl_mapbox.js?v=0dd611e2:459:15)\n    at new Mapbox (http://localhost:5173/node_modules/.vite/deps/react-map-gl_mapbox.js?v=0dd611e2:391:8)\n    at http://localhost:5173/node_modules/.vite/deps/react-map-gl_mapbox.js?v=0dd611e2:787:26",
+      "url": "http://localhost:5173/louer"
+    },
+    {
+      "step": "03-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/louer"
+    },
+    {
+      "step": "03-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/louer"
+    },
+    {
+      "step": "03-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/louer"
+    },
+    {
+      "step": "03-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/louer"
+    },
+    {
+      "step": "03-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/louer"
+    },
+    {
+      "step": "03-louer",
+      "text": "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "url": "http://localhost:5173/louer"
+    }
+  ],
+  "pageErrors": [],
+  "failedRequests": [
+    {
+      "step": "01-home",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1600573472592-401b489a3cdc?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1600566753086-00f18f6b5e29?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1527668752968-14dc70a27c95?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1587974928442-77dc3e0dba72?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "01-home",
+      "url": "https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&q=80",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-acheter",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/rpc/count_market_by_canton",
+      "method": "POST",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Clat%2Clng%2Cprice%2Ccurrent_price%2Ctype%2Crooms%2Ctransaction_type&status=in.%28active%2Cprice_reduced%29&lat=not.is.null&lng=not.is.null&price=gt.0&quality_score=gte.50&transaction_type=eq.buy&offset=0&limit=1000",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/rpc/count_market_by_type",
+      "method": "POST",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "02-acheter",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id&transaction_type=eq.buy&status=in.%28active%2Cprice_reduced%29",
+      "method": "HEAD",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "03-louer",
+      "url": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "03-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.buy&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "03-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/rpc/count_market_by_canton",
+      "method": "POST",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "03-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Ctitle%2Cprice%2Ccurrent_price%2Cprice_at_first_seen%2Caddress%2Ccity%2Ccanton%2Cpostal_code%2Crooms%2Cbedrooms%2Csurface_m2%2Cphotos%2Ctype%2Cdescription%2Clat%2Clng%2Csource_portal%2Csource_url%2Cagency_name%2Cprice_per_m2%2Cdays_on_market%2Cstatus%2Cfirst_seen_at%2Ccreated_at&status=in.%28active%2Cprice_reduced%29&transaction_type=eq.rent&price=gt.0&quality_score=gte.50&order=created_at.desc&offset=0&limit=50",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "03-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id%2Clat%2Clng%2Cprice%2Ccurrent_price%2Ctype%2Crooms%2Ctransaction_type&status=in.%28active%2Cprice_reduced%29&lat=not.is.null&lng=not.is.null&price=gt.0&quality_score=gte.50&transaction_type=eq.rent&offset=0&limit=1000",
+      "method": "GET",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "03-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/rpc/count_market_by_type",
+      "method": "POST",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    },
+    {
+      "step": "03-louer",
+      "url": "https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/market_listings?select=id&transaction_type=eq.rent&status=in.%28active%2Cprice_reduced%29",
+      "method": "HEAD",
+      "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+    }
+  ]
+}

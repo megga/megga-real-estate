@@ -13,11 +13,15 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format price in CHF with Swiss apostrophe separator
  * Example: 720000 → "CHF 720'000"
+ *
+ * Type-defensive: accepts string/null/undefined safely (RHF watch() returns
+ * strings from <input type="number">). Returns "CHF —" for invalid input
+ * instead of crashing with `.toFixed is not a function`.
  */
-export function formatCHF(amount: number): string {
-  const formatted = amount
-    .toFixed(0)
-    .replace(/\B(?=(\d{3})+(?!\d))/g, "'")
+export function formatCHF(amount: number | string | null | undefined): string {
+  const n = typeof amount === 'number' ? amount : Number(amount ?? 0)
+  if (!Number.isFinite(n)) return 'CHF —'
+  const formatted = n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, "'")
   return `CHF ${formatted}`
 }
 
@@ -50,8 +54,11 @@ export function formatSurface(m2: number): string {
 /**
  * Format rent amount in CHF with monthly suffix
  * Example: 2500 → "CHF 2'500/mois"
+ *
+ * Type-defensive: same coercion as formatCHF. Returns "CHF —/mois" for
+ * invalid input instead of crashing.
  */
-export function formatRent(amount: number): string {
+export function formatRent(amount: number | string | null | undefined): string {
   return `${formatCHF(amount)}/mois`
 }
 

@@ -30,6 +30,7 @@ import Footer from '@/components/layout/Footer'
 import { usePropertyEstimation, type EstimationParams, type EstimationResult } from '@/hooks/usePropertyEstimation'
 import { useSellerLead } from '@/hooks/useSellerLead'
 import { supabase } from '@/lib/supabase'
+import { CANTONS } from '@/lib/constants'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 
@@ -236,6 +237,10 @@ export default function VendrePage() {
 
   const searchGeo = useCallback((query: string) => {
     setGeoQuery(query)
+    // Mirror the typed text into form.address so the wizard can validate even
+    // when Mapbox geocoding is unavailable or returns nothing. Picking an
+    // autocomplete result later overrides this with the canonical place_name.
+    setForm(prev => ({ ...prev, address: query }))
     if (geoTimer.current) clearTimeout(geoTimer.current)
     if (!query || query.length < 3 || !MAPBOX_TOKEN) {
       setGeoResults([])
@@ -675,34 +680,69 @@ export default function VendrePage() {
                 </p>
               </div>
 
-              <div className="relative">
+              <div className="space-y-4">
                 <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="text"
-                    value={geoQuery}
-                    onChange={e => searchGeo(e.target.value)}
-                    onFocus={() => { if (geoResults.length) setGeoOpen(true) }}
-                    placeholder={t('sell.wizard.step1.placeholder')}
-                    autoFocus
-                    className="w-full h-14 pl-12 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base text-gray-900 placeholder:text-gray-400 outline-none transition-all"
-                  />
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                    <input
+                      type="text"
+                      value={geoQuery}
+                      onChange={e => searchGeo(e.target.value)}
+                      onFocus={() => { if (geoResults.length) setGeoOpen(true) }}
+                      placeholder={t('sell.wizard.step1.placeholder')}
+                      autoFocus
+                      className="w-full h-14 pl-12 pr-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base text-gray-900 placeholder:text-gray-400 outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Autocomplete dropdown */}
+                  {geoOpen && geoResults.length > 0 && (
+                    <div className="absolute z-30 left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      {geoResults.map((r, i) => (
+                        <button
+                          key={i}
+                          onClick={() => selectGeoResult(r)}
+                          className="w-full text-left px-4 py-3.5 text-sm hover:bg-gray-50 transition-colors flex items-start gap-3 border-b border-gray-50 last:border-0"
+                        >
+                          <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-gray-700">{r.place_name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Autocomplete dropdown */}
-                {geoOpen && geoResults.length > 0 && (
-                  <div className="absolute z-30 left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    {geoResults.map((r, i) => (
-                      <button
-                        key={i}
-                        onClick={() => selectGeoResult(r)}
-                        className="w-full text-left px-4 py-3.5 text-sm hover:bg-gray-50 transition-colors flex items-start gap-3 border-b border-gray-50 last:border-0"
-                      >
-                        <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700">{r.place_name}</span>
-                      </button>
+                {/* Canton dropdown — always visible. Auto-filled when picking
+                    an autocomplete result, but also lets the user choose
+                    manually when Mapbox is unavailable or autocomplete misses
+                    (otherwise step 1 would be impossible to validate). */}
+                <div>
+                  <label htmlFor="vendre-canton" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {t('sell.wizard.step1.cantonLabel', { defaultValue: 'Canton' })}
+                  </label>
+                  <select
+                    id="vendre-canton"
+                    value={form.canton}
+                    onChange={e => setForm(prev => ({ ...prev, canton: e.target.value }))}
+                    className="w-full h-12 px-4 rounded-xl border border-gray-200 focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 text-base text-gray-900 outline-none transition-all bg-white"
+                  >
+                    <option value="">
+                      {t('sell.wizard.step1.cantonPlaceholder', { defaultValue: 'Sélectionnez votre canton' })}
+                    </option>
+                    {CANTONS.map(c => (
+                      <option key={c} value={c}>{c}</option>
                     ))}
-                  </div>
+                  </select>
+                </div>
+
+                {/* Inline hint when the button is disabled — explains why,
+                    instead of leaving the user stuck guessing. */}
+                {!step1Valid && geoQuery.length > 0 && (
+                  <p className="text-xs text-gray-500">
+                    {form.address.length <= 3
+                      ? t('sell.wizard.step1.hintAddress', { defaultValue: 'Saisissez l\'adresse complète du bien (au moins 4 caractères).' })
+                      : t('sell.wizard.step1.hintCanton', { defaultValue: 'Sélectionnez le canton pour continuer.' })}
+                  </p>
                 )}
               </div>
 
@@ -721,7 +761,7 @@ export default function VendrePage() {
                     'h-11 px-8 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                     step1Valid
                       ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-50 text-gray-400 cursor-not-allowed'
                   )}
                 >
                   {t('sell.wizard.continue')}

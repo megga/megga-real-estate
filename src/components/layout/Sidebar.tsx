@@ -294,6 +294,38 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
         ) : (
           /* ── Agent Mode (default) ── */
           <>
+            {/* Admin switch — pinned at the top for super_admin so the
+                feature is discoverable on first load. Previously this lived
+                at the bottom of the nav and was easy to miss (audit B2). */}
+            {profile?.role === 'super_admin' && (
+              <>
+                {!isCol && !isMinimalSidebar && (
+                  <div className="px-3 mb-1 mt-1">
+                    <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
+                      {t('nav.platformSection', { defaultValue: 'Plateforme' })}
+                    </span>
+                  </div>
+                )}
+                <div className="relative mb-2">
+                  <button
+                    onClick={() => setAdminMode(true)}
+                    onMouseEnter={() => isCol ? setHoveredItem('admin-switch') : undefined}
+                    onMouseLeave={() => setHoveredItem(null)}
+                    className={cn(
+                      navRow(isCol, false),
+                      'w-full text-admin-accent hover:!bg-admin-accent/8'
+                    )}
+                  >
+                    <ShieldCheck className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
+                    <span className={fadeLabel(isCol)}>Admin MEGGA</span>
+                  </button>
+                  <CollapsedTooltip show={isCol && hoveredItem === 'admin-switch'}>
+                    Admin MEGGA
+                  </CollapsedTooltip>
+                </div>
+              </>
+            )}
+
             {NAV_SECTIONS.map((section) => (
               <div key={section.labelKey}>
                 {isCol || isMinimalSidebar ? (
@@ -337,27 +369,6 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                 </div>
               </div>
             ))}
-
-            {/* Admin switch button */}
-            {profile?.role === 'super_admin' && (
-              <div className="mt-4 relative">
-                <button
-                  onClick={() => setAdminMode(true)}
-                  onMouseEnter={() => isCol ? setHoveredItem('admin-switch') : undefined}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  className={cn(
-                    navRow(isCol, false),
-                    'w-full text-admin-accent hover:!bg-admin-accent/8'
-                  )}
-                >
-                  <ShieldCheck className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
-                  <span className={fadeLabel(isCol)}>Admin</span>
-                </button>
-                <CollapsedTooltip show={isCol && hoveredItem === 'admin-switch'}>
-                  Admin MEGGA
-                </CollapsedTooltip>
-              </div>
-            )}
           </>
         )}
       </nav>
@@ -404,6 +415,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
           <button
             onClick={toggleTheme}
             aria-label={theme === 'light' ? 'Activer le mode sombre' : 'Activer le mode clair'}
+            data-testid="theme-toggle"
             className={cn(navRow(isCol, false), 'w-full')}
           >
             {theme === 'light' ? (
