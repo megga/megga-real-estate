@@ -77,7 +77,7 @@ interface FlatfoxListing {
   year_built: number | null
   moving_date: string | null
   created: string
-  images: Array<{ pk: number; url: string; url_thumb_m?: string; url_thumb_l?: string; url_listing_search?: string }> | null
+  images: Array<{ pk: number; url: string; url_thumb_m?: string; url_thumb_l?: string; url_listing_search?: string; ordering?: number }> | null
   agency: { name?: string; name_2?: string; phone?: string; logo?: { url?: string; url_org_logo_m?: string } } | null
 }
 
@@ -173,8 +173,16 @@ function mapPrice(l: FlatfoxListing): number {
 
 function mapPhotos(images: FlatfoxListing['images']): string[] {
   if (!Array.isArray(images)) return []
+  // Sort by Flatfox's `ordering` field — the agency sets photo order, usually
+  // the most attractive shot (façade, main room) is ordering=1.
+  // Images without ordering go last.
+  const sorted = [...images].sort((a, b) => {
+    const oa = a?.ordering ?? Number.MAX_SAFE_INTEGER
+    const ob = b?.ordering ?? Number.MAX_SAFE_INTEGER
+    return oa - ob
+  })
   const urls: string[] = []
-  for (const img of images.slice(0, 10)) {
+  for (const img of sorted.slice(0, 10)) {
     if (img && typeof img === 'object') {
       // Prefer listing_search (~25KB, good quality) over thumb_m (~7KB, pixelated)
       const path = img.url_listing_search || img.url_thumb_l || img.url_thumb_m || img.url
