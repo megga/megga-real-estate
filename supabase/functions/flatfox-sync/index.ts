@@ -77,7 +77,7 @@ interface FlatfoxListing {
   year_built: number | null
   moving_date: string | null
   created: string
-  images: Array<{ pk: number; url: string; url_thumb_m?: string; url_thumb_l?: string }> | null
+  images: Array<{ pk: number; url: string; url_thumb_m?: string; url_thumb_l?: string; url_listing_search?: string }> | null
   agency: { name?: string; name_2?: string; phone?: string; logo?: { url?: string; url_org_logo_m?: string } } | null
 }
 
@@ -176,7 +176,8 @@ function mapPhotos(images: FlatfoxListing['images']): string[] {
   const urls: string[] = []
   for (const img of images.slice(0, 10)) {
     if (img && typeof img === 'object') {
-      const path = img.url_thumb_l || img.url_thumb_m || img.url
+      // Prefer listing_search (~25KB, good quality) over thumb_m (~7KB, pixelated)
+      const path = img.url_listing_search || img.url_thumb_l || img.url_thumb_m || img.url
       if (path) urls.push(path.startsWith('http') ? path : `${FLATFOX_BASE}${path}`)
     }
   }
