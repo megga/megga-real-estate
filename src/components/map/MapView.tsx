@@ -10,7 +10,6 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import Supercluster from 'supercluster'
 import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, RotateCcw, Pause, Play, Maximize, Minimize, School, TrainFront, ShoppingBag, TreePine, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
@@ -100,9 +99,9 @@ function pointInPolygon(point: [number, number], polygon: [number, number][]): b
   return inside
 }
 
-type ListingPoint = Supercluster.PointFeature<{ listing: ListingCardData }>
-
 const MAP_GL_STYLE = { width: '100%', height: '100%' } as const
+
+const LISTING_LAYERS = ['unclustered-dot', 'unclustered-label', 'cluster-circle', 'cluster-label'] as const
 
 const MAP_STYLES = [
   { id: 'standard', label: '3D', icon: Mountain, url: 'mapbox://styles/mapbox/standard' },
@@ -384,15 +383,128 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [closedPolygon, setClosedPolygon] = useState<[number, number][] | null>(null)
   const [cursorPos, setCursorPos] = useState<[number, number] | null>(null)
 
-  // Throttled cursor position update during draw mode (~30fps is plenty for cursor trail)
+  // ─── Native Mapbox GL data ───
+  // Flattened GeoJSON for native Mapbox clustering + symbol/circle layers
+  const listingsGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection' as const,
+    features: (mapPoints && mapPoints.length > 0
+      ? mapPoints.map(mp => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [mp.lng, mp.lat] },
+          properties: {
+            id: mp.id,
+            price: mp.price,
+            priceLabel: formatPricePin(mp.price, mp.context),
+            rooms: mp.rooms,
+            type: mp.type || '',
+            context: mp.context || 'buy',
+          },
+        }))
+      : listings.filter(l => l.lat && l.lng).map(l => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: [l.lng!, l.lat!] },
+          properties: {
+            id: l.id,
+            price: l.price,
+            priceLabel: formatPricePin(l.price, l.context),
+            rooms: l.rooms,
+            type: l.type || '',
+            context: l.context || 'buy',
+          },
+        }))
+    ),
+  }), [mapPoints, listings])
+
+  // O(1) lookup for full listing data (popup needs photos, address, etc.)
+  const listingsMap = useMemo(() => {
+    const m = new Map<string, ListingCardData>()
+    for (const l of listings) m.set(l.id, l)
+    if (mapPoints) {
+      for (const mp of mapPoints) {
+        if (!m.has(mp.id)) {
+          m.set(mp.id, {
+            id: mp.id, title: '', price: mp.price, address: '', city: '',
+            rooms: mp.rooms, bedrooms: 0, surface_m2: 0, photos: [],
+            type: mp.type, context: mp.context, lat: mp.lat, lng: mp.lng,
+          })
+        }
+      }
+    }
+    return m
+  }, [listings, mapPoints])
+
+  // Combined mouse move: draw cursor trail + listing layer hover
   const cursorThrottleRef = useRef<number>(0)
   const handleMouseMove = useCallback((e: MapMouseEvent) => {
-    if (!isDrawing || drawPoints.length === 0) return
-    const now = performance.now()
-    if (now - cursorThrottleRef.current < 32) return
-    cursorThrottleRef.current = now
-    setCursorPos([e.lngLat.lng, e.lngLat.lat])
-  }, [isDrawing, drawPoints.length])
+    // Draw mode: throttled cursor trail
+    if (isDrawing && drawPoints.length > 0) {
+      const now = performance.now()
+      if (now - cursorThrottleRef.current < 32) return
+      cursorThrottleRef.current = now
+      setCursorPos([e.lngLat.lng, e.lngLat.lat])
+      return
+    }
+    if (isDrawing) return
+
+    // Listing layer hover detection
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    const features = map.queryRenderedFeatures(e.point, {
+      layers: LISTING_LAYERS as unknown as string[],
+    })
+    if (features.length > 0) {
+      map.getCanvas().style.cursor = 'pointer'
+      const props = features[0].properties
+      if (props?.id && !props?.cluster_id) {
+        onHover?.(props.id as string)
+        const listing = listingsMap.get(props.id as string)
+        if (listing) setHoveredPin(listing)
+      }
+    } else {
+      map.getCanvas().style.cursor = ''
+      if (hoveredPin) {
+        onHover?.(undefined)
+        setHoveredPin(null)
+      }
+    }
+  }, [isDrawing, drawPoints.length, onHover, hoveredPin, listingsMap])
+
+  // Sync hoveredId prop → Mapbox feature-state for native layer highlight
+  const prevHoveredRef = useRef<string | null>(null)
+  useEffect(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    try {
+      if (prevHoveredRef.current) {
+        map.setFeatureState({ source: 'listings', id: prevHoveredRef.current }, { hover: false })
+      }
+      if (hoveredId) {
+        map.setFeatureState({ source: 'listings', id: hoveredId }, { hover: true })
+      }
+    } catch { /* source may not be loaded yet */ }
+    prevHoveredRef.current = hoveredId ?? null
+  }, [hoveredId])
+
+  // Zone-filter dimming: set feature-state 'dimmed' on points outside polygon
+  useEffect(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    try {
+      if (closedPolygon) {
+        const pts = mapPoints || listings.filter(l => l.lat && l.lng)
+        for (const p of pts) {
+          const lng = (p as MapPoint).lng ?? (p as ListingCardData).lng
+          const lat = (p as MapPoint).lat ?? (p as ListingCardData).lat
+          if (lng == null || lat == null) continue
+          const inside = pointInPolygon([lng, lat], closedPolygon)
+          map.setFeatureState({ source: 'listings', id: (p as MapPoint).id ?? (p as ListingCardData).id }, { dimmed: !inside })
+        }
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (map as any).removeFeatureState?.({ source: 'listings' })
+      }
+    } catch { /* source not ready */ }
+  }, [closedPolygon, mapPoints, listings])
 
   // Expose imperative methods to parent
   useImperativeHandle(ref, () => ({
@@ -422,94 +534,25 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     [mapStyleId]
   )
 
-  // Build GeoJSON points — use mapPoints (lightweight, all 38K) if available, otherwise listings
-  const points: ListingPoint[] = useMemo(() => {
-    if (mapPoints && mapPoints.length > 0) {
-      return mapPoints.map((mp) => ({
-        type: 'Feature' as const,
-        properties: {
-          listing: {
-            id: mp.id,
-            title: '',
-            price: mp.price,
-            address: '',
-            city: '',
-            rooms: mp.rooms,
-            bedrooms: 0,
-            surface_m2: 0,
-            photos: [],
-            type: mp.type,
-            context: mp.context,
-            lat: mp.lat,
-            lng: mp.lng,
-          } as ListingCardData,
-        },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [mp.lng, mp.lat],
-        },
-      }))
-    }
-    return listings
-      .filter((l) => l.lat && l.lng)
-      .map((l) => ({
-        type: 'Feature' as const,
-        properties: { listing: l },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [l.lng!, l.lat!],
-        },
-      }))
-  }, [mapPoints, listings])
-
-  // Build supercluster index — light clustering at low zoom, individual prices at high zoom
-  const supercluster = useMemo(() => {
-    const sc = new Supercluster<{ listing: ListingCardData }, { minPrice: number; context: 'buy' | 'rent' }>({
-      radius: 35,
-      maxZoom: 14,
-      map: (props) => ({ minPrice: props.listing.price, context: (props.listing.context as 'buy' | 'rent') || 'buy' }),
-      reduce: (acc, props) => {
-        acc.minPrice = Math.min(acc.minPrice, props.minPrice)
-        // Context: all pins in a view share the same context, keep first encountered
-        if (acc.context !== props.context) acc.context = props.context
-      },
-    })
-    sc.load(points)
-    return sc
-  }, [points])
-
-  // Cluster recalc — throttled via onMoveEnd to avoid 60x/sec recalc during pan
-  const [clusterBounds, setClusterBounds] = useState<{ zoom: number; bounds: [number, number, number, number] }>({
-    zoom: 11, bounds: [5.5, 45.5, 7.0, 47.0],
-  })
-
-  const clusters = useMemo(() => {
-    return supercluster.getClusters(clusterBounds.bounds, Math.floor(clusterBounds.zoom))
-  }, [supercluster, clusterBounds])
-
-  const updateClusterBounds = useCallback(() => {
+  // Viewport count — simple bounds filter on points
+  const updateViewportCount = useCallback(() => {
     const map = mapRef.current?.getMap()
     if (!map) return
     const b = map.getBounds()
     if (!b) return
-    const bounds: [number, number, number, number] = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
-    setClusterBounds({ zoom: map.getZoom(), bounds })
-    // Count points in viewport
-    const allInView = supercluster.getClusters(bounds, 20) // zoom 20 = no clustering = individual count
-    setViewportCount(allInView.length)
-    // Notify parent of viewport bounds
-    onViewportChange?.({ west: bounds[0], south: bounds[1], east: bounds[2], north: bounds[3] })
-  }, [supercluster, onViewportChange])
+    const w = b.getWest(), s = b.getSouth(), e = b.getEast(), n = b.getNorth()
+    const pts = mapPoints || listings.filter(l => l.lat && l.lng)
+    const count = pts.filter((p: { lat?: number; lng?: number }) =>
+      p.lng != null && p.lat != null && p.lng >= w && p.lng <= e && p.lat >= s && p.lat <= n
+    ).length
+    setViewportCount(count)
+    onViewportChange?.({ west: w, south: s, east: e, north: n })
+  }, [mapPoints, listings, onViewportChange])
 
   const handleMove = useCallback((evt: ViewStateChangeEvent) => {
     setViewState(evt.viewState)
     if (isOrbiting) stopOrbit()
   }, [isOrbiting, stopOrbit])
-
-  function handleClusterClick(clusterId: number, lng: number, lat: number) {
-    const zoom = supercluster.getClusterExpansionZoom(clusterId)
-    mapRef.current?.flyTo({ center: [lng, lat], zoom, duration: 500 })
-  }
 
   function handlePinClick(listing: ListingCardData) {
     setSelectedListing(listing)
@@ -566,7 +609,33 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       setNeighborhoodPickMode(false)
       return
     }
-    if (!isDrawing) return
+    if (!isDrawing) {
+      // Query native layers for listing/cluster clicks
+      const map = mapRef.current?.getMap()
+      if (map) {
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: LISTING_LAYERS as unknown as string[],
+        })
+        if (features.length > 0) {
+          const feature = features[0]
+          const props = feature.properties
+          if (props?.cluster_id != null) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const src = map.getSource('listings') as any
+            const coords = (feature.geometry as GeoJSON.Point).coordinates as [number, number]
+            Promise.resolve(src.getClusterExpansionZoom(props.cluster_id))
+              .then((zoom: number) => {
+                map.flyTo({ center: coords, zoom, duration: 500 })
+              })
+              .catch(() => { /* ignore */ })
+          } else if (props?.id) {
+            const listing = listingsMap.get(props.id as string)
+            if (listing) handlePinClick(listing)
+          }
+        }
+      }
+      return
+    }
 
     const newPoint: [number, number] = [e.lngLat.lng, e.lngLat.lat]
 
@@ -676,15 +745,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     }
   }, [drawPoints, closedPolygon, cursorPos])
 
-  // Memoize heatmap GeoJSON to avoid 38K feature rebuild every render
-  const heatmapData = useMemo(() => ({
-    type: 'FeatureCollection' as const,
-    features: points.map(p => ({
-      type: 'Feature' as const,
-      geometry: p.geometry,
-      properties: { price: p.properties.listing.price },
-    })),
-  }), [points])
+  // Heatmap reuses the same GeoJSON (price is already a top-level property)
+  const heatmapData = listingsGeoJSON
 
   // Count listings in zone
   const zoneCount = useMemo(() => {
@@ -725,7 +787,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         ref={mapRef}
         {...viewState}
         onMove={handleMove}
-        onMoveEnd={updateClusterBounds}
+        onMoveEnd={updateViewportCount}
         onClick={handleMapClick}
         onDblClick={handleMapDoubleClick}
         mapboxAccessToken={MAPBOX_TOKEN}
@@ -742,8 +804,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         onMouseMove={handleMouseMove}
         onLoad={(e) => {
           const map = e.target
-          // Initialize cluster bounds
-          updateClusterBounds()
+          // Initialize viewport count
+          updateViewportCount()
           // Force light preset on load (Standard auto-detects local time which makes the map dark at night)
           if (mapStyleId === 'standard') {
             const applyLight = () => {
@@ -816,78 +878,111 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </Source>
         )}
 
-        {/* Render price pins — Zillow-style: clusters show "from X" price, individuals show exact price */}
-        {clusters.slice(0, 500).map((cluster) => {
-          const [lng, lat] = cluster.geometry.coordinates
-          const props = cluster.properties as Record<string, unknown>
-          const isCluster = props.cluster
+        {/* ─── Native Mapbox GL layers for listings (Zillow-style) ─── */}
+        <Source
+          id="listings"
+          type="geojson"
+          data={listingsGeoJSON}
+          cluster
+          clusterRadius={50}
+          clusterMaxZoom={14}
+          clusterProperties={{ minPrice: [['min'], ['get', 'price']] }}
+          promoteId="id"
+        >
+          {/* Layer 1: Unclustered dots — visible at low zoom, fade out at high zoom */}
+          <Layer
+            id="unclustered-dot"
+            type="circle"
+            filter={['!', ['has', 'point_count']]}
+            paint={{
+              'circle-color': [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                ['boolean', ['feature-state', 'dimmed'], false], '#9CA3AF',
+                '#7F1D1D',
+              ],
+              'circle-radius': [
+                'interpolate', ['linear'], ['zoom'],
+                8, 3,
+                11, 5,
+                13, 4,
+                15, 0,
+              ],
+              'circle-opacity': [
+                'interpolate', ['linear'], ['zoom'],
+                13, 1,
+                15, 0,
+              ],
+              'circle-stroke-color': 'rgba(255,255,255,0.7)',
+              'circle-stroke-width': 1,
+            }}
+          />
 
-          if (isCluster) {
-            const pointCount = props.point_count as number
-            const minPrice = props.minPrice as number
-            const clusterContext = (props.context as 'buy' | 'rent') || 'buy'
-            return (
-              <Marker key={`cluster-${cluster.id}`} longitude={lng} latitude={lat} anchor="center">
-                <button
-                  onClick={(e) => {
-                    if (isDrawing) return
-                    e.stopPropagation()
-                    handleClusterClick(cluster.id as number, lng, lat)
-                  }}
-                  className="rounded-full text-xs font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2 bg-gray-900 text-white border-white/80 hover:scale-110 hover:bg-gray-800 flex items-center gap-1"
-                >
-                  {formatPricePin(minPrice, clusterContext)}
-                  <span className="text-xs font-normal text-white/60">+{pointCount}</span>
-                </button>
-              </Marker>
-            )
-          }
+          {/* Layer 2: Unclustered price labels — fade in at high zoom */}
+          <Layer
+            id="unclustered-label"
+            type="symbol"
+            filter={['!', ['has', 'point_count']]}
+            layout={{
+              'text-field': ['get', 'priceLabel'],
+              'text-size': 11,
+              'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+              'text-allow-overlap': true,
+              'text-anchor': 'center',
+            }}
+            paint={{
+              'text-color': '#FFFFFF',
+              'text-halo-color': [
+                'case',
+                ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                ['boolean', ['feature-state', 'dimmed'], false], '#9CA3AF',
+                '#1F2937',
+              ],
+              'text-halo-width': 5,
+              'text-halo-blur': 0,
+              'text-opacity': [
+                'interpolate', ['linear'], ['zoom'],
+                12, 0,
+                13, 1,
+              ],
+            }}
+          />
 
-          // Individual pin — dark pill with price (Zillow-style)
-          const listing = (cluster.properties as { listing: ListingCardData }).listing
-          const isHovered = hoveredId === listing.id
-          const isSelected = selectedListing?.id === listing.id
-          const activePolygon = closedPolygon
-          const isInZone = activePolygon
-            ? listing.lat && listing.lng && pointInPolygon([listing.lng, listing.lat], activePolygon)
-            : true
+          {/* Layer 3: Cluster circles */}
+          <Layer
+            id="cluster-circle"
+            type="circle"
+            filter={['has', 'point_count']}
+            paint={{
+              'circle-color': '#1F2937',
+              'circle-radius': [
+                'step', ['get', 'point_count'],
+                16,
+                10, 20,
+                50, 24,
+                100, 30,
+              ],
+              'circle-stroke-color': 'rgba(255,255,255,0.8)',
+              'circle-stroke-width': 2,
+            }}
+          />
 
-          return (
-            <Marker
-              key={`pin-${listing.id}`}
-              longitude={lng}
-              latitude={lat}
-              anchor="center"
-              style={{ zIndex: isHovered || isSelected ? 50 : 1 }}
-            >
-              <div className="relative">
-                {/* Pulse ring when hovered from list */}
-                {isHovered && !isSelected && (
-                  <span className="absolute inset-0 rounded-full border-2 border-accent animate-ping opacity-40 pointer-events-none" />
-                )}
-                <button
-                  onClick={(e) => {
-                    if (isDrawing) return
-                    e.stopPropagation()
-                    handlePinClick(listing)
-                  }}
-                  onMouseEnter={() => { onHover?.(listing.id); setHoveredPin(listing) }}
-                  onMouseLeave={() => { onHover?.(undefined); setHoveredPin(null) }}
-                  className={cn(
-                    'relative rounded-full text-xs font-bold px-2.5 py-1 shadow-lg whitespace-nowrap transition-all duration-200 cursor-pointer border-2',
-                    isHovered || isSelected
-                      ? 'bg-accent text-white border-white shadow-xl scale-110'
-                      : isInZone
-                        ? 'bg-gray-900 text-white border-white/80 hover:scale-110 hover:bg-gray-800'
-                        : 'bg-gray-400 text-white/70 border-white/50 opacity-60'
-                  )}
-                >
-                  {formatPricePin(listing.price, listing.context)}
-                </button>
-              </div>
-            </Marker>
-          )
-        })}
+          {/* Layer 4: Cluster count labels */}
+          <Layer
+            id="cluster-label"
+            type="symbol"
+            filter={['has', 'point_count']}
+            layout={{
+              'text-field': ['to-string', ['get', 'point_count']],
+              'text-size': 12,
+              'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+              'text-allow-overlap': true,
+            }}
+            paint={{
+              'text-color': '#FFFFFF',
+            }}
+          />
+        </Source>
 
         {/* Hover tooltip — mini preview on pin hover (without clicking) */}
         {hoveredPin && hoveredPin.lat && hoveredPin.lng && !selectedListing && !isDrawing && (
@@ -982,7 +1077,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         )}
 
         {/* Price heatmap layer (fullscreen only) */}
-        {showHeatmap && (isFullscreen || showTools) && points.length > 0 && (
+        {showHeatmap && (isFullscreen || showTools) && listingsGeoJSON.features.length > 0 && (
           <Source
             id="price-heatmap"
             type="geojson"
@@ -1595,14 +1690,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         <>
           {/* Listing counter — shows visible count in viewport */}
           <div className="absolute top-3 right-3 z-[5] bg-gray-900/70 backdrop-blur-xl text-white/80 text-xs font-medium px-3 py-1.5 rounded-xl border border-white/10">
-            {(() => {
-              const visibleCount = clusters.reduce((sum, c) => {
-                const props = c.properties as Record<string, unknown>
-                return sum + (props.cluster ? (props.point_count as number) : 1)
-              }, 0)
-              const total = mapPoints?.length || listings.length
-              return `${visibleCount.toLocaleString('fr-CH')} / ${total.toLocaleString('fr-CH')} biens`
-            })()}
+            {viewportCount.toLocaleString('fr-CH')} / {(mapPoints?.length || listings.length).toLocaleString('fr-CH')} biens
           </div>
 
           {/* Neighborhood pick mode instruction */}
