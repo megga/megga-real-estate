@@ -156,6 +156,7 @@ function transformToCardData(
     source_portal: ml.source_portal as string | undefined,
     source_url: ml.source_url as string | undefined,
     agency_name: ml.agency_name as string | undefined,
+    agency_logo_url: ml.agency_logo_url as string | undefined,
     price_per_m2: ml.price_per_m2 as number | undefined,
     days_on_market: ml.days_on_market as number | undefined,
     transaction_type: txType,
@@ -193,7 +194,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
       let marketQuery = supabase
         .from('market_listings')
         .select(
-          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, lat, lng, source_portal, source_url, agency_name, price_per_m2, days_on_market, status, first_seen_at, created_at, transaction_type, is_furnished, deposit_months, charges_monthly, external_regie'
+          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, lat, lng, source_portal, source_url, agency_name, agency_logo_url, price_per_m2, days_on_market, status, first_seen_at, created_at, transaction_type, is_furnished, deposit_months, charges_monthly, external_regie'
         )
 
       marketQuery = applyFilters(marketQuery, filters)

@@ -38,6 +38,7 @@ export interface ListingCardData {
   source_portal?: string
   source_url?: string
   agency_name?: string
+  agency_logo_url?: string
   price_per_m2?: number
   days_on_market?: number
   price_drop_pct?: number
