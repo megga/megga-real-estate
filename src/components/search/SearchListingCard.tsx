@@ -63,7 +63,7 @@ export default function SearchListingCard({
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
-      <div className="relative aspect-[16/9] overflow-hidden">
+      <div className="relative aspect-[3/2] overflow-hidden">
         {photos.length > 0 ? (
           <img
             src={optimizeImageUrl(photos[currentPhoto], IMAGE_PRESETS.card)}
@@ -154,7 +154,7 @@ export default function SearchListingCard({
           </>
         )}
       </div>
-      <div className="p-4">
+      <div className="px-3 py-2.5">
         <div className="flex items-baseline gap-2">
           <span className="text-lg font-bold text-gray-900">
             <span className="text-sm font-normal text-gray-500">CHF </span>
@@ -166,10 +166,10 @@ export default function SearchListingCard({
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-500 mt-1 truncate">
+        <p className="text-sm text-gray-500 mt-0.5 truncate">
           {listing.address}, {listing.city}
         </p>
-        <div className="flex items-center text-sm text-gray-500 mt-2 gap-1">
+        <div className="flex items-center text-sm text-gray-500 mt-1 gap-1">
           {listing.rooms > 0 && (
             <span className="flex items-center gap-1">
               <DoorOpen className="h-3.5 w-3.5 text-gray-500" />
