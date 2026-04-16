@@ -129,11 +129,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     }
   }, [])
   const mapToolsRef = useRef<HTMLDivElement>(null)
-  const [splitRatio, setSplitRatio] = useState(() => {
-    const stored = localStorage.getItem('megga-split-ratio')
-    return stored ? Math.max(20, Math.min(80, Number(stored))) : 35
-  })
-  const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const [viewedIds, setViewedIds] = useState<string[]>([])
   const listScrollRef = useRef<HTMLDivElement>(null)
@@ -148,10 +143,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   }, [])
 
   // Persist split ratio + resize map
-  useEffect(() => {
-    localStorage.setItem('megga-split-ratio', String(splitRatio))
-  }, [splitRatio])
-
   // Close map tools dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -213,31 +204,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     const qs = params.toString()
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
   }, [])
-
-  // Draggable separator handler
-  const onSeparatorPointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-    const el = e.currentTarget as HTMLElement
-    el.setPointerCapture(e.pointerId)
-  }, [])
-
-  useEffect(() => {
-    if (!isDragging) return
-    const onMove = (e: PointerEvent) => {
-      if (!containerRef.current) return
-      const rect = containerRef.current.getBoundingClientRect()
-      const pct = ((e.clientX - rect.left) / rect.width) * 100
-      setSplitRatio(Math.max(20, Math.min(80, pct)))
-    }
-    const onUp = () => { setIsDragging(false); mapViewRef.current?.resize() }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-    return () => {
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-    }
-  }, [isDragging])
 
   const updateFilter = useCallback(
     (patch: Partial<Filters>) => {
@@ -416,7 +382,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
         <div className="px-4 md:px-6 py-4">
 
           {/* Desktop: single unified row — constrained to left panel width */}
-          <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: `${splitRatio}%` }}>
+          <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: '35%' }}>
             {/* Search input — flexible width */}
             <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
               <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
@@ -794,7 +760,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
       </div>
 
       {/* ─── MAIN CONTENT ─── */}
-      <div ref={containerRef} className={cn('flex-1 flex overflow-hidden', isDragging && 'select-none cursor-col-resize')}>
+      <div ref={containerRef} className="flex-1 flex overflow-hidden">
         {/* Left panel: filters + results — hidden in immersive mode */}
         <div
           className={cn(
@@ -802,7 +768,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
             mapImmersive && 'hidden',
             !mapImmersive && 'w-full lg:shrink-0',
           )}
-          style={!mapImmersive ? { width: `${splitRatio}%` } : undefined}
+          style={!mapImmersive ? { width: '35%' } : undefined}
         >
 
           {/* Old ZONE 2 + mobile filter button removed — merged into unified bar above */}
@@ -999,19 +965,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
           )}
         </div>
 
-        {/* ─── Draggable separator (split mode only) ─── */}
-        {!mapImmersive && (
-          <div
-            className="hidden lg:flex items-center justify-center w-1 hover:w-1.5 cursor-col-resize group shrink-0 transition-all sticky top-[124px] h-[calc(100vh-124px)]"
-            onPointerDown={onSeparatorPointerDown}
-          >
-            <div className={cn(
-              'w-0.5 h-12 rounded-full transition-colors',
-              isDragging ? 'bg-accent' : 'bg-gray-200 group-hover:bg-gray-400'
-            )} />
-          </div>
-        )}
-
         {/* ─── ZONE 5: Map (desktop) ─── */}
         <div
           className={cn(
@@ -1020,7 +973,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               ? 'block flex-1 border-l-0 h-screen'
               : 'sticky top-[124px] h-[calc(100vh-124px)] hidden lg:block lg:flex-1'
           )}
-          style={!mapImmersive ? { width: `${100 - splitRatio}%` } : undefined}
+          style={!mapImmersive ? { width: '65%' } : undefined}
         >
           <MapView
             ref={mapViewRef}
