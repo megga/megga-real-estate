@@ -88,23 +88,36 @@ const corsHeaders = {
 
 // ─── Type mapping ────────────────────────────────────────────────
 
+// Only truly irrelevant types are skipped (boats, gardening plots).
+// Parkings, garages, storage, and offices are now included per Gregory's
+// request (2026-04-16) — mapped to the new property types.
 const TYPES_TO_SKIP = new Set([
-  'GARAGE_SLOT', 'SINGLE_GARAGE', 'OUTSIDE_PARK_SLOT', 'COVERED_PARK_SLOT',
-  'BOAT_SLOT', 'HOBBY_ROOM', 'PROVISION_ROOM', 'STORAGE_ROOM', 'CARPORT',
+  'BOAT_SLOT', 'GARDENING',
 ])
 
 const TYPE_MAP: Record<string, string> = {
+  // Residential
   APT: 'apartment', APARTMENT: 'apartment', FLAT: 'apartment',
   STUDIO: 'apartment', ATTIC_FLAT: 'apartment', ROOF_FLAT: 'apartment',
   DUPLEX: 'apartment', TERRACE_FLAT: 'apartment', GROUND_FLAT: 'apartment',
   LOFT: 'apartment', MAISONETTE: 'apartment', FURNISHED_FLAT: 'apartment',
-  BACHELOR_FLAT: 'apartment', SHARED_FLAT: 'apartment',
+  BACHELOR_FLAT: 'apartment', SHARED_FLAT: 'apartment', SINGLE_ROOM: 'apartment',
   HOUSE: 'house', SINGLE_HOUSE: 'house', TERRACE_HOUSE: 'house',
-  ROW_HOUSE: 'house', CHALET: 'house',
+  ROW_HOUSE: 'house', CHALET: 'house', FARM_HOUSE: 'house', DUPLEX_HOUSE: 'house',
   VILLA: 'villa', BIFAMILIAR_HOUSE: 'house', MULTIFAMILIAR_HOUSE: 'house',
-  OFFICE: 'commercial', WORKSHOP: 'commercial', COMMERCIAL: 'commercial',
-  SHOP: 'commercial', RESTAURANT: 'commercial', WAREHOUSE: 'commercial',
-  PRACTICE: 'commercial', GARAGE: 'commercial',
+  // Office
+  OFFICE: 'office', PRACTICE: 'office',
+  // Commercial (shops, restaurants, workshops, warehouses)
+  SHOP: 'commercial', RESTAURANT: 'commercial', COMMERCIAL: 'commercial',
+  WORKSHOP: 'commercial', WAREHOUSE: 'commercial',
+  // Parking / Garage
+  GARAGE_SLOT: 'parking', SINGLE_GARAGE: 'parking', GARAGE: 'parking',
+  OUTSIDE_PARK_SLOT: 'parking', COVERED_PARK_SLOT: 'parking',
+  COVERED_SLOT: 'parking', OPEN_SLOT: 'parking', CARPORT: 'parking',
+  COVERED_PARKING_PLACE_BIKE: 'parking',
+  // Storage / Hobby
+  STORAGE_ROOM: 'storage', PROVISION_ROOM: 'storage', HOBBY_ROOM: 'storage',
+  // Land
   BUILDING_LAND: 'land', AGRICULTURAL_LAND: 'land',
 }
 

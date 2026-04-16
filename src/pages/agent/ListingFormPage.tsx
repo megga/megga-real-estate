@@ -6,7 +6,7 @@ import {
   ArrowLeft, Check, Save, Send,
   Upload, X, GripVertical, Loader2, ChevronDown, ShieldCheck,
   Minus, Plus, MapPin, PenLine, Copy, Link2, FileText,
-  Building2, Home as HomeIcon, Castle, Store, Mountain,
+  Building2, Home as HomeIcon, Castle, Store, Mountain, CarFront, Briefcase, Warehouse,
 } from 'lucide-react'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -169,6 +169,9 @@ const PROPERTY_TYPE_ICONS: Record<string, typeof Building2> = {
   house: HomeIcon,
   villa: Castle,
   commercial: Store,
+  office: Briefcase,
+  parking: CarFront,
+  storage: Warehouse,
   land: Mountain,
 }
 

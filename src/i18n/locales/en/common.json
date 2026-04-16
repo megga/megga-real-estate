@@ -846,7 +846,10 @@
       "house": "House",
       "villa": "Villa",
       "land": "Land",
-      "commercial": "Commercial"
+      "commercial": "Commercial",
+      "office": "Office",
+      "parking": "Parking / Garage",
+      "storage": "Storage / Cellar"
     },
     "conditions": {
       "new": "New",

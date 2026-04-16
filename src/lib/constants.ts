@@ -12,6 +12,9 @@ export const PROPERTY_TYPES = [
   'house',
   'villa',
   'commercial',
+  'office',
+  'parking',
+  'storage',
   'land',
 ] as const
 
@@ -22,6 +25,9 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   house: 'Maison',
   villa: 'Villa',
   commercial: 'Commercial',
+  office: 'Bureau',
+  parking: 'Parking / Garage',
+  storage: 'Dépôt / Cave',
   land: 'Terrain',
 }
 
