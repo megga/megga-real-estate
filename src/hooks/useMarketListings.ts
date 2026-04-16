@@ -48,8 +48,17 @@ type MarketListingsQuery = PostgrestFilterBuilder<any, any, any, any>
 function applyFilters<Q extends MarketListingsQuery>(query: Q, filters: MarketFilters): Q {
   let q = query.in('status', ['active', 'price_reduced'])
   q = q.eq('transaction_type', filters.context || 'buy')
-  q = q.gt('price', 0) // Exclure les biens sans prix (prix sur demande)
-  q = q.gte('quality_score', 50) // Exclure les biens suspects (contrôle qualité)
+  // For sales, exclude listings without a price (useless to display).
+  // For rentals, allow price=0 because many parking/storage/office listings
+  // have "prix sur demande" which Flatfox reports as 0.
+  if (filters.context !== 'rent') {
+    q = q.gt('price', 0)
+  }
+  // Include listings with NULL quality_score (not yet scored) — they were
+  // previously excluded by .gte('quality_score', 50) because PostgreSQL
+  // treats NULL >= 50 as FALSE. This was hiding ALL newly-synced Flatfox
+  // listings until the scoring job ran.
+  q = q.or('quality_score.gte.50,quality_score.is.null')
   if (filters.types && filters.types.length > 0) q = q.in('type', filters.types)
   if (filters.canton) q = q.eq('canton', filters.canton)
   if (filters.city) q = q.ilike('city', `%${filters.city}%`)
@@ -198,9 +207,15 @@ export function useMarketListings(filters: MarketFilters = {}) {
         let internalQuery = supabase
           .from('properties')
           .select(
-            'id, title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, lat, lng, created_at, published_at'
+            'id, title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, lat, lng, created_at, published_at, transaction_type'
           )
           .eq('status', 'active')
+
+        // Filter by transaction_type so BUY properties don't appear on /louer
+        // and RENT properties don't appear on /acheter
+        if (filters.context) {
+          internalQuery = internalQuery.eq('transaction_type', filters.context)
+        }
 
         if (filters.types && filters.types.length > 0) {
           internalQuery = internalQuery.in('type', filters.types)

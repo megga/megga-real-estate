@@ -180,12 +180,16 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
       {/* Info */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <span className="text-lg font-semibold text-gray-900">
-            <span className="text-sm font-normal text-gray-500">CHF </span>
-            {listing.transaction_type === 'rent'
-              ? formatRent(listing.price).replace('CHF ', '')
-              : formatCHF(listing.price).replace('CHF ', '')}
-          </span>
+          {listing.price > 0 ? (
+            <span className="text-lg font-semibold text-gray-900">
+              <span className="text-sm font-normal text-gray-500">CHF </span>
+              {listing.transaction_type === 'rent'
+                ? formatRent(listing.price).replace('CHF ', '')
+                : formatCHF(listing.price).replace('CHF ', '')}
+            </span>
+          ) : (
+            <span className="text-sm font-medium text-gray-500">Prix sur demande</span>
+          )}
         </div>
 
         <p className="text-sm text-gray-600 mb-2">
