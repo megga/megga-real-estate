@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect, forwardRef, useImperativeHandle, memo } from 'react'
 import { Link } from 'react-router-dom'
 import MapGL, {
   Marker,
@@ -101,6 +101,8 @@ function pointInPolygon(point: [number, number], polygon: [number, number][]): b
 }
 
 type ListingPoint = Supercluster.PointFeature<{ listing: ListingCardData }>
+
+const MAP_GL_STYLE = { width: '100%', height: '100%' } as const
 
 const MAP_STYLES = [
   { id: 'standard', label: '3D', icon: Mountain, url: 'mapbox://styles/mapbox/standard' },
@@ -414,6 +416,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     get showHeatmap() { return showHeatmap },
   }))
 
+  // Stable terrain config to avoid Mapbox re-applying terrain on every render
+  const terrainConfig = useMemo(
+    () => mapStyleId === 'standard' ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined,
+    [mapStyleId]
+  )
+
   // Build GeoJSON points — use mapPoints (lightweight, all 38K) if available, otherwise listings
   const points: ListingPoint[] = useMemo(() => {
     if (mapPoints && mapPoints.length > 0) {
@@ -722,7 +730,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         onDblClick={handleMapDoubleClick}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={currentStyle.url}
-        style={{ width: '100%', height: '100%' }}
+        style={MAP_GL_STYLE}
         attributionControl={false}
         doubleClickZoom={!isDrawing}
         dragPan={!isDrawing}
@@ -730,7 +738,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         dragRotate
         touchPitch
         touchZoomRotate
-        terrain={mapStyleId === 'standard' ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined}
+        terrain={terrainConfig}
         onMouseMove={handleMouseMove}
         onLoad={(e) => {
           const map = e.target
@@ -1729,4 +1737,4 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   )
 })
 
-export default MapView
+export default memo(MapView)
