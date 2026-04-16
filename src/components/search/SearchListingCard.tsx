@@ -63,7 +63,7 @@ export default function SearchListingCard({
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-[16/9] overflow-hidden">
         {photos.length > 0 ? (
           <img
             src={optimizeImageUrl(photos[currentPhoto], IMAGE_PRESETS.card)}
