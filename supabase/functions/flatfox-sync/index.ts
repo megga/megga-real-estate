@@ -78,7 +78,7 @@ interface FlatfoxListing {
   moving_date: string | null
   created: string
   images: Array<{ pk: number; url: string; url_thumb_m?: string; url_thumb_l?: string; url_listing_search?: string; ordering?: number }> | null
-  agency: { name?: string; name_2?: string; phone?: string; logo?: { url?: string; url_org_logo_m?: string } } | null
+  agency: { name?: string; name_2?: string; phone?: string; street?: string; zipcode?: string; city?: string; country?: string; logo?: { url?: string; url_org_logo_m?: string } } | null
 }
 
 const corsHeaders = {
@@ -262,7 +262,78 @@ async function fetchFlatfoxPage(offset: number): Promise<{ results: FlatfoxListi
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapListingToRow(ff: FlatfoxListing, nowIso: string): Record<string, any> | null {
+// Slugify agency name: "Apleona Schweiz AG" → "apleona-schweiz-ag"
+function slugifyName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+// Upsert all unique agencies from a batch and return a slug → id map.
+// Called once per chunk (before mapping listings to rows).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function upsertAgencyProfiles(supabase: any, listings: FlatfoxListing[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
+  const uniqueBySlug = new Map<string, {
+    slug: string; name: string; logo_url: string | null; phone: string | null;
+    address: string | null; zipcode: string | null; city: string | null; canton: string | null;
+  }>()
+
+  for (const ff of listings) {
+    const parts = [ff.agency?.name, ff.agency?.name_2].filter(Boolean)
+    const name = parts.length > 0 ? parts.join(' — ') : null
+    if (!name) continue
+    const slug = slugifyName(name)
+    if (!slug || uniqueBySlug.has(slug)) continue
+    const logoPath = ff.agency?.logo?.url_org_logo_m || ff.agency?.logo?.url || null
+    uniqueBySlug.set(slug, {
+      slug,
+      name,
+      logo_url: logoPath ? `${FLATFOX_BASE}${logoPath}` : null,
+      phone: ff.agency?.phone || null,
+      address: ff.agency?.street || null,
+      zipcode: ff.agency?.zipcode || null,
+      city: ff.agency?.city || null,
+      canton: npaToCanton(ff.agency?.zipcode || null),
+    })
+  }
+
+  if (uniqueBySlug.size === 0) return map
+
+  const rows = Array.from(uniqueBySlug.values()).map(a => ({
+    slug: a.slug,
+    name: a.name,
+    logo_url: a.logo_url,
+    phone: a.phone,
+    address: a.address,
+    city: a.city,
+    canton: a.canton,
+    source: 'flatfox',
+    status: 'unclaimed',
+  }))
+
+  const { data, error } = await supabase
+    .from('agency_profiles')
+    .upsert(rows, { onConflict: 'slug', ignoreDuplicates: false })
+    .select('id, slug')
+
+  if (error) {
+    console.error('[agency_profiles upsert] error:', error.message)
+    return map
+  }
+
+  if (data) {
+    for (const row of data as Array<{ id: string; slug: string }>) {
+      map.set(row.slug, row.id)
+    }
+  }
+  return map
+}
+
+function mapListingToRow(ff: FlatfoxListing, nowIso: string, agencyProfileIdMap: Map<string, string>): Record<string, any> | null {
   if (TYPES_TO_SKIP.has(ff.object_type)) return null
 
   const transactionType = ff.offer_type === 'BUY' ? 'buy' : 'rent'
@@ -288,6 +359,7 @@ function mapListingToRow(ff: FlatfoxListing, nowIso: string): Record<string, any
   const agencyPhone = ff.agency?.phone || null
   const agencyLogoPath = ff.agency?.logo?.url_org_logo_m || ff.agency?.logo?.url || null
   const agencyLogoUrl = agencyLogoPath ? `${FLATFOX_BASE}${agencyLogoPath}` : null
+  const agencyProfileId = agencyName ? agencyProfileIdMap.get(slugifyName(agencyName)) ?? null : null
 
   const row: Record<string, unknown> = {
     title,
@@ -311,7 +383,16 @@ function mapListingToRow(ff: FlatfoxListing, nowIso: string): Record<string, any
     is_furnished: !!ff.is_furnished,
     availability_date: availabilityDate,
     external_regie: agencyName
-      ? { name: agencyName, phone: agencyPhone || '', email: '', website: '' }
+      ? {
+          name: agencyName,
+          phone: agencyPhone || '',
+          email: '',
+          website: '',
+          street: ff.agency?.street || '',
+          zipcode: ff.agency?.zipcode || '',
+          city: ff.agency?.city || '',
+          country: ff.agency?.country || '',
+        }
       : null,
     source_portal: 'flatfox',
     source_id: String(ff.pk),
@@ -319,6 +400,7 @@ function mapListingToRow(ff: FlatfoxListing, nowIso: string): Record<string, any
     agency_name: agencyName,
     agency_phone: agencyPhone,
     agency_logo_url: agencyLogoUrl,
+    agency_profile_id: agencyProfileId,
     price_at_first_seen: price,
     current_price: price,
     first_seen_at: ff.created || nowIso,
@@ -468,9 +550,11 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       stats.fetched += results.length
       stats.pages++
       pagesThisChunk++
+      // First: upsert all unique agencies in this page, get slug→id map
+      const agencyProfileIdMap = await upsertAgencyProfiles(supabase, results)
       const rows: Record<string, unknown>[] = []
       for (const r of results) {
-        const row = mapListingToRow(r, nowIso)
+        const row = mapListingToRow(r, nowIso, agencyProfileIdMap)
         if (row === null) { stats.skipped++; continue }
         rows.push(row)
       }

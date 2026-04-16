@@ -1,7 +1,9 @@
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Building2, Star, Phone, Mail, Globe, ArrowLeft } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
+import { cn, formatCHF } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import { useAgencyProfile } from '@/hooks/useAgentProfile'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -9,6 +11,25 @@ import BuyerSidebar from '@/components/search/BuyerSidebar'
 import VerifiedBadge from '@/components/directory/VerifiedBadge'
 import ClaimProfileCTA from '@/components/directory/ClaimProfileCTA'
 import AgentCard from '@/components/directory/AgentCard'
+
+function useAgencyListings(agencyProfileId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['agency-listings', agencyProfileId],
+    enabled: !!agencyProfileId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('market_listings')
+        .select('id, title, price, current_price, city, canton, rooms, surface_m2, photos, transaction_type, type')
+        .eq('agency_profile_id', agencyProfileId!)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(24)
+      if (error) throw error
+      return data || []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
 
 const SPECIALTY_KEYS: Record<string, string> = {
   residential: 'specialty.residential',
@@ -65,6 +86,8 @@ export default function AgencyProfilePage() {
   }
 
   const { agency, agents } = data
+  const agencyId = (agency as unknown as { id?: string }).id ?? null
+  const { data: agencyListings } = useAgencyListings(agencyId)
 
   return (
     <>
@@ -226,7 +249,7 @@ export default function AgencyProfilePage() {
 
       {/* Team */}
       {agents.length > 0 && (
-        <section>
+        <section className="mb-10">
           <h2 className="text-lg font-semibold text-theme-primary mb-4">
             {t('profile.team')} ({agents.length})
           </h2>
@@ -234,6 +257,53 @@ export default function AgencyProfilePage() {
             {agents.map(agent => (
               <AgentCard key={agent.id} agent={agent} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* Active listings from this agency */}
+      {agencyListings && agencyListings.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold text-theme-primary mb-4">
+            Annonces de cette agence ({agencyListings.length})
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {agencyListings.map((l) => {
+              const listing = l as Record<string, unknown>
+              const photos = (listing.photos as string[]) || []
+              const photo = photos[0]
+              const price = Number(listing.current_price ?? listing.price ?? 0)
+              const isRent = listing.transaction_type === 'rent'
+              return (
+                <Link
+                  key={listing.id as string}
+                  to={`/listing/market-${listing.id}`}
+                  className="block bg-white border border-theme-border rounded-lg overflow-hidden hover:border-accent transition-colors group"
+                >
+                  <div className="aspect-[16/9] bg-theme-hover overflow-hidden">
+                    {photo ? (
+                      <img src={photo} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Building2 className="h-8 w-8 text-theme-muted" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-bold text-theme-primary">
+                      {formatCHF(price)}{isRent ? '/mois' : ''}
+                    </p>
+                    <p className="text-xs text-theme-tertiary truncate">
+                      {listing.city as string}{listing.canton ? `, ${listing.canton}` : ''}
+                    </p>
+                    <div className="flex gap-2 mt-1 text-xs text-theme-muted">
+                      {Number(listing.rooms) > 0 && <span>{listing.rooms as number} p.</span>}
+                      {Number(listing.surface_m2) > 0 && <span>· {listing.surface_m2 as number} m²</span>}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </section>
       )}
