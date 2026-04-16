@@ -65,6 +65,7 @@ interface TransformedListing {
   is_new: boolean
   is_exclusive: boolean
   agency_name: string
+  agency_logo_url: string
   lat: number | undefined
   lng: number | undefined
   year_built: number
@@ -113,6 +114,7 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     is_new: source === 'market' ? Number(data.days_on_market) <= 3 : false,
     is_exclusive: source === 'internal',
     agency_name: source === 'market' ? ((data.agency_name as string) || '') : 'MEGGA Real Estate',
+    agency_logo_url: (data.agency_logo_url as string) || '',
     lat: data.lat as number | undefined,
     lng: data.lng as number | undefined,
     year_built: Number(data.year_built) || 0,
@@ -1241,7 +1243,7 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                           ? { name: listing.agency_name, phone: '', email: '' }
                           : null,
                       )
-                      const logoUrl = (listing as unknown as Record<string, unknown>).agency_logo_url as string | undefined
+                      const logoUrl = listing.agency_logo_url || undefined
                       return (
                         <div className="bg-theme-card border border-theme-border rounded-xl p-5 space-y-4">
                           <p className="text-xs font-semibold text-theme-muted uppercase tracking-wider">Annonceur</p>
