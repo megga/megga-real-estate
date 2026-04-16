@@ -166,6 +166,7 @@ export function useAdminMonitoring() {
   return {
     health: health.data,
     healthLoading: health.isLoading,
+    healthError: health.isError,
     edgeFunctions: edgeFunctions.data ?? [],
     edgeFunctionsLoading: edgeFunctions.isLoading,
     errorLogs: errorLogs.data ?? [],

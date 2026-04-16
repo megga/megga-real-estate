@@ -8,7 +8,7 @@ type FunctionFilter = 'all' | 'healthy' | 'error' | 'unknown'
 
 export default function AdminMonitoringPage() {
   const { t } = useTranslation('admin')
-  const { health, healthLoading, edgeFunctions, edgeFunctionsLoading, errorLogs, errorLogsLoading } = useAdminMonitoring()
+  const { health, healthLoading, healthError, edgeFunctions, edgeFunctionsLoading, errorLogs, errorLogsLoading } = useAdminMonitoring()
   const [errorSearch, setErrorSearch] = useState('')
   const [fnFilter, setFnFilter] = useState<FunctionFilter>('all')
   const [fnSearch, setFnSearch] = useState('')
@@ -57,6 +57,20 @@ export default function AdminMonitoringPage() {
           <span className="text-xs text-emerald-600 font-medium">{t('admin:monitoring.planPro')}</span>
         </div>
       </div>
+
+      {/* Error banner — when the health query fails entirely (Supabase down,
+          RLS issue, network error). Without this, the page just showed
+          empty data with no explanation — same silent failure pattern as
+          the pre-fix MapView. */}
+      {healthError && !healthLoading && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-theme-primary">{t('admin:monitoring.errorTitle', { defaultValue: 'Données de monitoring indisponibles' })}</p>
+            <p className="text-xs text-theme-secondary mt-0.5">{t('admin:monitoring.errorDesc', { defaultValue: 'La connexion à la base de données a échoué. Vérifiez le statut Supabase et les policies RLS.' })}</p>
+          </div>
+        </div>
+      )}
 
       {/* Health indicators — 6 cards */}
       {healthLoading ? (

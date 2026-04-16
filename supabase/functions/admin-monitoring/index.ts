@@ -17,21 +17,33 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Verify caller is super_admin
+    // Auth: accept service_role JWT (pg_cron) OR super_admin user JWT (dashboard)
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) throw new Error('Unauthorized')
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    if (authError || !user) throw new Error('Unauthorized')
 
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    // Decode JWT payload to check role without a DB roundtrip
+    let jwtRole = ''
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      jwtRole = payload.role ?? ''
+    } catch { /* invalid JWT → will fail below */ }
 
-    if (profile?.role !== 'super_admin') throw new Error('Forbidden')
+    // service_role = trusted internal call (pg_cron, other Edge Functions)
+    if (jwtRole !== 'service_role') {
+      // Interactive call from dashboard — verify the user is super_admin
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+      if (authError || !user) throw new Error('Unauthorized')
+
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role !== 'super_admin') throw new Error('Forbidden')
+    }
 
     // ── Collect metrics ──
     const now = new Date()
@@ -69,15 +81,24 @@ serve(async (req) => {
       }
     }
 
-    // ── Pro plan: Storage usage via Management API ──
+    // ── Pro plan: Storage usage via pg_total_relation_size on storage.objects ──
     let storageUsedMb = 0
     try {
-      // List all buckets and sum sizes
-      const { data: buckets } = await supabaseAdmin.storage.listBuckets()
-      // Storage API doesn't expose size directly, estimate from listing
-      storageUsedMb = (buckets ?? []).length * 10 // Rough estimate, improve later
+      // Query the actual size of all objects in Supabase Storage via the
+      // internal storage.objects table. This is more accurate than the previous
+      // bucket-count heuristic (buckets.length * 10 MB) which was always wrong.
+      const { data: sizeRow } = await supabaseAdmin.rpc('storage_size_mb', {})
+      storageUsedMb = sizeRow ?? 0
     } catch {
-      storageUsedMb = 0
+      // Fallback: count objects and estimate 500 KB average per file
+      try {
+        const { count } = await supabaseAdmin
+          .from('objects' as never) // storage.objects schema
+          .select('id', { count: 'exact', head: true })
+        storageUsedMb = Math.round(((count ?? 0) * 0.5) / 1) // 0.5 MB avg
+      } catch {
+        storageUsedMb = 0
+      }
     }
 
     // ── Store all metrics ──
