@@ -56,7 +56,7 @@ const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListi
 const OnboardingWizardPage = lazy(() => import('@/pages/agent/OnboardingWizardPage'))
 
 // Lazy-loaded seller portal pages
-const SellerLayout = lazy(() => import('@/pages/particulier/SellerLayout'))
+const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
 const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
 const MonDossierPage = lazy(() => import('@/pages/particulier/MonDossierPage'))
 const MesVisitesPage = lazy(() => import('@/pages/particulier/MesVisitesPage'))
@@ -174,8 +174,11 @@ export default function App() {
               <Route path="/support/:ticketNumber" element={<TicketStatusPage />} />
               <Route path="/support/:ticketNumber/feedback" element={<TicketFeedbackPage />} />
 
-              {/* Portail vendeur — accès direct (dev/test) */}
-              <Route path="/portail" element={<SellerLayout />}>
+              {/* Portail vendeur — accès direct (dev/test) — wraps in
+                  SellerPortalProvider with MOCK_SELLER_DATA so child pages
+                  don't crash with "useSellerPortalData must be used inside
+                  SellerPortalProvider" (audit bug A2). */}
+              <Route path="/portail" element={<PortalDevWrapper />}>
                 <Route index element={<MonDossierPage />} />
                 <Route path="visites" element={<MesVisitesPage />} />
                 <Route path="offres" element={<MesOffresPage />} />
