@@ -78,7 +78,7 @@ interface FlatfoxListing {
   moving_date: string | null
   created: string
   images: Array<{ pk: number; url: string; url_thumb_m?: string; url_thumb_l?: string }> | null
-  agency: { name?: string; name_2?: string; phone?: string } | null
+  agency: { name?: string; name_2?: string; phone?: string; logo?: { url?: string; url_org_logo_m?: string } } | null
 }
 
 const corsHeaders = {
@@ -276,6 +276,8 @@ function mapListingToRow(ff: FlatfoxListing, nowIso: string): Record<string, any
   const agencyParts = [ff.agency?.name, ff.agency?.name_2].filter(Boolean)
   const agencyName = agencyParts.length > 0 ? agencyParts.join(' — ') : null
   const agencyPhone = ff.agency?.phone || null
+  const agencyLogoPath = ff.agency?.logo?.url_org_logo_m || ff.agency?.logo?.url || null
+  const agencyLogoUrl = agencyLogoPath ? `${FLATFOX_BASE}${agencyLogoPath}` : null
 
   const row: Record<string, unknown> = {
     title,
@@ -306,6 +308,7 @@ function mapListingToRow(ff: FlatfoxListing, nowIso: string): Record<string, any
     source_url: sourceUrl,
     agency_name: agencyName,
     agency_phone: agencyPhone,
+    agency_logo_url: agencyLogoUrl,
     price_at_first_seen: price,
     current_price: price,
     first_seen_at: ff.created || nowIso,
