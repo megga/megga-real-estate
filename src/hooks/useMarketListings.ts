@@ -1,7 +1,8 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { ListingCardData } from '@/components/listings/ListingCard'
-import { applyPlaceholders } from '@/lib/placeholderData'
+// applyPlaceholders removed — was replacing real Flatfox data (photos,
+// titles, addresses, agencies) with fake Unsplash/demo content.
 import type { PostgrestFilterBuilder } from '@supabase/postgrest-js'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -238,16 +239,15 @@ export function useMarketListings(filters: MarketFilters = {}) {
         const { data: internalData } = await internalQuery
         if (internalData) {
           for (let i = 0; i < internalData.length; i++) {
-            listings.push(applyPlaceholders(transformToCardData(internalData[i], 'internal'), i))
+            listings.push(transformToCardData(internalData[i], 'internal'))
           }
         }
       }
 
       // Ajouter les biens du marché
       if (marketData) {
-        const offset = listings.length
         for (let i = 0; i < marketData.length; i++) {
-          listings.push(applyPlaceholders(transformToCardData(marketData[i], 'market'), offset + i + pageParam * PAGE_SIZE))
+          listings.push(transformToCardData(marketData[i], 'market'))
         }
       }
 
