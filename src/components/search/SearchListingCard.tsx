@@ -13,6 +13,7 @@ interface SearchListingCardProps {
   listing: ListingCardData
   onHover?: (id: string | undefined) => void
   isHovered?: boolean
+  eager?: boolean
   isFavorite?: boolean
   onToggleFavorite?: () => void
   isCompared?: boolean
@@ -25,6 +26,7 @@ export default function SearchListingCard({
   listing,
   onHover,
   isHovered,
+  eager = false,
   isFavorite: isFav = false,
   onToggleFavorite,
   isCompared = false,
@@ -67,8 +69,9 @@ export default function SearchListingCard({
             src={optimizeImageUrl(photos[currentPhoto], IMAGE_PRESETS.card)}
             alt={listing.title}
             className="w-full h-full object-cover"
-            loading="lazy"
+            loading={eager ? undefined : 'lazy'}
             decoding="async"
+            fetchPriority={eager ? 'high' : undefined}
           />
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
