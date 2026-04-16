@@ -183,18 +183,20 @@ export function useMarketListings(filters: MarketFilters = {}) {
       const to = from + PAGE_SIZE - 1
 
       // ── Market listings ──
+      // Light SELECT: exclude `description` (heavy text, loaded on detail page
+      // only) to avoid statement timeout on 33K+ rows. Photos kept as needed
+      // for cards, but limited server-side isn't possible so we handle in transform.
       let marketQuery = supabase
         .from('market_listings')
         .select(
-          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, lat, lng, source_portal, source_url, agency_name, price_per_m2, days_on_market, status, first_seen_at, created_at',
-          { count: 'estimated' }
+          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, lat, lng, source_portal, source_url, agency_name, price_per_m2, days_on_market, status, first_seen_at, created_at, transaction_type, is_furnished, deposit_months, charges_monthly, external_regie'
         )
 
       marketQuery = applyFilters(marketQuery, filters)
       marketQuery = applySorting(marketQuery, filters.sort)
       marketQuery = marketQuery.range(from, to)
 
-      const { data: marketData, count } = await marketQuery
+      const { data: marketData } = await marketQuery
 
       const listings: ListingCardData[] = []
 
@@ -249,8 +251,12 @@ export function useMarketListings(filters: MarketFilters = {}) {
         }
       }
 
-      const totalCount = (count ?? 0) + (pageParam === 0 ? listings.filter(l => l.id.startsWith('internal-')).length : 0)
-      const hasMore = marketData ? marketData.length === PAGE_SIZE : false
+      // No count query (was causing statement timeout on 33K+ rows).
+      // totalCount is approximate: we know there are more pages if we got a full batch.
+      const internalCount = pageParam === 0 ? listings.filter(l => l.id.startsWith('internal-')).length : 0
+      const marketCount = marketData?.length ?? 0
+      const hasMore = marketCount === PAGE_SIZE
+      const totalCount = hasMore ? internalCount + marketCount + 1 : internalCount + marketCount
 
       return {
         listings,
@@ -284,12 +290,9 @@ export function useMapPoints(filters: MarketFilters = {}) {
           .in('status', ['active', 'price_reduced'])
           .not('lat', 'is', null)
           .not('lng', 'is', null)
+          .gt('price', 0)
           .gte('quality_score', 50)
           .eq('transaction_type', filters.context || 'buy')
-        // Allow price=0 for rentals (parking/storage "prix sur demande")
-        if (filters.context !== 'rent') {
-          q = q.gt('price', 0)
-        }
         if (filters.types && filters.types.length > 0) q = q.in('type', filters.types)
         if (filters.canton) q = q.eq('canton', filters.canton)
         if (filters.city) q = q.ilike('city', `%${filters.city}%`)
