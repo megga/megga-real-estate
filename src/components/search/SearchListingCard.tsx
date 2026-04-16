@@ -63,7 +63,7 @@ export default function SearchListingCard({
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
     >
-      <div className="relative aspect-[3/2] overflow-hidden">
+      <div className="relative aspect-[16/9] overflow-hidden">
         {photos.length > 0 ? (
           <img
             src={optimizeImageUrl(photos[currentPhoto], IMAGE_PRESETS.card)}
@@ -206,21 +206,6 @@ export default function SearchListingCard({
             </>
           )}
         </div>
-        {listing.description && (
-          <p className="text-xs text-gray-500 mt-2 line-clamp-1">{listing.description}</p>
-        )}
-        {(listing.agency_name || listing.days_on_market !== undefined) && (
-          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-50">
-            {listing.agency_name && (
-              <span className="text-xs text-gray-500 truncate max-w-[60%]">{listing.agency_name}</span>
-            )}
-            {listing.days_on_market !== undefined && (
-              <span className="text-xs text-gray-500">
-                {listing.days_on_market <= 1 ? t('search.today') : listing.days_on_market <= 7 ? t('search.daysAgo', { count: listing.days_on_market }) : t('search.daysOnline', { count: listing.days_on_market })}
-              </span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )
