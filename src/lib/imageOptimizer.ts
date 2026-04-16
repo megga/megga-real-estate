@@ -16,9 +16,9 @@
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://megga.ch'
 
-// Active/désactive l'optimisation Cloudflare globalement.
-// false = les URLs sont retournées telles quelles (dev local, fallback).
-const CF_IMAGES_ENABLED = import.meta.env.VITE_CF_IMAGES_ENABLED === 'true'
+// Cloudflare Image Transformations requires a paid plan (Pro+).
+// Force-disabled to prevent broken image URLs on the Free plan.
+const CF_IMAGES_ENABLED = false
 
 interface ImageOptions {
   width?: number
