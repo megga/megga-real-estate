@@ -4,9 +4,9 @@ import { createPortal } from 'react-dom'
 import {
   X, ChevronDown, ChevronUp, ChevronLeft, MoreHorizontal,
   MapPin, Heart, Share2,
-  Phone, CalendarDays, Building2,
+  Phone, Building2,
   Clock, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
-  ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check, GitCompareArrows,
+  ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check,
 } from 'lucide-react'
 import { cn, formatCHF, formatRent, formatSurface, resolveRegieContact } from '@/lib/utils'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
@@ -24,9 +24,6 @@ import InteractiveFloorPlan from '@/components/listing/InteractiveFloorPlan'
 import ListingLightbox from '@/components/listing/ListingLightbox'
 import C2PaBadge from '@/components/listing/C2PaBadge'
 import ContactAgentModal from '@/components/listing/ContactAgentModal'
-import AgentCard from '@/components/listing/AgentCard'
-import RegieContactCard from '@/components/listing/RegieContactCard'
-import RequestVisitModal from '@/components/listings/RequestVisitModal'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 import { useNeighborhood, calculateWalkScore } from '@/hooks/useNeighborhood'
 import MapGL, { Marker, NavigationControl } from 'react-map-gl/mapbox'
@@ -388,6 +385,8 @@ const AI_LANG_LABELS: Record<string, { placeholder: string; welcome: string; lan
   it: { placeholder: 'Fai la tua domanda...', welcome: 'Conosco questo immobile in dettaglio. Chiedetemi tutto!', langInstruction: 'Rispondi in italiano.' },
 }
 
+// @ts-expect-error -- kept for future use
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
   listing: TransformedListing
   walkScore: { score: number; label: string } | null
@@ -609,7 +608,7 @@ function AskMeggaAI({ listing, walkScore: ws, marketTemp: mt, isMobile }: {
 
 // ─── Main component ─────────────────────────────────────────────────────
 
-export default function ListingPreviewPanel({ listingId, onClose, isCompared, onToggleCompare, inline }: ListingPreviewPanelProps) {
+export default function ListingPreviewPanel({ listingId, onClose, inline }: ListingPreviewPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [photoIndex, setPhotoIndex] = useState(0)
   const [mobilePhotoIndex, setMobilePhotoIndex] = useState(0)
@@ -618,10 +617,8 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
   const [activeSection, setActiveSection] = useState(BASE_SECTIONS[0].id)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
-  const [showDatePicker, setShowDatePicker] = useState(false)
   const [showContactModal, setShowContactModal] = useState(false)
   const [showStaged, setShowStaged] = useState(false)
-  const [shareCopied, setShareCopied] = useState(false)
   const [floorPlanRoom, setFloorPlanRoom] = useState<string | null>(null)
   const mobileCarouselRef = useRef<HTMLDivElement>(null)
 
@@ -680,7 +677,6 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
     setMobilePhotoIndex(0)
     setDescExpanded(false)
     setActiveSection(BASE_SECTIONS[0].id)
-    setShowDatePicker(false)
     setLightboxOpen(false)
     setFloorPlanRoom(null)
   }, [listingId])
@@ -1233,139 +1229,53 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
 
                 </div>
 
-                {/* ── RIGHT: Sticky CTA sidebar (desktop) ── */}
+                {/* ── RIGHT: Sticky advertiser card (desktop) ── */}
                 <div className="hidden md:block w-[340px] flex-shrink-0 border-l border-theme-border-subtle">
                   <div className="sticky top-[49px] p-6 space-y-4 max-h-[calc(92vh-420px)] overflow-y-auto scrollbar-hide">
 
-                    {listing.transaction_type === 'rent' ? (
-                      /* Rental — single CTA scrolls to regie block below */
-                      <button
-                        onClick={() => document.getElementById('preview-regie-contact')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                        className="w-full h-12 border border-theme-border text-theme-primary font-semibold rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors"
-                      >
-                        <Phone className="w-5 h-5" />
-                        Contacter la régie
-                      </button>
-                    ) : (
-                      <>
-                        {/* Primary CTA */}
-                        <button
-                          onClick={() => setShowDatePicker(true)}
-                          className="w-full h-12 border border-theme-border text-theme-primary font-semibold rounded-lg flex items-center justify-center gap-2 hover:border-accent hover:text-accent transition-colors"
-                        >
-                          <CalendarDays className="w-5 h-5" />
-                          Planifier une visite
-                        </button>
-
-                        {/* Secondary CTA */}
-                        <button
-                          onClick={() => setShowContactModal(true)}
-                          className="w-full h-11 bg-theme-card border border-theme-border hover:border-theme-active hover:bg-theme-section text-theme-primary font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
-                        >
-                          <Phone className="w-5 h-5" />
-                          Contacter l'agent
-                        </button>
-
-                        {/* Visit modal (opens via showDatePicker state) */}
-                        <RequestVisitModal
-                          listingAddress={`${listing.address}, ${listing.city}`}
-                          propertyId={listing.id}
-                          agencyId=""
-                          listingPhoto={photos[0]}
-                          listingPrice={formatCHF(listing.price)}
-                          open={showDatePicker}
-                          onClose={() => setShowDatePicker(false)}
-                        />
-                      </>
-                    )}
-
-                    {/* Tertiary actions */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setIsFavorite(!isFavorite)}
-                        className={cn(
-                          'flex-1 h-10 bg-theme-card border text-sm font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors',
-                          isFavorite
-                            ? 'border-red-200 bg-red-50 text-red-500'
-                            : 'border-theme-border hover:border-theme-active text-theme-secondary'
-                        )}
-                      >
-                        <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
-                        {isFavorite ? 'Sauvegardé' : 'Sauvegarder'}
-                      </button>
-                      {onToggleCompare && (
-                        <button
-                          onClick={onToggleCompare}
-                          className={cn(
-                            'h-10 w-10 border rounded-lg flex items-center justify-center transition-colors flex-shrink-0',
-                            isCompared
-                              ? 'bg-accent border-accent text-white'
-                              : 'bg-theme-card border-theme-border hover:border-theme-active text-theme-secondary'
-                          )}
-                          aria-label={isCompared ? 'Retirer de la comparaison' : 'Ajouter à la comparaison'}
-                        >
-                          {isCompared ? <Check className="w-4 h-4" /> : <GitCompareArrows className="w-4 h-4" />}
-                        </button>
-                      )}
-                      <button
-                        onClick={async () => {
-                          const url = `${window.location.origin}/listing/${listingId}`
-                          const title = listing.title || 'Bien immobilier'
-                          const text = `${title} — ${formatCHF(listing.price)}`
-                          if (navigator.share) {
-                            try {
-                              await navigator.share({ title, text, url })
-                            } catch { /* user cancelled */ }
-                          } else {
-                            await navigator.clipboard.writeText(url)
-                            setShareCopied(true)
-                            setTimeout(() => setShareCopied(false), 2000)
-                          }
-                        }}
-                        className="flex-1 h-10 bg-theme-card border border-theme-border hover:border-theme-active text-theme-secondary text-sm font-medium rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        {shareCopied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
-                        {shareCopied ? 'Copié' : 'Partager'}
-                      </button>
-                    </div>
-
-                    <div className="border-t border-theme-border-subtle my-2" />
-
-                    {/* Ask MEGGA AI — positioned high for visibility */}
-                    <AskMeggaAI listing={listing} walkScore={walkScore} marketTemp={marketTemp ?? null} />
-
-                    <div className="border-t border-theme-border-subtle my-2" />
-
-                    {/* Agency / regie info */}
-                    {listing.transaction_type === 'rent' ? (
-                      (() => {
-                        const regie = resolveRegieContact(
-                          { external_regie: listing.external_regie },
-                          listing.agency_name
-                            ? { name: listing.agency_name, phone: '', email: '' }
-                            : null,
-                        )
-                        return regie ? (
-                          <div id="preview-regie-contact">
-                            <RegieContactCard regie={regie} />
-                          </div>
-                        ) : null
-                      })()
-                    ) : (
-                      listing.agency_name && (
-                        <AgentCard
-                          variant="compact"
-                          agent={{
-                            name: listing.agency_name,
-                            agency: listing.agency_name,
-                            phone: '',
-                            email: '',
-                            photo: '',
-                          }}
-                          onClick={() => setShowContactModal(true)}
-                        />
+                    {/* Advertiser card */}
+                    {(() => {
+                      const regie = resolveRegieContact(
+                        { external_regie: listing.external_regie },
+                        listing.agency_name
+                          ? { name: listing.agency_name, phone: '', email: '' }
+                          : null,
                       )
-                    )}
+                      const logoUrl = (listing as unknown as Record<string, unknown>).agency_logo_url as string | undefined
+                      return (
+                        <div className="bg-theme-card border border-theme-border rounded-xl p-5 space-y-4">
+                          <p className="text-xs font-semibold text-theme-muted uppercase tracking-wider">Annonceur</p>
+                          {logoUrl && (
+                            <div className="flex justify-center">
+                              <img src={logoUrl} alt={regie?.name || listing.agency_name || ''} className="h-12 max-w-[180px] object-contain" />
+                            </div>
+                          )}
+                          <div className="space-y-2">
+                            {(regie?.name || listing.agency_name) && (
+                              <p className="text-sm font-semibold text-theme-primary">{regie?.name || listing.agency_name}</p>
+                            )}
+                            {regie?.phone && (
+                              <a href={`tel:${regie.phone}`} className="flex items-center gap-2 text-sm text-theme-secondary hover:text-accent transition-colors">
+                                <Phone className="w-4 h-4" />
+                                {regie.phone}
+                              </a>
+                            )}
+                            {regie?.email && (
+                              <a href={`mailto:${regie.email}`} className="flex items-center gap-2 text-sm text-theme-secondary hover:text-accent transition-colors truncate">
+                                <Send className="w-4 h-4 shrink-0" />
+                                {regie.email}
+                              </a>
+                            )}
+                            {regie?.website && (
+                              <a href={regie.website.startsWith('http') ? regie.website : `https://${regie.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-theme-secondary hover:text-accent transition-colors truncate">
+                                <Building2 className="w-4 h-4 shrink-0" />
+                                {regie.website.replace(/^https?:\/\//, '')}
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
 
                     <div className="border-t border-theme-border-subtle my-2" />
 
@@ -1396,49 +1306,29 @@ export default function ListingPreviewPanel({ listingId, onClose, isCompared, on
               <Footer />
 
               {/* ── Mobile CTA bar ── */}
-              <div className="md:hidden sticky bottom-0 bg-theme-card border-t border-theme-border-subtle p-4 flex gap-3 z-40">
-                {listing.transaction_type === 'rent' ? (
-                  /* Rental — single CTA "Contacter la régie" */
-                  <button
-                    onClick={() => document.getElementById('preview-regie-contact')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                    className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold border border-theme-border text-theme-primary rounded-lg hover:border-accent hover:text-accent transition-colors"
-                  >
-                    <Phone className="h-4 w-4" />
-                    Contacter la régie
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setShowDatePicker(true)}
-                      className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-semibold border border-theme-border text-theme-primary rounded-lg hover:border-accent hover:text-accent transition-colors"
-                    >
-                      <CalendarDays className="h-4 w-4" />
-                      Visite
-                    </button>
-                    <button
-                      onClick={() => setShowContactModal(true)}
-                      className="flex-1 h-11 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:border-theme-active transition-colors"
+              <div className="md:hidden sticky bottom-0 bg-theme-card border-t border-theme-border-subtle p-4 z-40">
+                {(() => {
+                  const regie = resolveRegieContact(
+                    { external_regie: listing.external_regie },
+                    listing.agency_name ? { name: listing.agency_name, phone: '', email: '' } : null,
+                  )
+                  return regie?.phone ? (
+                    <a
+                      href={`tel:${regie.phone}`}
+                      className="w-full h-11 flex items-center justify-center gap-2 text-sm font-semibold border border-theme-border text-theme-primary rounded-lg hover:border-accent hover:text-accent transition-colors"
                     >
                       <Phone className="h-4 w-4" />
-                      Appeler
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => setIsFavorite(!isFavorite)}
-                  className={cn(
-                    'h-11 w-11 rounded-lg border flex items-center justify-center transition-colors',
-                    isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'border-theme-border text-theme-tertiary'
-                  )}
-                >
-                  <Heart className={cn('h-4 w-4', isFavorite && 'fill-current')} />
-                </button>
+                      Appeler {regie.name || listing.agency_name}
+                    </a>
+                  ) : (
+                    <p className="text-center text-sm text-theme-secondary">
+                      {listing.agency_name || 'Annonceur'}
+                    </p>
+                  )
+                })()}
               </div>
 
-              {/* Mobile AI FAB */}
-              <div className="md:hidden">
-                <AskMeggaAI listing={listing} walkScore={walkScore} marketTemp={marketTemp ?? null} isMobile />
-              </div>
+              {/* Mobile AI FAB removed */}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-[300px]">
