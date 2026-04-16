@@ -47,7 +47,10 @@ const PAGE_SIZE = 50
 type MarketListingsQuery = PostgrestFilterBuilder<any, any, any, any>
 
 function applyFilters<Q extends MarketListingsQuery>(query: Q, filters: MarketFilters): Q {
-  let q = query.in('status', ['active', 'price_reduced'])
+  // Use eq instead of in — the partial index only covers status='active' and
+  // 99.9% of listings are 'active'. The 'price_reduced' status is handled by
+  // the price_at_first_seen vs current_price comparison on the card itself.
+  let q = query.eq('status', 'active')
   q = q.eq('transaction_type', filters.context || 'buy')
   // For sales, exclude listings without a price (useless to display).
   // For rentals, allow price=0 because many parking/storage/office listings
@@ -287,7 +290,7 @@ export function useMapPoints(filters: MarketFilters = {}) {
         let q = supabase
           .from('market_listings')
           .select('id, lat, lng, price, current_price, type, rooms, transaction_type')
-          .in('status', ['active', 'price_reduced'])
+          .eq('status', 'active')
           .not('lat', 'is', null)
           .not('lng', 'is', null)
           .gt('price', 0)
