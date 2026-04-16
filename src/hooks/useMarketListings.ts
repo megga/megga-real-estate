@@ -54,11 +54,7 @@ function applyFilters<Q extends MarketListingsQuery>(query: Q, filters: MarketFi
   if (filters.context !== 'rent') {
     q = q.gt('price', 0)
   }
-  // Include listings with NULL quality_score (not yet scored) — they were
-  // previously excluded by .gte('quality_score', 50) because PostgreSQL
-  // treats NULL >= 50 as FALSE. This was hiding ALL newly-synced Flatfox
-  // listings until the scoring job ran.
-  q = q.or('quality_score.gte.50,quality_score.is.null')
+  q = q.gte('quality_score', 50)
   if (filters.types && filters.types.length > 0) q = q.in('type', filters.types)
   if (filters.canton) q = q.eq('canton', filters.canton)
   if (filters.city) q = q.ilike('city', `%${filters.city}%`)
@@ -288,9 +284,12 @@ export function useMapPoints(filters: MarketFilters = {}) {
           .in('status', ['active', 'price_reduced'])
           .not('lat', 'is', null)
           .not('lng', 'is', null)
-          .gt('price', 0)
           .gte('quality_score', 50)
           .eq('transaction_type', filters.context || 'buy')
+        // Allow price=0 for rentals (parking/storage "prix sur demande")
+        if (filters.context !== 'rent') {
+          q = q.gt('price', 0)
+        }
         if (filters.types && filters.types.length > 0) q = q.in('type', filters.types)
         if (filters.canton) q = q.eq('canton', filters.canton)
         if (filters.city) q = q.ilike('city', `%${filters.city}%`)
