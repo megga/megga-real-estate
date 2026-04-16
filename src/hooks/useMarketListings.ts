@@ -187,7 +187,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
         .from('market_listings')
         .select(
           'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, lat, lng, source_portal, source_url, agency_name, price_per_m2, days_on_market, status, first_seen_at, created_at',
-          { count: 'exact' }
+          { count: 'estimated' }
         )
 
       marketQuery = applyFilters(marketQuery, filters)
