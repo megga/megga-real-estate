@@ -184,8 +184,9 @@ function mapPhotos(images: FlatfoxListing['images']): string[] {
   const urls: string[] = []
   for (const img of sorted.slice(0, 10)) {
     if (img && typeof img === 'object') {
-      // Prefer listing_search (~25KB, good quality) over thumb_m (~7KB, pixelated)
-      const path = img.url_listing_search || img.url_thumb_l || img.url_thumb_m || img.url
+      // Use original full-resolution URL (no alias = ~100KB, sharp)
+      // Avoids pixelation in lightbox and listing detail pages
+      const path = img.url
       if (path) urls.push(path.startsWith('http') ? path : `${FLATFOX_BASE}${path}`)
     }
   }
