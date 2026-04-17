@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useCallback } from 'react'
+import { useMemo, useRef, useCallback, useEffect } from 'react'
 import { useNeighborhood, calculateWalkScore, type PoiCategory } from '@/hooks/useNeighborhood'
 import { X, Train, ShoppingBag, GraduationCap, HeartPulse, Coffee, Loader2, MapPin } from 'lucide-react'
 
@@ -79,29 +79,52 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
     [isLoading, categories, station],
   )
 
-  // Drag state — offset from initial position (top-14 left-4)
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  // Drag — imperative DOM writes via rAF, no React state during the gesture.
+  const containerRef = useRef<HTMLDivElement>(null)
+  const offsetRef = useRef({ x: 0, y: 0 })
   const dragStart = useRef<{ x: number; y: number; offX: number; offY: number } | null>(null)
+  const rafId = useRef<number | null>(null)
+  const pendingPos = useRef({ x: 0, y: 0 })
+
+  const applyTransform = useCallback(() => {
+    rafId.current = null
+    const el = containerRef.current
+    if (!el) return
+    el.style.transform = `translate3d(${pendingPos.current.x}px, ${pendingPos.current.y}px, 0)`
+  }, [])
+
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    dragStart.current = { x: e.clientX, y: e.clientY, offX: offset.x, offY: offset.y }
-  }, [offset.x, offset.y])
+    dragStart.current = { x: e.clientX, y: e.clientY, offX: offsetRef.current.x, offY: offsetRef.current.y }
+    const el = containerRef.current
+    if (el) el.style.willChange = 'transform'
+  }, [])
+
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragStart.current) return
-    setOffset({
+    pendingPos.current = {
       x: dragStart.current.offX + (e.clientX - dragStart.current.x),
       y: dragStart.current.offY + (e.clientY - dragStart.current.y),
-    })
-  }, [])
+    }
+    if (rafId.current == null) rafId.current = requestAnimationFrame(applyTransform)
+  }, [applyTransform])
+
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
     dragStart.current = null
+    offsetRef.current = pendingPos.current
+    if (rafId.current != null) { cancelAnimationFrame(rafId.current); rafId.current = null }
+    const el = containerRef.current
+    if (el) el.style.willChange = ''
   }, [])
+
+  useEffect(() => () => { if (rafId.current != null) cancelAnimationFrame(rafId.current) }, [])
 
   return (
     <div
+      ref={containerRef}
       className="absolute top-14 left-4 z-[6] w-72 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-left-2 duration-300"
-      style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+      style={{ transform: 'translate3d(0,0,0)' }}
     >
       {/* Header — drag handle */}
       <div

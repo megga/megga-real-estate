@@ -138,6 +138,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [isImmersive, setIsImmersive] = useState(false)
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false)
   const [immersiveFiltersOpen, setImmersiveFiltersOpen] = useState(false)
+  const [immersiveToolsOpen, setImmersiveToolsOpen] = useState(false)
   const toolsMenuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!toolsMenuOpen) return
@@ -252,12 +253,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     return () => { if (tourTimerRef.current) clearTimeout(tourTimerRef.current) }
   }, [isTourActive, tourAutoPlay, tourIndex, flyToListing])
 
-  const startTour = useCallback(() => {
-    if (tourListingsRef.current.length === 0) return
-    setIsTourActive(true)
-    setTourAutoPlay(true)
-    flyToListing(0)
-  }, [flyToListing])
 
   const nextTourStop = useCallback(() => {
     const len = tourListingsRef.current.length
@@ -1240,14 +1235,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         </div>
       )}
 
-      {/* Style switcher + Tools toggle + Immersive — bottom-left */}
-      <div className={cn(
-        'absolute z-[5]',
-        isImmersive ? 'bottom-6 left-6 flex flex-col items-start gap-2' : 'bottom-10 left-3 flex gap-2'
-      )}>
-        {/* Immersive floating toolbar */}
-        {isImmersive ? (
-          <>
+      {/* Immersive filters pill — TOP-LEFT (tools bar lives bottom for its dropup) */}
+      {isImmersive && (
+        <div className="absolute top-6 left-6 z-[5]">
           {/* ── Filter bar — collapsible pill → expanded horizontally on click ── */}
           <div
             className={cn(
@@ -1331,13 +1321,51 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             ))}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* ── Tools bar (bottom) ── */}
-          <div className="flex items-center bg-gray-900/80 backdrop-blur-xl rounded-2xl px-1.5 py-1.5 shadow-2xl border border-white/10 max-w-[calc(100vw-48px)] overflow-x-auto scrollbar-hide">
+      {/* Immersive tools bar + non-immersive controls — bottom-left */}
+      <div className={cn(
+        'absolute z-[5]',
+        isImmersive ? 'bottom-6 left-6' : 'bottom-10 left-3 flex gap-2'
+      )}>
+        {isImmersive ? (
+          <>
+          {/* ── Tools bar (bottom) — collapsible pill → expanded on click ── */}
+          <div
+            className={cn(
+              'flex items-center bg-gray-900/80 backdrop-blur-xl shadow-2xl border border-white/10 overflow-hidden transition-all',
+              immersiveToolsOpen
+                ? 'rounded-2xl px-1.5 py-1.5 max-w-[calc(100vw-48px)] duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
+                : 'rounded-full p-0 max-w-[44px] duration-300 ease-out'
+            )}
+          >
+            {/* Toggle — always visible */}
+            <button
+              onClick={() => setImmersiveToolsOpen(v => !v)}
+              className={cn(
+                'h-9 w-11 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:outline-none',
+                immersiveToolsOpen ? 'hover:bg-white/10 rounded-xl' : 'hover:bg-white/10 rounded-full'
+              )}
+              aria-expanded={immersiveToolsOpen}
+              aria-label={immersiveToolsOpen ? 'Fermer les outils' : 'Ouvrir les outils'}
+              title="Outils"
+            >
+              <Layers className="h-4 w-4" />
+            </button>
+            {/* Collapsible content */}
+            <div
+              className={cn(
+                'flex items-center overflow-hidden whitespace-nowrap transition-all',
+                immersiveToolsOpen
+                  ? 'opacity-100 translate-x-0 duration-[400ms] delay-75 ease-[cubic-bezier(0.22,1,0.36,1)]'
+                  : 'opacity-0 -translate-x-2 duration-150 ease-out pointer-events-none w-0'
+              )}
+            >
             {/* Exit */}
             <button
               onClick={exitImmersive}
-              className="h-8 px-2.5 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="h-8 px-2.5 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 focus:outline-none focus-visible:outline-none"
               aria-label="Quitter le mode immersif"
               title="Quitter (Esc)"
             >
@@ -1416,16 +1444,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg px-1 py-0.5 shrink-0">
               <span className="text-xs text-white/30 px-1 uppercase tracking-wider shrink-0">Explorer</span>
               <button
-                onClick={isTourActive ? stopTour : startTour}
-                className={cn(
-                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
-                  isTourActive ? 'text-white bg-accent/60' : 'text-white/40 hover:text-white hover:bg-white/10'
-                )}
-                title="Survol des biens"
-              >
-                <Play className="h-3 w-3" />
-              </button>
-              <button
                 onClick={() => setShowGeoSearch(v => !v)}
                 className={cn(
                   'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
@@ -1448,6 +1466,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               >
                 <MapPin className="h-3 w-3" />
               </button>
+            </div>
             </div>
           </div>
           </>
@@ -1616,8 +1635,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       {/* ── Immersive-only panels ── */}
       {isImmersive && (
         <>
-          {/* Listing counter — shows visible count in viewport */}
-          <div className="absolute top-3 right-3 z-[5] bg-gray-900/70 backdrop-blur-xl text-white/80 text-xs font-medium px-3 py-1.5 rounded-xl border border-white/10">
+          {/* Listing counter — top-left, avoids overlap with the Dessiner button */}
+          <div className="absolute top-3 left-3 z-[5] bg-gray-900/70 backdrop-blur-xl text-white/80 text-xs font-medium px-3 py-1.5 rounded-xl border border-white/10">
             {viewportCount.toLocaleString('fr-CH')} / {(mapPoints?.length || listings.length).toLocaleString('fr-CH')} biens
           </div>
 

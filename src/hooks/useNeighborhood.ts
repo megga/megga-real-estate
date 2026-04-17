@@ -34,57 +34,94 @@ export interface NeighborhoodData {
   isLoading: boolean
 }
 
-// ─── POI queries config ─────────────────────────────────────────────────
+// ─── Mapbox class/maki → our categories ─────────────────────────────────
+//
+// Tilequery returns poi_label features tagged with `class` (coarse) and
+// `maki` (icon name / subtype). We map both to our 5 categories.
 
-const POI_QUERIES: Array<{ query: string; category: PoiCategory; limit: number }> = [
-  { query: 'supermarket', category: 'commerce', limit: 3 },
-  { query: 'pharmacy', category: 'commerce', limit: 2 },
-  { query: 'bakery', category: 'commerce', limit: 2 },
-  { query: 'school', category: 'ecole', limit: 3 },
-  { query: 'hospital', category: 'sante', limit: 2 },
-  { query: 'doctor', category: 'sante', limit: 2 },
-  { query: 'restaurant', category: 'loisir', limit: 3 },
-  { query: 'park', category: 'loisir', limit: 2 },
-  { query: 'gym', category: 'loisir', limit: 2 },
-]
+function mapToCategory(cls?: string, maki?: string): PoiCategory | null {
+  // Transport (train, tram, metro, bus, ferry)
+  if (maki === 'rail' || maki === 'rail-light' || maki === 'rail-metro' || maki === 'bus' || maki === 'ferry' || maki === 'entrance') {
+    // 'entrance' + class transit covers metro/station entries
+    if (maki === 'entrance' && cls !== 'transit') return null
+    return 'transport'
+  }
+  if (cls === 'transit') return 'transport'
 
-// ─── Fetch POIs from Mapbox Geocoding ───────────────────────────────────
+  // Santé (check before commerce so pharmacy routes to sante)
+  if (cls === 'medical' || maki === 'hospital' || maki === 'doctor' || maki === 'dentist' || maki === 'pharmacy' || maki === 'veterinary') {
+    return 'sante'
+  }
+
+  // Écoles
+  if (cls === 'education' || maki === 'school' || maki === 'college' || maki === 'library') return 'ecole'
+
+  // Commerce
+  if (cls === 'shop_and_service' || cls === 'commercial') return 'commerce'
+  if (maki === 'supermarket' || maki === 'grocery' || maki === 'bakery' || maki === 'shop' || maki === 'clothing-store' || maki === 'alcohol-shop' || maki === 'bank' || maki === 'post') {
+    return 'commerce'
+  }
+
+  // Loisirs (restaurants, parcs, sport, culture)
+  if (cls === 'food_and_drink' || cls === 'park_like' || cls === 'sport_and_leisure' || cls === 'arts_and_entertainment' || cls === 'park') return 'loisir'
+  if (maki === 'restaurant' || maki === 'cafe' || maki === 'bar' || maki === 'fast-food' || maki === 'park' || maki === 'theatre' || maki === 'cinema' || maki === 'museum' || maki === 'fitness-centre' || maki === 'swimming' || maki === 'stadium' || maki === 'playground' || maki === 'picnic-site' || maki === 'garden') {
+    return 'loisir'
+  }
+
+  return null
+}
+
+// ─── Fetch POIs from Mapbox Tilequery (proper POI discovery) ─────────────
+
+interface TilequeryFeature {
+  geometry: { coordinates: [number, number] }
+  properties: {
+    name?: string
+    name_fr?: string
+    class?: string
+    maki?: string
+    type?: string
+    tilequery?: { distance?: number }
+  }
+}
 
 async function fetchMapboxPOIs(lat: number, lng: number): Promise<POI[]> {
   if (!MAPBOX_TOKEN) return []
+  const RADIUS = 1500 // meters
+  const LIMIT = 80 // tiles return up to this many features
+  const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lng},${lat}.json?radius=${RADIUS}&limit=${LIMIT}&layers=poi_label&dedupe=true&access_token=${MAPBOX_TOKEN}`
 
-  const results = await Promise.all(
-    POI_QUERIES.map(async ({ query, category, limit }) => {
-      try {
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?proximity=${lng},${lat}&types=poi&limit=${limit}&access_token=${MAPBOX_TOKEN}`
-        const res = await fetch(url)
-        if (!res.ok) return []
-        const data = await res.json()
-        return (data.features || []).map((f: { place_name: string; center: [number, number] }) => ({
-          name: f.place_name.split(',')[0],
-          category,
-          lat: f.center[1],
-          lng: f.center[0],
-          distanceM: Math.round(haversineDistance(lat, lng, f.center[1], f.center[0])),
-        }))
-      } catch {
-        return []
-      }
-    })
-  )
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return []
+    const data = await res.json()
+    const features: TilequeryFeature[] = data.features || []
 
-  // Flatten, deduplicate by name, sort by distance
-  const all: POI[] = results.flat()
-  const seen = new Set<string>()
-  const unique: POI[] = []
-  for (const poi of all) {
-    const key = `${poi.name}-${poi.category}`
-    if (!seen.has(key)) {
-      seen.add(key)
-      unique.push(poi)
+    const pois: POI[] = []
+    for (const f of features) {
+      const props = f.properties
+      const name = props.name_fr || props.name
+      if (!name) continue
+      const category = mapToCategory(props.class, props.maki)
+      if (!category) continue
+      const [poiLng, poiLat] = f.geometry.coordinates
+      const distanceM = typeof props.tilequery?.distance === 'number'
+        ? Math.round(props.tilequery.distance)
+        : Math.round(haversineDistance(lat, lng, poiLat, poiLng))
+      pois.push({ name, category, lat: poiLat, lng: poiLng, distanceM })
     }
+
+    // Deduplicate by (name + category) — keep the nearest.
+    const byKey = new Map<string, POI>()
+    for (const p of pois) {
+      const key = `${p.name}-${p.category}`
+      const existing = byKey.get(key)
+      if (!existing || p.distanceM < existing.distanceM) byKey.set(key, p)
+    }
+    return Array.from(byKey.values()).sort((a, b) => a.distanceM - b.distanceM)
+  } catch {
+    return []
   }
-  return unique.sort((a, b) => a.distanceM - b.distanceM)
 }
 
 // ─── Aggregate into categories ──────────────────────────────────────────
