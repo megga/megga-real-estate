@@ -9,7 +9,8 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
+import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, Building2, Heart, MoreHorizontal } from 'lucide-react'
+import { useFavorites } from '@/hooks/useFavorites'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
@@ -125,6 +126,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [selectedListing, setSelectedListing] = useState<ListingCardData | null>(null)
   const [hoveredPin, setHoveredPin] = useState<ListingCardData | null>(null)
   const [viewportCount, setViewportCount] = useState(0)
+  const [photoIdx, setPhotoIdx] = useState(0)
+  const { isFavorite, toggleFavorite } = useFavorites()
+
+  // Reset photo carousel when the selected listing changes
+  useEffect(() => { setPhotoIdx(0) }, [selectedListing?.id])
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null)
@@ -929,66 +935,130 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           />
         </Source>
 
-        {/* Popup — Rich card in immersive mode, compact otherwise */}
-        {selectedListing && selectedListing.lat && selectedListing.lng && !isDrawing && (
+        {/* Popup — Zillow-style card on pin click */}
+        {selectedListing && selectedListing.lat && selectedListing.lng && !isDrawing && (() => {
+          const photos = selectedListing.photos?.length ? selectedListing.photos : []
+          const hasPhotos = photos.length > 0
+          const currentPhoto = photos[photoIdx] || photos[0]
+          const daysAgo = selectedListing.published_at
+            ? Math.max(0, Math.floor((Date.now() - new Date(selectedListing.published_at).getTime()) / 86400000))
+            : (selectedListing.days_on_market ?? null)
+          const listingTypeLabel = {
+            apartment: 'Appartement', house: 'Maison', villa: 'Villa',
+            commercial: 'Commercial', office: 'Bureau', parking: 'Parking',
+            storage: 'Cave', land: 'Terrain',
+          }[selectedListing.type || 'apartment'] || 'Bien'
+          const fav = isFavorite(selectedListing.id)
+          return (
           <Popup
             longitude={selectedListing.lng}
             latitude={selectedListing.lat}
             anchor="bottom"
             onClose={() => { setSelectedListing(null); if (isTourActive) stopTour() }}
             closeOnClick={false}
-            offset={20}
-            maxWidth={isImmersive ? '320px' : '200px'}
-            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-xl [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-xl [&_.mapboxgl-popup-close-button]:text-theme-muted [&_.mapboxgl-popup-close-button]:text-lg [&_.mapboxgl-popup-close-button]:right-2 [&_.mapboxgl-popup-close-button]:top-1 [&_.mapboxgl-popup-close-button]:hover:text-theme-secondary [&_.mapboxgl-popup-close-button]:z-10"
+            closeButton={false}
+            offset={14}
+            maxWidth="320px"
+            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-xl [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-xl"
           >
-            <Link to={`/listing/${selectedListing.id}`} className={cn('block', isImmersive ? 'w-[300px]' : 'w-48')}>
-              {selectedListing.photos[0] ? (
-                <div className="relative">
+            <div className="w-[300px] bg-theme-card rounded-xl overflow-hidden">
+              {/* Photo with overlays */}
+              <div className="relative">
+                {hasPhotos ? (
                   <img
-                    src={selectedListing.photos[0]}
+                    src={currentPhoto}
                     alt={selectedListing.title}
                     loading="lazy"
                     decoding="async"
-                    className={cn('w-full object-cover', isImmersive ? 'h-44' : 'h-28')}
+                    className="w-full h-[180px] object-cover"
                   />
-                  {isImmersive && selectedListing.photos.length > 1 && (
-                    <span className="absolute bottom-2 right-2 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
-                      {selectedListing.photos.length} photos
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className={cn('w-full flex items-center justify-center bg-theme-hover', isImmersive ? 'h-44' : 'h-28')}>
-                  <Building2 className="h-8 w-8 text-theme-muted" />
-                </div>
-              )}
-              <div className={cn(isImmersive ? 'p-4' : 'p-2.5')}>
-                <p className={cn('font-bold text-theme-primary', isImmersive ? 'text-lg' : 'text-sm')}>
-                  {formatCHF(selectedListing.price)}
-                  {selectedListing.context === 'rent' ? '/mois' : ''}
-                </p>
-                <p className={cn('text-theme-tertiary mt-0.5 truncate', isImmersive ? 'text-sm' : 'text-xs')}>
-                  {selectedListing.address}{selectedListing.city ? `, ${selectedListing.city}` : ''}
-                </p>
-                {selectedListing.rooms > 0 && (
-                  <div className={cn('flex items-center gap-2 mt-1', isImmersive ? 'text-sm text-theme-secondary' : 'text-xs text-theme-muted')}>
-                    <span>{selectedListing.rooms} pièces</span>
-                    {selectedListing.bedrooms > 0 && <><span>·</span><span>{selectedListing.bedrooms} ch.</span></>}
-                    {selectedListing.surface_m2 > 0 && <><span>·</span><span>{formatSurface(selectedListing.surface_m2)}</span></>}
+                ) : (
+                  <div className="w-full h-[180px] flex items-center justify-center bg-theme-hover">
+                    <Building2 className="h-10 w-10 text-theme-muted" />
                   </div>
                 )}
-                {isImmersive && selectedListing.surface_m2 > 0 && (
-                  <p className="text-xs text-theme-muted mt-1">
-                    {formatCHF(Math.round(selectedListing.price / selectedListing.surface_m2))}/m²
-                  </p>
+
+                {/* Top-left : "il y a X jours" */}
+                {daysAgo !== null && daysAgo >= 0 && (
+                  <span className="absolute top-2.5 left-2.5 bg-black/75 text-white text-xs font-medium px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                    {daysAgo === 0 ? "aujourd'hui" : daysAgo === 1 ? 'hier' : `il y a ${daysAgo} jours`}
+                  </span>
                 )}
-                <p className={cn('text-accent font-medium', isImmersive ? 'text-sm mt-3' : 'text-xs mt-1.5')}>
-                  Voir le bien →
-                </p>
+
+                {/* Top-right : heart favorite + close */}
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(selectedListing.id) }}
+                    className="h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm flex items-center justify-center transition-colors cursor-pointer"
+                    title={fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  >
+                    <Heart className={cn('h-4 w-4', fav ? 'fill-white text-white' : 'text-white')} />
+                  </button>
+                  <button
+                    onClick={() => { setSelectedListing(null); if (isTourActive) stopTour() }}
+                    className="h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm flex items-center justify-center transition-colors cursor-pointer"
+                    title="Fermer"
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </button>
+                </div>
+
+                {/* Carousel dots */}
+                {photos.length > 1 && (
+                  <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                    {photos.slice(0, 5).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={(e) => { e.stopPropagation(); setPhotoIdx(i) }}
+                        className={cn(
+                          'h-1.5 rounded-full transition-all cursor-pointer',
+                          i === photoIdx ? 'w-5 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
+                        )}
+                        aria-label={`Photo ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            </Link>
+
+              {/* Text content */}
+              <Link to={`/listing/${selectedListing.id}`} className="block px-4 py-3 hover:bg-theme-hover transition-colors">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold text-theme-primary leading-tight">
+                      {formatCHF(selectedListing.price)}
+                      <span className="text-sm font-medium text-theme-secondary ml-1">
+                        {selectedListing.context === 'rent' ? '/mois' : ''}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                    className="shrink-0 h-7 w-7 rounded-full hover:bg-theme-active flex items-center justify-center text-theme-muted hover:text-theme-secondary transition-colors cursor-pointer"
+                    title="Plus d'options"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Details row : rooms | bedrooms | surface | type */}
+                <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5 text-sm text-theme-secondary">
+                  {selectedListing.rooms > 0 && (<><span className="font-semibold text-theme-primary">{selectedListing.rooms}</span><span>p.</span></>)}
+                  {selectedListing.bedrooms > 0 && (<><span className="text-theme-muted">|</span><span className="font-semibold text-theme-primary">{selectedListing.bedrooms}</span><span>ch.</span></>)}
+                  {selectedListing.surface_m2 > 0 && (<><span className="text-theme-muted">|</span><span className="font-semibold text-theme-primary">{formatSurface(selectedListing.surface_m2)}</span></>)}
+                  <span className="text-theme-muted">|</span>
+                  <span>{listingTypeLabel}</span>
+                </div>
+
+                {/* Address */}
+                <p className="text-sm text-theme-tertiary mt-1.5 truncate">
+                  {selectedListing.address}{selectedListing.city ? `, ${selectedListing.city}` : ''}
+                </p>
+              </Link>
+            </div>
           </Popup>
-        )}
+          )
+        })()}
 
         {/* Price heatmap layer (fullscreen only) */}
         {showHeatmap && (isFullscreen || showTools) && listingsGeoJSON.features.length > 0 && (
