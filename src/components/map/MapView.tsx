@@ -847,14 +847,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             id="unclustered-label"
             type="symbol"
             layout={{
-              'icon-image': (dimPolygon
-                ? ['case',
-                    ['boolean', ['feature-state', 'hover'], false], 'price-pill-hover',
-                    ['!', ['within', dimPolygon]], 'price-pill-dim',
-                    'price-pill']
-                : ['case',
-                    ['boolean', ['feature-state', 'hover'], false], 'price-pill-hover',
-                    'price-pill']) as unknown as string,
+              'icon-image': 'price-pill',
               'icon-text-fit': 'both',
               'icon-text-fit-padding': [3, 9, 11, 9],
               'icon-allow-overlap': true,
@@ -871,6 +864,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
             paint={{
               'text-color': '#FFFFFF',
+              // feature-state / within work in PAINT but not LAYOUT — so color variation
+              // (hover, dim) is only possible through icon-color on an SDF icon or
+              // stacked layers. Keep static for now; revisit if hover colouring matters.
               'icon-opacity': [
                 'interpolate', ['linear'], ['zoom'],
                 12, 0,
