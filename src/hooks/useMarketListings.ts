@@ -1,9 +1,11 @@
 import { useQuery, useInfiniteQuery, keepPreviousData } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 // applyPlaceholders removed — was replacing real Flatfox data (photos,
 // titles, addresses, agencies) with fake Unsplash/demo content.
 import type { PostgrestFilterBuilder } from '@supabase/postgrest-js'
+import { generateListingTitle, type Lang } from '@/lib/listingTitle'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -100,19 +102,36 @@ function applySorting<Q extends MarketListingsQuery>(query: Q, sort: MarketFilte
   }
 }
 
+function normalizeLang(raw: string | undefined): Lang {
+  const short = (raw || 'fr').slice(0, 2).toLowerCase()
+  return short === 'de' || short === 'en' || short === 'it' ? short : 'fr'
+}
+
 function transformToCardData(
   ml: Record<string, unknown>,
-  source: 'market' | 'internal' = 'market'
+  source: 'market' | 'internal' = 'market',
+  lang: Lang = 'fr'
 ): ListingCardData {
   const txType = (ml.transaction_type as 'buy' | 'rent') || 'buy'
   const isFurnished = !!ml.is_furnished
   const depositMonths = (ml.deposit_months as number | null | undefined) ?? null
   const externalRegie = (ml.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null
 
+  const localizedTitle = generateListingTitle(
+    {
+      type: ml.type as string | null,
+      rooms: Number(ml.rooms) || 0,
+      city: ml.city as string | null,
+      transaction_type: txType,
+      title: ml.title as string | null,
+    },
+    lang,
+  )
+
   if (source === 'internal') {
     return {
       id: `internal-${ml.id}`,
-      title: (ml.title as string) || 'Bien immobilier',
+      title: localizedTitle || (ml.title as string) || 'Bien immobilier',
       price: Number(ml.price) || 0,
       address: (ml.address as string) || '',
       city: (ml.city as string) || '',
@@ -137,7 +156,7 @@ function transformToCardData(
 
   return {
     id: `market-${ml.id}`,
-    title: (ml.title as string) || 'Bien immobilier',
+    title: localizedTitle || (ml.title as string) || 'Bien immobilier',
     price: Number(ml.current_price ?? ml.price ?? 0),
     address: (ml.address as string) || '',
     city: (ml.city as string) || '',
@@ -177,8 +196,10 @@ function transformToCardData(
 // ─── HOOK 1 : Liste paginée avec filtres ────────────────────────────────────
 
 export function useMarketListings(filters: MarketFilters = {}) {
+  const { i18n } = useTranslation()
+  const lang = normalizeLang(i18n.language)
   return useInfiniteQuery({
-    queryKey: ['market-listings', filters],
+    queryKey: ['market-listings', filters, lang],
     queryFn: async ({ pageParam = 0 }): Promise<{
       listings: ListingCardData[]
       nextPage: number | null
@@ -243,7 +264,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
         const { data: internalData } = await internalQuery
         if (internalData) {
           for (let i = 0; i < internalData.length; i++) {
-            listings.push(transformToCardData(internalData[i], 'internal'))
+            listings.push(transformToCardData(internalData[i], 'internal', lang))
           }
         }
       }
@@ -251,7 +272,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
       // Ajouter les biens du marché
       if (marketData) {
         for (let i = 0; i < marketData.length; i++) {
-          listings.push(transformToCardData(marketData[i], 'market'))
+          listings.push(transformToCardData(marketData[i], 'market', lang))
         }
       }
 

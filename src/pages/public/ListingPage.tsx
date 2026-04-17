@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
 import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useMarketListings, useMarketListing } from '@/hooks/useMarketListings'
 import { getListingById } from '@/lib/mockData'
+import { generateListingTitle, type Lang } from '@/lib/listingTitle'
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/layout/Navbar'
 import AffordabilityCalculator from '@/components/listings/AffordabilityCalculator'
@@ -41,10 +43,20 @@ const BASE_SECTIONS: SectionDef[] = [
 // ─── Transform raw Supabase data to listing format ──────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function transformSupabaseToListing(data: Record<string, any>, source: 'market' | 'internal') {
+function transformSupabaseToListing(data: Record<string, any>, source: 'market' | 'internal', lang: Lang = 'fr') {
+  const localizedTitle = generateListingTitle(
+    {
+      type: data.type as string | null,
+      rooms: Number(data.rooms) || 0,
+      city: data.city as string | null,
+      transaction_type: data.transaction_type as string | null,
+      title: data.title as string | null,
+    },
+    lang,
+  )
   return {
     id: data.id,
-    title: data.title || 'Bien immobilier',
+    title: localizedTitle || data.title || 'Bien immobilier',
     price: Number(data.current_price ?? data.price ?? 0),
     address: data.address || '',
     city: data.city || '',
@@ -89,6 +101,9 @@ function transformSupabaseToListing(data: Record<string, any>, source: 'market' 
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>()
+  const { i18n } = useTranslation()
+  const short = i18n.language.slice(0, 2).toLowerCase()
+  const normalizedLang: Lang = short === 'de' || short === 'en' || short === 'it' ? short : 'fr'
   const rawId = id?.replace('market-', '').replace('internal-', '')
   const isMarketListing = id?.startsWith('market-')
   const isInternalListing = id?.startsWith('internal-')
@@ -109,10 +124,10 @@ export default function ListingPage() {
   // ── Transform ──
   const isLoadingData = (isMarketListing && isLoadingMarket) || (isInternalListing && isLoadingInternal)
   const listing = useMemo(() => {
-    if (isMarketListing && marketData) return transformSupabaseToListing(marketData, 'market')
-    if (isInternalListing && internalData) return transformSupabaseToListing(internalData, 'internal')
+    if (isMarketListing && marketData) return transformSupabaseToListing(marketData, 'market', normalizedLang)
+    if (isInternalListing && internalData) return transformSupabaseToListing(internalData, 'internal', normalizedLang)
     return getListingById(id || '')
-  }, [isMarketListing, isInternalListing, marketData, internalData, id])
+  }, [isMarketListing, isInternalListing, marketData, internalData, id, normalizedLang])
 
   // ── Agent profile (internal listings only) ──
   const { data: agentProfile } = useQuery({

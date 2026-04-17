@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe, Home } from 'lucide-react'
+import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe, Home, Sparkles, DollarSign } from 'lucide-react'
 import { useAdminMonitoring } from '@/hooks/useAdminMonitoring'
+import { useDeepSeekBalance, useAIUsageSummary, useAIUsageTimeseries } from '@/hooks/useAIBilling'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { cn, formatRelativeDate } from '@/lib/utils'
@@ -11,6 +12,12 @@ type FunctionFilter = 'all' | 'healthy' | 'error' | 'unknown'
 export default function AdminMonitoringPage() {
   const { t } = useTranslation('admin')
   const { health, healthLoading, healthError, edgeFunctions, edgeFunctionsLoading, errorLogs, errorLogsLoading } = useAdminMonitoring()
+
+  const deepseekBalance = useDeepSeekBalance()
+  const aiUsage = useAIUsageSummary('month')
+  const aiTimeseries = useAIUsageTimeseries(30)
+  const balance = deepseekBalance.data?.total_balance_usd ?? null
+  const balanceLow = balance !== null && balance < 20
 
   // Flatfox sync status — lightweight query to show in monitoring
   const flatfoxStats = useQuery({
@@ -206,6 +213,112 @@ export default function AdminMonitoringPage() {
         </div>
       )}
 
+      {/* AI billing — DeepSeek balance + Claude estimated cost */}
+      <div className="rounded-xl border border-theme-border p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-admin-accent" />
+          <h2 className="text-sm font-semibold text-theme-primary">IA — consommation et coûts</h2>
+          {balanceLow && (
+            <span className="ml-2 text-xs font-medium text-red-500 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              Recharger DeepSeek
+            </span>
+          )}
+          {aiUsage.data?.fallbackCount ? (
+            <span className="ml-auto text-xs text-amber-600">
+              {aiUsage.data.fallbackCount} fallback{aiUsage.data.fallbackCount > 1 ? 's' : ''} ce mois
+            </span>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-xl border border-theme-border p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <DollarSign className="h-3.5 w-3.5 text-theme-secondary" />
+              <span className="text-xs font-medium text-theme-secondary tracking-wide">DeepSeek — solde</span>
+            </div>
+            <span className={cn('text-lg font-bold', balanceLow ? 'text-red-500' : 'text-theme-primary')}>
+              {balance !== null ? `$${balance.toFixed(2)}` : '—'}
+            </span>
+            <p className="text-xs text-theme-muted mt-1">
+              {deepseekBalance.data?.captured_at
+                ? formatRelativeDate(deepseekBalance.data.captured_at)
+                : 'Pas encore de snapshot'}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-theme-border p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Zap className="h-3.5 w-3.5 text-theme-secondary" />
+              <span className="text-xs font-medium text-theme-secondary tracking-wide">DeepSeek — tokens (mois)</span>
+            </div>
+            <span className="text-lg font-bold text-theme-primary">
+              {formatTokens(aiUsage.data?.deepseekTokens ?? 0)}
+            </span>
+            <p className="text-xs text-theme-muted mt-1">
+              ≈ ${(aiUsage.data?.deepseekCostUsd ?? 0).toFixed(2)}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-theme-border p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <DollarSign className="h-3.5 w-3.5 text-theme-secondary" />
+              <span className="text-xs font-medium text-theme-secondary tracking-wide">Claude — coût estimé (mois)</span>
+            </div>
+            <span className="text-lg font-bold text-theme-primary">
+              ${(aiUsage.data?.claudeCostUsd ?? 0).toFixed(2)}
+            </span>
+            <p className="text-xs text-theme-muted mt-1">Anthropic n'expose pas de solde</p>
+          </div>
+
+          <div className="rounded-xl border border-theme-border p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Zap className="h-3.5 w-3.5 text-theme-secondary" />
+              <span className="text-xs font-medium text-theme-secondary tracking-wide">Claude — tokens (mois)</span>
+            </div>
+            <span className="text-lg font-bold text-theme-primary">
+              {formatTokens(aiUsage.data?.claudeTokens ?? 0)}
+            </span>
+          </div>
+        </div>
+
+        {aiTimeseries.data && aiTimeseries.data.length > 0 && (
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-theme-secondary">Tokens / jour (30 derniers jours)</p>
+              <div className="flex items-center gap-3 text-xs text-theme-muted">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-500" /> DeepSeek</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500" /> Claude</span>
+              </div>
+            </div>
+            {(() => {
+              const max = Math.max(1, ...aiTimeseries.data.map((p) => p.deepseek + p.claude))
+              return (
+                <div className="flex items-end gap-0.5 h-32">
+                  {aiTimeseries.data.map((p) => {
+                    const total = p.deepseek + p.claude
+                    const totalPct = (total / max) * 100
+                    const deepseekShare = total > 0 ? (p.deepseek / total) * 100 : 0
+                    return (
+                      <div
+                        key={p.date}
+                        className="flex-1 flex flex-col-reverse min-w-0"
+                        title={`${p.date} — DeepSeek ${formatTokens(p.deepseek)} · Claude ${formatTokens(p.claude)}`}
+                      >
+                        <div className="w-full rounded-t-sm overflow-hidden" style={{ height: `${totalPct}%` }}>
+                          <div className="w-full bg-violet-500" style={{ height: `${deepseekShare}%` }} />
+                          <div className="w-full bg-orange-500" style={{ height: `${100 - deepseekShare}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+      </div>
+
       {/* Edge Functions table — per-function status */}
       <div className="rounded-xl border border-theme-border p-5">
         <div className="flex items-center justify-between mb-4">
@@ -358,4 +471,10 @@ export default function AdminMonitoringPage() {
       </div>
     </div>
   )
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
 }
