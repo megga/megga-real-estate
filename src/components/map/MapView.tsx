@@ -1356,10 +1356,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             {/* Collapsible content */}
             <div
               className={cn(
-                'flex items-center overflow-hidden whitespace-nowrap transition-all',
+                'flex items-center whitespace-nowrap transition-all',
                 immersiveToolsOpen
                   ? 'opacity-100 translate-x-0 duration-[400ms] delay-75 ease-[cubic-bezier(0.22,1,0.36,1)]'
-                  : 'opacity-0 -translate-x-2 duration-150 ease-out pointer-events-none w-0'
+                  : 'opacity-0 -translate-x-2 duration-150 ease-out pointer-events-none w-0 overflow-hidden'
               )}
             >
             {/* Exit */}

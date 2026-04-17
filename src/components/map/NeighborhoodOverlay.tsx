@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback, useEffect } from 'react'
+import { useMemo, useRef, useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { useNeighborhood, calculateWalkScore, type PoiCategory } from '@/hooks/useNeighborhood'
 import { X, Train, ShoppingBag, GraduationCap, HeartPulse, Coffee, Loader2, MapPin } from 'lucide-react'
 
@@ -47,12 +47,12 @@ function CategoryBar({ label, icon: Icon, score, count, nearest }: {
 }) {
   return (
     <div className="flex items-center gap-2.5">
-      <Icon className="h-3.5 w-3.5 text-white/50 shrink-0" />
+      <Icon className="h-3.5 w-3.5 text-white/70 shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-0.5">
-          <span className="text-xs text-white/70">{label}</span>
-          <span className="text-xs text-white/40">
-            {count > 0 ? `${count} lieu${count !== 1 ? 'x' : ''}` : 'Aucun a proximite'}
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[13px] font-medium text-white">{label}</span>
+          <span className="text-xs text-white/60 tabular-nums">
+            {count > 0 ? `${count} lieu${count !== 1 ? 'x' : ''}` : 'Aucun à proximité'}
           </span>
         </div>
         <div className="h-1 bg-white/10 rounded-full overflow-hidden">
@@ -65,11 +65,21 @@ function CategoryBar({ label, icon: Icon, score, count, nearest }: {
           />
         </div>
         {nearest && (
-          <p className="text-xs text-white/40 mt-0.5 truncate">{nearest}</p>
+          <p className="text-xs text-white/60 mt-1 truncate">{nearest}</p>
         )}
       </div>
     </div>
   )
+}
+
+// Walk score label color — returns a hex (not a Tailwind class name) so it
+// can be applied via `style.color`.
+function scoreLabelHex(score: number): string {
+  if (score >= 90) return '#4ade80' // green-400
+  if (score >= 70) return '#22c55e' // green-500
+  if (score >= 50) return '#facc15' // yellow-400
+  if (score >= 25) return '#fb923c' // orange-400
+  return '#f87171' // red-400
 }
 
 export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodOverlayProps) {
@@ -82,9 +92,22 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
   // Drag — imperative DOM writes via rAF, no React state during the gesture.
   const containerRef = useRef<HTMLDivElement>(null)
   const offsetRef = useRef({ x: 0, y: 0 })
+  const pendingPos = useRef({ x: 0, y: 0 })
   const dragStart = useRef<{ x: number; y: number; offX: number; offY: number } | null>(null)
   const rafId = useRef<number | null>(null)
-  const pendingPos = useRef({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+
+  // Re-apply current position after every render so React reconciliation
+  // (e.g. when useNeighborhood resolves) doesn't reset `transform` on the
+  // root div. Without this, the widget jumps back to origin mid-drag.
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const cur = dragStart.current ? pendingPos.current : offsetRef.current
+    // Before the first drag, let the CSS entry animation own `transform`.
+    if (!dragStart.current && cur.x === 0 && cur.y === 0) return
+    el.style.transform = `translate3d(${cur.x}px, ${cur.y}px, 0)`
+  })
 
   const applyTransform = useCallback(() => {
     rafId.current = null
@@ -96,8 +119,10 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
     dragStart.current = { x: e.clientX, y: e.clientY, offX: offsetRef.current.x, offY: offsetRef.current.y }
+    pendingPos.current = { ...offsetRef.current }
     const el = containerRef.current
     if (el) el.style.willChange = 'transform'
+    setIsDragging(true)
   }, [])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
@@ -116,6 +141,7 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
     if (rafId.current != null) { cancelAnimationFrame(rafId.current); rafId.current = null }
     const el = containerRef.current
     if (el) el.style.willChange = ''
+    setIsDragging(false)
   }, [])
 
   useEffect(() => () => { if (rafId.current != null) cancelAnimationFrame(rafId.current) }, [])
@@ -123,8 +149,15 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
   return (
     <div
       ref={containerRef}
-      className="absolute top-14 left-4 z-[6] w-72 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-left-2 duration-300"
-      style={{ transform: 'translate3d(0,0,0)' }}
+      className={
+        'absolute top-14 left-4 z-[6] w-72 rounded-xl border border-white/10 animate-in slide-in-from-left-2 duration-300 ' +
+        // Drop backdrop-blur and shadow while dragging — they repaint every
+        // frame on a moving element and are the main source of stutter.
+        (isDragging
+          ? 'bg-gray-900 shadow-md'
+          : 'bg-gray-900/90 backdrop-blur-xl shadow-2xl')
+      }
+      style={{ contain: 'layout paint' }}
     >
       {/* Header — drag handle */}
       <div
@@ -135,8 +168,8 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
         onPointerCancel={onPointerUp}
       >
         <div className="flex items-center gap-2">
-          <MapPin className="h-3.5 w-3.5 text-accent" />
-          <span className="text-xs font-semibold text-white/90">Score quartier</span>
+          <MapPin className="h-3.5 w-3.5 text-white/80" />
+          <span className="text-sm font-semibold text-white">Score quartier</span>
         </div>
         <button
           onClick={onClose}
@@ -158,10 +191,10 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
           <div className="px-4 py-3 flex items-center gap-4 border-b border-white/10">
             <ScoreRing score={walkScore.score} />
             <div>
-              <p className="text-sm font-bold" style={{ color: walkScore.color }}>{walkScore.label}</p>
-              <p className="text-xs text-white/40 mt-0.5">Walk Score 0-100</p>
+              <p className="text-base font-bold" style={{ color: scoreLabelHex(walkScore.score) }}>{walkScore.label}</p>
+              <p className="text-xs text-white/60 mt-0.5">Walk Score 0-100</p>
               {walkScore.score < 25 && (
-                <p className="text-xs text-white/30 mt-1">Cliquez en centre-ville pour de meilleurs scores</p>
+                <p className="text-xs text-white/50 mt-1">Cliquez en centre-ville pour de meilleurs scores</p>
               )}
             </div>
           </div>
@@ -186,18 +219,14 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
 
           {/* Nearest station */}
           {station && (
-            <div className="px-4 py-2.5 border-t border-white/10 flex items-center gap-2.5">
-              <Train className="h-3.5 w-3.5 text-accent shrink-0" />
+            <div className="px-4 py-3 border-t border-white/10 flex items-center gap-2.5">
+              <Train className="h-4 w-4 text-white/80 shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs text-white/80 font-medium truncate">{station.name}</p>
-                <p className="text-xs text-white/40">{station.formatted}</p>
+                <p className="text-[13px] text-white font-medium truncate">{station.name}</p>
+                <p className="text-xs text-white/60">{station.formatted}</p>
               </div>
             </div>
           )}
-
-          <div className="px-4 py-2 border-t border-white/10">
-            <p className="text-xs text-white/30 text-center">estimation MEGGA · basee sur POIs Mapbox</p>
-          </div>
         </>
       ) : (
         <div className="px-4 py-6 text-center">
