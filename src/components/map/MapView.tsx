@@ -10,7 +10,7 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, RotateCcw, Pause, Play, Maximize, Minimize, School, TrainFront, ShoppingBag, TreePine, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
+import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, School, TrainFront, ShoppingBag, TreePine, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
@@ -104,9 +104,8 @@ const MAP_GL_STYLE = { width: '100%', height: '100%' } as const
 const LISTING_LAYERS = ['unclustered-dot', 'unclustered-label'] as const
 
 const MAP_STYLES = [
-  { id: 'standard', label: '3D', icon: Mountain, url: 'mapbox://styles/mapbox/standard' },
-  { id: 'satellite', label: 'Satellite', icon: Satellite, url: 'mapbox://styles/mapbox/satellite-streets-v12' },
   { id: 'light', label: 'Clair', icon: Sun, url: 'mapbox://styles/mapbox/light-v11' },
+  { id: 'satellite', label: 'Satellite', icon: Satellite, url: 'mapbox://styles/mapbox/satellite-streets-v12' },
   { id: 'dark', label: 'Sombre', icon: Moon, url: 'mapbox://styles/mapbox/dark-v11' },
 ] as const
 
@@ -114,14 +113,14 @@ type MapStyleId = typeof MAP_STYLES[number]['id']
 
 const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onSelectListing, onViewportChange, hideTopControls, className }, ref) {
   const mapRef = useRef<MapRef>(null)
-  const [mapStyleId, setMapStyleId] = useState<MapStyleId>('standard')
+  const [mapStyleId, setMapStyleId] = useState<MapStyleId>('light')
   const [showStylePicker, setShowStylePicker] = useState(false)
   const currentStyle = MAP_STYLES.find(s => s.id === mapStyleId) || MAP_STYLES[0]
   const [viewState, setViewState] = useState({
     longitude: 6.1432,
     latitude: 46.2044,
     zoom: 11.5,
-    pitch: mapStyleId === 'standard' ? 45 : 0,
+    pitch: 0,
     bearing: 0,
   })
   const [selectedListing, setSelectedListing] = useState<ListingCardData | null>(null)
@@ -173,11 +172,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     onImmersiveChange?.(true)
     // Enter browser fullscreen
     containerRef.current?.requestFullscreen?.()
-    // Cinematic entry — gentle pitch increase, keep current zoom to avoid tile loading gaps
-    const map = mapRef.current?.getMap()
-    if (map) {
-      map.easeTo({ pitch: 45, duration: 800 })
-    }
+    // Flat 2D entry — no pitch animation
   }, [onImmersiveChange])
 
   const exitImmersive = useCallback(() => {
@@ -243,8 +238,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     mapRef.current?.flyTo({
       center: [listing.lng, listing.lat],
       zoom: 17,
-      pitch: 65,
-      bearing: (index * 45) % 360,
+      pitch: 0,
+      bearing: 0,
       duration: 2500,
       essential: true,
     })
@@ -332,40 +327,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [showGeoSearch, setShowGeoSearch] = useState(false)
   const [geoSearchQuery, setGeoSearchQuery] = useState('')
   const [geoResults, setGeoResults] = useState<Array<{ place_name: string; center: [number, number] }>>([])
-
-  // Orbit 3D
-  const [isOrbiting, setIsOrbiting] = useState(false)
-  const orbitAnimRef = useRef<number | null>(null)
-  const orbitBearingRef = useRef(0)
-
-  const startOrbit = useCallback(() => {
-    const map = mapRef.current?.getMap()
-    if (!map) return
-    setIsOrbiting(true)
-    // Zoom in with cinematic pitch
-    const center = map.getCenter()
-    map.flyTo({ center, zoom: Math.max(map.getZoom(), 15), pitch: 65, duration: 1500 })
-    setTimeout(() => {
-      function animate() {
-        orbitBearingRef.current = (orbitBearingRef.current + 0.3) % 360
-        map?.rotateTo(orbitBearingRef.current, { duration: 0 })
-        orbitAnimRef.current = requestAnimationFrame(animate)
-      }
-      orbitAnimRef.current = requestAnimationFrame(animate)
-    }, 1700)
-  }, [])
-
-  const stopOrbit = useCallback(() => {
-    setIsOrbiting(false)
-    if (orbitAnimRef.current) {
-      cancelAnimationFrame(orbitAnimRef.current)
-      orbitAnimRef.current = null
-    }
-  }, [])
-
-  useEffect(() => {
-    return () => { if (orbitAnimRef.current) cancelAnimationFrame(orbitAnimRef.current) }
-  }, [])
 
   // Apply light preset to Standard style
   useEffect(() => {
@@ -515,7 +476,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     toggleTools: () => setShowTools(v => !v),
     setMapStyle: (id: string) => {
       setMapStyleId(id as MapStyleId)
-      setViewState(v => ({ ...v, pitch: id === 'standard' ? 45 : 0, bearing: id === 'standard' ? v.bearing : 0 }))
+      setViewState(v => ({ ...v, pitch: 0, bearing: 0 }))
     },
     toggleHeatmap: () => setShowHeatmap(v => !v),
     resize: () => mapRef.current?.resize(),
@@ -551,8 +512,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   const handleMove = useCallback((evt: ViewStateChangeEvent) => {
     setViewState(evt.viewState)
-    if (isOrbiting) stopOrbit()
-  }, [isOrbiting, stopOrbit])
+  }, [])
 
   function handlePinClick(listing: ListingCardData) {
     setSelectedListing(listing)
@@ -784,10 +744,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         doubleClickZoom={!isDrawing}
         dragPan={!isDrawing}
         reuseMaps
-        dragRotate
-        touchPitch
-        touchZoomRotate
-        terrain={terrainConfig}
+        dragRotate={false}
+        touchPitch={false}
+        touchZoomRotate={false}
+        maxPitch={0}
+        terrain={undefined}
         onMouseMove={handleMouseMove}
         onLoad={(e) => {
           const map = e.target
@@ -813,7 +774,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           }
         }}
       >
-        <NavigationControl position="bottom-right" showCompass visualizePitch />
+        <NavigationControl position="bottom-right" showCompass={false} />
 
         {/* Draw polygon overlay */}
         {drawGeoJSON && (
@@ -1276,7 +1237,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                           onClick={() => {
                             setMapStyleId(s.id)
                             setShowStylePicker(false)
-                            setViewState(v => ({ ...v, pitch: s.id === 'standard' ? 45 : 0, bearing: s.id === 'standard' ? v.bearing : 0 }))
+                            setViewState(v => ({ ...v, pitch: 0, bearing: 0 }))
                           }}
                           className={cn(
                             'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
@@ -1333,16 +1294,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 title="Heatmap prix/m²"
               >
                 <Thermometer className="h-3 w-3" />
-              </button>
-              <button
-                onClick={isOrbiting ? stopOrbit : startOrbit}
-                className={cn(
-                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
-                  isOrbiting ? 'text-white bg-accent/60' : 'text-white/40 hover:text-white hover:bg-white/10'
-                )}
-                title={isOrbiting ? 'Arreter' : 'Orbit 3D'}
-              >
-                {isOrbiting ? <Pause className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
               </button>
               {/* POI toggles */}
               {[
@@ -1460,11 +1411,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                             onClick={() => {
                               setMapStyleId(s.id)
                               setShowStylePicker(false)
-                              setViewState(v => ({
-                                ...v,
-                                pitch: s.id === 'standard' ? 45 : 0,
-                                bearing: s.id === 'standard' ? v.bearing : 0,
-                              }))
+                              setViewState(v => ({ ...v, pitch: 0, bearing: 0 }))
                             }}
                             className={cn(
                               'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
@@ -1532,20 +1479,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               Prix/m²
             </button>
 
-            {/* Orbit 3D */}
-            <button
-              onClick={isOrbiting ? stopOrbit : startOrbit}
-              className={cn(
-                'h-9 px-3 rounded-xl border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
-                isOrbiting
-                  ? 'bg-theme-active text-theme-primary border-theme-active'
-                  : 'bg-theme-card text-theme-secondary border-theme-border hover:bg-theme-hover'
-              )}
-            >
-              {isOrbiting ? <Pause className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
-              {isOrbiting ? 'Arrêter' : 'Orbit 3D'}
-            </button>
-
             {/* Geocoding search */}
             <div className="relative">
               <button
@@ -1578,7 +1511,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                         <button
                           key={i}
                           onClick={() => {
-                            mapRef.current?.flyTo({ center: r.center, zoom: 14, duration: 1200, pitch: isImmersive ? 60 : viewState.pitch })
+                            mapRef.current?.flyTo({ center: r.center, zoom: 14, duration: 1200, pitch: 0 })
                             setGeoMarker(r.center)
                             setShowGeoSearch(false)
                             setGeoSearchQuery('')
@@ -1617,14 +1550,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   return `${Math.round(area).toLocaleString('fr-CH')} m²`
                 })()}
               </span>
-            </div>
-          )}
-
-          {/* Orbit active indicator */}
-          {isOrbiting && !isImmersive && (
-            <div className="absolute bottom-4 right-4 z-[5] bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-pulse">
-              <Play className="h-3 w-3 fill-white" />
-              Vue orbitale
             </div>
           )}
 
@@ -1737,7 +1662,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                     <button
                       key={i}
                       onClick={() => {
-                        mapRef.current?.flyTo({ center: r.center, zoom: 14, duration: 1200, pitch: 60 })
+                        mapRef.current?.flyTo({ center: r.center, zoom: 14, duration: 1200, pitch: 0 })
                         setGeoMarker(r.center)
                         setShowGeoSearch(false)
                         setGeoSearchQuery('')

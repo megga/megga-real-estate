@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import MapGL, { Marker, NavigationControl, Source, Layer, type MapRef } from 'react-map-gl/mapbox'
-import { MapPin, RotateCcw, Pause, Play, Briefcase, X, Car, Footprints, Bike, Loader2 } from 'lucide-react'
+import { MapPin, Briefcase, X, Car, Footprints, Bike, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -20,61 +20,13 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
     latitude: lat || 46.2044,
     longitude: lng || 6.1432,
     zoom: 16,
-    pitch: 60,
+    pitch: 0,
     bearing: 0,
   })
 
-  // ── Orbit 3D ──
-  const [isOrbiting, setIsOrbiting] = useState(false)
-  const orbitRef = useRef<number | null>(null)
-  const bearingRef = useRef(0)
-
-  const startOrbit = useCallback(() => {
-    setIsOrbiting(true)
-    const map = mapRef.current?.getMap()
-    if (!map || !lat || !lng) return
-
-    // First flyTo the property with cinematic approach
-    map.flyTo({
-      center: [lng, lat],
-      zoom: 17,
-      pitch: 65,
-      bearing: bearingRef.current,
-      duration: 2000,
-    })
-
-    // Start orbiting after flyTo completes
-    const mapInstance = map
-    setTimeout(() => {
-      function animate() {
-        bearingRef.current = (bearingRef.current + 0.3) % 360
-        mapInstance?.rotateTo(bearingRef.current, { duration: 0 })
-        orbitRef.current = requestAnimationFrame(animate)
-      }
-      orbitRef.current = requestAnimationFrame(animate)
-    }, 2200)
-  }, [lat, lng])
-
-  const stopOrbit = useCallback(() => {
-    setIsOrbiting(false)
-    if (orbitRef.current) {
-      cancelAnimationFrame(orbitRef.current)
-      orbitRef.current = null
-    }
-  }, [])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (orbitRef.current) cancelAnimationFrame(orbitRef.current)
-    }
-  }, [])
-
-  // Stop orbit on user interaction
   const handleMove = useCallback((evt: { viewState: typeof viewState }) => {
     setViewState(evt.viewState)
-    if (isOrbiting) stopOrbit()
-  }, [isOrbiting, stopOrbit])
+  }, [])
 
   // ── Directions (commute calculator) ──
   const [showCommute, setShowCommute] = useState(false)
@@ -131,7 +83,7 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
       const lats = coords.map(c => c[1])
       mapRef.current?.fitBounds(
         [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-        { padding: 60, duration: 1000, pitch: 45 }
+        { padding: 60, duration: 1000 }
       )
     } catch {
       setCommuteRoute(null)
@@ -148,7 +100,7 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
     setCommuteAddress('')
     setCommuteResults([])
     if (lat && lng) {
-      mapRef.current?.flyTo({ center: [lng, lat], zoom: 16, pitch: 60, duration: 1000 })
+      mapRef.current?.flyTo({ center: [lng, lat], zoom: 16, duration: 1000 })
     }
   }, [lat, lng])
 
@@ -173,24 +125,15 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
         {...viewState}
         onMove={handleMove}
         mapboxAccessToken={MAPBOX_TOKEN}
-        mapStyle="mapbox://styles/mapbox/standard"
+        mapStyle="mapbox://styles/mapbox/streets-v12"
         style={{ width: '100%', height: '100%' }}
         reuseMaps
         attributionControl={false}
-        terrain={{ source: 'mapbox-dem', exaggeration: 1.5 }}
-        onLoad={(e) => {
-          const map = e.target
-          if (!map.getSource('mapbox-dem')) {
-            map.addSource('mapbox-dem', {
-              type: 'raster-dem',
-              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-              tileSize: 512,
-              maxzoom: 14,
-            })
-          }
-        }}
+        dragRotate={false}
+        touchPitch={false}
+        maxPitch={0}
       >
-        <NavigationControl position="top-right" showCompass />
+        <NavigationControl position="top-right" showCompass={false} />
 
         {/* Property marker */}
         <Marker latitude={lat} longitude={lng} anchor="bottom">
@@ -235,21 +178,6 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
 
       {/* ── Controls top-left ── */}
       <div className="absolute top-3 left-3 flex flex-col gap-2 z-[5]">
-        {/* Orbit 3D button */}
-        <button
-          onClick={isOrbiting ? stopOrbit : startOrbit}
-          className={cn(
-            'h-9 px-3 rounded-xl shadow-sm border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
-            isOrbiting
-              ? 'bg-accent text-white border-accent'
-              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-          )}
-          aria-label={isOrbiting ? 'Arrêter la rotation' : 'Vue orbitale 3D'}
-        >
-          {isOrbiting ? <Pause className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
-          {isOrbiting ? 'Arrêter' : 'Orbit 3D'}
-        </button>
-
         {/* Commute calculator */}
         <button
           onClick={() => { setShowCommute(v => !v); if (showCommute) clearCommute() }}
@@ -349,14 +277,6 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
               </button>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Orbit active indicator */}
-      {isOrbiting && (
-        <div className="absolute bottom-4 right-4 z-[5] bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-pulse">
-          <Play className="h-3 w-3 fill-white" />
-          Vue orbitale
         </div>
       )}
     </div>
