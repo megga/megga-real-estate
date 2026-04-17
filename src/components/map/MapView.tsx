@@ -369,6 +369,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   // Combined mouse move: draw cursor trail + listing layer hover
   const cursorThrottleRef = useRef<number>(0)
+  const hoverThrottleRef = useRef<number>(0)
   const handleMouseMove = useCallback((e: MapMouseEvent) => {
     // Draw mode: throttled cursor trail
     if (isDrawing && drawPoints.length > 0) {
@@ -380,15 +381,21 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     }
     if (isDrawing) return
 
-    // Listing layer hover detection
+    // Listing layer hover — throttled to 80ms (queryRenderedFeatures is expensive)
+    const now = performance.now()
+    if (now - hoverThrottleRef.current < 80) return
+    hoverThrottleRef.current = now
+
     const map = mapRef.current?.getMap()
     if (!map) return
     const features = map.queryRenderedFeatures(e.point, {
-      layers: LISTING_LAYERS as unknown as string[],
+      layers: [...LISTING_LAYERS, 'clusters'] as unknown as string[],
     })
     if (features.length > 0) {
       map.getCanvas().style.cursor = 'pointer'
       const props = features[0].properties
+      // Clusters have no `id` — skip hover card for them, keep only the pointer cursor
+      if (props?.cluster) return
       if (props?.id) {
         onHover?.(props.id as string)
         const listing = listingsMap.get(props.id as string)
@@ -419,26 +426,16 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     prevHoveredRef.current = hoveredId ?? null
   }, [hoveredId])
 
-  // Zone-filter dimming: set feature-state 'dimmed' on points outside polygon
-  useEffect(() => {
-    const map = mapRef.current?.getMap()
-    if (!map) return
-    try {
-      if (closedPolygon) {
-        const pts = mapPoints || listings.filter(l => l.lat && l.lng)
-        for (const p of pts) {
-          const lng = (p as MapPoint).lng ?? (p as ListingCardData).lng
-          const lat = (p as MapPoint).lat ?? (p as ListingCardData).lat
-          if (lng == null || lat == null) continue
-          const inside = pointInPolygon([lng, lat], closedPolygon)
-          map.setFeatureState({ source: 'listings', id: (p as MapPoint).id ?? (p as ListingCardData).id }, { dimmed: !inside })
-        }
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (map as any).removeFeatureState?.({ source: 'listings' })
-      }
-    } catch { /* source not ready */ }
-  }, [closedPolygon, mapPoints, listings])
+  // Zone-filter polygon converted to GeoJSON for Mapbox `within` expression.
+  // This replaces an O(n) setFeatureState loop — GPU-backed point-in-polygon test.
+  const dimPolygon = useMemo<GeoJSON.Polygon | null>(() => {
+    if (!closedPolygon || closedPolygon.length < 3) return null
+    const ring = [...closedPolygon]
+    const first = ring[0]
+    const last = ring[ring.length - 1]
+    if (first[0] !== last[0] || first[1] !== last[1]) ring.push(first)
+    return { type: 'Polygon', coordinates: [ring] }
+  }, [closedPolygon])
 
   // Expose imperative methods to parent
   useImperativeHandle(ref, () => ({
@@ -533,9 +530,24 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       return
     }
     if (!isDrawing) {
-      // Query native layers for listing clicks
       const map = mapRef.current?.getMap()
       if (map) {
+        // Cluster click — zoom into the cluster expansion zoom
+        const clusterFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] })
+        if (clusterFeatures.length > 0) {
+          const f = clusterFeatures[0]
+          const clusterId = f.properties?.cluster_id
+          const src = map.getSource('listings') as unknown as { getClusterExpansionZoom: (id: number, cb: (err: Error | null, z: number) => void) => void }
+          if (clusterId != null && src?.getClusterExpansionZoom) {
+            src.getClusterExpansionZoom(clusterId as number, (err, zoom) => {
+              if (err) return
+              const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number]
+              map.easeTo({ center: coords, zoom: Math.min(zoom + 0.5, 16), duration: 500 })
+            })
+          }
+          return
+        }
+        // Unclustered pin click
         const features = map.queryRenderedFeatures(e.point, {
           layers: LISTING_LAYERS as unknown as string[],
         })
@@ -768,24 +780,72 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </Source>
         )}
 
-        {/* ─── Native Mapbox GL layers for listings (Zillow-style, no clustering) ─── */}
+        {/* ─── Native Mapbox GL layers for listings (Zillow-style + clustering) ─── */}
         <Source
           id="listings"
           type="geojson"
           data={listingsGeoJSON}
           promoteId="id"
+          cluster={true}
+          clusterMaxZoom={13}
+          clusterRadius={50}
         >
-          {/* Layer 1: Dots — visible at low zoom, fade out at high zoom */}
+          {/* Cluster circles — gradient by count */}
+          <Layer
+            id="clusters"
+            type="circle"
+            filter={['has', 'point_count']}
+            paint={{
+              'circle-color': [
+                'step', ['get', 'point_count'],
+                '#7F1D1D', 25,
+                '#991B1B', 100,
+                '#B91C1C', 500,
+                '#DC2626',
+              ],
+              'circle-radius': [
+                'step', ['get', 'point_count'],
+                16, 25,
+                22, 100,
+                28, 500,
+                34,
+              ],
+              'circle-stroke-color': 'rgba(255,255,255,0.9)',
+              'circle-stroke-width': 2,
+              'circle-opacity': 0.95,
+            }}
+          />
+
+          {/* Cluster count label */}
+          <Layer
+            id="cluster-count"
+            type="symbol"
+            filter={['has', 'point_count']}
+            layout={{
+              'text-field': ['get', 'point_count_abbreviated'],
+              'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+              'text-size': 13,
+              'text-allow-overlap': true,
+            }}
+            paint={{
+              'text-color': '#FFFFFF',
+            }}
+          />
+
+          {/* Unclustered dots — low zoom */}
           <Layer
             id="unclustered-dot"
             type="circle"
+            filter={['!', ['has', 'point_count']]}
             paint={{
-              'circle-color': [
-                'case',
-                ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                ['boolean', ['feature-state', 'dimmed'], false], '#9CA3AF',
-                '#7F1D1D',
-              ],
+              'circle-color': (dimPolygon
+                ? ['case',
+                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    ['!', ['within', dimPolygon]], '#9CA3AF',
+                    '#7F1D1D']
+                : ['case',
+                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    '#7F1D1D']) as unknown as string,
               'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
                 8, 3,
@@ -803,10 +863,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
           />
 
-          {/* Layer 2: Price labels — fade in at high zoom */}
+          {/* Unclustered price labels — high zoom */}
           <Layer
             id="unclustered-label"
             type="symbol"
+            filter={['!', ['has', 'point_count']]}
             layout={{
               'text-field': ['get', 'priceLabel'],
               'text-size': 11,
@@ -816,12 +877,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
             paint={{
               'text-color': '#FFFFFF',
-              'text-halo-color': [
-                'case',
-                ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                ['boolean', ['feature-state', 'dimmed'], false], '#9CA3AF',
-                '#1F2937',
-              ],
+              'text-halo-color': (dimPolygon
+                ? ['case',
+                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    ['!', ['within', dimPolygon]], '#9CA3AF',
+                    '#1F2937']
+                : ['case',
+                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    '#1F2937']) as unknown as string,
               'text-halo-width': 5,
               'text-halo-blur': 0,
               'text-opacity': [
@@ -847,7 +910,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           >
             <div className="w-[170px]">
               {hoveredPin.photos?.[0] ? (
-                <img src={hoveredPin.photos[0]} alt="" className="w-full h-20 object-cover" />
+                <img src={hoveredPin.photos[0]} alt="" loading="lazy" decoding="async" className="w-full h-20 object-cover" />
               ) : (
                 <div className="w-full h-20 bg-theme-hover flex items-center justify-center">
                   <Building2 className="h-6 w-6 text-theme-muted" />
@@ -884,6 +947,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   <img
                     src={selectedListing.photos[0]}
                     alt={selectedListing.title}
+                    loading="lazy"
+                    decoding="async"
                     className={cn('w-full object-cover', isImmersive ? 'h-44' : 'h-28')}
                   />
                   {isImmersive && selectedListing.photos.length > 1 && (
