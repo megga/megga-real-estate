@@ -1284,22 +1284,28 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         </div>
       )}
 
-      {/* Tools menu — bottom-right */}
+      {/* Tools menu — bottom-right (split/non-immersive view) */}
       {!isImmersive && (
         <div ref={toolsMenuRef} className="absolute bottom-10 right-20 z-[6]">
           <button
             onClick={() => setToolsMenuOpen(v => !v)}
             className={cn(
-              'text-sm font-semibold px-4 py-2 rounded-xl bg-white border border-gray-200 transition-colors cursor-pointer shadow-sm flex items-center gap-1.5 focus:outline-none focus-visible:outline-none',
-              (toolsMenuOpen || showTools || showHeatmap) ? 'text-accent' : 'text-gray-700 hover:bg-gray-50'
+              'text-sm font-medium px-3.5 py-2 rounded-full backdrop-blur-xl border shadow-xl transition-colors cursor-pointer flex items-center gap-1.5 focus:outline-none focus-visible:outline-none',
+              ui.surface,
+              (toolsMenuOpen || showTools || showHeatmap)
+                ? 'text-accent'
+                : (isMapDark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-gray-900/5')
             )}
           >
             Outils
             <ChevronDown className={cn('h-3 w-3 transition-transform', toolsMenuOpen && 'rotate-180')} />
           </button>
           {toolsMenuOpen && (
-            <div className="absolute bottom-full right-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1">
-              <p className="px-3 pt-1.5 pb-1 text-xs font-semibold text-gray-500">Style de carte</p>
+            <div className={cn(
+              'absolute bottom-full right-0 mb-2 w-52 backdrop-blur-xl rounded-xl shadow-2xl border overflow-hidden py-1',
+              ui.dropdown
+            )}>
+              <p className={cn('px-3 pt-1.5 pb-1 text-xs font-semibold', isMapDark ? 'text-white/60' : 'text-gray-500')}>Style de carte</p>
               {([
                 { id: 'satellite', label: 'Satellite', icon: Satellite },
                 { id: 'light', label: 'Clair', icon: Sun },
@@ -1313,7 +1319,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                     onClick={() => setMapStyleId(style.id as MapStyleId)}
                     className={cn(
                       'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                      isActive ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                      isActive ? ui.dropdownItemActive : ui.dropdownItemIdle
                     )}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -1321,10 +1327,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   </button>
                 )
               })}
-              <div className="h-px bg-gray-100 my-1" />
+              <div className={cn('h-px my-1', isMapDark ? 'bg-white/10' : 'bg-gray-100')} />
               <button
                 onClick={() => { enterImmersive(); setToolsMenuOpen(false) }}
-                className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+                  ui.dropdownItemIdle
+                )}
               >
                 <Maximize className="h-3.5 w-3.5" />
                 Mode immersif
@@ -1799,7 +1808,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
         {/* Viewport counter */}
         {!isImmersive && viewportCount > 0 && (
-          <span className="h-9 px-3 rounded-xl bg-theme-card border border-theme-border text-theme-tertiary text-xs font-medium flex items-center tabular-nums">
+          <span className={cn(
+            'h-9 px-3.5 rounded-full backdrop-blur-xl border shadow-xl text-xs font-semibold flex items-center tabular-nums',
+            ui.surface,
+            isMapDark ? 'text-white' : 'text-gray-900'
+          )}>
             {viewportCount.toLocaleString('fr-CH')} biens
           </span>
         )}
