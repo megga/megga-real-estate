@@ -1833,72 +1833,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       {/* ── Immersive controls (tools panel — NOT shown in immersive mode, those are in the bottom toolbar) ── */}
       {(isFullscreen || showTools) && !isImmersive && (
         <>
-          {/* Top-right: Light presets + Heatmap + Geocoding */}
-          <div className="absolute top-3 right-3 z-[5] flex flex-col gap-2">
-            {/* Heatmap toggle */}
-            <button
-              onClick={() => setShowHeatmap(v => !v)}
-              className={cn(
-                'h-9 px-3 rounded-xl border text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5',
-                showHeatmap
-                  ? 'bg-theme-active text-theme-primary border-theme-active'
-                  : 'bg-theme-card text-theme-secondary border-theme-border hover:bg-theme-hover'
-              )}
-            >
-              <Thermometer className="h-3.5 w-3.5" />
-              Prix/m²
-            </button>
-
-            {/* Geocoding search */}
-            <div className="relative">
-              <button
-                onClick={() => setShowGeoSearch(v => !v)}
-                className="h-9 px-3 rounded-xl bg-theme-card border border-theme-border text-theme-secondary text-xs font-medium hover:bg-theme-hover transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                <Search className="h-3.5 w-3.5" />
-                Rechercher un lieu
-              </button>
-
-              {showGeoSearch && (
-                <div className="absolute top-full right-0 mt-2 w-72 bg-theme-card rounded-xl shadow-lg border border-theme-border overflow-hidden">
-                  <div className="p-2">
-                    <input
-                      type="text"
-                      value={geoSearchQuery}
-                      onChange={(e) => {
-                        const q = e.target.value
-                        setGeoSearchQuery(q)
-                        debouncedGeoFetch('tools-geo', q, setGeoResults)
-                      }}
-                      placeholder="Adresse, ville, quartier..."
-                      className="w-full h-8 px-3 text-xs bg-theme-section border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                      autoFocus
-                    />
-                  </div>
-                  {geoResults.length > 0 && (
-                    <div className="border-t border-theme-border-subtle max-h-48 overflow-y-auto">
-                      {geoResults.map((r, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            mapRef.current?.flyTo({ center: r.center, zoom: 14, duration: 1200, pitch: 0 })
-                            setGeoMarker(r.center)
-                            setShowGeoSearch(false)
-                            setGeoSearchQuery('')
-                            setGeoResults([])
-                          }}
-                          className="w-full px-3 py-2 text-xs text-theme-secondary hover:bg-theme-hover text-left cursor-pointer truncate"
-                        >
-                          <span className="font-medium">{r.text}</span>
-                          {r.context && <span className="text-theme-tertiary"> · {r.context}</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Prix/m² + Rechercher un lieu pills removed — they overlapped the Dessiner
+              button at top-right. Both actions remain accessible via the immersive
+              bottom toolbar (Thermometer + Search icons). */}
 
           {/* Bottom-center: Zone area measurement */}
           {closedPolygon && (
