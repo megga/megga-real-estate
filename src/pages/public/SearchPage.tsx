@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
+  Sparkles,
   ChevronDown,
   X,
   Map,
@@ -28,6 +29,12 @@ import ListingPreviewPanel from '@/components/listing/ListingPreviewPanel'
 import SaveSearchDialog from '@/components/search/SaveSearchDialog'
 import SavedSearchesList from '@/components/search/SavedSearchesList'
 import { useMarketListings, useMapPoints, useMarketStats } from '@/hooks/useMarketListings'
+import {
+  useSmartSearchParser,
+  isLikelyNaturalLanguage,
+  smartFiltersToPartialFilters,
+  buildSmartChipLabels,
+} from '@/hooks/useSmartSearchParser'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { sortByRecommendation } from '@/lib/recommendationScore'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -87,6 +94,26 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [searchInput, setSearchInput] = useState(filters.q)
+
+  // Smart input state — chip summarising what the LLM understood, plus a
+  // transient error toast message for low-confidence parses.
+  const smartParser = useSmartSearchParser()
+  const [smartChip, setSmartChip] = useState<{ labels: string[]; query: string } | null>(null)
+  const [smartError, setSmartError] = useState<string | null>(null)
+  // Input looks like NL while typing → dynamic sparkle icon. Purely visual,
+  // submission still runs through the routeSearch heuristic.
+  const isNLP = isLikelyNaturalLanguage(searchInput)
+  // Feature flag — disable via VITE_SMART_SEARCH_ENABLED=false. Default on.
+  const smartEnabled = (import.meta.env.VITE_SMART_SEARCH_ENABLED ?? 'true') !== 'false'
+  // One-time onboarding tooltip. Dismiss persisted in localStorage.
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return smartEnabled && !localStorage.getItem('megga-smart-search-onboarded') }
+    catch { return false }
+  })
+  const dismissOnboarding = useCallback(() => {
+    setShowOnboarding(false)
+    try { localStorage.setItem('megga-smart-search-onboarded', '1') } catch { /* ignore */ }
+  }, [])
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
   const [plusOpen, setPlusOpen] = useState(false)
   const [compareIds, setCompareIds] = useState<string[]>(() => {
@@ -238,7 +265,8 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     filters.city !== '' ||
     filters.canton !== '' ||
     filters.lifestyleTags.length > 0 ||
-    filters.energyLabel !== ''
+    filters.energyLabel !== '' ||
+    filters.features.length > 0
 
   const activeFilterCount = [
     filters.types.length > 0,
@@ -249,6 +277,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     filters.city || filters.canton,
     filters.lifestyleTags.length > 0,
     filters.energyLabel,
+    filters.features.length > 0,
   ].filter(Boolean).length
 
   function clearAllFilters() {
@@ -264,37 +293,71 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
       canton: '',
       lifestyleTags: [],
       energyLabel: '',
+      features: [],
       q: '',
     })
     setSearchInput('')
+    setSmartChip(null)
+    setSmartError(null)
   }
 
-  function handleSearch(e: React.FormEvent) {
+  const resetFilterPatch: Partial<Filters> = {
+    types: [],
+    minPrice: '',
+    maxPrice: '',
+    rooms: '',
+    minSurface: '',
+    bedrooms: '',
+    city: '',
+    canton: '',
+    lifestyleTags: [],
+    features: [],
+    q: '',
+  }
+
+  async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    if (!searchInput.trim()) {
+    const query = searchInput.trim()
+    setSmartError(null)
+
+    if (!query) {
+      setSmartChip(null)
       updateFilter({ q: '' })
       return
     }
 
-    // Parse natural language query
-    const parsed = parseNaturalLanguageQuery(searchInput)
-
-    if (parsed.understood.length > 0) {
-      const resetFilters: Partial<Filters> = {
-        types: [],
-        minPrice: '',
-        maxPrice: '',
-        rooms: '',
-        minSurface: '',
-        bedrooms: '',
-        city: '',
-        canton: '',
-        lifestyleTags: [],
-        q: '',
+    // NLP mode — ship to DeepSeek edge function. Falls through to local
+    // regex parser if the edge function errors, so a provider outage never
+    // leaves the user with a broken search box. Gated behind the feature
+    // flag so we can disable the LLM call without a redeploy.
+    if (smartEnabled && isLikelyNaturalLanguage(query)) {
+      try {
+        const result = await smartParser.mutateAsync({
+          query,
+          context: filters.context,
+        })
+        if (result.filters.confidence === 'low') {
+          setSmartChip(null)
+          setSmartError(t('search.smart.lowConfidence'))
+          return
+        }
+        const patch = smartFiltersToPartialFilters(result.filters)
+        updateFilter({ ...resetFilterPatch, ...patch } as Partial<Filters>)
+        setSmartChip({ labels: buildSmartChipLabels(result.filters), query })
+        return
+      } catch {
+        // Silent fallback to local regex parser below
       }
-      updateFilter({ ...resetFilters, ...parsed.filters })
+    }
+
+    // City / simple keyword mode — existing regex heuristic.
+    const parsed = parseNaturalLanguageQuery(query)
+    if (parsed.understood.length > 0) {
+      updateFilter({ ...resetFilterPatch, ...parsed.filters })
+      setSmartChip(null)
     } else {
-      updateFilter({ q: searchInput })
+      updateFilter({ q: query })
+      setSmartChip(null)
     }
   }
 
@@ -354,18 +417,45 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
 
           {/* Desktop: single unified row — constrained to left panel width */}
           <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: '45%' }}>
-            {/* Search input — flexible width */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
-              <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+            {/* Search input — smart: city lookup OR natural-language parser */}
+            <form onSubmit={handleSearch} className="relative flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
+              {/* First-visit onboarding popover */}
+              {showOnboarding && smartEnabled && (
+                <div className="absolute top-full left-0 mt-2 w-[320px] z-50 bg-white rounded-xl border border-gray-200 shadow-lg p-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-gray-900 mb-0.5">{t('search.smart.onboardingTitle')}</div>
+                      <p className="text-xs text-gray-600 leading-relaxed">{t('search.smart.onboardingBody')}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={dismissOnboarding}
+                      className="shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      aria-label={t('search.smart.onboardingDismiss')}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              {smartParser.isPending ? (
+                <div className="h-3.5 w-3.5 shrink-0 border-2 border-gray-300 border-t-accent rounded-full animate-spin" />
+              ) : isNLP ? (
+                <Sparkles className="h-3.5 w-3.5 text-accent shrink-0 transition-colors" />
+              ) : (
+                <Search className="h-3.5 w-3.5 text-gray-500 shrink-0 transition-colors" />
+              )}
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Ville, quartier, canton..."
+                placeholder={smartEnabled ? t('search.smart.placeholder') : t('search.searchCity', 'Ville, quartier, canton...')}
+                onFocus={dismissOnboarding}
                 className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
               />
               {searchInput && (
-                <button type="button" onClick={() => { setSearchInput(''); clearAllFilters() }} className="text-gray-500 hover:text-gray-600">
+                <button type="button" onClick={() => { setSearchInput(''); setSmartChip(null); setSmartError(null); clearAllFilters() }} className="text-gray-500 hover:text-gray-600">
                   <X className="h-3 w-3" />
                 </button>
               )}
@@ -599,12 +689,18 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
           {/* Mobile: search + filter button */}
           <div className="md:hidden flex items-center gap-2 h-12">
             <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-1">
-              <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+              {smartParser.isPending ? (
+                <div className="h-3.5 w-3.5 shrink-0 border-2 border-gray-300 border-t-accent rounded-full animate-spin" />
+              ) : isNLP ? (
+                <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+              ) : (
+                <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+              )}
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Rechercher..."
+                placeholder={smartEnabled ? t('search.smart.placeholderMobile') : t('search.searchCity', 'Rechercher...')}
                 className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
               />
             </form>
@@ -626,6 +722,39 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
           </div>
         </div>
       </div>
+
+      {/* ─── Smart-input feedback: chip "Compris" or low-confidence error ─── */}
+      {(smartChip || smartError) && (
+        <div className="px-4 pt-2 pb-0 flex items-center gap-2">
+          {smartChip && (
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 text-accent text-xs font-medium pl-2.5 pr-1.5 py-1 max-w-full">
+              <Sparkles className="h-3 w-3 shrink-0" />
+              <span className="truncate">{t('search.smart.understood')} : {smartChip.labels.join(' · ')}</span>
+              <button
+                type="button"
+                onClick={() => { setSmartChip(null); setSearchInput(''); clearAllFilters() }}
+                className="shrink-0 ml-0.5 h-4 w-4 rounded-full hover:bg-accent/20 flex items-center justify-center cursor-pointer"
+                aria-label="Réinitialiser"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </div>
+          )}
+          {smartError && (
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 text-red-600 text-xs font-medium px-2.5 py-1">
+              <span>{smartError}</span>
+              <button
+                type="button"
+                onClick={() => setSmartError(null)}
+                className="shrink-0 ml-0.5 h-4 w-4 rounded-full hover:bg-red-500/20 flex items-center justify-center cursor-pointer"
+                aria-label="Fermer"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── MAIN CONTENT ─── */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden">

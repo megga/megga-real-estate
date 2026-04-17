@@ -420,6 +420,15 @@
     "daysOnline": "{{count}}d",
     "previousPhoto": "Previous photo",
     "nextPhoto": "Next photo",
+    "smart": {
+      "placeholder": "City, neighborhood, or describe what you're looking for…",
+      "placeholderMobile": "Describe what you're looking for…",
+      "understood": "Understood",
+      "lowConfidence": "I didn't quite catch that. Try: «2 bedroom Geneva under 2500».",
+      "onboardingTitle": "New",
+      "onboardingBody": "Type what you're looking for in natural language — price, rooms, city, amenities…",
+      "onboardingDismiss": "Got it"
+    },
     "type": "Type",
     "price": "Price",
     "roomsFilter": "Rooms",

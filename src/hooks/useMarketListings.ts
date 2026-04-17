@@ -28,6 +28,10 @@ export interface MarketFilters {
   maxDaysOnMarket?: number
   isFurnished?: boolean
   availableNow?: boolean
+  // Amenity codes understood by get_market_map_points (balcony, pool, view,
+  // garage, elevator, furnished, pets_allowed, fireplace, new_building,
+  // minergie, parking). Terrace is deferred to v2 — see docs/backlog.md.
+  features?: string[]
 }
 
 export interface MapPoint {
@@ -84,6 +88,29 @@ function applyFilters<Q extends MarketListingsQuery>(query: Q, filters: MarketFi
   if (filters.maxDaysOnMarket) q = q.lte('days_on_market', filters.maxDaysOnMarket)
   if (filters.isFurnished) q = q.eq('is_furnished', true)
   if (filters.availableNow) q = q.lte('availability_date', new Date().toISOString().slice(0, 10))
+  if (filters.features && filters.features.length > 0) {
+    // Map feature codes → market_listings boolean/array columns.
+    // Keep in sync with get_market_map_points migration 20260418_001.
+    const featureColumn: Record<string, string> = {
+      balcony: 'has_balcony',
+      pool: 'has_swimming_pool',
+      view: 'has_nice_view',
+      garage: 'has_garage',
+      parking: 'has_parking',
+      elevator: 'has_elevator',
+      furnished: 'is_furnished',
+      pets_allowed: 'pets_allowed',
+      fireplace: 'has_fireplace',
+      new_building: 'is_new_building',
+      minergie: 'is_minergie',
+    }
+    for (const f of filters.features) {
+      const col = featureColumn[f]
+      if (col) q = q.eq(col, true)
+      // Unknown codes are silently ignored — keeps the query valid if the
+      // LLM ever emits something outside the v1 whitelist.
+    }
+  }
   if (filters.q) {
     q = q.or(`title.ilike.%${filters.q}%,city.ilike.%${filters.q}%,address.ilike.%${filters.q}%,canton.ilike.%${filters.q}%`)
   }
@@ -346,6 +373,7 @@ export function useMapPoints(filters: MarketFilters = {}) {
         p_max_price: filters.maxPrice ?? null,
         p_min_rooms: filters.minRooms ?? null,
         p_min_surface: filters.minSurface ?? null,
+        p_features: filters.features && filters.features.length > 0 ? filters.features : null,
       })
 
       // Internal properties in parallel

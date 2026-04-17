@@ -23,6 +23,8 @@ export interface Filters {
   sort: SortOption
   isFurnished: boolean
   availableNow: boolean
+  // Amenity codes — see MarketFilters.features in useMarketListings.ts.
+  features: string[]
 }
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
@@ -310,6 +312,7 @@ export function parseFiltersFromParams(params: URLSearchParams): Filters {
     sort: (params.get('sort') as SortOption) || 'relevance',
     isFurnished: params.get('furnished') === '1',
     availableNow: params.get('available') === '1',
+    features: params.get('features')?.split(',').filter(Boolean) || [],
   }
 }
 
@@ -331,6 +334,7 @@ export function filtersToParams(filters: Filters): Record<string, string> {
   if (filters.sort !== 'relevance') p.sort = filters.sort
   if (filters.isFurnished) p.furnished = '1'
   if (filters.availableNow) p.available = '1'
+  if (filters.features.length) p.features = filters.features.join(',')
   return p
 }
 
@@ -372,6 +376,7 @@ export function toServerFilters(filters: Filters): MarketFilters {
   if (filters.energyLabel) sf.energyLabel = filters.energyLabel
   if (filters.isFurnished) sf.isFurnished = true
   if (filters.availableNow) sf.availableNow = true
+  if (filters.features && filters.features.length > 0) sf.features = filters.features
 
   return sf
 }
