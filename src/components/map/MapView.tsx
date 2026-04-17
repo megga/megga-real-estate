@@ -1825,7 +1825,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                           }}
                           className="w-full px-3 py-2 text-xs text-theme-secondary hover:bg-theme-hover text-left cursor-pointer truncate"
                         >
-                          {r.place_name}
+                          <span className="font-medium">{r.text}</span>
+                          {r.context && <span className="text-theme-tertiary"> · {r.context}</span>}
                         </button>
                       ))}
                     </div>
