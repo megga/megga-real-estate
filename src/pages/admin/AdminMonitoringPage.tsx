@@ -6,7 +6,6 @@ import { useDeepSeekBalance, useAIUsageSummary, useAIUsageTimeseries } from '@/h
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { cn, formatRelativeDate } from '@/lib/utils'
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 type FunctionFilter = 'all' | 'healthy' | 'error' | 'unknown'
 
@@ -285,31 +284,37 @@ export default function AdminMonitoringPage() {
 
         {aiTimeseries.data && aiTimeseries.data.length > 0 && (
           <div className="pt-2">
-            <p className="text-xs font-medium text-theme-secondary mb-2">Tokens / jour (30 derniers jours)</p>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={aiTimeseries.data}>
-                  <defs>
-                    <linearGradient id="deepseekFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="claudeFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => d.slice(5)} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={formatTokens} />
-                  <Tooltip
-                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                    formatter={(value) => formatTokens(Number(value))}
-                  />
-                  <Area type="monotone" dataKey="deepseek" stackId="1" stroke="#8b5cf6" fill="url(#deepseekFill)" name="DeepSeek" />
-                  <Area type="monotone" dataKey="claude" stackId="1" stroke="#f97316" fill="url(#claudeFill)" name="Claude" />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-theme-secondary">Tokens / jour (30 derniers jours)</p>
+              <div className="flex items-center gap-3 text-xs text-theme-muted">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-violet-500" /> DeepSeek</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500" /> Claude</span>
+              </div>
             </div>
+            {(() => {
+              const max = Math.max(1, ...aiTimeseries.data.map((p) => p.deepseek + p.claude))
+              return (
+                <div className="flex items-end gap-0.5 h-32">
+                  {aiTimeseries.data.map((p) => {
+                    const total = p.deepseek + p.claude
+                    const totalPct = (total / max) * 100
+                    const deepseekShare = total > 0 ? (p.deepseek / total) * 100 : 0
+                    return (
+                      <div
+                        key={p.date}
+                        className="flex-1 flex flex-col-reverse min-w-0"
+                        title={`${p.date} — DeepSeek ${formatTokens(p.deepseek)} · Claude ${formatTokens(p.claude)}`}
+                      >
+                        <div className="w-full rounded-t-sm overflow-hidden" style={{ height: `${totalPct}%` }}>
+                          <div className="w-full bg-violet-500" style={{ height: `${deepseekShare}%` }} />
+                          <div className="w-full bg-orange-500" style={{ height: `${100 - deepseekShare}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>
