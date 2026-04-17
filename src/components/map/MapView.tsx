@@ -788,7 +788,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         onMouseUp={handleMouseUp}
         onStyleData={() => {
           // Small tail so tiles have time to rasterize before fading back in.
-          if (isStyleSwitching) setTimeout(() => setIsStyleSwitching(false), 120)
+          if (isStyleSwitching) setTimeout(() => setIsStyleSwitching(false), 200)
         }}
         onIdle={() => {
           // Safety net — if onStyleData is missed, `idle` fires when the
@@ -800,9 +800,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         style={{
           width: '100%',
           height: '100%',
-          transition: 'opacity 320ms cubic-bezier(0.22, 1, 0.36, 1), filter 320ms cubic-bezier(0.22, 1, 0.36, 1)',
-          opacity: isStyleSwitching ? 0.55 : 1,
-          filter: isStyleSwitching ? 'blur(6px) saturate(0.8)' : 'none',
+          transition: 'opacity 450ms cubic-bezier(0.22, 1, 0.36, 1), transform 450ms cubic-bezier(0.22, 1, 0.36, 1)',
+          opacity: isStyleSwitching ? 0.35 : 1,
+          transform: isStyleSwitching ? 'scale(1.015)' : 'scale(1)',
+          transformOrigin: 'center',
         }}
         attributionControl={false}
         doubleClickZoom={!isDrawing}
@@ -1017,9 +1018,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             onClose={() => { setSelectedListing(null); if (isTourActive) stopTour() }}
             closeOnClick={false}
             closeButton={false}
-            offset={14}
+            offset={22}
             maxWidth="320px"
-            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-xl [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-xl"
+            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-xl [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-xl [&_.mapboxgl-popup-tip]:hidden"
           >
             <div className="w-[300px] bg-theme-card rounded-xl overflow-hidden">
               {/* Photo with overlays */}
@@ -1214,6 +1215,19 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </>
         )}
       </MapGL>
+
+      {/* Style-switch "dip" overlay — tinted to match the target style for a smooth Apple-like transition */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[3] transition-opacity duration-[450ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={{
+          opacity: isStyleSwitching ? 0.45 : 0,
+          backgroundColor:
+            mapStyleId === 'dark' ? '#0b0f19'
+              : mapStyleId === 'satellite' ? '#1a1f2e'
+              : '#f4f5f7',
+        }}
+      />
 
       {/* Top-left: Recentrer — non-immersive only. In immersive the user navigates freely. */}
       {!hideTopControls && !isImmersive && (
