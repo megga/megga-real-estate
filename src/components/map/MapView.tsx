@@ -9,7 +9,7 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, School, TrainFront, ShoppingBag, TreePine, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
+import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
@@ -181,14 +181,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   }, [onImmersiveChange])
 
 
-  // ─── POI layers ───
-  const [showPOIs, setShowPOIs] = useState<Record<string, boolean>>({ schools: false, transport: false, shops: false, parks: false })
-
-  const togglePOI = useCallback((key: string) => {
-    setShowPOIs(prev => ({ ...prev, [key]: !prev[key] }))
-  }, [])
-
-  // POI layer visibility is unused on 2D styles — kept for future re-enable
 
   // ─── FlyTo tour ───
   const [tourIndex, setTourIndex] = useState(-1)
@@ -1309,28 +1301,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               >
                 <Thermometer className="h-3 w-3" />
               </button>
-              {/* POI toggles */}
-              {[
-                { key: 'schools', icon: School, label: 'Ecoles' },
-                { key: 'transport', icon: TrainFront, label: 'Transports' },
-                { key: 'shops', icon: ShoppingBag, label: 'Commerces' },
-                { key: 'parks', icon: TreePine, label: 'Parcs' },
-              ].map(poi => {
-                const Icon = poi.icon
-                return (
-                  <button
-                    key={poi.key}
-                    onClick={() => togglePOI(poi.key)}
-                    className={cn(
-                      'h-7 w-7 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center justify-center shrink-0',
-                      showPOIs[poi.key] ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
-                    )}
-                    title={poi.label}
-                  >
-                    <Icon className="h-3 w-3" />
-                  </button>
-                )
-              })}
             </div>
 
             <div className="w-px h-5 bg-white/15 mx-1 shrink-0" />
