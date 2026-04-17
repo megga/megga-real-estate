@@ -723,8 +723,35 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         maxPitch={0}
         terrain={undefined}
         onMouseMove={handleMouseMove}
-        onLoad={() => {
+        onLoad={(e) => {
           updateViewportCount()
+          // Register a stretchable red-pill sprite used as background for price labels.
+          const map = e.target
+          const addPill = (id: string, fill: string, stroke: string) => {
+            if (map.hasImage(id)) return
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="40" viewBox="0 0 64 40">
+              <rect x="3" y="3" width="58" height="24" rx="12" ry="12" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
+              <path d="M28 27 L32 33 L36 27 Z" fill="${fill}"/>
+              <path d="M28 27 L32 33 L36 27" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M29 28 L35 28" stroke="${fill}" stroke-width="3" stroke-linecap="round"/>
+            </svg>`
+            const img = new Image(64, 40)
+            img.onload = () => {
+              try {
+                map.addImage(id, img, {
+                  pixelRatio: 2,
+                  stretchX: [[16, 48]],
+                  stretchY: [[8, 20]],
+                  content: [6, 6, 58, 24],
+                })
+                map.triggerRepaint?.()
+              } catch { /* image may already exist */ }
+            }
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+          }
+          addPill('price-pill', '#7F1D1D', '#FFFFFF')
+          addPill('price-pill-hover', '#2563EB', '#FFFFFF')
+          addPill('price-pill-dim', '#9CA3AF', '#FFFFFF')
         }}
       >
         <NavigationControl position="bottom-right" showCompass={false} />
@@ -786,7 +813,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           data={listingsGeoJSON}
           promoteId="id"
         >
-          {/* Dots — far zoom: one tiny red dot per home */}
+          {/* Dots — far zoom: slightly larger red dot per home */}
           <Layer
             id="unclustered-dot"
             type="circle"
@@ -801,44 +828,54 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                     '#7F1D1D']) as unknown as string,
               'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
-                8, 2,
-                11, 4,
-                12.5, 5,
+                8, 3,
+                11, 5,
+                12.5, 7,
               ],
               'circle-opacity': [
                 'interpolate', ['linear'], ['zoom'],
                 12, 1,
                 13, 0,
               ],
-              'circle-stroke-color': 'rgba(255,255,255,0.85)',
-              'circle-stroke-width': 1,
+              'circle-stroke-color': 'rgba(255,255,255,0.95)',
+              'circle-stroke-width': 1.5,
             }}
           />
 
-          {/* Price pills — mid/close zoom: dot becomes red pill with price, all shown (overlap allowed) */}
+          {/* Price pills — red bubble sprite with pointer tail, stretched to fit the price */}
           <Layer
             id="unclustered-label"
             type="symbol"
             layout={{
+              'icon-image': (dimPolygon
+                ? ['case',
+                    ['boolean', ['feature-state', 'hover'], false], 'price-pill-hover',
+                    ['!', ['within', dimPolygon]], 'price-pill-dim',
+                    'price-pill']
+                : ['case',
+                    ['boolean', ['feature-state', 'hover'], false], 'price-pill-hover',
+                    'price-pill']) as unknown as string,
+              'icon-text-fit': 'both',
+              'icon-text-fit-padding': [3, 9, 11, 9],
+              'icon-allow-overlap': true,
+              'icon-ignore-placement': true,
+              'icon-anchor': 'bottom',
+              'icon-offset': [0, 4],
               'text-field': ['get', 'priceLabel'],
-              'text-size': 11,
+              'text-size': 13,
               'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
               'text-allow-overlap': true,
               'text-ignore-placement': true,
-              'text-anchor': 'center',
+              'text-anchor': 'bottom',
+              'text-offset': [0, -0.6],
             }}
             paint={{
               'text-color': '#FFFFFF',
-              'text-halo-color': (dimPolygon
-                ? ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                    ['!', ['within', dimPolygon]], '#9CA3AF',
-                    '#7F1D1D']
-                : ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                    '#7F1D1D']) as unknown as string,
-              'text-halo-width': 5,
-              'text-halo-blur': 0,
+              'icon-opacity': [
+                'interpolate', ['linear'], ['zoom'],
+                12, 0,
+                13, 1,
+              ],
               'text-opacity': [
                 'interpolate', ['linear'], ['zoom'],
                 12, 0,
