@@ -212,8 +212,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     return fromListings.slice(0, 50)
   }, [listings, mapPoints])
 
+  // Stable ref so tour callbacks don't invalidate when data refetches
+  const tourListingsRef = useRef(tourListings)
+  useEffect(() => { tourListingsRef.current = tourListings }, [tourListings])
+
   const flyToListing = useCallback((index: number) => {
-    const listing = tourListings[index]
+    const listing = tourListingsRef.current[index]
     if (!listing?.lat || !listing?.lng) return
     setTourIndex(index)
     setSelectedListing(listing)
@@ -225,34 +229,37 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       duration: 2500,
       essential: true,
     })
-  }, [tourListings])
+  }, [])
 
   // Auto-play: advance to next listing after 5s
   useEffect(() => {
     if (!isTourActive || !tourAutoPlay || tourIndex < 0) return
     tourTimerRef.current = setTimeout(() => {
-      const next = (tourIndex + 1) % tourListings.length
-      flyToListing(next)
+      const len = tourListingsRef.current.length
+      if (len === 0) return
+      flyToListing((tourIndex + 1) % len)
     }, 5000)
     return () => { if (tourTimerRef.current) clearTimeout(tourTimerRef.current) }
-  }, [isTourActive, tourAutoPlay, tourIndex, tourListings.length, flyToListing])
+  }, [isTourActive, tourAutoPlay, tourIndex, flyToListing])
 
   const startTour = useCallback(() => {
-    if (tourListings.length === 0) return
+    if (tourListingsRef.current.length === 0) return
     setIsTourActive(true)
     setTourAutoPlay(true)
     flyToListing(0)
-  }, [tourListings, flyToListing])
+  }, [flyToListing])
 
   const nextTourStop = useCallback(() => {
-    const next = (tourIndex + 1) % tourListings.length
-    flyToListing(next)
-  }, [tourIndex, tourListings, flyToListing])
+    const len = tourListingsRef.current.length
+    if (len === 0) return
+    flyToListing((tourIndex + 1) % len)
+  }, [tourIndex, flyToListing])
 
   const prevTourStop = useCallback(() => {
-    const prev = tourIndex <= 0 ? tourListings.length - 1 : tourIndex - 1
-    flyToListing(prev)
-  }, [tourIndex, tourListings, flyToListing])
+    const len = tourListingsRef.current.length
+    if (len === 0) return
+    flyToListing(tourIndex <= 0 ? len - 1 : tourIndex - 1)
+  }, [tourIndex, flyToListing])
 
   const stopTour = useCallback(() => {
     setIsTourActive(false)
@@ -670,6 +677,24 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   // Heatmap reuses the same GeoJSON (price is already a top-level property)
   const heatmapData = listingsGeoJSON
 
+  // Polygon area label — memoized so the spherical sum doesn't run every render
+  const polygonAreaLabel = useMemo(() => {
+    if (!closedPolygon) return null
+    const coords = closedPolygon
+    const R = 6371000
+    const toRad = (d: number) => (d * Math.PI) / 180
+    let area = 0
+    for (let i = 0; i < coords.length; i++) {
+      const j = (i + 1) % coords.length
+      area += toRad(coords[j][0] - coords[i][0]) *
+        (2 + Math.sin(toRad(coords[i][1])) + Math.sin(toRad(coords[j][1])))
+    }
+    area = Math.abs((area * R * R) / 2)
+    if (area > 1_000_000) return `${(area / 1_000_000).toFixed(1)} km²`
+    if (area > 10_000) return `${(area / 10_000).toFixed(1)} ha`
+    return `${Math.round(area).toLocaleString('fr-CH')} m²`
+  }, [closedPolygon])
+
   // Count listings in zone
   const zoneCount = useMemo(() => {
     if (!closedPolygon) return 0
@@ -1000,6 +1025,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <Layer
               id="heatmap-layer"
               type="heatmap"
+              maxzoom={15}
               paint={{
                 'heatmap-weight': ['interpolate', ['linear'], ['get', 'price'], 200000, 0, 5000000, 1],
                 'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 8, 1, 15, 3],
@@ -1013,7 +1039,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   1, 'rgb(255,40,40)',
                 ],
                 'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 8, 15, 15, 25],
-                'heatmap-opacity': 0.6,
+                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 9, 0.6, 13, 0.6, 15, 0],
               }}
             />
           </Source>
@@ -1502,21 +1528,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[5] bg-theme-card/95 backdrop-blur-sm rounded-xl border border-theme-border px-4 py-2 flex items-center gap-2">
               <Ruler className="h-3.5 w-3.5 text-theme-tertiary" />
               <span className="text-xs font-medium text-theme-secondary">
-                Surface : {(() => {
-                  const coords = closedPolygon
-                  const R = 6371000
-                  const toRad = (d: number) => d * Math.PI / 180
-                  let area = 0
-                  for (let i = 0; i < coords.length; i++) {
-                    const j = (i + 1) % coords.length
-                    area += toRad(coords[j][0] - coords[i][0]) *
-                      (2 + Math.sin(toRad(coords[i][1])) + Math.sin(toRad(coords[j][1])))
-                  }
-                  area = Math.abs(area * R * R / 2)
-                  if (area > 1000000) return `${(area / 1000000).toFixed(1)} km²`
-                  if (area > 10000) return `${(area / 10000).toFixed(1)} ha`
-                  return `${Math.round(area).toLocaleString('fr-CH')} m²`
-                })()}
+                Surface : {polygonAreaLabel}
               </span>
             </div>
           )}

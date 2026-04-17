@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useNeighborhood, calculateWalkScore, type PoiCategory } from '@/hooks/useNeighborhood'
 import { X, Train, ShoppingBag, GraduationCap, HeartPulse, Coffee, Loader2, MapPin } from 'lucide-react'
 
@@ -73,7 +74,10 @@ function CategoryBar({ label, icon: Icon, score, count, nearest }: {
 
 export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodOverlayProps) {
   const { station, categories, isLoading } = useNeighborhood(lat, lng)
-  const walkScore = !isLoading ? calculateWalkScore(categories, station) : null
+  const walkScore = useMemo(
+    () => (!isLoading ? calculateWalkScore(categories, station) : null),
+    [isLoading, categories, station],
+  )
 
   return (
     <div className="absolute top-14 left-4 z-[6] w-72 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-left-2 duration-300">
