@@ -39,32 +39,57 @@ export interface NeighborhoodData {
 // Tilequery returns poi_label features tagged with `class` (coarse) and
 // `maki` (icon name / subtype). We map both to our 5 categories.
 
+// Mapbox Streets v8 poi_label `class` values (the actual ones):
+//   food_and_drink, food_and_drink_stores, store_like, park_like, medical,
+//   education, commercial_services, general_service, arts_and_entertainment,
+//   sport_and_leisure, lodging, place_of_worship, landmark, historic,
+//   public_facilities, industrial, residential_building, visitor_amenities,
+//   transportation, marine.
 function mapToCategory(cls?: string, maki?: string): PoiCategory | null {
-  // Transport (train, tram, metro, bus, ferry)
-  if (maki === 'rail' || maki === 'rail-light' || maki === 'rail-metro' || maki === 'bus' || maki === 'ferry' || maki === 'entrance') {
-    // 'entrance' + class transit covers metro/station entries
-    if (maki === 'entrance' && cls !== 'transit') return null
+  // ─ Transport ─ rails, bus, metro, ferry
+  if (cls === 'transportation' || cls === 'transit' || cls === 'marine') return 'transport'
+  if (maki === 'rail' || maki === 'rail-light' || maki === 'rail-metro' ||
+      maki === 'bus' || maki === 'ferry' || maki === 'airport' || maki === 'airfield') {
     return 'transport'
   }
-  if (cls === 'transit') return 'transport'
 
-  // Santé (check before commerce so pharmacy routes to sante)
-  if (cls === 'medical' || maki === 'hospital' || maki === 'doctor' || maki === 'dentist' || maki === 'pharmacy' || maki === 'veterinary') {
+  // ─ Santé ─ hospitals, clinics, pharmacies, dentists. Check BEFORE commerce
+  //   because pharmacies may also sit in commercial categories.
+  if (cls === 'medical') return 'sante'
+  if (maki === 'hospital' || maki === 'doctor' || maki === 'dentist' ||
+      maki === 'pharmacy' || maki === 'veterinary' || maki === 'emergency-phone') {
     return 'sante'
   }
 
-  // Écoles
-  if (cls === 'education' || maki === 'school' || maki === 'college' || maki === 'library') return 'ecole'
+  // ─ Écoles & éducation ─
+  if (cls === 'education') return 'ecole'
+  if (maki === 'school' || maki === 'college' || maki === 'library') return 'ecole'
 
-  // Commerce
-  if (cls === 'shop_and_service' || cls === 'commercial') return 'commerce'
-  if (maki === 'supermarket' || maki === 'grocery' || maki === 'bakery' || maki === 'shop' || maki === 'clothing-store' || maki === 'alcohol-shop' || maki === 'bank' || maki === 'post') {
+  // ─ Commerce ─
+  if (cls === 'food_and_drink_stores' || cls === 'store_like' ||
+      cls === 'commercial_services' || cls === 'general_service') {
+    return 'commerce'
+  }
+  if (maki === 'supermarket' || maki === 'grocery' || maki === 'bakery' ||
+      maki === 'shop' || maki === 'clothing-store' || maki === 'alcohol-shop' ||
+      maki === 'bank' || maki === 'post' || maki === 'atm' ||
+      maki === 'fuel' || maki === 'laundry' || maki === 'hairdresser') {
     return 'commerce'
   }
 
-  // Loisirs (restaurants, parcs, sport, culture)
-  if (cls === 'food_and_drink' || cls === 'park_like' || cls === 'sport_and_leisure' || cls === 'arts_and_entertainment' || cls === 'park') return 'loisir'
-  if (maki === 'restaurant' || maki === 'cafe' || maki === 'bar' || maki === 'fast-food' || maki === 'park' || maki === 'theatre' || maki === 'cinema' || maki === 'museum' || maki === 'fitness-centre' || maki === 'swimming' || maki === 'stadium' || maki === 'playground' || maki === 'picnic-site' || maki === 'garden') {
+  // ─ Loisirs ─ restaurants, cafés, parcs, sport, culture, landmarks
+  if (cls === 'food_and_drink' || cls === 'park_like' || cls === 'sport_and_leisure' ||
+      cls === 'arts_and_entertainment' || cls === 'historic' ||
+      cls === 'visitor_amenities' || cls === 'landmark') {
+    return 'loisir'
+  }
+  if (maki === 'restaurant' || maki === 'cafe' || maki === 'bar' ||
+      maki === 'fast-food' || maki === 'ice-cream' ||
+      maki === 'park' || maki === 'park-alt1' || maki === 'garden' ||
+      maki === 'theatre' || maki === 'cinema' || maki === 'museum' ||
+      maki === 'art-gallery' || maki === 'attraction' ||
+      maki === 'fitness-centre' || maki === 'swimming' || maki === 'stadium' ||
+      maki === 'playground' || maki === 'picnic-site' || maki === 'pitch') {
     return 'loisir'
   }
 
@@ -88,7 +113,7 @@ interface TilequeryFeature {
 async function fetchMapboxPOIs(lat: number, lng: number): Promise<POI[]> {
   if (!MAPBOX_TOKEN) return []
   const RADIUS = 1500 // meters
-  const LIMIT = 80 // tiles return up to this many features
+  const LIMIT = 50 // Tilequery hard cap
   const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/${lng},${lat}.json?radius=${RADIUS}&limit=${LIMIT}&layers=poi_label&dedupe=true&access_token=${MAPBOX_TOKEN}`
 
   try {

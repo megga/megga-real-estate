@@ -1235,9 +1235,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         </div>
       )}
 
-      {/* Immersive filters pill — TOP-LEFT (tools bar lives bottom for its dropup) */}
+      {/* Immersive filters pill — sits directly above the tools bar (which is anchored at bottom-6, height ~44px) */}
       {isImmersive && (
-        <div className="absolute top-6 left-6 z-[5]">
+        <div className="absolute bottom-[76px] left-6 z-[5]">
           {/* ── Filter bar — collapsible pill → expanded horizontally on click ── */}
           <div
             className={cn(
@@ -1334,10 +1334,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           {/* ── Tools bar (bottom) — collapsible pill → expanded on click ── */}
           <div
             className={cn(
-              'flex items-center bg-gray-900/80 backdrop-blur-xl shadow-2xl border border-white/10 overflow-hidden transition-all',
+              'flex items-center bg-gray-900/80 backdrop-blur-xl shadow-2xl border border-white/10 transition-all',
               immersiveToolsOpen
                 ? 'rounded-2xl px-1.5 py-1.5 max-w-[calc(100vw-48px)] duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
-                : 'rounded-full p-0 max-w-[44px] duration-300 ease-out'
+                : 'rounded-full p-0 max-w-[44px] duration-300 ease-out overflow-hidden'
             )}
           >
             {/* Toggle — always visible */}
