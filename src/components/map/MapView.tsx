@@ -1182,15 +1182,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
       {/* Tools menu — bottom-right */}
       {!isImmersive && (
-        <div ref={toolsMenuRef} className="absolute bottom-4 right-3 z-[6]">
+        <div ref={toolsMenuRef} className="absolute bottom-4 right-16 z-[6]">
           <button
             onClick={() => setToolsMenuOpen(v => !v)}
             className={cn(
-              'text-sm font-semibold px-4 py-2 rounded-xl bg-white border border-gray-200 transition-colors cursor-pointer shadow-sm flex items-center gap-1.5',
+              'text-sm font-semibold px-4 py-2 rounded-xl bg-white border border-gray-200 transition-colors cursor-pointer shadow-sm flex items-center gap-1.5 focus:outline-none focus-visible:outline-none',
               (toolsMenuOpen || showTools || showHeatmap) ? 'text-accent' : 'text-gray-700 hover:bg-gray-50'
             )}
           >
-            <Mountain className="h-3.5 w-3.5" />
             Outils
             <ChevronDown className={cn('h-3 w-3 transition-transform', toolsMenuOpen && 'rotate-180')} />
           </button>
