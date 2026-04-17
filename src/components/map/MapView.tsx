@@ -736,33 +736,33 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           const addPill = (id: string) => {
             const c = PILL_COLORS[id]
             if (!c || map.hasImage(id)) return
-            // Canvas sprite — small native size so icon-text-fit stretches
-            // just enough to hug the price text.
-            const W = 80, H = 36
+            // Fixed-size canvas sprite — all pills render identical size.
+            // Simpler than icon-text-fit, guarantees clean pointer/text alignment.
+            const W = 112, H = 48 // renders 56×24 logical at pixelRatio 2
             const canvas = document.createElement('canvas')
             canvas.width = W; canvas.height = H
             const ctx = canvas.getContext('2d')
             if (!ctx) return
-            // Compact rounded-rect pill
-            const x = 3, y = 2, w = W - 6, h = 22, r = 11
+            // Pill body — wide, flat
+            const px = 2, py = 2, pw = W - 4, ph = 32, pr = 16
             ctx.fillStyle = c.fill
             ctx.strokeStyle = c.stroke
             ctx.lineWidth = 2.5
             ctx.beginPath()
-            ctx.moveTo(x + r, y)
-            ctx.arcTo(x + w, y, x + w, y + h, r)
-            ctx.arcTo(x + w, y + h, x, y + h, r)
-            ctx.arcTo(x, y + h, x, y, r)
-            ctx.arcTo(x, y, x + w, y, r)
+            ctx.moveTo(px + pr, py)
+            ctx.arcTo(px + pw, py, px + pw, py + ph, pr)
+            ctx.arcTo(px + pw, py + ph, px, py + ph, pr)
+            ctx.arcTo(px, py + ph, px, py, pr)
+            ctx.arcTo(px, py, px + pw, py, pr)
             ctx.closePath()
             ctx.fill()
             ctx.stroke()
-            // Small pointer at bottom center
-            const cx = W / 2, pyTop = y + h
+            // Pointer at bottom center
+            const cx = W / 2, pyTop = py + ph
             ctx.beginPath()
-            ctx.moveTo(cx - 5, pyTop)
-            ctx.lineTo(cx, pyTop + 7)
-            ctx.lineTo(cx + 5, pyTop)
+            ctx.moveTo(cx - 6, pyTop)
+            ctx.lineTo(cx, pyTop + 10)
+            ctx.lineTo(cx + 6, pyTop)
             ctx.closePath()
             ctx.fillStyle = c.fill
             ctx.fill()
@@ -771,14 +771,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             ctx.stroke()
             // Hide the seam where the triangle meets the pill
             ctx.fillStyle = c.fill
-            ctx.fillRect(cx - 5, pyTop - 1, 10, 3)
+            ctx.fillRect(cx - 6, pyTop - 1, 12, 3)
             try {
               const data = ctx.getImageData(0, 0, W, H)
               map.addImage(id, { width: W, height: H, data: new Uint8Array(data.data.buffer) }, {
                 pixelRatio: 2,
-                stretchX: [[18, 56]],
-                stretchY: [[6, 18]],
-                content: [6, 4, 74, 22],
               })
             } catch { /* ignore */ }
           }
@@ -881,19 +878,19 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             type="symbol"
             layout={{
               'icon-image': 'price-pill',
-              'icon-text-fit': 'both',
-              'icon-text-fit-padding': [0, 5, 7, 5],
-              'icon-allow-overlap': true,
-              'icon-ignore-placement': true,
+              'icon-allow-overlap': false,
+              'icon-ignore-placement': false,
+              'icon-padding': 2,
               'icon-anchor': 'bottom',
-              'icon-offset': [0, 2],
+              'icon-offset': [0, 0],
               'text-field': ['get', 'priceLabel'],
-              'text-size': 12,
+              'text-size': 11,
               'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-              'text-allow-overlap': true,
-              'text-ignore-placement': true,
+              'text-allow-overlap': false,
+              'text-ignore-placement': false,
+              'text-padding': 2,
               'text-anchor': 'bottom',
-              'text-offset': [0, -0.55],
+              'text-offset': [0, -0.95],
             }}
             paint={{
               'text-color': '#FFFFFF',
@@ -905,26 +902,24 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
           />
 
-          {/* Green hover pill — renders only the currently hovered listing on top */}
+          {/* Green hover pill — same fixed size as red pill, renders only the hovered listing */}
           <Layer
             id="unclustered-label-hover"
             type="symbol"
             filter={['==', ['get', 'id'], (hoveredPin?.id ?? hoveredId ?? '')]}
             layout={{
               'icon-image': 'price-pill-hover',
-              'icon-text-fit': 'both',
-              'icon-text-fit-padding': [1, 10, 9, 10],
               'icon-allow-overlap': true,
               'icon-ignore-placement': true,
               'icon-anchor': 'bottom',
-              'icon-offset': [0, 4],
+              'icon-offset': [0, 0],
               'text-field': ['get', 'priceLabel'],
-              'text-size': 13,
+              'text-size': 11,
               'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
               'text-allow-overlap': true,
               'text-ignore-placement': true,
               'text-anchor': 'bottom',
-              'text-offset': [0, -0.6],
+              'text-offset': [0, -0.95],
             }}
             paint={{
               'text-color': '#FFFFFF',
