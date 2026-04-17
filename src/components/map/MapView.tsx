@@ -7,7 +7,7 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal, SlidersHorizontal, Plus, Minus, PenLine } from 'lucide-react'
+import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal, SlidersHorizontal, Plus, Minus, PenLine, Home, Landmark, Map as MapIcon, Hash, Trees } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
@@ -19,10 +19,17 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 
 // Debounced geocoding fetch
 const geoDebounceTimers: Record<string, ReturnType<typeof setTimeout>> = {}
+export type GeoPlaceType = 'country' | 'region' | 'postcode' | 'district' | 'place' | 'locality' | 'neighborhood' | 'address' | 'poi'
+export interface GeoResult {
+  text: string            // main label (e.g. "Carouge")
+  context: string         // secondary label (e.g. "Genève, Suisse")
+  place_type: GeoPlaceType
+  center: [number, number]
+}
 function debouncedGeoFetch(
   key: string,
   query: string,
-  onResults: (results: Array<{ place_name: string; center: [number, number] }>) => void,
+  onResults: (results: GeoResult[]) => void,
   delay = 350,
 ) {
   clearTimeout(geoDebounceTimers[key])
@@ -33,12 +40,37 @@ function debouncedGeoFetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?country=ch&language=fr&limit=5&access_token=${MAPBOX_TOKEN}`
       )
       const data = await resp.json()
-      onResults(data.features?.map((f: Record<string, unknown>) => ({
-        place_name: f.place_name as string,
-        center: f.center as [number, number],
-      })) || [])
+      const features = (data.features as Array<Record<string, unknown>> | undefined) ?? []
+      onResults(features.map(f => {
+        const placeName = (f.place_name as string) || ''
+        const text = (f.text as string) || placeName
+        // place_name is "text, canton, country" — strip the leading text to get the context tail
+        const context = placeName.startsWith(text) ? placeName.slice(text.length).replace(/^,\s*/, '') : placeName
+        const types = (f.place_type as string[] | undefined) ?? []
+        return {
+          text,
+          context,
+          place_type: (types[0] as GeoPlaceType) || 'address',
+          center: f.center as [number, number],
+        }
+      }))
     } catch { onResults([]) }
   }, delay)
+}
+
+function iconForPlaceType(t: GeoPlaceType) {
+  switch (t) {
+    case 'address': return Home
+    case 'poi': return Landmark
+    case 'neighborhood':
+    case 'locality': return Building2
+    case 'place':
+    case 'district': return MapIcon
+    case 'postcode': return Hash
+    case 'region':
+    case 'country': return Trees
+    default: return MapPin
+  }
 }
 
 export interface MapViewHandle {
@@ -356,7 +388,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [showHeatmap, setShowHeatmap] = useState(false)
   const [showGeoSearch, setShowGeoSearch] = useState(false)
   const [geoSearchQuery, setGeoSearchQuery] = useState('')
-  const [geoResults, setGeoResults] = useState<Array<{ place_name: string; center: [number, number] }>>([])
+  const [geoResults, setGeoResults] = useState<GeoResult[]>([])
 
   // Light preset only applies to Standard 3D — disabled in 2D mode
 
@@ -1100,7 +1132,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               type="heatmap"
               maxzoom={15}
               paint={{
-                'heatmap-weight': ['interpolate', ['linear'], ['get', 'price'], 200000, 0, 5000000, 1],
+                'heatmap-weight': transactionContext === 'rent'
+                  ? ['interpolate', ['linear'], ['get', 'price'], 500, 0, 10000, 1]
+                  : ['interpolate', ['linear'], ['get', 'price'], 200000, 0, 5000000, 1],
                 'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 8, 1, 15, 3],
                 'heatmap-color': [
                   'interpolate', ['linear'], ['heatmap-density'],
@@ -1516,17 +1550,108 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             </button>
 
             {/* Geo search */}
-            <button
-              onClick={() => setShowGeoSearch(v => !v)}
-              className={cn(
-                'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:outline-none',
-                showGeoSearch ? ui.iconActive : ui.iconIdle
+            <div className="relative">
+              <button
+                onClick={() => setShowGeoSearch(v => !v)}
+                className={cn(
+                  'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:outline-none',
+                  showGeoSearch ? ui.iconActive : ui.iconIdle
+                )}
+                aria-label="Rechercher un lieu"
+                title="Rechercher un lieu"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+              {showGeoSearch && (
+                <div className={cn(
+                  'absolute bottom-0 left-full ml-3 z-[60] w-80 backdrop-blur-xl rounded-xl shadow-2xl border overflow-hidden',
+                  ui.dropdown
+                )}>
+                  <div className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={cn('text-xs font-semibold', isMapDark ? 'text-white/80' : 'text-gray-700')}>Rechercher un lieu</span>
+                      <button
+                        onClick={() => { setShowGeoSearch(false); setGeoMarker(null) }}
+                        className={cn('cursor-pointer transition-colors', isMapDark ? 'text-white/40 hover:text-white' : 'text-gray-400 hover:text-gray-900')}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={geoSearchQuery}
+                      onChange={(e) => {
+                        const q = e.target.value
+                        setGeoSearchQuery(q)
+                        debouncedGeoFetch('immersive-geo', q, setGeoResults)
+                      }}
+                      placeholder="Adresse, ville, quartier..."
+                      className={cn(
+                        'w-full h-9 px-3 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent',
+                        isMapDark
+                          ? 'bg-white/10 border-white/20 text-white placeholder:text-white/40'
+                          : 'bg-gray-900/5 border-gray-200 text-gray-900 placeholder:text-gray-400'
+                      )}
+                      autoFocus
+                    />
+                    {geoMarker && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={cn('text-xs', isMapDark ? 'text-white/50' : 'text-gray-500')}>Rayon</span>
+                        <input
+                          type="range"
+                          min={250}
+                          max={5000}
+                          step={250}
+                          value={geoRadius}
+                          onChange={(e) => updateGeoRadius(Number(e.target.value))}
+                          className="flex-1 h-1 accent-accent"
+                        />
+                        <span className={cn('text-xs min-w-[40px] text-right', isMapDark ? 'text-white/70' : 'text-gray-700')}>
+                          {geoRadius >= 1000 ? `${(geoRadius / 1000).toFixed(1)} km` : `${geoRadius} m`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {geoResults.length > 0 && (
+                    <div className={cn('border-t max-h-60 overflow-y-auto py-1', isMapDark ? 'border-white/10' : 'border-gray-200/70')}>
+                      {geoResults.map((r, i) => {
+                        const Icon = iconForPlaceType(r.place_type)
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              mapRef.current?.flyTo({ center: r.center, zoom: 14, duration: 1200, pitch: 0 })
+                              setGeoMarker(r.center)
+                              setShowGeoSearch(false)
+                              setGeoSearchQuery('')
+                              setGeoResults([])
+                            }}
+                            style={{ animationDelay: `${i * 30}ms` }}
+                            className={cn(
+                              'w-full px-3 py-2 flex items-center gap-3 text-left cursor-pointer transition-colors animate-in fade-in slide-in-from-top-1 duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                              isMapDark ? 'hover:bg-white/10' : 'hover:bg-gray-900/5'
+                            )}
+                          >
+                            <span className={cn(
+                              'h-8 w-8 shrink-0 rounded-full flex items-center justify-center',
+                              isMapDark ? 'bg-white/5 text-white/70' : 'bg-gray-900/5 text-gray-600'
+                            )}>
+                              <Icon className="h-3.5 w-3.5" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className={cn('text-sm font-medium truncate', isMapDark ? 'text-white' : 'text-gray-900')}>{r.text}</p>
+                              {r.context && (
+                                <p className={cn('text-xs truncate', isMapDark ? 'text-white/50' : 'text-gray-500')}>{r.context}</p>
+                              )}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
-              aria-label="Rechercher un lieu"
-              title="Rechercher un lieu"
-            >
-              <Search className="h-4 w-4" />
-            </button>
+            </div>
 
             {/* Neighborhood score */}
             <button
@@ -1806,69 +1931,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               <button onClick={stopTour} className="text-white/60 hover:text-white text-xs transition-colors cursor-pointer" title="Arrêter le tour">
                 <X className="h-4 w-4" />
               </button>
-            </div>
-          )}
-
-          {/* Geocoding search panel (immersive) */}
-          {showGeoSearch && (
-            <div className="absolute top-4 right-4 z-[6] w-80 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden">
-              <div className="p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-white/80">Rechercher un lieu</span>
-                  <button onClick={() => { setShowGeoSearch(false); setGeoMarker(null) }} className="text-white/40 hover:text-white cursor-pointer">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  value={geoSearchQuery}
-                  onChange={(e) => {
-                    const q = e.target.value
-                    setGeoSearchQuery(q)
-                    debouncedGeoFetch('immersive-geo', q, setGeoResults)
-                  }}
-                  placeholder="Adresse, ville, quartier..."
-                  className="w-full h-9 px-3 text-sm bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
-                  autoFocus
-                />
-                {/* Search radius slider */}
-                {geoMarker && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="text-xs text-white/50">Rayon</span>
-                    <input
-                      type="range"
-                      min={250}
-                      max={5000}
-                      step={250}
-                      value={geoRadius}
-                      onChange={(e) => updateGeoRadius(Number(e.target.value))}
-                      className="flex-1 h-1 accent-accent"
-                    />
-                    <span className="text-xs text-white/70 min-w-[40px] text-right">
-                      {geoRadius >= 1000 ? `${(geoRadius / 1000).toFixed(1)} km` : `${geoRadius} m`}
-                    </span>
-                  </div>
-                )}
-              </div>
-              {geoResults.length > 0 && (
-                <div className="border-t border-white/10 max-h-48 overflow-y-auto">
-                  {geoResults.map((r, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        mapRef.current?.flyTo({ center: r.center, zoom: 14, duration: 1200, pitch: 0 })
-                        setGeoMarker(r.center)
-                        setShowGeoSearch(false)
-                        setGeoSearchQuery('')
-                        setGeoResults([])
-                      }}
-                      className="w-full px-3 py-2.5 text-sm text-white/80 hover:bg-white/10 text-left cursor-pointer truncate"
-                    >
-                      {r.place_name}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
