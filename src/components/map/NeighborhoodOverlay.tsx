@@ -1,10 +1,12 @@
 import { useMemo, useRef, useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { useNeighborhood, calculateWalkScore, type PoiCategory } from '@/hooks/useNeighborhood'
 import { X, Train, ShoppingBag, GraduationCap, HeartPulse, Coffee, Loader2, MapPin } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface NeighborhoodOverlayProps {
   lat: number
   lng: number
+  isMapDark?: boolean
   onClose: () => void
 }
 
@@ -16,7 +18,7 @@ const CATEGORY_CONFIG: Record<PoiCategory, { label: string; icon: typeof Train }
   loisir: { label: 'Loisirs', icon: Coffee },
 }
 
-function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
+function ScoreRing({ score, size = 56, isDark }: { score: number; size?: number; isDark: boolean }) {
   const r = (size - 6) / 2
   const circ = 2 * Math.PI * r
   const offset = circ * (1 - score / 100)
@@ -24,48 +26,49 @@ function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
 
   return (
     <svg width={size} height={size} className="shrink-0">
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="white" strokeOpacity={0.1} strokeWidth={4} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={isDark ? 'white' : '#111827'} strokeOpacity={0.1} strokeWidth={4} />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none"
         stroke={color} strokeWidth={4} strokeLinecap="round"
         strokeDasharray={circ} strokeDashoffset={offset}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
-      <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central" fill="white" fontSize={16} fontWeight={700}>
+      <text x={size / 2} y={size / 2} textAnchor="middle" dominantBaseline="central" fill={isDark ? 'white' : '#111827'} fontSize={16} fontWeight={700}>
         {score}
       </text>
     </svg>
   )
 }
 
-function CategoryBar({ label, icon: Icon, score, count, nearest }: {
+function CategoryBar({ label, icon: Icon, score, count, nearest, isDark }: {
   label: string
   icon: typeof Train
   score: number
   count: number
   nearest: string | null
+  isDark: boolean
 }) {
   return (
     <div className="flex items-center gap-2.5">
-      <Icon className="h-3.5 w-3.5 text-white/70 shrink-0" />
+      <Icon className={cn('h-3.5 w-3.5 shrink-0', isDark ? 'text-white/70' : 'text-gray-500')} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[13px] font-medium text-white">{label}</span>
-          <span className="text-xs text-white/60 tabular-nums">
+          <span className={cn('text-[13px] font-medium', isDark ? 'text-white' : 'text-gray-900')}>{label}</span>
+          <span className={cn('text-xs tabular-nums', isDark ? 'text-white/60' : 'text-gray-500')}>
             {count > 0 ? `${count} lieu${count !== 1 ? 'x' : ''}` : 'Aucun à proximité'}
           </span>
         </div>
-        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+        <div className={cn('h-1 rounded-full overflow-hidden', isDark ? 'bg-white/10' : 'bg-gray-900/10')}>
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${Math.max(score, count === 0 ? 3 : 0)}%`,
-              backgroundColor: count === 0 ? '#6b7280' : score >= 70 ? '#22c55e' : score >= 50 ? '#eab308' : score >= 25 ? '#f97316' : '#ef4444',
+              backgroundColor: count === 0 ? '#9ca3af' : score >= 70 ? '#22c55e' : score >= 50 ? '#eab308' : score >= 25 ? '#f97316' : '#ef4444',
             }}
           />
         </div>
         {nearest && (
-          <p className="text-xs text-white/60 mt-1 truncate">{nearest}</p>
+          <p className={cn('text-xs mt-1 truncate', isDark ? 'text-white/60' : 'text-gray-500')}>{nearest}</p>
         )}
       </div>
     </div>
@@ -82,7 +85,8 @@ function scoreLabelHex(score: number): string {
   return '#f87171' // red-400
 }
 
-export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodOverlayProps) {
+export default function NeighborhoodOverlay({ lat, lng, isMapDark = true, onClose }: NeighborhoodOverlayProps) {
+  const isDark = isMapDark
   const { station, categories, isLoading } = useNeighborhood(lat, lng)
   const walkScore = useMemo(
     () => (!isLoading ? calculateWalkScore(categories, station) : null),
@@ -149,14 +153,15 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
   return (
     <div
       ref={containerRef}
-      className={
-        'absolute top-14 left-4 z-[6] w-72 rounded-xl border border-white/10 animate-in slide-in-from-left-2 duration-300 ' +
+      className={cn(
+        'absolute top-14 left-4 z-[6] w-72 rounded-xl border animate-in slide-in-from-left-2 duration-300',
+        isDark ? 'border-white/10' : 'border-gray-200/70',
         // Drop backdrop-blur and shadow while dragging — they repaint every
         // frame on a moving element and are the main source of stutter.
-        (isDragging
-          ? 'bg-gray-900 shadow-md'
-          : 'bg-gray-900/90 backdrop-blur-xl shadow-2xl')
-      }
+        isDragging
+          ? (isDark ? 'bg-gray-900 shadow-md' : 'bg-white shadow-md')
+          : (isDark ? 'bg-gray-900/90 backdrop-blur-xl shadow-2xl' : 'bg-white/90 backdrop-blur-xl shadow-2xl')
+      )}
       style={{ contain: 'layout paint' }}
     >
       {/* Header — drag handle */}
@@ -168,13 +173,13 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
         onPointerCancel={onPointerUp}
       >
         <div className="flex items-center gap-2">
-          <MapPin className="h-3.5 w-3.5 text-white/80" />
-          <span className="text-sm font-semibold text-white">Score quartier</span>
+          <MapPin className={cn('h-3.5 w-3.5', isDark ? 'text-white/80' : 'text-gray-700')} />
+          <span className={cn('text-sm font-semibold', isDark ? 'text-white' : 'text-gray-900')}>Score quartier</span>
         </div>
         <button
           onClick={onClose}
           onPointerDown={(e) => e.stopPropagation()}
-          className="text-white/40 hover:text-white transition-colors cursor-pointer"
+          className={cn('transition-colors cursor-pointer', isDark ? 'text-white/40 hover:text-white' : 'text-gray-400 hover:text-gray-900')}
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -182,19 +187,19 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
 
       {isLoading ? (
         <div className="px-4 py-8 flex flex-col items-center gap-2">
-          <Loader2 className="h-5 w-5 text-white/40 animate-spin" />
-          <span className="text-xs text-white/40">Analyse du quartier...</span>
+          <Loader2 className={cn('h-5 w-5 animate-spin', isDark ? 'text-white/40' : 'text-gray-400')} />
+          <span className={cn('text-xs', isDark ? 'text-white/40' : 'text-gray-500')}>Analyse du quartier...</span>
         </div>
       ) : walkScore ? (
         <>
           {/* Walk Score ring + label */}
-          <div className="px-4 py-3 flex items-center gap-4 border-b border-white/10">
-            <ScoreRing score={walkScore.score} />
+          <div className={cn('px-4 py-3 flex items-center gap-4 border-b', isDark ? 'border-white/10' : 'border-gray-200/70')}>
+            <ScoreRing score={walkScore.score} isDark={isDark} />
             <div>
               <p className="text-base font-bold" style={{ color: scoreLabelHex(walkScore.score) }}>{walkScore.label}</p>
-              <p className="text-xs text-white/60 mt-0.5">Walk Score 0-100</p>
+              <p className={cn('text-xs mt-0.5', isDark ? 'text-white/60' : 'text-gray-500')}>Walk Score 0-100</p>
               {walkScore.score < 25 && (
-                <p className="text-xs text-white/50 mt-1">Cliquez en centre-ville pour de meilleurs scores</p>
+                <p className={cn('text-xs mt-1', isDark ? 'text-white/50' : 'text-gray-400')}>Cliquez en centre-ville pour de meilleurs scores</p>
               )}
             </div>
           </div>
@@ -212,6 +217,7 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
                   score={breakdown}
                   count={cat?.count || 0}
                   nearest={cat?.nearest ? `${cat.nearest.name} · ${cat.nearest.distanceM}m` : null}
+                  isDark={isDark}
                 />
               )
             })}
@@ -219,18 +225,18 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
 
           {/* Nearest station */}
           {station && (
-            <div className="px-4 py-3 border-t border-white/10 flex items-center gap-2.5">
-              <Train className="h-4 w-4 text-white/80 shrink-0" />
+            <div className={cn('px-4 py-3 border-t flex items-center gap-2.5', isDark ? 'border-white/10' : 'border-gray-200/70')}>
+              <Train className={cn('h-4 w-4 shrink-0', isDark ? 'text-white/80' : 'text-gray-700')} />
               <div className="min-w-0">
-                <p className="text-[13px] text-white font-medium truncate">{station.name}</p>
-                <p className="text-xs text-white/60">{station.formatted}</p>
+                <p className={cn('text-[13px] font-medium truncate', isDark ? 'text-white' : 'text-gray-900')}>{station.name}</p>
+                <p className={cn('text-xs', isDark ? 'text-white/60' : 'text-gray-500')}>{station.formatted}</p>
               </div>
             </div>
           )}
         </>
       ) : (
         <div className="px-4 py-6 text-center">
-          <p className="text-xs text-white/40">Donnees non disponibles pour ce lieu</p>
+          <p className={cn('text-xs', isDark ? 'text-white/40' : 'text-gray-400')}>Donnees non disponibles pour ce lieu</p>
         </div>
       )}
     </div>

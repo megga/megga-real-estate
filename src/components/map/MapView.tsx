@@ -4,11 +4,10 @@ import MapGL, {
   Popup,
   Source,
   Layer,
-  NavigationControl,
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal, SlidersHorizontal } from 'lucide-react'
+import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal, SlidersHorizontal, Plus, Minus, PenLine } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
@@ -847,8 +846,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           map.on('styleimagemissing', (ev: { id: string }) => addPill(ev.id))
         }}
       >
-        <NavigationControl position="bottom-right" showCompass={false} />
-
         {/* Draw polygon overlay */}
         {drawGeoJSON && (
           <Source id="draw-zone" type="geojson" data={drawGeoJSON}>
@@ -1202,8 +1199,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         <div className="absolute top-3 right-3 z-[6]">
           <button
             onClick={startDrawing}
-            className="text-sm font-semibold px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm"
+            className={cn(
+              'text-sm font-medium px-3.5 py-2 rounded-full backdrop-blur-xl border shadow-xl transition-colors cursor-pointer flex items-center gap-1.5',
+              ui.surface,
+              isMapDark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-gray-900/5'
+            )}
           >
+            <PenLine className="h-3.5 w-3.5" />
             Dessiner
           </button>
         </div>
@@ -1264,29 +1266,75 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         <div className="absolute top-3 right-3 z-[6]">
           <button
             onClick={clearZone}
-            className="text-sm font-semibold px-4 py-2 rounded-xl bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+            className={cn(
+              'text-sm font-medium px-3.5 py-2 rounded-full backdrop-blur-xl border shadow-xl transition-colors cursor-pointer flex items-center gap-1.5',
+              ui.surface,
+              isMapDark ? 'text-white hover:bg-white/10' : 'text-gray-900 hover:bg-gray-900/5'
+            )}
           >
             Enlever la zone
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
 
-      {/* Drawing instructions — full-width top bar */}
+      {/* Drawing instructions — full-width top bar, adapts to map theme */}
       {isDrawing && (
-        <div className="absolute top-0 left-0 right-0 z-[10] bg-gray-900/85 backdrop-blur-sm text-white px-6 py-3 flex items-center justify-between">
-          <p className="text-sm">
+        <div className={cn(
+          'absolute top-0 left-0 right-0 z-[10] backdrop-blur-md px-6 py-3 flex items-center justify-between border-b',
+          isMapDark
+            ? 'bg-gray-900/85 border-white/10'
+            : 'bg-white/85 border-gray-200/70'
+        )}>
+          <p className={cn('text-sm', isMapDark ? 'text-white' : 'text-gray-900')}>
             <span className="font-semibold">Dessinez une forme</span>
-            <span className="text-white/80"> autour des régions où vous souhaitez vivre</span>
+            <span className={isMapDark ? 'text-white/70' : 'text-gray-600'}> autour des régions où vous souhaitez vivre</span>
           </p>
           <button
             onClick={clearZone}
-            className="text-sm font-medium text-white/80 hover:text-white transition-colors cursor-pointer"
+            className={cn(
+              'text-sm font-medium transition-colors cursor-pointer',
+              isMapDark ? 'text-white/80 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+            )}
           >
             Annuler
           </button>
         </div>
       )}
+
+      {/* Zoom controls — custom, theme-adaptive, aligned with bottom tools bar */}
+      <div className={cn(
+        'absolute z-[6] flex flex-col',
+        isImmersive ? 'bottom-6 right-6' : 'bottom-10 right-3'
+      )}>
+        <div className={cn(
+          'flex flex-col backdrop-blur-xl border shadow-xl rounded-full p-1 gap-1',
+          ui.surface
+        )}>
+          <button
+            onClick={() => mapRef.current?.getMap()?.zoomIn()}
+            className={cn(
+              'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer',
+              ui.iconIdle
+            )}
+            aria-label="Zoom avant"
+            title="Zoom avant"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => mapRef.current?.getMap()?.zoomOut()}
+            className={cn(
+              'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer',
+              ui.iconIdle
+            )}
+            aria-label="Zoom arrière"
+            title="Zoom arrière"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       {/* Immersive filters pill — sits directly above the tools bar (which is anchored at bottom-6, height ~44px) */}
       {isImmersive && (
@@ -1679,16 +1727,42 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       {isImmersive && (
         <>
           {/* Listing counter — top-left, avoids overlap with the Dessiner button */}
-          <div className="absolute top-3 left-3 z-[5] bg-gray-900/70 backdrop-blur-xl text-white/80 text-xs font-medium px-3 py-1.5 rounded-xl border border-white/10">
+          <div className={cn(
+            'absolute top-4 left-4 z-[5] backdrop-blur-xl text-xs font-semibold px-3.5 py-2 rounded-full border shadow-xl',
+            ui.surface,
+            isMapDark ? 'text-white' : 'text-gray-900'
+          )}>
             {(mapPoints?.length || listings.length).toLocaleString('fr-CH')} biens
           </div>
 
-          {/* Neighborhood pick mode instruction */}
+          {/* Neighborhood pick mode instruction — Apple-style pill, theme-aware */}
           {neighborhoodPickMode && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[6] bg-gray-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 text-accent" />
-              Cliquez pour analyser un quartier
-              <button onClick={() => setNeighborhoodPickMode(false)} className="ml-2 text-white/60 hover:text-white transition-colors cursor-pointer">
+            <div
+              className={cn(
+                'absolute top-4 left-1/2 -translate-x-1/2 z-[6] backdrop-blur-xl border shadow-xl rounded-full pl-2 pr-1.5 py-1.5 flex items-center gap-2',
+                'animate-in fade-in slide-in-from-top-2 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                ui.surface
+              )}
+            >
+              {/* Pulsing dot to signal "active picker" */}
+              <span className="relative flex items-center justify-center h-6 w-6 shrink-0">
+                <span className={cn('absolute inline-flex h-full w-full rounded-full opacity-40 animate-ping', isMapDark ? 'bg-white/40' : 'bg-gray-900/30')} />
+                <span className={cn('relative h-2 w-2 rounded-full', isMapDark ? 'bg-white' : 'bg-gray-900')} />
+              </span>
+              <span className={cn(
+                'text-sm font-medium pr-1',
+                isMapDark ? 'text-white' : 'text-gray-900'
+              )}>
+                Cliquez pour analyser un quartier
+              </span>
+              <button
+                onClick={() => setNeighborhoodPickMode(false)}
+                className={cn(
+                  'h-7 w-7 rounded-full flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:outline-none',
+                  ui.iconIdle
+                )}
+                aria-label="Annuler la sélection"
+              >
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -1699,6 +1773,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <NeighborhoodOverlay
               lat={neighborhoodPoint[1]}
               lng={neighborhoodPoint[0]}
+              isMapDark={isMapDark}
               onClose={() => setNeighborhoodPoint(null)}
             />
           )}

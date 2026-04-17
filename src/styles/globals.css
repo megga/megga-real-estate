@@ -325,48 +325,10 @@
   }
 }
 
-/* ─── Mapbox control overrides — always light (map is always on light background) ─── */
-
-/* Lift bottom-right nav controls away from the map edge */
-.mapboxgl-ctrl-bottom-right {
-  bottom: 40px !important;
-  right: 16px !important;
-}
+/* Mapbox ctrl — only the bottom-left attribution remains; push it up so it
+   doesn't overlap the tools bar. */
 .mapboxgl-ctrl-bottom-left {
   bottom: 40px !important;
-}
-
-.mapboxgl-ctrl-group {
-  background: #ffffff !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 12px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-  overflow: hidden !important;
-}
-
-.mapboxgl-ctrl-group button {
-  width: 36px !important;
-  height: 36px !important;
-  background-color: #ffffff !important;
-  border: none !important;
-  border-bottom: 1px solid #f3f4f6 !important;
-}
-
-.mapboxgl-ctrl-group button:last-child {
-  border-bottom: none !important;
-}
-
-.mapboxgl-ctrl-group button:hover {
-  background-color: #f3f4f6 !important;
-}
-
-.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
-  filter: none !important;
-  opacity: 0.45;
-}
-
-.mapboxgl-ctrl-group button:hover .mapboxgl-ctrl-icon {
-  opacity: 0.7;
 }
 
 /* ─── Density + Font size (single zoom on main, set via --content-zoom in JS) ─── */
