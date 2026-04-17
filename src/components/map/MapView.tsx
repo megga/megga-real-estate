@@ -815,10 +815,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             paint={{
               'circle-color': [
                 'step', ['get', 'point_count'],
-                '#7F1D1D', 25,
-                '#991B1B', 100,
-                '#B91C1C', 500,
-                '#DC2626',
+                '#0D4599', 25,
+                '#133E8E', 100,
+                '#1E3A8A', 500,
+                '#1E40AF',
               ],
               'circle-radius': [
                 'step', ['get', 'point_count'],
@@ -827,7 +827,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 28, 500,
                 34,
               ],
-              'circle-stroke-color': 'rgba(255,255,255,0.9)',
+              'circle-stroke-color': 'rgba(255,255,255,0.95)',
               'circle-stroke-width': 2,
               'circle-opacity': 0.95,
             }}
