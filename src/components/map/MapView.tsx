@@ -8,7 +8,7 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, PenTool, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, Building2, Heart, MoreHorizontal } from 'lucide-react'
+import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, Building2, Heart, MoreHorizontal } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
@@ -320,6 +320,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [drawPoints, setDrawPoints] = useState<[number, number][]>([])
   const [closedPolygon, setClosedPolygon] = useState<[number, number][] | null>(null)
   const [cursorPos, setCursorPos] = useState<[number, number] | null>(null)
+  const isCapturingRef = useRef(false)
+  const captureBufferRef = useRef<[number, number][]>([])
 
   // ─── Native Mapbox GL data ───
   // Flattened GeoJSON for native Mapbox clustering + symbol/circle layers
@@ -375,15 +377,20 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const cursorThrottleRef = useRef<number>(0)
   const hoverThrottleRef = useRef<number>(0)
   const handleMouseMove = useCallback((e: MapMouseEvent) => {
-    // Draw mode: throttled cursor trail
-    if (isDrawing && drawPoints.length > 0) {
-      const now = performance.now()
-      if (now - cursorThrottleRef.current < 32) return
-      cursorThrottleRef.current = now
-      setCursorPos([e.lngLat.lng, e.lngLat.lat])
+    // Draw mode: freehand capture — append points while mouse is down
+    if (isDrawing) {
+      if (isCapturingRef.current) {
+        const now = performance.now()
+        if (now - cursorThrottleRef.current < 16) return
+        cursorThrottleRef.current = now
+        const pt: [number, number] = [e.lngLat.lng, e.lngLat.lat]
+        captureBufferRef.current.push(pt)
+        setDrawPoints([...captureBufferRef.current])
+      } else {
+        setCursorPos([e.lngLat.lng, e.lngLat.lat])
+      }
       return
     }
-    if (isDrawing) return
 
     // Listing layer hover — throttled to 80ms (queryRenderedFeatures is expensive)
     const now = performance.now()
@@ -410,7 +417,30 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         setHoveredPin(null)
       }
     }
-  }, [isDrawing, drawPoints.length, onHover, hoveredPin, listingsMap])
+  }, [isDrawing, onHover, hoveredPin, listingsMap])
+
+  // Freehand drawing: mouse down starts capture, mouse up closes polygon
+  const handleMouseDown = useCallback((e: MapMouseEvent) => {
+    if (!isDrawing) return
+    e.preventDefault()
+    isCapturingRef.current = true
+    captureBufferRef.current = [[e.lngLat.lng, e.lngLat.lat]]
+    setDrawPoints([[e.lngLat.lng, e.lngLat.lat]])
+    setCursorPos(null)
+  }, [isDrawing])
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDrawing || !isCapturingRef.current) return
+    isCapturingRef.current = false
+    const pts = captureBufferRef.current
+    captureBufferRef.current = []
+    if (pts.length >= 3) {
+      closePolygon(pts)
+    } else {
+      setDrawPoints([])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDrawing])
 
   // Sync hoveredId prop → Mapbox feature-state for native layer highlight
   const prevHoveredRef = useRef<string | null>(null)
@@ -529,47 +559,18 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       setNeighborhoodPickMode(false)
       return
     }
-    if (!isDrawing) {
-      const map = mapRef.current?.getMap()
-      if (map) {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: LISTING_LAYERS as unknown as string[],
-        })
-        if (features.length > 0 && features[0].properties?.id) {
-          const listing = listingsMap.get(features[0].properties.id as string)
-          if (listing) handlePinClick(listing)
-        }
-      }
-      return
-    }
+    if (isDrawing) return
 
-    const newPoint: [number, number] = [e.lngLat.lng, e.lngLat.lat]
-
-    // Check if clicking near first point to close polygon
-    if (drawPoints.length >= 3) {
-      const first = drawPoints[0]
-      const map = mapRef.current?.getMap()
-      if (map) {
-        const firstScreen = map.project(first)
-        const clickScreen = map.project([newPoint[0], newPoint[1]])
-        const dist = Math.sqrt(
-          (firstScreen.x - clickScreen.x) ** 2 + (firstScreen.y - clickScreen.y) ** 2
-        )
-        if (dist < 20) {
-          // Close the polygon
-          closePolygon([...drawPoints])
-          return
-        }
+    const map = mapRef.current?.getMap()
+    if (map) {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: LISTING_LAYERS as unknown as string[],
+      })
+      if (features.length > 0 && features[0].properties?.id) {
+        const listing = listingsMap.get(features[0].properties.id as string)
+        if (listing) handlePinClick(listing)
       }
     }
-
-    setDrawPoints((prev) => [...prev, newPoint])
-  }
-
-  function handleMapDoubleClick(e: MapMouseEvent) {
-    if (!isDrawing || drawPoints.length < 3) return
-    e.preventDefault()
-    closePolygon(drawPoints)
   }
 
   function closePolygon(pts: [number, number][]) {
@@ -712,7 +713,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         initialViewState={initialViewState}
         onMoveEnd={updateViewportCount}
         onClick={handleMapClick}
-        onDblClick={handleMapDoubleClick}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={currentStyle.url}
         style={MAP_GL_STYLE}
@@ -1171,14 +1173,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <button
               onClick={startDrawing}
               className={cn(
-                'text-xs font-medium px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5',
+                'text-xs font-medium px-3 py-1.5 rounded-xl transition-colors cursor-pointer',
                 isImmersive
                   ? 'bg-gray-900/80 backdrop-blur-md text-white/80 hover:text-white hover:bg-gray-900/90 border border-white/10'
                   : 'bg-theme-card text-theme-secondary border border-theme-border hover:bg-theme-hover'
               )}
             >
-              <PenTool className="h-3.5 w-3.5" />
-              Dessiner une zone
+              Zone
             </button>
           )}
 
@@ -1194,20 +1195,18 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         </div>
       )}
 
-      {/* Drawing instructions */}
+      {/* Drawing instructions — full-width top bar */}
       {isDrawing && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-          <PenTool className="h-3.5 w-3.5" />
-          {drawPoints.length === 0
-            ? 'Cliquez pour commencer à dessiner'
-            : drawPoints.length < 3
-              ? 'Continuez à cliquer pour tracer la zone'
-              : 'Cliquez sur le premier point ou double-cliquez pour fermer'}
+        <div className="absolute top-0 left-0 right-0 z-[10] bg-gray-900/85 backdrop-blur-sm text-white px-6 py-3 flex items-center justify-between">
+          <p className="text-sm">
+            <span className="font-semibold">Dessinez une forme</span>
+            <span className="text-white/80"> autour des régions où vous souhaitez vivre</span>
+          </p>
           <button
             onClick={clearZone}
-            className="ml-2 text-white/60 hover:text-white transition-colors cursor-pointer"
+            className="text-sm font-medium text-white/80 hover:text-white transition-colors cursor-pointer"
           >
-            <X className="h-3.5 w-3.5" />
+            Annuler
           </button>
         </div>
       )}

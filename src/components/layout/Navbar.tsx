@@ -164,7 +164,7 @@ export default function Navbar() {
           : 'bg-theme-page border-b border-theme-border'
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center">
+      <div className="w-full px-4 md:px-6 lg:px-8 h-full flex items-center">
 
         {/* ─── LEFT: Navigation links (desktop) ─── */}
         <nav aria-label="Navigation principale" className="hidden md:flex items-center gap-0.5 flex-1">
