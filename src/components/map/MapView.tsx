@@ -327,7 +327,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           properties: {
             id: mp.id,
             price: mp.price,
-            priceLabel: formatPricePin(mp.price, 'buy'),
+            priceLabel: formatPricePin(mp.price, mp.context || 'buy'),
             rooms: mp.rooms,
             type: mp.type || '',
             context: mp.context || 'buy',
@@ -339,7 +339,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           properties: {
             id: l.id,
             price: l.price,
-            priceLabel: formatPricePin(l.price, 'buy'),
+            priceLabel: formatPricePin(l.price, l.context || 'buy'),
             rooms: l.rooms,
             type: l.type || '',
             context: l.context || 'buy',
@@ -890,7 +890,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               'text-ignore-placement': false,
               'text-padding': 2,
               'text-anchor': 'bottom',
-              'text-offset': [0, -0.95],
+              'text-offset': [0, -0.75],
             }}
             paint={{
               'text-color': '#FFFFFF',
@@ -919,7 +919,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               'text-allow-overlap': true,
               'text-ignore-placement': true,
               'text-anchor': 'bottom',
-              'text-offset': [0, -0.95],
+              'text-offset': [0, -0.75],
             }}
             paint={{
               'text-color': '#FFFFFF',
