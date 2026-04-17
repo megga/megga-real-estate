@@ -80,23 +80,6 @@ function logUsage(row: {
   }
 }
 
-function logFallback(edgeFunction: string, reason: string) {
-  try {
-    supabaseAdmin()
-      .from('activity_events')
-      .insert({
-        actor_id: 'ai',
-        action: 'ai_fallback',
-        metadata: { edge_function: edgeFunction, reason },
-      })
-      .then(({ error }) => {
-        if (error) console.error('[ai-provider] fallback log failed:', error.message)
-      })
-  } catch (err) {
-    console.error('[ai-provider] fallback log threw:', err)
-  }
-}
-
 // Edge Function name for logging. Infers from stack or falls back to env.
 function currentFunctionName(): string {
   return Deno.env.get('SUPABASE_FUNCTION_NAME') || 'unknown'
@@ -227,34 +210,17 @@ export async function callDeepSeek(
   }
 }
 
-// ── Public AI (DeepSeek with Claude Haiku fallback) ─────────────────────────
+// ── Public AI (DeepSeek only — no Claude fallback) ──────────────────────────
+//
+// Decision 2026-04-17: we keep public-side AI strictly on DeepSeek to cap
+// Claude token spend. If DeepSeek is unavailable, the caller surfaces a
+// "service temporarily unavailable" error to the user instead of silently
+// degrading to Claude.
 
 export async function callPublicAI(
   messages: AIMessage[],
   systemPrompt: string,
   options: AIOptions = {},
 ): Promise<AIResponse> {
-  try {
-    return await callDeepSeek(messages, systemPrompt, options)
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err)
-    console.warn('[ai-provider] DeepSeek failed, falling back to Claude Haiku:', reason)
-    logFallback(currentFunctionName(), reason)
-
-    const result = await callClaude(messages, systemPrompt, {
-      ...options,
-      model: 'haiku',
-    })
-    // Mark as fallback in the usage log by re-logging (overwrites was_fallback flag).
-    // callClaude already logged with was_fallback=false; we insert an extra marker row.
-    logUsage({
-      edge_function: currentFunctionName(),
-      provider: 'claude-haiku',
-      input_tokens: 0,
-      output_tokens: 0,
-      estimated_cost_usd: 0,
-      was_fallback: true,
-    })
-    return { ...result, was_fallback: true }
-  }
+  return await callDeepSeek(messages, systemPrompt, options)
 }
