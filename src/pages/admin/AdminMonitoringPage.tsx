@@ -303,7 +303,7 @@ export default function AdminMonitoringPage() {
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={formatTokens} />
                   <Tooltip
                     contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                    formatter={(value: number) => formatTokens(value)}
+                    formatter={(value) => formatTokens(Number(value))}
                   />
                   <Area type="monotone" dataKey="deepseek" stackId="1" stroke="#8b5cf6" fill="url(#deepseekFill)" name="DeepSeek" />
                   <Area type="monotone" dataKey="claude" stackId="1" stroke="#f97316" fill="url(#claudeFill)" name="Claude" />
