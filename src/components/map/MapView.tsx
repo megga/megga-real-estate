@@ -849,11 +849,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
           />
 
-          {/* Unclustered dots — low zoom */}
+          {/* Unclustered dots — visible up to zoom 14.5 */}
           <Layer
             id="unclustered-dot"
             type="circle"
             filter={['!', ['has', 'point_count']]}
+            maxzoom={14.5}
             paint={{
               'circle-color': (dimPolygon
                 ? ['case',
@@ -865,31 +866,33 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                     '#7F1D1D']) as unknown as string,
               'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
-                8, 3,
-                11, 5,
-                13, 4,
-                15, 0,
+                10, 3,
+                13, 5,
+                14.5, 5,
               ],
               'circle-opacity': [
                 'interpolate', ['linear'], ['zoom'],
                 13, 1,
-                15, 0,
+                14.5, 0,
               ],
               'circle-stroke-color': 'rgba(255,255,255,0.7)',
               'circle-stroke-width': 1,
             }}
           />
 
-          {/* Unclustered price labels — high zoom */}
+          {/* Unclustered price labels — from zoom 14.5, collision-avoided (Zillow-style) */}
           <Layer
             id="unclustered-label"
             type="symbol"
             filter={['!', ['has', 'point_count']]}
+            minzoom={14}
             layout={{
               'text-field': ['get', 'priceLabel'],
               'text-size': 11,
               'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-              'text-allow-overlap': true,
+              'text-allow-overlap': false,
+              'text-ignore-placement': false,
+              'text-padding': 2,
               'text-anchor': 'center',
             }}
             paint={{
@@ -906,8 +909,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               'text-halo-blur': 0,
               'text-opacity': [
                 'interpolate', ['linear'], ['zoom'],
-                12, 0,
-                13, 1,
+                14, 0,
+                14.5, 1,
               ],
             }}
           />
