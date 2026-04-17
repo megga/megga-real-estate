@@ -333,7 +333,7 @@ async function upsertAgencyProfiles(supabase: any, listings: FlatfoxListing[]): 
   return map
 }
 
-function mapListingToRow(ff: FlatfoxListing, nowIso: string, agencyProfileIdMap: Map<string, string>): Record<string, any> | null {
+function mapListingToRow(ff: FlatfoxListing, nowIso: string, agencyProfileIdMap: Map<string, string>): Record<string, unknown> | null {
   if (TYPES_TO_SKIP.has(ff.object_type)) return null
 
   const transactionType = ff.offer_type === 'BUY' ? 'buy' : 'rent'

@@ -43,6 +43,9 @@ export default function AgencyProfilePage() {
   const { slug } = useParams<{ slug: string }>()
   const { t } = useTranslation('directory')
   const { data, isLoading, error } = useAgencyProfile(slug ?? '')
+  // Must be called before any early return — Rules of Hooks
+  const agencyId = ((data?.agency as unknown as { id?: string } | undefined)?.id) ?? null
+  const { data: agencyListings } = useAgencyListings(agencyId)
 
   // Loading state
   if (isLoading) {
@@ -86,8 +89,6 @@ export default function AgencyProfilePage() {
   }
 
   const { agency, agents } = data
-  const agencyId = (agency as unknown as { id?: string }).id ?? null
-  const { data: agencyListings } = useAgencyListings(agencyId)
 
   return (
     <>
