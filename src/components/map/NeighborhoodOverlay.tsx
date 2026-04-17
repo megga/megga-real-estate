@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useRef, useCallback } from 'react'
 import { useNeighborhood, calculateWalkScore, type PoiCategory } from '@/hooks/useNeighborhood'
 import { X, Train, ShoppingBag, GraduationCap, HeartPulse, Coffee, Loader2, MapPin } from 'lucide-react'
 
@@ -79,15 +79,47 @@ export default function NeighborhoodOverlay({ lat, lng, onClose }: NeighborhoodO
     [isLoading, categories, station],
   )
 
+  // Drag state — offset from initial position (top-14 left-4)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const dragStart = useRef<{ x: number; y: number; offX: number; offY: number } | null>(null)
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    dragStart.current = { x: e.clientX, y: e.clientY, offX: offset.x, offY: offset.y }
+  }, [offset.x, offset.y])
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragStart.current) return
+    setOffset({
+      x: dragStart.current.offX + (e.clientX - dragStart.current.x),
+      y: dragStart.current.offY + (e.clientY - dragStart.current.y),
+    })
+  }, [])
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    dragStart.current = null
+  }, [])
+
   return (
-    <div className="absolute top-14 left-4 z-[6] w-72 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-left-2 duration-300">
-      {/* Header */}
-      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+    <div
+      className="absolute top-14 left-4 z-[6] w-72 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in slide-in-from-left-2 duration-300"
+      style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+    >
+      {/* Header — drag handle */}
+      <div
+        className="px-4 pt-3 pb-2 flex items-center justify-between cursor-grab active:cursor-grabbing select-none touch-none"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
         <div className="flex items-center gap-2">
           <MapPin className="h-3.5 w-3.5 text-accent" />
           <span className="text-xs font-semibold text-white/90">Score quartier</span>
         </div>
-        <button onClick={onClose} className="text-white/40 hover:text-white transition-colors cursor-pointer">
+        <button
+          onClick={onClose}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="text-white/40 hover:text-white transition-colors cursor-pointer"
+        >
           <X className="h-3.5 w-3.5" />
         </button>
       </div>

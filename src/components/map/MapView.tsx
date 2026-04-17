@@ -8,7 +8,7 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal } from 'lucide-react'
+import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal, SlidersHorizontal } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
@@ -137,6 +137,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   // ─── Immersive mode ───
   const [isImmersive, setIsImmersive] = useState(false)
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false)
+  const [immersiveFiltersOpen, setImmersiveFiltersOpen] = useState(false)
   const toolsMenuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!toolsMenuOpen) return
@@ -1135,36 +1136,16 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         )}
       </MapGL>
 
-      {/* Top-left buttons — hidden when controls are in parent filter bar (non-immersive) */}
-      {(!hideTopControls || isImmersive) && (
+      {/* Top-left: Recentrer — non-immersive only. In immersive the user navigates freely. */}
+      {!hideTopControls && !isImmersive && (
         <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
           <button
             onClick={fitToListings}
-            className={cn(
-              'text-xs font-medium px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5',
-              isImmersive
-                ? 'bg-gray-900/80 backdrop-blur-md text-white/80 hover:text-white hover:bg-gray-900/90 border border-white/10'
-                : 'bg-theme-card text-theme-secondary border border-theme-border hover:bg-theme-hover'
-            )}
+            className="text-xs font-medium px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 bg-theme-card text-theme-secondary border border-theme-border hover:bg-theme-hover focus:outline-none focus-visible:outline-none"
           >
             <LocateFixed className="h-3.5 w-3.5" />
             Recentrer
           </button>
-
-          {/* Draw zone */}
-          {!isDrawing && !closedPolygon && (
-            <button
-              onClick={startDrawing}
-              className={cn(
-                'text-xs font-medium px-3 py-1.5 rounded-xl transition-colors cursor-pointer',
-                isImmersive
-                  ? 'bg-gray-900/80 backdrop-blur-md text-white/80 hover:text-white hover:bg-gray-900/90 border border-white/10'
-                  : 'bg-theme-card text-theme-secondary border border-theme-border hover:bg-theme-hover'
-              )}
-            >
-              Zone
-            </button>
-          )}
         </div>
       )}
 
@@ -1262,14 +1243,42 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       {/* Style switcher + Tools toggle + Immersive — bottom-left */}
       <div className={cn(
         'absolute z-[5]',
-        isImmersive ? 'bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2' : 'bottom-10 left-3 flex gap-2'
+        isImmersive ? 'bottom-6 left-6 flex flex-col items-start gap-2' : 'bottom-10 left-3 flex gap-2'
       )}>
         {/* Immersive floating toolbar */}
         {isImmersive ? (
           <>
-          {/* ── Filter bar (top) ── */}
-          <div className="flex items-center gap-1 bg-gray-900/70 backdrop-blur-xl rounded-xl px-2 py-1 border border-white/10 max-w-[95vw] overflow-x-auto scrollbar-hide">
-            <span className="text-xs text-white/40 px-1.5">Filtres</span>
+          {/* ── Filter bar — collapsible pill → expanded horizontally on click ── */}
+          <div
+            className={cn(
+              'flex items-center bg-gray-900/70 backdrop-blur-xl border border-white/10 overflow-hidden transition-all',
+              immersiveFiltersOpen
+                ? 'rounded-2xl gap-1 px-2 py-1 max-w-[min(92vw,900px)] duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
+                : 'rounded-full gap-0 px-0 py-0 max-w-[44px] duration-300 ease-out'
+            )}
+          >
+            {/* Toggle button — always visible */}
+            <button
+              onClick={() => setImmersiveFiltersOpen(v => !v)}
+              className={cn(
+                'h-9 w-11 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer shrink-0',
+                immersiveFiltersOpen ? 'hover:bg-white/10 rounded-xl' : 'hover:bg-white/10 rounded-full'
+              )}
+              aria-expanded={immersiveFiltersOpen}
+              aria-label={immersiveFiltersOpen ? 'Fermer les filtres' : 'Ouvrir les filtres'}
+              title="Filtres"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+            {/* Collapsible content */}
+            <div
+              className={cn(
+                'flex items-center gap-1 transition-all overflow-hidden whitespace-nowrap',
+                immersiveFiltersOpen
+                  ? 'opacity-100 translate-x-0 duration-[400ms] delay-75 ease-[cubic-bezier(0.22,1,0.36,1)]'
+                  : 'opacity-0 -translate-x-2 duration-150 ease-out pointer-events-none w-0'
+              )}
+            >
             <div className="w-px h-4 bg-white/15" />
             {[
               { label: 'Appart.', active: quickFilters.type === 'apartment', onClick: () => updateQuickFilter({ type: quickFilters.type === 'apartment' ? '' : 'apartment' }) },
@@ -1320,10 +1329,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 {f.label}
               </button>
             ))}
+            </div>
           </div>
 
           {/* ── Tools bar (bottom) ── */}
-          <div className="flex items-center bg-gray-900/80 backdrop-blur-xl rounded-2xl px-1.5 py-1.5 shadow-2xl border border-white/10 max-w-[95vw] overflow-x-auto scrollbar-hide">
+          <div className="flex items-center bg-gray-900/80 backdrop-blur-xl rounded-2xl px-1.5 py-1.5 shadow-2xl border border-white/10 max-w-[calc(100vw-48px)] overflow-x-auto scrollbar-hide">
             {/* Exit */}
             <button
               onClick={exitImmersive}
