@@ -120,7 +120,7 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
         ref={mapRef}
         initialViewState={initialViewState}
         mapboxAccessToken={MAPBOX_TOKEN}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle="mapbox://styles/mapbox/navigation-day-v1"
         style={{ width: '100%', height: '100%' }}
         reuseMaps
         attributionControl={false}

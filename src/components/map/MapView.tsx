@@ -103,9 +103,9 @@ const MAP_GL_STYLE = { width: '100%', height: '100%' } as const
 const LISTING_LAYERS = ['unclustered-dot', 'unclustered-label'] as const
 
 const MAP_STYLES = [
-  { id: 'light', label: 'Clair', icon: Sun, url: 'mapbox://styles/mapbox/light-v11' },
+  { id: 'light', label: 'Clair', icon: Sun, url: 'mapbox://styles/mapbox/navigation-day-v1' },
   { id: 'satellite', label: 'Satellite', icon: Satellite, url: 'mapbox://styles/mapbox/satellite-streets-v12' },
-  { id: 'dark', label: 'Sombre', icon: Moon, url: 'mapbox://styles/mapbox/dark-v11' },
+  { id: 'dark', label: 'Sombre', icon: Moon, url: 'mapbox://styles/mapbox/navigation-night-v1' },
 ] as const
 
 type MapStyleId = typeof MAP_STYLES[number]['id']
