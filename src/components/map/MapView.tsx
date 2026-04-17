@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo, useRef, useEffect, forwardRef, useImperativeHandle, memo } from 'react'
-import { Link } from 'react-router-dom'
 import MapGL, {
   Marker,
   Popup,
@@ -111,7 +110,7 @@ const MAP_STYLES = [
 
 type MapStyleId = typeof MAP_STYLES[number]['id']
 
-const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onSelectListing, onViewportChange, hideTopControls, className }, ref) {
+const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onViewportChange, hideTopControls, className }, ref) {
   const mapRef = useRef<MapRef>(null)
   const [mapStyleId, setMapStyleId] = useState<MapStyleId>('light')
   const [showStylePicker, setShowStylePicker] = useState(false)
