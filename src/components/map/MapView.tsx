@@ -189,24 +189,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     setShowPOIs(prev => ({ ...prev, [key]: !prev[key] }))
   }, [])
 
-  // Apply POI layer visibility on the Standard style
-  useEffect(() => {
-    const map = mapRef.current?.getMap()
-    if (!map || mapStyleId !== 'standard') return
-    // Control visibility of the Standard style's built-in POI layers
-    try {
-      const anyPoiOn = showPOIs.schools || showPOIs.shops
-      map.setLayoutProperty('poi-label', 'visibility', anyPoiOn ? 'visible' : 'none')
-    } catch { /* layer not yet ready */ }
-    // Transit labels
-    try {
-      map.setLayoutProperty('transit-label', 'visibility', showPOIs.transport ? 'visible' : 'none')
-    } catch { /* */ }
-    // Natural labels
-    try {
-      map.setLayoutProperty('natural-label', 'visibility', showPOIs.parks ? 'visible' : 'none')
-    } catch { /* */ }
-  }, [showPOIs, mapStyleId])
+  // POI layer visibility is unused on 2D styles — kept for future re-enable
 
   // ─── FlyTo tour ───
   const [tourIndex, setTourIndex] = useState(-1)
@@ -322,21 +305,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [showTools, setShowTools] = useState(false)
 
   // Immersive features (fullscreen only)
-  const [lightPreset, setLightPreset] = useState<'day' | 'dusk' | 'dawn' | 'night'>('day')
   const [showHeatmap, setShowHeatmap] = useState(false)
   const [showGeoSearch, setShowGeoSearch] = useState(false)
   const [geoSearchQuery, setGeoSearchQuery] = useState('')
   const [geoResults, setGeoResults] = useState<Array<{ place_name: string; center: [number, number] }>>([])
 
-  // Apply light preset to Standard style
-  useEffect(() => {
-    if (mapStyleId !== 'standard') return
-    const map = mapRef.current?.getMap()
-    if (!map) return
-    try {
-      map.setConfigProperty('basemap', 'lightPreset', lightPreset)
-    } catch { /* style not loaded yet */ }
-  }, [lightPreset, mapStyleId])
+  // Light preset only applies to Standard 3D — disabled in 2D mode
 
   // Draw zone state
   const [isDrawing, setIsDrawing] = useState(false)
@@ -488,12 +462,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     get mapStyleId() { return mapStyleId },
     get showHeatmap() { return showHeatmap },
   }))
-
-  // Stable terrain config to avoid Mapbox re-applying terrain on every render
-  const terrainConfig = useMemo(
-    () => mapStyleId === 'standard' ? { source: 'mapbox-dem', exaggeration: 1.5 } : undefined,
-    [mapStyleId]
-  )
 
   // Viewport count — simple bounds filter on points
   const updateViewportCount = useCallback(() => {
@@ -750,28 +718,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         maxPitch={0}
         terrain={undefined}
         onMouseMove={handleMouseMove}
-        onLoad={(e) => {
-          const map = e.target
-          // Initialize viewport count
+        onLoad={() => {
           updateViewportCount()
-          // Force light preset on load (Standard auto-detects local time which makes the map dark at night)
-          if (mapStyleId === 'standard') {
-            const applyLight = () => {
-              try { map.setConfigProperty('basemap', 'lightPreset', lightPreset) } catch { /* not ready */ }
-            }
-            applyLight()
-            // Also retry after style is fully loaded (config properties may not be ready on first load)
-            map.once('style.load', applyLight)
-          }
-          // Add terrain DEM source for 3D terrain (Standard style)
-          if (mapStyleId === 'standard' && !map.getSource('mapbox-dem')) {
-            map.addSource('mapbox-dem', {
-              type: 'raster-dem',
-              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-              tileSize: 512,
-              maxzoom: 14,
-            })
-          }
         }}
       >
         <NavigationControl position="bottom-right" showCompass={false} />
@@ -1252,24 +1200,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   </div>
                 )}
               </div>
-              {/* Light presets (Standard only) */}
-              {mapStyleId === 'standard' && (
-                <>
-                  {(['day', 'dawn', 'dusk', 'night'] as const).map(preset => (
-                    <button
-                      key={preset}
-                      onClick={() => setLightPreset(preset)}
-                      className={cn(
-                        'h-7 w-7 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center justify-center shrink-0',
-                        lightPreset === preset ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
-                      )}
-                      title={{ day: 'Jour', dawn: 'Aube', dusk: 'Crépuscule', night: 'Nuit' }[preset]}
-                    >
-                      {({ day: <Sun className="h-3 w-3" />, dawn: <Sun className="h-3 w-3" />, dusk: <Moon className="h-3 w-3" />, night: <Moon className="h-3 w-3" /> } as Record<string, React.ReactNode>)[preset]}
-                    </button>
-                  ))}
-                </>
-              )}
               {/* Compass reset */}
               <button
                 onClick={() => mapRef.current?.flyTo({ bearing: 0, pitch: 0, duration: 800 })}
@@ -1446,25 +1376,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         <>
           {/* Top-right: Light presets + Heatmap + Geocoding */}
           <div className="absolute top-3 right-3 z-[5] flex flex-col gap-2">
-            {/* Light presets (Standard 3D only) */}
-            {mapStyleId === 'standard' && (
-              <div className="bg-theme-card rounded-xl shadow-lg border border-theme-border overflow-hidden">
-                <div className="px-2.5 py-1.5 text-xs font-semibold text-theme-muted uppercase tracking-wider">Lumière</div>
-                {(['day', 'dawn', 'dusk', 'night'] as const).map(preset => (
-                  <button
-                    key={preset}
-                    onClick={() => setLightPreset(preset)}
-                    className={cn(
-                      'w-full px-3 py-1.5 text-xs font-medium text-left transition-colors cursor-pointer',
-                      lightPreset === preset ? 'bg-theme-active text-accent' : 'text-theme-secondary hover:bg-theme-hover'
-                    )}
-                  >
-                    {{ day: 'Jour', dawn: 'Aube', dusk: 'Crépuscule', night: 'Nuit' }[preset]}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* Heatmap toggle */}
             <button
               onClick={() => setShowHeatmap(v => !v)}
