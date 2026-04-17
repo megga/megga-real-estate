@@ -738,16 +738,16 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             if (!c || map.hasImage(id)) return
             // Use a Canvas ImageData (synchronous) so the image is ready before
             // the next render frame — avoids the SVG → Image.onload async race.
-            const W = 128, H = 80
+            const W = 128, H = 52
             const canvas = document.createElement('canvas')
             canvas.width = W; canvas.height = H
             const ctx = canvas.getContext('2d')
             if (!ctx) return
-            // Rounded rect pill (6px padding frame for 9-slice)
-            const x = 6, y = 6, w = W - 12, h = 48, r = 24
+            // Flatter, wider rounded rect pill
+            const x = 6, y = 4, w = W - 12, h = 30, r = 15
             ctx.fillStyle = c.fill
             ctx.strokeStyle = c.stroke
-            ctx.lineWidth = 4
+            ctx.lineWidth = 3
             ctx.beginPath()
             ctx.moveTo(x + r, y)
             ctx.arcTo(x + w, y, x + w, y + h, r)
@@ -757,12 +757,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             ctx.closePath()
             ctx.fill()
             ctx.stroke()
-            // Pointer triangle at bottom center
+            // Pointer triangle at bottom center — smaller / lower-profile
             const cx = W / 2, pyTop = y + h
             ctx.beginPath()
-            ctx.moveTo(cx - 8, pyTop)
-            ctx.lineTo(cx, pyTop + 12)
-            ctx.lineTo(cx + 8, pyTop)
+            ctx.moveTo(cx - 7, pyTop)
+            ctx.lineTo(cx, pyTop + 10)
+            ctx.lineTo(cx + 7, pyTop)
             ctx.closePath()
             ctx.fillStyle = c.fill
             ctx.fill()
@@ -771,14 +771,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             ctx.stroke()
             // Hide the seam where the triangle meets the pill
             ctx.fillStyle = c.fill
-            ctx.fillRect(cx - 7, pyTop - 1, 14, 3)
+            ctx.fillRect(cx - 6, pyTop - 1, 12, 3)
             try {
               const data = ctx.getImageData(0, 0, W, H)
               map.addImage(id, { width: W, height: H, data: new Uint8Array(data.data.buffer) }, {
                 pixelRatio: 2,
                 stretchX: [[32, 96]],
-                stretchY: [[12, 40]],
-                content: [12, 12, 116, 52],
+                stretchY: [[8, 26]],
+                content: [12, 8, 116, 32],
               })
             } catch { /* ignore */ }
           }
@@ -885,7 +885,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             layout={{
               'icon-image': 'price-pill',
               'icon-text-fit': 'both',
-              'icon-text-fit-padding': [3, 9, 11, 9],
+              'icon-text-fit-padding': [1, 10, 9, 10],
               'icon-allow-overlap': true,
               'icon-ignore-placement': true,
               'icon-anchor': 'bottom',
