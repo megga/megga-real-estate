@@ -1197,7 +1197,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <div className="absolute bottom-full right-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1">
               <p className="px-3 pt-1.5 pb-1 text-xs font-semibold text-gray-500">Style de carte</p>
               {([
-                { id: 'standard', label: '3D', icon: Mountain },
                 { id: 'satellite', label: 'Satellite', icon: Satellite },
                 { id: 'light', label: 'Clair', icon: Sun },
                 { id: 'dark', label: 'Sombre', icon: Moon },
@@ -1218,27 +1217,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   </button>
                 )
               })}
-              <div className="h-px bg-gray-100 my-1" />
-              <button
-                onClick={() => setShowHeatmap(v => !v)}
-                className={cn(
-                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                  showHeatmap ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
-                )}
-              >
-                <Thermometer className="h-3.5 w-3.5" />
-                Heatmap prix/m²
-              </button>
-              <button
-                onClick={() => setShowTools(v => !v)}
-                className={cn(
-                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                  showTools ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
-                )}
-              >
-                <Mountain className="h-3.5 w-3.5" />
-                Outils avancés
-              </button>
               <div className="h-px bg-gray-100 my-1" />
               <button
                 onClick={() => { enterImmersive(); setToolsMenuOpen(false) }}
@@ -1284,7 +1262,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       {/* Style switcher + Tools toggle + Immersive — bottom-left */}
       <div className={cn(
         'absolute z-[5]',
-        isImmersive ? 'bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2' : 'bottom-4 left-3 flex gap-2'
+        isImmersive ? 'bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2' : 'bottom-10 left-3 flex gap-2'
       )}>
         {/* Immersive floating toolbar */}
         {isImmersive ? (
