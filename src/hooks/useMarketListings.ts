@@ -403,22 +403,27 @@ export function useMapPoints(filters: MarketFilters = {}) {
 
 export function useMarketStats(context: 'buy' | 'rent' = 'buy') {
   const statsKey = `megga:market-stats:${context}`
-  return useQuery({
+  type Stats = {
+    totalCount: number
+    cantonCounts: Array<{ canton: string; count: number }>
+    typeCounts: Array<{ type: string; count: number }>
+  }
+  return useQuery<Stats>({
     queryKey: ['market-stats', context],
     initialData: () => {
       try {
         const raw = sessionStorage.getItem(statsKey)
         if (!raw) return undefined
-        const { t, v } = JSON.parse(raw)
-        if (Date.now() - t > 30 * 60 * 1000) return undefined
-        return v
+        const parsed = JSON.parse(raw) as { t: number; v: Stats }
+        if (Date.now() - parsed.t > 30 * 60 * 1000) return undefined
+        return parsed.v
       } catch { return undefined }
     },
     initialDataUpdatedAt: () => {
       try {
         const raw = sessionStorage.getItem(statsKey)
         if (!raw) return undefined
-        return JSON.parse(raw).t
+        return (JSON.parse(raw) as { t: number }).t
       } catch { return undefined }
     },
     queryFn: async () => {
