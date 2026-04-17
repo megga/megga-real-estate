@@ -98,7 +98,6 @@ function pointInPolygon(point: [number, number], polygon: [number, number][]): b
   return inside
 }
 
-const MAP_GL_STYLE = { width: '100%', height: '100%' } as const
 
 const LISTING_LAYERS = ['unclustered-dot', 'unclustered-label'] as const
 
@@ -112,9 +111,20 @@ type MapStyleId = typeof MAP_STYLES[number]['id']
 
 const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onViewportChange, hideTopControls, className }, ref) {
   const mapRef = useRef<MapRef>(null)
-  const [mapStyleId, setMapStyleId] = useState<MapStyleId>('light')
+  const [mapStyleId, setMapStyleIdInternal] = useState<MapStyleId>('light')
   const [showStylePicker, setShowStylePicker] = useState(false)
+  const [isStyleSwitching, setIsStyleSwitching] = useState(false)
   const currentStyle = MAP_STYLES.find(s => s.id === mapStyleId) || MAP_STYLES[0]
+  // Wrap the style setter with a fade transition. Fires a fade-out, swaps
+  // the tileset, then fades back in once mapbox's `styledata` event signals
+  // the new style is fully loaded.
+  const setMapStyleId = useCallback((id: MapStyleId) => {
+    setMapStyleIdInternal(prev => {
+      if (prev === id) return prev
+      setIsStyleSwitching(true)
+      return id
+    })
+  }, [])
   const initialViewState = useMemo(() => ({
     longitude: 6.1432,
     latitude: 46.2044,
@@ -717,9 +727,24 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         onClick={handleMapClick}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
+        onStyleData={() => {
+          // Small tail so tiles have time to rasterize before fading back in.
+          if (isStyleSwitching) setTimeout(() => setIsStyleSwitching(false), 120)
+        }}
+        onIdle={() => {
+          // Safety net — if onStyleData is missed, `idle` fires when the
+          // map has finished rendering. Prevents the fade from getting stuck.
+          if (isStyleSwitching) setIsStyleSwitching(false)
+        }}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle={currentStyle.url}
-        style={MAP_GL_STYLE}
+        style={{
+          width: '100%',
+          height: '100%',
+          transition: 'opacity 320ms cubic-bezier(0.22, 1, 0.36, 1), filter 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+          opacity: isStyleSwitching ? 0.55 : 1,
+          filter: isStyleSwitching ? 'blur(6px) saturate(0.8)' : 'none',
+        }}
         attributionControl={false}
         doubleClickZoom={!isDrawing}
         dragPan={!isDrawing}
@@ -1324,10 +1349,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         </div>
       )}
 
-      {/* Immersive tools bar + non-immersive controls — bottom-left */}
+      {/* Immersive tools bar + non-immersive controls — bottom-left. Higher
+          z-index than the filters pill above so the Vue dropup (which opens
+          upward, over the filters pill position) stays above it. */}
       <div className={cn(
-        'absolute z-[5]',
-        isImmersive ? 'bottom-6 left-6' : 'bottom-10 left-3 flex gap-2'
+        'absolute',
+        isImmersive ? 'bottom-6 left-6 z-[10]' : 'bottom-10 left-3 flex gap-2 z-[5]'
       )}>
         {isImmersive ? (
           <>
@@ -1388,7 +1415,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   {currentStyle.label}
                 </button>
                 {showStylePicker && (
-                  <div className="absolute bottom-full left-0 mb-2 z-10 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-lg border border-white/10 overflow-hidden min-w-[140px]">
+                  <div className="absolute bottom-full left-0 mb-3 z-[60] bg-gray-900/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden min-w-[140px]">
                     {MAP_STYLES.map(s => {
                       const Icon = s.icon
                       return (
@@ -1397,7 +1424,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                           onClick={() => {
                             setMapStyleId(s.id)
                             setShowStylePicker(false)
-                                                }}
+                          }}
                           className={cn(
                             'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
                             mapStyleId === s.id ? 'text-accent' : 'text-white/70 hover:text-white hover:bg-white/10'
