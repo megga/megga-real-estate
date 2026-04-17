@@ -65,6 +65,7 @@ interface QuickFilters {
   type?: 'apartment' | 'house' | ''
   maxPrice?: number
   minRooms?: number
+  minSurface?: number
 }
 
 interface MapViewProps {
@@ -79,6 +80,8 @@ interface MapViewProps {
   onViewportChange?: (bounds: { west: number; south: number; east: number; north: number }) => void
   /** Hide top-left Recentrer/Dessiner buttons (shown in parent filter bar instead) */
   hideTopControls?: boolean
+  /** Transaction context — swaps immersive price pills to rent-appropriate thresholds. */
+  transactionContext?: 'buy' | 'rent'
   className?: string
 }
 
@@ -109,12 +112,38 @@ const MAP_STYLES = [
 
 type MapStyleId = typeof MAP_STYLES[number]['id']
 
-const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onViewportChange, hideTopControls, className }, ref) {
+const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listings, mapPoints, hoveredId, onHover, onZoneFilter, onImmersiveChange, onQuickFilter, onViewportChange, hideTopControls, transactionContext = 'buy', className }, ref) {
   const mapRef = useRef<MapRef>(null)
   const [mapStyleId, setMapStyleIdInternal] = useState<MapStyleId>('light')
   const [showStylePicker, setShowStylePicker] = useState(false)
   const [isStyleSwitching, setIsStyleSwitching] = useState(false)
   const currentStyle = MAP_STYLES.find(s => s.id === mapStyleId) || MAP_STYLES[0]
+  // Immersive overlays (filter pill + tools bar) follow the map tone.
+  // Clair/Satellite → frosted white surface. Sombre → frosted dark surface.
+  const isMapDark = mapStyleId === 'dark'
+  const ui = isMapDark
+    ? {
+        surface: 'bg-gray-900/75 border-white/10',
+        chipActive: 'bg-white text-gray-900',
+        chipInactive: 'text-white/65 hover:text-white',
+        iconIdle: 'text-white/80 hover:text-white hover:bg-white/10',
+        iconActive: 'bg-white text-gray-900',
+        separator: 'bg-white/10',
+        dropdown: 'bg-gray-900/95 border-white/10',
+        dropdownItemIdle: 'text-white/70 hover:text-white hover:bg-white/10',
+        dropdownItemActive: 'text-accent',
+      }
+    : {
+        surface: 'bg-white/85 border-gray-200/70',
+        chipActive: 'bg-gray-900 text-white',
+        chipInactive: 'text-gray-600 hover:text-gray-900',
+        iconIdle: 'text-gray-700 hover:text-gray-900 hover:bg-gray-900/5',
+        iconActive: 'bg-gray-900 text-white',
+        separator: 'bg-gray-300/70',
+        dropdown: 'bg-white/95 border-gray-200',
+        dropdownItemIdle: 'text-gray-700 hover:text-gray-900 hover:bg-gray-100',
+        dropdownItemActive: 'text-accent bg-accent/5',
+      }
   // Wrap the style setter with a fade transition. Fires a fade-out, swaps
   // the tileset, then fades back in once mapbox's `styledata` event signals
   // the new style is fully loaded.
@@ -148,7 +177,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [isImmersive, setIsImmersive] = useState(false)
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false)
   const [immersiveFiltersOpen, setImmersiveFiltersOpen] = useState(false)
-  const [immersiveToolsOpen, setImmersiveToolsOpen] = useState(false)
   const toolsMenuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!toolsMenuOpen) return
@@ -1266,7 +1294,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           {/* ── Filter bar — collapsible pill → expanded horizontally on click ── */}
           <div
             className={cn(
-              'flex items-center bg-gray-900/70 backdrop-blur-xl border border-white/10 overflow-hidden transition-all',
+              'flex items-center backdrop-blur-xl border overflow-hidden transition-all shadow-xl',
+              ui.surface,
               immersiveFiltersOpen
                 ? 'rounded-2xl gap-1 px-2 py-1 max-w-[min(92vw,900px)] duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
                 : 'rounded-full gap-0 px-0 py-0 max-w-[44px] duration-300 ease-out'
@@ -1276,8 +1305,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             <button
               onClick={() => setImmersiveFiltersOpen(v => !v)}
               className={cn(
-                'h-9 w-11 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer shrink-0',
-                immersiveFiltersOpen ? 'hover:bg-white/10 rounded-xl' : 'hover:bg-white/10 rounded-full'
+                'h-9 w-11 flex items-center justify-center transition-colors cursor-pointer shrink-0',
+                ui.iconIdle,
+                immersiveFiltersOpen ? 'rounded-xl' : 'rounded-full'
               )}
               aria-expanded={immersiveFiltersOpen}
               aria-label={immersiveFiltersOpen ? 'Fermer les filtres' : 'Ouvrir les filtres'}
@@ -1294,7 +1324,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                   : 'opacity-0 -translate-x-2 duration-150 ease-out pointer-events-none w-0'
               )}
             >
-            <div className="w-px h-4 bg-white/15" />
             {[
               { label: 'Appart.', active: quickFilters.type === 'apartment', onClick: () => updateQuickFilter({ type: quickFilters.type === 'apartment' ? '' : 'apartment' }) },
               { label: 'Maison', active: quickFilters.type === 'house', onClick: () => updateQuickFilter({ type: quickFilters.type === 'house' ? '' : 'house' }) },
@@ -1303,31 +1332,38 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 key={f.label}
                 onClick={f.onClick}
                 className={cn(
-                  'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
-                  f.active ? 'text-white bg-white/20' : 'text-white/50 hover:text-white hover:bg-white/10'
+                  'h-7 px-3 rounded-full text-xs font-medium transition-all cursor-pointer',
+                  f.active ? ui.chipActive : ui.chipInactive
                 )}
               >
                 {f.label}
               </button>
             ))}
-            <div className="w-px h-4 bg-white/15" />
-            {[
-              { label: '< 500K', active: quickFilters.maxPrice === 500000, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 500000 ? undefined : 500000 }) },
-              { label: '< 1M', active: quickFilters.maxPrice === 1000000, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 1000000 ? undefined : 1000000 }) },
-              { label: '< 2M', active: quickFilters.maxPrice === 2000000, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 2000000 ? undefined : 2000000 }) },
-            ].map(f => (
+            <div className={cn('w-px h-4 mx-1', ui.separator)} />
+            {(transactionContext === 'rent'
+              ? [
+                  { label: '< 1.5K', active: quickFilters.maxPrice === 1500, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 1500 ? undefined : 1500 }) },
+                  { label: '< 2.5K', active: quickFilters.maxPrice === 2500, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 2500 ? undefined : 2500 }) },
+                  { label: '< 4K', active: quickFilters.maxPrice === 4000, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 4000 ? undefined : 4000 }) },
+                ]
+              : [
+                  { label: '< 500K', active: quickFilters.maxPrice === 500000, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 500000 ? undefined : 500000 }) },
+                  { label: '< 1M', active: quickFilters.maxPrice === 1000000, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 1000000 ? undefined : 1000000 }) },
+                  { label: '< 2M', active: quickFilters.maxPrice === 2000000, onClick: () => updateQuickFilter({ maxPrice: quickFilters.maxPrice === 2000000 ? undefined : 2000000 }) },
+                ]
+            ).map(f => (
               <button
                 key={f.label}
                 onClick={f.onClick}
                 className={cn(
-                  'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
-                  f.active ? 'text-white bg-white/20' : 'text-white/50 hover:text-white hover:bg-white/10'
+                  'h-7 px-3 rounded-full text-xs font-medium transition-all cursor-pointer',
+                  f.active ? ui.chipActive : ui.chipInactive
                 )}
               >
                 {f.label}
               </button>
             ))}
-            <div className="w-px h-4 bg-white/15" />
+            <div className={cn('w-px h-4 mx-1', ui.separator)} />
             {[
               { label: '3+ p.', active: quickFilters.minRooms === 3, onClick: () => updateQuickFilter({ minRooms: quickFilters.minRooms === 3 ? undefined : 3 }) },
               { label: '4+ p.', active: quickFilters.minRooms === 4, onClick: () => updateQuickFilter({ minRooms: quickFilters.minRooms === 4 ? undefined : 4 }) },
@@ -1337,8 +1373,25 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 key={f.label}
                 onClick={f.onClick}
                 className={cn(
-                  'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer',
-                  f.active ? 'text-white bg-white/20' : 'text-white/50 hover:text-white hover:bg-white/10'
+                  'h-7 px-3 rounded-full text-xs font-medium transition-all cursor-pointer',
+                  f.active ? ui.chipActive : ui.chipInactive
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+            <div className={cn('w-px h-4 mx-1', ui.separator)} />
+            {[
+              { label: '50+ m²', active: quickFilters.minSurface === 50, onClick: () => updateQuickFilter({ minSurface: quickFilters.minSurface === 50 ? undefined : 50 }) },
+              { label: '80+ m²', active: quickFilters.minSurface === 80, onClick: () => updateQuickFilter({ minSurface: quickFilters.minSurface === 80 ? undefined : 80 }) },
+              { label: '100+ m²', active: quickFilters.minSurface === 100, onClick: () => updateQuickFilter({ minSurface: quickFilters.minSurface === 100 ? undefined : 100 }) },
+            ].map(f => (
+              <button
+                key={f.label}
+                onClick={f.onClick}
+                className={cn(
+                  'h-7 px-3 rounded-full text-xs font-medium transition-all cursor-pointer',
+                  f.active ? ui.chipActive : ui.chipInactive
                 )}
               >
                 {f.label}
@@ -1358,143 +1411,106 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       )}>
         {isImmersive ? (
           <>
-          {/* ── Tools bar (bottom) — collapsible pill → expanded on click ── */}
-          <div
-            className={cn(
-              'flex items-center bg-gray-900/80 backdrop-blur-xl shadow-2xl border border-white/10 transition-all',
-              immersiveToolsOpen
-                ? 'rounded-2xl px-1.5 py-1.5 max-w-[calc(100vw-48px)] duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)]'
-                : 'rounded-full p-0 max-w-[44px] duration-300 ease-out overflow-hidden'
-            )}
-          >
-            {/* Toggle — always visible */}
+          {/* ── Tools bar — minimal icon-only cluster (Apple Photos style) ── */}
+          <div className={cn(
+            'flex items-center gap-1 backdrop-blur-xl shadow-xl border rounded-full p-1',
+            ui.surface
+          )}>
+            {/* Style picker */}
+            <div className="relative">
+              <button
+                onClick={() => setShowStylePicker(v => !v)}
+                className={cn(
+                  'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:outline-none',
+                  showStylePicker ? ui.iconActive : ui.iconIdle
+                )}
+                aria-label="Style de carte"
+                title={`Style : ${currentStyle.label}`}
+              >
+                <Layers className="h-4 w-4" />
+              </button>
+              {showStylePicker && (
+                <div className={cn(
+                  'absolute bottom-full left-0 mb-3 z-[60] backdrop-blur-xl rounded-xl shadow-2xl border overflow-hidden min-w-[140px]',
+                  ui.dropdown
+                )}>
+                  {MAP_STYLES.map(s => {
+                    const Icon = s.icon
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => { setMapStyleId(s.id); setShowStylePicker(false) }}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
+                          mapStyleId === s.id ? ui.dropdownItemActive : ui.dropdownItemIdle
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {s.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Heatmap */}
             <button
-              onClick={() => setImmersiveToolsOpen(v => !v)}
+              onClick={() => setShowHeatmap(v => !v)}
               className={cn(
-                'h-9 w-11 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer shrink-0 focus:outline-none focus-visible:outline-none',
-                immersiveToolsOpen ? 'hover:bg-white/10 rounded-xl' : 'hover:bg-white/10 rounded-full'
+                'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:outline-none',
+                showHeatmap ? ui.iconActive : ui.iconIdle
               )}
-              aria-expanded={immersiveToolsOpen}
-              aria-label={immersiveToolsOpen ? 'Fermer les outils' : 'Ouvrir les outils'}
-              title="Outils"
+              aria-label="Heatmap prix/m²"
+              title="Heatmap prix/m²"
             >
-              <Layers className="h-4 w-4" />
+              <Thermometer className="h-4 w-4" />
             </button>
-            {/* Collapsible content */}
-            <div
+
+            {/* Geo search */}
+            <button
+              onClick={() => setShowGeoSearch(v => !v)}
               className={cn(
-                'flex items-center whitespace-nowrap transition-all',
-                immersiveToolsOpen
-                  ? 'opacity-100 translate-x-0 duration-[400ms] delay-75 ease-[cubic-bezier(0.22,1,0.36,1)]'
-                  : 'opacity-0 -translate-x-2 duration-150 ease-out pointer-events-none w-0 overflow-hidden'
+                'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:outline-none',
+                showGeoSearch ? ui.iconActive : ui.iconIdle
               )}
+              aria-label="Rechercher un lieu"
+              title="Rechercher un lieu"
             >
-            {/* Exit */}
+              <Search className="h-4 w-4" />
+            </button>
+
+            {/* Neighborhood score */}
+            <button
+              onClick={() => {
+                if (neighborhoodPoint) { setNeighborhoodPoint(null) }
+                else { setNeighborhoodPickMode(true) }
+              }}
+              className={cn(
+                'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:outline-none',
+                neighborhoodPoint || neighborhoodPickMode ? ui.iconActive : ui.iconIdle
+              )}
+              aria-label="Score quartier"
+              title="Score quartier"
+            >
+              <MapPin className="h-4 w-4" />
+            </button>
+
+            {/* Separator */}
+            <span className={cn('w-px h-5 mx-0.5', ui.separator)} aria-hidden />
+
+            {/* Exit immersive */}
             <button
               onClick={exitImmersive}
-              className="h-8 px-2.5 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 focus:outline-none focus-visible:outline-none"
+              className={cn(
+                'h-9 w-9 rounded-full flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:outline-none',
+                ui.iconIdle
+              )}
               aria-label="Quitter le mode immersif"
               title="Quitter (Esc)"
             >
-              <Minimize className="h-3.5 w-3.5" />
+              <Minimize className="h-4 w-4" />
             </button>
-
-            <div className="w-px h-5 bg-white/15 mx-1 shrink-0" />
-
-            {/* ─ Group: Vue ─ */}
-            <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg px-1 py-0.5 shrink-0">
-              <span className="text-xs text-white/30 px-1 uppercase tracking-wider shrink-0">Vue</span>
-              {/* Style picker */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowStylePicker(v => !v)}
-                  className="h-7 px-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5"
-                  title="Style de carte"
-                >
-                  <Layers className="h-3 w-3" />
-                  {currentStyle.label}
-                </button>
-                {showStylePicker && (
-                  <div className="absolute bottom-full left-0 mb-3 z-[60] bg-gray-900/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden min-w-[140px]">
-                    {MAP_STYLES.map(s => {
-                      const Icon = s.icon
-                      return (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            setMapStyleId(s.id)
-                            setShowStylePicker(false)
-                          }}
-                          className={cn(
-                            'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
-                            mapStyleId === s.id ? 'text-accent' : 'text-white/70 hover:text-white hover:bg-white/10'
-                          )}
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          {s.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-              {/* Compass reset */}
-              <button
-                onClick={() => mapRef.current?.flyTo({ bearing: 0, pitch: 0, duration: 800 })}
-                className="h-7 w-7 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center shrink-0"
-                title="Vue Nord (reset)"
-              >
-                <LocateFixed className="h-3 w-3" />
-              </button>
-            </div>
-
-            <div className="w-px h-5 bg-white/15 mx-1 shrink-0" />
-
-            {/* ─ Group: Données ─ */}
-            <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg px-1 py-0.5 shrink-0">
-              <span className="text-xs text-white/30 px-1 uppercase tracking-wider shrink-0">Donnees</span>
-              <button
-                onClick={() => setShowHeatmap(v => !v)}
-                className={cn(
-                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
-                  showHeatmap ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
-                )}
-                title="Heatmap prix/m²"
-              >
-                <Thermometer className="h-3 w-3" />
-              </button>
-            </div>
-
-            <div className="w-px h-5 bg-white/15 mx-1 shrink-0" />
-
-            {/* ─ Group: Explorer ─ */}
-            <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-lg px-1 py-0.5 shrink-0">
-              <span className="text-xs text-white/30 px-1 uppercase tracking-wider shrink-0">Explorer</span>
-              <button
-                onClick={() => setShowGeoSearch(v => !v)}
-                className={cn(
-                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
-                  showGeoSearch ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
-                )}
-                title="Rechercher un lieu"
-              >
-                <Search className="h-3 w-3" />
-              </button>
-              <button
-                onClick={() => {
-                  if (neighborhoodPoint) { setNeighborhoodPoint(null) }
-                  else { setNeighborhoodPickMode(true) }
-                }}
-                className={cn(
-                  'h-7 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0',
-                  neighborhoodPoint || neighborhoodPickMode ? 'text-white bg-white/15' : 'text-white/40 hover:text-white hover:bg-white/10'
-                )}
-                title="Score quartier"
-              >
-                <MapPin className="h-3 w-3" />
-              </button>
-            </div>
-            </div>
           </div>
           </>
         ) : (

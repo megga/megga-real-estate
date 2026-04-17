@@ -184,11 +184,12 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   )
 
   // Stable callback for MapView quick filters (avoids new ref every render)
-  const handleQuickFilter = useCallback((qf: { type?: string; maxPrice?: number; minRooms?: number }) => {
+  const handleQuickFilter = useCallback((qf: { type?: string; maxPrice?: number; minRooms?: number; minSurface?: number }) => {
     updateFilter({
       types: qf.type ? [qf.type] : [],
       maxPrice: qf.maxPrice ? String(qf.maxPrice) : '',
       rooms: qf.minRooms ? String(qf.minRooms) : '',
+      minSurface: qf.minSurface ? String(qf.minSurface) : '',
     })
   }, [updateFilter])
 
@@ -867,6 +868,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               onSelectListing={openPreview}
               hideTopControls
               onQuickFilter={handleQuickFilter}
+              transactionContext={filters.context as 'buy' | 'rent'}
             />
           </Suspense>
         </div>
