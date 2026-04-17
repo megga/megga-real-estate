@@ -7,7 +7,7 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal, SlidersHorizontal, Plus, Minus, PenLine, Home, Landmark, Map as MapIcon, Hash, Trees } from 'lucide-react'
+import { X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal, SlidersHorizontal, Plus, Minus, PenLine, Home, Landmark, Map as MapIcon, Hash, Trees } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
@@ -1253,19 +1253,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               : '#f4f5f7',
         }}
       />
-
-      {/* Top-left: Recentrer — non-immersive only. In immersive the user navigates freely. */}
-      {!hideTopControls && !isImmersive && (
-        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2">
-          <button
-            onClick={fitToListings}
-            className="text-xs font-medium px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 bg-theme-card text-theme-secondary border border-theme-border hover:bg-theme-hover focus:outline-none focus-visible:outline-none"
-          >
-            <LocateFixed className="h-3.5 w-3.5" />
-            Recentrer
-          </button>
-        </div>
-      )}
 
       {/* Draw zone — always shown on the map top-right */}
       {!isDrawing && !closedPolygon && (

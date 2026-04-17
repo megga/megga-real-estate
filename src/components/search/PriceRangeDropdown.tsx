@@ -252,7 +252,7 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+          'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
           active
             ? 'bg-gray-900 text-white'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

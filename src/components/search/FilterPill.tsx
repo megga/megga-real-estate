@@ -27,7 +27,7 @@ export function FilterPill({ label, active, dark, children }: FilterPillProps) {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+          'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
           dark
             ? active
               ? 'bg-gray-900 text-white'

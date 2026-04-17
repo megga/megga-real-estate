@@ -10,7 +10,6 @@ import {
   GitCompareArrows,
   Check,
   Bookmark,
-  LocateFixed,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import BuyerSidebar from '@/components/search/BuyerSidebar'
@@ -411,7 +410,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                   type="button"
                   onClick={() => updateFilter({ isFurnished: !filters.isFurnished })}
                   className={cn(
-                    'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+                    'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
                     filters.isFurnished ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   )}
                   aria-pressed={filters.isFurnished}
@@ -422,7 +421,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                   type="button"
                   onClick={() => updateFilter({ availableNow: !filters.availableNow })}
                   className={cn(
-                    'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+                    'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
                     filters.availableNow ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   )}
                   aria-pressed={filters.availableNow}
@@ -450,7 +449,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                     type="button"
                     onClick={() => setPlusOpen(!plusOpen)}
                     className={cn(
-                      'flex items-center gap-1 h-9 px-3 text-xs font-medium rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer',
+                      'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
                       plusActive ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     )}
                   >
@@ -594,18 +593,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 <FilterOption key={opt.value} selected={filters.sort === opt.value} onClick={() => updateFilter({ sort: opt.value })}>{opt.label}</FilterOption>
               ))}
             </FilterPill>
-
-            {/* Recentrer — Outils & Dessiner are now on the map overlay */}
-            <div className="hidden lg:flex items-center gap-1">
-              <button
-                onClick={() => mapViewRef.current?.fitToListings()}
-                className="h-7 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
-                title={t('search.recenterMap')}
-              >
-                <LocateFixed className="h-3 w-3" />
-                Recentrer
-              </button>
-            </div>
 
           </div>
 
