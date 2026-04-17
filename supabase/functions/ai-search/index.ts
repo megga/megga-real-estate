@@ -4,6 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { callPublicAI } from '../_shared/ai-provider.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,7 +55,7 @@ serve(async (req: Request) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')
+    const hasAIProvider = !!Deno.env.get('DEEPSEEK_API_KEY') || !!Deno.env.get('ANTHROPIC_API_KEY')
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
@@ -123,8 +124,10 @@ serve(async (req: Request) => {
 
     // ── Step 3: Build AI response ──
     let aiResponse = ''
+    let aiProvider: string | undefined
+    let aiWasFallback = false
 
-    if (anthropicApiKey) {
+    if (hasAIProvider) {
       // Build context from matching listings
       const listingsContext = matchingListings
         .slice(0, 10)
@@ -164,28 +167,15 @@ Réponds de manière naturelle en présentant les résultats pertinents. Si aucu
         },
       ]
 
-      // Call Claude API
-      const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicApiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 500,
-          system: systemPrompt,
-          messages,
-        }),
-      })
-
-      if (claudeResponse.ok) {
-        const claudeData = await claudeResponse.json()
+      try {
+        const result = await callPublicAI(messages, systemPrompt, { maxTokens: 500 })
         aiResponse =
-          claudeData.content?.[0]?.text ||
+          result.text ||
           `J'ai trouvé ${matchingListings.length} bien(s) correspondant à votre recherche.`
-      } else {
+        aiProvider = result.provider
+        aiWasFallback = result.was_fallback
+      } catch (err) {
+        console.error('[ai-search] AI call failed:', err)
         aiResponse = `J'ai trouvé ${matchingListings.length} bien(s) correspondant à votre recherche.`
       }
     } else {
@@ -202,6 +192,8 @@ Réponds de manière naturelle en présentant les résultats pertinents. Si aucu
         ai_response: aiResponse,
         total: matchingListings.length,
         query,
+        provider: aiProvider,
+        was_fallback: aiWasFallback,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -1,8 +1,9 @@
 // supabase/functions/support-chatbot/index.ts
-// MEGGA AI Support — Claude Haiku 4.5
+// MEGGA AI Support — DeepSeek V3 (fallback Claude Haiku 4.5)
 // Tier-1 support chatbot: answers help questions, suggests articles, escalates to tickets
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { callPublicAI } from '../_shared/ai-provider.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,9 +71,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Missing message' }), { status: 400, headers: corsHeaders })
     }
 
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 500, headers: corsHeaders })
+    if (!Deno.env.get('DEEPSEEK_API_KEY') && !Deno.env.get('ANTHROPIC_API_KEY')) {
+      return new Response(JSON.stringify({ error: 'AI provider not configured' }), { status: 500, headers: corsHeaders })
     }
 
     // Build system prompt with articles context
@@ -89,43 +89,29 @@ serve(async (req) => {
       ? `\n\nRéponds en ${language === 'de' ? 'allemand' : language === 'en' ? 'anglais' : language === 'it' ? 'italien' : 'français'}.`
       : ''
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
-        system: systemPrompt + langInstruction,
-        messages,
-      }),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      console.error('Anthropic error:', data)
+    let aiResult
+    try {
+      aiResult = await callPublicAI(messages, systemPrompt + langInstruction, { maxTokens: 500 })
+    } catch (err) {
+      console.error('AI provider error:', err)
       return new Response(JSON.stringify({ error: 'AI service error' }), { status: 502, headers: corsHeaders })
     }
 
-    const rawResponse = data.content?.[0]?.text || ''
+    const rawResponse = aiResult.text || ''
 
     // Parse suggested articles
     let suggestedArticles: { slug: string; title: string; category: string }[] = []
     let shouldEscalate = false
     let cleanResponse = rawResponse
 
-    // Extract SUGGESTED line
-    const suggestedMatch = rawResponse.match(/SUGGESTED:\[.*\]/)
-    if (suggestedMatch) {
-      try {
+    // Extract SUGGESTED line (defensive: DeepSeek may omit the tags)
+    try {
+      const suggestedMatch = rawResponse.match(/SUGGESTED:\[.*\]/)
+      if (suggestedMatch) {
         suggestedArticles = JSON.parse(suggestedMatch[0].replace('SUGGESTED:', ''))
-      } catch { /* ignore parse errors */ }
-      cleanResponse = cleanResponse.replace(/\nSUGGESTED:\[.*\]/, '').trim()
-    }
+        cleanResponse = cleanResponse.replace(/\nSUGGESTED:\[.*\]/, '').trim()
+      }
+    } catch { /* missing or malformed tag → empty suggestions, no crash */ }
 
     // Extract ESCALATE line
     if (rawResponse.includes('ESCALATE:true')) {
@@ -137,9 +123,11 @@ serve(async (req) => {
       response: cleanResponse,
       suggestedArticles,
       shouldEscalate,
+      provider: aiResult.provider,
+      was_fallback: aiResult.was_fallback,
       usage: {
-        input_tokens: data.usage?.input_tokens || 0,
-        output_tokens: data.usage?.output_tokens || 0,
+        input_tokens: aiResult.input_tokens,
+        output_tokens: aiResult.output_tokens,
       },
     }), {
       status: 200,
