@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import MapGL, { Marker, NavigationControl, Source, Layer, type MapRef } from 'react-map-gl/mapbox'
 import { MapPin, Briefcase, X, Car, Footprints, Bike, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -16,17 +16,13 @@ interface ListingMapProps {
 
 export default function ListingMap({ lat, lng, address, city, postal_code }: ListingMapProps) {
   const mapRef = useRef<MapRef>(null)
-  const [viewState, setViewState] = useState({
+  const initialViewState = useMemo(() => ({
     latitude: lat || 46.2044,
     longitude: lng || 6.1432,
     zoom: 16,
     pitch: 0,
     bearing: 0,
-  })
-
-  const handleMove = useCallback((evt: { viewState: typeof viewState }) => {
-    setViewState(evt.viewState)
-  }, [])
+  }), [lat, lng])
 
   // ── Directions (commute calculator) ──
   const [showCommute, setShowCommute] = useState(false)
@@ -122,8 +118,7 @@ export default function ListingMap({ lat, lng, address, city, postal_code }: Lis
     <div id="localisation" className="scroll-mt-28 w-full h-[350px] md:h-[450px] relative">
       <MapGL
         ref={mapRef}
-        {...viewState}
-        onMove={handleMove}
+        initialViewState={initialViewState}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/streets-v12"
         style={{ width: '100%', height: '100%' }}

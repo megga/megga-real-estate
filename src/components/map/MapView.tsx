@@ -6,7 +6,6 @@ import MapGL, {
   Source,
   Layer,
   NavigationControl,
-  type ViewStateChangeEvent,
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
@@ -116,13 +115,13 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   const [mapStyleId, setMapStyleId] = useState<MapStyleId>('light')
   const [showStylePicker, setShowStylePicker] = useState(false)
   const currentStyle = MAP_STYLES.find(s => s.id === mapStyleId) || MAP_STYLES[0]
-  const [viewState, setViewState] = useState({
+  const initialViewState = useMemo(() => ({
     longitude: 6.1432,
     latitude: 46.2044,
     zoom: 11.5,
     pitch: 0,
     bearing: 0,
-  })
+  }), [])
   const [selectedListing, setSelectedListing] = useState<ListingCardData | null>(null)
   const [hoveredPin, setHoveredPin] = useState<ListingCardData | null>(null)
   const [viewportCount, setViewportCount] = useState(0)
@@ -450,7 +449,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     toggleTools: () => setShowTools(v => !v),
     setMapStyle: (id: string) => {
       setMapStyleId(id as MapStyleId)
-      setViewState(v => ({ ...v, pitch: 0, bearing: 0 }))
     },
     toggleHeatmap: () => setShowHeatmap(v => !v),
     resize: () => mapRef.current?.resize(),
@@ -478,9 +476,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     onViewportChange?.({ west: w, south: s, east: e, north: n })
   }, [mapPoints, listings, onViewportChange])
 
-  const handleMove = useCallback((evt: ViewStateChangeEvent) => {
-    setViewState(evt.viewState)
-  }, [])
 
   function handlePinClick(listing: ListingCardData) {
     setSelectedListing(listing)
@@ -490,7 +485,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     if (listing.lat && listing.lng) {
       mapRef.current?.flyTo({
         center: [listing.lng, listing.lat],
-        zoom: Math.max(viewState.zoom, 14),
+        zoom: Math.max(mapRef.current?.getZoom() ?? 11.5, 14),
         duration: 800,
       })
     }
@@ -700,8 +695,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     )}>
       <MapGL
         ref={mapRef}
-        {...viewState}
-        onMove={handleMove}
+        initialViewState={initialViewState}
         onMoveEnd={updateViewportCount}
         onClick={handleMapClick}
         onDblClick={handleMapDoubleClick}
@@ -1185,8 +1179,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                           onClick={() => {
                             setMapStyleId(s.id)
                             setShowStylePicker(false)
-                            setViewState(v => ({ ...v, pitch: 0, bearing: 0 }))
-                          }}
+                                                }}
                           className={cn(
                             'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
                             mapStyleId === s.id ? 'text-accent' : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -1341,8 +1334,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                             onClick={() => {
                               setMapStyleId(s.id)
                               setShowStylePicker(false)
-                              setViewState(v => ({ ...v, pitch: 0, bearing: 0 }))
-                            }}
+                                                    }}
                             className={cn(
                               'w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors cursor-pointer',
                               mapStyleId === s.id
