@@ -326,6 +326,16 @@
 }
 
 /* ─── Mapbox control overrides — always light (map is always on light background) ─── */
+
+/* Lift bottom-right nav controls away from the map edge */
+.mapboxgl-ctrl-bottom-right {
+  bottom: 40px !important;
+  right: 16px !important;
+}
+.mapboxgl-ctrl-bottom-left {
+  bottom: 40px !important;
+}
+
 .mapboxgl-ctrl-group {
   background: #ffffff !important;
   border: 1px solid #e5e7eb !important;

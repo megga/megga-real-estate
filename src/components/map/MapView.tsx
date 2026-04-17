@@ -1182,7 +1182,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
       {/* Tools menu — bottom-right */}
       {!isImmersive && (
-        <div ref={toolsMenuRef} className="absolute bottom-4 right-16 z-[6]">
+        <div ref={toolsMenuRef} className="absolute bottom-10 right-20 z-[6]">
           <button
             onClick={() => setToolsMenuOpen(v => !v)}
             className={cn(
