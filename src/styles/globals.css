@@ -12,6 +12,11 @@
   }
 }
 
+/* Slightly desaturate map tiles so the red pins pop */
+.mapboxgl-canvas {
+  filter: saturate(0.82);
+}
+
 @layer base {
   /* ─── Light theme (default) ─── */
   :root {

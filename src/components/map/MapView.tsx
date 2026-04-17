@@ -327,7 +327,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           properties: {
             id: mp.id,
             price: mp.price,
-            priceLabel: formatPricePin(mp.price, mp.context || 'buy'),
+            priceLabel: formatPricePin(mp.price, 'buy'),
             rooms: mp.rooms,
             type: mp.type || '',
             context: mp.context || 'buy',
@@ -339,7 +339,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           properties: {
             id: l.id,
             price: l.price,
-            priceLabel: formatPricePin(l.price, l.context || 'buy'),
+            priceLabel: formatPricePin(l.price, 'buy'),
             rooms: l.rooms,
             type: l.type || '',
             context: l.context || 'buy',
@@ -729,8 +729,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           // Lazy-register the price pill sprite via `styleimagemissing` so it
           // works even if the layer renders before our addImage call.
           const PILL_COLORS: Record<string, { fill: string; stroke: string }> = {
-            'price-pill': { fill: '#7F1D1D', stroke: '#FFFFFF' },
-            'price-pill-hover': { fill: '#16A34A', stroke: '#FFFFFF' }, // green — interactable
+            'price-pill': { fill: '#B91C1C', stroke: '#FFFFFF' },
+            'price-pill-hover': { fill: '#15803D', stroke: '#FFFFFF' }, // green-700 — darker, matches red-700 intensity
             'price-pill-dim': { fill: '#9CA3AF', stroke: '#FFFFFF' },
           }
           const addPill = (id: string) => {
@@ -855,10 +855,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 ? ['case',
                     ['boolean', ['feature-state', 'hover'], false], '#2563EB',
                     ['!', ['within', dimPolygon]], '#9CA3AF',
-                    '#7F1D1D']
+                    '#B91C1C']
                 : ['case',
                     ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                    '#7F1D1D']) as unknown as string,
+                    '#B91C1C']) as unknown as string,
               'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
                 8, 3,
