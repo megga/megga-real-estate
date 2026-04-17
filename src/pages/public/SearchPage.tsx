@@ -11,7 +11,6 @@ import {
   Check,
   Bookmark,
   LocateFixed,
-  PenTool,
   Mountain,
   Satellite,
   Sun as SunIcon,
