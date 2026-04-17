@@ -1156,6 +1156,18 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         </div>
       )}
 
+      {/* Draw zone — always shown on the map top-right */}
+      {!isDrawing && !closedPolygon && (
+        <div className="absolute top-3 right-3 z-[6]">
+          <button
+            onClick={startDrawing}
+            className="text-sm font-semibold px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm"
+          >
+            Dessiner
+          </button>
+        </div>
+      )}
+
       {/* Clear zone — always shown on the map when a polygon is active */}
       {closedPolygon && (
         <div className="absolute top-3 right-3 z-[6]">

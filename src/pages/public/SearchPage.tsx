@@ -638,10 +638,9 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               {!mapState.isDrawing && !mapState.hasPolygon && (
                 <button
                   onClick={() => { mapViewRef.current?.startDrawing(); syncMapState() }}
-                  className="h-7 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-600 transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                  className="h-7 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-600 transition-colors cursor-pointer whitespace-nowrap"
                   title={t('search.drawZone')}
                 >
-                  <PenTool className="h-3 w-3" />
                   Zone
                 </button>
               )}
