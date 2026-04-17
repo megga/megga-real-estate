@@ -1038,8 +1038,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           )
         })()}
 
-        {/* Price heatmap layer (fullscreen only) */}
-        {showHeatmap && (isFullscreen || showTools) && listingsGeoJSON.features.length > 0 && (
+        {/* Price heatmap layer */}
+        {showHeatmap && listingsGeoJSON.features.length > 0 && (
           <Source
             id="price-heatmap"
             type="geojson"
@@ -1637,7 +1637,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         <>
           {/* Listing counter — top-left, avoids overlap with the Dessiner button */}
           <div className="absolute top-3 left-3 z-[5] bg-gray-900/70 backdrop-blur-xl text-white/80 text-xs font-medium px-3 py-1.5 rounded-xl border border-white/10">
-            {viewportCount.toLocaleString('fr-CH')} / {(mapPoints?.length || listings.length).toLocaleString('fr-CH')} biens
+            {(mapPoints?.length || listings.length).toLocaleString('fr-CH')} biens
           </div>
 
           {/* Neighborhood pick mode instruction */}
