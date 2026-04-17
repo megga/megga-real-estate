@@ -479,8 +479,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   function handlePinClick(listing: ListingCardData) {
     setSelectedListing(listing)
-    // Open preview panel if callback provided — prefix with market- for ListingPreviewPanel
-    onSelectListing?.(`market-${listing.id}`)
     // FlyTo animation to center on selected listing
     if (listing.lat && listing.lng) {
       mapRef.current?.flyTo({
@@ -1022,7 +1020,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               </div>
 
               {/* Text content */}
-              <Link to={`/listing/${selectedListing.id}`} className="block px-4 py-3 hover:bg-theme-hover transition-colors">
+              <div className="block px-4 py-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-lg font-bold text-theme-primary leading-tight">
@@ -1054,7 +1052,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 <p className="text-sm text-theme-tertiary mt-1.5 truncate">
                   {selectedListing.address}{selectedListing.city ? `, ${selectedListing.city}` : ''}
                 </p>
-              </Link>
+              </div>
             </div>
           </Popup>
           )
