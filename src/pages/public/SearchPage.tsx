@@ -11,12 +11,6 @@ import {
   Check,
   Bookmark,
   LocateFixed,
-  Mountain,
-  Satellite,
-  Sun as SunIcon,
-  Moon,
-  Thermometer,
-  Maximize as MaximizeIcon,
 } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import BuyerSidebar from '@/components/search/BuyerSidebar'
@@ -115,21 +109,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   const mapViewRef = useRef<MapViewHandle>(null)
   const [sidebarView, setSidebarView] = useState('search')
   const [mapImmersive, setMapImmersive] = useState(false)
-  const [mapToolsOpen, setMapToolsOpen] = useState(false)
-  const [mapState, setMapState] = useState({ isDrawing: false, hasPolygon: false, showTools: false, showHeatmap: false, mapStyleId: 'standard' as string })
-  const syncMapState = useCallback(() => {
-    const m = mapViewRef.current
-    if (m) {
-      setMapState({
-        isDrawing: !!m.isDrawing,
-        hasPolygon: !!m.hasPolygon,
-        showTools: !!m.showTools,
-        showHeatmap: !!m.showHeatmap,
-        mapStyleId: m.mapStyleId ?? 'standard',
-      })
-    }
-  }, [])
-  const mapToolsRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [viewedIds, setViewedIds] = useState<string[]>([])
   const listScrollRef = useRef<HTMLDivElement>(null)
@@ -143,15 +122,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Persist split ratio + resize map
-  // Close map tools dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (mapToolsRef.current && !mapToolsRef.current.contains(e.target as Node)) setMapToolsOpen(false)
-    }
-    if (mapToolsOpen) document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [mapToolsOpen])
 
   // Market temperature for current location filter
   const { data: marketTemp } = useMarketTemperature(filters.canton || undefined, filters.city || undefined)
@@ -624,7 +594,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               ))}
             </FilterPill>
 
-            {/* Map tools — Recentrer + Zone + Outils */}
+            {/* Recentrer — Outils & Dessiner are now on the map overlay */}
             <div className="hidden lg:flex items-center gap-1">
               <button
                 onClick={() => mapViewRef.current?.fitToListings()}
@@ -634,96 +604,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 <LocateFixed className="h-3 w-3" />
                 Recentrer
               </button>
-              {!mapState.isDrawing && !mapState.hasPolygon && (
-                <button
-                  onClick={() => { mapViewRef.current?.startDrawing(); syncMapState() }}
-                  className="h-7 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-600 transition-colors cursor-pointer whitespace-nowrap"
-                  title={t('search.drawZone')}
-                >
-                  Zone
-                </button>
-              )}
-              <div className="relative" ref={mapToolsRef}>
-                <button
-                  onClick={() => { syncMapState(); setMapToolsOpen(v => !v) }}
-                  className={cn(
-                    'h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap',
-                    mapToolsOpen || mapState.showTools || mapState.showHeatmap
-                      ? 'bg-accent/10 text-accent'
-                      : 'text-gray-500 hover:text-gray-600'
-                  )}
-                >
-                  <Mountain className="h-3 w-3" />
-                  Outils
-                  <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', mapToolsOpen && 'rotate-180')} />
-                </button>
-
-                {mapToolsOpen && (
-                  <div className="absolute top-full left-0 mt-1.5 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-                    {/* Map styles */}
-                    <p className="px-3 pt-1.5 pb-1 text-xs font-semibold text-gray-500 capitalize">Style de carte</p>
-                    {([
-                      { id: 'standard', label: '3D', icon: Mountain },
-                      { id: 'satellite', label: t('search.mapStyleSatellite'), icon: Satellite },
-                      { id: 'light', label: t('search.mapStyleLight'), icon: SunIcon },
-                      { id: 'dark', label: t('search.mapStyleDark'), icon: Moon },
-                    ] as const).map(style => {
-                      const Icon = style.icon
-                      const isActive = mapState.mapStyleId === style.id
-                      return (
-                        <button
-                          key={style.id}
-                          onClick={() => { mapViewRef.current?.setMapStyle(style.id); syncMapState() }}
-                          className={cn(
-                            'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                            isActive ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
-                          )}
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          {style.label}
-                        </button>
-                      )
-                    })}
-
-                    <div className="h-px bg-gray-100 my-1" />
-
-                    {/* Heatmap */}
-                    <button
-                      onClick={() => { mapViewRef.current?.toggleHeatmap(); syncMapState() }}
-                      className={cn(
-                        'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                        mapState.showHeatmap ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
-                      )}
-                    >
-                      <Thermometer className="h-3.5 w-3.5" />
-                      Heatmap prix/m²
-                    </button>
-
-                    {/* Advanced tools toggle */}
-                    <button
-                      onClick={() => { mapViewRef.current?.toggleTools(); syncMapState() }}
-                      className={cn(
-                        'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                        mapState.showTools ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
-                      )}
-                    >
-                      <Mountain className="h-3.5 w-3.5" />
-                      Outils avancés
-                    </button>
-
-                    <div className="h-px bg-gray-100 my-1" />
-
-                    {/* Immersive */}
-                    <button
-                      onClick={() => { mapViewRef.current?.enterImmersive(); setMapToolsOpen(false) }}
-                      className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <MaximizeIcon className="h-3.5 w-3.5" />
-                      Mode immersif
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
 
           </div>

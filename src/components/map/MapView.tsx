@@ -8,7 +8,7 @@ import MapGL, {
   type MapRef,
   type MapMouseEvent,
 } from 'react-map-gl/mapbox'
-import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, Building2, Heart, MoreHorizontal } from 'lucide-react'
+import { LocateFixed, X, MapPin, Layers, Mountain, Satellite, Moon, Sun, Thermometer, Search, Ruler, Pause, Play, Maximize, Minimize, ChevronLeft, ChevronRight, ChevronDown, Building2, Heart, MoreHorizontal } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
@@ -136,6 +136,18 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
 
   // ─── Immersive mode ───
   const [isImmersive, setIsImmersive] = useState(false)
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false)
+  const toolsMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!toolsMenuOpen) return
+    const handler = (e: MouseEvent) => {
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target as Node)) {
+        setToolsMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [toolsMenuOpen])
 
   // Fullscreen detection — sync with immersive mode
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -1165,6 +1177,79 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           >
             Dessiner
           </button>
+        </div>
+      )}
+
+      {/* Tools menu — bottom-right */}
+      {!isImmersive && (
+        <div ref={toolsMenuRef} className="absolute bottom-4 right-3 z-[6]">
+          <button
+            onClick={() => setToolsMenuOpen(v => !v)}
+            className={cn(
+              'text-sm font-semibold px-4 py-2 rounded-xl bg-white border border-gray-200 transition-colors cursor-pointer shadow-sm flex items-center gap-1.5',
+              (toolsMenuOpen || showTools || showHeatmap) ? 'text-accent' : 'text-gray-700 hover:bg-gray-50'
+            )}
+          >
+            <Mountain className="h-3.5 w-3.5" />
+            Outils
+            <ChevronDown className={cn('h-3 w-3 transition-transform', toolsMenuOpen && 'rotate-180')} />
+          </button>
+          {toolsMenuOpen && (
+            <div className="absolute bottom-full right-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1">
+              <p className="px-3 pt-1.5 pb-1 text-xs font-semibold text-gray-500">Style de carte</p>
+              {([
+                { id: 'standard', label: '3D', icon: Mountain },
+                { id: 'satellite', label: 'Satellite', icon: Satellite },
+                { id: 'light', label: 'Clair', icon: Sun },
+                { id: 'dark', label: 'Sombre', icon: Moon },
+              ] as const).map(style => {
+                const Icon = style.icon
+                const isActive = mapStyleId === style.id
+                return (
+                  <button
+                    key={style.id}
+                    onClick={() => setMapStyleId(style.id as MapStyleId)}
+                    className={cn(
+                      'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+                      isActive ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {style.label}
+                  </button>
+                )
+              })}
+              <div className="h-px bg-gray-100 my-1" />
+              <button
+                onClick={() => setShowHeatmap(v => !v)}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+                  showHeatmap ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                )}
+              >
+                <Thermometer className="h-3.5 w-3.5" />
+                Heatmap prix/m²
+              </button>
+              <button
+                onClick={() => setShowTools(v => !v)}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
+                  showTools ? 'text-accent bg-accent/5' : 'text-gray-700 hover:bg-gray-50'
+                )}
+              >
+                <Mountain className="h-3.5 w-3.5" />
+                Outils avancés
+              </button>
+              <div className="h-px bg-gray-100 my-1" />
+              <button
+                onClick={() => { enterImmersive(); setToolsMenuOpen(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <Maximize className="h-3.5 w-3.5" />
+                Mode immersif
+              </button>
+            </div>
+          )}
         </div>
       )}
 
