@@ -388,13 +388,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     const map = mapRef.current?.getMap()
     if (!map) return
     const features = map.queryRenderedFeatures(e.point, {
-      layers: [...LISTING_LAYERS, 'clusters'] as unknown as string[],
+      layers: LISTING_LAYERS as unknown as string[],
     })
     if (features.length > 0) {
       map.getCanvas().style.cursor = 'pointer'
       const props = features[0].properties
-      // Clusters have no `id` — skip hover card for them, keep only the pointer cursor
-      if (props?.cluster) return
       if (props?.id) {
         onHover?.(props.id as string)
         const listing = listingsMap.get(props.id as string)
@@ -531,22 +529,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     if (!isDrawing) {
       const map = mapRef.current?.getMap()
       if (map) {
-        // Cluster click — zoom into the cluster expansion zoom
-        const clusterFeatures = map.queryRenderedFeatures(e.point, { layers: ['clusters'] })
-        if (clusterFeatures.length > 0) {
-          const f = clusterFeatures[0]
-          const clusterId = f.properties?.cluster_id
-          const src = map.getSource('listings') as unknown as { getClusterExpansionZoom: (id: number, cb: (err: Error | null, z: number) => void) => void }
-          if (clusterId != null && src?.getClusterExpansionZoom) {
-            src.getClusterExpansionZoom(clusterId as number, (err, zoom) => {
-              if (err) return
-              const coords = (f.geometry as GeoJSON.Point).coordinates as [number, number]
-              map.easeTo({ center: coords, zoom: Math.min(zoom + 0.5, 16), duration: 500 })
-            })
-          }
-          return
-        }
-        // Unclustered pin click
         const features = map.queryRenderedFeatures(e.point, {
           layers: LISTING_LAYERS as unknown as string[],
         })
@@ -797,127 +779,70 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </Source>
         )}
 
-        {/* ─── Native Mapbox GL layers for listings (Zillow-style + clustering) ─── */}
+        {/* ─── 1 pin per listing, no clustering. Dot at low zoom → price pill at mid zoom ─── */}
         <Source
           id="listings"
           type="geojson"
           data={listingsGeoJSON}
           promoteId="id"
-          cluster={true}
-          clusterMaxZoom={13}
-          clusterRadius={50}
         >
-          {/* Cluster circles — gradient by count */}
-          <Layer
-            id="clusters"
-            type="circle"
-            filter={['has', 'point_count']}
-            paint={{
-              'circle-color': [
-                'step', ['get', 'point_count'],
-                '#0D4599', 25,
-                '#133E8E', 100,
-                '#1E3A8A', 500,
-                '#1E40AF',
-              ],
-              'circle-radius': [
-                'step', ['get', 'point_count'],
-                16, 25,
-                22, 100,
-                28, 500,
-                34,
-              ],
-              'circle-stroke-color': 'rgba(255,255,255,0.95)',
-              'circle-stroke-width': 2,
-              'circle-opacity': 0.95,
-            }}
-          />
-
-          {/* Cluster count label */}
-          <Layer
-            id="cluster-count"
-            type="symbol"
-            filter={['has', 'point_count']}
-            layout={{
-              'text-field': ['get', 'point_count_abbreviated'],
-              'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-              'text-size': 13,
-              'text-allow-overlap': true,
-            }}
-            paint={{
-              'text-color': '#FFFFFF',
-            }}
-          />
-
-          {/* Unclustered dots — Zillow-style dark navy, visible up to zoom 14.5 */}
+          {/* Dots — far zoom: one tiny red dot per home */}
           <Layer
             id="unclustered-dot"
             type="circle"
-            filter={['!', ['has', 'point_count']]}
-            maxzoom={14.5}
             paint={{
               'circle-color': (dimPolygon
                 ? ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#0D4599',
+                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
                     ['!', ['within', dimPolygon]], '#9CA3AF',
-                    '#0D4599']
+                    '#7F1D1D']
                 : ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#0D4599',
-                    '#0D4599']) as unknown as string,
+                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    '#7F1D1D']) as unknown as string,
               'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
-                10, 3,
-                13, 5,
-                14.5, 5,
+                8, 2,
+                11, 4,
+                12.5, 5,
               ],
               'circle-opacity': [
                 'interpolate', ['linear'], ['zoom'],
-                13, 1,
-                14.5, 0,
+                12, 1,
+                13, 0,
               ],
-              'circle-stroke-color': 'rgba(255,255,255,0.9)',
-              'circle-stroke-width': 1.5,
+              'circle-stroke-color': 'rgba(255,255,255,0.85)',
+              'circle-stroke-width': 1,
             }}
           />
 
-          {/* Unclustered price labels — Zillow-style white pills with navy text, from zoom 14.5, collision-avoided */}
+          {/* Price pills — mid/close zoom: dot becomes red pill with price, all shown (overlap allowed) */}
           <Layer
             id="unclustered-label"
             type="symbol"
-            filter={['!', ['has', 'point_count']]}
-            minzoom={14}
             layout={{
               'text-field': ['get', 'priceLabel'],
-              'text-size': 12,
+              'text-size': 11,
               'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-              'text-allow-overlap': false,
-              'text-ignore-placement': false,
-              'text-padding': 2,
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
               'text-anchor': 'center',
             }}
             paint={{
-              'text-color': (dimPolygon
-                ? ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#FFFFFF',
-                    ['!', ['within', dimPolygon]], '#9CA3AF',
-                    '#0D4599']
-                : ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#FFFFFF',
-                    '#0D4599']) as unknown as string,
+              'text-color': '#FFFFFF',
               'text-halo-color': (dimPolygon
                 ? ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#0D4599',
-                    ['!', ['within', dimPolygon]], '#FFFFFF',
-                    '#FFFFFF']
+                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    ['!', ['within', dimPolygon]], '#9CA3AF',
+                    '#7F1D1D']
                 : ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#0D4599',
-                    '#FFFFFF']) as unknown as string,
+                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    '#7F1D1D']) as unknown as string,
               'text-halo-width': 5,
               'text-halo-blur': 0,
               'text-opacity': [
                 'interpolate', ['linear'], ['zoom'],
-                14, 0,
-                14.5, 1,
+                12, 0,
+                13, 1,
               ],
             }}
           />
