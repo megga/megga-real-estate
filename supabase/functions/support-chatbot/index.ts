@@ -15,11 +15,19 @@ interface ChatMessage {
   content: string
 }
 
+interface RelevantArticle {
+  slug: string
+  category: string
+  title: string
+  content: string
+}
+
 interface SupportRequest {
   message: string
   history?: ChatMessage[]
   language?: 'fr' | 'de' | 'en' | 'it'
   articlesContext?: string
+  relevantArticles?: RelevantArticle[]
 }
 
 // ── System prompt ───────────────────────────────────────────────────────
@@ -51,6 +59,13 @@ FONCTIONNALITÉS MEGGA QUE TU CONNAIS :
 CONTEXTE ARTICLES DISPONIBLES (slug → titre) :
 {ARTICLES_CONTEXT}
 
+{RELEVANT_ARTICLES}
+
+RÈGLES ANTI-HALLUCINATION :
+- Si les articles pertinents ci-dessus couvrent la question, base ta réponse SUR LEUR CONTENU et cite-les.
+- Si le contenu des articles ne couvre pas la question, dis "Je n'ai pas trouvé d'article précis sur ce sujet" au lieu d'inventer.
+- Ne génère pas de procédure, prix, ou fonctionnalité qui n'apparaît pas explicitement dans les articles ou dans la liste des fonctionnalités MEGGA ci-dessus.
+
 Quand tu cites un article, utilise le format : [Titre](/aide/category/slug)
 
 À la fin de ta réponse, ajoute une ligne JSON sur une nouvelle ligne (le frontend la parsera) :
@@ -65,7 +80,13 @@ serve(async (req) => {
   }
 
   try {
-    const { message, history = [], language = 'fr', articlesContext = '' }: SupportRequest = await req.json()
+    const {
+      message,
+      history = [],
+      language = 'fr',
+      articlesContext = '',
+      relevantArticles = [],
+    }: SupportRequest = await req.json()
 
     if (!message?.trim()) {
       return new Response(JSON.stringify({ error: 'Missing message' }), { status: 400, headers: corsHeaders })
@@ -75,8 +96,19 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'AI provider not configured' }), { status: 500, headers: corsHeaders })
     }
 
+    // Build the RAG section — full content of the top-k relevant articles so
+    // the model grounds its answer in real documentation.
+    const relevantSection = relevantArticles.length > 0
+      ? `ARTICLES PERTINENTS POUR LA QUESTION (base ta réponse sur leur contenu) :\n\n` +
+        relevantArticles
+          .map((a) => `--- Article: ${a.category}/${a.slug} — ${a.title} ---\n${a.content}`)
+          .join('\n\n')
+      : ''
+
     // Build system prompt with articles context
-    const systemPrompt = SYSTEM_PROMPT.replace('{ARTICLES_CONTEXT}', articlesContext)
+    const systemPrompt = SYSTEM_PROMPT
+      .replace('{ARTICLES_CONTEXT}', articlesContext)
+      .replace('{RELEVANT_ARTICLES}', relevantSection)
 
     // Build messages array
     const messages = [
@@ -91,7 +123,10 @@ serve(async (req) => {
 
     let aiResult
     try {
-      aiResult = await callPublicAI(messages, systemPrompt + langInstruction, { maxTokens: 500 })
+      aiResult = await callPublicAI(messages, systemPrompt + langInstruction, {
+        maxTokens: 600,
+        temperature: 0.3,
+      })
     } catch (err) {
       console.error('AI provider error:', err)
       return new Response(JSON.stringify({ error: 'AI service error' }), { status: 502, headers: corsHeaders })

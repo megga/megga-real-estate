@@ -553,9 +553,37 @@ export default function HelpChatbot() {
     setLoading(true)
 
     try {
+      // RAG: surface the 3 most relevant articles so the model grounds its
+      // answer in real documentation rather than guessing from titles.
+      const FuseModule = (await import('fuse.js')).default
+      const fuse = new FuseModule(ALL_ARTICLES, {
+        threshold: 0.4,
+        keys: [
+          { name: 'title', weight: 3 },
+          { name: 'keywords', weight: 2 },
+          { name: 'description', weight: 1.5 },
+          { name: 'content', weight: 1 },
+        ],
+      })
+      const topMatches = fuse.search(msg).slice(0, 3).map(r => r.item as HelpArticle)
+      const relevantArticles = topMatches.map(a => ({
+        slug: a.slug,
+        category: a.category,
+        title: a.title,
+        // Truncate long articles to keep prompt size reasonable
+        content: a.content.length > 2000 ? a.content.slice(0, 2000) + '...' : a.content,
+      }))
+
       const history = messages.filter(m => m.role !== 'system').slice(-8).map(m => ({ role: m.role, content: m.content }))
       const { data, error } = await supabase.functions.invoke('support-chatbot', {
-        body: { message: msg, history, language: 'fr', articlesContext: ARTICLES_CONTEXT, category: selectedCategory },
+        body: {
+          message: msg,
+          history,
+          language: 'fr',
+          articlesContext: ARTICLES_CONTEXT,
+          relevantArticles,
+          category: selectedCategory,
+        },
       })
       if (error) throw error
 
