@@ -13,6 +13,7 @@ import NeighborhoodOverlay from './NeighborhoodOverlay'
 import { cn, formatCHF, formatSurface, formatPricePin } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import type { MapPoint } from '@/hooks/useMarketListings'
+import { usePriceHexagons } from '@/hooks/usePriceHexagons'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
@@ -567,7 +568,9 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     get showHeatmap() { return showHeatmap },
   }))
 
-  // Viewport count — simple bounds filter on points
+  // Viewport count + bbox/zoom tracking (bbox feeds the price-hexagon RPC)
+  const [mapBbox, setMapBbox] = useState<[number, number, number, number] | null>(null)
+  const [mapZoom, setMapZoom] = useState<number>(initialViewState.zoom)
   const updateViewportCount = useCallback(() => {
     const map = mapRef.current?.getMap()
     if (!map) return
@@ -579,8 +582,42 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       p.lng != null && p.lat != null && p.lng >= w && p.lng <= e && p.lat >= s && p.lat <= n
     ).length
     setViewportCount(count)
+    setMapBbox([w, s, e, n])
+    setMapZoom(map.getZoom())
     onViewportChange?.({ west: w, south: s, east: e, north: n })
-  }, [mapPoints, listings, onViewportChange])
+  }, [mapPoints, listings, onViewportChange, initialViewState.zoom])
+
+  // Price-per-m² choropleth (replaces biased Mapbox heatmap density × price).
+  // Only fetch when the layer is toggled on.
+  const priceHexagons = usePriceHexagons({
+    bbox: mapBbox,
+    zoom: mapZoom,
+    transactionType: transactionContext,
+    enabled: showHeatmap,
+  })
+  const hexData = priceHexagons.data ?? { type: 'FeatureCollection' as const, features: [] }
+
+  // Color scale: rent CHF/m²/month vs. sale CHF/m²
+  const priceColorExpr = useMemo(() => {
+    if (transactionContext === 'rent') {
+      return [
+        'interpolate', ['linear'], ['get', 'median_price_m2'],
+        15, '#1e7a3e',
+        22, '#84cc16',
+        28, '#eab308',
+        35, '#f97316',
+        45, '#dc2626',
+      ] as const
+    }
+    return [
+      'interpolate', ['linear'], ['get', 'median_price_m2'],
+      4000, '#1e7a3e',
+      7000, '#84cc16',
+      10000, '#eab308',
+      14000, '#f97316',
+      20000, '#dc2626',
+    ] as const
+  }, [transactionContext])
 
 
   function handlePinClick(listing: ListingCardData) {
@@ -728,9 +765,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
       ],
     }
   }, [drawPoints, closedPolygon, cursorPos])
-
-  // Heatmap reuses the same GeoJSON (price is already a top-level property)
-  const heatmapData = listingsGeoJSON
 
   // Polygon area label — memoized so the spherical sum doesn't run every render
   const polygonAreaLabel = useMemo(() => {
@@ -1121,33 +1155,24 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           )
         })()}
 
-        {/* Price heatmap layer */}
-        {showHeatmap && listingsGeoJSON.features.length > 0 && (
-          <Source
-            id="price-heatmap"
-            type="geojson"
-            data={heatmapData}
-          >
+        {/* Price-per-m² choropleth (hex aggregation from Supabase RPC) */}
+        {showHeatmap && hexData.features.length > 0 && (
+          <Source id="price-hexagons" type="geojson" data={hexData}>
             <Layer
-              id="heatmap-layer"
-              type="heatmap"
-              maxzoom={15}
+              id="price-hex-fill"
+              type="fill"
               paint={{
-                'heatmap-weight': transactionContext === 'rent'
-                  ? ['interpolate', ['linear'], ['get', 'price'], 500, 0, 10000, 1]
-                  : ['interpolate', ['linear'], ['get', 'price'], 200000, 0, 5000000, 1],
-                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 8, 1, 15, 3],
-                'heatmap-color': [
-                  'interpolate', ['linear'], ['heatmap-density'],
-                  0, 'rgba(0,0,255,0)',
-                  0.2, 'rgb(0,150,255)',
-                  0.4, 'rgb(0,200,150)',
-                  0.6, 'rgb(255,220,0)',
-                  0.8, 'rgb(255,140,0)',
-                  1, 'rgb(255,40,40)',
-                ],
-                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 8, 15, 15, 25],
-                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 9, 0.6, 13, 0.6, 15, 0],
+                'fill-color': priceColorExpr as unknown as string,
+                'fill-opacity': 0.5,
+              }}
+            />
+            <Layer
+              id="price-hex-line"
+              type="line"
+              paint={{
+                'line-color': '#ffffff',
+                'line-opacity': 0.3,
+                'line-width': 0.5,
               }}
             />
           </Source>
@@ -1779,6 +1804,31 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           </span>
         )}
       </div>
+
+      {/* Price/m² choropleth legend */}
+      {showHeatmap && (
+        <div className="absolute bottom-4 left-4 z-[5] rounded-xl bg-theme-card border border-theme-border px-3 py-2 shadow-sm">
+          <div className="text-[10px] uppercase tracking-wide text-theme-tertiary mb-1.5">
+            {transactionContext === 'rent' ? 'CHF/m²/mois (médian)' : 'CHF/m² (médian)'}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-2 w-32 rounded-sm" style={{
+              background: 'linear-gradient(to right, #1e7a3e, #84cc16, #eab308, #f97316, #dc2626)'
+            }} />
+          </div>
+          <div className="flex justify-between mt-1 text-[10px] text-theme-tertiary tabular-nums">
+            <span>{transactionContext === 'rent' ? '15' : "4'000"}</span>
+            <span>{transactionContext === 'rent' ? '30' : "10'000"}</span>
+            <span>{transactionContext === 'rent' ? '45+' : "20'000+"}</span>
+          </div>
+          {priceHexagons.isFetching && (
+            <div className="text-[10px] text-theme-tertiary mt-1">Chargement…</div>
+          )}
+          {!priceHexagons.isFetching && hexData.features.length === 0 && (
+            <div className="text-[10px] text-theme-tertiary mt-1">Pas assez de biens dans cette zone</div>
+          )}
+        </div>
+      )}
 
       {/* ── Immersive controls (tools panel — NOT shown in immersive mode, those are in the bottom toolbar) ── */}
       {(isFullscreen || showTools) && !isImmersive && (
