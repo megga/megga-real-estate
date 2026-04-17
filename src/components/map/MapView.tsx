@@ -673,12 +673,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     return `${Math.round(area).toLocaleString('fr-CH')} m²`
   }, [closedPolygon])
 
-  // Count listings in zone
-  const zoneCount = useMemo(() => {
-    if (!closedPolygon) return 0
-    return listings.filter((l) => l.lat && l.lng && pointInPolygon([l.lng!, l.lat!], closedPolygon)).length
-  }, [closedPolygon, listings])
-
   // Graceful fallback when VITE_MAPBOX_TOKEN is missing — without this guard,
   // mapbox-gl crashes deep inside its initialization (`Cannot read properties
   // of undefined (reading '0')` on pointRayInte…), which previously broke
@@ -807,38 +801,15 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 'fill-opacity': 0.15,
               }}
             />
-            {/* Polygon outline — white glow for visibility on dark backgrounds */}
-            <Layer
-              id="draw-line-glow"
-              type="line"
-              filter={['==', '$type', 'LineString']}
-              paint={{
-                'line-color': '#FFFFFF',
-                'line-width': 5,
-                'line-opacity': 0.5,
-              }}
-            />
-            {/* Polygon outline — accent line on top */}
+            {/* Polygon outline — clean thin blue line */}
             <Layer
               id="draw-line"
               type="line"
               filter={['==', '$type', 'LineString']}
+              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
               paint={{
                 'line-color': '#2563EB',
                 'line-width': 2.5,
-                'line-dasharray': closedPolygon ? [1] : [2, 2],
-              }}
-            />
-            {/* Vertex points */}
-            <Layer
-              id="draw-points"
-              type="circle"
-              filter={['==', '$type', 'Point']}
-              paint={{
-                'circle-radius': 6,
-                'circle-color': '#FFFFFF',
-                'circle-stroke-color': '#2563EB',
-                'circle-stroke-width': 2.5,
               }}
             />
           </Source>
@@ -1182,16 +1153,19 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               Zone
             </button>
           )}
+        </div>
+      )}
 
-          {closedPolygon && (
-            <button
-              onClick={clearZone}
-              className="text-xs font-medium px-3 py-1.5 rounded-xl border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <X className="h-3.5 w-3.5" />
-              {zoneCount} bien{zoneCount !== 1 ? 's' : ''} dans la zone
-            </button>
-          )}
+      {/* Clear zone — always shown on the map when a polygon is active */}
+      {closedPolygon && (
+        <div className="absolute top-3 right-3 z-[6]">
+          <button
+            onClick={clearZone}
+            className="text-sm font-semibold px-4 py-2 rounded-xl bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+          >
+            Enlever la zone
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 
