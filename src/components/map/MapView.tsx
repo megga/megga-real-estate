@@ -725,33 +725,69 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
         onMouseMove={handleMouseMove}
         onLoad={(e) => {
           updateViewportCount()
-          // Register a stretchable red-pill sprite used as background for price labels.
           const map = e.target
-          const addPill = (id: string, fill: string, stroke: string) => {
-            if (map.hasImage(id)) return
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="40" viewBox="0 0 64 40">
-              <rect x="3" y="3" width="58" height="24" rx="12" ry="12" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
-              <path d="M28 27 L32 33 L36 27 Z" fill="${fill}"/>
-              <path d="M28 27 L32 33 L36 27" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M29 28 L35 28" stroke="${fill}" stroke-width="3" stroke-linecap="round"/>
-            </svg>`
-            const img = new Image(64, 40)
-            img.onload = () => {
-              try {
-                map.addImage(id, img, {
-                  pixelRatio: 2,
-                  stretchX: [[16, 48]],
-                  stretchY: [[8, 20]],
-                  content: [6, 6, 58, 24],
-                })
-                map.triggerRepaint?.()
-              } catch { /* image may already exist */ }
-            }
-            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+          // Lazy-register the price pill sprite via `styleimagemissing` so it
+          // works even if the layer renders before our addImage call.
+          const PILL_COLORS: Record<string, { fill: string; stroke: string }> = {
+            'price-pill': { fill: '#7F1D1D', stroke: '#FFFFFF' },
+            'price-pill-hover': { fill: '#2563EB', stroke: '#FFFFFF' },
+            'price-pill-dim': { fill: '#9CA3AF', stroke: '#FFFFFF' },
           }
-          addPill('price-pill', '#7F1D1D', '#FFFFFF')
-          addPill('price-pill-hover', '#2563EB', '#FFFFFF')
-          addPill('price-pill-dim', '#9CA3AF', '#FFFFFF')
+          const addPill = (id: string) => {
+            const c = PILL_COLORS[id]
+            if (!c || map.hasImage(id)) return
+            // Use a Canvas ImageData (synchronous) so the image is ready before
+            // the next render frame — avoids the SVG → Image.onload async race.
+            const W = 128, H = 80
+            const canvas = document.createElement('canvas')
+            canvas.width = W; canvas.height = H
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return
+            // Rounded rect pill (6px padding frame for 9-slice)
+            const x = 6, y = 6, w = W - 12, h = 48, r = 24
+            ctx.fillStyle = c.fill
+            ctx.strokeStyle = c.stroke
+            ctx.lineWidth = 4
+            ctx.beginPath()
+            ctx.moveTo(x + r, y)
+            ctx.arcTo(x + w, y, x + w, y + h, r)
+            ctx.arcTo(x + w, y + h, x, y + h, r)
+            ctx.arcTo(x, y + h, x, y, r)
+            ctx.arcTo(x, y, x + w, y, r)
+            ctx.closePath()
+            ctx.fill()
+            ctx.stroke()
+            // Pointer triangle at bottom center
+            const cx = W / 2, pyTop = y + h
+            ctx.beginPath()
+            ctx.moveTo(cx - 8, pyTop)
+            ctx.lineTo(cx, pyTop + 12)
+            ctx.lineTo(cx + 8, pyTop)
+            ctx.closePath()
+            ctx.fillStyle = c.fill
+            ctx.fill()
+            ctx.strokeStyle = c.stroke
+            ctx.lineJoin = 'round'
+            ctx.stroke()
+            // Hide the seam where the triangle meets the pill
+            ctx.fillStyle = c.fill
+            ctx.fillRect(cx - 7, pyTop - 1, 14, 3)
+            try {
+              const data = ctx.getImageData(0, 0, W, H)
+              map.addImage(id, { width: W, height: H, data: new Uint8Array(data.data.buffer) }, {
+                pixelRatio: 2,
+                stretchX: [[32, 96]],
+                stretchY: [[12, 40]],
+                content: [12, 12, 116, 52],
+              })
+            } catch { /* ignore */ }
+          }
+          // Register up-front
+          addPill('price-pill')
+          addPill('price-pill-hover')
+          addPill('price-pill-dim')
+          // Safety net: if Mapbox ever reports the image missing, create it on demand
+          map.on('styleimagemissing', (ev: { id: string }) => addPill(ev.id))
         }}
       >
         <NavigationControl position="bottom-right" showCompass={false} />
