@@ -298,9 +298,43 @@ export function useMarketListings(filters: MarketFilters = {}) {
 
 // ─── HOOK 2 : Points carte (léger, tous les biens avec lat/lng) ─────────────
 
+// ─── Session cache ───
+// Points change rarely (Flatfox sync is daily). Persist to sessionStorage so
+// page refresh and same-tab navigation show pins instantly instead of waiting
+// ~10s for the 33K-point RPC.
+const MAP_POINTS_CACHE_TTL_MS = 10 * 60 * 1000 // 10 min
+
+function readMapPointsCache(key: string): MapPoint[] | null {
+  try {
+    const raw = sessionStorage.getItem(key)
+    if (!raw) return null
+    const { t, v } = JSON.parse(raw) as { t: number; v: MapPoint[] }
+    if (Date.now() - t > MAP_POINTS_CACHE_TTL_MS) return null
+    return v
+  } catch { return null }
+}
+
+function writeMapPointsCache(key: string, v: MapPoint[]) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v }))
+  } catch { /* quota exceeded — ignore */ }
+}
+
 export function useMapPoints(filters: MarketFilters = {}) {
+  const cacheKey = `megga:map-points:${JSON.stringify(filters)}`
   return useQuery({
     queryKey: ['map-points', filters],
+    // Hydrate instantly from sessionStorage — the query still runs in the
+    // background to refresh, but the map paints its pins immediately.
+    initialData: () => readMapPointsCache(cacheKey) ?? undefined,
+    initialDataUpdatedAt: () => {
+      try {
+        const raw = sessionStorage.getItem(cacheKey)
+        if (!raw) return undefined
+        const { t } = JSON.parse(raw) as { t: number }
+        return t
+      } catch { return undefined }
+    },
     queryFn: async (): Promise<MapPoint[]> => {
       // Single RPC call returns all points at once (bypasses REST 1000-row limit)
       const marketPromise = supabase.rpc('get_market_map_points', {
@@ -357,18 +391,36 @@ export function useMapPoints(filters: MarketFilters = {}) {
         }
       }
 
+      writeMapPointsCache(cacheKey, allPoints)
       return allPoints
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes — les points changent rarement
-    placeholderData: keepPreviousData, // keep old points visible during refetch
+    staleTime: MAP_POINTS_CACHE_TTL_MS,
+    placeholderData: keepPreviousData,
   })
 }
 
 // ─── HOOK 3 : Compteurs par canton (pour les filtres) ───────────────────────
 
 export function useMarketStats(context: 'buy' | 'rent' = 'buy') {
+  const statsKey = `megga:market-stats:${context}`
   return useQuery({
     queryKey: ['market-stats', context],
+    initialData: () => {
+      try {
+        const raw = sessionStorage.getItem(statsKey)
+        if (!raw) return undefined
+        const { t, v } = JSON.parse(raw)
+        if (Date.now() - t > 30 * 60 * 1000) return undefined
+        return v
+      } catch { return undefined }
+    },
+    initialDataUpdatedAt: () => {
+      try {
+        const raw = sessionStorage.getItem(statsKey)
+        if (!raw) return undefined
+        return JSON.parse(raw).t
+      } catch { return undefined }
+    },
     queryFn: async () => {
       // Comptage par canton
       const { data: cantonCounts } = await supabase
@@ -386,11 +438,13 @@ export function useMarketStats(context: 'buy' | 'rent' = 'buy') {
         .eq('status', 'active')
         .gte('quality_score', 50)
 
-      return {
+      const result = {
         totalCount: totalCount ?? 0,
         cantonCounts: (cantonCounts as Array<{ canton: string; count: number }>) || [],
         typeCounts: (typeCounts as Array<{ type: string; count: number }>) || [],
       }
+      try { sessionStorage.setItem(statsKey, JSON.stringify({ t: Date.now(), v: result })) } catch { /* quota */ }
+      return result
     },
     staleTime: 30 * 60 * 1000, // 30 minutes
   })
