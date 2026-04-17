@@ -849,7 +849,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
           />
 
-          {/* Unclustered dots — visible up to zoom 14.5 */}
+          {/* Unclustered dots — Zillow-style dark navy, visible up to zoom 14.5 */}
           <Layer
             id="unclustered-dot"
             type="circle"
@@ -858,12 +858,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             paint={{
               'circle-color': (dimPolygon
                 ? ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    ['boolean', ['feature-state', 'hover'], false], '#0D4599',
                     ['!', ['within', dimPolygon]], '#9CA3AF',
-                    '#7F1D1D']
+                    '#0D4599']
                 : ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                    '#7F1D1D']) as unknown as string,
+                    ['boolean', ['feature-state', 'hover'], false], '#0D4599',
+                    '#0D4599']) as unknown as string,
               'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
                 10, 3,
@@ -875,12 +875,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 13, 1,
                 14.5, 0,
               ],
-              'circle-stroke-color': 'rgba(255,255,255,0.7)',
-              'circle-stroke-width': 1,
+              'circle-stroke-color': 'rgba(255,255,255,0.9)',
+              'circle-stroke-width': 1.5,
             }}
           />
 
-          {/* Unclustered price labels — from zoom 14.5, collision-avoided (Zillow-style) */}
+          {/* Unclustered price labels — Zillow-style white pills with navy text, from zoom 14.5, collision-avoided */}
           <Layer
             id="unclustered-label"
             type="symbol"
@@ -888,7 +888,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             minzoom={14}
             layout={{
               'text-field': ['get', 'priceLabel'],
-              'text-size': 11,
+              'text-size': 12,
               'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
               'text-allow-overlap': false,
               'text-ignore-placement': false,
@@ -896,15 +896,22 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               'text-anchor': 'center',
             }}
             paint={{
-              'text-color': '#FFFFFF',
+              'text-color': (dimPolygon
+                ? ['case',
+                    ['boolean', ['feature-state', 'hover'], false], '#FFFFFF',
+                    ['!', ['within', dimPolygon]], '#9CA3AF',
+                    '#0D4599']
+                : ['case',
+                    ['boolean', ['feature-state', 'hover'], false], '#FFFFFF',
+                    '#0D4599']) as unknown as string,
               'text-halo-color': (dimPolygon
                 ? ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                    ['!', ['within', dimPolygon]], '#9CA3AF',
-                    '#1F2937']
+                    ['boolean', ['feature-state', 'hover'], false], '#0D4599',
+                    ['!', ['within', dimPolygon]], '#FFFFFF',
+                    '#FFFFFF']
                 : ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                    '#1F2937']) as unknown as string,
+                    ['boolean', ['feature-state', 'hover'], false], '#0D4599',
+                    '#FFFFFF']) as unknown as string,
               'text-halo-width': 5,
               'text-halo-blur': 0,
               'text-opacity': [
