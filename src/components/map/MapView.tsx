@@ -730,24 +730,24 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           // works even if the layer renders before our addImage call.
           const PILL_COLORS: Record<string, { fill: string; stroke: string }> = {
             'price-pill': { fill: '#7F1D1D', stroke: '#FFFFFF' },
-            'price-pill-hover': { fill: '#2563EB', stroke: '#FFFFFF' },
+            'price-pill-hover': { fill: '#16A34A', stroke: '#FFFFFF' }, // green — interactable
             'price-pill-dim': { fill: '#9CA3AF', stroke: '#FFFFFF' },
           }
           const addPill = (id: string) => {
             const c = PILL_COLORS[id]
             if (!c || map.hasImage(id)) return
-            // Use a Canvas ImageData (synchronous) so the image is ready before
-            // the next render frame — avoids the SVG → Image.onload async race.
-            const W = 128, H = 52
+            // Canvas sprite — small native size so icon-text-fit stretches
+            // just enough to hug the price text.
+            const W = 80, H = 36
             const canvas = document.createElement('canvas')
             canvas.width = W; canvas.height = H
             const ctx = canvas.getContext('2d')
             if (!ctx) return
-            // Flatter, wider rounded rect pill
-            const x = 6, y = 4, w = W - 12, h = 30, r = 15
+            // Compact rounded-rect pill
+            const x = 3, y = 2, w = W - 6, h = 22, r = 11
             ctx.fillStyle = c.fill
             ctx.strokeStyle = c.stroke
-            ctx.lineWidth = 3
+            ctx.lineWidth = 2.5
             ctx.beginPath()
             ctx.moveTo(x + r, y)
             ctx.arcTo(x + w, y, x + w, y + h, r)
@@ -757,12 +757,12 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             ctx.closePath()
             ctx.fill()
             ctx.stroke()
-            // Pointer triangle at bottom center — smaller / lower-profile
+            // Small pointer at bottom center
             const cx = W / 2, pyTop = y + h
             ctx.beginPath()
-            ctx.moveTo(cx - 7, pyTop)
-            ctx.lineTo(cx, pyTop + 10)
-            ctx.lineTo(cx + 7, pyTop)
+            ctx.moveTo(cx - 5, pyTop)
+            ctx.lineTo(cx, pyTop + 7)
+            ctx.lineTo(cx + 5, pyTop)
             ctx.closePath()
             ctx.fillStyle = c.fill
             ctx.fill()
@@ -771,14 +771,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             ctx.stroke()
             // Hide the seam where the triangle meets the pill
             ctx.fillStyle = c.fill
-            ctx.fillRect(cx - 6, pyTop - 1, 12, 3)
+            ctx.fillRect(cx - 5, pyTop - 1, 10, 3)
             try {
               const data = ctx.getImageData(0, 0, W, H)
               map.addImage(id, { width: W, height: H, data: new Uint8Array(data.data.buffer) }, {
                 pixelRatio: 2,
-                stretchX: [[32, 96]],
-                stretchY: [[8, 26]],
-                content: [12, 8, 116, 32],
+                stretchX: [[18, 56]],
+                stretchY: [[6, 18]],
+                content: [6, 4, 74, 22],
               })
             } catch { /* ignore */ }
           }
@@ -866,13 +866,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 'interpolate', ['linear'], ['zoom'],
                 8, 3,
                 11, 5,
-                12.5, 7,
+                12.9, 6,
               ],
-              'circle-opacity': [
-                'interpolate', ['linear'], ['zoom'],
-                12, 1,
-                13, 0,
-              ],
+              'circle-opacity': ['step', ['zoom'], 1, 13, 0],
+              'circle-stroke-opacity': ['step', ['zoom'], 1, 13, 0],
               'circle-stroke-color': 'rgba(255,255,255,0.95)',
               'circle-stroke-width': 1.5,
             }}
@@ -884,6 +881,37 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             type="symbol"
             layout={{
               'icon-image': 'price-pill',
+              'icon-text-fit': 'both',
+              'icon-text-fit-padding': [0, 5, 7, 5],
+              'icon-allow-overlap': true,
+              'icon-ignore-placement': true,
+              'icon-anchor': 'bottom',
+              'icon-offset': [0, 2],
+              'text-field': ['get', 'priceLabel'],
+              'text-size': 12,
+              'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
+              'text-anchor': 'bottom',
+              'text-offset': [0, -0.55],
+            }}
+            paint={{
+              'text-color': '#FFFFFF',
+              // feature-state / within work in PAINT but not LAYOUT — so color variation
+              // (hover, dim) is only possible through icon-color on an SDF icon or
+              // stacked layers. Keep static for now; revisit if hover colouring matters.
+              'icon-opacity': ['step', ['zoom'], 0, 13, 1],
+              'text-opacity': ['step', ['zoom'], 0, 13, 1],
+            }}
+          />
+
+          {/* Green hover pill — renders only the currently hovered listing on top */}
+          <Layer
+            id="unclustered-label-hover"
+            type="symbol"
+            filter={['==', ['get', 'id'], (hoveredPin?.id ?? hoveredId ?? '')]}
+            layout={{
+              'icon-image': 'price-pill-hover',
               'icon-text-fit': 'both',
               'icon-text-fit-padding': [1, 10, 9, 10],
               'icon-allow-overlap': true,
@@ -900,55 +928,11 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
             paint={{
               'text-color': '#FFFFFF',
-              // feature-state / within work in PAINT but not LAYOUT — so color variation
-              // (hover, dim) is only possible through icon-color on an SDF icon or
-              // stacked layers. Keep static for now; revisit if hover colouring matters.
-              'icon-opacity': [
-                'interpolate', ['linear'], ['zoom'],
-                12, 0,
-                13, 1,
-              ],
-              'text-opacity': [
-                'interpolate', ['linear'], ['zoom'],
-                12, 0,
-                13, 1,
-              ],
+              'icon-opacity': ['step', ['zoom'], 0, 13, 1],
+              'text-opacity': ['step', ['zoom'], 0, 13, 1],
             }}
           />
         </Source>
-
-        {/* Hover tooltip — mini preview on pin hover (without clicking) */}
-        {hoveredPin && hoveredPin.lat && hoveredPin.lng && !selectedListing && !isDrawing && (
-          <Popup
-            longitude={hoveredPin.lng}
-            latitude={hoveredPin.lat}
-            anchor="bottom"
-            closeButton={false}
-            closeOnClick={false}
-            offset={16}
-            maxWidth="180px"
-            className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-lg [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-lg pointer-events-none"
-          >
-            <div className="w-[170px]">
-              {hoveredPin.photos?.[0] ? (
-                <img src={hoveredPin.photos[0]} alt="" loading="lazy" decoding="async" className="w-full h-20 object-cover" />
-              ) : (
-                <div className="w-full h-20 bg-theme-hover flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-theme-muted" />
-                </div>
-              )}
-              <div className="p-2">
-                <p className="text-xs font-bold text-theme-primary">{formatCHF(hoveredPin.price)}</p>
-                <p className="text-xs text-theme-tertiary truncate mt-0.5">{hoveredPin.address}, {hoveredPin.city}</p>
-                {hoveredPin.rooms > 0 && (
-                  <p className="text-xs text-theme-muted mt-0.5">
-                    {hoveredPin.rooms}p. · {hoveredPin.surface_m2 > 0 ? formatSurface(hoveredPin.surface_m2) : ''}
-                  </p>
-                )}
-              </div>
-            </div>
-          </Popup>
-        )}
 
         {/* Popup — Rich card in immersive mode, compact otherwise */}
         {selectedListing && selectedListing.lat && selectedListing.lng && !isDrawing && (
