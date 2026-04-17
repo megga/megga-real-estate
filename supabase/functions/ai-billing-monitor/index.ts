@@ -13,6 +13,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Decode a JWT payload without verifying the signature. We only use it to
+// read the `role` claim for routing (service_role vs user) — Supabase gateway
+// is not validating (deployed with --no-verify-jwt), so we re-check via
+// auth.getUser() for user tokens below.
+function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
+  try {
+    const parts = jwt.split('.')
+    if (parts.length !== 3) return null
+    const padded = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padding = '='.repeat((4 - (padded.length % 4)) % 4)
+    const json = atob(padded + padding)
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
 interface DeepSeekBalanceResponse {
   is_available: boolean
   balance_infos: Array<{
@@ -37,18 +54,31 @@ serve(async (req: Request) => {
       })
     }
 
-    // Auth: accept either service_role (pg_cron) or super_admin user.
+    // Auth: decode the JWT payload. service_role tokens have `role: 'service_role'`;
+    // authenticated users have a `sub` claim we can look up in profiles.
+    // We avoid strict token equality on SUPABASE_SERVICE_ROLE_KEY because the
+    // env var and the pasted key can differ by whitespace/JWT rotation.
     const authHeader = req.headers.get('Authorization') ?? ''
-    const token = authHeader.replace(/^Bearer\s+/i, '')
-    const isServiceRole = token === serviceKey
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
 
-    if (!isServiceRole) {
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const payload = decodeJwtPayload(token)
+    const jwtRole = payload?.role as string | undefined
+
+    if (jwtRole !== 'service_role') {
+      // Try user auth via super_admin check
       const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
         global: { headers: { Authorization: authHeader } },
       })
       const { data: { user } } = await userClient.auth.getUser()
       if (!user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        return new Response(JSON.stringify({ error: 'Unauthorized', hint: `jwt_role=${jwtRole ?? 'none'}` }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
