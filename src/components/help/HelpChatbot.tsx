@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Send, ArrowUp, ArrowRight, Search, MessageSquare, HelpCircle, Home, ChevronLeft, ChevronRight, Sparkles, CheckCircle, CheckCheck, Paperclip, Smile, Mic } from 'lucide-react'
+import { X, Send, ArrowUp, ArrowRight, Search, MessageSquare, HelpCircle, Home, ChevronLeft, ChevronRight, CheckCircle, CheckCheck, Paperclip, Smile, Mic } from 'lucide-react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -839,15 +839,6 @@ export default function HelpChatbot() {
                     {msg.role === 'assistant' && (
                       <div className={cn(!isFirstInGroup && 'mt-0.5')}>
                         <div className="flex items-end gap-2">
-                          {/* Avatar — only on last in group */}
-                          <div className="w-7 flex-shrink-0">
-                            {isLastInGroup && (
-                              <div className="h-7 w-7 rounded-full bg-gray-900 flex items-center justify-center">
-                                <Sparkles className="h-3.5 w-3.5 text-white" />
-                              </div>
-                            )}
-                          </div>
-
                           <div className="max-w-[80%]">
                             <div className={cn(
                               "px-3.5 py-2 text-sm leading-[1.4] whitespace-pre-line bg-theme-hover text-theme-primary",
@@ -904,9 +895,6 @@ export default function HelpChatbot() {
               {/* Typing indicator */}
               {loading && (
                 <div className="flex items-end gap-2">
-                  <div className="h-7 w-7 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="h-3.5 w-3.5 text-white" />
-                  </div>
                   <div className="bg-theme-hover rounded-[20px] rounded-bl-md px-4 py-2.5">
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-theme-muted animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -1020,7 +1008,7 @@ export default function HelpChatbot() {
                   </>
                 ) : (
                   /* ═══ Normal input mode ═══ */
-                  <div className="rounded-2xl border border-theme-border bg-theme-card p-2 focus-within:border-accent/60 transition-colors">
+                  <div className="rounded-2xl border border-theme-border bg-theme-card p-2">
                     {/* Textarea */}
                     <textarea
                       ref={inputRef}
@@ -1030,7 +1018,7 @@ export default function HelpChatbot() {
                       placeholder="Écrivez votre message..."
                       aria-label="Message"
                       rows={1}
-                      className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none resize-none min-h-[36px] max-h-[120px] scrollbar-hide"
+                      className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none focus-visible:outline-none resize-none min-h-[36px] max-h-[120px] scrollbar-hide"
                     />
 
                     {/* Actions bar */}
