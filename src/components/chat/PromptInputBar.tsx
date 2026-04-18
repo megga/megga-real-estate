@@ -5,6 +5,7 @@ import { useContacts } from '@/hooks/useContacts'
 import { useAgencyProperties } from '@/hooks/useProperties'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
 import { formatCHF } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 
 // ─── Slash Commands ──────────────────────────────────────────────────────────
 
@@ -37,6 +38,10 @@ interface PromptInputBarProps {
   className?: string
   /** Initial text to pre-fill the input with (used for suggestion chips). */
   initialValue?: string
+  /** Show the "/commande @contact #bien" inline hints when the input is empty. */
+  showHints?: boolean
+  /** Show the mic / voice-record button. */
+  showMic?: boolean
 }
 
 // ─── Autocomplete Dropdown ───────────────────────────────────────────────────
@@ -112,11 +117,23 @@ export default function PromptInputBar({
   disabled = false,
   className,
   initialValue = '',
+  showHints = true,
+  showMic = true,
 }: PromptInputBarProps) {
   const [input, setInput] = useState(initialValue)
   const [files, setFiles] = useState<File[]>([])
   const [filePreviews, setFilePreviews] = useState<Record<string, string>>({})
   const [isRecording, setIsRecording] = useState(false)
+  const [waveform, setWaveform] = useState<number[]>(Array(40).fill(2))
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const animFrameRef = useRef<number>(0)
+  const streamRef = useRef<MediaStream | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [autocompleteItems, setAutocompleteItems] = useState<AutocompleteItem[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [triggerPos, setTriggerPos] = useState(-1)
@@ -283,6 +300,107 @@ export default function PromptInputBar({
     return () => document.removeEventListener('paste', handler)
   }, [processFile])
 
+  // ─── Voice recording (Deepgram via speech-to-text Edge Function) ─────────
+
+  const transcribeAudio = useCallback(async (audioBlob: Blob) => {
+    setIsTranscribing(true)
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
+      formData.append('language', 'fr')
+      const { data, error } = await supabase.functions.invoke('speech-to-text', { body: formData })
+      if (error) throw error
+      if (data?.transcript && data.transcript.trim()) {
+        setInput(prev => (prev ? `${prev} ${data.transcript}` : data.transcript))
+        textareaRef.current?.focus()
+      }
+    } catch {
+      /* silent — keep the input empty so the user can retry */
+    } finally {
+      setIsTranscribing(false)
+    }
+  }, [])
+
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      const audioCtx = new AudioContext()
+      audioCtxRef.current = audioCtx
+      const source = audioCtx.createMediaStreamSource(stream)
+      const analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 128
+      analyser.smoothingTimeConstant = 0.4
+      source.connect(analyser)
+      analyserRef.current = analyser
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+      function updateWaveform() {
+        if (!analyserRef.current) return
+        analyserRef.current.getByteFrequencyData(dataArray)
+        const bars: number[] = []
+        const step = Math.floor(dataArray.length / 40)
+        for (let i = 0; i < 40; i++) {
+          bars.push(2 + ((dataArray[i * step] || 0) / 255) * 26)
+        }
+        setWaveform(bars)
+        animFrameRef.current = requestAnimationFrame(updateWaveform)
+      }
+      updateWaveform()
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
+      }
+
+      mediaRecorder.onstop = async () => {
+        streamRef.current?.getTracks().forEach(t => t.stop())
+        audioCtxRef.current?.close()
+        cancelAnimationFrame(animFrameRef.current)
+        analyserRef.current = null
+        setWaveform(Array(40).fill(2))
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await transcribeAudio(audioBlob)
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+      setRecordingTime(0)
+      timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000)
+    } catch {
+      alert('Impossible d\'accéder au microphone. Vérifiez les permissions.')
+    }
+  }, [transcribeAudio])
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+    setIsRecording(false)
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+  }, [])
+
+  const cancelRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.ondataavailable = null
+      mediaRecorderRef.current.onstop = null
+      mediaRecorderRef.current.stop()
+    }
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    audioCtxRef.current?.close()
+    cancelAnimationFrame(animFrameRef.current)
+    analyserRef.current = null
+    setWaveform(Array(40).fill(2))
+    setIsRecording(false)
+    setRecordingTime(0)
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    audioChunksRef.current = []
+  }, [])
+
   // ─── Submit ──────────────────────────────────────────────────────────────
 
   function handleSubmit() {
@@ -336,10 +454,45 @@ export default function PromptInputBar({
         onSelect={handleAutocompleteSelect}
       />
 
+      {/* ─── Recording mode — replaces the normal bar ─── */}
+      {isRecording ? (
+        <div className="rounded-2xl border border-theme-border bg-theme-card px-2 py-2 flex items-center gap-2">
+          <button
+            onClick={cancelRecording}
+            className="h-10 w-10 rounded-full bg-theme-hover flex items-center justify-center hover:bg-theme-active active:scale-95 transition-all flex-shrink-0"
+            aria-label="Annuler l'enregistrement"
+          >
+            <X className="h-5 w-5 text-theme-secondary" />
+          </button>
+          <div className="flex-1 flex items-center justify-center gap-[2px] h-10 overflow-hidden">
+            {waveform.map((h, i) => (
+              <span
+                key={i}
+                className="w-[2.5px] rounded-full flex-shrink-0"
+                style={{
+                  height: `${h}px`,
+                  backgroundColor: i < 20 ? `rgba(55, 65, 81, ${0.4 + (h / 28) * 0.6})` : 'rgba(209, 213, 219, 0.5)',
+                  transition: 'height 0.08s ease-out',
+                }}
+              />
+            ))}
+          </div>
+          <span className="text-xs text-theme-muted tabular-nums flex-shrink-0 w-10 text-right">
+            {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+          </span>
+          <button
+            onClick={stopRecording}
+            className="h-10 w-10 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-800 active:scale-95 transition-all flex-shrink-0"
+            aria-label="Arrêter et transcrire"
+          >
+            <div className="h-4 w-4 rounded-sm bg-white" />
+          </button>
+        </div>
+      ) : (
       <div
         className={cn(
-          'rounded-2xl border border-theme-border bg-theme-card p-2 transition-colors',
-          'focus-within:border-accent/60',
+          'rounded-2xl border border-theme-border bg-theme-card p-2 transition-all',
+          'focus-within:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]',
           className
         )}
         onDragOver={(e) => e.preventDefault()}
@@ -393,7 +546,7 @@ export default function PromptInputBar({
           aria-label="Message"
           disabled={disabled || isLoading}
           rows={1}
-          className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none resize-none min-h-[36px] max-h-[120px] md:max-h-[200px] scrollbar-hide"
+          className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none focus:outline-none focus-visible:outline-none resize-none min-h-[36px] max-h-[120px] md:max-h-[200px] scrollbar-hide"
         />
 
         {/* Actions bar */}
@@ -416,7 +569,7 @@ export default function PromptInputBar({
             />
 
             {/* Inline hints when empty */}
-            {!hasContent && (
+            {showHints && !hasContent && (
               <div className="flex items-center gap-1.5 ml-1">
                 <span className="text-xs text-theme-muted">/commande</span>
                 <span className="text-xs text-theme-muted">@contact</span>
@@ -427,18 +580,26 @@ export default function PromptInputBar({
 
           {/* Right: mic + send */}
           <div className="flex items-center gap-1">
-            {/* Mic */}
-            <button
-              onClick={() => setIsRecording(p => !p)}
-              aria-label={isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrement vocal'}
-              aria-pressed={isRecording}
-              className={cn(
-                'h-7 w-7 rounded-full flex items-center justify-center transition-colors',
-                isRecording ? 'text-red-500' : 'text-theme-muted hover:text-theme-secondary'
-              )}
-            >
-              {isRecording ? <StopCircle className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </button>
+            {/* Mic — starts real recording (transcribes via speech-to-text EF) */}
+            {showMic && (
+              <button
+                onClick={startRecording}
+                aria-label="Mémo vocal"
+                disabled={isTranscribing}
+                className={cn(
+                  'h-7 w-7 rounded-full flex items-center justify-center transition-colors',
+                  isTranscribing
+                    ? 'text-theme-muted opacity-50 cursor-not-allowed'
+                    : 'text-theme-muted hover:text-theme-secondary hover:bg-theme-hover'
+                )}
+              >
+                {isTranscribing ? (
+                  <div className="w-3 h-3 border-2 border-theme-muted/30 border-t-theme-muted rounded-full animate-spin" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
+              </button>
+            )}
 
             {/* Send / Stop */}
             <button
@@ -466,6 +627,7 @@ export default function PromptInputBar({
           </div>
         </div>
       </div>
+      )}
     </div>
   )
 }

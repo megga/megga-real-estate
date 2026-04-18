@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Send, Building2, CheckCheck, MessageSquare, ShieldCheck, CalendarDays } from 'lucide-react'
+import { Send, Building2, CheckCheck, MessageSquare, ShieldCheck, CalendarDays } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useMessaging, type Message } from '@/hooks/useMessaging'
 import { supabase } from '@/lib/supabase'
@@ -10,7 +10,7 @@ import PromptInputBar from '@/components/chat/PromptInputBar'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface Props {
-  onBack: () => void
+  onBack?: () => void
   selectedListing?: ListingCardData | null
 }
 
@@ -108,7 +108,7 @@ function MessageBubble({ msg, isFirstInGroup, isLastInGroup }: {
 
 // ─── Main panel ─────────────────────────────────────────────────────────────
 
-export default function ContactPanel({ onBack, selectedListing }: Props) {
+export default function ContactPanel({ selectedListing }: Props) {
   const { t } = useTranslation('common')
   const { user, profile } = useAuth()
   const [threadId, setThreadId] = useState<string | null>(null)
@@ -118,7 +118,7 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
 
   const { messages, sendMessage, isSending, markAsRead } = useMessaging(threadId)
 
-  // Find existing thread for this user + property
+  // Find existing thread for this user + property (buyer_user_id, nouveau modèle)
   useEffect(() => {
     if (!user) return
     setThreadId(null)
@@ -127,14 +127,16 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
       let query = supabase
         .from('message_threads')
         .select('id')
-        .eq('contact_id', user!.id)
+        .eq('buyer_user_id', user!.id)
         .limit(1)
 
       if (selectedListing) {
         query = query.eq('property_id', selectedListing.id)
+      } else {
+        query = query.is('property_id', null)
       }
 
-      const { data } = await query.single()
+      const { data } = await query.maybeSingle()
       if (data) setThreadId(data.id)
     }
 
@@ -169,35 +171,18 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
       return
     }
 
+    // First message — delegate to the buyer-init-thread Edge Function so
+    // agency routing + upsert happen atomically under service_role.
     setCreating(true)
     try {
-      const threadPayload: Record<string, unknown> = {
-        contact_id: user.id,
-        contact_name: profile?.full_name || user.email || 'Acheteur',
-        contact_type: 'buyer',
-        channel: 'internal',
-        last_message: trimmed.slice(0, 100),
-        last_message_at: new Date().toISOString(),
-        unread_count: 1,
-      }
-      if (selectedListing) {
-        threadPayload.property_id = selectedListing.id
-        threadPayload.property_title = `${selectedListing.address}, ${selectedListing.city}`
-      }
-      const { data: newThread, error } = await supabase
-        .from('message_threads')
-        .insert(threadPayload)
-        .select('id')
-        .single()
-      if (error) throw error
-      await supabase.from('messages').insert({
-        thread_id: newThread.id,
-        sender_id: user.id,
-        sender_type: 'contact',
-        sender_name: profile?.full_name || user.email || 'Acheteur',
-        content: trimmed,
+      const { data, error } = await supabase.functions.invoke('buyer-init-thread', {
+        body: {
+          content: trimmed,
+          listing_id: selectedListing?.id ?? null,
+        },
       })
-      setThreadId(newThread.id)
+      if (error) throw error
+      if (data?.thread_id) setThreadId(data.thread_id)
     } catch (err) {
       console.error('Failed to create thread:', err)
     } finally {
@@ -237,21 +222,7 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
   const hasMessages = messages.length > 0
 
   return (
-    <div className="flex flex-col h-full bg-white">
-
-      {/* ─── Header ─── */}
-      <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-100 shrink-0">
-        <button onClick={onBack} className="text-gray-500 hover:text-gray-600 transition-colors cursor-pointer" aria-label="Retour">
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <AgentAvatar size="md" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-gray-900">MEGGA</p>
-          <p className="text-xs text-gray-500 truncate">
-            {selectedListing ? `${selectedListing.address}, ${selectedListing.city}` : t('search.realEstateAgent')}
-          </p>
-        </div>
-      </div>
+    <div className="relative flex flex-col h-full bg-white">
 
       {/* ─── Logged-out onboarding ─── */}
       {!user ? (
@@ -378,14 +349,17 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
 
       {/* ─── Input bar — reuse of the CRM agent PromptInputBar ─── */}
       {user && (
-        <div className="shrink-0 px-3 pt-2 pb-3">
-          <PromptInputBar
-            key={prefill /* force remount when a suggestion is picked */}
-            initialValue={prefill}
-            onSend={(message) => { setPrefill(''); handleSend(message) }}
-            isLoading={isSending || creating}
-            placeholder={selectedListing ? t('search.yourMessage') : t('search.writeToAgent')}
-          />
+        <div className="shrink-0 px-3 pt-2 pb-3 flex justify-center">
+          <div className="w-full max-w-[520px]">
+            <PromptInputBar
+              key={prefill /* force remount when a suggestion is picked */}
+              initialValue={prefill}
+              onSend={(message) => { setPrefill(''); handleSend(message) }}
+              isLoading={isSending || creating}
+              placeholder={selectedListing ? t('search.yourMessage') : t('search.writeToAgent')}
+              showHints={false}
+            />
+          </div>
         </div>
       )}
     </div>
