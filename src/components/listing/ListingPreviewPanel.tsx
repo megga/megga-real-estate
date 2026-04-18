@@ -90,6 +90,20 @@ interface TransformedListing {
   deposit_months: number | null
   external_regie: { name?: string; phone?: string; email?: string; website?: string } | null
   agency_phone: string
+  agency_profile: {
+    name?: string
+    logo_url?: string
+    phone?: string
+    email?: string
+    website_url?: string
+    address?: string
+    city?: string
+    canton?: string
+    zipcode?: string
+    status?: 'unclaimed' | 'claimed' | 'verified'
+    rating_avg?: number
+    rating_count?: number
+  } | null
 }
 
 // ─── Transform helpers ──────────────────────────────────────────────────
@@ -141,6 +155,7 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     deposit_months: (data.deposit_months as number | null | undefined) ?? null,
     external_regie: (data.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null,
     agency_phone: (data.agency_phone as string) || '',
+    agency_profile: (data.agency_profile as TransformedListing['agency_profile']) ?? null,
   }
 }
 
@@ -1414,28 +1429,56 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
 
                     {/* Advertiser card */}
                     {(() => {
+                      const ap = listing.agency_profile
+                      // Merge all sources: external_regie > agency_profile > denormalized columns
                       const regie = resolveRegieContact(
                         { external_regie: listing.external_regie },
-                        (listing.agency_name || listing.agency_phone)
-                          ? { name: listing.agency_name, phone: listing.agency_phone }
-                          : null,
+                        {
+                          name: listing.agency_name || ap?.name,
+                          phone: listing.agency_phone || ap?.phone,
+                          email: ap?.email,
+                          website: ap?.website_url,
+                        },
                       )
-                      const logoUrl = listing.agency_logo_url || undefined
+                      const logoUrl = listing.agency_logo_url || ap?.logo_url || undefined
+                      const agencyAddress = [ap?.address, [ap?.zipcode, ap?.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+                      const isVerified = ap?.status === 'verified'
+                      const isClaimed = ap?.status === 'claimed' || isVerified
+                      const hasRating = (ap?.rating_count ?? 0) > 0
                       return (
                         <div className="bg-theme-card border border-theme-border rounded-xl p-5 space-y-4">
-                          <p className="text-xs font-semibold text-theme-muted uppercase tracking-wider">Annonceur</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-theme-muted uppercase tracking-wider">Annonceur</p>
+                            {isVerified && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
+                                <Check className="h-3 w-3" strokeWidth={2.5} />
+                                Vérifié
+                              </span>
+                            )}
+                          </div>
+
                           {logoUrl && (
                             <div className="flex justify-center">
-                              <img src={logoUrl} alt={regie?.name || listing.agency_name || ''} className="h-12 max-w-[180px] object-contain" />
+                              <img src={logoUrl} alt={regie?.name || ''} className="h-12 max-w-[180px] object-contain" />
                             </div>
                           )}
+
                           <div className="space-y-2">
-                            {(regie?.name || listing.agency_name) && (
-                              <p className="text-sm font-semibold text-theme-primary">{regie?.name || listing.agency_name}</p>
+                            {regie?.name && (
+                              <p className="text-sm font-semibold text-theme-primary">{regie.name}</p>
                             )}
+
+                            {hasRating && (
+                              <div className="flex items-center gap-1.5 text-[12px] text-theme-secondary">
+                                <span className="text-amber-500">★</span>
+                                <span className="font-semibold tabular-nums">{(ap!.rating_avg ?? 0).toFixed(1)}</span>
+                                <span className="text-theme-tertiary">({ap!.rating_count} avis)</span>
+                              </div>
+                            )}
+
                             {regie?.phone && (
                               <a href={`tel:${regie.phone}`} className="flex items-center gap-2 text-sm text-theme-secondary hover:text-accent transition-colors">
-                                <Phone className="w-4 h-4" />
+                                <Phone className="w-4 h-4 shrink-0" />
                                 {regie.phone}
                               </a>
                             )}
@@ -1451,7 +1494,20 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                                 {regie.website.replace(/^https?:\/\//, '')}
                               </a>
                             )}
+                            {agencyAddress && (
+                              <div className="flex items-start gap-2 text-sm text-theme-secondary">
+                                <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+                                <span className="leading-snug">{agencyAddress}</span>
+                              </div>
+                            )}
                           </div>
+
+                          {!isClaimed && ap && (
+                            <p className="text-[11px] text-theme-tertiary italic">
+                              Profil non revendiqué par l'agence
+                            </p>
+                          )}
+
                           {listing.agency_profile_slug && (
                             <Link
                               to={`/agences/${listing.agency_profile_slug}`}

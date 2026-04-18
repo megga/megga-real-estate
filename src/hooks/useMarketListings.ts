@@ -509,10 +509,10 @@ export function useMarketListing(id: string | undefined) {
     queryFn: async () => {
       if (!id) return null
 
-      // NB: the previous embed 'agency_profile:agency_profile_id(slug, status)'
-      // failed with PGRST200 when PostgREST's schema cache didn't know about
-      // the FK added in migration 20260416_006. We drop the embed (it wasn't
-      // consumed anywhere anyway) and fetch * directly.
+      // NB: the previous embed 'agency_profile:agency_profile_id(...)' failed
+      // with PGRST200 when PostgREST's schema cache didn't know about the FK
+      // added in migration 20260416_006. We avoid the embed and instead run a
+      // second lightweight query on agency_profiles once we have the FK id.
       const { data, error } = await supabase
         .from('market_listings')
         .select('*')
@@ -520,6 +520,19 @@ export function useMarketListing(id: string | undefined) {
         .single()
 
       if (error) throw error
+
+      // Enrich with agency profile data (stored locally — survives Flatfox outage)
+      if (data?.agency_profile_id) {
+        const { data: agency } = await supabase
+          .from('agency_profiles')
+          .select('id, slug, name, logo_url, phone, email, website_url, address, city, canton, zipcode, status, rating_avg, rating_count, description, founded_year, specialties, languages, certifications')
+          .eq('id', data.agency_profile_id)
+          .maybeSingle()
+        if (agency) {
+          ;(data as Record<string, unknown>).agency_profile = agency
+        }
+      }
+
       return data
     },
     enabled: !!id,
