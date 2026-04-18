@@ -425,8 +425,10 @@
       "placeholderMobile": "Descrivi cosa cerchi…",
       "understood": "Capito",
       "lowConfidence": "Non ho capito bene. Prova: «3 locali balcone Lugano max 2000».",
-      "onboardingTitle": "Novità",
-      "onboardingBody": "Scrivi in linguaggio naturale quello che cerchi — prezzo, locali, città, servizi…",
+      "onboardingTitle": "Ricerca intelligente",
+      "onboardingBody": "Descrivi in linguaggio naturale quello che cerchi — prezzo, locali, città, servizi…",
+      "onboardingExample": "villa piscina Lugano max 3M",
+      "onboardingBadge": "Novità",
       "onboardingDismiss": "Ho capito"
     },
     "type": "Tipo",

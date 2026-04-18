@@ -425,8 +425,10 @@
       "placeholderMobile": "Beschreibe was du suchst…",
       "understood": "Verstanden",
       "lowConfidence": "Ich habe es nicht verstanden. Versuche: «3 Zimmer Balkon Zürich bis 2500».",
-      "onboardingTitle": "Neu",
-      "onboardingBody": "Schreib einfach was du suchst — Preis, Zimmer, Stadt, Ausstattung…",
+      "onboardingTitle": "Intelligente Suche",
+      "onboardingBody": "Beschreibe einfach was du suchst — Preis, Zimmer, Stadt, Ausstattung…",
+      "onboardingExample": "Villa Pool Zürich bis 3M",
+      "onboardingBadge": "Neu",
       "onboardingDismiss": "Verstanden"
     },
     "type": "Typ",

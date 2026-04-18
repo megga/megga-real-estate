@@ -425,8 +425,10 @@
       "placeholderMobile": "Décris ce que tu cherches…",
       "understood": "Compris",
       "lowConfidence": "Je n'ai pas bien compris. Essaie : «4p balcon Genève sous 2'500».",
-      "onboardingTitle": "Nouveau",
-      "onboardingBody": "Tape ce que tu cherches en langage naturel — prix, pièces, ville, amenities…",
+      "onboardingTitle": "Recherche intelligente",
+      "onboardingBody": "Décris ce que tu cherches en langage naturel — prix, pièces, ville, amenities…",
+      "onboardingExample": "villa piscine Genève max 3M",
+      "onboardingBadge": "Nouveau",
       "onboardingDismiss": "Compris"
     },
     "type": "Type",
