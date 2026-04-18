@@ -55,10 +55,10 @@ export default function SearchListingCard({
       onClick={() => onPreview?.(listing.id)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPreview?.(listing.id) } }}
       className={cn(
-        'block bg-white border rounded-lg transition-all duration-200 overflow-hidden group cursor-pointer',
+        'block bg-white rounded-2xl transition-all duration-300 overflow-hidden group cursor-pointer',
         isHovered
-          ? 'border-accent/40 ring-1 ring-accent/20'
-          : 'border-gray-100 hover:border-gray-200'
+          ? 'shadow-[0_18px_36px_-14px_rgba(15,23,42,0.2),0_4px_10px_-3px_rgba(15,23,42,0.08)] -translate-y-0.5'
+          : 'shadow-[0_10px_24px_-12px_rgba(15,23,42,0.12),0_2px_6px_-2px_rgba(15,23,42,0.05)] hover:shadow-[0_18px_36px_-14px_rgba(15,23,42,0.18)] hover:-translate-y-0.5'
       )}
       onMouseEnter={() => onHover?.(listing.id)}
       onMouseLeave={() => onHover?.(undefined)}
@@ -83,7 +83,7 @@ export default function SearchListingCard({
           <div
             className={cn(
               badge.bg,
-              'absolute top-3 left-3 text-white text-xs font-semibold px-2 py-0.5 rounded-md backdrop-blur-sm'
+              'absolute top-3 left-3 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-md shadow-[0_2px_6px_-2px_rgba(15,23,42,0.25)]'
             )}
           >
             {badge.label}
@@ -93,22 +93,30 @@ export default function SearchListingCard({
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite?.() }}
             aria-label={isFav ? t('search.removeFromFavorites') : t('search.addToFavorites')}
-            className="cursor-pointer transition-all duration-200 drop-shadow-md"
+            className="h-8 w-8 rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-[0_2px_6px_-2px_rgba(15,23,42,0.2)] flex items-center justify-center cursor-pointer transition-colors"
           >
-            <Heart className={cn('h-4 w-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-white')} />
+            <Heart className={cn('h-4 w-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-700')} strokeWidth={2} />
           </button>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleCompare?.() }}
             aria-label={isCompared ? t('search.removeFromCompare') : t('search.compare')}
-            className="cursor-pointer transition-all duration-200 drop-shadow-md"
+            className="h-8 w-8 rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-[0_2px_6px_-2px_rgba(15,23,42,0.2)] flex items-center justify-center cursor-pointer transition-colors"
           >
-            {isCompared ? <Check className="h-4 w-4 text-accent" /> : <GitCompareArrows className="h-3.5 w-3.5 text-white" />}
+            {isCompared ? <Check className="h-4 w-4 text-accent" strokeWidth={2.25} /> : <GitCompareArrows className="h-3.5 w-3.5 text-gray-700" strokeWidth={2} />}
           </button>
         </div>
         {(isFav || isCompared) && (
           <div className="absolute top-3 right-3 flex flex-col gap-1.5 group-hover:hidden">
-            {isFav && <Heart className="h-4 w-4 fill-red-500 text-red-500 drop-shadow-md" />}
-            {isCompared && <Check className="h-4 w-4 text-accent drop-shadow-md" />}
+            {isFav && (
+              <div className="h-8 w-8 rounded-full bg-white/90 backdrop-blur-md shadow-[0_2px_6px_-2px_rgba(15,23,42,0.2)] flex items-center justify-center">
+                <Heart className="h-4 w-4 fill-red-500 text-red-500" strokeWidth={2} />
+              </div>
+            )}
+            {isCompared && (
+              <div className="h-8 w-8 rounded-full bg-white/90 backdrop-blur-md shadow-[0_2px_6px_-2px_rgba(15,23,42,0.2)] flex items-center justify-center">
+                <Check className="h-4 w-4 text-accent" strokeWidth={2.25} />
+              </div>
+            )}
           </div>
         )}
         {photos.length > 1 && (
@@ -154,15 +162,15 @@ export default function SearchListingCard({
           </>
         )}
       </div>
-      <div className="px-3 py-2.5">
-        <div className="flex items-start justify-between gap-2">
+      <div className="px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-baseline gap-2 min-w-0">
-            <span className="text-lg font-bold text-gray-900">
-              <span className="text-sm font-normal text-gray-500">CHF </span>
+            <span className="text-[17px] font-semibold text-gray-900 tabular-nums tracking-tight">
+              <span className="text-xs font-medium text-gray-400 mr-0.5">CHF</span>
               {formatCHF(listing.price).replace('CHF ', '')}{listing.context === 'rent' ? t('search.perMonth') : ''}
             </span>
             {listing.context !== 'rent' && listing.price_per_m2 && listing.price_per_m2 > 0 && listing.surface_m2 > 0 && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-400 tabular-nums">
                 CHF {Math.round(listing.price_per_m2).toLocaleString('fr-CH')}/m²
               </span>
             )}
@@ -179,34 +187,34 @@ export default function SearchListingCard({
             </div>
           )}
         </div>
-        <p className="text-sm text-gray-500 mt-0.5 truncate">
+        <p className="text-[13px] text-gray-500 mt-1 truncate">
           {listing.address}, {listing.city}
         </p>
-        <div className="flex items-center text-sm text-gray-500 mt-1 gap-1">
+        <div className="flex items-center text-[13px] text-gray-600 mt-2 gap-2">
           {listing.rooms > 0 && (
-            <span className="flex items-center gap-1">
-              <DoorOpen className="h-3.5 w-3.5 text-gray-500" />
+            <span className="flex items-center gap-1.5">
+              <DoorOpen className="h-3.5 w-3.5 text-gray-400" strokeWidth={1.75} />
               {listing.rooms} {t('search.rooms')}
             </span>
           )}
           {listing.bedrooms > 0 && (
             <>
-              <span className="text-gray-500 mx-0.5">·</span>
-              <span className="flex items-center gap-1">
-                <BedDouble className="h-3.5 w-3.5 text-gray-500" />
+              <span className="text-gray-300">·</span>
+              <span className="flex items-center gap-1.5">
+                <BedDouble className="h-3.5 w-3.5 text-gray-400" strokeWidth={1.75} />
                 {listing.bedrooms} {t('search.bedrooms')}
               </span>
             </>
           )}
-          <span className="text-gray-500 mx-0.5">·</span>
-          <span className="flex items-center gap-1">
-            <Maximize className="h-3.5 w-3.5 text-gray-500" />
+          <span className="text-gray-300">·</span>
+          <span className="flex items-center gap-1.5">
+            <Maximize className="h-3.5 w-3.5 text-gray-400" strokeWidth={1.75} />
             {formatSurface(listing.surface_m2)}
           </span>
           {listing.context === 'rent' && listing.is_furnished && (
             <>
-              <span className="text-gray-500 mx-0.5">·</span>
-              <span className="text-xs text-gray-500">{t('rental.badgeFurnished', 'Meublé')}</span>
+              <span className="text-gray-300">·</span>
+              <span>{t('rental.badgeFurnished', 'Meublé')}</span>
             </>
           )}
         </div>
