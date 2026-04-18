@@ -70,26 +70,42 @@ export function smartFiltersToPartialFilters(f: SmartParsedFilters): Record<stri
   return out
 }
 
-// Human-readable labels for feature codes. Keep keys in sync with the FEATURES
-// whitelist in supabase/functions/parse-search-query/index.ts.
+// Human-readable labels. Keep keys in sync with the whitelists in
+// supabase/functions/parse-search-query/index.ts.
+const TYPE_LABELS_FR: Record<string, string> = {
+  apartment: 'Appartement',
+  house: 'Maison',
+  villa: 'Villa',
+  commercial: 'Commerce',
+  office: 'Bureau',
+  parking: 'Parking',
+  storage: 'Cave',
+  land: 'Terrain',
+  loft: 'Loft',
+  attic: 'Attique',
+  studio: 'Studio',
+}
+
 const FEATURE_LABELS_FR: Record<string, string> = {
-  balcony: 'balcon',
-  pool: 'piscine',
-  view: 'vue',
-  garage: 'garage',
-  parking: 'parking',
-  elevator: 'ascenseur',
-  furnished: 'meublé',
-  pets_allowed: 'animaux OK',
-  fireplace: 'cheminée',
-  new_building: 'neuf',
+  balcony: 'Balcon',
+  pool: 'Piscine',
+  view: 'Vue',
+  garage: 'Garage',
+  parking: 'Parking',
+  elevator: 'Ascenseur',
+  furnished: 'Meublé',
+  pets_allowed: 'Animaux OK',
+  fireplace: 'Cheminée',
+  new_building: 'Neuf',
   minergie: 'Minergie',
 }
 
 // Human-readable chip labels (i18n done at render site — keep raw tokens here).
 export function buildSmartChipLabels(f: SmartParsedFilters): string[] {
   const labels: string[] = []
-  if (f.types?.length) labels.push(...f.types)
+  if (f.types?.length) {
+    for (const t of f.types) labels.push(TYPE_LABELS_FR[t] ?? t.charAt(0).toUpperCase() + t.slice(1))
+  }
   if (f.city) labels.push(f.city)
   else if (f.canton) labels.push(f.canton)
   if (f.minRooms != null) labels.push(`${f.minRooms}+ pièces`)
