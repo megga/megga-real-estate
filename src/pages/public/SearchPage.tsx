@@ -936,6 +936,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 setFilters(prev => ({ ...prev, ...f }))
                 setSidebarView('search')
               }}
+              onGoToSaved={() => setSidebarView('saved')}
             />
           ) : sidebarView === 'calculator' ? (
             <AccessibilityPanel

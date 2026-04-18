@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Bell, BellOff, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Bell, BellOff, ArrowRight, Bookmark, Zap } from 'lucide-react'
 import { useSavedSearches } from '@/hooks/useSavedSearches'
 
 interface Props {
   onBack: () => void
   onApplyFilters: (filters: Record<string, string>) => void
+  onGoToSaved?: () => void
 }
 
-export default function AlertsPanel({ onBack, onApplyFilters }: Props) {
+export default function AlertsPanel({ onBack, onApplyFilters, onGoToSaved }: Props) {
   const { t } = useTranslation('common')
   const { searches, toggleAlert } = useSavedSearches()
   const alertSearches = searches.filter(s => s.alertEnabled)
@@ -26,12 +27,52 @@ export default function AlertsPanel({ onBack, onApplyFilters }: Props) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
         {alertSearches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <img src="/illustrations/maggy/Alarm.svg" alt="" className="w-44 h-36 mx-auto mb-3" loading="lazy" decoding="async" />
-            <p className="text-sm font-medium text-gray-700 mb-1">{t('search.noActiveAlerts')}</p>
-            <p className="text-xs text-gray-500 max-w-[220px]">
+          <div className="flex flex-col items-center text-center pt-6 pb-8 px-2">
+            <img src="/illustrations/maggy/Alarm.svg" alt="" className="w-64 h-52 mx-auto mb-5" loading="lazy" decoding="async" />
+            <p className="text-base font-semibold text-gray-900 mb-1.5">{t('search.noActiveAlerts')}</p>
+            <p className="text-[13px] text-gray-500 max-w-[260px] leading-relaxed mb-6">
               {t('search.noActiveAlertsDesc')}
             </p>
+
+            {/* How it works — 3 mini-steps */}
+            <div className="w-full max-w-[280px] space-y-2.5 mb-6">
+              {[
+                { n: '1', label: 'Sauvegarde une recherche' },
+                { n: '2', label: 'Active la cloche 🔔' },
+                { n: '3', label: 'Reçois les nouveaux biens par email' },
+              ].map(step => (
+                <div key={step.n} className="flex items-center gap-3 text-left">
+                  <span className="shrink-0 h-6 w-6 rounded-full bg-gray-900 text-white text-[11px] font-semibold flex items-center justify-center tabular-nums">
+                    {step.n}
+                  </span>
+                  <span className="text-[13px] text-gray-700">{step.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Frequency preview chips */}
+            <div className="flex items-center gap-1.5 mb-5">
+              {['Instantané', 'Quotidien', 'Hebdo'].map(f => (
+                <span
+                  key={f}
+                  className="inline-flex items-center gap-1 h-7 px-3 rounded-full bg-gray-50 border border-gray-100 text-[11px] font-medium text-gray-600 tabular-nums"
+                >
+                  <Zap className="h-3 w-3 text-gray-400" strokeWidth={2} />
+                  {f}
+                </span>
+              ))}
+            </div>
+
+            {/* Primary CTA */}
+            {onGoToSaved && (
+              <button
+                onClick={onGoToSaved}
+                className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors cursor-pointer shadow-[0_4px_12px_-4px_rgba(15,23,42,0.25)]"
+              >
+                <Bookmark className="h-4 w-4" strokeWidth={2} />
+                Créer une alerte
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
