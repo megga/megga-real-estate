@@ -1446,7 +1446,6 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                       const addrCity = ap?.city || er?.city
                       const agencyAddress = [addrStreet, [addrZip, addrCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')
                       const isVerified = ap?.status === 'verified'
-                      const isClaimed = ap?.status === 'claimed' || isVerified
                       const hasRating = (ap?.rating_count ?? 0) > 0
                       return (
                         <div className="bg-theme-card border border-theme-border rounded-xl p-5 space-y-4">
@@ -1504,12 +1503,6 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                               </div>
                             )}
                           </div>
-
-                          {!isClaimed && ap && (
-                            <p className="text-[11px] text-theme-tertiary italic">
-                              Profil non revendiqué par l'agence
-                            </p>
-                          )}
 
                           {listing.agency_profile_slug && (
                             <Link
