@@ -893,7 +893,7 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
             <MapGL
               initialViewState={{ latitude: listing.lat, longitude: listing.lng, zoom: 15 }}
               mapboxAccessToken={MAPBOX_TOKEN}
-              mapStyle="mapbox://styles/mapbox/light-v11"
+              mapStyle="mapbox://styles/mapbox/navigation-day-v1"
               style={{ width: '100%', height: '100%' }}
               reuseMaps
               attributionControl={false}
@@ -1313,13 +1313,13 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                       <button
                         type="button"
                         onClick={() => setMapFullscreen(true)}
-                        className="group relative block w-full h-[280px] rounded-2xl overflow-hidden border border-gray-100 cursor-pointer transition-transform duration-300 hover:-translate-y-0.5 [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden [&_.mapboxgl-canvas]:!grayscale-[0.15]"
+                        className="group relative block w-full h-[280px] rounded-2xl overflow-hidden border border-gray-100 cursor-pointer transition-transform duration-300 hover:-translate-y-0.5 [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden"
                         style={{ boxShadow: '0 10px 24px -12px rgba(15,23,42,0.12), 0 2px 6px -2px rgba(15,23,42,0.05)' }}
                       >
                         <MapGL
                           initialViewState={{ latitude: listing.lat, longitude: listing.lng, zoom: 14 }}
                           mapboxAccessToken={MAPBOX_TOKEN}
-                          mapStyle="mapbox://styles/mapbox/light-v11"
+                          mapStyle="mapbox://styles/mapbox/navigation-day-v1"
                           style={{ width: '100%', height: '100%' }}
                           reuseMaps
                           attributionControl={false}
