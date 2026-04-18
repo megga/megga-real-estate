@@ -54,7 +54,7 @@ Strict rules:
 
 function safeParseJson(text: string): unknown {
   const stripped = text.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```\s*$/i,'').trim()
-  try { return JSON.parse(stripped) } catch {}
+  try { return JSON.parse(stripped) } catch { /* fall through to brace extraction */ }
   const first = stripped.indexOf('{'); const last = stripped.lastIndexOf('}')
   if (first === -1 || last <= first) return null
   try { return JSON.parse(stripped.slice(first, last + 1)) } catch { return null }

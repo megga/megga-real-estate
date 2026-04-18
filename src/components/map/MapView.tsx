@@ -585,7 +585,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
     setMapBbox([w, s, e, n])
     setMapZoom(map.getZoom())
     onViewportChange?.({ west: w, south: s, east: e, north: n })
-  }, [mapPoints, listings, onViewportChange, initialViewState.zoom])
+  }, [mapPoints, listings, onViewportChange])
 
   // Price-per-m² choropleth (replaces biased Mapbox heatmap density × price).
   // Only fetch when the layer is toggled on.
