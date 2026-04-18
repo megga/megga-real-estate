@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { ChevronDown, Calculator } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -18,8 +18,11 @@ type PriceMode = 'list' | 'monthly'
 
 // ─── Constants ────────────────────────────────────────────────────────
 
-const BLUE = '#2563EB'
-const BLUE_LIGHT = '#DBEAFE'
+// Monochrome premium palette (aligned with the new Apple-style filter language)
+const DARK = '#111827'       // gray-900
+const DARK_GLOW = '#E5E7EB'  // gray-200
+const TRACK_INACTIVE = '#D1D5DB' // gray-300
+const BAR_INACTIVE = '#E5E7EB'   // gray-200
 
 const BUY_BOUNDS = { min: 0, max: 10_000_000, step: 50_000 }
 const RENT_BOUNDS = { min: 0, max: 15_000, step: 100 }
@@ -75,8 +78,8 @@ function PriceHistogram({
             className="flex-1 rounded-t-[1px] transition-colors duration-100"
             style={{
               height: `${height}%`,
-              backgroundColor: inRange ? BLUE : '#C7D2E0',
-              opacity: inRange ? 1 : 0.5,
+              backgroundColor: inRange ? DARK : BAR_INACTIVE,
+              opacity: inRange ? 1 : 0.9,
             }}
           />
         )
@@ -142,19 +145,19 @@ function DualRangeSlider({
 
   return (
     <div className="relative h-6 flex items-center -mt-1" ref={trackRef}>
-      {/* Track — left inactive (solid blue line) */}
+      {/* Track — left inactive */}
       <div
         className="absolute h-[2px] rounded-full"
-        style={{ left: 0, width: `${pctMin}%`, backgroundColor: BLUE }}
+        style={{ left: 0, width: `${pctMin}%`, backgroundColor: DARK }}
       />
-      {/* Track — active range (solid blue line) */}
+      {/* Track — active range */}
       <div
         className="absolute h-[2px] rounded-full"
-        style={{ left: `${pctMin}%`, width: `${pctMax - pctMin}%`, backgroundColor: BLUE }}
+        style={{ left: `${pctMin}%`, width: `${pctMax - pctMin}%`, backgroundColor: DARK }}
       />
-      {/* Track — right inactive (dashed blue line) */}
+      {/* Track — right inactive (dashed) */}
       <svg className="absolute h-[2px]" style={{ left: `${pctMax}%`, width: `${100 - pctMax}%` }}>
-        <line x1="0" y1="1" x2="100%" y2="1" stroke={BLUE} strokeWidth="2" strokeDasharray="4 3" opacity="0.5" />
+        <line x1="0" y1="1" x2="100%" y2="1" stroke={TRACK_INACTIVE} strokeWidth="2" strokeDasharray="4 3" />
       </svg>
 
       {/* Min thumb */}
@@ -163,22 +166,18 @@ function DualRangeSlider({
         style={{ left: `${pctMin}%` }}
         onPointerDown={handlePointer('min')}
       >
-        {/* Tooltip */}
         {(dragging === 'min' || valueMin > min) && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none">
-            <div className="bg-white border border-gray-200 shadow-md rounded-md px-2 py-1 text-xs font-semibold text-gray-900 whitespace-nowrap">
+            <div className="bg-gray-900 rounded-md px-2 py-1 text-[11px] font-semibold text-white whitespace-nowrap tabular-nums">
               {formatPriceShort(valueMin)}
             </div>
-            <div className="w-2 h-2 bg-white border-r border-b border-gray-200 rotate-45 mx-auto -mt-1" />
           </div>
         )}
-        {/* Glow ring */}
         <div className={cn(
           'w-8 h-8 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity',
           dragging === 'min' ? 'opacity-100' : 'opacity-0'
-        )} style={{ backgroundColor: BLUE_LIGHT }} />
-        {/* Dot */}
-        <div className="relative w-5 h-5 rounded-full border-[3px] border-white shadow-md" style={{ backgroundColor: BLUE }} />
+        )} style={{ backgroundColor: DARK_GLOW }} />
+        <div className="relative w-[18px] h-[18px] rounded-full border-[3px] border-white shadow-[0_1px_3px_rgba(15,23,42,0.25)]" style={{ backgroundColor: DARK }} />
       </div>
 
       {/* Max thumb */}
@@ -187,13 +186,18 @@ function DualRangeSlider({
         style={{ left: `${pctMax}%` }}
         onPointerDown={handlePointer('max')}
       >
-        {/* Glow ring */}
+        {(dragging === 'max' || valueMax < max) && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none">
+            <div className="bg-gray-900 rounded-md px-2 py-1 text-[11px] font-semibold text-white whitespace-nowrap tabular-nums">
+              {formatPriceShort(valueMax)}
+            </div>
+          </div>
+        )}
         <div className={cn(
           'w-8 h-8 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity',
           dragging === 'max' ? 'opacity-100' : 'opacity-0'
-        )} style={{ backgroundColor: BLUE_LIGHT }} />
-        {/* Dot */}
-        <div className="relative w-5 h-5 rounded-full border-[3px] border-white shadow-md" style={{ backgroundColor: BLUE }} />
+        )} style={{ backgroundColor: DARK_GLOW }} />
+        <div className="relative w-[18px] h-[18px] rounded-full border-[3px] border-white shadow-[0_1px_3px_rgba(15,23,42,0.25)]" style={{ backgroundColor: DARK }} />
       </div>
     </div>
   )
@@ -264,43 +268,42 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-[360px] bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-5">
-          {/* Header — blue like Zillow */}
-          <p className="text-sm font-bold mb-4" style={{ color: BLUE }}>Fourchette de prix</p>
+        <div
+          className="absolute top-full left-0 mt-2 w-[360px] bg-white rounded-2xl border border-gray-100 z-50 p-5 origin-top animate-in fade-in zoom-in-95 slide-in-from-top-1 duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ boxShadow: '0 24px 64px -20px rgba(15, 23, 42, 0.22), 0 6px 16px -6px rgba(15, 23, 42, 0.08)' }}
+        >
+          {/* Section label */}
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4">Fourchette de prix</p>
 
-          {/* Mode toggle — blue border + blue fill */}
+          {/* Mode toggle — iOS segmented control */}
           {context === 'buy' && (
-            <div className="flex rounded-lg overflow-hidden mb-4" style={{ border: `2px solid ${BLUE}` }}>
+            <div className="flex bg-gray-100 rounded-full p-1 mb-5">
               <button
                 onClick={() => setMode('list')}
                 className={cn(
-                  'flex-1 py-2.5 text-xs font-bold transition-colors',
-                  mode === 'list' ? 'text-white' : 'bg-white text-gray-800 hover:bg-blue-50'
+                  'flex-1 h-8 text-xs font-semibold rounded-full transition-all',
+                  mode === 'list'
+                    ? 'bg-white text-gray-900 shadow-[0_1px_3px_rgba(15,23,42,0.12)]'
+                    : 'text-gray-500 hover:text-gray-900'
                 )}
-                style={mode === 'list' ? { backgroundColor: BLUE } : undefined}
               >
                 Prix de vente
               </button>
               <button
                 onClick={() => setMode('monthly')}
                 className={cn(
-                  'flex-1 py-2.5 text-xs font-bold transition-colors',
-                  mode === 'monthly' ? 'text-white' : 'bg-white text-gray-800 hover:bg-blue-50'
+                  'flex-1 h-8 text-xs font-semibold rounded-full transition-all',
+                  mode === 'monthly'
+                    ? 'bg-white text-gray-900 shadow-[0_1px_3px_rgba(15,23,42,0.12)]'
+                    : 'text-gray-500 hover:text-gray-900'
                 )}
-                style={mode === 'monthly' ? { backgroundColor: BLUE } : undefined}
               >
                 Mensualité
               </button>
             </div>
           )}
 
-          {/* Calculator link */}
-          <button className="flex items-center gap-2.5 mb-5 group">
-            <Calculator className="h-5 w-5" style={{ color: BLUE }} />
-            <span className="text-sm font-bold text-gray-900 group-hover:underline">Calculer votre accessibilité</span>
-          </button>
-
-          {/* Histogram — bar chart */}
+          {/* Histogram */}
           <PriceHistogram
             prices={prices}
             bounds={bounds}
@@ -308,7 +311,7 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
             rangeMax={localMax}
           />
 
-          {/* Dual range slider — blue thumbs with glow */}
+          {/* Dual range slider */}
           <DualRangeSlider
             min={bounds.min}
             max={bounds.max}
@@ -322,15 +325,15 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
           />
 
           {/* Range labels */}
-          <div className="flex justify-between text-xs text-gray-500 font-medium mt-1 mb-5">
-            <span>CHF 0</span>
-            <span>CHF 10M+</span>
+          <div className="flex justify-between text-[11px] text-gray-400 font-medium tabular-nums mt-1 mb-5">
+            <span>{formatPriceShort(bounds.min)}</span>
+            <span>{formatPriceShort(bounds.max)}+</span>
           </div>
 
-          {/* Min / Max inputs — bold labels like Zillow */}
+          {/* Min / Max inputs */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1">
-              <label className="block text-sm font-bold text-gray-900 mb-1.5">Min</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-1.5">Min</label>
               <input
                 type="text"
                 value={inputMin}
@@ -340,12 +343,12 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
                   if (!isNaN(n)) setLocalMin(Math.max(bounds.min, n))
                 }}
                 placeholder="Pas de min"
-                className="w-full h-11 px-3 text-sm bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:bg-white transition-colors"
+                className="w-full h-11 px-3 text-sm bg-gray-50 border border-transparent rounded-xl focus:outline-none focus:border-gray-900 focus:bg-white transition-colors placeholder:text-gray-400 tabular-nums"
               />
             </div>
-            <span className="text-gray-500 mt-6 text-lg">–</span>
+            <span className="text-gray-300 mt-6">—</span>
             <div className="flex-1">
-              <label className="block text-sm font-bold text-gray-900 mb-1.5">Max</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-1.5">Max</label>
               <input
                 type="text"
                 value={inputMax}
@@ -355,16 +358,15 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
                   if (!isNaN(n)) setLocalMax(Math.min(bounds.max, n))
                 }}
                 placeholder="Pas de max"
-                className="w-full h-11 px-3 text-sm bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:bg-white transition-colors"
+                className="w-full h-11 px-3 text-sm bg-gray-50 border border-transparent rounded-xl focus:outline-none focus:border-gray-900 focus:bg-white transition-colors placeholder:text-gray-400 tabular-nums"
               />
             </div>
           </div>
 
-          {/* Apply button — blue like Zillow */}
+          {/* Apply */}
           <button
             onClick={applyRange}
-            className="w-full h-12 text-white text-sm font-bold rounded-lg hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: BLUE }}
+            className="w-full h-11 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors cursor-pointer"
           >
             Appliquer
           </button>
