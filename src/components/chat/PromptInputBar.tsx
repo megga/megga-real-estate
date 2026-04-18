@@ -35,6 +35,8 @@ interface PromptInputBarProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  /** Initial text to pre-fill the input with (used for suggestion chips). */
+  initialValue?: string
 }
 
 // ─── Autocomplete Dropdown ───────────────────────────────────────────────────
@@ -109,8 +111,9 @@ export default function PromptInputBar({
   placeholder = 'Demandez-moi quelque chose...',
   disabled = false,
   className,
+  initialValue = '',
 }: PromptInputBarProps) {
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(initialValue)
   const [files, setFiles] = useState<File[]>([])
   const [filePreviews, setFilePreviews] = useState<Record<string, string>>({})
   const [isRecording, setIsRecording] = useState(false)

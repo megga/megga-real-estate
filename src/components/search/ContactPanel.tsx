@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Send, Building2, CheckCheck, ArrowUp, MessageSquare, ShieldCheck, CalendarDays } from 'lucide-react'
+import { ArrowLeft, Send, Building2, CheckCheck, MessageSquare, ShieldCheck, CalendarDays } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useMessaging, type Message } from '@/hooks/useMessaging'
 import { supabase } from '@/lib/supabase'
 import { cn, formatCHF } from '@/lib/utils'
+import PromptInputBar from '@/components/chat/PromptInputBar'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface Props {
@@ -110,11 +111,10 @@ function MessageBubble({ msg, isFirstInGroup, isLastInGroup }: {
 export default function ContactPanel({ onBack, selectedListing }: Props) {
   const { t } = useTranslation('common')
   const { user, profile } = useAuth()
-  const [draft, setDraft] = useState('')
   const [threadId, setThreadId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  const [prefill, setPrefill] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const { messages, sendMessage, isSending, markAsRead } = useMessaging(threadId)
 
@@ -153,83 +153,57 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
     }
   }, [threadId, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-resize textarea
-  const handleInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDraft(e.target.value)
-    const el = e.target
-    el.style.height = '36px'
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
-  }, [])
-
-  // Create thread + send first message
-  async function handleSend() {
-    if (!user || !draft.trim() || isSending || creating) return
-    const content = draft.trim()
+  // Send a message — creates the thread on first send
+  const handleSend = useCallback(async (content: string) => {
+    const trimmed = content.trim()
+    if (!user || !trimmed || isSending || creating) return
 
     if (threadId) {
-      // Thread exists — just send
       try {
         await sendMessage({
-          content,
+          content: trimmed,
           senderType: 'contact',
           senderName: profile?.full_name || user.email || 'Acheteur',
         })
-        setDraft('')
-        if (textareaRef.current) textareaRef.current.style.height = '36px'
       } catch { /* handled */ }
-    } else {
-      // Create thread first
-      setCreating(true)
-      try {
-        const threadPayload: Record<string, unknown> = {
-          contact_id: user.id,
-          contact_name: profile?.full_name || user.email || 'Acheteur',
-          contact_type: 'buyer',
-          channel: 'internal',
-          last_message: content.slice(0, 100),
-          last_message_at: new Date().toISOString(),
-          unread_count: 1,
-        }
+      return
+    }
 
-        if (selectedListing) {
-          threadPayload.property_id = selectedListing.id
-          threadPayload.property_title = `${selectedListing.address}, ${selectedListing.city}`
-        }
-
-        const { data: newThread, error } = await supabase
-          .from('message_threads')
-          .insert(threadPayload)
-          .select('id')
-          .single()
-
-        if (error) throw error
-
-        // Insert first message
-        await supabase.from('messages').insert({
-          thread_id: newThread.id,
-          sender_id: user.id,
-          sender_type: 'contact',
-          sender_name: profile?.full_name || user.email || 'Acheteur',
-          content,
-        })
-
-        setThreadId(newThread.id)
-        setDraft('')
-        if (textareaRef.current) textareaRef.current.style.height = '36px'
-      } catch (err) {
-        console.error('Failed to create thread:', err)
-      } finally {
-        setCreating(false)
+    setCreating(true)
+    try {
+      const threadPayload: Record<string, unknown> = {
+        contact_id: user.id,
+        contact_name: profile?.full_name || user.email || 'Acheteur',
+        contact_type: 'buyer',
+        channel: 'internal',
+        last_message: trimmed.slice(0, 100),
+        last_message_at: new Date().toISOString(),
+        unread_count: 1,
       }
+      if (selectedListing) {
+        threadPayload.property_id = selectedListing.id
+        threadPayload.property_title = `${selectedListing.address}, ${selectedListing.city}`
+      }
+      const { data: newThread, error } = await supabase
+        .from('message_threads')
+        .insert(threadPayload)
+        .select('id')
+        .single()
+      if (error) throw error
+      await supabase.from('messages').insert({
+        thread_id: newThread.id,
+        sender_id: user.id,
+        sender_type: 'contact',
+        sender_name: profile?.full_name || user.email || 'Acheteur',
+        content: trimmed,
+      })
+      setThreadId(newThread.id)
+    } catch (err) {
+      console.error('Failed to create thread:', err)
+    } finally {
+      setCreating(false)
     }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
+  }, [user, profile, isSending, creating, threadId, selectedListing, sendMessage])
 
   // Group messages for Messenger-style display
   function renderMessages() {
@@ -370,16 +344,16 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
       <div className="flex-1 overflow-y-auto scrollbar-hide px-3 py-3">
         {!hasMessages && (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center mb-3">
-              <Send className="h-5 w-5 text-gray-500" />
+            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4 shadow-[0_4px_12px_-4px_rgba(15,23,42,0.08)]">
+              <Send className="h-5 w-5 text-gray-700" strokeWidth={1.75} />
             </div>
-            <p className="text-sm font-medium text-gray-700">{t('search.startConversation')}</p>
-            <p className="text-xs text-gray-500 mt-1 leading-relaxed max-w-[220px]">
+            <p className="text-base font-semibold text-gray-900">{t('search.startConversation')}</p>
+            <p className="text-[13px] text-gray-500 mt-1.5 leading-relaxed max-w-[260px]">
               {t('search.askAgentQuestions')}
             </p>
 
             {/* Quick suggestions */}
-            <div className="flex flex-col gap-1.5 mt-4 w-full max-w-[240px]">
+            <div className="flex flex-col gap-1.5 mt-5 w-full max-w-[260px]">
               {[
                 t('search.suggestion.available'),
                 t('search.suggestion.planVisit'),
@@ -387,8 +361,8 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
               ].map(suggestion => (
                 <button
                   key={suggestion}
-                  onClick={() => setDraft(suggestion)}
-                  className="text-left text-xs text-gray-500 px-3 py-2 rounded-xl border border-gray-100 hover:border-gray-300 hover:text-gray-700 transition-colors cursor-pointer"
+                  onClick={() => setPrefill(suggestion)}
+                  className="text-left text-[13px] text-gray-700 px-3.5 py-2.5 rounded-full border border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer shadow-[0_1px_2px_-1px_rgba(15,23,42,0.04)]"
                 >
                   {suggestion}
                 </button>
@@ -402,44 +376,17 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
       </div>
       )}
 
-      {/* ─── Input bar — Messenger style (logged-in only) ─── */}
+      {/* ─── Input bar — reuse of the CRM agent PromptInputBar ─── */}
       {user && (
-      <div className="shrink-0 border-t border-gray-100 px-3 py-2.5">
-        <div className={cn(
-          'flex items-end gap-2 rounded-2xl border border-gray-200 px-3 py-1.5 transition-colors',
-          'focus-within:border-accent/50'
-        )}>
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
+        <div className="shrink-0 px-3 pt-2 pb-3">
+          <PromptInputBar
+            key={prefill /* force remount when a suggestion is picked */}
+            initialValue={prefill}
+            onSend={(message) => { setPrefill(''); handleSend(message) }}
+            isLoading={isSending || creating}
             placeholder={selectedListing ? t('search.yourMessage') : t('search.writeToAgent')}
-            rows={1}
-            className="flex-1 text-sm text-gray-900 bg-transparent resize-none outline-none min-h-[36px] max-h-[120px] py-1.5 placeholder:text-gray-400 leading-[1.4]"
           />
-          <button
-            onClick={handleSend}
-            disabled={!draft.trim() || isSending || creating}
-            className={cn(
-              'h-7 w-7 rounded-full flex items-center justify-center shrink-0 transition-all mb-0.5',
-              draft.trim()
-                ? 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active cursor-pointer'
-                : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-            )}
-            aria-label={t('actions.send')}
-          >
-            {isSending || creating ? (
-              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <ArrowUp className="h-4 w-4" />
-            )}
-          </button>
         </div>
-        <p className="text-xs text-gray-500 text-center mt-1.5">
-          {t('search.secureMessaging')}
-        </p>
-      </div>
       )}
     </div>
   )
