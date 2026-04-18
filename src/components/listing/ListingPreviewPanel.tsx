@@ -89,6 +89,7 @@ interface TransformedListing {
   is_furnished: boolean
   deposit_months: number | null
   external_regie: { name?: string; phone?: string; email?: string; website?: string } | null
+  agency_phone: string
 }
 
 // ─── Transform helpers ──────────────────────────────────────────────────
@@ -139,6 +140,7 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     is_furnished: !!data.is_furnished,
     deposit_months: (data.deposit_months as number | null | undefined) ?? null,
     external_regie: (data.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null,
+    agency_phone: (data.agency_phone as string) || '',
   }
 }
 
@@ -1414,8 +1416,8 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                     {(() => {
                       const regie = resolveRegieContact(
                         { external_regie: listing.external_regie },
-                        listing.agency_name
-                          ? { name: listing.agency_name, phone: '', email: '' }
+                        (listing.agency_name || listing.agency_phone)
+                          ? { name: listing.agency_name, phone: listing.agency_phone }
                           : null,
                       )
                       const logoUrl = listing.agency_logo_url || undefined

@@ -69,23 +69,29 @@ export function formatRent(amount: number | string | null | undefined): string {
  */
 export interface RegieContact {
   name: string
-  phone: string
-  email: string
+  phone?: string
+  email?: string
   website?: string
 }
 
+/**
+ * Merge external_regie (per-listing override) over agency fallback,
+ * field by field. Any field that exists is surfaced — we no longer
+ * require all of {name, phone, email} to be present.
+ * Returns null only when NO usable info exists at all.
+ */
 export function resolveRegieContact(
   listing: { external_regie?: Partial<RegieContact> | null },
   agency: { name?: string; phone?: string; email?: string; website?: string } | null | undefined
 ): RegieContact | null {
-  const r = listing.external_regie
-  if (r && r.name && r.phone && r.email) {
-    return { name: r.name, phone: r.phone, email: r.email, website: r.website }
-  }
-  if (agency && agency.name && agency.phone && agency.email) {
-    return { name: agency.name, phone: agency.phone, email: agency.email, website: agency.website }
-  }
-  return null
+  const r = listing.external_regie ?? {}
+  const a = agency ?? {}
+  const name = r.name || a.name || ''
+  const phone = r.phone || a.phone || undefined
+  const email = r.email || a.email || undefined
+  const website = r.website || a.website || undefined
+  if (!name && !phone && !email && !website) return null
+  return { name, phone, email, website }
 }
 
 /**
