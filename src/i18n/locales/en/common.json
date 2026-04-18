@@ -425,8 +425,10 @@
       "placeholderMobile": "Describe what you're looking for…",
       "understood": "Understood",
       "lowConfidence": "I didn't quite catch that. Try: «2 bedroom Geneva under 2500».",
-      "onboardingTitle": "New",
-      "onboardingBody": "Type what you're looking for in natural language — price, rooms, city, amenities…",
+      "onboardingTitle": "Smart search",
+      "onboardingBody": "Describe what you're looking for in plain language — price, rooms, city, amenities…",
+      "onboardingExample": "villa with pool Geneva up to 3M",
+      "onboardingBadge": "New",
       "onboardingDismiss": "Got it"
     },
     "type": "Type",

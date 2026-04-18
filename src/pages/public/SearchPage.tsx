@@ -419,23 +419,68 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
           <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: '45%' }}>
             {/* Search input — smart: city lookup OR natural-language parser */}
             <form onSubmit={handleSearch} className="relative flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-colors focus-within:bg-white [&_*]:outline-none">
-              {/* First-visit onboarding popover */}
+              {/* First-visit onboarding popover — dismisses on focus or × */}
               {showOnboarding && smartEnabled && (
-                <div className="absolute top-full left-0 mt-2 w-[320px] z-50 bg-white rounded-xl border border-gray-200 shadow-lg p-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <div className="flex items-start gap-2">
-                    <AiSparkle className="h-4 w-4 text-[#001751] shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-gray-900 mb-0.5">{t('search.smart.onboardingTitle')}</div>
-                      <p className="text-xs text-gray-600 leading-relaxed">{t('search.smart.onboardingBody')}</p>
-                    </div>
+                <div
+                  className="absolute top-full left-0 mt-2.5 w-[340px] z-50 animate-in fade-in slide-in-from-top-1 duration-200"
+                >
+                  {/* Pointer arrow pointing up to the input */}
+                  <div
+                    aria-hidden
+                    className="absolute -top-1.5 left-4 h-3 w-3 rotate-45 bg-white border-l border-t"
+                    style={{ borderColor: 'rgba(0,23,81,0.10)' }}
+                  />
+                  <div
+                    className="relative bg-white rounded-2xl shadow-[0_8px_28px_-8px_rgba(0,23,81,0.18)] border overflow-hidden"
+                    style={{ borderColor: 'rgba(0,23,81,0.10)' }}
+                  >
+                    {/* Subtle gradient header */}
+                    <div
+                      aria-hidden
+                      className="absolute inset-x-0 top-0 h-16 pointer-events-none"
+                      style={{ background: 'linear-gradient(180deg, rgba(0,23,81,0.05) 0%, rgba(0,23,81,0) 100%)' }}
+                    />
                     <button
                       type="button"
                       onClick={dismissOnboarding}
-                      className="shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      className="absolute top-2 right-2 z-10 h-6 w-6 rounded-full text-[#001751]/50 hover:text-[#001751] hover:bg-[#001751]/10 flex items-center justify-center cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#001751]/30"
                       aria-label={t('search.smart.onboardingDismiss')}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
+                    <div className="relative p-4">
+                      <div className="flex items-start gap-2.5">
+                        <div
+                          className="shrink-0 h-8 w-8 rounded-xl flex items-center justify-center"
+                          style={{ background: 'rgba(0,23,81,0.08)' }}
+                        >
+                          <AiSparkle className="h-4 w-4 text-[#001751]" />
+                        </div>
+                        <div className="flex-1 min-w-0 pr-4">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-[13px] font-semibold text-[#001751] leading-tight">
+                              {t('search.smart.onboardingTitle')}
+                            </span>
+                            <span
+                              className="text-[9px] font-semibold tracking-wide uppercase rounded-full px-1.5 py-0.5 leading-none"
+                              style={{ color: '#001751', background: 'rgba(0,23,81,0.10)' }}
+                            >
+                              {t('search.smart.onboardingBadge')}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 leading-relaxed">
+                            {t('search.smart.onboardingBody')}
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        className="mt-3 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] text-[#001751]/80"
+                        style={{ background: 'rgba(0,23,81,0.05)' }}
+                      >
+                        <span className="text-[#001751]/50">▸</span>
+                        <span className="font-medium">{t('search.smart.onboardingExample')}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
