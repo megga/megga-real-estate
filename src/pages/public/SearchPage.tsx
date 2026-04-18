@@ -447,12 +447,16 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 <Search className="h-3.5 w-3.5 text-gray-500 shrink-0 transition-colors" />
               )}
               <input
-                type="text"
+                type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={smartEnabled ? t('search.smart.placeholder') : t('search.searchCity', 'Ville, quartier, canton...')}
                 onFocus={dismissOnboarding}
-                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-form-type="other"
+                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0 [&::-webkit-search-cancel-button]:hidden"
               />
               {searchInput && (
                 <button type="button" onClick={() => { setSearchInput(''); setSmartChip(null); setSmartError(null); clearAllFilters() }} className="text-gray-500 hover:text-gray-600">
@@ -697,11 +701,15 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
               )}
               <input
-                type="text"
+                type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={smartEnabled ? t('search.smart.placeholderMobile') : t('search.searchCity', 'Rechercher...')}
-                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0"
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-form-type="other"
+                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0 [&::-webkit-search-cancel-button]:hidden"
               />
             </form>
             <button
