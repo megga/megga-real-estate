@@ -42,7 +42,10 @@ export function FilterPill({ label, active, dark, children }: FilterPillProps) {
         <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', active && dark ? 'text-white/70' : 'text-gray-500', open && 'rotate-180')} />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1.5 min-w-[200px] bg-white rounded-xl shadow-lg border border-gray-100 z-50 py-1.5 max-h-72 overflow-y-auto scrollbar-hide">
+        <div
+          className="absolute top-full left-0 mt-2 min-w-[260px] bg-white rounded-2xl border border-gray-100 z-50 py-2 max-h-80 overflow-y-auto scrollbar-hide origin-top animate-in fade-in zoom-in-95 slide-in-from-top-1 duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ boxShadow: '0 20px 48px -16px rgba(15, 23, 42, 0.18), 0 4px 12px -4px rgba(15, 23, 42, 0.08)' }}
+        >
           {children}
         </div>
       )}
@@ -63,14 +66,16 @@ export function FilterOption({
     <button
       type="button"
       className={cn(
-        'w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors cursor-pointer flex items-center gap-2',
-        selected ? 'text-accent font-medium bg-accent/5' : 'text-gray-700'
+        'w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer flex items-center gap-3',
+        selected
+          ? 'text-gray-900 font-semibold bg-gray-900/[0.04]'
+          : 'text-gray-700 hover:bg-gray-50'
       )}
       onClick={onClick}
     >
       <span className="flex-1">{children}</span>
       {selected && (
-        <svg className="w-3.5 h-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <svg className="w-4 h-4 text-gray-900 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       )}
