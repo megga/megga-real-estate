@@ -420,6 +420,15 @@
     "daysOnline": "{{count}}T.",
     "previousPhoto": "Vorheriges Foto",
     "nextPhoto": "Nächstes Foto",
+    "smart": {
+      "placeholder": "Stadt, Quartier, oder beschreibe was du suchst…",
+      "placeholderMobile": "Beschreibe was du suchst…",
+      "understood": "Verstanden",
+      "lowConfidence": "Ich habe es nicht verstanden. Versuche: «3 Zimmer Balkon Zürich bis 2500».",
+      "onboardingTitle": "Neu",
+      "onboardingBody": "Schreib einfach was du suchst — Preis, Zimmer, Stadt, Ausstattung…",
+      "onboardingDismiss": "Verstanden"
+    },
     "type": "Typ",
     "price": "Preis",
     "roomsFilter": "Zimmer",
