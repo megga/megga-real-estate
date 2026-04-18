@@ -99,7 +99,6 @@ interface TransformedListing {
     address?: string
     city?: string
     canton?: string
-    zipcode?: string
     status?: 'unclaimed' | 'claimed' | 'verified'
     rating_avg?: number
     rating_count?: number
@@ -1443,7 +1442,7 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                       const logoUrl = listing.agency_logo_url || ap?.logo_url || undefined
                       const er = listing.external_regie
                       const addrStreet = ap?.address || er?.street
-                      const addrZip = ap?.zipcode || er?.zipcode
+                      const addrZip = er?.zipcode
                       const addrCity = ap?.city || er?.city
                       const agencyAddress = [addrStreet, [addrZip, addrCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')
                       const isVerified = ap?.status === 'verified'

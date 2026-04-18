@@ -525,7 +525,7 @@ export function useMarketListing(id: string | undefined) {
       if (data?.agency_profile_id) {
         const { data: agency } = await supabase
           .from('agency_profiles')
-          .select('id, slug, name, logo_url, phone, email, website_url, address, city, canton, zipcode, status, rating_avg, rating_count, description, founded_year, specialties, languages, certifications')
+          .select('id, slug, name, logo_url, phone, email, website_url, address, city, canton, status, rating_avg, rating_count, description, founded_year, specialties, languages, certifications')
           .eq('id', data.agency_profile_id)
           .maybeSingle()
         if (agency) {
