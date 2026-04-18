@@ -595,113 +595,152 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                     {plusCount > 0 ? t('search.moreWithCount', { count: plusCount }) : t('search.more')}
                     <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', plusActive ? 'text-white/70' : 'text-gray-500', plusOpen && 'rotate-180')} />
                   </button>
-                  {plusOpen && (
-                    <div className="absolute top-full left-0 mt-1.5 w-[620px] bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-6 animate-[fadeIn_0.15s_ease-out]">
-                      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-                      <div className="grid grid-cols-3 gap-8">
+                  {plusOpen && (() => {
+                    const chipBase = 'h-8 px-3.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300'
+                    const chipIdle = 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-transparent'
+                    const chipActive = 'bg-gray-900 text-white border border-gray-900'
+                    const sectionLabel = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-2.5'
+                    const toggleTag = (v: string) => {
+                      const next = filters.lifestyleTags.includes(v)
+                        ? filters.lifestyleTags.filter((t) => t !== v)
+                        : [...filters.lifestyleTags, v]
+                      updateFilter({ lifestyleTags: next })
+                    }
+                    const equipTags = LIFESTYLE_TAGS.filter(t => ['terrasse', 'balcon', 'jardin', 'parking', 'piscine', 'ascenseur', 'meuble', 'dernier_etage'].includes(t.value))
+                    const envTags = LIFESTYLE_TAGS.filter(t => ['vue_lac', 'vue_montagne', 'lumineux', 'quartier_calme', 'proche_transports', 'proche_ecoles', 'centre_ville'].includes(t.value))
+                    return (
+                      <div
+                        className="absolute top-full left-0 mt-2 w-[560px] bg-white rounded-2xl border border-gray-100 z-50 origin-top animate-in fade-in zoom-in-95 slide-in-from-top-1 duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col max-h-[min(72vh,680px)]"
+                        style={{ boxShadow: '0 24px 64px -20px rgba(15, 23, 42, 0.22), 0 6px 16px -6px rgba(15, 23, 42, 0.08)' }}
+                      >
+                        {/* Scrollable body */}
+                        <div className="flex-1 overflow-y-auto scrollbar-hide p-5">
+                          <div className="grid grid-cols-2 gap-6">
+                            {/* Surface */}
+                            <div>
+                              <p className={sectionLabel}>Surface min.</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {['30', '50', '80', '100', '150', '200'].map((s) => (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })}
+                                    className={cn(chipBase, filters.minSurface === s ? chipActive : chipIdle)}
+                                  >
+                                    {s} m²
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
 
-                        {/* Column 1 — Surface & Énergie */}
-                        <div className="space-y-6">
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-3">Surface min.</p>
-                            <div className="grid grid-cols-3 gap-1.5">
-                              {['30', '50', '80', '100', '150', '200'].map((s) => (
-                                <button key={s} type="button" onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })} className={cn('h-9 text-xs font-medium rounded-lg transition-all cursor-pointer', filters.minSurface === s ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
-                                  {s} m²
-                                </button>
-                              ))}
+                            {/* Chambres */}
+                            <div>
+                              <p className={sectionLabel}>Chambres</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {BEDROOM_OPTIONS.map((b) => (
+                                  <button
+                                    key={`bed-${b}`}
+                                    type="button"
+                                    onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })}
+                                    className={cn(chipBase, 'min-w-[44px]', filters.bedrooms === b ? chipActive : chipIdle)}
+                                  >
+                                    {b}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Énergie */}
+                            <div>
+                              <p className={sectionLabel}>Énergie</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {ENERGY_OPTIONS.map((e) => (
+                                  <button
+                                    key={e.value}
+                                    type="button"
+                                    onClick={() => updateFilter({ energyLabel: filters.energyLabel === e.value ? '' : e.value })}
+                                    className={cn(chipBase, filters.energyLabel === e.value ? chipActive : chipIdle)}
+                                  >
+                                    {e.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Salles de bain */}
+                            <div>
+                              <p className={sectionLabel}>Salles de bain</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {BATHROOM_OPTIONS.map((b) => (
+                                  <button
+                                    key={`bath-${b}`}
+                                    type="button"
+                                    onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })}
+                                    className={cn(chipBase, 'min-w-[44px]', filters.bathrooms === b ? chipActive : chipIdle)}
+                                  >
+                                    {b}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
 
-                          <div className="h-px bg-gray-100" />
-
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-3">Énergie</p>
-                            <div className="space-y-1.5">
-                              {ENERGY_OPTIONS.map((e) => (
-                                <button key={e.value} type="button" onClick={() => updateFilter({ energyLabel: filters.energyLabel === e.value ? '' : e.value })} className={cn('w-full h-8 px-3 text-xs font-medium rounded-lg text-left transition-all cursor-pointer', filters.energyLabel === e.value ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
-                                  {e.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Column 2 — Chambres, Salles de bain, Étage */}
-                        <div className="space-y-6">
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-3">Chambres</p>
-                            <div className="flex gap-1.5">
-                              {BEDROOM_OPTIONS.map((b) => (
-                                <button key={`bed-${b}`} type="button" onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })} className={cn('flex-1 h-9 text-xs font-medium rounded-lg transition-all cursor-pointer', filters.bedrooms === b ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
-                                  {b}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-3">Salles de bain</p>
-                            <div className="flex gap-1.5">
-                              {BATHROOM_OPTIONS.map((b) => (
-                                <button key={`bath-${b}`} type="button" onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })} className={cn('flex-1 h-9 text-xs font-medium rounded-lg transition-all cursor-pointer', filters.bathrooms === b ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
-                                  {b}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="h-px bg-gray-100" />
-
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-3">Équipements</p>
-                            <div className="space-y-1.5">
-                              {LIFESTYLE_TAGS.filter(t => ['terrasse', 'balcon', 'jardin', 'parking', 'piscine', 'ascenseur', 'meuble', 'dernier_etage'].includes(t.value)).map((tag) => (
-                                <button key={tag.value} type="button" onClick={() => {
-                                  const next = filters.lifestyleTags.includes(tag.value) ? filters.lifestyleTags.filter((t) => t !== tag.value) : [...filters.lifestyleTags, tag.value]
-                                  updateFilter({ lifestyleTags: next })
-                                }} className={cn('w-full h-8 px-3 text-xs font-medium rounded-lg text-left transition-all cursor-pointer flex items-center justify-between', filters.lifestyleTags.includes(tag.value) ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
+                          {/* Équipements — full width */}
+                          <div className="mt-5 pt-5 border-t border-gray-100">
+                            <p className={sectionLabel}>Équipements</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {equipTags.map((tag) => (
+                                <button
+                                  key={tag.value}
+                                  type="button"
+                                  onClick={() => toggleTag(tag.value)}
+                                  className={cn(chipBase, filters.lifestyleTags.includes(tag.value) ? chipActive : chipIdle)}
+                                >
                                   {tag.label}
-                                  {filters.lifestyleTags.includes(tag.value) && <span className="text-xs">✓</span>}
                                 </button>
                               ))}
                             </div>
                           </div>
-                        </div>
 
-                        {/* Column 3 — Environnement */}
-                        <div className="space-y-6">
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900 mb-3">Environnement</p>
-                            <div className="space-y-1.5">
-                              {LIFESTYLE_TAGS.filter(t => ['vue_lac', 'vue_montagne', 'lumineux', 'quartier_calme', 'proche_transports', 'proche_ecoles', 'centre_ville'].includes(t.value)).map((tag) => (
-                                <button key={tag.value} type="button" onClick={() => {
-                                  const next = filters.lifestyleTags.includes(tag.value) ? filters.lifestyleTags.filter((t) => t !== tag.value) : [...filters.lifestyleTags, tag.value]
-                                  updateFilter({ lifestyleTags: next })
-                                }} className={cn('w-full h-8 px-3 text-xs font-medium rounded-lg text-left transition-all cursor-pointer flex items-center justify-between', filters.lifestyleTags.includes(tag.value) ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100')}>
+                          {/* Environnement — full width */}
+                          <div className="mt-5 pt-5 border-t border-gray-100">
+                            <p className={sectionLabel}>Environnement</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {envTags.map((tag) => (
+                                <button
+                                  key={tag.value}
+                                  type="button"
+                                  onClick={() => toggleTag(tag.value)}
+                                  className={cn(chipBase, filters.lifestyleTags.includes(tag.value) ? chipActive : chipIdle)}
+                                >
                                   {tag.label}
-                                  {filters.lifestyleTags.includes(tag.value) && <span className="text-xs">✓</span>}
                                 </button>
                               ))}
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Footer — reset */}
-                      {plusActive && (
-                        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+                        {/* Sticky footer */}
+                        <div className="border-t border-gray-100 px-5 py-3 flex items-center justify-between gap-3 bg-white rounded-b-2xl">
                           <button
                             type="button"
                             onClick={() => updateFilter({ minSurface: '', bedrooms: '', bathrooms: '', energyLabel: '', lifestyleTags: [] })}
-                            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                            disabled={!plusActive}
+                            className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                           >
-                            Réinitialiser les filtres
+                            Tout effacer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPlusOpen(false)}
+                            className="h-9 px-5 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors cursor-pointer tabular-nums"
+                          >
+                            Voir {visible.length.toLocaleString('fr-CH')} {visible.length > 1 ? 'biens' : 'bien'}
                           </button>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })()}
