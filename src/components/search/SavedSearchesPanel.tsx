@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Bell, BellOff, Trash2, ArrowRight, Bookmark, Sparkles } from 'lucide-react'
+import { ArrowLeft, Bell, BellOff, Trash2, ArrowRight, Bookmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSavedSearches } from '@/hooks/useSavedSearches'
+import AiSparkle from '@/components/icons/AiSparkle'
 
 interface Props {
   onBack: () => void
@@ -59,7 +60,7 @@ export default function SavedSearchesPanel({ onBack, onApplyFilters, onCreateSea
             {/* Value-prop bullets */}
             <div className="w-full max-w-[280px] space-y-2 mb-6 text-left">
               <div className="flex items-start gap-2.5">
-                <Sparkles className="h-3.5 w-3.5 text-gray-900 mt-0.5 shrink-0" strokeWidth={2} />
+                <AiSparkle className="h-3.5 w-3.5 text-gray-900 mt-0.5 shrink-0" />
                 <span className="text-[12px] text-gray-600">Retrouve tes filtres d'un clic, sans tout re-saisir</span>
               </div>
               <div className="flex items-start gap-2.5">

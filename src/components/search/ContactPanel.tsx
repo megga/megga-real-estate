@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Send, Building2, CheckCheck, ArrowUp } from 'lucide-react'
+import { ArrowLeft, Send, Building2, CheckCheck, ArrowUp, MessageSquare, ShieldCheck, CalendarDays } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useMessaging, type Message } from '@/hooks/useMessaging'
 import { supabase } from '@/lib/supabase'
@@ -278,8 +279,68 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
         </div>
       </div>
 
+      {/* ─── Logged-out onboarding ─── */}
+      {!user ? (
+        <div className="flex-1 overflow-y-auto scrollbar-hide">
+          <div className="flex flex-col items-center text-center pt-6 pb-8 px-5">
+            <img src="/illustrations/maggy/TeamWork.svg" alt="" className="w-64 h-52 mx-auto mb-5" loading="lazy" decoding="async" />
+            <p className="text-base font-semibold text-gray-900 mb-1.5">Reste en contact avec un agent</p>
+            <p className="text-[13px] text-gray-500 max-w-[280px] leading-relaxed mb-6">
+              Pose tes questions, planifie une visite, ou demande une estimation — un agent MEGGA te répond directement dans ce fil.
+            </p>
+
+            {/* Chat teaser */}
+            <div className="relative w-full max-w-[280px] mb-6 rounded-2xl border border-gray-100 bg-white p-3 shadow-[0_10px_24px_-12px_rgba(15,23,42,0.12)] text-left">
+              <div className="flex items-end gap-2">
+                <div className="shrink-0 h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center">
+                  <img src="/megga-gg.svg" alt="" className="h-4 w-4" />
+                </div>
+                <div className="max-w-[220px] rounded-[18px] rounded-bl-md bg-gray-100 px-3 py-2">
+                  <p className="text-[13px] text-gray-900 leading-snug">Bonjour 👋 Je suis là pour t'aider à trouver le bien qui te correspond.</p>
+                </div>
+              </div>
+              <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-white shadow-[0_4px_10px_-3px_rgba(37,99,235,0.35)] border border-blue-100 flex items-center justify-center">
+                <MessageSquare className="h-3.5 w-3.5 text-blue-500 animate-pulse" strokeWidth={2} />
+              </div>
+            </div>
+
+            {/* Value props */}
+            <div className="w-full max-w-[280px] space-y-2.5 mb-6 text-left">
+              <div className="flex items-start gap-2.5">
+                <CalendarDays className="h-3.5 w-3.5 text-gray-900 mt-0.5 shrink-0" strokeWidth={2} />
+                <span className="text-[12px] text-gray-600">Planifie des visites en quelques clics</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-gray-900 mt-0.5 shrink-0" strokeWidth={2} />
+                <span className="text-[12px] text-gray-600">Échange dans un espace sécurisé, hors email</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Building2 className="h-3.5 w-3.5 text-gray-900 mt-0.5 shrink-0" strokeWidth={2} />
+                <span className="text-[12px] text-gray-600">Demande une estimation gratuite de ton bien</span>
+              </div>
+            </div>
+
+            {/* Dual CTA */}
+            <div className="flex flex-col items-center gap-2 w-full max-w-[260px]">
+              <Link
+                to="/signup"
+                className="w-full inline-flex items-center justify-center h-10 px-5 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors cursor-pointer shadow-[0_4px_12px_-4px_rgba(15,23,42,0.25)]"
+              >
+                Créer un compte
+              </Link>
+              <Link
+                to="/login"
+                className="w-full inline-flex items-center justify-center h-10 text-[13px] font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+              >
+                J'ai déjà un compte · Se connecter
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* ─── Property context card ─── */}
-      {selectedListing && (
+      {user && selectedListing && (
         <div className="px-3 pt-3">
           <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
             <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-gray-100">
@@ -304,7 +365,8 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
         </div>
       )}
 
-      {/* ─── Messages area ─── */}
+      {/* ─── Messages area (logged-in only) ─── */}
+      {user && (
       <div className="flex-1 overflow-y-auto scrollbar-hide px-3 py-3">
         {!hasMessages && (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
@@ -338,8 +400,10 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
         {renderMessages()}
         <div ref={messagesEndRef} />
       </div>
+      )}
 
-      {/* ─── Input bar — Messenger style ─── */}
+      {/* ─── Input bar — Messenger style (logged-in only) ─── */}
+      {user && (
       <div className="shrink-0 border-t border-gray-100 px-3 py-2.5">
         <div className={cn(
           'flex items-end gap-2 rounded-2xl border border-gray-200 px-3 py-1.5 transition-colors',
@@ -376,6 +440,7 @@ export default function ContactPanel({ onBack, selectedListing }: Props) {
           {t('search.secureMessaging')}
         </p>
       </div>
+      )}
     </div>
   )
 }

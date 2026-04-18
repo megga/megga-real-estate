@@ -1,8 +1,6 @@
 import { Search, Heart, Bell, Calculator, Bookmark, MessageCircle } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useFavorites } from '@/hooks/useFavorites'
-import { useAuth } from '@/hooks/useAuth'
 
 const BLUE = '#2563EB'
 const BLUE_BG = '#EFF6FF'
@@ -28,8 +26,6 @@ interface Props {
 
 export default function BuyerSidebar({ activeView = 'search', onViewChange, className, context = 'buy' }: Props) {
   const { count: favCount } = useFavorites()
-  const { user } = useAuth()
-  const navigate = useNavigate()
   // Calculator (accessibility hypothecaire) only relevant for buy context
   const navItems = context === 'rent' ? NAV_ITEMS.filter(item => item.id !== 'calculator') : NAV_ITEMS
 
@@ -43,10 +39,6 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
       <button
         key={item.id}
         onClick={() => {
-          if (item.id === 'contact' && !user) {
-            navigate('/login')
-            return
-          }
           onViewChange?.(item.id)
         }}
         className="group relative flex flex-col items-center mb-1.5 cursor-pointer focus:outline-none"
