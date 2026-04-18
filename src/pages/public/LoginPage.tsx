@@ -274,6 +274,17 @@ export default function LoginPage() {
                 <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
               )}
 
+              {/* Forgot password direct entry */}
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => { setStep('forgot'); setError(null) }}
+                  className="text-xs text-gray-500 hover:text-accent transition-colors"
+                >
+                  {t('auth.forgotPassword')}
+                </button>
+              </div>
+
               {/* Pro link */}
               <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                 {isAgentMode ? (
@@ -438,21 +449,34 @@ export default function LoginPage() {
           {/* ── STEP: Forgot password ── */}
           {step === 'forgot' && (
             <>
-              <button onClick={() => { setStep('login'); setError(null) }} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
+              <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 {t('auth.back')}
               </button>
 
               <h1 className="text-xl font-semibold text-gray-900 mb-1">{t('auth.forgotPasswordTitle')}</h1>
               <p className="text-sm text-gray-500 mb-6">
-                {t('auth.resetLinkSent')} <strong>{email}</strong>
+                Entre ton adresse email et nous t'envoyons un lien pour réinitialiser ton mot de passe.
               </p>
 
               <form onSubmit={handleForgotPassword}>
+                <label htmlFor="forgotEmail" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {t('auth.email')}
+                </label>
+                <input
+                  id="forgotEmail"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('auth.emailPlaceholder')}
+                  required
+                  autoFocus
+                  className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                />
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full h-11 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  disabled={loading || !email.trim()}
+                  className="w-full h-11 mt-4 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.sendLink')}
                 </button>
@@ -461,6 +485,11 @@ export default function LoginPage() {
               {error && (
                 <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
               )}
+
+              <p className="text-[11px] text-gray-400 text-center mt-4 leading-relaxed">
+                Tu ne reçois rien ? Vérifie tes spams ou contacte{' '}
+                <a href="mailto:support@megga.ch" className="underline hover:text-gray-600">support@megga.ch</a>.
+              </p>
             </>
           )}
 
