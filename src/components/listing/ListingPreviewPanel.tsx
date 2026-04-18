@@ -29,7 +29,7 @@ import C2PaBadge from '@/components/listing/C2PaBadge'
 import ContactAgentModal from '@/components/listing/ContactAgentModal'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 import { useNeighborhood, calculateWalkScore } from '@/hooks/useNeighborhood'
-import MapGL, { Marker, NavigationControl } from 'react-map-gl/mapbox'
+import MapGL, { Marker } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
