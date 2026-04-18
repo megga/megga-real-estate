@@ -29,7 +29,7 @@ import C2PaBadge from '@/components/listing/C2PaBadge'
 import ContactAgentModal from '@/components/listing/ContactAgentModal'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 import { useNeighborhood, calculateWalkScore } from '@/hooks/useNeighborhood'
-import MapGL, { Marker } from 'react-map-gl/mapbox'
+import MapGL, { Marker, NavigationControl } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
@@ -631,6 +631,7 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const [reportOpen, setReportOpen] = useState(false)
+  const [mapFullscreen, setMapFullscreen] = useState(false)
   const { isHidden, hide, unhide } = useHiddenListings()
   const hiddenForCurrent = listingId ? isHidden(listingId) : false
 
@@ -865,6 +866,77 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
           listingTitle={listing?.title}
           onClose={() => setReportOpen(false)}
         />
+      )}
+      {mapFullscreen && listing?.lat && listing?.lng && MAPBOX_TOKEN && createPortal(
+        <div className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setMapFullscreen(false)}>
+          <div
+            className="absolute inset-4 md:inset-8 rounded-3xl overflow-hidden bg-white animate-in fade-in zoom-in-95 duration-200 [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden"
+            style={{ boxShadow: '0 32px 80px -20px rgba(15,23,42,0.4)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MapGL
+              initialViewState={{ latitude: listing.lat, longitude: listing.lng, zoom: 15 }}
+              mapboxAccessToken={MAPBOX_TOKEN}
+              mapStyle="mapbox://styles/mapbox/light-v11"
+              style={{ width: '100%', height: '100%' }}
+              reuseMaps
+              attributionControl={false}
+            >
+              <Marker latitude={listing.lat} longitude={listing.lng} anchor="bottom">
+                <div className="h-10 w-10 bg-gray-900 rounded-full flex items-center justify-center shadow-xl border-[3px] border-white">
+                  <MapPin className="h-5 w-5 text-white" strokeWidth={2.25} fill="white" />
+                </div>
+              </Marker>
+              <div className="absolute top-4 right-4">
+                <NavigationControl showCompass={false} />
+              </div>
+            </MapGL>
+
+            {/* Close */}
+            <button
+              onClick={() => setMapFullscreen(false)}
+              className="absolute top-4 left-4 h-10 w-10 rounded-full bg-white shadow-lg border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer"
+              aria-label="Fermer"
+            >
+              <X className="h-4 w-4 text-gray-900" />
+            </button>
+
+            {/* Address card */}
+            <div className="absolute top-4 left-16 right-16 md:left-20 md:right-auto md:max-w-sm">
+              <div className="h-10 px-4 rounded-full bg-white shadow-lg border border-gray-100 flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 text-gray-900 shrink-0" strokeWidth={2.25} />
+                <p className="text-[13px] font-medium text-gray-900 truncate">{listing.address}, {listing.city}</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${listing.lat},${listing.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-11 px-5 rounded-full bg-gray-900 text-white text-[13px] font-semibold flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-lg"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                Itinéraire
+              </a>
+              <button
+                onClick={() => {
+                  setMapFullscreen(false)
+                  setTimeout(() => {
+                    const el = document.getElementById('preview-quartier')
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }, 220)
+                }}
+                className="h-11 px-5 rounded-full bg-white text-gray-900 text-[13px] font-semibold flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-lg border border-gray-100 cursor-pointer"
+              >
+                <Building2 className="h-4 w-4" strokeWidth={2.25} />
+                Voir le quartier
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Scrollable content */}
@@ -1222,8 +1294,10 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                   <div id="preview-map" className="mt-10 pt-8 border-t border-gray-100">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4">Localisation</p>
                     {listing.lat && listing.lng && MAPBOX_TOKEN ? (
-                      <div
-                        className="h-[280px] rounded-2xl overflow-hidden border border-gray-100"
+                      <button
+                        type="button"
+                        onClick={() => setMapFullscreen(true)}
+                        className="group relative block w-full h-[280px] rounded-2xl overflow-hidden border border-gray-100 cursor-pointer transition-transform duration-300 hover:-translate-y-0.5 [&_.mapboxgl-ctrl-logo]:hidden [&_.mapboxgl-ctrl-attrib]:hidden [&_.mapboxgl-canvas]:!grayscale-[0.15]"
                         style={{ boxShadow: '0 10px 24px -12px rgba(15,23,42,0.12), 0 2px 6px -2px rgba(15,23,42,0.05)' }}
                       >
                         <MapGL
@@ -1236,12 +1310,19 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                           interactive={false}
                         >
                           <Marker latitude={listing.lat} longitude={listing.lng} anchor="bottom">
-                            <div className="h-7 w-7 bg-accent rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                              <MapPin className="h-3.5 w-3.5 text-white" strokeWidth={2} />
+                            <div className="h-8 w-8 bg-gray-900 rounded-full flex items-center justify-center shadow-lg border-[2.5px] border-white">
+                              <MapPin className="h-4 w-4 text-white" strokeWidth={2.25} fill="white" />
                             </div>
                           </Marker>
                         </MapGL>
-                      </div>
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-gray-900/0 group-hover:bg-gray-900/10 transition-colors pointer-events-none" />
+                        {/* CTA pill */}
+                        <div className="absolute bottom-4 right-4 h-9 px-4 rounded-full bg-white/95 backdrop-blur-md flex items-center gap-1.5 shadow-lg border border-gray-100 text-[13px] font-semibold text-gray-900 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200">
+                          <MapPin className="h-3.5 w-3.5" strokeWidth={2.25} />
+                          Voir en grand
+                        </div>
+                      </button>
                     ) : (
                       <div className="h-[200px] rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
                         <div className="text-center">
