@@ -1029,97 +1029,125 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                   {/* ── SECTION: Overview ── */}
                   <div id="preview-overview">
 
-                    {/* Price + address */}
-                    <div className="flex items-center gap-2 mb-1">
-                      {listing.is_exclusive && <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0" />}
-                      <C2PaBadge verified={listing.c2pa_verified || false} verifiedAt={listing.c2pa_verified_at} />
-                    </div>
-
-                    <div className="flex items-baseline gap-3">
-                      <h2 className="text-3xl md:text-4xl font-bold text-theme-primary tracking-tight">
+                    {/* Price + badges row */}
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight tabular-nums">
                         {listing.transaction_type === 'rent' ? formatRent(listing.price) : formatCHF(listing.price)}
                       </h2>
                       {listing.transaction_type !== 'rent' && pricePerM2 > 0 && (
-                        <span className="text-sm text-theme-muted">{formatCHF(pricePerM2)}/m²</span>
+                        <span className="text-[13px] text-gray-400 tabular-nums">{formatCHF(pricePerM2)}/m²</span>
                       )}
+                    </div>
+
+                    {/* Address — with map pin */}
+                    <div className="mt-2 flex items-center gap-1.5 text-[13px] text-gray-500">
+                      <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" strokeWidth={1.75} />
+                      <span className="truncate">{listing.address}, {listing.postal_code} {listing.city} ({listing.canton})</span>
+                    </div>
+
+                    {/* Stats chips */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-4">
+                      {[
+                        listing.rooms > 0 ? `${listing.rooms} pièces` : null,
+                        listing.bedrooms > 0 ? `${listing.bedrooms} chambres` : null,
+                        listing.bathrooms > 0 ? `${listing.bathrooms} sdb` : null,
+                        listing.surface_m2 > 0 ? `${listing.surface_m2.toLocaleString('fr-CH')} m²` : null,
+                        listing.type ? (TYPE_LABELS[listing.type] || listing.type) : null,
+                      ].filter(Boolean).map((chip, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex h-7 items-center px-3 rounded-full bg-gray-50 border border-gray-100 text-[12px] font-medium text-gray-700 tabular-nums"
+                        >
+                          {chip as string}
+                        </span>
+                      ))}
                       {listing.transaction_type === 'rent' && listing.is_furnished && (
-                        <span className="text-sm text-theme-muted">· Meublé</span>
-                      )}
-                    </div>
-
-                    <p className="mt-1 text-theme-tertiary text-base">
-                      {listing.address}, {listing.postal_code} {listing.city} ({listing.canton})
-                    </p>
-
-                    {/* Specs — compact inline */}
-                    <div className="flex flex-wrap items-center gap-1.5 mt-3 text-sm text-theme-secondary">
-                      {listing.rooms > 0 && <span className="font-medium">{listing.rooms} pièces</span>}
-                      {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-theme-muted">·</span>}
-                      {listing.bedrooms > 0 && <span className="font-medium">{listing.bedrooms} chambres</span>}
-                      {listing.bedrooms > 0 && listing.bathrooms > 0 && <span className="text-theme-muted">·</span>}
-                      {listing.bathrooms > 0 && <span className="font-medium">{listing.bathrooms} sdb</span>}
-                      {listing.bathrooms > 0 && listing.surface_m2 > 0 && <span className="text-theme-muted">·</span>}
-                      {listing.surface_m2 > 0 && <span className="font-medium">{listing.surface_m2.toLocaleString('fr-CH')} m²</span>}
-                      {listing.type && <><span className="text-theme-muted">·</span><span>{TYPE_LABELS[listing.type] || listing.type}</span></>}
-                    </div>
-
-                    {/* — property details moved to Caractéristiques section — */}
-
-                    {/* Badges row: urgency + energy + engagement stats */}
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                      {(() => {
-                        const badge = getUrgencyBadge(listing.days_on_market, listing.is_hot, listing.is_new)
-                        return badge ? (
-                          <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-md', badge.className)}>
-                            {badge.label}
-                          </span>
-                        ) : null
-                      })()}
-                      {listing.is_hot && !listing.is_new && listing.days_on_market <= 90 && (
-                        <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-red-50 text-red-600">
-                          Baisse de prix
-                        </span>
-                      )}
-                      <EnergyLabelBadge label={listing.energy_label} minergie={listing.minergie_label} />
-                      {listing.days_on_market > 3 && (
-                        <span className="flex items-center gap-1 text-xs text-theme-muted">
-                          <Clock className="h-3 w-3" />
-                          {listing.days_on_market}j
+                        <span className="inline-flex h-7 items-center px-3 rounded-full bg-gray-50 border border-gray-100 text-[12px] font-medium text-gray-700">
+                          Meublé
                         </span>
                       )}
                     </div>
 
-                    {/* Walk Score — inline compact */}
+                    {/* Badges — urgency + signals */}
+                    {(() => {
+                      const urgency = getUrgencyBadge(listing.days_on_market, listing.is_hot, listing.is_new)
+                      const hasAny =
+                        urgency ||
+                        (listing.is_hot && !listing.is_new && listing.days_on_market <= 90) ||
+                        listing.energy_label ||
+                        listing.minergie_label ||
+                        listing.days_on_market > 3 ||
+                        listing.is_exclusive ||
+                        listing.c2pa_verified
+                      if (!hasAny) return null
+                      return (
+                        <div className="flex flex-wrap items-center gap-2 mt-4">
+                          {listing.is_exclusive && (
+                            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-accent/10 text-accent text-[11px] font-semibold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Exclusif
+                            </span>
+                          )}
+                          <C2PaBadge verified={listing.c2pa_verified || false} verifiedAt={listing.c2pa_verified_at} />
+                          {urgency && (
+                            <span className={cn('text-[11px] font-semibold px-2.5 py-1 rounded-full', urgency.className)}>
+                              {urgency.label}
+                            </span>
+                          )}
+                          {listing.is_hot && !listing.is_new && listing.days_on_market <= 90 && (
+                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-600">
+                              Baisse de prix
+                            </span>
+                          )}
+                          <EnergyLabelBadge label={listing.energy_label} minergie={listing.minergie_label} />
+                          {listing.days_on_market > 3 && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 tabular-nums">
+                              <Clock className="h-3 w-3" strokeWidth={1.75} />
+                              {listing.days_on_market}j
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })()}
+
+                    {/* Walk Score — inline, more premium */}
                     {walkScore && walkScore.score > 0 && (
-                      <div className="flex items-center gap-2 mt-3">
-                        <span className={cn('text-xs font-semibold', walkScore.color)}>{walkScore.score}</span>
-                        <span className="text-xs text-theme-muted">Walkabilité — {walkScore.label}</span>
+                      <div className="mt-4 inline-flex items-center gap-2 h-8 pl-1 pr-3 rounded-full bg-gray-50 border border-gray-100">
+                        <span className={cn(
+                          'h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white tabular-nums',
+                          walkScore.score >= 70 ? 'bg-green-500' : walkScore.score >= 50 ? 'bg-yellow-500' : walkScore.score >= 25 ? 'bg-orange-500' : 'bg-red-500'
+                        )}>
+                          {walkScore.score}
+                        </span>
+                        <span className="text-[11px] font-medium text-gray-700">Walkabilité · {walkScore.label}</span>
                       </div>
                     )}
 
-                    <div className="border-t border-theme-border-subtle my-6" />
+                    <div className="border-t border-gray-100 my-8" />
 
                     {/* Description */}
                     {listing.description && (
                       <div>
-                        <h3 className="text-xs font-semibold text-theme-muted capitalize mb-3">Description</h3>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-3">Description</p>
                         <div className={cn(
-                          'text-theme-secondary text-sm leading-relaxed',
-                          !descExpanded && 'line-clamp-4'
+                          'relative text-[14px] leading-[1.65] text-gray-700',
+                          !descExpanded && 'max-h-[168px] overflow-hidden'
                         )}>
                           {listing.description.split('\n\n').map((p, i) => (
                             <p key={i} className={i > 0 ? 'mt-3' : ''}>{p}</p>
                           ))}
+                          {!descExpanded && listing.description.length > 400 && (
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
+                          )}
                         </div>
                         {listing.description.length > 200 && (
                           <button
                             onClick={() => setDescExpanded(!descExpanded)}
-                            className="flex items-center gap-1 mt-2 text-accent text-sm font-medium hover:underline"
+                            className="mt-3 inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-gray-50 border border-gray-100 text-[12px] font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                           >
                             {descExpanded ? (
-                              <>Voir moins <ChevronUp className="w-4 h-4" /></>
+                              <>Voir moins <ChevronUp className="w-3.5 h-3.5" strokeWidth={2} /></>
                             ) : (
-                              <>Voir plus <ChevronDown className="w-4 h-4" /></>
+                              <>Voir plus <ChevronDown className="w-3.5 h-3.5" strokeWidth={2} /></>
                             )}
                           </button>
                         )}
@@ -1128,18 +1156,18 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
 
                     {/* Points forts — with icons */}
                     {features.length > 0 && (
-                      <div className="mt-6">
-                        <h3 className="text-xs font-semibold text-theme-muted capitalize mb-3">Points forts</h3>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="mt-8">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-3">Points forts</p>
+                        <div className="flex flex-wrap gap-1.5">
                           {(Array.isArray(features) ? features : Object.keys(features)).map((f, i) => {
                             const label = typeof f === 'string' ? f : String(f)
                             const Icon = getFeatureIcon(label)
                             return (
                               <span
                                 key={i}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-theme-section text-theme-secondary text-sm"
+                                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-gray-50 border border-gray-100 text-[12px] font-medium text-gray-700"
                               >
-                                <Icon className="w-4 h-4 text-theme-tertiary" />
+                                <Icon className="w-3.5 h-3.5 text-gray-400" strokeWidth={1.75} />
                                 {label}
                               </span>
                             )
@@ -1153,8 +1181,8 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
 
                   {/* ── SECTION: Floor Plan Interactif ── */}
                   {listing.floor_plan_url && listing.floor_plan_hotspots.length > 0 && (
-                    <div id="preview-plan" className="mt-10 pt-8 border-t border-theme-border-subtle">
-                      <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Plan interactif</h3>
+                    <div id="preview-plan" className="mt-10 pt-8 border-t border-gray-100">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4">Plan interactif</p>
                       <InteractiveFloorPlan
                         floorPlanUrl={listing.floor_plan_url}
                         hotspots={listing.floor_plan_hotspots}
@@ -1175,23 +1203,29 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                   )}
 
                   {/* ── SECTION: Details / Caractéristiques ── */}
-                  <div id="preview-details" className="mt-10 pt-8 border-t border-theme-border-subtle">
-                    <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Caractéristiques</h3>
-                    <div className="grid grid-cols-2 gap-x-6">
+                  <div id="preview-details" className="mt-10 pt-8 border-t border-gray-100">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4">Caractéristiques</p>
+                    <div className="grid grid-cols-2 gap-2">
                       {characteristics.map(({ label, value }, i) => (
-                        <div key={i} className={cn('flex items-center justify-between py-2.5 px-2', i % 2 === 0 ? 'bg-theme-section/60' : '')}>
-                          <span className="text-sm text-theme-tertiary">{label}</span>
-                          <span className="text-sm font-medium text-theme-primary">{value}</span>
+                        <div
+                          key={i}
+                          className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-100"
+                        >
+                          <span className="text-[12px] text-gray-500 truncate">{label}</span>
+                          <span className="text-[13px] font-semibold text-gray-900 tabular-nums truncate">{value}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* ── SECTION: Map ── */}
-                  <div id="preview-map" className="mt-10 pt-8 border-t border-theme-border-subtle">
-                    <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Localisation</h3>
+                  <div id="preview-map" className="mt-10 pt-8 border-t border-gray-100">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4">Localisation</p>
                     {listing.lat && listing.lng && MAPBOX_TOKEN ? (
-                      <div className="h-[250px] rounded-lg overflow-hidden border border-theme-border-subtle">
+                      <div
+                        className="h-[280px] rounded-2xl overflow-hidden border border-gray-100"
+                        style={{ boxShadow: '0 10px 24px -12px rgba(15,23,42,0.12), 0 2px 6px -2px rgba(15,23,42,0.05)' }}
+                      >
                         <MapGL
                           initialViewState={{ latitude: listing.lat, longitude: listing.lng, zoom: 14 }}
                           mapboxAccessToken={MAPBOX_TOKEN}
@@ -1201,46 +1235,45 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                           attributionControl={false}
                           interactive={false}
                         >
-                          <NavigationControl position="top-right" showCompass={false} />
                           <Marker latitude={listing.lat} longitude={listing.lng} anchor="bottom">
                             <div className="h-7 w-7 bg-accent rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                              <MapPin className="h-3.5 w-3.5 text-white" />
+                              <MapPin className="h-3.5 w-3.5 text-white" strokeWidth={2} />
                             </div>
                           </Marker>
                         </MapGL>
                       </div>
                     ) : (
-                      <div className="h-[200px] rounded-lg bg-theme-section border border-theme-border-subtle flex items-center justify-center">
+                      <div className="h-[200px] rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
                         <div className="text-center">
-                          <MapPin className="h-6 w-6 text-theme-muted mx-auto mb-1" />
-                          <p className="text-sm text-theme-tertiary">{listing.address}, {listing.city}</p>
+                          <MapPin className="h-6 w-6 text-gray-400 mx-auto mb-1" strokeWidth={1.75} />
+                          <p className="text-[13px] text-gray-500">{listing.address}, {listing.city}</p>
                         </div>
                       </div>
                     )}
                   </div>
 
                   {/* ── SECTION: Quartier ── */}
-                  <div id="preview-quartier" className="mt-10 pt-8 border-t border-theme-border-subtle">
+                  <div id="preview-quartier" className="mt-10 pt-8 border-t border-gray-100">
                     <NeighborhoodSection lat={listing.lat} lng={listing.lng} canton={listing.canton} city={listing.city} compact />
                   </div>
 
                   {/* ── SECTION: Market ── */}
-                  <div id="preview-market" className="mt-10 pt-8 border-t border-theme-border-subtle pb-6">
-                    <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Analyse du marché</h3>
+                  <div id="preview-market" className="mt-10 pt-8 border-t border-gray-100 pb-6">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4">Analyse du marché</p>
                     <div className="space-y-4">
                       {marketTemp && <MarketTemperatureBadge temperature={marketTemp} />}
                       {isMarket && rawId && <PriceHistoryChart marketListingId={rawId} />}
                       <NaturalHazardBadge lat={listing.lat} lng={listing.lng} />
                       {!marketTemp && !(isMarket && rawId) && !listing.lat && (
-                        <p className="text-sm text-theme-muted py-4 text-center">Données marché non disponibles pour ce bien</p>
+                        <p className="text-[13px] text-gray-400 py-4 text-center">Données marché non disponibles pour ce bien</p>
                       )}
                     </div>
                   </div>
 
                   {/* ── SECTION: Similar listings ── */}
                   {similarListings.length > 0 && (
-                    <div id="preview-similaires" className="mt-10 pt-8 border-t border-theme-border-subtle pb-6">
-                      <h3 className="text-xs font-semibold text-theme-muted capitalize mb-4">Biens similaires</h3>
+                    <div id="preview-similaires" className="mt-10 pt-8 border-t border-gray-100 pb-6">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4">Biens similaires</p>
                       <div className="grid grid-cols-2 gap-3">
                         {similarListings.slice(0, 4).map((sl) => {
                           const photo = sl.photos?.[0]
@@ -1248,18 +1281,16 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                             <button
                               key={sl.id}
                               onClick={() => {
-                                // Navigate to this listing within the preview panel
                                 const el = scrollRef.current
                                 if (el) el.scrollTop = 0
-                                // Trigger re-render by changing URL param
                                 const params = new URLSearchParams(window.location.search)
                                 params.set('listing', sl.id)
                                 window.history.replaceState(null, '', `?${params.toString()}`)
                                 window.dispatchEvent(new PopStateEvent('popstate'))
                               }}
-                              className="rounded-lg border border-theme-border-subtle overflow-hidden hover:border-theme-border transition-all text-left group"
+                              className="rounded-2xl bg-white overflow-hidden text-left group transition-all duration-300 shadow-[0_10px_24px_-12px_rgba(15,23,42,0.12),0_2px_6px_-2px_rgba(15,23,42,0.05)] hover:shadow-[0_18px_36px_-14px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 cursor-pointer"
                             >
-                              <div className="aspect-[4/3] overflow-hidden bg-theme-hover">
+                              <div className="aspect-[4/3] overflow-hidden bg-gray-100">
                                 {photo ? (
                                   <img
                                     src={optimizeImageUrl(photo, IMAGE_PRESETS.card)}
@@ -1270,18 +1301,18 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
-                                    <Building2 className="h-8 w-8 text-theme-muted" />
+                                    <Building2 className="h-8 w-8 text-gray-300" strokeWidth={1.75} />
                                   </div>
                                 )}
                               </div>
-                              <div className="p-3">
-                                <p className="text-sm font-semibold text-theme-primary">
+                              <div className="px-3 py-2.5">
+                                <p className="text-[15px] font-semibold text-gray-900 tabular-nums tracking-tight">
                                   {formatCHF(sl.price)}
                                 </p>
-                                <p className="text-xs text-theme-tertiary truncate mt-0.5">{sl.address}, {sl.city}</p>
-                                <div className="flex items-center gap-2 text-xs text-theme-muted mt-1">
-                                  {sl.rooms > 0 && <span>{sl.rooms} pièces</span>}
-                                  {sl.rooms > 0 && sl.surface_m2 > 0 && <span className="text-theme-muted">·</span>}
+                                <p className="text-[12px] text-gray-500 truncate mt-0.5">{sl.address}, {sl.city}</p>
+                                <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-1 tabular-nums">
+                                  {sl.rooms > 0 && <span>{sl.rooms} p.</span>}
+                                  {sl.rooms > 0 && sl.surface_m2 > 0 && <span className="text-gray-300">·</span>}
                                   {sl.surface_m2 > 0 && <span>{formatSurface(sl.surface_m2)}</span>}
                                 </div>
                               </div>
