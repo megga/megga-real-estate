@@ -928,6 +928,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 setFilters(prev => ({ ...prev, ...f }))
                 setSidebarView('search')
               }}
+              onCreateSearch={() => { setSidebarView('search'); setSaveDialogOpen(true) }}
             />
           ) : sidebarView === 'alerts' ? (
             <AlertsPanel
