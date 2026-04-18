@@ -36,6 +36,8 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
   function renderItem(item: typeof NAV_ITEMS[0]) {
     const isActive = activeView === item.id
     const Icon = item.icon
+    // Iconic "saved"-type items fill when active for extra weight shift
+    const fillWhenActive = item.id === 'favorites' || item.id === 'saved'
 
     return (
       <button
@@ -47,44 +49,46 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
           }
           onViewChange?.(item.id)
         }}
-        className="group relative flex flex-col items-center mb-2 cursor-pointer"
+        className="group relative flex flex-col items-center mb-1.5 cursor-pointer focus:outline-none"
         title={item.label}
         aria-label={item.label}
         aria-pressed={activeView === item.id}
       >
-        {/* Icon container — background only here */}
+        {/* Icon container */}
         <div
           className={cn(
-            'flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200',
-            isActive ? 'shadow-sm' : 'group-hover:bg-gray-100'
+            'relative flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-200',
+            isActive ? '' : 'group-hover:bg-gray-100'
           )}
           style={isActive ? { backgroundColor: BLUE_BG } : undefined}
         >
           <Icon
-            className={cn('h-[20px] w-[20px] transition-colors', !isActive && 'text-gray-500 group-hover:text-gray-600')}
+            className={cn('h-5 w-5 transition-[stroke-width,color] duration-200', !isActive && 'text-gray-500 group-hover:text-gray-700')}
             style={isActive ? { color: BLUE } : undefined}
-            strokeWidth={isActive ? 2.2 : 1.8}
-            fill={isActive && item.id === 'favorites' ? BLUE : 'none'}
+            strokeWidth={isActive ? 2.25 : 1.75}
+            fill={isActive && fillWhenActive ? BLUE : 'none'}
           />
+
+          {/* Badge — iOS-style, anchored to the icon container */}
+          {item.id === 'favorites' && favCount > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 h-[18px] min-w-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white tabular-nums"
+            >
+              {favCount > 99 ? '99+' : favCount}
+            </span>
+          )}
         </div>
 
-        {/* Label — outside the background */}
+        {/* Label */}
         <span
           className={cn(
-            'text-xs mt-1 font-medium leading-tight transition-colors',
-            !isActive && 'text-gray-500 group-hover:text-gray-600'
+            'text-[11px] mt-1 font-medium leading-tight transition-colors',
+            isActive ? 'font-semibold' : 'text-gray-500 group-hover:text-gray-700'
           )}
           style={isActive ? { color: BLUE } : undefined}
         >
           {item.label}
         </span>
-
-        {/* Badge for favorites count */}
-        {item.id === 'favorites' && favCount > 0 && (
-          <span className="absolute top-0 right-1 h-[16px] min-w-[16px] px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-            {favCount > 99 ? '99+' : favCount}
-          </span>
-        )}
       </button>
     )
   }

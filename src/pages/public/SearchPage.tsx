@@ -418,7 +418,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
           {/* Desktop: single unified row — constrained to left panel width */}
           <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: '45%' }}>
             {/* Search input — smart: city lookup OR natural-language parser */}
-            <form onSubmit={handleSearch} className="relative flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-colors focus-within:bg-white [&_*]:outline-none">
+            <form onSubmit={handleSearch} className="relative flex items-center gap-2.5 bg-gray-50 border border-transparent rounded-full px-4 h-10 flex-[2] min-w-[312px] transition-colors focus-within:bg-white focus-within:border-gray-900 [&_*]:outline-none">
               {/* First-visit onboarding popover — dismisses on focus or × */}
               {showOnboarding && smartEnabled && (
                 <div
@@ -485,11 +485,11 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 </div>
               )}
               {smartParser.isPending ? (
-                <div className="h-3.5 w-3.5 shrink-0 border-2 border-gray-300 border-t-accent rounded-full animate-spin" />
+                <div className="h-4 w-4 shrink-0 border-2 border-gray-200 border-t-[#001751] rounded-full animate-spin" />
               ) : isNLP ? (
-                <AiSparkle className="h-3.5 w-3.5 text-[#001751] shrink-0 transition-colors" />
+                <AiSparkle className="h-4 w-4 text-[#001751] shrink-0 transition-colors" />
               ) : (
-                <Search className="h-3.5 w-3.5 text-gray-500 shrink-0 transition-colors" />
+                <Search className="h-4 w-4 text-gray-400 shrink-0 transition-colors" strokeWidth={2} />
               )}
               <input
                 type="search"
