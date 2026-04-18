@@ -509,9 +509,13 @@ export function useMarketListing(id: string | undefined) {
     queryFn: async () => {
       if (!id) return null
 
+      // NB: the previous embed 'agency_profile:agency_profile_id(slug, status)'
+      // failed with PGRST200 when PostgREST's schema cache didn't know about
+      // the FK added in migration 20260416_006. We drop the embed (it wasn't
+      // consumed anywhere anyway) and fetch * directly.
       const { data, error } = await supabase
         .from('market_listings')
-        .select('*, agency_profile:agency_profile_id(slug, status)')
+        .select('*')
         .eq('id', id)
         .single()
 
