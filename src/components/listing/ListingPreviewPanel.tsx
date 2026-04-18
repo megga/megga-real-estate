@@ -88,7 +88,7 @@ interface TransformedListing {
   transaction_type: 'buy' | 'rent'
   is_furnished: boolean
   deposit_months: number | null
-  external_regie: { name?: string; phone?: string; email?: string; website?: string } | null
+  external_regie: { name?: string; phone?: string; email?: string; website?: string; street?: string; zipcode?: string; city?: string; country?: string } | null
   agency_phone: string
   agency_profile: {
     name?: string
@@ -153,7 +153,7 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     transaction_type: ((data.transaction_type as string) || 'buy') as 'buy' | 'rent',
     is_furnished: !!data.is_furnished,
     deposit_months: (data.deposit_months as number | null | undefined) ?? null,
-    external_regie: (data.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null,
+    external_regie: (data.external_regie as TransformedListing['external_regie']) ?? null,
     agency_phone: (data.agency_phone as string) || '',
     agency_profile: (data.agency_profile as TransformedListing['agency_profile']) ?? null,
   }
@@ -1441,7 +1441,11 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                         },
                       )
                       const logoUrl = listing.agency_logo_url || ap?.logo_url || undefined
-                      const agencyAddress = [ap?.address, [ap?.zipcode, ap?.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+                      const er = listing.external_regie
+                      const addrStreet = ap?.address || er?.street
+                      const addrZip = ap?.zipcode || er?.zipcode
+                      const addrCity = ap?.city || er?.city
+                      const agencyAddress = [addrStreet, [addrZip, addrCity].filter(Boolean).join(' ')].filter(Boolean).join(', ')
                       const isVerified = ap?.status === 'verified'
                       const isClaimed = ap?.status === 'claimed' || isVerified
                       const hasRating = (ap?.rating_count ?? 0) > 0
