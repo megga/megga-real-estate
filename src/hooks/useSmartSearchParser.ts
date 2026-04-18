@@ -96,7 +96,7 @@ export function buildSmartChipLabels(f: SmartParsedFilters): string[] {
   if (f.maxPrice != null) {
     const p = f.maxPrice
     const compact = p >= 1_000_000 ? `${(p / 1_000_000).toFixed(p % 1_000_000 === 0 ? 0 : 1)}M`
-      : p >= 1000 ? `${(p / 1000).toFixed(0)}K`
+      : p >= 1000 ? `${(p / 1000).toFixed(p % 1000 === 0 ? 0 : 1)}K`
       : String(p)
     labels.push(`< ${compact}`)
   }
