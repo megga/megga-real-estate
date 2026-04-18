@@ -418,7 +418,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
           {/* Desktop: single unified row — constrained to left panel width */}
           <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: '45%' }}>
             {/* Search input — smart: city lookup OR natural-language parser */}
-            <form onSubmit={handleSearch} className="relative flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-all focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-300">
+            <form onSubmit={handleSearch} className="relative flex items-center gap-2 bg-gray-100 rounded-lg px-3 h-9 flex-[2] min-w-[312px] transition-colors focus-within:bg-white [&_*]:outline-none">
               {/* First-visit onboarding popover */}
               {showOnboarding && smartEnabled && (
                 <div className="absolute top-full left-0 mt-2 w-[320px] z-50 bg-white rounded-xl border border-gray-200 shadow-lg p-3 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -456,7 +456,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 data-1p-ignore="true"
                 data-lpignore="true"
                 data-form-type="other"
-                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0 [&::-webkit-search-cancel-button]:hidden"
+                className="appearance-none flex-1 text-sm bg-transparent border-0 outline-none ring-0 text-gray-900 placeholder:text-gray-400 min-w-0 focus:outline-none focus:ring-0 focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
               />
               {searchInput && (
                 <button type="button" onClick={() => { setSearchInput(''); setSmartChip(null); setSmartError(null); clearAllFilters() }} className="text-gray-500 hover:text-gray-600">
@@ -709,7 +709,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                 data-1p-ignore="true"
                 data-lpignore="true"
                 data-form-type="other"
-                className="flex-1 text-sm bg-transparent border-0 outline-none text-gray-900 placeholder:text-gray-400 min-w-0 [&::-webkit-search-cancel-button]:hidden"
+                className="appearance-none flex-1 text-sm bg-transparent border-0 outline-none ring-0 text-gray-900 placeholder:text-gray-400 min-w-0 focus:outline-none focus:ring-0 focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
               />
             </form>
             <button
