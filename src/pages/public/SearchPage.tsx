@@ -549,8 +549,8 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                   type="button"
                   onClick={() => updateFilter({ isFurnished: !filters.isFurnished })}
                   className={cn(
-                    'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
-                    filters.isFurnished ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    'flex items-center gap-1.5 h-9 px-4 text-sm font-medium rounded-full border transition-colors duration-150 whitespace-nowrap cursor-pointer shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300',
+                    filters.isFurnished ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                   )}
                   aria-pressed={filters.isFurnished}
                 >
@@ -560,8 +560,8 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                   type="button"
                   onClick={() => updateFilter({ availableNow: !filters.availableNow })}
                   className={cn(
-                    'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
-                    filters.availableNow ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    'flex items-center gap-1.5 h-9 px-4 text-sm font-medium rounded-full border transition-colors duration-150 whitespace-nowrap cursor-pointer shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300',
+                    filters.availableNow ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                   )}
                   aria-pressed={filters.availableNow}
                 >
@@ -588,12 +588,12 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                     type="button"
                     onClick={() => setPlusOpen(!plusOpen)}
                     className={cn(
-                      'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
-                      plusActive ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      'flex items-center gap-1.5 h-9 px-4 text-sm font-medium rounded-full border transition-colors duration-150 whitespace-nowrap cursor-pointer shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300',
+                      plusActive ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                     )}
                   >
                     {plusCount > 0 ? t('search.moreWithCount', { count: plusCount }) : t('search.more')}
-                    <ChevronDown className={cn('w-3 h-3 transition-transform', plusActive ? 'text-white/60' : 'text-gray-500', plusOpen && 'rotate-180')} />
+                    <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', plusActive ? 'text-white/70' : 'text-gray-500', plusOpen && 'rotate-180')} />
                   </button>
                   {plusOpen && (
                     <div className="absolute top-full left-0 mt-1.5 w-[620px] bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-6 animate-[fadeIn_0.15s_ease-out]">
