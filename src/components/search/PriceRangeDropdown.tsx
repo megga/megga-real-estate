@@ -252,14 +252,14 @@ export default function PriceRangeDropdown({ minPrice, maxPrice, onChange, conte
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
+          'flex items-center gap-1.5 h-9 px-4 text-sm font-medium rounded-full border transition-colors duration-150 whitespace-nowrap cursor-pointer shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300',
           active
-            ? 'bg-gray-900 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            ? 'bg-gray-900 text-white border-gray-900'
+            : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
         )}
       >
         {label}
-        <ChevronDown className={cn('w-3 h-3 transition-transform', active ? 'text-white/60' : 'text-gray-500', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', active ? 'text-white/70' : 'text-gray-500', open && 'rotate-180')} />
       </button>
 
       {/* Dropdown panel */}

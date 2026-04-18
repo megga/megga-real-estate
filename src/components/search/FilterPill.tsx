@@ -27,18 +27,19 @@ export function FilterPill({ label, active, dark, children }: FilterPillProps) {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-full transition-all duration-150 whitespace-nowrap cursor-pointer',
+          // Base — unified Dessiner-like pill: white, soft shadow, readable text
+          'flex items-center gap-1.5 h-9 px-4 text-sm font-medium rounded-full border transition-colors duration-150 whitespace-nowrap cursor-pointer shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300',
           dark
             ? active
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-gray-900 text-white border-gray-900'
+              : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
             : active
-              ? 'bg-theme-active text-theme-primary'
-              : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+              ? 'bg-theme-active text-theme-primary border-theme-border'
+              : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
         )}
       >
         {label}
-        <ChevronDown className={cn('w-3 h-3 transition-transform', active ? (dark ? 'text-white/60' : 'text-theme-secondary') : 'text-gray-500', open && 'rotate-180')} />
+        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', active && dark ? 'text-white/70' : 'text-gray-500', open && 'rotate-180')} />
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1.5 min-w-[200px] bg-white rounded-xl shadow-lg border border-gray-100 z-50 py-1.5 max-h-72 overflow-y-auto scrollbar-hide">
