@@ -626,9 +626,12 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
   const [floorPlanRoom, setFloorPlanRoom] = useState<string | null>(null)
   const mobileCarouselRef = useRef<HTMLDivElement>(null)
 
+  // IDs may be prefixed ('market-xxx', 'internal-xxx') or raw UUIDs.
+  // When unprefixed we default to market (the marketplace is the most
+  // common source of clicks).
   const rawId = listingId?.replace('market-', '').replace('internal-', '')
-  const isMarket = listingId?.startsWith('market-')
-  const isInternal = listingId?.startsWith('internal-')
+  const isInternal = !!listingId?.startsWith('internal-')
+  const isMarket = !!listingId && !isInternal
 
   const { data: marketData, isLoading: loadingMarket } = useMarketListing(isMarket ? rawId : undefined)
   const { data: internalData, isLoading: loadingInternal } = useQuery({
