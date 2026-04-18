@@ -7,7 +7,10 @@ import {
   Phone, Building2,
   Clock, Images, Fence, Sun, Archive, Car, Warehouse, Sparkles, Send,
   ArrowUpDown, Mountain, Flame, Wind, TreePine, Droplets, Check,
+  Flag, EyeOff,
 } from 'lucide-react'
+import ReportListingDialog from '@/components/listing/ReportListingDialog'
+import { useHiddenListings } from '@/hooks/useHiddenListings'
 import { cn, formatCHF, formatRent, formatSurface, resolveRegieContact } from '@/lib/utils'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 import Footer from '@/components/layout/Footer'
@@ -625,6 +628,21 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
   const [showStaged, setShowStaged] = useState(false)
   const [floorPlanRoom, setFloorPlanRoom] = useState<string | null>(null)
   const mobileCarouselRef = useRef<HTMLDivElement>(null)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
+  const [reportOpen, setReportOpen] = useState(false)
+  const { isHidden, hide, unhide } = useHiddenListings()
+  const hiddenForCurrent = listingId ? isHidden(listingId) : false
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!moreMenuOpen) return
+    const onDoc = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) setMoreMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [moreMenuOpen])
 
   // IDs may be prefixed ('market-xxx', 'internal-xxx') or raw UUIDs.
   // When unprefixed we default to market (the marketplace is the most
@@ -800,14 +818,54 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
             <Share2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Partager</span>
           </button>
-          <button
-            aria-label="Plus d'options"
-            className="flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-theme-secondary hover:text-theme-primary transition-colors cursor-pointer"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </button>
+          <div ref={moreMenuRef} className="relative">
+            <button
+              onClick={() => setMoreMenuOpen(v => !v)}
+              aria-label="Plus d'options"
+              aria-expanded={moreMenuOpen}
+              className={cn(
+                'flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium transition-colors cursor-pointer',
+                moreMenuOpen ? 'text-theme-primary' : 'text-theme-secondary hover:text-theme-primary'
+              )}
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+            {moreMenuOpen && (
+              <div
+                className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-1 duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                style={{ boxShadow: '0 24px 64px -20px rgba(15, 23, 42, 0.22), 0 6px 16px -6px rgba(15, 23, 42, 0.08)' }}
+              >
+                <button
+                  onClick={() => { setReportOpen(true); setMoreMenuOpen(false) }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <Flag className="h-4 w-4 text-gray-500 shrink-0" strokeWidth={1.75} />
+                  <span className="flex-1 text-left">Signaler un problème</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (!listingId) return
+                    if (hiddenForCurrent) { unhide(listingId) }
+                    else { hide(listingId); onClose() }
+                    setMoreMenuOpen(false)
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <EyeOff className="h-4 w-4 text-gray-500 shrink-0" strokeWidth={1.75} />
+                  <span className="flex-1 text-left">{hiddenForCurrent ? 'Ré-afficher ce bien' : 'Masquer ce bien'}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      {reportOpen && listingId && (
+        <ReportListingDialog
+          listingId={listingId}
+          listingTitle={listing?.title}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
 
       {/* Scrollable content */}
       <div ref={scrollRef} className="overflow-y-auto flex-1 scrollbar-hide">

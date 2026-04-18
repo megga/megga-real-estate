@@ -38,6 +38,7 @@ import AiSparkle from '@/components/icons/AiSparkle'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { sortByRecommendation } from '@/lib/recommendationScore'
 import { useFavorites } from '@/hooks/useFavorites'
+import { useHiddenListings } from '@/hooks/useHiddenListings'
 import { cn } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
 import { useMarketTemperature } from '@/hooks/useMarketInsights'
@@ -131,6 +132,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [savedListOpen, setSavedListOpen] = useState(false)
   const { isFavorite, toggleFavorite, favoriteIds } = useFavorites()
+  const { hiddenIds } = useHiddenListings()
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get('listing'))
   const mapViewRef = useRef<MapViewHandle>(null)
   const [sidebarView, setSidebarView] = useState('search')
@@ -225,8 +227,13 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     if (zoneFilterIds) {
       result = result.filter((l) => zoneFilterIds.includes(l.id))
     }
+    // Filter out listings the user has explicitly hidden
+    if (hiddenIds.length > 0) {
+      const hiddenSet = new Set(hiddenIds)
+      result = result.filter((l) => !hiddenSet.has(l.id))
+    }
     return result
-  }, [allListings, zoneFilterIds])
+  }, [allListings, zoneFilterIds, hiddenIds])
 
   // Recommendation sorting (client-side)
   const visible = filters.sort === 'recommended'
