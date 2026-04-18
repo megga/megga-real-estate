@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
-  Sparkles,
   ChevronDown,
   X,
   Map,
@@ -35,6 +34,7 @@ import {
   smartFiltersToPartialFilters,
   buildSmartChipLabels,
 } from '@/hooks/useSmartSearchParser'
+import AiSparkle from '@/components/icons/AiSparkle'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { sortByRecommendation } from '@/lib/recommendationScore'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -423,7 +423,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               {showOnboarding && smartEnabled && (
                 <div className="absolute top-full left-0 mt-2 w-[320px] z-50 bg-white rounded-xl border border-gray-200 shadow-lg p-3 animate-in fade-in slide-in-from-top-1 duration-200">
                   <div className="flex items-start gap-2">
-                    <Sparkles className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                    <AiSparkle className="h-4 w-4 text-[#001751] shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-semibold text-gray-900 mb-0.5">{t('search.smart.onboardingTitle')}</div>
                       <p className="text-xs text-gray-600 leading-relaxed">{t('search.smart.onboardingBody')}</p>
@@ -442,7 +442,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               {smartParser.isPending ? (
                 <div className="h-3.5 w-3.5 shrink-0 border-2 border-gray-300 border-t-accent rounded-full animate-spin" />
               ) : isNLP ? (
-                <Sparkles className="h-3.5 w-3.5 text-accent shrink-0 transition-colors" />
+                <AiSparkle className="h-3.5 w-3.5 text-[#001751] shrink-0 transition-colors" />
               ) : (
                 <Search className="h-3.5 w-3.5 text-gray-500 shrink-0 transition-colors" />
               )}
@@ -696,7 +696,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               {smartParser.isPending ? (
                 <div className="h-3.5 w-3.5 shrink-0 border-2 border-gray-300 border-t-accent rounded-full animate-spin" />
               ) : isNLP ? (
-                <Sparkles className="h-3.5 w-3.5 text-accent shrink-0" />
+                <AiSparkle className="h-3.5 w-3.5 text-[#001751] shrink-0" />
               ) : (
                 <Search className="h-3.5 w-3.5 text-gray-500 shrink-0" />
               )}
@@ -735,13 +735,16 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
       {(smartChip || smartError) && (
         <div className="px-4 pt-2 pb-0 flex items-center gap-2">
           {smartChip && (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 text-accent text-xs font-medium pl-2.5 pr-1.5 py-1 max-w-full">
-              <Sparkles className="h-3 w-3 shrink-0" />
-              <span className="truncate">{t('search.smart.understood')} : {smartChip.labels.join(' · ')}</span>
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#001751]/[0.06] border border-[#001751]/10 text-[#001751] text-xs font-medium pl-2 pr-1 py-1 max-w-full transition-colors hover:bg-[#001751]/10"
+              title={smartChip.labels.join(' · ')}
+            >
+              <AiSparkle className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{smartChip.labels.join(' · ')}</span>
               <button
                 type="button"
                 onClick={() => { setSmartChip(null); setSearchInput(''); clearAllFilters() }}
-                className="shrink-0 ml-0.5 h-4 w-4 rounded-full hover:bg-accent/20 flex items-center justify-center cursor-pointer"
+                className="shrink-0 ml-0.5 h-4 w-4 rounded-full text-[#001751]/60 hover:text-[#001751] hover:bg-[#001751]/15 flex items-center justify-center cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#001751]/30"
                 aria-label="Réinitialiser"
               >
                 <X className="h-2.5 w-2.5" />
@@ -749,7 +752,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
             </div>
           )}
           {smartError && (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 text-red-600 text-xs font-medium px-2.5 py-1">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/15 text-red-600 text-xs font-medium pl-3 pr-1 py-1">
               <span>{smartError}</span>
               <button
                 type="button"
