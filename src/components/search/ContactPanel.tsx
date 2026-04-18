@@ -268,7 +268,7 @@ export default function ContactPanel({ selectedListing }: Props) {
             {/* Dual CTA */}
             <div className="flex flex-col items-center gap-2 w-full max-w-[260px]">
               <Link
-                to="/signup"
+                to="/register"
                 className="w-full inline-flex items-center justify-center h-10 px-5 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors cursor-pointer shadow-[0_4px_12px_-4px_rgba(15,23,42,0.25)]"
               >
                 Créer un compte
