@@ -114,24 +114,48 @@ function PageLoader() {
   )
 }
 
-// networkMode: 'always' → ignore `navigator.onLine`.
-// Chrome occasionally reports onLine=false after sleep/wake, WiFi↔4G switches,
-// VPN toggles, or DevTools "Offline" mode. In 'online' mode (the default),
-// TanStack Query pauses queries until `onLine` flips back to true — which can
-// never happen if Chrome's state is stuck, leaving the page on eternal skeletons
-// with no network request and no console error.
-// 'always' lets queries fire regardless; if the network is truly down, they
-// fail fast with a real error the UI can display.
+// Defensive defaults for a reliable UX after long idles / sleep / wake:
+//
+// - networkMode: 'always'
+//     Chrome occasionally reports `navigator.onLine = false` after sleep/wake,
+//     WiFi↔4G switches, VPN toggles, or DevTools "Offline" mode. In the default
+//     'online' mode, TanStack pauses queries until `onLine` flips back to true
+//     — which can get stuck, leaving the page on eternal skeletons with no
+//     network request and no console error. 'always' fires regardless.
+//
+// - refetchOnWindowFocus: true
+//     When the user wakes the laptop / returns to the tab after 15+ min,
+//     Chrome aggressively evicts in-memory state. We need TanStack to
+//     proactively re-fetch as soon as the tab regains focus, otherwise
+//     the user sees empty skeletons forever. Combined with a 2-min
+//     staleTime, this only fires when the data is actually stale —
+//     no thrash when the user Alt-Tabs every 30s.
+//
+// - refetchOnReconnect: true (default)
+//     Complements the focus handler: if the network hiccup is what
+//     happened, the reconnect event triggers the refetch.
+//
+// - staleTime: 2 min (was 5 min)
+//     Aligns with how quickly apartment listings change in practice;
+//     also ensures that after a short sleep, data is considered stale
+//     and gets refreshed on focus.
+//
+// - retry: 1 with short backoff
+//     Fail fast on real errors so the UI surfaces an error state the user
+//     can act on (retry button), instead of spinning indefinitely.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5,
+      staleTime: 1000 * 60 * 2,
       retry: 1,
-      refetchOnWindowFocus: false,
+      retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 4000),
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       networkMode: 'always',
     },
     mutations: {
       networkMode: 'always',
+      retry: 0,
     },
   },
 })
