@@ -13,6 +13,7 @@ import ReportListingDialog from '@/components/listing/ReportListingDialog'
 import { useHiddenListings } from '@/hooks/useHiddenListings'
 import { cn, formatCHF, formatRent, formatSurface, resolveRegieContact } from '@/lib/utils'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
+import { pickPhoto, pickSrcSet } from '@/lib/listingPhotos'
 import Footer from '@/components/layout/Footer'
 import { useMarketListing, useMarketListings } from '@/hooks/useMarketListings'
 import { useQuery } from '@tanstack/react-query'
@@ -58,6 +59,7 @@ interface TransformedListing {
   bathrooms: number
   surface_m2: number
   photos: string[]
+  photos_cf: Array<{ id: string; thumb?: string; detail?: string; hero?: string; og?: string }> | null
   description: string
   features: string[]
   type: string
@@ -122,6 +124,7 @@ function transformListing(data: Record<string, any>, source: 'market' | 'interna
     bathrooms: Number(data.bathrooms) || 0,
     surface_m2: Number(data.surface_m2) || 0,
     photos: (data.photos as string[]) || [],
+    photos_cf: (data.photos_cf as TransformedListing['photos_cf']) ?? null,
     description: (data.description as string) || '',
     features: (data.features as string[]) || [],
     type: (data.type as string) || 'apartment',
@@ -764,6 +767,20 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
   const photos = showStaged && hasStagedPhotos ? stagedPhotos : originalPhotos
   const features = listing?.features || []
   const photoCount = photos.length
+
+  // Resolve an <img src> for photo[i]. Prefers Cloudflare Images variants when
+  // available (served from edge CDN). Staged photos (AI-generated via Gemini)
+  // don't have CF variants — they stay on the optimizeImageUrl path.
+  const photoSrc = (i: number, variant: 'detail' | 'hero' = 'detail'): string => {
+    if (showStaged && hasStagedPhotos) {
+      return optimizeImageUrl(photos[i] || photos[0], variant === 'hero' ? IMAGE_PRESETS.full : IMAGE_PRESETS.preview)
+    }
+    const cf = pickPhoto({ photos_cf: listing?.photos_cf ?? null, photos }, i, variant)
+    if (cf) return cf
+    return optimizeImageUrl(photos[i] || photos[0], variant === 'hero' ? IMAGE_PRESETS.full : IMAGE_PRESETS.preview)
+  }
+  const photoSrcSet = (i: number): string | undefined =>
+    showStaged && hasStagedPhotos ? undefined : pickSrcSet({ photos_cf: listing?.photos_cf ?? null }, i)
   const pricePerM2 = listing ? (listing.price_per_m2 > 0 ? listing.price_per_m2 : (listing.surface_m2 > 0 ? Math.round(listing.price / listing.surface_m2) : 0)) : 0
 
   function scrollToSection(id: string) {
@@ -983,7 +1000,9 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(0) } }}
                     >
                       <img
-                        src={optimizeImageUrl(photos[photoIndex], IMAGE_PRESETS.full)}
+                        src={photoSrc(photoIndex, 'hero')}
+                        srcSet={photoSrcSet(photoIndex)}
+                        sizes="(min-width: 1024px) 60vw, 100vw"
                         alt={listing.title}
                         className="w-full h-full object-cover"
                       />
@@ -1011,18 +1030,18 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
 
                     {/* Top-right photos */}
                     <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 2" onClick={() => openLightbox(1)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(1) } }}>
-                      <img src={optimizeImageUrl(photos[1] || photos[0], IMAGE_PRESETS.preview)} alt="Photo du bien" className="w-full h-full object-cover" />
+                      <img src={photoSrc(1)} srcSet={photoSrcSet(1)} sizes="25vw" alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
                     <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 3" onClick={() => openLightbox(2)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(2) } }}>
-                      <img src={optimizeImageUrl(photos[2] || photos[0], IMAGE_PRESETS.preview)} alt="Photo du bien" className="w-full h-full object-cover" />
+                      <img src={photoSrc(2)} srcSet={photoSrcSet(2)} sizes="25vw" alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
 
                     {/* Bottom-right photos */}
                     <div className="overflow-hidden cursor-pointer" role="button" tabIndex={0} aria-label="Photo 4" onClick={() => openLightbox(3)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(3) } }}>
-                      <img src={optimizeImageUrl(photos[3] || photos[1] || photos[0], IMAGE_PRESETS.preview)} alt="Photo du bien" className="w-full h-full object-cover" />
+                      <img src={photoSrc(3)} srcSet={photoSrcSet(3)} sizes="25vw" alt="Photo du bien" className="w-full h-full object-cover" />
                     </div>
                     <div className="overflow-hidden cursor-pointer relative" role="button" tabIndex={0} aria-label="Photo 5" onClick={() => openLightbox(4)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(4) } }}>
-                      <img src={optimizeImageUrl(photos[4] || photos[2] || photos[0], IMAGE_PRESETS.preview)} alt="Photo du bien" className="w-full h-full object-cover" />
+                      <img src={photoSrc(4)} srcSet={photoSrcSet(4)} sizes="25vw" alt="Photo du bien" className="w-full h-full object-cover" />
                       {/* "See all X photos" button */}
                       {photoCount >= 2 && (
                         <button
@@ -1059,10 +1078,12 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
                         setMobilePhotoIndex(idx)
                       }}
                     >
-                      {photos.map((photo, i) => (
+                      {photos.map((_photo, i) => (
                         <div key={i} className="w-full flex-shrink-0 snap-center">
                           <img
-                            src={optimizeImageUrl(photo, IMAGE_PRESETS.preview)}
+                            src={photoSrc(i)}
+                            srcSet={photoSrcSet(i)}
+                            sizes="100vw"
                             alt={i === 0 ? listing.title : ''}
                             className="w-full h-full object-cover"
                             onClick={() => openLightbox(i)}

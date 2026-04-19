@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCHF, formatSurface } from '@/lib/utils'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
+import { pickPhoto, pickSrcSet } from '@/lib/listingPhotos'
 import { getSmartBadge } from '@/lib/searchFilters'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
@@ -66,7 +67,9 @@ export default function SearchListingCard({
       <div className="relative aspect-[16/9] overflow-hidden">
         {photos.length > 0 ? (
           <img
-            src={optimizeImageUrl(photos[currentPhoto], IMAGE_PRESETS.card)}
+            src={pickPhoto(listing, currentPhoto, 'detail') ?? optimizeImageUrl(photos[currentPhoto], IMAGE_PRESETS.card)}
+            srcSet={pickSrcSet(listing, currentPhoto)}
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             alt={listing.title}
             className="w-full h-full object-cover"
             loading={eager ? undefined : 'lazy'}

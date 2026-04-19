@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Heart, BedDouble, DoorOpen, Maximize, Building2, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { cn, formatCHF, formatRent, formatSurface } from '@/lib/utils'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
+import { pickPhoto, pickSrcSet } from '@/lib/listingPhotos'
 
 export interface ListingCardData {
   id: string
@@ -47,6 +48,9 @@ export interface ListingCardData {
   is_furnished?: boolean
   deposit_months?: number | null
   external_regie?: { name?: string; phone?: string; email?: string; website?: string } | null
+  // Cloudflare Images variants — served from edge CDN, preferred over `photos`
+  // when populated. See src/lib/listingPhotos.ts for consumer helpers.
+  photos_cf?: Array<{ id: string; thumb?: string; detail?: string; hero?: string; og?: string }> | null
 }
 
 interface ListingCardProps {
@@ -82,22 +86,32 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
             className="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide"
             onScroll={handleScroll}
           >
-            {photos.map((photo, i) => (
-              <div key={i} className="w-full h-full flex-shrink-0 snap-center">
-                {/* Only render images within 1 position of current photo to reduce DOM nodes */}
-                {Math.abs(i - currentPhoto) <= 1 ? (
-                  <img
-                    src={optimizeImageUrl(photo, IMAGE_PRESETS.card)}
-                    alt={i === 0 ? listing.title : ''}
-                    className="w-full h-full object-cover"
-                    loading={i > 0 ? 'lazy' : undefined}
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-100" />
-                )}
-              </div>
-            ))}
+            {photos.map((photo, i) => {
+              // Prefer CF Images variants when available. `pickPhoto` falls
+              // back to the Flatfox URL (via optimizeImageUrl) when CF hasn't
+              // processed this listing yet.
+              const cfSrc = pickPhoto(listing, i, 'thumb')
+              const src = cfSrc ?? optimizeImageUrl(photo, IMAGE_PRESETS.card)
+              const srcSet = pickSrcSet(listing, i)
+              return (
+                <div key={i} className="w-full h-full flex-shrink-0 snap-center">
+                  {/* Only render images within 1 position of current photo to reduce DOM nodes */}
+                  {Math.abs(i - currentPhoto) <= 1 ? (
+                    <img
+                      src={src}
+                      srcSet={srcSet}
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                      alt={i === 0 ? listing.title : ''}
+                      className="w-full h-full object-cover"
+                      loading={i > 0 ? 'lazy' : undefined}
+                      decoding="async"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100" />
+                  )}
+                </div>
+              )
+            })}
           </div>
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
