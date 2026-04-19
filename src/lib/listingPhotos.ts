@@ -2,19 +2,22 @@
 // Single source of truth for "which URL do I use to render this photo?".
 //
 // A listing can be in one of two states:
-//   - photos_cf populated → CF Images variants available (thumb/detail/hero/og)
+//   - photos_cf populated → Cloudflare R2 variants served from img.megga.ch
 //   - photos_cf empty/null → fall back to `photos[]` (Flatfox CDN URLs)
 //
 // The backfill processes ~150 listings/hour so during the ramp-up period
 // (~9 days from migration to 100 %), both states coexist. These helpers
 // keep consumer code clean by handling the branch in one place.
+//
+// Column name kept as `photos_cf` (= "Cloudflare-hosted photos") to avoid a
+// rename migration — the backend is R2, but the CF umbrella applies.
 
 export interface CFVariant {
   id: string
-  thumb?: string   // 400px WebP — listing cards
-  detail?: string  // 1200px WebP — listing detail / modal hero
-  hero?: string    // 1600px WebP — fullscreen preview / carousel
-  og?: string      // 1200×630 JPG — social share
+  thumb?: string   // 400px JPEG q80 — listing cards
+  detail?: string  // 1200px JPEG q85 — listing detail / modal hero
+  hero?: string    // 1600px JPEG q90 — fullscreen preview / carousel
+  og?: string      // reserved — not generated for R2 variant set
 }
 
 type Variant = keyof Omit<CFVariant, 'id'>

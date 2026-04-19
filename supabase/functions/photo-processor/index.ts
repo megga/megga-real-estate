@@ -1,45 +1,61 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// photo-processor — Upload listing photos to Cloudflare Images
+// photo-processor — Mirror listing photos to Cloudflare R2
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// Uploads a batch of Flatfox (or any external) photo URLs to Cloudflare
-// Images and returns the CF variant URLs so the caller can persist them on
+// Downloads a batch of external photo URLs (Flatfox CDN), decodes them,
+// generates 3 resized JPEG variants (thumb/detail/hero) and uploads them to
+// Cloudflare R2. Returns the public URLs so the caller can persist them on
 // `market_listings.photos_cf`.
 //
-// This function is called by:
-//   1. `flatfox-sync` — after each new listing is upserted
-//   2. `backfill-cf-images` — to catch up on the existing 33K listings
+// Why R2 and not Cloudflare Images:
+//   - Free tier covers MEGGA's entire volume (10 GB storage, 1M writes/mo)
+//   - Egress is free forever on R2 (no per-delivery cost unlike CF Images)
+//   - Total cost at MEGGA scale: ~$0.50/mo vs. $15-20/mo for CF Images
+//   - C2PA: signatures are embedded in the image bytes by our existing
+//     c2pa-sign EF — R2 preserves them transparently, no need for CF Images
 //
-// Auth: service_role only (never exposed to the browser — protects the
-// CF_IMAGES_TOKEN from being fingerprinted by a malicious caller).
+// This function is called by:
+//   1. `backfill-cf-images` — to catch up on the 33K historical listings
+//   2. `flatfox-sync` (via pg_cron stamping photos_cf = NULL → backfill picks up)
+//
+// Auth: service_role only — the R2 credentials must never leak.
 //
 // Input (POST JSON):
-//   { listingId: string, photoUrls: string[] }   // max 10 photos / listing
+//   { listingId: string, photoUrls: string[] }   // max 10 photos
 //
 // Output:
-//   { success: true, photos_cf: [{id, thumb, detail, hero, og}, ...] }
+//   { success: true, photos_cf: [{id, thumb, detail, hero}, ...], ... }
 //   { success: false, error: string }
 //
-// Idempotency: CF Images IDs are deterministic (`listing-<uuid>-<idx>`).
-// Re-running the function on the same listing overwrites the same IDs in
-// place — no duplicates, no extra storage cost.
-//
-// CF Images variants must be pre-configured at the account level:
-//   thumb  — 400px  WebP q80
-//   detail — 1200px WebP q85
-//   hero   — 1600px WebP q90
-//   og     — 1200×630 JPG q85  (social share)
-// If a variant is missing, CF returns the original URL instead.
+// Idempotency: R2 keys are deterministic (`listings/<uuid>/<i>-variant.jpg`).
+// Re-running overwrites in place — no duplicates, no extra cost.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts'
+import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.17'
 
 const CF_ACCOUNT_ID = Deno.env.get('CF_ACCOUNT_ID') ?? ''
-const CF_IMAGES_TOKEN = Deno.env.get('CF_IMAGES_TOKEN') ?? ''
+const R2_ACCESS_KEY_ID = Deno.env.get('R2_ACCESS_KEY_ID') ?? ''
+const R2_SECRET_ACCESS_KEY = Deno.env.get('R2_SECRET_ACCESS_KEY') ?? ''
+// Public delivery base — either a custom domain (img.megga.ch) or the
+// Cloudflare r2.dev subdomain. Must NOT include a trailing slash.
+// e.g. R2_PUBLIC_BASE=https://img.megga.ch
+//      R2_PUBLIC_BASE=https://pub-xxxxxx.r2.dev
+const R2_PUBLIC_BASE = (Deno.env.get('R2_PUBLIC_BASE') ?? '').replace(/\/$/, '')
+const R2_BUCKET = Deno.env.get('R2_BUCKET') ?? 'megga-market'
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
+// Pre-generated variants (stored in R2 as separate files, served from edge
+// with free egress and long cache headers).
+const VARIANTS = [
+  { name: 'thumb',  width:  400, quality: 80 },  // listing cards
+  { name: 'detail', width: 1200, quality: 85 },  // listing detail / modal hero
+  { name: 'hero',   width: 1600, quality: 90 },  // fullscreen / carousel
+] as const
+
 const MAX_PHOTOS_PER_LISTING = 10
-const CF_UPLOAD_TIMEOUT_MS = 15_000
+const DOWNLOAD_TIMEOUT_MS = 15_000
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,107 +68,102 @@ interface ProcessRequest {
   photoUrls: string[]
 }
 
-interface CFVariants {
+interface PhotoVariants {
   id: string
   thumb?: string
   detail?: string
   hero?: string
-  og?: string
 }
 
-// Parse the `variants: []` array returned by CF Images and map each URL to
-// the variant name it corresponds to (the last path segment).
-function mapVariants(variantUrls: string[]): Omit<CFVariants, 'id'> {
-  const out: Omit<CFVariants, 'id'> = {}
-  for (const url of variantUrls) {
-    const variant = url.split('/').pop()?.toLowerCase()
-    if (variant === 'thumb') out.thumb = url
-    else if (variant === 'detail') out.detail = url
-    else if (variant === 'hero') out.hero = url
-    else if (variant === 'og') out.og = url
-  }
-  return out
-}
+// aws4fetch signs requests with AWS SigV4, which R2 accepts on its
+// S3-compatible endpoint. Lightweight vs the full AWS SDK (~1KB vs ~100KB).
+const r2 = new AwsClient({
+  accessKeyId: R2_ACCESS_KEY_ID,
+  secretAccessKey: R2_SECRET_ACCESS_KEY,
+  service: 's3',
+  region: 'auto',
+})
 
-// Upload a single photo URL to CF Images. CF fetches the URL server-side,
-// so we don't need to proxy the bytes through our function.
-async function uploadOne(flatfoxUrl: string, imageId: string): Promise<CFVariants | null> {
-  try {
-    const form = new FormData()
-    form.append('url', flatfoxUrl)
-    form.append('id', imageId)
-    // `requireSignedURLs=false` → images are public via the delivery URL
-    // (we're not serving sensitive content, just listing photos).
-    form.append('requireSignedURLs', 'false')
+const r2Endpoint = `https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com`
 
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), CF_UPLOAD_TIMEOUT_MS)
-
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/images/v1`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${CF_IMAGES_TOKEN}` },
-        body: form,
-        signal: ctrl.signal,
-      }
-    )
-    clearTimeout(timer)
-
-    const json = await res.json() as {
-      success: boolean
-      result?: { id: string; variants: string[] }
-      errors?: Array<{ code: number; message: string }>
-    }
-
-    if (!json.success || !json.result) {
-      // CF returns 409 when the ID already exists — we want idempotency,
-      // so treat that as "already uploaded" and fetch the existing variants.
-      const alreadyExists = json.errors?.some((e) => e.code === 5409)
-      if (alreadyExists) {
-        return await fetchExisting(imageId)
-      }
-      // eslint-disable-next-line no-console
-      console.error('[photo-processor] CF upload failed', imageId, json.errors)
-      return null
-    }
-
-    return {
-      id: json.result.id,
-      ...mapVariants(json.result.variants),
-    }
-  } catch (err) {
+async function r2Put(key: string, body: Uint8Array, contentType: string): Promise<boolean> {
+  const url = `${r2Endpoint}/${R2_BUCKET}/${key}`
+  const res = await r2.fetch(url, {
+    method: 'PUT',
+    body,
+    headers: {
+      'Content-Type': contentType,
+      // Long cache — images are immutable (deterministic key). Cloudflare edge
+      // + browser cache for a year. Re-uploads are fine since key stays the
+      // same (CF cache gets invalidated on write by R2).
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
+  })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
     // eslint-disable-next-line no-console
-    console.error('[photo-processor] upload error', imageId, (err as Error).message)
-    return null
+    console.error('[photo-processor] R2 PUT failed', key, res.status, txt.slice(0, 200))
+    return false
   }
+  return true
 }
 
-// When an ID already exists on CF (idempotent re-run), fetch its variants.
-async function fetchExisting(imageId: string): Promise<CFVariants | null> {
+async function fetchPhotoBytes(url: string): Promise<Uint8Array | null> {
   try {
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/images/v1/${imageId}`,
-      { headers: { Authorization: `Bearer ${CF_IMAGES_TOKEN}` } }
-    )
-    const json = await res.json() as {
-      success: boolean
-      result?: { id: string; variants: string[] }
-    }
-    if (!json.success || !json.result) return null
-    return { id: json.result.id, ...mapVariants(json.result.variants) }
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), DOWNLOAD_TIMEOUT_MS)
+    const res = await fetch(url, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (!res.ok) return null
+    return new Uint8Array(await res.arrayBuffer())
   } catch {
     return null
   }
+}
+
+// Process one photo: download → decode → resize × 3 → upload × 3 → return URLs.
+async function processOne(sourceUrl: string, listingId: string, index: number): Promise<PhotoVariants | null> {
+  const bytes = await fetchPhotoBytes(sourceUrl)
+  if (!bytes) return null
+
+  let decoded: Image
+  try {
+    decoded = await Image.decode(bytes) as Image
+  } catch {
+    // Unsupported format (rare — Flatfox is all JPEG). Skip the photo.
+    return null
+  }
+
+  const result: PhotoVariants = { id: `listing-${listingId}-${index}` }
+  const baseKey = `listings/${listingId}/${index}`
+
+  for (const v of VARIANTS) {
+    // Only downscale — never upscale. `Math.min` guards against tiny sources
+    // (Flatfox thumbnails are already 1200px wide at source).
+    const targetW = Math.min(v.width, decoded.width)
+    let variant: Image
+    try {
+      variant = decoded.clone().resize(targetW, Image.RESIZE_AUTO) as Image
+    } catch {
+      continue
+    }
+    const encoded = await variant.encodeJPEG(v.quality)
+    const key = `${baseKey}-${v.name}.jpg`
+    const ok = await r2Put(key, encoded, 'image/jpeg')
+    if (ok) {
+      result[v.name] = `${R2_PUBLIC_BASE}/${key}`
+    }
+  }
+
+  // Bail out if nothing uploaded successfully — caller treats as "not processed".
+  if (!result.thumb && !result.detail && !result.hero) return null
+  return result
 }
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   // ── Auth: service_role only ────────────────────────────────────────
-  // This EF holds the CF Images token — never expose it to callers that
-  // aren't fully trusted. We check the Authorization bearer matches the
-  // service_role key (set by pg_cron / other EFs) exactly.
   const authHeader = req.headers.get('Authorization')
   if (!authHeader || authHeader !== `Bearer ${SERVICE_ROLE_KEY}`) {
     return new Response(
@@ -161,9 +172,9 @@ serve(async (req: Request) => {
     )
   }
 
-  if (!CF_ACCOUNT_ID || !CF_IMAGES_TOKEN) {
+  if (!CF_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_PUBLIC_BASE) {
     return new Response(
-      JSON.stringify({ success: false, error: 'CF secrets not configured' }),
+      JSON.stringify({ success: false, error: 'R2 secrets not configured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -184,22 +195,25 @@ serve(async (req: Request) => {
     )
   }
 
-  // Process up to MAX_PHOTOS_PER_LISTING photos — most listings have 3-8.
-  // Beyond 10 we drop silently to keep upload cost predictable.
   const toProcess = photoUrls.slice(0, MAX_PHOTOS_PER_LISTING)
 
-  // Parallel upload — CF API comfortably handles 10 parallel requests/listing.
-  const results = await Promise.all(
-    toProcess.map((url, i) => uploadOne(url, `listing-${listingId}-${i}`))
-  )
-
-  // Filter out failures — we persist only the photos that actually uploaded.
-  // Partial success is fine; the frontend falls back to `photos[]` for missing
-  // indices.
-  const photos_cf = results.filter((v): v is CFVariants => v !== null)
+  // Sequential to be kind to Flatfox's CDN and to keep peak memory bounded
+  // (imagescript holds the decoded RGBA in memory — 1200×800 = ~3.8 MB per
+  // photo). Processing 10 in parallel would peak at ~40 MB which is fine,
+  // but sequential is simpler to reason about under timeouts.
+  const photos_cf: PhotoVariants[] = []
+  for (let i = 0; i < toProcess.length; i++) {
+    const res = await processOne(toProcess[i], listingId, i)
+    if (res) photos_cf.push(res)
+  }
 
   return new Response(
-    JSON.stringify({ success: true, photos_cf, attempted: toProcess.length, succeeded: photos_cf.length }),
+    JSON.stringify({
+      success: true,
+      photos_cf,
+      attempted: toProcess.length,
+      succeeded: photos_cf.length,
+    }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   )
 })
