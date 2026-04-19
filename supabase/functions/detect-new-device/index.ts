@@ -8,6 +8,11 @@
 //
 // Auth: Bearer user JWT (client sends supabase access_token).
 //
+// DEPLOYMENT: must be deployed with `--no-verify-jwt` — the Supabase gateway
+// rejects the new ES256 user tokens before they reach the function, so we
+// handle the JWT verification ourselves via admin.auth.getUser(token).
+//   supabase functions deploy detect-new-device --no-verify-jwt
+//
 // Body (optional):
 //   { screen?: string; tz?: string }   — browser-only hints to differentiate devices
 //
