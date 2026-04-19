@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, ShieldCheck, MapPin, TrendingUp, Check } from 'lucide-react'
+import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, ShieldCheck, MapPin, TrendingUp, Check, Mail } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { isAgentRole, type UserRole } from '@/types/auth'
 
@@ -28,7 +28,7 @@ function FacebookIcon({ className }: { className?: string }) {
 
 // ── Types ────────────────────────────────────────────────────────────────
 
-type Step = 'email' | 'login' | 'register' | 'forgot' | 'forgot-sent'
+type Step = 'email' | 'login' | 'register' | 'forgot' | 'forgot-sent' | 'magic-link-sent'
 
 // ── Background image ────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ type Step = 'email' | 'login' | 'register' | 'forgot' | 'forgot-sent'
 
 export default function LoginPage() {
   const { t } = useTranslation('common')
-  const { user, profile, loading: authLoading, signInWithPassword, signInWithGoogle, signUp, resetPassword } = useAuth()
+  const { user, profile, loading: authLoading, signInWithPassword, signInWithEmail, signInWithGoogle, signUp, resetPassword } = useAuth()
   const [searchParams] = useSearchParams()
 
   // State
@@ -160,6 +160,16 @@ export default function LoginPage() {
     // Facebook OAuth not yet configured — show toast
     setFbToast(true)
     setTimeout(() => setFbToast(false), 3000)
+  }
+
+  async function handleMagicLink() {
+    if (!email.trim() || loading) return
+    setLoading(true)
+    setError(null)
+    const { error: err } = await signInWithEmail(email.trim())
+    setLoading(false)
+    if (err) { setError(err); return }
+    setStep('magic-link-sent')
   }
 
   async function handleForgotPassword(e: React.FormEvent) {
@@ -353,9 +363,56 @@ export default function LoginPage() {
                 </button>
               </form>
 
+              {/* Magic link alternative — buyers only, not for agent mode */}
+              {!isAgentMode && (
+                <>
+                  <div className="flex items-center gap-3 my-5">
+                    <div className="flex-1 h-px bg-gray-100" />
+                    <span className="text-[11px] uppercase tracking-wider text-gray-400">ou</span>
+                    <div className="flex-1 h-px bg-gray-100" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleMagicLink}
+                    disabled={loading}
+                    className="w-full h-11 rounded-lg border border-gray-200 text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <Sparkles className="h-4 w-4" strokeWidth={2} />
+                    Recevoir un lien de connexion
+                  </button>
+                  <p className="text-[11px] text-gray-400 text-center mt-2">
+                    On t'envoie un lien par email, pas besoin de mot de passe.
+                  </p>
+                </>
+              )}
+
               {error && (
                 <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
               )}
+            </>
+          )}
+
+          {/* ── STEP: Magic link sent ── */}
+          {step === 'magic-link-sent' && (
+            <>
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center mx-auto mb-4">
+                  <Mail className="w-7 h-7 text-white" strokeWidth={2} />
+                </div>
+                <h1 className="text-xl font-semibold text-gray-900 mb-2">Vérifie ta boîte mail</h1>
+                <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
+                  On vient d'envoyer un lien de connexion à <strong className="text-gray-900">{email}</strong>. Clique dessus pour accéder à ton compte.
+                </p>
+                <p className="text-[11px] text-gray-400 mt-4 leading-relaxed">
+                  Le lien expire dans 1 heure. Pense à vérifier tes spams.
+                </p>
+                <button
+                  onClick={goBack}
+                  className="mt-6 text-sm text-gray-500 hover:text-accent transition-colors"
+                >
+                  Utiliser une autre adresse
+                </button>
+              </div>
             </>
           )}
 
