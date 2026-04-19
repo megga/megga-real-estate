@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   MessageSquare, X, CheckCircle2, ArrowUpRight,
 } from 'lucide-react'
-import { cn, formatCHF } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import type { SellerOffer } from '@/lib/mockSellerData'
 import { useSellerPortalData } from '@/hooks/useSellerPortalContext'
 
