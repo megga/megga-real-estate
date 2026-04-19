@@ -1909,6 +1909,7 @@ export default function ListingFormPage() {
   const uploadPhotos = useUploadPropertyPhotos()
   const uploadFloorPlan = useUploadFloorPlan()
   const createListing = useCreateListing()
+  const signPhotosMutation = useSignPhotos()
   const { canAccess } = usePlanLimits()
 
   const [currentStep, setCurrentStep] = useState(1)
@@ -2226,6 +2227,11 @@ export default function ListingFormPage() {
       const values = form.getValues()
       const targetId = isEditMode ? id : autoSavePropertyId.current
 
+      // Track the final (property_id, photo_urls) pair so we can sign C2PA
+      // after the property is fully committed to DB.
+      let publishedPropertyId: string | null = null
+      let publishedPhotos: string[] = []
+
       if (targetId) {
         const allPhotos = await uploadPendingPhotos(targetId)
         await updateProperty.mutateAsync({
@@ -2233,11 +2239,17 @@ export default function ListingFormPage() {
           ...buildPropertyData(values, 'active'),
           photos: allPhotos,
         })
+        publishedPropertyId = targetId
+        publishedPhotos = allPhotos
       } else {
         const property = await createProperty.mutateAsync(buildPropertyData(values, 'active'))
+        publishedPropertyId = property.id
         if (pendingFiles.length > 0) {
           const photoUrls = await uploadPendingPhotos(property.id)
           await updateProperty.mutateAsync({ id: property.id, photos: photoUrls })
+          publishedPhotos = photoUrls
+        } else {
+          publishedPhotos = (values.photos ?? []) as string[]
         }
 
         await createListing.mutateAsync({
@@ -2246,6 +2258,24 @@ export default function ListingFormPage() {
           title: values.title,
           description_ai: values.description,
           price_display: formatCHF(values.price),
+        })
+      }
+
+      // ── C2PA auto-sign ────────────────────────────────────────────────
+      // Fire-and-forget C2PA signing on the published photos. Agent doesn't
+      // wait for this — by the time they see the dashboard, photos have
+      // their Content Credentials and the badge flips on.
+      // If signing fails (network / provider down), the publish still
+      // succeeded: agent can retry from the property detail page.
+      if (publishedPropertyId && publishedPhotos.length > 0) {
+        void signPhotosMutation.mutateAsync({
+          propertyId: publishedPropertyId,
+          photoUrls: publishedPhotos,
+        }).catch((err) => {
+          // Silent — do NOT block navigation or show an error. Signing is
+          // a nice-to-have on the publish path; manual retry is available.
+          // eslint-disable-next-line no-console
+          console.warn('[c2pa-sign] background signing failed:', (err as Error).message)
         })
       }
 

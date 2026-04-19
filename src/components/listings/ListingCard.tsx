@@ -51,6 +51,11 @@ export interface ListingCardData {
   // Cloudflare Images variants — served from edge CDN, preferred over `photos`
   // when populated. See src/lib/listingPhotos.ts for consumer helpers.
   photos_cf?: Array<{ id: string; thumb?: string; detail?: string; hero?: string; og?: string }> | null
+  // C2PA Content Credentials — only set for internal MEGGA mandates where we
+  // can legitimately claim authenticity (we took/received the original photo).
+  // Flatfox imports never get this badge.
+  c2pa_verified?: boolean
+  c2pa_verified_at?: string
 }
 
 interface ListingCardProps {
@@ -209,6 +214,19 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
             </span>
           ) : (
             <span className="text-sm font-medium text-gray-500">Prix sur demande</span>
+          )}
+          {/* C2PA verified pill — only for internal mandates with signed photos */}
+          {listing.c2pa_verified && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.04em] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700"
+              title={listing.c2pa_verified_at ? `Vérifié le ${new Date(listing.c2pa_verified_at).toLocaleDateString('fr-CH')}` : 'Photos cryptographiquement signées MEGGA Shield'}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3 w-3">
+                <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" />
+                <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Vérifié
+            </span>
           )}
         </div>
 

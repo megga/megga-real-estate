@@ -178,6 +178,8 @@ function transformToCardData(
       is_furnished: isFurnished,
       deposit_months: depositMonths,
       external_regie: externalRegie,
+      c2pa_verified: !!ml.c2pa_verified,
+      c2pa_verified_at: (ml.c2pa_verified_at as string | undefined) ?? undefined,
     }
   }
 
@@ -259,7 +261,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
         let internalQuery = supabase
           .from('properties')
           .select(
-            'id, title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, lat, lng, created_at, published_at, transaction_type'
+            'id, title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, lat, lng, created_at, published_at, transaction_type, c2pa_verified, c2pa_verified_at'
           )
           .eq('status', 'active')
 
