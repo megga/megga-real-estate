@@ -3,6 +3,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, ShieldCheck, MapPin, TrendingUp, Check, Mail } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { REMEMBER_KEY } from '@/lib/supabase'
 import { isAgentRole, type UserRole } from '@/types/auth'
 
 // ── OAuth icons ──────────────────────────────────────────────────────────
@@ -46,6 +47,10 @@ export default function LoginPage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [remember, setRemember] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return window.localStorage.getItem(REMEMBER_KEY) !== 'false'
+  })
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -58,6 +63,13 @@ export default function LoginPage() {
     const redirect = searchParams.get('redirect')
     if (redirect) sessionStorage.setItem('megga_redirect', redirect)
   }, [searchParams])
+
+  // Persist the "Remember me" preference BEFORE any sign-in happens so the
+  // storage adapter picks the right backend (localStorage vs sessionStorage).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(REMEMBER_KEY, remember ? 'true' : 'false')
+  }, [remember])
 
   // Redirect if already logged in
   if (!authLoading && user && profile) {
@@ -346,13 +358,24 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => { setStep('forgot'); setError(null) }}
-                  className="text-xs text-gray-500 hover:text-accent mt-2 transition-colors"
-                >
-                  {t('auth.forgotPassword')}
-                </button>
+                <div className="flex items-center justify-between mt-3">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-2 focus:ring-gray-900/20 cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-600">Se souvenir de moi</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => { setStep('forgot'); setError(null) }}
+                    className="text-xs text-gray-500 hover:text-accent transition-colors"
+                  >
+                    {t('auth.forgotPassword')}
+                  </button>
+                </div>
 
                 <button
                   type="submit"

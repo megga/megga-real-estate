@@ -40,4 +40,55 @@ if (role === 'service_role') {
   supabaseAnonKey = DEFAULT_ANON_KEY
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// ─── "Remember me" storage switch ──────────────────────────────────────
+// When the user opts out of "Se souvenir de moi" we want the session to die
+// with the browser tab. Supabase's JS client only accepts one storage adapter
+// at client creation, so we plug in a proxy that reads a flag at each op.
+//
+//   localStorage.megga_remember === 'false'   → route tokens to sessionStorage
+//   otherwise                                 → route tokens to localStorage (default)
+//
+// The flag is written by the login form BEFORE signIn is called.
+
+export const REMEMBER_KEY = 'megga_remember'
+
+const rememberAwareStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null
+    try {
+      if (window.localStorage.getItem(REMEMBER_KEY) === 'false') {
+        // session-only mode: prefer sessionStorage, fall back to localStorage
+        // (handles the first read right after sign-in, before storage swap)
+        return window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key)
+      }
+      return window.localStorage.getItem(key)
+    } catch { return null }
+  },
+  setItem: (key: string, value: string): void => {
+    if (typeof window === 'undefined') return
+    try {
+      if (window.localStorage.getItem(REMEMBER_KEY) === 'false') {
+        window.sessionStorage.setItem(key, value)
+        window.localStorage.removeItem(key) // make sure nothing persists across restarts
+      } else {
+        window.localStorage.setItem(key, value)
+      }
+    } catch { /* quota or private mode — silent */ }
+  },
+  removeItem: (key: string): void => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.removeItem(key)
+      window.sessionStorage.removeItem(key)
+    } catch { /* silent */ }
+  },
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: rememberAwareStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+})
