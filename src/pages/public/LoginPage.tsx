@@ -631,7 +631,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right: MEGGA showcase (desktop only) — inset bento with rounded corners on all 4 sides */}
-        <div className="hidden lg:flex w-[52%] relative overflow-hidden bg-[#4F46E5] rounded-[28px] m-4 p-10 xl:p-14 flex-col">
+        <div className="hidden lg:flex w-[52%] relative overflow-hidden bg-[#2D4FB3] rounded-[28px] m-4 p-10 xl:p-14 flex-col">
           {/* Subtle radial glow */}
           <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
 
@@ -675,7 +675,7 @@ export default function LoginPage() {
                     ))}
                     <div className="h-6 w-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-600 z-10">+2</div>
                   </div>
-                  <button className="h-7 px-2.5 rounded-md bg-indigo-50 text-[11px] font-semibold text-[#4F46E5] flex items-center gap-1">
+                  <button className="h-7 px-2.5 rounded-md bg-indigo-50 text-[11px] font-semibold text-[#2D4FB3] flex items-center gap-1">
                     Ajouter
                     <span className="text-[13px] leading-none">+</span>
                   </button>
@@ -725,12 +725,12 @@ export default function LoginPage() {
                     <svg className="h-10 w-24 -mr-1" viewBox="0 0 96 40" fill="none">
                       <defs>
                         <linearGradient id="grad2" x1="0" x2="0" y1="0" y2="1">
-                          <stop offset="0%" stopColor="#4F46E5" stopOpacity="0.2" />
-                          <stop offset="100%" stopColor="#4F46E5" stopOpacity="0" />
+                          <stop offset="0%" stopColor="#2D4FB3" stopOpacity="0.2" />
+                          <stop offset="100%" stopColor="#2D4FB3" stopOpacity="0" />
                         </linearGradient>
                       </defs>
                       <path d="M2 28 L14 24 L26 26 L38 14 L50 18 L62 8 L74 12 L86 4 L94 8 L94 40 L2 40 Z" fill="url(#grad2)" />
-                      <path d="M2 28 L14 24 L26 26 L38 14 L50 18 L62 8 L74 12 L86 4 L94 8" stroke="#4F46E5" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M2 28 L14 24 L26 26 L38 14 L50 18 L62 8 L74 12 L86 4 L94 8" stroke="#2D4FB3" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
                 </div>
@@ -792,7 +792,7 @@ export default function LoginPage() {
                     <div className="flex-1 h-7 px-2.5 rounded-md bg-gray-50 border border-gray-100 flex items-center text-[11px] text-gray-700 truncate">
                       julien@megga.ch
                     </div>
-                    <button className="h-7 px-2 rounded-md bg-[#4F46E5] text-white text-[10px] font-semibold whitespace-nowrap">Inviter</button>
+                    <button className="h-7 px-2 rounded-md bg-[#2D4FB3] text-white text-[10px] font-semibold whitespace-nowrap">Inviter</button>
                   </div>
                 </div>
                 <div>
