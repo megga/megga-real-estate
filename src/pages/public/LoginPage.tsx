@@ -3,7 +3,8 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import GoogleOneTap from '@/components/auth/GoogleOneTap'
-import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, ShieldCheck, MapPin, TrendingUp, Check, Mail } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, X, Mail } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { REMEMBER_KEY } from '@/lib/supabase'
 import { isAgentRole, type UserRole } from '@/types/auth'
@@ -618,112 +619,129 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Right: MEGGA showcase (desktop only) */}
-        <div className="hidden lg:flex w-[52%] relative overflow-hidden bg-gradient-to-br from-[#2563EB] via-[#1E4FD4] to-[#1E3A8A] p-10 xl:p-14 flex-col">
-          {/* Ambient light blobs */}
-          <div className="pointer-events-none absolute -top-20 -right-20 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-10 -left-20 h-72 w-72 rounded-full bg-[#60A5FA]/20 blur-3xl" />
+        {/* Right: MEGGA showcase (desktop only) — inset bento with rounded corners on all 4 sides */}
+        <div className="hidden lg:flex w-[52%] relative overflow-hidden bg-[#4F46E5] rounded-[28px] m-4 p-10 xl:p-14 flex-col">
+          {/* Subtle radial glow */}
+          <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
 
           {/* Header copy */}
-          <div className="relative z-10">
-            <h2 className="text-white text-[28px] xl:text-[32px] font-semibold leading-[1.15] tracking-tight">
-              L'OS immobilier suisse,<br />
-              <span className="text-white/80">pensé pour vous.</span>
+          <div className="relative z-10 mb-8">
+            <h2 className="text-white text-[30px] xl:text-[34px] font-semibold leading-[1.15] tracking-tight">
+              Gère ton immobilier suisse<br />
+              comme jamais auparavant.
             </h2>
-            <p className="text-white/70 text-[14px] mt-3 max-w-md leading-relaxed">
-              Cherchez, comparez, suivez vos biens favoris. Recevez des alertes et gérez vos dossiers — sans jamais quitter MEGGA.
+            <p className="text-white/75 text-[14px] mt-3 max-w-md leading-relaxed">
+              Cherche, compare, suis tes biens favoris. Reçois des alertes et gère tes dossiers — sans jamais quitter MEGGA.
             </p>
           </div>
 
-          {/* Floating preview cards */}
-          <div className="relative flex-1 mt-8">
-            {/* Card 1 — Pipeline mini */}
+          {/* Central dashboard mockup + overlay popup */}
+          <div className="relative flex-1 flex items-start justify-center pt-4">
+            {/* Main dashboard card */}
             <div
-              className="absolute top-0 left-0 w-[290px] bg-white/95 backdrop-blur-xl rounded-2xl p-4 border border-white/40"
-              style={{ boxShadow: '0 24px 48px -20px rgba(15,23,42,0.35)' }}
+              className="w-full max-w-[520px] bg-white rounded-2xl overflow-hidden"
+              style={{ boxShadow: '0 30px 60px -20px rgba(15,23,42,0.4), 0 10px 20px -10px rgba(15,23,42,0.1)' }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400">Pipeline</p>
-                <span className="text-[10px] text-emerald-600 font-semibold">+12% · 30 j</span>
+              {/* Dashboard header */}
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <p className="text-[14px] font-semibold text-gray-900">Tableau de bord</p>
+                <div className="flex items-center -space-x-1.5">
+                  {['#FDA4AF', '#FCD34D', '#86EFAC'].map((c, i) => (
+                    <div key={i} className="h-6 w-6 rounded-full border-2 border-white" style={{ background: c }} />
+                  ))}
+                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-600 z-10">+2</div>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2 mb-3">
-                <span className="text-2xl font-bold text-gray-900 tabular-nums">12</span>
-                <span className="text-[12px] text-gray-500">mandats actifs</span>
-              </div>
-              <div className="space-y-1.5">
-                {[
-                  { label: 'Prospection', n: 4, w: 60 },
-                  { label: 'Visites', n: 5, w: 75 },
-                  { label: 'Offre', n: 3, w: 45 },
-                ].map((s) => (
-                  <div key={s.label}>
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[11px] text-gray-600">{s.label}</span>
-                      <span className="text-[11px] text-gray-900 tabular-nums font-semibold">{s.n}</span>
-                    </div>
-                    <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-gray-900 rounded-full" style={{ width: `${s.w}%` }} />
-                    </div>
+
+              {/* KPI tiles */}
+              <div className="px-5 grid grid-cols-2 gap-3 pb-4">
+                <div className="rounded-xl bg-gray-50 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-gray-500">Mandats actifs</p>
+                    <span className="text-[9px] text-emerald-600 font-semibold">+23%</span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Card 2 — AI matching */}
-            <div
-              className="absolute top-[38%] right-0 w-[260px] bg-white/95 backdrop-blur-xl rounded-2xl p-4 border border-white/40"
-              style={{ boxShadow: '0 24px 48px -20px rgba(15,23,42,0.35)' }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-6 w-6 rounded-full bg-gray-900 flex items-center justify-center">
-                  <Sparkles className="h-3 w-3 text-white" strokeWidth={2.25} />
-                </div>
-                <p className="text-[12px] font-semibold text-gray-900">Matching IA</p>
-              </div>
-              <div className="space-y-2.5">
-                {[
-                  { addr: 'Cologny, 4.5 p.', score: 94 },
-                  { addr: 'Carouge, 3.5 p.', score: 87 },
-                ].map((m) => (
-                  <div key={m.addr} className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <MapPin className="h-3 w-3 text-gray-400 shrink-0" strokeWidth={2} />
-                      <span className="text-[12px] text-gray-700 truncate">{m.addr}</span>
-                    </div>
-                    <span className="text-[11px] font-semibold text-gray-900 tabular-nums">{m.score}</span>
+                  <div className="flex items-end justify-between mt-1">
+                    <p className="text-[22px] font-bold text-gray-900 tabular-nums leading-none">12</p>
+                    <svg className="h-7 w-16" viewBox="0 0 64 28" fill="none">
+                      <path d="M2 22 L12 16 L22 18 L32 10 L42 14 L52 6 L62 8" stroke="#111827" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </div>
-                ))}
+                </div>
+                <div className="rounded-xl bg-gray-50 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-gray-500">Visites · sem.</p>
+                    <span className="text-[9px] text-emerald-600 font-semibold">+18%</span>
+                  </div>
+                  <div className="flex items-end justify-between mt-1">
+                    <p className="text-[22px] font-bold text-gray-900 tabular-nums leading-none">8.5</p>
+                    <svg className="h-7 w-16" viewBox="0 0 64 28" fill="none">
+                      <path d="M2 18 L12 14 L22 16 L32 8 L42 12 L52 4 L62 6" stroke="#4F46E5" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="border-t border-gray-100">
+                <div className="px-5 py-3 flex items-center justify-between">
+                  <p className="text-[12px] font-semibold text-gray-900">Progression du pipeline</p>
+                </div>
+                <div className="px-5 pb-4 space-y-2">
+                  {[
+                    { code: 'C', color: 'bg-rose-100 text-rose-600', name: 'Cologny · 4.5 p.', stage: 'Offre', stageColor: 'bg-rose-50 text-rose-600', w: 85 },
+                    { code: 'L', color: 'bg-amber-100 text-amber-600', name: 'Lausanne · villa', stage: 'Visite', stageColor: 'bg-amber-50 text-amber-600', w: 55 },
+                    { code: 'G', color: 'bg-indigo-100 text-indigo-600', name: 'Genève · 3.5 p.', stage: 'Mandat', stageColor: 'bg-indigo-50 text-indigo-600', w: 35 },
+                    { code: 'M', color: 'bg-emerald-100 text-emerald-600', name: 'Montreux · loft', stage: 'Signé', stageColor: 'bg-emerald-50 text-emerald-600', w: 100 },
+                  ].map((row) => (
+                    <div key={row.name} className="flex items-center gap-3">
+                      <div className={cn('h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0', row.color)}>{row.code}</div>
+                      <p className="text-[12px] text-gray-900 flex-1 truncate">{row.name}</p>
+                      <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded', row.stageColor)}>{row.stage.toUpperCase()}</span>
+                      <div className="h-1.5 w-16 bg-gray-100 rounded-full overflow-hidden shrink-0">
+                        <div className="h-full bg-gray-900 rounded-full" style={{ width: `${row.w}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Card 3 — LAB/KYC badge */}
+            {/* Overlay popup — "Ajouter un contact" */}
             <div
-              className="absolute bottom-8 left-6 w-[280px] bg-white/95 backdrop-blur-xl rounded-2xl p-4 border border-white/40"
-              style={{ boxShadow: '0 24px 48px -20px rgba(15,23,42,0.35)' }}
+              className="absolute top-[28%] right-0 w-[250px] bg-white rounded-2xl overflow-hidden"
+              style={{ boxShadow: '0 24px 48px -16px rgba(15,23,42,0.45)' }}
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="h-5 w-5 text-emerald-600" strokeWidth={2} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-semibold text-gray-900">LAB/KYC conforme</p>
-                  <p className="text-[11px] text-gray-500">Dilisense · 26 cantons · 4 langues</p>
-                </div>
-                <Check className="h-4 w-4 text-emerald-600 shrink-0" strokeWidth={2.5} />
+              <div className="px-4 pt-3.5 pb-2 flex items-center justify-between border-b border-gray-100">
+                <p className="text-[12px] font-semibold text-gray-900">Ajouter un contact</p>
+                <X className="h-3.5 w-3.5 text-gray-400" strokeWidth={2} />
               </div>
-            </div>
-
-            {/* Card 4 — Marketplace mini */}
-            <div
-              className="absolute top-[10%] right-[32%] w-[170px] bg-white/95 backdrop-blur-xl rounded-2xl p-3 border border-white/40"
-              style={{ boxShadow: '0 24px 48px -20px rgba(15,23,42,0.35)' }}
-            >
-              <div className="flex items-center gap-2 mb-1.5">
-                <TrendingUp className="h-3.5 w-3.5 text-gray-900" strokeWidth={2.25} />
-                <p className="text-[11px] font-semibold text-gray-900">Marketplace</p>
+              <div className="px-4 pt-3 pb-3 space-y-3">
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-1">Email</p>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex-1 h-7 px-2.5 rounded-md bg-gray-50 border border-gray-100 flex items-center text-[11px] text-gray-700 truncate">
+                      julien.lyonnet@megga.ch
+                    </div>
+                    <button className="h-7 px-2 rounded-md bg-[#4F46E5] text-white text-[10px] font-semibold whitespace-nowrap">Inviter</button>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-1.5">Équipe</p>
+                  <div className="space-y-1.5">
+                    {[
+                      { n: 'Gregory L.', r: 'Propriétaire', c: '#FCD34D' },
+                      { n: 'Sophie M.', r: 'Éditeur', c: '#FDA4AF' },
+                      { n: 'Robert F.', r: 'Éditeur', c: '#86EFAC' },
+                    ].map((p) => (
+                      <div key={p.n} className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded-full shrink-0" style={{ background: p.c }} />
+                        <p className="text-[11px] text-gray-900 flex-1">{p.n}</p>
+                        <span className="text-[9px] text-gray-500">{p.r}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <p className="text-[18px] font-bold text-gray-900 tabular-nums leading-none">33'122</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">annonces · Suisse</p>
             </div>
           </div>
 
