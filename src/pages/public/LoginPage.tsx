@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, ShieldCheck, MapPin, TrendingUp, Check, Mail } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { REMEMBER_KEY } from '@/lib/supabase'
@@ -30,6 +31,14 @@ function FacebookIcon({ className }: { className?: string }) {
 // ── Types ────────────────────────────────────────────────────────────────
 
 type Step = 'email' | 'login' | 'register' | 'forgot' | 'forgot-sent' | 'magic-link-sent'
+
+// Shared motion props for each step. Apple-ish easing, subtle slide+fade.
+const stepMotion = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+  transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+}
 
 // ── Background image ────────────────────────────────────────────────────
 
@@ -223,10 +232,11 @@ export default function LoginPage() {
           </Link>
 
           <div className="w-full max-w-sm mx-auto -mt-8 lg:mt-0">
+          <AnimatePresence mode="wait" initial={false}>
 
           {/* ── STEP: Email (identifier) ── */}
           {step === 'email' && (
-            <>
+            <motion.div key="email" {...stepMotion}>
               <div className="text-center mb-8">
                 <h1 className="text-xl font-semibold text-gray-900">
                   {isAgentMode ? t('auth.professionalSpace') : t('auth.welcomeToMegga')}
@@ -319,12 +329,12 @@ export default function LoginPage() {
                   </Link>
                 )}
               </div>
-            </>
+            </motion.div>
           )}
 
           {/* ── STEP: Login (email exists) ── */}
           {step === 'login' && (
-            <>
+            <motion.div key="login" {...stepMotion}>
               <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 {t('auth.back')}
@@ -412,12 +422,12 @@ export default function LoginPage() {
               {error && (
                 <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
               )}
-            </>
+            </motion.div>
           )}
 
           {/* ── STEP: Magic link sent ── */}
           {step === 'magic-link-sent' && (
-            <>
+            <motion.div key="magic-link-sent" {...stepMotion}>
               <div className="text-center">
                 <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center mx-auto mb-4">
                   <Mail className="w-7 h-7 text-white" strokeWidth={2} />
@@ -436,12 +446,12 @@ export default function LoginPage() {
                   Utiliser une autre adresse
                 </button>
               </div>
-            </>
+            </motion.div>
           )}
 
           {/* ── STEP: Register (new email) ── */}
           {step === 'register' && (
-            <>
+            <motion.div key="register" {...stepMotion}>
               <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 {t('auth.back')}
@@ -523,12 +533,12 @@ export default function LoginPage() {
                 {' '}{t('auth.and')}{' '}
                 <Link to="/privacy" className="underline hover:text-gray-600">{t('auth.privacyPolicy')}</Link>.
               </p>
-            </>
+            </motion.div>
           )}
 
           {/* ── STEP: Forgot password ── */}
           {step === 'forgot' && (
-            <>
+            <motion.div key="forgot" {...stepMotion}>
               <button onClick={goBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors">
                 <ArrowLeft className="h-4 w-4" />
                 {t('auth.back')}
@@ -570,12 +580,12 @@ export default function LoginPage() {
                 Tu ne reçois rien ? Vérifie tes spams ou contacte{' '}
                 <a href="mailto:support@megga.ch" className="underline hover:text-gray-600">support@megga.ch</a>.
               </p>
-            </>
+            </motion.div>
           )}
 
           {/* ── STEP: Forgot password sent ── */}
           {step === 'forgot-sent' && (
-            <>
+            <motion.div key="forgot-sent" {...stepMotion}>
               <div className="text-center">
                 <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
                   <svg className="w-7 h-7 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -594,8 +604,9 @@ export default function LoginPage() {
                   {t('auth.backToLogin')}
                 </button>
               </div>
-            </>
+            </motion.div>
           )}
+          </AnimatePresence>
           </div>
 
           {/* Footer copyright — stays at bottom on desktop */}
