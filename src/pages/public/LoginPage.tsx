@@ -874,7 +874,7 @@ export default function LoginPage() {
           <div className="relative z-10 mt-auto pt-6 border-t border-white/15 flex items-center justify-between gap-4">
             {[
               { v: '26', l: 'cantons' },
-              { v: '4', l: 'langues' },
+              { v: '🇨🇭', l: 'Hébergé' },
               { v: '33K+', l: 'biens' },
               { v: '100%', l: 'compliance' },
             ].map((s) => (
@@ -887,19 +887,19 @@ export default function LoginPage() {
 
           {/* Trust logos row */}
           <div className="relative z-10 mt-5 pt-4 border-t border-white/10">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-white/50 mb-2.5">Conforme & certifié</p>
-            <div className="flex items-center gap-6 opacity-75">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/50 mb-3">Conforme & certifié</p>
+            <div className="flex items-center gap-8 opacity-80">
               <a href="https://c2pa.org" target="_blank" rel="noopener noreferrer" title="C2PA — authenticité des contenus" className="hover:opacity-100 transition-opacity">
-                <img src="/c2pa-logo.svg" alt="C2PA" className="h-7 brightness-0 invert" />
+                <img src="/c2pa-logo.svg" alt="C2PA" className="h-10 brightness-0 invert" />
               </a>
-              <a href="https://www.swissmadesoftware.org" target="_blank" rel="noopener noreferrer" title="Swiss Made Software" className="flex items-center gap-1.5 hover:opacity-100 transition-opacity">
-                <svg viewBox="4 7 44 38" className="h-6 w-auto flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
+              <a href="https://www.swissmadesoftware.org" target="_blank" rel="noopener noreferrer" title="Swiss Made Software" className="flex items-center gap-2 hover:opacity-100 transition-opacity">
+                <svg viewBox="4 7 44 38" className="h-9 w-auto flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
                   <path d="M45.28,42.51H9.24c-1.76,0-3.18-1.43-3.18-3.18v-20.16c0-.43.09-.86.26-1.26l3.07-7.15c.5-1.17,1.65-1.92,2.92-1.92h13.36c1.3,0,2.47.79,2.95,2,0,0,.51,1.26,1,2.5h15.66c1.76,0,3.18,1.42,3.18,3.18v22.81c0,1.76-1.42,3.18-3.18,3.18M21.43,25.97c-1.03,0-1.57.79-1.57,1.57s.54,1.57,1.57,1.57h4.33v4.34c0,1.03.78,1.57,1.57,1.57s1.57-.54,1.57-1.57v-4.34h4.33c1.03,0,1.57-.79,1.57-1.57s-.54-1.57-1.57-1.57h-4.33v-4.34c0-1.03-.78-1.57-1.57-1.57s-1.57.54-1.57,1.57v4.34h-4.33" fill="#fff"/>
                 </svg>
-                <img src="/sms-wordmark.svg" alt="Swiss Made Software" className="h-6 w-auto object-contain brightness-0 invert" loading="lazy" />
+                <img src="/sms-wordmark.svg" alt="Swiss Made Software" className="h-9 w-auto object-contain brightness-0 invert" loading="lazy" />
               </a>
               <a href="https://anthropic.com" target="_blank" rel="noopener noreferrer" title="Built with Claude by Anthropic" className="hover:opacity-100 transition-opacity">
-                <img src="/claude-ai-logo.svg" alt="Claude AI" className="h-5 w-auto object-contain brightness-0 invert" loading="lazy" />
+                <img src="/claude-ai-logo.svg" alt="Claude AI" className="h-7 w-auto object-contain brightness-0 invert" loading="lazy" />
               </a>
             </div>
           </div>
