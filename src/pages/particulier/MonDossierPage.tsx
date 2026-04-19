@@ -292,16 +292,6 @@ export default function MonDossierPage() {
           </div>
         </div>
 
-        {/* Progress rail — sits above the node row, not through it */}
-        <div className="relative h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden mb-5">
-          <div
-            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-[width] duration-700 ease-out"
-            style={{
-              width: `${((currentStepIdx + 0.5) / MANDATE_STEPS.length) * 100}%`,
-            }}
-          />
-        </div>
-
         {/* Node row */}
         <div className="flex items-start justify-between">
           {MANDATE_STEPS.map((step, i) => {
@@ -315,10 +305,6 @@ export default function MonDossierPage() {
                 onMouseLeave={() => setHoveredStep(null)}
               >
                 <div className="relative flex items-center justify-center">
-                  {/* Pulsing halo for the current step */}
-                  {isCurrent && (
-                    <span className="absolute inset-0 -m-1 rounded-full bg-emerald-500/20 animate-ping" />
-                  )}
                   <div
                     className={cn(
                       'w-8 h-8 rounded-full flex items-center justify-center transition-all relative',
