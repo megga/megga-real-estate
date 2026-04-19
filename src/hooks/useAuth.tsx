@@ -24,6 +24,8 @@ interface AuthContextType {
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithEmail: (email: string) => Promise<{ error: string | null }>
   signInWithGoogle: (role?: UserRole) => Promise<{ error: string | null }>
+  signInWithMicrosoft: (role?: UserRole) => Promise<{ error: string | null }>
+  signInWithFacebook: (role?: UserRole) => Promise<{ error: string | null }>
   resetPassword: (email: string) => Promise<{ error: string | null }>
   signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
@@ -215,6 +217,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
+  const signInWithFacebook = useCallback(async (role?: UserRole) => {
+    if (role) {
+      localStorage.setItem('megga_oauth_role', role)
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
+  const signInWithMicrosoft = useCallback(async (role?: UserRole) => {
+    // Store selected role before OAuth redirect — same pattern as Google.
+    // Supabase refers to Microsoft/Outlook as the 'azure' provider internally.
+    if (role) {
+      localStorage.setItem('megga_oauth_role', role)
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {
+        // openid + email + profile are the standard login scopes; we explicitly
+        // skip offline_access here because we're not asking for Calendar access
+        // at login time (that's handled separately in Settings → Applications).
+        scopes: 'openid email profile',
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
   const resetPassword = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
@@ -276,6 +310,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithPassword,
         signInWithEmail,
         signInWithGoogle,
+        signInWithMicrosoft,
+        signInWithFacebook,
         signUp,
         resetPassword,
         signOut: handleSignOut,

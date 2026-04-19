@@ -30,6 +30,18 @@ function FacebookIcon({ className }: { className?: string }) {
   )
 }
 
+// Official Microsoft logo — 4 squares (red, green, blue, yellow)
+function MicrosoftIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <path d="M11.4 11.4H1V1h10.4v10.4Z" fill="#F25022" />
+      <path d="M23 11.4H12.6V1H23v10.4Z" fill="#7FBA00" />
+      <path d="M11.4 23H1V12.6h10.4V23Z" fill="#00A4EF" />
+      <path d="M23 23H12.6V12.6H23V23Z" fill="#FFB900" />
+    </svg>
+  )
+}
+
 // ── Types ────────────────────────────────────────────────────────────────
 
 type Step = 'email' | 'login' | 'register' | 'forgot' | 'forgot-sent' | 'magic-link-sent'
@@ -48,7 +60,7 @@ const stepMotion = {
 
 export default function LoginPage() {
   const { t } = useTranslation('common')
-  const { user, profile, loading: authLoading, signInWithPassword, signInWithEmail, signInWithGoogle, signUp, resetPassword } = useAuth()
+  const { user, profile, loading: authLoading, signInWithPassword, signInWithEmail, signInWithGoogle, signInWithMicrosoft, signInWithFacebook, signUp, resetPassword } = useAuth()
   const [searchParams] = useSearchParams()
 
   // State
@@ -63,9 +75,8 @@ export default function LoginPage() {
     return window.localStorage.getItem(REMEMBER_KEY) !== 'false'
   })
   const [loading, setLoading] = useState(false)
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null)
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | 'microsoft' | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [fbToast, setFbToast] = useState(false)
 
   const isAgentMode = searchParams.get('role') === 'agent'
 
@@ -179,10 +190,32 @@ export default function LoginPage() {
     }
   }
 
-  function handleFacebook() {
-    // Facebook OAuth not yet configured — show toast
-    setFbToast(true)
-    setTimeout(() => setFbToast(false), 3000)
+  async function handleFacebook() {
+    setOauthLoading('facebook')
+    setError(null)
+    const redirect = searchParams.get('redirect') || (isAgentMode ? '/dashboard' : '/acheter')
+    sessionStorage.setItem('megga_redirect', redirect)
+    if (isAgentMode) localStorage.setItem('megga_oauth_role', 'agent')
+
+    const { error: err } = await signInWithFacebook(isAgentMode ? 'agent' : undefined)
+    if (err) {
+      setError(err)
+      setOauthLoading(null)
+    }
+  }
+
+  async function handleMicrosoft() {
+    setOauthLoading('microsoft')
+    setError(null)
+    const redirect = searchParams.get('redirect') || (isAgentMode ? '/dashboard' : '/acheter')
+    sessionStorage.setItem('megga_redirect', redirect)
+    if (isAgentMode) localStorage.setItem('megga_oauth_role', 'agent')
+
+    const { error: err } = await signInWithMicrosoft(isAgentMode ? 'agent' : undefined)
+    if (err) {
+      setError(err)
+      setOauthLoading(null)
+    }
   }
 
   async function handleMagicLink() {
@@ -223,13 +256,6 @@ export default function LoginPage() {
       <div className="flex-1 bg-white lg:rounded-3xl lg:shadow-[0_20px_50px_-20px_rgba(15,23,42,0.15)] overflow-hidden flex flex-col lg:flex-row">
         {/* Left: Form */}
         <div className="flex-1 flex flex-col px-6 py-10 lg:px-12 lg:py-10 bg-white relative">
-          {/* Facebook toast */}
-          {fbToast && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-              {t('auth.facebookSoon')}
-            </div>
-          )}
-
           {/* Logo top-left */}
           <Link to="/" className="inline-block self-start mb-auto">
             <img src="/megga-logo.svg" alt="MEGGA" className="h-7" />
@@ -266,11 +292,28 @@ export default function LoginPage() {
                 </button>
 
                 <button
+                  onClick={handleMicrosoft}
+                  disabled={!!oauthLoading}
+                  className="group w-full h-11 rounded-full border border-gray-200 bg-white text-[13px] font-semibold text-gray-900 hover:border-gray-900 hover:shadow-sm transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {oauthLoading === 'microsoft' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MicrosoftIcon className="h-4 w-4" />
+                  )}
+                  Continuer avec Microsoft
+                </button>
+
+                <button
                   onClick={handleFacebook}
                   disabled={!!oauthLoading}
                   className="group w-full h-11 rounded-full border border-gray-200 bg-white text-[13px] font-semibold text-gray-900 hover:border-gray-900 hover:shadow-sm transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <FacebookIcon className="h-4 w-4" />
+                  {oauthLoading === 'facebook' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FacebookIcon className="h-4 w-4" />
+                  )}
                   {t('auth.continueWithFacebook')}
                 </button>
               </div>
@@ -282,12 +325,12 @@ export default function LoginPage() {
                 <div className="flex-1 h-px bg-gray-100" />
               </div>
 
-              {/* Email input — pill style with diffuse focus halo (matches PromptInputBar) */}
+              {/* Email input — clean pill with animated dot indicator (no double halo) */}
               <form onSubmit={handleEmailContinue}>
                 <label htmlFor="email" className="block text-[11px] font-semibold text-gray-600 mb-1.5 px-1">
                   {t('auth.email')}
                 </label>
-                <div className="relative h-11 rounded-full bg-gray-50 border border-gray-100 focus-within:border-gray-900 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(37,99,235,0.12)] transition-all">
+                <div className="group relative h-11 rounded-full bg-gray-50 border border-gray-100 focus-within:border-gray-900 focus-within:bg-white transition-colors duration-300">
                   <input
                     id="email"
                     type="email"
@@ -296,8 +339,15 @@ export default function LoginPage() {
                     placeholder={t('auth.emailPlaceholder')}
                     required
                     autoFocus
-                    className="w-full h-full px-4 text-[13px] bg-transparent outline-none placeholder:text-gray-400"
+                    className="w-full h-full px-4 pr-10 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
                   />
+                  {/* Custom focus indicator — pulsing dot on the right */}
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-gray-900 opacity-40 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-900" />
+                    </span>
+                  </span>
                 </div>
                 <button
                   type="submit"
@@ -359,10 +409,10 @@ export default function LoginPage() {
               <p className="text-sm text-gray-500 mb-6">{email}</p>
 
               <form onSubmit={handleLogin}>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="password" className="block text-[11px] font-semibold text-gray-600 mb-1.5 px-1">
                   {t('auth.password')}
                 </label>
-                <div className="relative">
+                <div className="group relative h-11 rounded-full bg-gray-50 border border-gray-100 focus-within:border-gray-900 focus-within:bg-white transition-colors duration-300">
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -371,12 +421,12 @@ export default function LoginPage() {
                     placeholder={t('auth.passwordPlaceholder')}
                     required
                     autoFocus
-                    className="w-full h-11 px-3.5 pr-10 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                    className="w-full h-full px-4 pr-10 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 transition-colors"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -405,7 +455,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading || !password}
-                  className="w-full h-11 mt-5 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  className="w-full h-11 mt-5 rounded-full bg-gray-900 text-white text-[13px] font-semibold hover:bg-gray-800 active:scale-[0.99] transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.signIn')}
                 </button>
@@ -475,40 +525,44 @@ export default function LoginPage() {
               <h1 className="text-xl font-semibold text-gray-900 mb-1">{t('auth.createAccount')}</h1>
               <p className="text-sm text-gray-500 mb-6">{email}</p>
 
-              <form onSubmit={handleRegister} className="space-y-3.5">
+              <form onSubmit={handleRegister} className="space-y-3">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="firstName" className="block text-[11px] font-semibold text-gray-600 mb-1.5 px-1">
                     {t('auth.firstName')}
                   </label>
-                  <input
-                    id="firstName"
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                    autoFocus
-                    className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
-                  />
+                  <div className="relative h-11 rounded-full bg-gray-50 border border-gray-100 focus-within:border-gray-900 focus-within:bg-white transition-colors duration-300">
+                    <input
+                      id="firstName"
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      autoFocus
+                      className="w-full h-full px-4 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label htmlFor="lastName" className="block text-[11px] font-semibold text-gray-600 mb-1.5 px-1">
                     {t('auth.lastName')}
                   </label>
-                  <input
-                    id="lastName"
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
-                  />
+                  <div className="relative h-11 rounded-full bg-gray-50 border border-gray-100 focus-within:border-gray-900 focus-within:bg-white transition-colors duration-300">
+                    <input
+                      id="lastName"
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full h-full px-4 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label htmlFor="regPassword" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {t('auth.password')} <span className="text-gray-500 font-normal">({t('auth.passwordMin')})</span>
+                  <label htmlFor="regPassword" className="block text-[11px] font-semibold text-gray-600 mb-1.5 px-1">
+                    {t('auth.password')} <span className="text-gray-400 font-medium normal-case">({t('auth.passwordMin')})</span>
                   </label>
-                  <div className="relative">
+                  <div className="relative h-11 rounded-full bg-gray-50 border border-gray-100 focus-within:border-gray-900 focus-within:bg-white transition-colors duration-300">
                     <input
                       id="regPassword"
                       type={showPassword ? 'text' : 'password'}
@@ -516,12 +570,12 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       minLength={8}
-                      className="w-full h-11 px-3.5 pr-10 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                      className="w-full h-full px-4 pr-10 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 transition-colors"
                       tabIndex={-1}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -532,7 +586,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading || !firstName.trim() || password.length < 8}
-                  className="w-full h-11 mt-1 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  className="w-full h-11 !mt-4 rounded-full bg-gray-900 text-white text-[13px] font-semibold hover:bg-gray-800 active:scale-[0.99] transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.createMyAccount')}
                 </button>
@@ -565,23 +619,31 @@ export default function LoginPage() {
               </p>
 
               <form onSubmit={handleForgotPassword}>
-                <label htmlFor="forgotEmail" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="forgotEmail" className="block text-[11px] font-semibold text-gray-600 mb-1.5 px-1">
                   {t('auth.email')}
                 </label>
-                <input
-                  id="forgotEmail"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t('auth.emailPlaceholder')}
-                  required
-                  autoFocus
-                  className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
-                />
+                <div className="group relative h-11 rounded-full bg-gray-50 border border-gray-100 focus-within:border-gray-900 focus-within:bg-white transition-colors duration-300">
+                  <input
+                    id="forgotEmail"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('auth.emailPlaceholder')}
+                    required
+                    autoFocus
+                    className="w-full h-full px-4 pr-10 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
+                  />
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-gray-900 opacity-40 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-900" />
+                    </span>
+                  </span>
+                </div>
                 <button
                   type="submit"
                   disabled={loading || !email.trim()}
-                  className="w-full h-11 mt-4 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  className="w-full h-11 mt-4 rounded-full bg-gray-900 text-white text-[13px] font-semibold hover:bg-gray-800 active:scale-[0.99] transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.sendLink')}
                 </button>
@@ -590,11 +652,6 @@ export default function LoginPage() {
               {error && (
                 <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
               )}
-
-              <p className="text-[11px] text-gray-400 text-center mt-4 leading-relaxed">
-                Tu ne reçois rien ? Vérifie tes spams ou contacte{' '}
-                <a href="mailto:support@megga.ch" className="underline hover:text-gray-600">support@megga.ch</a>.
-              </p>
             </motion.div>
           )}
 
