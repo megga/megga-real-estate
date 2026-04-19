@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import GoogleOneTap from '@/components/auth/GoogleOneTap'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, X, Mail } from 'lucide-react'
+import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, X, Mail, ChevronDown, ChevronLeft } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { REMEMBER_KEY } from '@/lib/supabase'
 import { isAgentRole, type UserRole } from '@/types/auth'
@@ -635,81 +635,140 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Central dashboard mockup + overlay popup */}
-          <div className="relative flex-1 flex items-start justify-center pt-4">
-            {/* Main dashboard card */}
+          {/* Central dashboard mockup + overlay popup — large "real software" feel */}
+          <div className="relative flex-1 flex items-start justify-center pt-2">
+            {/* MAIN: Full-width MEGGA CRM dashboard */}
             <div
-              className="w-full max-w-[520px] bg-white rounded-2xl overflow-hidden"
+              className="w-full bg-white rounded-2xl overflow-hidden"
               style={{ boxShadow: '0 30px 60px -20px rgba(15,23,42,0.4), 0 10px 20px -10px rgba(15,23,42,0.1)' }}
             >
-              {/* Dashboard header */}
+              {/* Dashboard top bar */}
               <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-                <p className="text-[14px] font-semibold text-gray-900">Tableau de bord</p>
-                <div className="flex items-center -space-x-1.5">
-                  {['#FDA4AF', '#FCD34D', '#86EFAC'].map((c, i) => (
-                    <div key={i} className="h-6 w-6 rounded-full border-2 border-white" style={{ background: c }} />
-                  ))}
-                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-600 z-10">+2</div>
+                <div className="flex items-center gap-3">
+                  <p className="text-[15px] font-semibold text-gray-900">Pipeline</p>
+                  <div className="flex items-center gap-1 h-7 px-2.5 rounded-md bg-gray-50 border border-gray-100 text-[11px] text-gray-600">
+                    <span className="h-2 w-2 rounded-full bg-gray-300" />
+                    Tous les mandats
+                    <ChevronDown className="h-3 w-3 text-gray-400 ml-0.5" strokeWidth={2} />
+                  </div>
+                  <div className="flex items-center gap-1 h-7 px-2.5 rounded-md bg-gray-50 border border-gray-100 text-[11px] text-gray-600">
+                    <ChevronLeft className="h-3 w-3 text-gray-400" strokeWidth={2} />
+                    27 mars — 19 avr.
+                    <ChevronDown className="h-3 w-3 text-gray-400 rotate-[-90deg]" strokeWidth={2} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center -space-x-1.5">
+                    {['#FDA4AF', '#FCD34D', '#86EFAC'].map((c, i) => (
+                      <div key={i} className="h-6 w-6 rounded-full border-2 border-white" style={{ background: c }} />
+                    ))}
+                    <div className="h-6 w-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-600 z-10">+2</div>
+                  </div>
+                  <button className="h-7 px-2.5 rounded-md bg-indigo-50 text-[11px] font-semibold text-[#4F46E5] flex items-center gap-1">
+                    Ajouter
+                    <span className="text-[13px] leading-none">+</span>
+                  </button>
                 </div>
               </div>
 
-              {/* KPI tiles */}
+              {/* KPI tiles row */}
               <div className="px-5 grid grid-cols-2 gap-3 pb-4">
-                <div className="rounded-xl bg-gray-50 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-gray-500">Mandats actifs</p>
-                    <span className="text-[9px] text-emerald-600 font-semibold">+23%</span>
+                <div className="rounded-xl bg-gray-50 p-3.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[11px] text-gray-500">Mandats actifs <span className="text-gray-400">/ mois</span></p>
+                    <span className="text-[9px] text-emerald-600 font-semibold flex items-center gap-0.5">
+                      <span className="text-emerald-600">↑</span>
+                      +23%
+                    </span>
                   </div>
-                  <div className="flex items-end justify-between mt-1">
-                    <p className="text-[22px] font-bold text-gray-900 tabular-nums leading-none">12</p>
-                    <svg className="h-7 w-16" viewBox="0 0 64 28" fill="none">
-                      <path d="M2 22 L12 16 L22 18 L32 10 L42 14 L52 6 L62 8" stroke="#111827" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-[26px] font-bold text-gray-900 tabular-nums leading-none">12</p>
+                      <p className="text-[9px] text-emerald-600 mt-1">+23% semaine dernière</p>
+                    </div>
+                    <svg className="h-10 w-24 -mr-1" viewBox="0 0 96 40" fill="none">
+                      <defs>
+                        <linearGradient id="grad1" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="0%" stopColor="#111827" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="#111827" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M2 32 L14 26 L26 30 L38 18 L50 22 L62 12 L74 16 L86 6 L94 10 L94 40 L2 40 Z" fill="url(#grad1)" />
+                      <path d="M2 32 L14 26 L26 30 L38 18 L50 22 L62 12 L74 16 L86 6 L94 10" stroke="#111827" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
                 </div>
-                <div className="rounded-xl bg-gray-50 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-gray-500">Visites · sem.</p>
-                    <span className="text-[9px] text-emerald-600 font-semibold">+18%</span>
+                <div className="rounded-xl bg-gray-50 p-3.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[11px] text-gray-500">Visites <span className="text-gray-400">/ semaine</span></p>
+                    <span className="text-[9px] text-emerald-600 font-semibold flex items-center gap-0.5">
+                      <span>↑</span>
+                      +18%
+                    </span>
                   </div>
-                  <div className="flex items-end justify-between mt-1">
-                    <p className="text-[22px] font-bold text-gray-900 tabular-nums leading-none">8.5</p>
-                    <svg className="h-7 w-16" viewBox="0 0 64 28" fill="none">
-                      <path d="M2 18 L12 14 L22 16 L32 8 L42 12 L52 4 L62 6" stroke="#4F46E5" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-[26px] font-bold text-gray-900 tabular-nums leading-none">8.5</p>
+                      <p className="text-[9px] text-emerald-600 mt-1">+18% vs. objectif</p>
+                    </div>
+                    <svg className="h-10 w-24 -mr-1" viewBox="0 0 96 40" fill="none">
+                      <defs>
+                        <linearGradient id="grad2" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="0%" stopColor="#4F46E5" stopOpacity="0.2" />
+                          <stop offset="100%" stopColor="#4F46E5" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M2 28 L14 24 L26 26 L38 14 L50 18 L62 8 L74 12 L86 4 L94 8 L94 40 L2 40 Z" fill="url(#grad2)" />
+                      <path d="M2 28 L14 24 L26 26 L38 14 L50 18 L62 8 L74 12 L86 4 L94 8" stroke="#4F46E5" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
                 </div>
               </div>
 
-              {/* Table */}
+              {/* Table — MEGGA pipeline */}
               <div className="border-t border-gray-100">
-                <div className="px-5 py-3 flex items-center justify-between">
-                  <p className="text-[12px] font-semibold text-gray-900">Progression du pipeline</p>
+                <div className="px-5 py-3">
+                  <p className="text-[12px] font-semibold text-gray-900">Mandats — performance</p>
                 </div>
-                <div className="px-5 pb-4 space-y-2">
+                {/* Column headers */}
+                <div className="px-5 grid grid-cols-[1fr_64px_72px_1fr_48px] gap-3 pb-1.5 text-[9px] uppercase tracking-[0.06em] text-gray-400 font-semibold">
+                  <span>Bien</span>
+                  <span>Priorité</span>
+                  <span className="text-right">Avancé</span>
+                  <span>Progression</span>
+                  <span className="text-right">Valeur</span>
+                </div>
+                <div className="px-5 pb-4 divide-y divide-gray-100">
                   {[
-                    { code: 'C', color: 'bg-rose-100 text-rose-600', name: 'Cologny · 4.5 p.', stage: 'Offre', stageColor: 'bg-rose-50 text-rose-600', w: 85 },
-                    { code: 'L', color: 'bg-amber-100 text-amber-600', name: 'Lausanne · villa', stage: 'Visite', stageColor: 'bg-amber-50 text-amber-600', w: 55 },
-                    { code: 'G', color: 'bg-indigo-100 text-indigo-600', name: 'Genève · 3.5 p.', stage: 'Mandat', stageColor: 'bg-indigo-50 text-indigo-600', w: 35 },
-                    { code: 'M', color: 'bg-emerald-100 text-emerald-600', name: 'Montreux · loft', stage: 'Signé', stageColor: 'bg-emerald-50 text-emerald-600', w: 100 },
+                    { code: 'C', color: 'bg-rose-100 text-rose-600', name: 'Cologny', sub: '4.5 p. · 145 m²', prio: 'HAUTE', prioColor: 'bg-rose-50 text-rose-600', pct: '85%', w: 85, bar: 'bg-gray-900', val: '1.4M' },
+                    { code: 'L', color: 'bg-amber-100 text-amber-600', name: 'Lausanne', sub: 'Villa · 210 m²', prio: 'MOYENNE', prioColor: 'bg-amber-50 text-amber-600', pct: '55%', w: 55, bar: 'bg-gray-900', val: '2.1M' },
+                    { code: 'G', color: 'bg-indigo-100 text-indigo-600', name: 'Genève', sub: '3.5 p. · 88 m²', prio: 'HAUTE', prioColor: 'bg-rose-50 text-rose-600', pct: '35%', w: 35, bar: 'bg-gray-900', val: '850K' },
+                    { code: 'M', color: 'bg-emerald-100 text-emerald-600', name: 'Montreux', sub: 'Loft · 120 m²', prio: 'BASSE', prioColor: 'bg-gray-100 text-gray-500', pct: '100%', w: 100, bar: 'bg-emerald-500', val: '1.2M' },
                   ].map((row) => (
-                    <div key={row.name} className="flex items-center gap-3">
-                      <div className={cn('h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0', row.color)}>{row.code}</div>
-                      <p className="text-[12px] text-gray-900 flex-1 truncate">{row.name}</p>
-                      <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded', row.stageColor)}>{row.stage.toUpperCase()}</span>
-                      <div className="h-1.5 w-16 bg-gray-100 rounded-full overflow-hidden shrink-0">
-                        <div className="h-full bg-gray-900 rounded-full" style={{ width: `${row.w}%` }} />
+                    <div key={row.name} className="grid grid-cols-[1fr_64px_72px_1fr_48px] gap-3 py-2 items-center">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={cn('h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0', row.color)}>{row.code}</div>
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-medium text-gray-900 truncate">{row.name}</p>
+                          <p className="text-[10px] text-gray-500 truncate">{row.sub}</p>
+                        </div>
                       </div>
+                      <span className={cn('text-[9px] font-semibold px-1.5 py-0.5 rounded justify-self-start', row.prioColor)}>{row.prio}</span>
+                      <span className="text-[11px] font-semibold text-gray-900 tabular-nums text-right">{row.pct}</span>
+                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div className={cn('h-full rounded-full', row.bar)} style={{ width: `${row.w}%` }} />
+                      </div>
+                      <span className="text-[11px] font-semibold text-gray-900 tabular-nums text-right">{row.val}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Overlay popup — "Ajouter un contact" */}
+            {/* OVERLAY POPUP — Ajouter un contact, positioned over the right side of the main card */}
             <div
-              className="absolute top-[28%] right-0 w-[250px] bg-white rounded-2xl overflow-hidden"
-              style={{ boxShadow: '0 24px 48px -16px rgba(15,23,42,0.45)' }}
+              className="absolute top-[22%] -right-4 w-[240px] bg-white rounded-2xl overflow-hidden"
+              style={{ boxShadow: '0 28px 56px -16px rgba(15,23,42,0.5)' }}
             >
               <div className="px-4 pt-3.5 pb-2 flex items-center justify-between border-b border-gray-100">
                 <p className="text-[12px] font-semibold text-gray-900">Ajouter un contact</p>
@@ -720,7 +779,7 @@ export default function LoginPage() {
                   <p className="text-[10px] text-gray-500 mb-1">Email</p>
                   <div className="flex items-center gap-1.5">
                     <div className="flex-1 h-7 px-2.5 rounded-md bg-gray-50 border border-gray-100 flex items-center text-[11px] text-gray-700 truncate">
-                      julien.lyonnet@megga.ch
+                      julien@megga.ch
                     </div>
                     <button className="h-7 px-2 rounded-md bg-[#4F46E5] text-white text-[10px] font-semibold whitespace-nowrap">Inviter</button>
                   </div>
@@ -735,10 +794,19 @@ export default function LoginPage() {
                     ].map((p) => (
                       <div key={p.n} className="flex items-center gap-2">
                         <div className="h-5 w-5 rounded-full shrink-0" style={{ background: p.c }} />
-                        <p className="text-[11px] text-gray-900 flex-1">{p.n}</p>
-                        <span className="text-[9px] text-gray-500">{p.r}</span>
+                        <p className="text-[11px] text-gray-900 flex-1 truncate">{p.n}</p>
+                        <span className="text-[9px] text-gray-500 shrink-0">{p.r}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="text-[10px] text-gray-500 mb-1">Lien de partage</p>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex-1 h-7 px-2.5 rounded-md bg-gray-50 border border-gray-100 flex items-center text-[10px] text-gray-500 truncate font-mono">
+                      megga.ch/p/m-9a3b7…
+                    </div>
+                    <button className="h-7 px-2 rounded-md border border-gray-200 text-[10px] font-semibold text-gray-700 whitespace-nowrap">Copier</button>
                   </div>
                 </div>
               </div>
