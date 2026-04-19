@@ -1,90 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Upload, Download, Eye, X, MessageSquare, ChevronDown,
-  ArrowUpRight, Lock, CheckCircle2,
+  FileText, Upload, Download, Eye, Shield, Home, FileCheck, X,
+  MessageSquare, ChevronDown, CheckCircle2, AlertCircle, Clock,
+  ArrowRight, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ─────────────────────────────────────────────────────────────────────────
-// MES DOCUMENTS — "The Vault" (archive vault / dossier scellé)
-// ─────────────────────────────────────────────────────────────────────────
-// Typographic direction: a dark archival vault, in direct contrast with
-// the ivory editorial of MesOffres. Legal papers, KYC, the mandate, the
-// eventual acte notarié — these deserve a register that *feels* like a
-// locked cabinet in a notary's office. Warm charcoal background, cream
-// type, brass accents for signed/archived, rust for missing (maîtrisé).
-// Instrument Serif for the Renaissance-archive display; Geist + Geist
-// Mono pick up the precise classification details (filenames, sizes,
-// timestamps). Load fonts via index.html; scope colours via inline <style>
-// so the rest of the app stays on DM Sans + light theme.
-// ─────────────────────────────────────────────────────────────────────────
+// ─── Shared tokens (mirror of MonDossier / MesVisites / MesOffres) ──────
 
-const DISPLAY = 'font-["Instrument_Serif"]'
-const BODY = 'font-["Geist"]'
-const MONO = 'font-["Geist_Mono"] tabular-nums'
-const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:#C9A44C]/50'
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20 dark:focus-visible:ring-white/30'
+const SECTION_LABEL = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500'
+const CARD = 'rounded-2xl bg-white border border-gray-100 dark:bg-gray-900 dark:border-gray-800'
+const CARD_HOVER = 'transition-all duration-200 hover:border-gray-200 dark:hover:border-gray-700'
 
-const palette = {
-  vault: '#14110D',          // deep warm charcoal
-  vaultRaised: '#1C1814',    // card hover
-  cream: '#F2E9D8',          // paper-cream primary text
-  creamDim: '#C9BFAD',       // secondary
-  creamFaint: '#867E72',     // tertiary / hints
-  brass: '#C9A44C',          // validated / archived
-  brassDark: '#A0812F',
-  rust: '#C96B3C',           // missing
-  amber: '#D89B4C',           // pending
-} as const
-
-// All vault-coloured utilities are declared in a scoped <style> — lets us
-// write Tailwind-esque `text-cream` inline while keeping the global
-// theme untouched. The `\\` escapes are needed because Tailwind's `/`
-// syntax collides with actual CSS escape behaviour here.
-const SCOPED_CSS = `
-  .vault { background: ${palette.vault}; color: ${palette.cream}; }
-  .vault .bg-vault { background: ${palette.vault}; }
-  .vault .bg-vault-raised { background: ${palette.vaultRaised}; }
-  .vault .text-cream { color: ${palette.cream}; }
-  .vault .text-cream-dim { color: ${palette.creamDim}; }
-  .vault .text-cream-faint { color: ${palette.creamFaint}; }
-  .vault .text-brass { color: ${palette.brass}; }
-  .vault .bg-brass { background: ${palette.brass}; }
-  .vault .text-rust { color: ${palette.rust}; }
-  .vault .text-amber { color: ${palette.amber}; }
-  .vault .border-cream { border-color: ${palette.cream}; }
-  .vault .border-hairline { border-color: ${palette.cream}1a; }
-  .vault .border-hairline-strong { border-color: ${palette.cream}33; }
-  .vault .border-brass { border-color: ${palette.brass}; }
-  .vault .border-rust { border-color: ${palette.rust}; }
-
-  /* subtle parchment grain */
-  .vault-grain {
-    background-image:
-      radial-gradient(${palette.brass}08 1px, transparent 1px),
-      radial-gradient(${palette.brass}05 1px, transparent 1px);
-    background-size: 3px 3px, 7px 7px;
-    background-position: 0 0, 2px 2px;
-    pointer-events: none;
-  }
-
-  @keyframes vault-rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .vault-rise { animation: vault-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-  @keyframes brass-sweep {
-    0%   { stroke-dashoffset: var(--circ); }
-    100% { stroke-dashoffset: var(--offset); }
-  }
-
-  /* Upload progress spinner ring */
-  @keyframes vault-spin { to { transform: rotate(360deg); } }
-  .vault-spin { animation: vault-spin 1s linear infinite; }
-`
-
-// ─── Types ───────────────────────────────────────────────────────────────
+// ─── Types & mock data ─────────────────────────────────────────────────
 
 interface SellerDocument {
   id: string
@@ -100,10 +30,7 @@ interface SellerDocument {
   required_for: string | null
 }
 
-interface DocumentHelp {
-  help: string
-  cost?: string
-}
+interface DocumentHelp { help: string; cost?: string }
 
 const DOCUMENT_HELP: Record<string, DocumentHelp> = {
   'diagnostic-amiante': {
@@ -116,7 +43,6 @@ const DOCUMENT_HELP: Record<string, DocumentHelp> = {
   },
 }
 
-// Rolled-up mock data — identical to what the legacy page used.
 const MOCK_DOCUMENTS: SellerDocument[] = [
   { id: 'd1', name: 'Mandat de vente exclusif', slug: 'mandat-vente', category: 'mandate', status: 'validated', uploaded_at: '2026-02-10T10:00:00Z', validated_at: '2026-02-11T14:00:00Z', expires_at: '2026-08-10T10:00:00Z', size_kb: 245, required: true, required_for: null },
   { id: 'd2', name: "Pièce d'identité (passeport)", slug: 'piece-identite', category: 'kyc', status: 'validated', uploaded_at: '2026-02-10T10:15:00Z', validated_at: '2026-02-10T16:00:00Z', expires_at: '2028-05-20T00:00:00Z', size_kb: 1200, required: true, required_for: null },
@@ -130,140 +56,68 @@ const MOCK_DOCUMENTS: SellerDocument[] = [
   { id: 'd10', name: 'Photos professionnelles du bien', slug: 'photos-pro', category: 'property', status: 'validated', uploaded_at: '2026-02-13T16:00:00Z', validated_at: '2026-02-14T10:00:00Z', expires_at: null, size_kb: 15000, required: false, required_for: null },
 ]
 
-const CATEGORY_LABEL: Record<SellerDocument['category'], string> = {
-  mandate: 'Mandat',
-  kyc: 'Identité',
-  property: 'Bien',
-  offer: 'Offre',
-  contract: 'Contrat',
-  other: 'Divers',
+// ─── Config ─────────────────────────────────────────────────────────────
+
+type DocCategory = SellerDocument['category']
+type DocStatus = SellerDocument['status']
+
+const CATEGORY_CONFIG: Record<DocCategory, { label: string; icon: React.ElementType }> = {
+  mandate: { label: 'Mandat', icon: FileCheck },
+  kyc: { label: 'Identité', icon: Shield },
+  property: { label: 'Bien', icon: Home },
+  offer: { label: 'Offre', icon: FileText },
+  contract: { label: 'Contrat', icon: FileText },
+  other: { label: 'Autre', icon: FileText },
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────
+const STATUS_CONFIG: Record<DocStatus, {
+  label: string
+  icon: React.ElementType
+  tone: string
+  pill: string
+}> = {
+  validated: {
+    label: 'Validé',
+    icon: CheckCircle2,
+    tone: 'text-emerald-600 dark:text-emerald-500',
+    pill: 'bg-emerald-50 text-emerald-700 border-emerald-200/70 dark:bg-emerald-950/30 dark:text-emerald-500 dark:border-emerald-900/50',
+  },
+  pending: {
+    label: 'En vérification',
+    icon: Clock,
+    tone: 'text-amber-600 dark:text-amber-500',
+    pill: 'bg-amber-50 text-amber-700 border-amber-200/70 dark:bg-amber-950/30 dark:text-amber-500 dark:border-amber-900/50',
+  },
+  missing: {
+    label: 'À fournir',
+    icon: AlertCircle,
+    tone: 'text-rose-600 dark:text-rose-500',
+    pill: 'bg-rose-50 text-rose-700 border-rose-200/70 dark:bg-rose-950/30 dark:text-rose-500 dark:border-rose-900/50',
+  },
+  expired: {
+    label: 'Expiré',
+    icon: Clock,
+    tone: 'text-gray-400 dark:text-gray-600',
+    pill: 'bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-800/60 dark:text-gray-500 dark:border-gray-700',
+  },
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-CH', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(dateStr).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short', year: 'numeric' })
 }
-
 function formatSize(kb: number): string {
   if (kb >= 1000) return `${(kb / 1000).toFixed(1)} Mo`
   return `${kb} Ko`
 }
-
 function daysUntilExpiry(dateStr: string): number {
   return Math.floor((new Date(dateStr).getTime() - Date.now()) / 86400000)
 }
 
 type FilterTab = 'all' | 'validated' | 'pending' | 'missing'
 
-// ─── Brass completion dial ───────────────────────────────────────────────
-// A circular indicator with tick marks, not a SaaS bar. Reads like a
-// vault door gauge. SVG arc draws in on mount.
-
-function BrassDial({ percent }: { percent: number }) {
-  const size = 160
-  const stroke = 6
-  const radius = (size - stroke) / 2
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference - (percent / 100) * circumference
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      {/* tick marks */}
-      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="absolute inset-0">
-        {Array.from({ length: 48 }).map((_, i) => {
-          const angle = (i / 48) * Math.PI * 2 - Math.PI / 2
-          const r1 = radius - 12
-          const r2 = radius - 6
-          const x1 = size / 2 + r1 * Math.cos(angle)
-          const y1 = size / 2 + r1 * Math.sin(angle)
-          const x2 = size / 2 + r2 * Math.cos(angle)
-          const y2 = size / 2 + r2 * Math.sin(angle)
-          return (
-            <line
-              key={i}
-              x1={x1} y1={y1} x2={x2} y2={y2}
-              stroke={palette.cream}
-              strokeWidth="1"
-              opacity={i % 4 === 0 ? 0.5 : 0.18}
-            />
-          )
-        })}
-      </svg>
-      {/* ring */}
-      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="absolute inset-0 -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={palette.cream}
-          strokeOpacity="0.12"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={palette.brass}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{
-            transition: 'stroke-dashoffset 1.2s cubic-bezier(0.22, 1, 0.36, 1)',
-            filter: `drop-shadow(0 0 12px ${palette.brass}55)`,
-          }}
-        />
-      </svg>
-      {/* centre */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span
-          className={cn(DISPLAY, 'text-[56px] leading-none text-cream')}
-          style={{ fontVariationSettings: '"opsz" 144' }}
-        >
-          {percent}
-          <span className="text-[22px] text-brass ml-0.5">%</span>
-        </span>
-        <span className={cn(BODY, 'text-[9px] uppercase tracking-[0.22em] text-cream-faint mt-2')}>
-          Complétude
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Classification stamp ────────────────────────────────────────────────
-// A tiny framed label that sits next to each document title — evokes the
-// rubber stamp on the corner of an archival folder. Colour varies by
-// status: brass (validated), amber (pending), rust (missing).
-
-function StatusStamp({ status }: { status: SellerDocument['status'] }) {
-  const cfg = {
-    validated: { label: 'Archivé', border: palette.brass, text: palette.brass },
-    pending: { label: 'Vérification', border: palette.amber, text: palette.amber },
-    missing: { label: 'À fournir', border: palette.rust, text: palette.rust },
-    expired: { label: 'Expiré', border: palette.creamFaint, text: palette.creamFaint },
-  }[status]
-
-  return (
-    <span
-      className={cn(
-        BODY,
-        'inline-flex items-center h-5 px-2 text-[9px] uppercase tracking-[0.18em] font-medium border rounded-[1px]',
-      )}
-      style={{
-        color: cfg.text,
-        borderColor: `${cfg.border}80`,
-      }}
-    >
-      {cfg.label}
-    </span>
-  )
-}
-
-// ─── Main page ───────────────────────────────────────────────────────────
+// ─── Main page ──────────────────────────────────────────────────────────
 
 export default function MesDocumentsPage() {
   const [filter, setFilter] = useState<FilterTab>('all')
@@ -291,7 +145,7 @@ export default function MesDocumentsPage() {
   const completionPct = Math.round((requiredDone / required) * 100)
 
   useEffect(() => {
-    const t = setTimeout(() => setAnimatedPct(completionPct), 200)
+    const t = setTimeout(() => setAnimatedPct(completionPct), 150)
     return () => clearTimeout(t)
   }, [completionPct])
 
@@ -340,16 +194,19 @@ export default function MesDocumentsPage() {
   const helpInfo = helpDoc ? DOCUMENT_HELP[helpDoc.slug] : null
 
   const TABS: { key: FilterTab; label: string; count: number }[] = [
-    { key: 'all', label: 'Tout', count: docs.length },
+    { key: 'all', label: 'Tous', count: docs.length },
     { key: 'missing', label: 'À fournir', count: missing },
-    { key: 'pending', label: 'Vérification', count: pending },
-    { key: 'validated', label: 'Archivés', count: validated },
+    { key: 'pending', label: 'En vérification', count: pending },
+    { key: 'validated', label: 'Validés', count: validated },
   ]
 
-  // ─── Render a single document line ────────────────────────────────────
+  // ─── Document row ────────────────────────────────────────────────────
 
-  function renderDocLine(doc: SellerDocument, index: number, compact = false) {
-    const catLabel = CATEGORY_LABEL[doc.category]
+  function renderDocRow(doc: SellerDocument, compact: boolean = false) {
+    const cat = CATEGORY_CONFIG[doc.category]
+    const CatIcon = cat.icon
+    const status = STATUS_CONFIG[doc.status]
+    const StatusIcon = status.icon
     const docHelp = DOCUMENT_HELP[doc.slug]
     const isExpiring = doc.expires_at && daysUntilExpiry(doc.expires_at) <= 60 && daysUntilExpiry(doc.expires_at) > 0
     const isExpired = doc.expires_at && daysUntilExpiry(doc.expires_at) <= 0
@@ -357,533 +214,521 @@ export default function MesDocumentsPage() {
     const isDropTarget = dragTarget === doc.id
 
     return (
-      <article
+      <div
         key={doc.id}
         onDragOver={isMissing ? (e) => { e.preventDefault(); setDragTarget(doc.id) } : undefined}
         onDragLeave={isMissing ? () => setDragTarget(null) : undefined}
         onDrop={isMissing ? (e) => handleDropOnDocument(e, doc.id) : undefined}
         className={cn(
-          'vault-rise group relative border-b border-hairline transition-colors',
-          isDropTarget && 'bg-vault-raised',
-          compact ? 'py-3' : 'py-5 md:py-6',
+          'rounded-xl border group flex items-start gap-4 transition-all',
+          compact ? 'p-3 md:p-3.5' : 'p-4 md:p-5',
+          isMissing && !isDropTarget && 'border-dashed border-gray-200 dark:border-gray-700',
+          !isMissing && 'border-gray-100 dark:border-gray-800',
+          isDropTarget && 'border-solid border-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20',
+          CARD_HOVER,
         )}
-        style={{ animationDelay: `${index * 60}ms` }}
       >
-        <div className="grid grid-cols-12 gap-4 items-start">
-          {/* Classification number + category */}
-          <div className="col-span-2 md:col-span-1">
-            <div className={cn(MONO, 'text-[11px] text-cream-faint')}>
-              {String(index + 1).padStart(3, '0')}
-            </div>
-          </div>
-
-          {/* Name + metadata */}
-          <div className="col-span-10 md:col-span-7 min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className={cn(DISPLAY, compact ? 'text-[18px]' : 'text-[22px] md:text-[24px]', 'leading-tight text-cream')}>
-                {doc.name}
-              </h3>
-              <StatusStamp status={doc.status} />
-              {doc.required && (
-                <span className={cn(BODY, 'text-[9px] uppercase tracking-[0.18em] text-cream-faint')}>
-                  Obligatoire
-                </span>
-              )}
-            </div>
-
-            <div className={cn(MONO, 'mt-2 flex items-center gap-3 flex-wrap text-[11px] text-cream-faint')}>
-              <span>{catLabel.toUpperCase()}</span>
-              {doc.uploaded_at && (
-                <>
-                  <span className="opacity-40">/</span>
-                  <span>Dépôt {formatDate(doc.uploaded_at)}</span>
-                </>
-              )}
-              {doc.validated_at && (
-                <>
-                  <span className="opacity-40">/</span>
-                  <span className="text-brass">Validé {formatDate(doc.validated_at)}</span>
-                </>
-              )}
-              {doc.size_kb && (
-                <>
-                  <span className="opacity-40">/</span>
-                  <span>{formatSize(doc.size_kb)}</span>
-                </>
-              )}
-              {isExpiring && !isExpired && (
-                <>
-                  <span className="opacity-40">/</span>
-                  <span className="text-amber">Expire J{daysUntilExpiry(doc.expires_at!)}</span>
-                </>
-              )}
-              {isExpired && (
-                <>
-                  <span className="opacity-40">/</span>
-                  <span className="text-rust">Expiré</span>
-                </>
-              )}
-            </div>
-
-            {/* Missing helper */}
-            {isMissing && docHelp && (
-              <div className="mt-3 flex items-start gap-3">
-                <span className={cn(DISPLAY, 'text-rust text-[24px] italic leading-none shrink-0 mt-[-2px]')}>
-                  ¶
-                </span>
-                <div className={cn(BODY, 'text-[13px] text-cream-dim leading-[1.6]')}>
-                  {docHelp.help}
-                  {docHelp.cost && (
-                    <span className={cn(MONO, 'ml-2 text-cream-faint')}>· {docHelp.cost}</span>
-                  )}
-                </div>
-              </div>
-            )}
-            {isMissing && doc.required_for && (
-              <p className={cn(BODY, 'mt-2 text-[12px] text-cream-faint italic')}>
-                <span className="text-rust">Nécessaire avant :</span>{' '}
-                <span className="text-cream-dim">{doc.required_for}</span>
-              </p>
-            )}
-            {doc.status === 'pending' && doc.uploaded_at && !compact && (
-              <p className={cn(BODY, 'mt-2 text-[12px] text-amber italic')}>
-                Déposé le {formatDate(doc.uploaded_at)} — en cours de vérification par l'agent.
-              </p>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="col-span-12 md:col-span-4 flex items-start md:justify-end gap-1.5">
-            {uploadingId === doc.id ? (
-              <div className={cn(BODY, 'inline-flex items-center gap-2 text-[12px] text-cream-dim')}>
-                <span
-                  className="vault-spin inline-block w-3.5 h-3.5 border rounded-full"
-                  style={{ borderColor: `${palette.cream}33`, borderTopColor: palette.brass }}
-                />
-                Envoi en cours
-              </div>
-            ) : isMissing ? (
-              <>
-                <input
-                  ref={(el) => { fileInputRefs.current[doc.id] = el }}
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={() => simulateUpload(doc.id, doc.name)}
-                />
-                <button
-                  onClick={() => fileInputRefs.current[doc.id]?.click()}
-                  className={cn(
-                    BODY, FOCUS_RING,
-                    'inline-flex items-center gap-1.5 h-9 px-4 text-[12px] font-medium border transition-all',
-                    'text-vault rounded-[1px] hover:gap-2',
-                  )}
-                  style={{
-                    background: palette.brass,
-                    borderColor: palette.brass,
-                  }}
-                >
-                  <Upload className="w-3 h-3" strokeWidth={2} />
-                  Déposer
-                </button>
-                <button
-                  onClick={() => setHelpDocId(doc.id)}
-                  className={cn(
-                    BODY, FOCUS_RING,
-                    'inline-flex items-center h-9 px-3 text-[12px] font-medium text-cream-dim hover:text-brass transition-colors',
-                  )}
-                >
-                  Aide ?
-                </button>
-              </>
-            ) : (
-              <div className="inline-flex items-center gap-0.5 md:opacity-40 md:group-hover:opacity-100 transition-opacity">
-                <button
-                  className={cn(BODY, FOCUS_RING, 'p-2 text-cream-dim hover:text-brass transition-colors')}
-                  aria-label="Consulter"
-                >
-                  <Eye className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-                <button
-                  className={cn(BODY, FOCUS_RING, 'p-2 text-cream-dim hover:text-brass transition-colors')}
-                  aria-label="Télécharger"
-                >
-                  <Download className="w-4 h-4" strokeWidth={1.5} />
-                </button>
-              </div>
-            )}
-          </div>
+        {/* Category icon bubble */}
+        <div
+          className={cn(
+            'shrink-0 rounded-xl flex items-center justify-center',
+            compact ? 'w-8 h-8' : 'w-10 h-10',
+            'bg-gray-50 dark:bg-gray-800/60',
+          )}
+        >
+          <CatIcon
+            className={cn(compact ? 'w-3.5 h-3.5' : 'w-4 h-4', 'text-gray-500 dark:text-gray-400')}
+            strokeWidth={1.75}
+          />
         </div>
 
-        {/* Drop-target visual when dragging over a missing entry */}
-        {isDropTarget && (
-          <div
-            className="absolute inset-0 border-2 border-dashed pointer-events-none"
-            style={{ borderColor: palette.brass }}
-          />
-        )}
-      </article>
+        {/* Main info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className={cn(
+              'font-semibold text-gray-900 dark:text-white tracking-tight truncate',
+              compact ? 'text-sm' : 'text-[15px]',
+            )}>
+              {doc.name}
+            </h3>
+            {doc.required && (
+              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 rounded-full px-2 py-0.5">
+                Obligatoire
+              </span>
+            )}
+          </div>
+
+          {/* Metadata row */}
+          <div className="mt-1 flex items-center gap-2 flex-wrap text-xs text-gray-500 dark:text-gray-400">
+            <span>{cat.label}</span>
+            {doc.uploaded_at && (
+              <>
+                <span className="text-gray-300 dark:text-gray-700">·</span>
+                <span>Déposé le {formatDate(doc.uploaded_at)}</span>
+              </>
+            )}
+            {doc.size_kb && (
+              <>
+                <span className="text-gray-300 dark:text-gray-700">·</span>
+                <span className="tabular-nums">{formatSize(doc.size_kb)}</span>
+              </>
+            )}
+            {compact && doc.validated_at && (
+              <>
+                <span className="text-gray-300 dark:text-gray-700">·</span>
+                <span>Validé le {formatDate(doc.validated_at)}</span>
+              </>
+            )}
+            {isExpiring && !isExpired && (
+              <>
+                <span className="text-gray-300 dark:text-gray-700">·</span>
+                <span className="text-amber-600 dark:text-amber-500">
+                  Expire dans {daysUntilExpiry(doc.expires_at!)} j
+                </span>
+              </>
+            )}
+            {isExpired && (
+              <>
+                <span className="text-gray-300 dark:text-gray-700">·</span>
+                <span className="text-rose-600 dark:text-rose-500">Expiré</span>
+              </>
+            )}
+          </div>
+
+          {/* Pending note */}
+          {doc.status === 'pending' && !compact && (
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">
+              Votre agent vérifie ce document — retour sous 24 h.
+            </p>
+          )}
+
+          {/* Missing helper */}
+          {isMissing && docHelp && (
+            <div className="mt-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 p-3">
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{docHelp.help}</p>
+              {docHelp.cost && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 tabular-nums">
+                  Coût estimé : <span className="font-medium text-gray-700 dark:text-gray-300">{docHelp.cost}</span>
+                </p>
+              )}
+            </div>
+          )}
+          {isMissing && doc.required_for && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Nécessaire avant : <span className="text-gray-900 dark:text-white font-medium">{doc.required_for}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Right column: status pill + actions */}
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 h-6 pl-2 pr-2.5 rounded-full border text-[11px] font-medium',
+              status.pill,
+            )}
+          >
+            <StatusIcon className="w-3 h-3" />
+            {status.label}
+          </span>
+
+          {uploadingId === doc.id ? (
+            <div className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <span className="w-3 h-3 border border-gray-300 dark:border-gray-600 border-t-emerald-500 rounded-full animate-spin" />
+              Envoi…
+            </div>
+          ) : isMissing ? (
+            <div className="flex items-center gap-1">
+              <input
+                ref={(el) => { fileInputRefs.current[doc.id] = el }}
+                type="file"
+                className="hidden"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={() => simulateUpload(doc.id, doc.name)}
+              />
+              <button
+                onClick={() => fileInputRefs.current[doc.id]?.click()}
+                className={cn(
+                  'inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-gray-900 text-white dark:bg-white dark:text-gray-900 text-xs font-medium transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-8px_rgba(15,23,42,0.3)]',
+                  FOCUS_RING,
+                )}
+              >
+                <Upload className="w-3 h-3" />
+                Déposer
+              </button>
+              <button
+                onClick={() => setHelpDocId(doc.id)}
+                className={cn(
+                  'h-8 px-2.5 rounded-full text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors',
+                  FOCUS_RING,
+                )}
+              >
+                Aide
+              </button>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                className={cn(
+                  'h-8 w-8 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
+                  FOCUS_RING,
+                )}
+                aria-label="Consulter"
+              >
+                <Eye className="w-3.5 h-3.5" />
+              </button>
+              <button
+                className={cn(
+                  'h-8 w-8 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
+                  FOCUS_RING,
+                )}
+                aria-label="Télécharger"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     )
   }
 
+  // ─── Render page ─────────────────────────────────────────────────────
+
   return (
-    <div
-      className={cn(
-        'vault relative', BODY,
-        '-mx-4 md:-mx-6 -mt-6 px-4 md:px-10 pt-8 md:pt-12 pb-24 min-h-[calc(100vh-4rem)]',
-      )}
-    >
-      <style>{SCOPED_CSS}</style>
-      {/* Parchment grain overlay */}
-      <div className="vault-grain absolute inset-0 opacity-60" aria-hidden />
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      {/* ── Header ────────────────────────────────────────────────────── */}
+      <div>
+        <p className={SECTION_LABEL}>Documents</p>
+        <h1 className="mt-1.5 text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white tracking-tight">
+          Votre dossier, étape par étape
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">
+          Déposez, suivez et consultez les pièces liées à votre mandat de vente.
+        </p>
+      </div>
 
-      <div className="relative max-w-5xl mx-auto">
-        {/* ── Masthead ─────────────────────────────────────────────── */}
-        <header className="vault-rise flex items-start justify-between gap-8 flex-wrap">
-          <div className="flex-1 min-w-[280px]">
-            <div className={cn(BODY, 'flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-cream-faint')}>
-              <Lock className="w-3 h-3" strokeWidth={1.5} />
-              Coffre-fort de votre dossier
-              <span className="opacity-40">·</span>
-              <span className={MONO}>
-                {new Date().toLocaleDateString('fr-CH', { day: '2-digit', month: 'short', year: 'numeric' })}
+      {/* ── Completion card + KPI tiles ───────────────────────────────── */}
+      <section className={cn(CARD, 'p-5 md:p-6')}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className={SECTION_LABEL}>Complétude du dossier</p>
+            <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-gray-900 dark:text-white font-semibold tabular-nums">
+                {requiredDone}
               </span>
-            </div>
-
-            <h1
-              className={cn(
-                DISPLAY,
-                'mt-6 md:mt-8 text-[clamp(56px,10vw,128px)] leading-[0.88] tracking-[-0.02em]',
-              )}
-              style={{ fontVariationSettings: '"opsz" 144' }}
-            >
-              Archives
-              <br />
-              <em className="italic text-brass">&amp; documents</em>
-              <span className="text-cream-faint">.</span>
-            </h1>
-
-            <p className={cn(BODY, 'mt-6 md:mt-8 text-[15px] leading-[1.65] text-cream-dim max-w-lg')}>
-              Chaque pièce de votre dossier est consignée ici, chiffrée et accessible aux seules
-              parties habilitées. Les documents manquants bloquent parfois une étape —
-              glissez-les dans leur case pour les transmettre à votre agent.
+              <span className="text-gray-400 dark:text-gray-600"> / {required}</span>{' '}
+              documents obligatoires fournis
             </p>
           </div>
-
-          {/* Brass dial */}
-          <div className="shrink-0 flex flex-col items-center gap-4 pt-2">
-            <BrassDial percent={animatedPct} />
-            <div className={cn(MONO, 'text-[11px] text-cream-faint text-center')}>
-              <span className="text-cream">{requiredDone}</span>
-              <span className="text-cream-faint"> / {required}</span>
-              <span className="ml-2 text-cream-faint uppercase tracking-[0.14em] text-[9px]">
-                obligatoires
-              </span>
-            </div>
-          </div>
-        </header>
-
-        {/* ── Alert rows (missing / expiring) ───────────────────── */}
-        {(missing > 0 || expiringDocs.length > 0) && (
+          <p className="text-3xl font-semibold text-gray-900 dark:text-white tabular-nums tracking-tight">
+            {completionPct}
+            <span className="text-lg text-gray-400 dark:text-gray-600 ml-0.5">%</span>
+          </p>
+        </div>
+        <div
+          className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden"
+          role="progressbar"
+          aria-valuenow={completionPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
           <div
-            className="vault-rise mt-12 border-y border-hairline-strong py-4 flex items-center gap-8 flex-wrap"
-            style={{ animationDelay: '150ms' }}
-          >
+            className={cn(
+              'h-full rounded-full bg-gradient-to-r transition-[width] duration-700 ease-out',
+              completionPct >= 100
+                ? 'from-emerald-500 to-emerald-400'
+                : 'from-gray-900 to-gray-700 dark:from-white dark:to-gray-200',
+            )}
+            style={{ width: `${animatedPct}%` }}
+          />
+        </div>
+
+        {(missing > 0 || expiringDocs.length > 0) && (
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center gap-5 flex-wrap text-xs">
             {missing > 0 && (
               <button
                 onClick={() => setFilter('missing')}
                 className={cn(
-                  BODY, FOCUS_RING,
-                  'group inline-flex items-center gap-3 text-[13px] hover:gap-4 transition-all',
+                  'inline-flex items-center gap-1.5 text-rose-600 dark:text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 transition-colors',
+                  FOCUS_RING, 'rounded',
                 )}
               >
-                <span className="w-2 h-2 rounded-full bg-rust shrink-0" style={{ boxShadow: `0 0 10px ${palette.rust}` }} />
-                <span className="text-cream-dim">
-                  <span className={cn(DISPLAY, 'text-rust italic text-[20px] mr-1.5')}>{missing}</span>
-                  document{missing > 1 ? 's' : ''} à fournir
-                </span>
-                <ArrowUpRight className="w-3.5 h-3.5 text-cream-faint group-hover:text-rust transition-colors" strokeWidth={1.5} />
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                {missing} document{missing > 1 ? 's' : ''} à fournir
+                <ArrowRight className="w-3 h-3" />
               </button>
             )}
             {expiringDocs.length > 0 && (
-              <div className={cn(BODY, 'inline-flex items-center gap-3 text-[13px]')}>
-                <span className="w-2 h-2 rounded-full bg-amber shrink-0" style={{ boxShadow: `0 0 10px ${palette.amber}` }} />
-                <span className="text-cream-dim">
-                  <span className={cn(DISPLAY, 'text-amber italic text-[20px] mr-1.5')}>{expiringDocs.length}</span>
-                  expire{expiringDocs.length > 1 ? 'nt' : ''} dans moins de 60 jours
-                </span>
-              </div>
+              <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-500">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                {expiringDocs.length} expire{expiringDocs.length > 1 ? 'nt' : ''} dans moins de 60 j
+              </span>
             )}
             {missing === 0 && expiringDocs.length === 0 && (
-              <div className={cn(BODY, 'inline-flex items-center gap-2 text-[13px] text-brass')}>
-                <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
-                Dossier complet — rien ne manque.
-              </div>
+              <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500">
+                <Sparkles className="w-3 h-3" />
+                Dossier complet, rien ne manque.
+              </span>
             )}
           </div>
         )}
+      </section>
 
-        {/* ── Drop zone ─────────────────────────────────────────── */}
+      {/* ── Drop zone ─────────────────────────────────────────────────── */}
+      <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); generalFileRef.current?.click() } }}
+        onDragOver={(e) => { e.preventDefault(); setDragOverGeneral(true) }}
+        onDragLeave={() => setDragOverGeneral(false)}
+        onDrop={handleGeneralDrop}
+        onClick={() => generalFileRef.current?.click()}
+        className={cn(
+          'rounded-2xl border-2 border-dashed p-5 md:p-6 flex items-center gap-4 cursor-pointer transition-all',
+          FOCUS_RING,
+          dragOverGeneral
+            ? 'border-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20 scale-[1.005]'
+            : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700',
+        )}
+      >
+        <input ref={generalFileRef} type="file" multiple className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
         <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); generalFileRef.current?.click() } }}
-          onDragOver={(e) => { e.preventDefault(); setDragOverGeneral(true) }}
-          onDragLeave={() => setDragOverGeneral(false)}
-          onDrop={handleGeneralDrop}
-          onClick={() => generalFileRef.current?.click()}
           className={cn(
-            'vault-rise mt-10 md:mt-14 relative cursor-pointer transition-all',
-            FOCUS_RING,
+            'shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all',
+            dragOverGeneral
+              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-500'
+              : 'bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400',
           )}
-          style={{ animationDelay: '220ms' }}
         >
-          <input ref={generalFileRef} type="file" multiple className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
-          <div
-            className="border border-dashed p-6 md:p-7 flex items-center gap-5 transition-all"
-            style={{
-              borderColor: dragOverGeneral ? palette.brass : `${palette.cream}33`,
-              background: dragOverGeneral ? `${palette.brass}10` : 'transparent',
-            }}
-          >
-            <div
-              className="shrink-0 w-11 h-11 rounded-full border flex items-center justify-center transition-all"
-              style={{
-                borderColor: dragOverGeneral ? palette.brass : `${palette.cream}33`,
-                background: dragOverGeneral ? `${palette.brass}20` : 'transparent',
-              }}
-            >
-              <Upload
-                className={cn('w-4 h-4 transition-all', dragOverGeneral && 'scale-110 -translate-y-0.5')}
-                strokeWidth={1.5}
-                style={{ color: dragOverGeneral ? palette.brass : palette.cream }}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn(DISPLAY, 'text-[22px] text-cream leading-none')}>
-                Déposer une nouvelle pièce
-              </p>
-              <p className={cn(MONO, 'mt-1.5 text-[11px] text-cream-faint')}>
-                PDF · JPG · PNG
-                <span className="opacity-40"> / </span>
-                10 Mo max
-                <span className="opacity-40"> / </span>
-                chiffrement de bout en bout
-              </p>
-            </div>
-            <div className={cn(BODY, 'hidden md:flex items-center gap-1 text-[11px] uppercase tracking-[0.18em] text-cream-faint')}>
-              Parcourir
-              <ArrowUpRight className="w-3 h-3" strokeWidth={1.5} />
-            </div>
-          </div>
+          <Upload
+            className={cn('w-4 h-4 transition-transform', dragOverGeneral && 'scale-110 -translate-y-0.5')}
+            strokeWidth={1.75}
+          />
         </div>
-
-        {/* ── Filter tabs ───────────────────────────────────────── */}
-        <div className="vault-rise mt-12 flex items-center gap-1 flex-wrap" style={{ animationDelay: '280ms' }}>
-          {TABS.map((tab) => {
-            const active = filter === tab.key
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setFilter(tab.key)}
-                className={cn(
-                  BODY, FOCUS_RING,
-                  'relative px-4 py-2 text-[12px] uppercase tracking-[0.16em] transition-colors',
-                  active ? 'text-brass' : 'text-cream-faint hover:text-cream',
-                )}
-              >
-                {tab.label}
-                <span className={cn(MONO, 'ml-2 text-[10px]', active ? 'text-brass' : 'text-cream-faint opacity-60')}>
-                  {String(tab.count).padStart(2, '0')}
-                </span>
-                {active && (
-                  <span className="absolute -bottom-px left-0 right-0 h-px bg-brass" />
-                )}
-              </button>
-            )
-          })}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">Déposer un document</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 tabular-nums">
+            PDF · JPG · PNG — 10 Mo max
+          </p>
         </div>
-
-        {/* ── Document list ─────────────────────────────────────── */}
-        <section className="mt-4 border-t border-hairline-strong">
-          {filter === 'all' ? (
-            <>
-              {missingDocs.length > 0 && (
-                <>
-                  <SectionHeader numeral="I" label="À fournir" count={missingDocs.length} />
-                  {missingDocs.map((doc, i) => renderDocLine(doc, i))}
-                </>
-              )}
-              {pendingDocs.length > 0 && (
-                <>
-                  <SectionHeader numeral="II" label="En vérification" count={pendingDocs.length} />
-                  {pendingDocs.map((doc, i) => renderDocLine(doc, i))}
-                </>
-              )}
-              {validatedDocs.length > 0 && (
-                <>
-                  <div className="flex items-baseline justify-between pt-10 pb-4 border-b border-hairline">
-                    <div className="flex items-baseline gap-4">
-                      <span className={cn(DISPLAY, 'text-[28px] italic text-brass')}>III</span>
-                      <h2 className={cn(DISPLAY, 'text-[24px] text-cream')}>Archivés</h2>
-                      <span className={cn(MONO, 'text-[11px] text-cream-faint')}>
-                        {String(validatedDocs.length).padStart(2, '0')} pièce{validatedDocs.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setValidatedCollapsed(!validatedCollapsed)}
-                      className={cn(
-                        BODY, FOCUS_RING,
-                        'inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-cream-faint hover:text-brass transition-colors',
-                      )}
-                    >
-                      {validatedCollapsed ? 'Déplier' : 'Replier'}
-                      <ChevronDown className={cn('w-3 h-3 transition-transform', validatedCollapsed && '-rotate-90')} strokeWidth={1.5} />
-                    </button>
-                  </div>
-                  {!validatedCollapsed && validatedDocs.map((doc, i) => renderDocLine(doc, i, true))}
-                </>
-              )}
-            </>
-          ) : filteredDocs && filteredDocs.length === 0 ? (
-            <div className="py-20 text-center">
-              <span className={cn(DISPLAY, 'text-[64px] italic text-cream-faint opacity-40')}>—</span>
-              <p className={cn(BODY, 'mt-4 text-[14px] text-cream-dim')}>
-                {filter === 'missing' && 'Toutes les pièces obligatoires sont consignées.'}
-                {filter === 'pending' && 'Aucune pièce en vérification.'}
-                {filter === 'validated' && 'Aucune pièce archivée pour l\'instant.'}
-              </p>
-            </div>
-          ) : (
-            filteredDocs?.map((doc, i) => renderDocLine(doc, i, filter === 'validated'))
-          )}
-        </section>
-
-        {/* ── Footer plate ─────────────────────────────────────── */}
-        <footer className="mt-16 pt-6 border-t border-hairline-strong flex items-start justify-between gap-6 flex-wrap">
-          <div className={cn(BODY, 'text-[10px] uppercase tracking-[0.18em] text-cream-faint')}>
-            MEGGA Real Estate
-            <span className="mx-2 opacity-40">·</span>
-            Coffre-fort numérique
-            <span className="mx-2 opacity-40">·</span>
-            Chiffrement AES-256
-          </div>
-          <div className={cn(MONO, 'text-[10px] text-cream-faint uppercase tracking-[0.1em]')}>
-            {docs.length} entrée{docs.length > 1 ? 's' : ''} consignée{docs.length > 1 ? 's' : ''}
-          </div>
-        </footer>
+        <ArrowRight className="hidden md:inline w-4 h-4 text-gray-300 dark:text-gray-600" />
       </div>
 
-      {/* ── Toast ────────────────────────────────────────────── */}
+      {/* ── Filter tabs ──────────────────────────────────────────────── */}
+      <div className="inline-flex items-center gap-0.5 rounded-full bg-gray-50 dark:bg-gray-800/60 p-0.5 w-fit">
+        {TABS.map((tab) => {
+          const active = filter === tab.key
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={cn(
+                'h-8 px-3.5 rounded-full text-xs font-medium transition-all inline-flex items-center gap-1.5',
+                FOCUS_RING,
+                active
+                  ? 'bg-white text-gray-900 dark:bg-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white',
+              )}
+            >
+              {tab.label}
+              <span className={cn(
+                'tabular-nums text-[10px]',
+                active ? 'text-gray-400 dark:text-gray-500' : 'text-gray-400 dark:text-gray-600',
+              )}>
+                {tab.count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* ── Documents list ───────────────────────────────────────────── */}
+      {filter === 'all' ? (
+        <div className="space-y-6">
+          {missingDocs.length > 0 && (
+            <section className="space-y-2">
+              <p className={SECTION_LABEL}>À fournir · {missingDocs.length}</p>
+              <div className="space-y-2">
+                {missingDocs.map((doc) => renderDocRow(doc, false))}
+              </div>
+            </section>
+          )}
+
+          {pendingDocs.length > 0 && (
+            <section className="space-y-2">
+              <p className={SECTION_LABEL}>En vérification · {pendingDocs.length}</p>
+              <div className="space-y-2">
+                {pendingDocs.map((doc) => renderDocRow(doc, false))}
+              </div>
+            </section>
+          )}
+
+          {validatedDocs.length > 0 && (
+            <section className="space-y-2">
+              <button
+                onClick={() => setValidatedCollapsed(!validatedCollapsed)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors',
+                  FOCUS_RING, 'rounded',
+                )}
+              >
+                <span className={SECTION_LABEL}>Validés · {validatedDocs.length}</span>
+                <ChevronDown
+                  className={cn(
+                    'w-3 h-3 text-gray-400 dark:text-gray-500 transition-transform',
+                    validatedCollapsed && '-rotate-90',
+                  )}
+                />
+              </button>
+              {!validatedCollapsed && (
+                <div className="space-y-1.5">
+                  {validatedDocs.map((doc) => renderDocRow(doc, true))}
+                </div>
+              )}
+              {validatedCollapsed && (
+                <button
+                  onClick={() => setValidatedCollapsed(false)}
+                  className={cn(
+                    'text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors',
+                    FOCUS_RING, 'rounded',
+                  )}
+                >
+                  Afficher les {validatedDocs.length} documents validés
+                </button>
+              )}
+            </section>
+          )}
+        </div>
+      ) : filteredDocs && filteredDocs.length === 0 ? (
+        <section className={cn(CARD, 'p-10 flex flex-col items-center text-center')}>
+          <img
+            src="/illustrations/maggy/EmptyState.svg"
+            alt=""
+            className="w-36 h-28 mb-3 opacity-70"
+            loading="lazy"
+            decoding="async"
+          />
+          <p className="text-sm font-medium text-gray-900 dark:text-white">
+            {filter === 'missing' && 'Tous les documents obligatoires sont fournis'}
+            {filter === 'pending' && 'Aucun document en vérification'}
+            {filter === 'validated' && 'Aucun document validé pour l\'instant'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm">
+            {filter === 'missing' && 'Votre dossier est complet.'}
+            {filter === 'pending' && 'Les documents déposés seront vérifiés sous 24 h.'}
+            {filter === 'validated' && 'Déposez vos premiers documents via la zone ci-dessus.'}
+          </p>
+        </section>
+      ) : (
+        <div className="space-y-2">
+          {filteredDocs?.map((doc) => renderDocRow(doc, filter === 'validated'))}
+        </div>
+      )}
+
+      {/* ── Confidentiality note ──────────────────────────────────────── */}
+      <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+        Tous vos documents sont chiffrés et accessibles uniquement à vous et à votre agent.
+      </p>
+
+      {/* ── Toast ─────────────────────────────────────────────────────── */}
       {toast && createPortal(
-        <div className="vault fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] animate-in fade-in-0 slide-in-from-bottom-4 duration-200">
-          <style>{SCOPED_CSS}</style>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] animate-in fade-in-0 slide-in-from-bottom-4 duration-200">
           <div
-            className={cn(BODY, 'flex items-center gap-3 text-[13px] text-cream px-5 py-3 border border-brass/40')}
-            style={{ background: palette.vaultRaised, boxShadow: `0 12px 30px -10px ${palette.brass}55` }}
+            className={cn(
+              'inline-flex items-center gap-2.5 rounded-full border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900',
+              'px-4 py-2.5 text-sm text-gray-900 dark:text-white shadow-[0_20px_40px_-15px_rgba(15,23,42,0.15)]',
+            )}
           >
-            <CheckCircle2 className="w-4 h-4 text-brass" strokeWidth={1.5} />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
             {toast}
           </div>
         </div>,
         document.body,
       )}
 
-      {/* ── Help modal ───────────────────────────────────────── */}
+      {/* ── Help modal ────────────────────────────────────────────────── */}
       {helpDocId && helpDoc && createPortal(
         <div
-          className={cn(BODY, 'vault fixed inset-0 z-[100] flex items-center justify-center px-4')}
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="help-modal-title"
           onClick={() => setHelpDocId(null)}
           onKeyDown={(e) => { if (e.key === 'Escape') setHelpDocId(null) }}
-          style={{ background: `${palette.vault}c0`, backdropFilter: 'blur(10px)' }}
         >
-          <style>{SCOPED_CSS}</style>
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm animate-in fade-in-0 duration-150" />
           <div
-            className="relative w-full max-w-lg p-8 vault-rise border border-hairline-strong"
+            className={cn(
+              'relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800',
+              'p-6 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.15)] animate-in fade-in-0 zoom-in-95 duration-200',
+            )}
             onClick={(e) => e.stopPropagation()}
-            style={{
-              background: palette.vaultRaised,
-              boxShadow: `0 40px 80px -20px ${palette.vault}, 0 0 0 1px ${palette.brass}20`,
-            }}
           >
-            <div className="flex items-start justify-between pb-3 border-b border-hairline">
-              <span className={cn(BODY, 'text-[10px] uppercase tracking-[0.22em] text-cream-faint')}>
-                Notice d'archivage
-              </span>
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <p className={SECTION_LABEL}>Aide</p>
+                <h3
+                  id="help-modal-title"
+                  className="mt-1.5 text-base font-semibold text-gray-900 dark:text-white tracking-tight"
+                >
+                  {helpDoc.name}
+                </h3>
+              </div>
               <button
                 autoFocus
                 onClick={() => setHelpDocId(null)}
                 aria-label="Fermer"
-                className={cn(FOCUS_RING, 'text-cream-faint hover:text-cream transition-colors')}
+                className={cn(
+                  'h-8 w-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
+                  FOCUS_RING,
+                )}
               >
-                <X className="w-4 h-4" strokeWidth={1.5} />
+                <X className="h-4 w-4" />
               </button>
             </div>
-            <h3 id="help-modal-title" className={cn(DISPLAY, 'mt-5 text-[32px] leading-[0.95] text-cream')}>
-              {helpDoc.name}
-            </h3>
 
-            <div className="mt-6 space-y-4">
+            <div className="space-y-3">
               {helpInfo ? (
                 <>
-                  <p className={cn(BODY, 'text-[14px] leading-[1.7] text-cream-dim')}>{helpInfo.help}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{helpInfo.help}</p>
                   {helpInfo.cost && (
-                    <p className={cn(MONO, 'text-[12px] text-cream-faint')}>
-                      Coût estimé : <span className="text-brass">{helpInfo.cost}</span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                      Coût estimé : <span className="font-medium text-gray-900 dark:text-white">{helpInfo.cost}</span>
                     </p>
                   )}
                 </>
               ) : (
-                <p className={cn(BODY, 'text-[14px] leading-[1.7] text-cream-dim')}>
-                  Cette pièce est nécessaire à votre dossier. Votre agent peut vous orienter
-                  vers la meilleure voie pour l'obtenir.
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  Cette pièce est nécessaire à votre dossier. Votre agent peut vous orienter.
                 </p>
               )}
               {helpDoc.required_for && (
-                <p className={cn(BODY, 'text-[12px] text-cream-faint italic')}>
-                  <span className="text-rust">Nécessaire avant :</span>{' '}
-                  <span className="text-cream-dim">{helpDoc.required_for}</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Nécessaire avant : <span className="text-gray-900 dark:text-white font-medium">{helpDoc.required_for}</span>
                 </p>
               )}
             </div>
 
-            <div className="mt-8 pt-4 border-t border-hairline flex items-center justify-between">
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
               <button
                 onClick={() => setHelpDocId(null)}
                 className={cn(
-                  BODY, FOCUS_RING,
-                  'inline-flex items-center gap-2 text-[13px] text-cream-dim hover:text-brass transition-colors',
+                  'inline-flex items-center gap-2 h-9 px-4 rounded-full text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600 transition-colors',
+                  FOCUS_RING,
                 )}
               >
-                <MessageSquare className="w-3.5 h-3.5" strokeWidth={1.5} />
+                <MessageSquare className="w-3.5 h-3.5" />
                 Contacter mon agent
-                <ArrowUpRight className="w-3 h-3" strokeWidth={1.5} />
               </button>
-              <span className={cn(MONO, 'text-[10px] text-cream-faint uppercase tracking-[0.14em]')}>
-                Réf. {helpDoc.id.toUpperCase()}
-              </span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Un message pré-rempli sera envoyé à propos de ce document.
+              </p>
             </div>
           </div>
         </div>,
         document.body,
       )}
-    </div>
-  )
-}
-
-// ─── Section header ──────────────────────────────────────────────────────
-
-function SectionHeader({ numeral, label, count }: { numeral: string; label: string; count: number }) {
-  return (
-    <div className="flex items-baseline gap-4 pt-10 pb-4 border-b border-hairline">
-      <span className={cn(DISPLAY, 'text-[28px] italic text-brass')}>{numeral}</span>
-      <h2 className={cn(DISPLAY, 'text-[24px] text-cream')}>{label}</h2>
-      <span className={cn(MONO, 'text-[11px] text-cream-faint')}>
-        {String(count).padStart(2, '0')} pièce{count > 1 ? 's' : ''}
-      </span>
     </div>
   )
 }
