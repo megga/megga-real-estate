@@ -339,15 +339,8 @@ export default function LoginPage() {
                     placeholder={t('auth.emailPlaceholder')}
                     required
                     autoFocus
-                    className="w-full h-full px-4 pr-10 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
+                    className="w-full h-full px-4 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
                   />
-                  {/* Custom focus indicator — pulsing dot on the right */}
-                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-gray-900 opacity-40 animate-ping" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-900" />
-                    </span>
-                  </span>
                 </div>
                 <button
                   type="submit"
@@ -631,14 +624,8 @@ export default function LoginPage() {
                     placeholder={t('auth.emailPlaceholder')}
                     required
                     autoFocus
-                    className="w-full h-full px-4 pr-10 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
+                    className="w-full h-full px-4 text-[13px] bg-transparent outline-none focus-visible:outline-none placeholder:text-gray-400 caret-gray-900"
                   />
-                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-gray-900 opacity-40 animate-ping" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-900" />
-                    </span>
-                  </span>
                 </div>
                 <button
                   type="submit"
@@ -705,7 +692,8 @@ export default function LoginPage() {
 
           {/* Central dashboard mockup + overlay popup — large "real software" feel */}
           <div className="relative flex-1 flex items-start justify-center pt-2">
-            {/* MAIN: Full-width MEGGA CRM dashboard */}
+            <div className="relative w-full max-w-[560px]">
+            {/* MAIN: MEGGA CRM dashboard (capped width, centered in bento) */}
             <div
               className="w-full bg-white rounded-2xl overflow-hidden"
               style={{ boxShadow: '0 30px 60px -20px rgba(15,23,42,0.4), 0 10px 20px -10px rgba(15,23,42,0.1)' }}
@@ -878,6 +866,7 @@ export default function LoginPage() {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
 
