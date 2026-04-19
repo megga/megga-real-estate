@@ -518,31 +518,59 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
     // le total et décider si on a une suite. Puis on SCHEDULE tout de suite le
     // chunk suivant (ou le sweep) AVANT de faire le travail. Comme ça, même si
     // l'isolate se fait tuer mid-chunk, le prochain est déjà en queue.
+    //
+    // ⚠️ Flatfox's API ignores `ordering=-created`/`-pk` — results are always
+    // returned with lowest pk first (oldest first). This means offset=0 gives
+    // us 2018 listings and the newest are near the END (offset ~= count-page).
+    //
+    // To ensure we always catch the freshest listings first — especially when
+    // the self-invoke chain gets killed mid-sync — we walk BACKWARDS: first
+    // invocation starts near `count`, each self-invoke decrements offset.
+    // This way if the chain dies after N chunks, we've at least captured the
+    // N*CHUNK_SIZE most recent listings.
     const nowIso = new Date().toISOString()
-    const firstPage = await fetchFlatfoxPage(offset)
+    const CHUNK_SPAN = CHUNK_PAGES * PAGE_SIZE
+
+    // On the very first invocation (body.offset === undefined), we don't yet
+    // know `count`. Peek with a tiny request to learn it, then start from the
+    // end.
+    let startOffset = body.offset
+    if (startOffset === undefined) {
+      const peek = await fetchFlatfoxPage(0)
+      totalExpected = peek.count || 0
+      startOffset = Math.max(0, totalExpected - CHUNK_SPAN)
+      console.log(`[chunk] first invocation: total=${totalExpected}, starting at offset=${startOffset}`)
+    }
+
+    const firstPage = await fetchFlatfoxPage(startOffset)
     if (totalExpected === 0 && firstPage.count) totalExpected = firstPage.count
     const firstResults = firstPage.results || []
 
     if (firstResults.length === 0) {
-      // Fin du sync → déclenche le sweep
-      console.log(`[chunk] reached end at offset=${offset}, triggering sweep`)
+      // Empty page at this offset — either we walked off the end or the
+      // total shrunk between peek and fetch. Go to sweep.
+      console.log(`[chunk] empty results at offset=${startOffset}, triggering sweep`)
       await selfInvoke({ mode: 'sweep', sync_start_at: syncStartAt, stats, total_expected: totalExpected })
       return
     }
 
-    // Schedule la suite SEULEMENT si Flatfox signale qu'il y a encore des résultats
-    // après notre chunk courant. Évite de pre-scheduler un chunk vide qui déclencherait
-    // un sweep prématuré.
-    const nextOffset = offset + (CHUNK_PAGES * PAGE_SIZE)
-    if (totalExpected === 0 || nextOffset < totalExpected) {
+    // Schedule the NEXT chunk = one CHUNK_SPAN earlier in the list (closer to
+    // offset 0). When we reach offset 0, we switch to sweep mode.
+    const nextOffset = startOffset - CHUNK_SPAN
+    if (nextOffset >= 0) {
       await selfInvoke({ mode: 'chunk', offset: nextOffset, sync_start_at: syncStartAt, stats, total_expected: totalExpected })
+    } else if (startOffset > 0) {
+      // Final chunk from offset 0 to pick up the oldest 2500 listings, then sweep
+      await selfInvoke({ mode: 'chunk', offset: 0, sync_start_at: syncStartAt, stats, total_expected: totalExpected })
     } else {
-      // Ce chunk est le dernier → il déclenchera le sweep après son travail
-      console.log(`[chunk] last chunk (offset=${offset}, nextOffset=${nextOffset} >= total=${totalExpected})`)
+      // Already at offset 0 — this chunk is the last one, it will trigger sweep after work
+      console.log(`[chunk] reached offset=0, this is the final chunk before sweep`)
     }
+    // Local alias so the rest of the function reads naturally
+    const offsetForWork = startOffset
 
     // Maintenant, le travail du chunk courant (peut se faire tuer sans casser la chaîne)
-    let currentOffset = offset
+    let currentOffset = offsetForWork
     let pagesThisChunk = 0
 
     // Page 1 déjà fetched (firstPage)
@@ -565,7 +593,7 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
 
     await processPage(firstResults)
     if (!firstPage.next) {
-      console.log(`[chunk done-early] offset=${offset} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected}`)
+      console.log(`[chunk done-early] offset=${offsetForWork} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected}`)
       return
     }
 
@@ -580,13 +608,13 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       if (!page.next) { reachedEnd = true; break }
     }
     stats.chunks++
-    console.log(`[chunk ${stats.chunks}] offset=${offset}→${currentOffset} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected} reachedEnd=${reachedEnd}`)
+    console.log(`[chunk ${stats.chunks}] offset=${offsetForWork}→${currentOffset} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected} reachedEnd=${reachedEnd}`)
 
-    // Si ce chunk est le dernier (API signale fin OU nextOffset au-delà du total),
-    // et qu'on n'a PAS pré-scheduled un chunk suivant, on déclenche le sweep nous-même.
-    const weScheduledNext = totalExpected === 0 || nextOffset < totalExpected
-    if (reachedEnd && !weScheduledNext) {
-      console.log(`[chunk] last chunk completed, triggering sweep`)
+    // Si ce chunk est le premier (offset=0) et qu'on n'a PAS pré-scheduled un chunk
+    // suivant (backward walk reached the start), on déclenche le sweep nous-même.
+    const weScheduledNext = offsetForWork > 0
+    if (!weScheduledNext) {
+      console.log(`[chunk] offset=0 chunk completed, triggering sweep`)
       await selfInvoke({ mode: 'sweep', sync_start_at: syncStartAt, stats, total_expected: totalExpected })
     }
   } catch (err) {
