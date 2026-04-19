@@ -32,6 +32,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Device detection — fire-and-forget, called once per sign-in.
+// Sends the user's access_token + client-side fingerprint hints so the
+// Edge Function can decide whether to alert the user by email.
+async function reportDevice(accessToken: string) {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/detect-new-device`
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        screen: `${window.screen.width}x${window.screen.height}`,
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+      // Don't block the login UX if the network is slow/offline
+      signal: AbortSignal.timeout(8000),
+    })
+  } catch { /* silent — security telemetry must never break login */ }
+}
+
 // Rôle mock par défaut = 'agent' (le plus sûr). Pour tester super_admin en dev,
 // set VITE_DEV_BYPASS_ROLE=super_admin dans .env.local
 const MOCK_ROLE = (import.meta.env.VITE_DEV_BYPASS_ROLE as UserRole | undefined) ?? 'agent'
@@ -133,12 +152,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, s) => {
+    } = supabase.auth.onAuthStateChange(async (event, s) => {
       try {
         setSession(s)
         if (s?.user) {
           const p = await fetchProfile(s.user.id, s.user)
           setProfile(p)
+          // Fire-and-forget device detection on sign-in (not on every token refresh)
+          if (event === 'SIGNED_IN') {
+            void reportDevice(s.access_token)
+          }
         } else {
           setProfile(null)
         }
