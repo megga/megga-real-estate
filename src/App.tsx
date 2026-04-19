@@ -10,6 +10,7 @@ import LoginPage from '@/pages/public/LoginPage'
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import PasswordGate from '@/components/layout/PasswordGate'
+import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import AgentLayout from '@/components/layout/AgentLayout'
 import ActionBoardPage from '@/pages/agent/ActionBoardPage'
 import FavoritesLoginPrompt from '@/components/auth/FavoritesLoginPrompt'
@@ -163,6 +164,7 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <PasswordGate>
+    <StaleBundleDetector />
     <QueryClientProvider client={queryClient}>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
