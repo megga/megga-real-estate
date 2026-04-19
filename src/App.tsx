@@ -114,12 +114,24 @@ function PageLoader() {
   )
 }
 
+// networkMode: 'always' → ignore `navigator.onLine`.
+// Chrome occasionally reports onLine=false after sleep/wake, WiFi↔4G switches,
+// VPN toggles, or DevTools "Offline" mode. In 'online' mode (the default),
+// TanStack Query pauses queries until `onLine` flips back to true — which can
+// never happen if Chrome's state is stuck, leaving the page on eternal skeletons
+// with no network request and no console error.
+// 'always' lets queries fire regardless; if the network is truly down, they
+// fail fast with a real error the UI can display.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
       retry: 1,
       refetchOnWindowFocus: false,
+      networkMode: 'always',
+    },
+    mutations: {
+      networkMode: 'always',
     },
   },
 })
