@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
+import GoogleOneTap from '@/components/auth/GoogleOneTap'
 import { ArrowLeft, Loader2, Eye, EyeOff, Sparkles, ShieldCheck, MapPin, TrendingUp, Check, Mail } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { REMEMBER_KEY } from '@/lib/supabase'
@@ -216,6 +217,8 @@ export default function LoginPage() {
 
   return (
     <main id="main-content" className="min-h-screen bg-gray-100 lg:p-4 flex">
+      {/* Google One Tap — buyers only, not agents, not when already signed in */}
+      <GoogleOneTap disabled={isAgentMode || !!user} />
       <div className="flex-1 bg-white lg:rounded-3xl lg:shadow-[0_20px_50px_-20px_rgba(15,23,42,0.15)] overflow-hidden flex flex-col lg:flex-row">
         {/* Left: Form */}
         <div className="flex-1 flex flex-col px-6 py-10 lg:px-12 lg:py-10 bg-white relative">
