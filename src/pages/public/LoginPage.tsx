@@ -692,7 +692,7 @@ export default function LoginPage() {
 
           {/* Central dashboard mockup + overlay popup — large "real software" feel */}
           <div className="relative flex-1 flex items-start justify-center pt-2">
-            <div className="relative w-full max-w-[560px]">
+            <div className="relative w-full max-w-[640px]">
             {/* MAIN: MEGGA CRM dashboard (capped width, centered in bento) */}
             <div
               className="w-full bg-white rounded-2xl overflow-hidden"
