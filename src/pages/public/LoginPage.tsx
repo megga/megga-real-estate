@@ -242,25 +242,25 @@ export default function LoginPage() {
           {step === 'email' && (
             <motion.div key="email" {...stepMotion}>
               <div className="text-center mb-8">
-                <h1 className="text-xl font-semibold text-gray-900">
+                <h1 className="text-[22px] font-semibold text-gray-900 tracking-tight">
                   {isAgentMode ? t('auth.professionalSpace') : t('auth.welcomeToMegga')}
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-[13px] text-gray-500 mt-1.5">
                   {t('auth.loginOrCreate')}
                 </p>
               </div>
 
-              {/* OAuth buttons */}
-              <div className="space-y-2.5 mb-6">
+              {/* OAuth buttons — rounded-full pills matching /louer design language */}
+              <div className="space-y-2 mb-6">
                 <button
                   onClick={handleGoogle}
                   disabled={!!oauthLoading}
-                  className="w-full h-11 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="group w-full h-11 rounded-full border border-gray-200 bg-white text-[13px] font-semibold text-gray-900 hover:border-gray-900 hover:shadow-sm transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {oauthLoading === 'google' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <GoogleIcon className="h-5 w-5" />
+                    <GoogleIcon className="h-4 w-4" />
                   )}
                   {t('auth.continueWithGoogle')}
                 </button>
@@ -268,46 +268,48 @@ export default function LoginPage() {
                 <button
                   onClick={handleFacebook}
                   disabled={!!oauthLoading}
-                  className="w-full h-11 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="group w-full h-11 rounded-full border border-gray-200 bg-white text-[13px] font-semibold text-gray-900 hover:border-gray-900 hover:shadow-sm transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <FacebookIcon className="h-5 w-5" />
+                  <FacebookIcon className="h-4 w-4" />
                   {t('auth.continueWithFacebook')}
                 </button>
               </div>
 
               {/* Separator */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-500">{t('auth.or')}</span>
-                <div className="flex-1 h-px bg-gray-200" />
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px bg-gray-100" />
+                <span className="text-[10px] uppercase tracking-[0.12em] text-gray-400 font-semibold">{t('auth.or')}</span>
+                <div className="flex-1 h-px bg-gray-100" />
               </div>
 
-              {/* Email input */}
+              {/* Email input — pill style with diffuse focus halo (matches PromptInputBar) */}
               <form onSubmit={handleEmailContinue}>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="email" className="block text-[11px] font-semibold text-gray-600 mb-1.5 px-1">
                   {t('auth.email')}
                 </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t('auth.emailPlaceholder')}
-                  required
-                  autoFocus
-                  className="w-full h-11 px-3.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
-                />
+                <div className="relative h-11 rounded-full bg-gray-50 border border-gray-100 focus-within:border-gray-900 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(37,99,235,0.12)] transition-all">
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('auth.emailPlaceholder')}
+                    required
+                    autoFocus
+                    className="w-full h-full px-4 text-[13px] bg-transparent outline-none placeholder:text-gray-400"
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={loading || !email.trim()}
-                  className="w-full h-11 mt-4 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  className="w-full h-11 mt-3 rounded-full bg-gray-900 text-white text-[13px] font-semibold hover:bg-gray-800 active:scale-[0.99] transition-all disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('auth.continue')}
                 </button>
               </form>
 
               {error && (
-                <p className="mt-3 text-xs text-red-600 text-center">{error}</p>
+                <p className="mt-3 text-[11px] text-red-600 text-center">{error}</p>
               )}
 
               {/* Forgot password direct entry */}
@@ -315,21 +317,30 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setStep('forgot'); setError(null) }}
-                  className="text-xs text-gray-500 hover:text-accent transition-colors"
+                  className="text-[12px] text-gray-500 hover:text-gray-900 transition-colors"
                 >
                   {t('auth.forgotPassword')}
                 </button>
               </div>
 
-              {/* Pro link */}
-              <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+              {/* Pro link — rounded-full pill with border like /louer filters */}
+              <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center">
                 {isAgentMode ? (
-                  <Link to="/login" className="text-sm text-gray-500 hover:text-accent transition-colors">
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-gray-200 text-[12px] font-medium text-gray-700 hover:border-gray-900 hover:shadow-sm transition-all"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
                     {t('auth.backToPersonal')}
                   </Link>
                 ) : (
-                  <Link to="/login?role=agent" className="text-sm text-gray-500 hover:text-accent transition-colors">
-                    {t('auth.youArePro')} <span className="font-medium">{t('auth.agentSpace')}</span> &rarr;
+                  <Link
+                    to="/login?role=agent"
+                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-gray-200 text-[12px] text-gray-700 hover:border-gray-900 hover:shadow-sm transition-all"
+                  >
+                    {t('auth.youArePro')}{' '}
+                    <span className="font-semibold text-gray-900">{t('auth.agentSpace')}</span>
+                    <span className="text-gray-400">→</span>
                   </Link>
                 )}
               </div>
