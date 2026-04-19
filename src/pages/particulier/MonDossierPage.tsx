@@ -265,75 +265,124 @@ export default function MonDossierPage() {
       </div>
 
       {/* ── Avancement de la vente ──────────────────────────────────────
-         Dots + connecting line. Emerald for completed, darker gray for
-         the current step (with ring), gray-200 for pending. Hover reveals
-         tooltip with the step explanation. */}
-      <section className={cn(CARD, 'p-6')}>
+         Rail design: a thick rounded progress bar sits ABOVE the step
+         row (not through it). Completed circles are filled emerald with
+         a thin check; the current step is a filled emerald circle with
+         a pulsing halo; upcoming steps are outlined circles with their
+         step number. Hover reveals a dark tooltip. */}
+      <section className={cn(CARD, 'p-6 md:p-7')}>
         <div className="flex items-center justify-between mb-6">
-          <p className={SECTION_LABEL}>Avancement de la vente</p>
-          <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+          <div>
+            <p className={SECTION_LABEL}>Avancement de la vente</p>
+            <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-400">
+              Étape{' '}
+              <span className="text-gray-900 dark:text-white font-semibold tabular-nums">
+                {currentStepIdx + 1}
+              </span>
+              <span className="text-gray-400 dark:text-gray-600"> / {MANDATE_STEPS.length}</span>
+              {' · '}
+              <span className="text-gray-900 dark:text-white font-medium">
+                {MANDATE_STEPS[currentStepIdx].label}
+              </span>
+            </p>
+          </div>
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
             <HelpCircle className="w-3 h-3" />
             <span>Survolez une étape</span>
           </div>
         </div>
-        <div className="relative">
-          {/* Base line */}
-          <div className="absolute top-2.5 left-0 right-0 h-px bg-gray-200 dark:bg-gray-800" />
-          {/* Progress line — emerald, stretched to current step */}
+
+        {/* Progress rail — sits above the node row, not through it */}
+        <div className="relative h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden mb-5">
           <div
-            className="absolute top-2.5 left-0 h-px bg-emerald-500 transition-all duration-500"
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-[width] duration-700 ease-out"
             style={{
-              width: `${(currentStepIdx / (MANDATE_STEPS.length - 1)) * 100}%`,
+              width: `${((currentStepIdx + 0.5) / MANDATE_STEPS.length) * 100}%`,
             }}
           />
-          <div className="relative flex items-start justify-between">
-            {MANDATE_STEPS.map((step, i) => {
-              const isCompleted = i < currentStepIdx
-              const isCurrent = i === currentStepIdx
-              return (
-                <div
-                  key={step.key}
-                  className="flex flex-col items-center gap-2 flex-1 cursor-default relative"
-                  onMouseEnter={() => setHoveredStep(step.key)}
-                  onMouseLeave={() => setHoveredStep(null)}
-                >
+        </div>
+
+        {/* Node row */}
+        <div className="flex items-start justify-between">
+          {MANDATE_STEPS.map((step, i) => {
+            const isCompleted = i < currentStepIdx
+            const isCurrent = i === currentStepIdx
+            return (
+              <div
+                key={step.key}
+                className="flex flex-col items-center gap-2.5 flex-1 cursor-default relative min-w-0"
+                onMouseEnter={() => setHoveredStep(step.key)}
+                onMouseLeave={() => setHoveredStep(null)}
+              >
+                <div className="relative flex items-center justify-center">
+                  {/* Pulsing halo for the current step */}
+                  {isCurrent && (
+                    <span className="absolute inset-0 -m-1 rounded-full bg-emerald-500/20 animate-ping" />
+                  )}
                   <div
                     className={cn(
-                      'w-5 h-5 rounded-full flex items-center justify-center transition-all relative z-10',
-                      isCompleted && 'bg-emerald-500',
-                      isCurrent && 'bg-white dark:bg-gray-900 border-2 border-emerald-500 ring-4 ring-emerald-500/15',
-                      !isCompleted && !isCurrent && 'bg-gray-200 dark:bg-gray-800',
+                      'w-8 h-8 rounded-full flex items-center justify-center transition-all relative',
+                      isCompleted &&
+                        'bg-emerald-500 shadow-[0_2px_6px_-2px_rgba(16,185,129,0.5)]',
+                      isCurrent &&
+                        'bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)] dark:shadow-[0_0_0_4px_rgba(16,185,129,0.25)]',
+                      !isCompleted &&
+                        !isCurrent &&
+                        'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700',
                     )}
                   >
-                    {isCompleted && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                    {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                    {isCompleted && (
+                      <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                    )}
+                    {isCurrent && (
+                      <span className="w-2 h-2 rounded-full bg-white" />
+                    )}
+                    {!isCompleted && !isCurrent && (
+                      <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 tabular-nums">
+                        {i + 1}
+                      </span>
+                    )}
                   </div>
+                </div>
+                <div className="text-center px-1">
                   <p
                     className={cn(
-                      'text-[11px] text-center leading-tight transition-colors',
+                      'text-[11px] leading-tight transition-colors truncate',
                       isCurrent && 'text-gray-900 dark:text-white font-semibold',
-                      isCompleted && 'text-gray-600 dark:text-gray-300',
-                      !isCompleted && !isCurrent && 'text-gray-400 dark:text-gray-600',
+                      isCompleted && 'text-gray-700 dark:text-gray-300 font-medium',
+                      !isCompleted &&
+                        !isCurrent &&
+                        'text-gray-400 dark:text-gray-600',
                     )}
                   >
                     {step.label}
                   </p>
-                  {hoveredStep === step.key && STEP_HELP[step.key] && (
-                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-30 w-64 bg-gray-900 dark:bg-gray-950 text-white text-xs leading-relaxed px-3 py-2.5 rounded-lg pointer-events-none animate-in fade-in-0 slide-in-from-top-1 duration-150 shadow-xl">
-                      {STEP_HELP[step.key]}
-                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-950 rotate-45" />
-                    </div>
+                  {isCurrent && (
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-500 font-medium mt-0.5">
+                      En cours
+                    </p>
                   )}
                 </div>
-              )
-            })}
-          </div>
+
+                {hoveredStep === step.key && STEP_HELP[step.key] && (
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-30 w-64 bg-gray-900 dark:bg-gray-950 text-white text-xs leading-relaxed px-3 py-2.5 rounded-lg pointer-events-none animate-in fade-in-0 slide-in-from-top-1 duration-150 shadow-xl">
+                    {STEP_HELP[step.key]}
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-950 rotate-45" />
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
+
         {nextStepLabel && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-5">
-            Prochaine étape :{' '}
-            <span className="text-gray-900 dark:text-white font-medium">{nextStepLabel}</span>
-          </p>
+          <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2 text-xs">
+            <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span className="text-gray-500 dark:text-gray-400">Prochaine étape :</span>
+            <span className="text-gray-900 dark:text-white font-medium">
+              {nextStepLabel}
+            </span>
+          </div>
         )}
       </section>
 
