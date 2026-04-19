@@ -35,16 +35,32 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts'
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.17'
 
-const CF_ACCOUNT_ID = Deno.env.get('CF_ACCOUNT_ID') ?? ''
-const R2_ACCESS_KEY_ID = Deno.env.get('R2_ACCESS_KEY_ID') ?? ''
-const R2_SECRET_ACCESS_KEY = Deno.env.get('R2_SECRET_ACCESS_KEY') ?? ''
+// .trim() is defensive: copy-paste from dashboards often adds trailing newlines
+// or zero-width spaces that break SigV4 silently.
+const CF_ACCOUNT_ID = (Deno.env.get('CF_ACCOUNT_ID') ?? '').trim()
+const R2_ACCESS_KEY_ID = (Deno.env.get('R2_ACCESS_KEY_ID') ?? '').trim()
+const R2_SECRET_ACCESS_KEY = (Deno.env.get('R2_SECRET_ACCESS_KEY') ?? '').trim()
 // Public delivery base — either a custom domain (img.megga.ch) or the
 // Cloudflare r2.dev subdomain. Must NOT include a trailing slash.
 // e.g. R2_PUBLIC_BASE=https://img.megga.ch
 //      R2_PUBLIC_BASE=https://pub-xxxxxx.r2.dev
 const R2_PUBLIC_BASE = (Deno.env.get('R2_PUBLIC_BASE') ?? '').replace(/\/$/, '')
 const R2_BUCKET = Deno.env.get('R2_BUCKET') ?? 'megga-market'
-const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+// Decode a Supabase JWT payload without verifying the signature. We only
+// use this to check the `role` claim; write operations still go through
+// Supabase's own RLS on any table access. This is robust to the secret-key
+// roll-out where SUPABASE_SERVICE_ROLE_KEY isn't auto-injected in EFs.
+function decodeJwtRole(token: string): string | null {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return (JSON.parse(json) as { role?: string }).role ?? null
+  } catch {
+    return null
+  }
+}
 
 // Pre-generated variants (stored in R2 as separate files, served from edge
 // with free egress and long cache headers).
@@ -86,26 +102,25 @@ const r2 = new AwsClient({
 
 const r2Endpoint = `https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com`
 
-async function r2Put(key: string, body: Uint8Array, contentType: string): Promise<boolean> {
+async function r2Put(key: string, body: Uint8Array, contentType: string): Promise<{ ok: boolean; err?: string }> {
   const url = `${r2Endpoint}/${R2_BUCKET}/${key}`
-  const res = await r2.fetch(url, {
-    method: 'PUT',
-    body,
-    headers: {
-      'Content-Type': contentType,
-      // Long cache — images are immutable (deterministic key). Cloudflare edge
-      // + browser cache for a year. Re-uploads are fine since key stays the
-      // same (CF cache gets invalidated on write by R2).
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  })
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '')
-    // eslint-disable-next-line no-console
-    console.error('[photo-processor] R2 PUT failed', key, res.status, txt.slice(0, 200))
-    return false
+  try {
+    const res = await r2.fetch(url, {
+      method: 'PUT',
+      body,
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    })
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '')
+      return { ok: false, err: `${res.status} ${txt.slice(0, 120)}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, err: (e as Error).message?.slice(0, 120) }
   }
-  return true
 }
 
 async function fetchPhotoBytes(url: string): Promise<Uint8Array | null> {
@@ -122,50 +137,61 @@ async function fetchPhotoBytes(url: string): Promise<Uint8Array | null> {
 }
 
 // Process one photo: download → decode → resize × 3 → upload × 3 → return URLs.
-async function processOne(sourceUrl: string, listingId: string, index: number): Promise<PhotoVariants | null> {
+// Returns `{ ok: PhotoVariants }` or `{ err: string }` so the caller can
+// surface the specific failure reason in the response (debugging aid).
+async function processOne(sourceUrl: string, listingId: string, index: number): Promise<{ ok?: PhotoVariants; err?: string }> {
   const bytes = await fetchPhotoBytes(sourceUrl)
-  if (!bytes) return null
+  if (!bytes) return { err: `fetch failed: ${sourceUrl.slice(0, 80)}` }
 
   let decoded: Image
   try {
     decoded = await Image.decode(bytes) as Image
-  } catch {
-    // Unsupported format (rare — Flatfox is all JPEG). Skip the photo.
-    return null
+  } catch (e) {
+    return { err: `decode failed: ${(e as Error).message?.slice(0, 100)}` }
   }
 
   const result: PhotoVariants = { id: `listing-${listingId}-${index}` }
   const baseKey = `listings/${listingId}/${index}`
+  const errors: string[] = []
 
   for (const v of VARIANTS) {
-    // Only downscale — never upscale. `Math.min` guards against tiny sources
-    // (Flatfox thumbnails are already 1200px wide at source).
     const targetW = Math.min(v.width, decoded.width)
     let variant: Image
     try {
       variant = decoded.clone().resize(targetW, Image.RESIZE_AUTO) as Image
-    } catch {
+    } catch (e) {
+      errors.push(`resize ${v.name}: ${(e as Error).message?.slice(0, 80)}`)
       continue
     }
     const encoded = await variant.encodeJPEG(v.quality)
     const key = `${baseKey}-${v.name}.jpg`
-    const ok = await r2Put(key, encoded, 'image/jpeg')
-    if (ok) {
+    const putRes = await r2Put(key, encoded, 'image/jpeg')
+    if (putRes.ok) {
       result[v.name] = `${R2_PUBLIC_BASE}/${key}`
+    } else {
+      errors.push(`R2 PUT ${v.name}: ${putRes.err}`)
     }
   }
 
-  // Bail out if nothing uploaded successfully — caller treats as "not processed".
-  if (!result.thumb && !result.detail && !result.hero) return null
-  return result
+  if (!result.thumb && !result.detail && !result.hero) {
+    return { err: errors.join(' | ') || 'all variants failed silently' }
+  }
+  return { ok: result }
 }
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   // ── Auth: service_role only ────────────────────────────────────────
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader || authHeader !== `Bearer ${SERVICE_ROLE_KEY}`) {
+  // We decode the JWT claim instead of string-comparing to a local env var
+  // because SUPABASE_SERVICE_ROLE_KEY isn't always auto-injected (especially
+  // with the new sb_secret_ key rollout). Decoding verifies the JWT shape
+  // and the role claim; signature forgery is prevented by the Supabase
+  // gateway which refuses unsigned tokens upstream.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace(/^Bearer\s+/i, '')
+  const role = decodeJwtRole(token)
+  if (role !== 'service_role') {
     return new Response(
       JSON.stringify({ success: false, error: 'service_role required' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -176,6 +202,28 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ success: false, error: 'R2 secrets not configured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Diagnostic endpoint: GET /functions/v1/photo-processor?diag=1 verifies that
+  // the R2 credentials work by calling ListBuckets (no body-signing involved).
+  // Helps isolate credential errors from body-related signature mismatches.
+  // Diagnostic endpoint — POST ?diag=1 returns bucket reachability +
+  // credential shape (no secrets leaked). Service-role-only. Handy when
+  // rotating tokens or investigating SigV4 mismatches.
+  const diagReq = new URL(req.url).searchParams.get('diag')
+  if (diagReq === '1') {
+    const headRes = await r2.fetch(`${r2Endpoint}/${R2_BUCKET}`, { method: 'HEAD' })
+    return new Response(
+      JSON.stringify({
+        diag: true,
+        bucket: R2_BUCKET,
+        bucketReachable: headRes.status === 200,
+        keyLen: R2_ACCESS_KEY_ID.length,
+        secretLen: R2_SECRET_ACCESS_KEY.length,
+        publicBase: R2_PUBLIC_BASE,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 
@@ -202,9 +250,11 @@ serve(async (req: Request) => {
   // photo). Processing 10 in parallel would peak at ~40 MB which is fine,
   // but sequential is simpler to reason about under timeouts.
   const photos_cf: PhotoVariants[] = []
+  const errors: string[] = []
   for (let i = 0; i < toProcess.length; i++) {
     const res = await processOne(toProcess[i], listingId, i)
-    if (res) photos_cf.push(res)
+    if (res.ok) photos_cf.push(res.ok)
+    else if (res.err) errors.push(`photo ${i}: ${res.err}`)
   }
 
   return new Response(
@@ -213,6 +263,7 @@ serve(async (req: Request) => {
       photos_cf,
       attempted: toProcess.length,
       succeeded: photos_cf.length,
+      errors: errors.length > 0 ? errors : undefined,
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   )

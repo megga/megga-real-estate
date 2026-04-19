@@ -28,6 +28,20 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
+// Decode a Supabase JWT payload without verifying the signature. We only
+// use this to check the `role` claim; the signature check is done by the
+// Supabase gateway upstream.
+function decodeJwtRole(token: string): string | null {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return (JSON.parse(json) as { role?: string }).role ?? null
+  } catch {
+    return null
+  }
+}
+
 const DEFAULT_BATCH = 25
 const MAX_BATCH = 50
 
@@ -46,7 +60,12 @@ serve(async (req: Request) => {
     auth: { persistSession: false },
   })
 
-  const isServiceRole = authHeader === `Bearer ${SERVICE_ROLE_KEY}`
+  // Decode the JWT role — robust to whether SUPABASE_SERVICE_ROLE_KEY is
+  // auto-injected in the EF runtime. The signature itself is checked by the
+  // Supabase gateway before we get here.
+  const bearerToken = authHeader.replace(/^Bearer\s+/i, '')
+  const role = decodeJwtRole(bearerToken)
+  const isServiceRole = role === 'service_role'
   let isSuperAdmin = false
   if (!isServiceRole && authHeader.startsWith('Bearer ')) {
     const userClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
@@ -122,10 +141,14 @@ serve(async (req: Request) => {
     }
 
     try {
+      // Forward the incoming auth header — we already validated it's a valid
+      // service_role JWT above. This sidesteps the issue where
+      // SUPABASE_SERVICE_ROLE_KEY env var isn't reliably auto-injected in the
+      // EF runtime (especially under the new sb_secret_ key rollout).
       const procRes = await fetch(`${SUPABASE_URL}/functions/v1/photo-processor`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          Authorization: authHeader,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ listingId: row.id, photoUrls: photos }),

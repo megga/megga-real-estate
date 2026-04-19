@@ -32,11 +32,13 @@ ALTER TABLE market_listings
 
 -- Partial index for the backfill — lets the EF efficiently find
 -- listings that still need processing without scanning all 33K rows.
+-- Note: market_listings.photos is a text[] array, not jsonb, so we use
+-- array_length (returns NULL on empty arrays, hence the `> 0` check).
 CREATE INDEX IF NOT EXISTS idx_ml_cf_pending
   ON market_listings (created_at DESC)
   WHERE photos_cf_processed_at IS NULL
     AND photos IS NOT NULL
-    AND jsonb_array_length(photos) > 0;
+    AND array_length(photos, 1) > 0;
 
 COMMENT ON COLUMN market_listings.photos_cf IS
   'Cloudflare R2 variants per photo. Array of {id, thumb, detail, hero} URLs under img.megga.ch. NULL = not yet processed, fall back to `photos` (Flatfox URLs).';
