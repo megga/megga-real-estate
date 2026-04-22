@@ -3,7 +3,7 @@ import {
   Eye, CalendarDays, HandCoins, Clock,
   Mail, Check, HelpCircle, Phone,
   FileText, ArrowRight, ShieldCheck, TrendingUp, TrendingDown,
-  MapPin, Maximize2, Home, Sparkles, Camera,
+  MapPin, Maximize2, Home, Sparkles,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
@@ -286,16 +286,44 @@ function DaysRibbon({ days }: { days: number }) {
   )
 }
 
-function ShieldPill() {
+// Real C2PA Content Credentials logo — photos on this listing are signed
+// cryptographically via MEGGA's internal mandate pipeline. The badge sits on
+// the hero image to carry the trust signal without words.
+function C2PABadge() {
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] backdrop-blur-md"
-      style={{ background: 'rgba(11,18,32,0.72)', color: '#FFFFFF' }}
-      title="Photos signées par MEGGA Shield — authentification cryptographique"
+      className="inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] backdrop-blur-md"
+      style={{ background: 'rgba(255,255,255,0.94)', color: tokens.ink }}
+      title="Photos signées — Content Credentials (C2PA). Authentification cryptographique par MEGGA Shield."
     >
-      <Camera className="h-3 w-3" strokeWidth={2.5} />
-      MEGGA Shield
+      <img src="/c2pa-logo.svg" alt="" className="h-4 w-4" loading="lazy" decoding="async" />
+      Photos vérifiées
     </span>
+  )
+}
+
+// Swiss Made Software trust row — placed at the page footer, discreet,
+// with the official SVG briefcase mark and wordmark. Clicks through to
+// the certifier.
+function SwissMadeRow() {
+  return (
+    <div className="pt-6 flex items-center justify-between gap-4 flex-wrap" style={{ color: tokens.dim }}>
+      <p className="text-[11px]" style={{ color: tokens.dim }}>
+        Données hébergées en Suisse · Chiffrement AES-256 · Conforme nLPD
+      </p>
+      <a
+        href="https://www.swissmadesoftware.org"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
+        aria-label="Swiss Made Software — certification"
+      >
+        <svg viewBox="4 7 44 38" className="h-7 w-auto flex-shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+          <path d="M45.28,42.51H9.24c-1.76,0-3.18-1.43-3.18-3.18v-20.16c0-.43.09-.86.26-1.26l3.07-7.15c.5-1.17,1.65-1.92,2.92-1.92h13.36c1.3,0,2.47.79,2.95,2,0,0,.51,1.26,1,2.5h15.66c1.76,0,3.18,1.42,3.18,3.18v22.81c0,1.76-1.42,3.18-3.18,3.18M21.43,25.97c-1.03,0-1.57.79-1.57,1.57s.54,1.57,1.57,1.57h4.33v4.34c0,1.03.78,1.57,1.57,1.57s1.57-.54,1.57-1.57v-4.34h4.33c1.03,0,1.57-.79,1.57-1.57s-.54-1.57-1.57-1.57h-4.33v-4.34c0-1.03-.78-1.57-1.57-1.57s-1.57.54-1.57,1.57v4.34h-4.33" fill="#E42321"/>
+        </svg>
+        <img src="/sms-wordmark.svg" alt="Swiss Made Software" className="h-7 w-auto object-contain" loading="lazy" decoding="async" />
+      </a>
+    </div>
   )
 }
 
@@ -482,7 +510,7 @@ export default function MonDossierPage() {
                 <DaysRibbon days={daysOnMarket} />
               </div>
               <div className="absolute top-4 right-4">
-                <ShieldPill />
+                <C2PABadge />
               </div>
               {/* bottom address */}
               <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
@@ -919,6 +947,9 @@ export default function MonDossierPage() {
             </button>
           )}
         </section>
+
+        {/* ── Trust footer ─────────────────────────────────────────────── */}
+        <SwissMadeRow />
       </div>
     </div>
   )
