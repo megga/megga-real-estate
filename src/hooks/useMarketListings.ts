@@ -252,7 +252,13 @@ export function useMarketListings(filters: MarketFilters = {}) {
       marketQuery = applySorting(marketQuery, filters.sort)
       marketQuery = marketQuery.range(from, to)
 
-      const { data: marketData } = await marketQuery
+      const { data: marketData, error: marketError } = await marketQuery
+      if (marketError) {
+        // Surface to React Query so the UI can show an error state instead of
+        // a silent empty list. Previously the error was swallowed and the page
+        // rendered "Aucun bien trouvé" even when the database was unreachable.
+        throw new Error(`market_listings query failed: ${marketError.message}`)
+      }
 
       const listings: ListingCardData[] = []
 
@@ -291,8 +297,14 @@ export function useMarketListings(filters: MarketFilters = {}) {
           .order('published_at', { ascending: false })
           .limit(PAGE_SIZE)
 
-        const { data: internalData } = await internalQuery
-        if (internalData) {
+        const { data: internalData, error: internalError } = await internalQuery
+        if (internalError) {
+          // Internal-listings failure is non-fatal — they're a tiny set of
+          // agent-owned mandates and should not break the marketplace view.
+          // We log and continue with just market listings.
+          // eslint-disable-next-line no-console
+          console.warn('[useMarketListings] internal properties query failed:', internalError.message)
+        } else if (internalData) {
           for (let i = 0; i < internalData.length; i++) {
             listings.push(transformToCardData(internalData[i], 'internal', lang))
           }

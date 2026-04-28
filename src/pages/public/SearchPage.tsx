@@ -165,6 +165,9 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   const {
     data: listingsData,
     isLoading: isLoadingListings,
+    isError: isListingsError,
+    error: listingsError,
+    refetch: refetchListings,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -993,6 +996,19 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : isListingsError ? (
+              <div className="flex flex-col items-center justify-center h-64 text-center">
+                <p className="text-lg font-medium text-gray-700 mb-1">Impossible de charger les biens</p>
+                <p className="text-sm text-gray-500 mb-4 max-w-md">
+                  {(listingsError as Error | null)?.message || 'Une erreur réseau est survenue.'}
+                </p>
+                <button
+                  onClick={() => refetchListings()}
+                  className="text-sm text-accent font-medium hover:underline cursor-pointer"
+                >
+                  Réessayer
+                </button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
