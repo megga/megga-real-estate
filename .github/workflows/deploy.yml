@@ -52,47 +52,49 @@ jobs:
         with:
           version: latest
 
-      # Apply Postgres migrations directly via psql instead of
-      # `supabase db push`. The CLI compares local migrations to the remote
-      # `supabase_migrations.schema_migrations` log and tries to apply
-      # anything missing — but several historical migrations were applied
-      # manually via the SQL editor and never recorded in that table, so
-      # `db push` keeps tripping on objects that already exist.
+      # Apply Postgres migrations through the Supabase Management API
+      # rather than psql or `supabase db push`:
+      #   - psql to the pooler at :5432 fails with "connection refused"
+      #     (session pooler is not exposed there), and :6543 wraps every
+      #     statement in a transaction — fine for our DDL but flaky for
+      #     larger migrations.
+      #   - `supabase db push` trips on the schema_migrations log because
+      #     several past migrations were applied via the SQL editor and
+      #     never tracked there.
+      # The Management API runs each request as a single SQL execution
+      # against the database with full privileges, exactly like the SQL
+      # editor in Studio. It uses HTTPS so no DB ports needed.
       #
-      # Strategy:
-      #   - Each migration file is idempotent (IF NOT EXISTS / OR REPLACE),
-      #     so running them every time is safe.
-      #   - We connect through the Supabase pooler in session mode (port
-      #     5432) which accepts both IPv4 (GitHub runners) and statements
-      #     incompatible with the transaction pooler (ALTER FUNCTION etc.).
-      #   - Only files newer than the last successfully applied one are
-      #     replayed — checked by listing local migrations sorted lex and
-      #     applying each in order with ON_ERROR_STOP. A duplicate object
-      #     fails the run loudly so we notice; that's by design.
-      - name: Apply Supabase migrations (psql)
+      # Each migration file is expected to be idempotent (IF NOT EXISTS /
+      # OR REPLACE), so replaying today's files is safe. We filter by
+      # filename prefix so older files are not replayed.
+      - name: Apply Supabase migrations (Management API)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
-          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SB_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -e
-          # Apply only migrations dated today or later — the catalog of
-          # past migrations is assumed to be already in production. Using
-          # `find` with -newer would be fragile in CI, so we filter by
-          # filename prefix instead.
           TODAY=$(date -u +%Y%m%d)
-          # Port 6543 = Supabase shared transaction pooler. Port 5432 on the
-          # same hostname returns "connection refused" — session mode is not
-          # exposed there. Transaction mode is fine for our migrations: each
-          # statement runs as its own implicit transaction in autocommit, so
-          # ALTER FUNCTION and CREATE INDEX (non-CONCURRENTLY) both work.
-          DB_URL="postgresql://postgres.eayczugyrvmtqnnmvjod@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require"
+          PROJECT_REF=eayczugyrvmtqnnmvjod
           shopt -s nullglob
           for f in $(ls supabase/migrations/*.sql | sort); do
             base=$(basename "$f")
             stamp="${base%%_*}"
             if [ "$stamp" -ge "$TODAY" ]; then
               echo "::group::Applying $base"
-              psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$f"
+              BODY=$(jq -Rs '{query: .}' < "$f")
+              HTTP=$(curl -sS -o /tmp/sb_resp.json -w '%{http_code}' \
+                -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+                -H "Authorization: Bearer $SB_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$BODY")
+              echo "HTTP $HTTP"
+              cat /tmp/sb_resp.json
+              echo
+              if [ "$HTTP" -ge 400 ]; then
+                echo "::error::Migration $base failed (HTTP $HTTP)"
+                exit 1
+              fi
               echo "::endgroup::"
             fi
           done
