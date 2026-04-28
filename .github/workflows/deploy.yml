@@ -46,6 +46,26 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
 
+      - name: Setup Supabase CLI
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Apply Postgres migrations BEFORE the Cloudflare bundle so that the
+      # new schema is in place when the new bundle hits users.
+      # `supabase db push --linked` is a no-op when there are no new
+      # migrations, so this step is safe to run on every main push.
+      - name: Apply Supabase migrations
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -e
+          supabase link --project-ref eayczugyrvmtqnnmvjod
+          supabase db push --linked --password "$SUPABASE_DB_PASSWORD" --yes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
       - name: Deploy to Cloudflare Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: cloudflare/wrangler-action@v3
@@ -53,12 +73,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=megga-real-estate
-
-      - name: Deploy Supabase Edge Functions
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
 
       - name: Link Supabase project and deploy functions
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
