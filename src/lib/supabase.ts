@@ -92,3 +92,64 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 })
+
+// ─── Stale-JWT pre-flight ──────────────────────────────────────────────
+// If the user hasn't visited in a while, the access_token cached in
+// localStorage may be expired AND the refresh_token may have been revoked
+// server-side. The supabase-js client tries to refresh on init, but if the
+// refresh fails the stale tokens still live in localStorage long enough
+// for in-flight queries to fire with them — those requests come back as
+// 401 PGRST301 "JWT cryptographic operation failed" and the marketplace
+// page renders with no listings.
+//
+// We do a synchronous pre-flight pass at module load: decode every
+// `sb-<ref>-auth-token` cookie/entry, and if the access_token's `exp` is
+// already in the past, wipe the entry. The supabase client will then
+// initialise without a session (anonymous reads still work via RLS).
+// Login flows are unaffected — they overwrite the cleared key.
+function purgeExpiredAuthTokens() {
+  if (typeof window === 'undefined') return
+  try {
+    const stores = [window.localStorage, window.sessionStorage]
+    const now = Math.floor(Date.now() / 1000)
+    for (const store of stores) {
+      for (let i = store.length - 1; i >= 0; i--) {
+        const key = store.key(i)
+        if (!key || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue
+        const raw = store.getItem(key)
+        if (!raw) continue
+        try {
+          const parsed = JSON.parse(raw) as { access_token?: string; expires_at?: number } | null
+          const exp =
+            typeof parsed?.expires_at === 'number'
+              ? parsed.expires_at
+              : (() => {
+                  const t = parsed?.access_token
+                  if (!t) return 0
+                  try {
+                    const payload = t.split('.')[1]
+                    if (!payload) return 0
+                    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+                    return Number((JSON.parse(json) as { exp?: number }).exp ?? 0)
+                  } catch { return 0 }
+                })()
+          // 60s grace window so we don't churn keys that supabase-js is
+          // about to refresh on its own.
+          if (exp && exp + 60 < now) {
+            store.removeItem(key)
+            // eslint-disable-next-line no-console
+            console.info(`[supabase] purged expired auth token: ${key}`)
+          }
+        } catch {
+          // Malformed JSON in the auth slot — also nuke it, supabase-js
+          // can't recover from it either.
+          store.removeItem(key)
+          // eslint-disable-next-line no-console
+          console.info(`[supabase] purged malformed auth token: ${key}`)
+        }
+      }
+    }
+  } catch { /* defensive — never block app boot on storage probing */ }
+}
+
+purgeExpiredAuthTokens()
