@@ -7,7 +7,6 @@ interface Testimonial {
   id: string
   name: string
   role: string
-  avatar: string
   rating: number
   quote: string
 }
@@ -17,7 +16,6 @@ const TESTIMONIALS: Testimonial[] = [
     id: 't1',
     name: 'Sophie Müller',
     role: 'Acheteuse, Genève',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80',
     rating: 5,
     quote: "La recherche IA m'a fait gagner un temps fou. J'ai décrit ce que je voulais en une phrase et les résultats étaient exactement ce que je cherchais.",
   },
@@ -25,7 +23,6 @@ const TESTIMONIALS: Testimonial[] = [
     id: 't2',
     name: 'Marc Dupont',
     role: 'Agent immobilier, Lausanne',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
     rating: 5,
     quote: "Le CRM intégré et le pipeline Kanban ont transformé ma façon de travailler. Plus besoin de jongler entre 4 outils différents.",
   },
@@ -33,7 +30,6 @@ const TESTIMONIALS: Testimonial[] = [
     id: 't3',
     name: 'Elena Rossi',
     role: 'Vendeuse, Lugano',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&q=80',
     rating: 5,
     quote: "Le portail vendeur est rassurant — je vois en temps réel les visites, les retours et les offres. Mon agent et moi sommes toujours synchronisés.",
   },
@@ -41,7 +37,6 @@ const TESTIMONIALS: Testimonial[] = [
     id: 't4',
     name: 'Thomas Weber',
     role: 'Agent immobilier, Zurich',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80',
     rating: 4,
     quote: "La conformité LAB/KYC était mon cauchemar. Avec MEGGA, les dossiers sont structurés, traçables et je ne rate plus aucune pièce.",
   },
@@ -49,7 +44,6 @@ const TESTIMONIALS: Testimonial[] = [
     id: 't5',
     name: 'Isabelle Favre',
     role: 'Acheteuse, Nyon',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80',
     rating: 5,
     quote: "L'estimation gratuite était précise et le processus de visite très fluide. Tout est centralisé, c'est vraiment agréable.",
   },
@@ -57,11 +51,19 @@ const TESTIMONIALS: Testimonial[] = [
     id: 't6',
     name: 'Pierre Schneider',
     role: "Directeur d'agence, Berne",
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&q=80',
     rating: 4,
     quote: "On a migré toute l'agence sur MEGGA en une semaine. La publication multicanal et le copilote IA ont boosté notre productivité.",
   },
 ]
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(p => p[0]?.toUpperCase() ?? '')
+    .join('')
+}
 
 export default function Testimonials() {
   const { t } = useTranslation('common')
@@ -165,13 +167,12 @@ export default function Testimonials() {
 
               {/* Author */}
               <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
-                <img
-                  src={testimonial.avatar}
-                  alt={testimonial.name}
-                  className="w-9 h-9 rounded-full object-cover grayscale"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <div
+                  aria-hidden
+                  className="w-9 h-9 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold flex items-center justify-center"
+                >
+                  {initials(testimonial.name)}
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{testimonial.name}</p>
                   <p className="text-xs text-gray-400">{testimonial.role}</p>

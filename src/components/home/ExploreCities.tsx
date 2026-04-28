@@ -1,48 +1,46 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
-const CITIES = [
-  {
-    name: 'Genève',
-    canton: 'GE',
-    count: 2450,
-    imageUrl: 'https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=800&q=80',
-    large: true,
-  },
-  {
-    name: 'Lausanne',
-    canton: 'VD',
-    count: 1820,
-    imageUrl: 'https://images.unsplash.com/photo-1527668752968-14dc70a27c95?w=800&q=80',
-  },
-  {
-    name: 'Zurich',
-    canton: 'ZH',
-    count: 3100,
-    imageUrl: 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=800&q=80',
-  },
-  {
-    name: 'Bâle',
-    canton: 'BS',
-    count: 980,
-    imageUrl: 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=800&q=80',
-  },
-  {
-    name: 'Berne',
-    canton: 'BE',
-    count: 1250,
-    imageUrl: 'https://images.unsplash.com/photo-1587974928442-77dc3e0dba72?w=800&q=80',
-  },
-  {
-    name: 'Lugano',
-    canton: 'TI',
-    count: 640,
-    imageUrl: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&q=80',
-  },
+interface CityCard {
+  name: string;
+  canton: string;
+  large?: boolean;
+  // Subtle theme — we no longer ship third-party stock imagery for these
+  // tiles. Each city gets a deterministic muted-gradient background so the
+  // grid still has visual rhythm without leaning on Unsplash placeholders.
+  gradient: string;
+}
+
+const CITIES: CityCard[] = [
+  { name: 'Genève', canton: 'GE', large: true, gradient: 'from-slate-700 via-slate-800 to-slate-900' },
+  { name: 'Lausanne', canton: 'VD', gradient: 'from-stone-600 via-stone-700 to-stone-900' },
+  { name: 'Zurich', canton: 'ZH', gradient: 'from-zinc-700 via-zinc-800 to-zinc-950' },
+  { name: 'Bâle', canton: 'BS', gradient: 'from-neutral-600 via-neutral-700 to-neutral-900' },
+  { name: 'Berne', canton: 'BE', gradient: 'from-gray-700 via-gray-800 to-gray-950' },
+  { name: 'Lugano', canton: 'TI', gradient: 'from-stone-700 via-stone-800 to-neutral-900' },
 ];
+
+function useCantonCounts() {
+  return useQuery({
+    queryKey: ['home-canton-counts', 'buy'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('count_market_by_canton', { p_context: 'buy' });
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const row of (data ?? []) as Array<{ canton: string; count: number }>) {
+        map.set(row.canton, Number(row.count) || 0);
+      }
+      return map;
+    },
+    staleTime: 30 * 60 * 1000,
+  });
+}
 
 export default function ExploreCities() {
   const { t } = useTranslation('common');
+  const { data: counts } = useCantonCounts();
 
   return (
     <section className="py-14 md:py-20">
@@ -55,33 +53,31 @@ export default function ExploreCities() {
         </p>
 
         <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 auto-rows-[140px] md:auto-rows-[180px]">
-          {CITIES.map((city) => (
-            <Link
-              key={city.name}
-              to={`/acheter?canton=${city.canton}`}
-              className={`relative rounded-xl overflow-hidden group ${
-                city.large ? 'col-span-2 row-span-2 md:col-span-1 md:row-span-2' : ''
-              }`}
-            >
-              <img
-                src={city.imageUrl}
-                alt={city.name}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent transition-opacity duration-300 group-hover:from-black/70" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-white font-bold text-lg">{city.name}</span>
-                  <span className="text-white/40 text-xs">{city.canton}</span>
+          {CITIES.map((city) => {
+            const count = counts?.get(city.canton);
+            return (
+              <Link
+                key={city.name}
+                to={`/acheter?canton=${city.canton}`}
+                className={`relative rounded-xl overflow-hidden group bg-gradient-to-br ${city.gradient} ${
+                  city.large ? 'col-span-2 row-span-2 md:col-span-1 md:row-span-2' : ''
+                }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent transition-opacity duration-300 group-hover:from-black/55" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-white font-bold text-lg">{city.name}</span>
+                    <span className="text-white/40 text-xs">{city.canton}</span>
+                  </div>
+                  <p className="text-white/60 text-xs mt-1">
+                    {count !== undefined
+                      ? `${count.toLocaleString('fr-CH')} biens`
+                      : '—'}
+                  </p>
                 </div>
-                <p className="text-white/50 text-xs mt-1">
-                  {city.count.toLocaleString('fr-CH')} biens
-                </p>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

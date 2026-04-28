@@ -1,7 +1,10 @@
 import { useRef, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { cn, formatCHF } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 interface FeaturedListing {
   id: string;
@@ -11,82 +14,100 @@ interface FeaturedListing {
   rooms: number;
   bedrooms: number;
   surface: number;
-  imageUrl: string;
+  imageUrl: string | null;
   badge?: string;
+  transaction_type: 'buy' | 'rent';
 }
 
-const FEATURED: FeaturedListing[] = [
-  {
-    id: '1',
-    title: 'Appartement lumineux Champel',
-    price: 1250000,
-    address: 'Rue de Champel 15, 1206 Genève',
-    rooms: 4,
-    bedrooms: 2,
-    surface: 95,
-    imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80',
-    badge: 'Hot price',
-  },
-  {
-    id: '2',
-    title: 'Villa contemporaine Cologny',
-    price: 3950000,
-    address: 'Chemin de Ruth 8, 1223 Cologny',
-    rooms: 7,
-    bedrooms: 4,
-    surface: 280,
-    imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
-    badge: 'Exclusif',
-  },
-  {
-    id: '3',
-    title: 'Loft rénové Plainpalais',
-    price: 890000,
-    address: 'Rue de Carouge 42, 1205 Genève',
-    rooms: 3,
-    bedrooms: 1,
-    surface: 78,
-    imageUrl: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80',
-    badge: 'Nouveau',
-  },
-  {
-    id: '4',
-    title: 'Penthouse vue lac',
-    price: 2750000,
-    address: 'Quai du Mont-Blanc 3, 1201 Genève',
-    rooms: 5,
-    bedrooms: 3,
-    surface: 160,
-    imageUrl: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=800&q=80',
-  },
-  {
-    id: '5',
-    title: 'Appartement familial Eaux-Vives',
-    price: 1580000,
-    address: 'Rue du Lac 27, 1207 Genève',
-    rooms: 5,
-    bedrooms: 3,
-    surface: 120,
-    imageUrl: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&q=80',
-  },
-  {
-    id: '6',
-    title: 'Studio design Pâquis',
-    price: 485000,
-    address: 'Rue de Berne 12, 1201 Genève',
-    rooms: 2,
-    bedrooms: 1,
-    surface: 42,
-    imageUrl: 'https://images.unsplash.com/photo-1600573472592-401b489a3cdc?w=800&q=80',
-    badge: 'Nouveau',
-  },
-];
+function pickBadge(row: Record<string, unknown>): string | undefined {
+  if (row.status === 'price_reduced') return 'Baisse de prix';
+  const seen = (row.first_seen_at as string) || (row.created_at as string);
+  if (seen) {
+    const ageH = (Date.now() - new Date(seen).getTime()) / 3_600_000;
+    if (ageH < 48) return 'Nouveau';
+  }
+  return undefined;
+}
+
+function useFeaturedListings() {
+  return useQuery({
+    queryKey: ['home-featured-listings'],
+    queryFn: async (): Promise<FeaturedListing[]> => {
+      // Prefer recently price-reduced rows (anchored by status, surfaced first),
+      // fall back to the most recent additions. Both queries run against the
+      // partial indexes that already cover status/quality, so each tops out at
+      // <100ms even for the rent dataset.
+      const baseSelect =
+        'id, title, price, current_price, address, city, postal_code, rooms, bedrooms, surface_m2, photos, status, first_seen_at, created_at, transaction_type';
+
+      const [reducedRes, recentRes] = await Promise.all([
+        supabase
+          .from('market_listings')
+          .select(baseSelect)
+          .eq('status', 'price_reduced')
+          .gte('quality_score', 50)
+          .gt('price', 0)
+          .not('photos', 'is', null)
+          .order('first_seen_at', { ascending: false })
+          .limit(6),
+        supabase
+          .from('market_listings')
+          .select(baseSelect)
+          .eq('status', 'active')
+          .gte('quality_score', 50)
+          .gt('price', 0)
+          .not('photos', 'is', null)
+          .order('first_seen_at', { ascending: false })
+          .limit(6),
+      ]);
+
+      const seen = new Set<string>();
+      const merged: Array<Record<string, unknown>> = [];
+      for (const row of (reducedRes.data ?? [])) {
+        if (!seen.has(row.id as string)) {
+          seen.add(row.id as string);
+          merged.push(row);
+        }
+      }
+      for (const row of (recentRes.data ?? [])) {
+        if (merged.length >= 6) break;
+        if (!seen.has(row.id as string)) {
+          seen.add(row.id as string);
+          merged.push(row);
+        }
+      }
+
+      return merged
+        .filter(r => Array.isArray(r.photos) && (r.photos as string[]).length > 0)
+        .slice(0, 6)
+        .map(r => ({
+          id: r.id as string,
+          title: (r.title as string) || 'Bien immobilier',
+          price: Number(r.current_price ?? r.price ?? 0),
+          address:
+            [r.address, [r.postal_code, r.city].filter(Boolean).join(' ')]
+              .filter(Boolean)
+              .join(', ') ||
+            (r.city as string) ||
+            '',
+          rooms: Number(r.rooms) || 0,
+          bedrooms: Number(r.bedrooms) || 0,
+          surface: Number(r.surface_m2) || 0,
+          imageUrl: (r.photos as string[])[0] ?? null,
+          badge: pickBadge(r),
+          transaction_type: (r.transaction_type as 'buy' | 'rent') || 'buy',
+        }));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 export default function FeaturedCarousel() {
   const { t } = useTranslation('common');
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const { data: listings, isLoading } = useFeaturedListings();
 
   function updateScrollState() {
     const el = scrollRef.current;
@@ -101,7 +122,7 @@ export default function FeaturedCarousel() {
     el.addEventListener('scroll', updateScrollState, { passive: true });
     updateScrollState();
     return () => el.removeEventListener('scroll', updateScrollState);
-  }, []);
+  }, [listings]);
 
   function scroll(direction: 'left' | 'right') {
     const el = scrollRef.current;
@@ -109,6 +130,8 @@ export default function FeaturedCarousel() {
     const cardWidth = el.querySelector('div')?.offsetWidth ?? 340;
     el.scrollBy({ left: direction === 'left' ? -cardWidth - 20 : cardWidth + 20, behavior: 'smooth' });
   }
+
+  const visible = listings ?? [];
 
   return (
     <section className="pt-16 pb-12 md:pt-20 md:pb-16">
@@ -154,50 +177,79 @@ export default function FeaturedCarousel() {
           ref={scrollRef}
           className="mt-8 flex gap-5 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2"
         >
-          {FEATURED.map((listing) => (
-            <div
-              key={listing.id}
-              className="snap-start shrink-0 w-[300px] md:w-[340px] rounded-xl border border-gray-100 overflow-hidden group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:border-gray-200"
-            >
-              {/* Photo */}
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <img
-                  src={listing.imageUrl}
-                  alt={listing.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <button
-                  aria-label="Ajouter aux favoris"
-                  className="absolute top-3 right-3 w-8 h-8 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white cursor-pointer"
+          {isLoading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="snap-start shrink-0 w-[300px] md:w-[340px] rounded-xl border border-gray-100 overflow-hidden"
                 >
-                  <Heart className="w-3.5 h-3.5 text-gray-700" />
-                </button>
-                {listing.badge && (
-                  <span className="absolute top-3 left-3 text-xs font-medium text-white bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full">
-                    {listing.badge}
-                  </span>
-                )}
-              </div>
+                  <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-5 w-1/3 bg-gray-100 animate-pulse rounded" />
+                    <div className="h-4 w-2/3 bg-gray-100 animate-pulse rounded" />
+                    <div className="h-3 w-1/2 bg-gray-100 animate-pulse rounded" />
+                  </div>
+                </div>
+              ))
+            : visible.map((listing) => {
+                const route = listing.transaction_type === 'rent' ? 'louer' : 'acheter';
+                return (
+                  <Link
+                    key={listing.id}
+                    to={`/${route}?listing=market-${listing.id}`}
+                    className="snap-start shrink-0 w-[300px] md:w-[340px] rounded-xl border border-gray-100 overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:border-gray-200"
+                  >
+                    {/* Photo */}
+                    <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                      {listing.imageUrl && (
+                        <img
+                          src={listing.imageUrl}
+                          alt={listing.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <button
+                        type="button"
+                        aria-label="Ajouter aux favoris"
+                        onClick={(e) => e.preventDefault()}
+                        className="absolute top-3 right-3 w-8 h-8 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white cursor-pointer"
+                      >
+                        <Heart className="w-3.5 h-3.5 text-gray-700" />
+                      </button>
+                      {listing.badge && (
+                        <span className="absolute top-3 left-3 text-xs font-medium text-white bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                          {listing.badge}
+                        </span>
+                      )}
+                    </div>
 
-              {/* Info */}
-              <div className="p-4">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-lg font-bold text-gray-900">{formatCHF(listing.price)}</span>
-                </div>
-                <p className="text-sm text-gray-400 mt-1 truncate">{listing.address}</p>
-                <div className="flex items-center gap-1.5 mt-2.5 text-xs text-gray-500">
-                  <span>{listing.rooms} pièces</span>
-                  <span className="text-gray-300">·</span>
-                  <span>{listing.bedrooms} ch</span>
-                  <span className="text-gray-300">·</span>
-                  <span>{listing.surface} m²</span>
-                </div>
-              </div>
-            </div>
-          ))}
+                    {/* Info */}
+                    <div className="p-4">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-lg font-bold text-gray-900">
+                          {formatCHF(listing.price)}
+                          {listing.transaction_type === 'rent' && (
+                            <span className="text-xs font-medium text-gray-400 ml-1">/mois</span>
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-400 mt-1 truncate">{listing.address}</p>
+                      <div className="flex items-center gap-1.5 mt-2.5 text-xs text-gray-500">
+                        {listing.rooms > 0 && <span>{listing.rooms} pièces</span>}
+                        {listing.rooms > 0 && listing.bedrooms > 0 && <span className="text-gray-300">·</span>}
+                        {listing.bedrooms > 0 && <span>{listing.bedrooms} ch</span>}
+                        {(listing.rooms > 0 || listing.bedrooms > 0) && listing.surface > 0 && (
+                          <span className="text-gray-300">·</span>
+                        )}
+                        {listing.surface > 0 && <span>{listing.surface} m²</span>}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
         </div>
       </div>
     </section>
