@@ -43,9 +43,11 @@ ALTER FUNCTION public.count_market_by_type(TEXT)
 -- the query without touching the heap (index-only scan). The partial WHERE
 -- restricts the index to ~19'500 active+geocoded+priced rows out of ~190K.
 --
--- CONCURRENTLY: avoids locking the table during the build (the index covers
--- all listings the public marketplace can see, so the table is hot).
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ml_map_points_active
+-- Not CONCURRENTLY: `supabase db push` wraps each migration file in a
+-- transaction, and CREATE INDEX CONCURRENTLY cannot run inside one. The
+-- partial WHERE keeps the build small (~19'500 rows) so the table-level
+-- lock is held only briefly.
+CREATE INDEX IF NOT EXISTS idx_ml_map_points_active
   ON market_listings (transaction_type)
   INCLUDE (id, lat, lng, price, current_price, type, rooms)
   WHERE status = 'active'
@@ -58,6 +60,6 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ml_map_points_active
 -- and GROUP BY type are both served by a single index on
 -- (transaction_type, canton, type). The aggregation can scan the partial
 -- index instead of the full table.
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ml_active_tx_canton_type
+CREATE INDEX IF NOT EXISTS idx_ml_active_tx_canton_type
   ON market_listings (transaction_type, canton, type)
   WHERE status IN ('active', 'price_reduced');
