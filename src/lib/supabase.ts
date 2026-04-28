@@ -84,29 +84,52 @@ const rememberAwareStorage = {
   },
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: rememberAwareStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-})
+function purgeAuthTokens(reason: string) {
+  if (typeof window === 'undefined') return
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    for (let i = store.length - 1; i >= 0; i--) {
+      const key = store.key(i)
+      if (!key || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue
+      try { store.removeItem(key) } catch { /* ignore */ }
+    }
+  }
+  // eslint-disable-next-line no-console
+  console.info(`[supabase] purged auth tokens (${reason})`)
+}
 
-// ─── Stale-JWT pre-flight ──────────────────────────────────────────────
-// If the user hasn't visited in a while, the access_token cached in
-// localStorage may be expired AND the refresh_token may have been revoked
-// server-side. The supabase-js client tries to refresh on init, but if the
-// refresh fails the stale tokens still live in localStorage long enough
-// for in-flight queries to fire with them — those requests come back as
-// 401 PGRST301 "JWT cryptographic operation failed" and the marketplace
-// page renders with no listings.
+// ─── Runtime JWT-failure recovery ──────────────────────────────────────
+// purgeExpiredAuthTokens above handles the case where the token was dead
+// at module load. But access_tokens can also be revoked mid-session
+// (server-side rotation, refresh_token expiry while the tab is open).
+// Once that happens, every subsequent REST call returns 401 PGRST301
+// "JWT cryptographic operation failed" and the marketplace falls dark.
 //
-// We do a synchronous pre-flight pass at module load: decode every
-// `sb-<ref>-auth-token` cookie/entry, and if the access_token's `exp` is
-// already in the past, wipe the entry. The supabase client will then
-// initialise without a session (anonymous reads still work via RLS).
-// Login flows are unaffected — they overwrite the cleared key.
+// We wrap the global fetch passed to supabase-js: when we see that
+// specific failure mode, purge the stale tokens so the next React Query
+// retry goes anonymous. We only act once per page load to avoid loops
+// when a request genuinely fails 401 for unrelated reasons.
+let jwtRecoveryAttempted = false
+
+async function authAwareFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init)
+  if (response.status === 401 && !jwtRecoveryAttempted) {
+    try {
+      // Clone before reading body — the original is consumed by supabase-js.
+      const peek = await response.clone().text()
+      if (peek.includes('PGRST301') || peek.includes('JWT')) {
+        jwtRecoveryAttempted = true
+        purgeAuthTokens('runtime 401 PGRST301')
+        // Don't reload — let React Query's retry machinery (configured
+        // with retry: 1 + retryDelay) re-run the query without the now-
+        // missing Authorization header. If the user was actually signed
+        // in, they'll see the empty-state until they re-auth, which is
+        // strictly better than a permanently blank page.
+      }
+    } catch { /* ignore — never throw from here */ }
+  }
+  return response
+}
+
 function purgeExpiredAuthTokens() {
   if (typeof window === 'undefined') return
   try {
@@ -152,4 +175,18 @@ function purgeExpiredAuthTokens() {
   } catch { /* defensive — never block app boot on storage probing */ }
 }
 
+// Run the boot-time purge BEFORE we instantiate the client so the client
+// reads a clean slate.
 purgeExpiredAuthTokens()
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: rememberAwareStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+  global: {
+    fetch: authAwareFetch,
+  },
+})
