@@ -80,7 +80,12 @@ jobs:
           # `find` with -newer would be fragile in CI, so we filter by
           # filename prefix instead.
           TODAY=$(date -u +%Y%m%d)
-          DB_URL="postgresql://postgres.eayczugyrvmtqnnmvjod@aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require"
+          # Port 6543 = Supabase shared transaction pooler. Port 5432 on the
+          # same hostname returns "connection refused" — session mode is not
+          # exposed there. Transaction mode is fine for our migrations: each
+          # statement runs as its own implicit transaction in autocommit, so
+          # ALTER FUNCTION and CREATE INDEX (non-CONCURRENTLY) both work.
+          DB_URL="postgresql://postgres.eayczugyrvmtqnnmvjod@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require"
           shopt -s nullglob
           for f in $(ls supabase/migrations/*.sql | sort); do
             base=$(basename "$f")
