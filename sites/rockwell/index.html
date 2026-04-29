@@ -5409,9 +5409,20 @@
             text-align: center;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             transition: background 0.2s ease;
+            /* Kill the default mobile tap-highlight (blue/grey
+               flash on iOS / Android Chrome) and the default focus
+               outline so the close interaction feels native to the
+               brand instead of like a system control. */
+            -webkit-tap-highlight-color: transparent;
+            outline: none !important;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        .map-popup-custom .leaflet-popup-close-button:hover {
+        .map-popup-custom .leaflet-popup-close-button:hover,
+        .map-popup-custom .leaflet-popup-close-button:focus,
+        .map-popup-custom .leaflet-popup-close-button:active {
             background: white !important;
+            color: var(--dark) !important;
         }
 
         .prop-popup__media {
@@ -5515,7 +5526,12 @@
             fill: none;
             flex-shrink: 0;
         }
-        .prop-popup__cta {
+        .prop-popup__cta,
+        .prop-popup__cta:link,
+        .prop-popup__cta:visited,
+        .prop-popup__cta:hover,
+        .prop-popup__cta:active,
+        .prop-popup__cta:focus {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -5523,15 +5539,18 @@
             width: 100%;
             padding: 10px 14px;
             border-radius: 999px;
-            background: var(--dark);
-            color: white;
+            background: var(--accent);
+            color: #ffffff;
             font-size: 12.5px;
             font-weight: 600;
             text-decoration: none;
             transition: background 0.25s ease;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
         }
         .prop-popup__cta:hover {
-            background: var(--accent);
+            background: #B5613F;
+            color: #ffffff;
         }
         .prop-popup__cta svg {
             width: 14px;
