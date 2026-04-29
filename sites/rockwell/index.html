@@ -515,18 +515,16 @@
             background: var(--dark);
         }
 
-        /* Mobile menu overlay — solid #FAFAFA (no alpha, no
-           backdrop-filter) so the menu sheet matches exactly the
-           same white as the body bg + theme-color tint behind it.
-           Any alpha/blur made the centre read slightly different
-           from the iOS-rendered status + URL bars. */
+        /* Mobile menu overlay — solid #FAFAFA, locked to 100lvh so
+           iOS Safari URL-bar collapse/expand cannot resize the sheet
+           mid-open. Always laid out (display: flex) and toggled via
+           opacity + visibility so the opacity transition actually
+           runs (display:none → flex would reset it). */
         .mobile-menu {
-            display: none;
+            display: flex;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
+            height: 100lvh;
             background: #FAFAFA;
             z-index: 99;
             padding:
@@ -539,16 +537,16 @@
             align-items: center;
             gap: 8px;
             opacity: 0;
-            transform: translateY(-10px);
-            transition: opacity 0.4s ease, transform 0.4s ease;
+            visibility: hidden;
             pointer-events: none;
+            transition: opacity 0.2s ease, visibility 0s linear 0.2s;
         }
 
         .mobile-menu--active {
-            display: flex;
             opacity: 1;
-            transform: translateY(0);
+            visibility: visible;
             pointer-events: auto;
+            transition: opacity 0.2s ease, visibility 0s linear 0s;
         }
 
         .mobile-menu__link {
@@ -6641,24 +6639,28 @@
         let currentLang = 'FR';
         let currentCurrency = 'CHF';
 
-        // Force the iOS status-bar tint to light while the menu is open
-        // (and restore the previous tint on close) so the white menu
-        // sheet visually extends under the clock + network indicators.
-        const MENU_LIGHT_TINT = '#FAFAFA';
-        let menuPrevThemeColor = null;
-        function setMenuThemeColor(open) {
-            const lightMeta = document.getElementById('themeColorLight');
-            const darkMeta  = document.getElementById('themeColorDark');
-            if (!lightMeta || !darkMeta) return;
-            if (open) {
-                menuPrevThemeColor = lightMeta.content;
-                lightMeta.content = MENU_LIGHT_TINT;
-                darkMeta.content  = MENU_LIGHT_TINT;
-            } else if (menuPrevThemeColor != null) {
-                lightMeta.content = menuPrevThemeColor;
-                darkMeta.content  = menuPrevThemeColor;
-                menuPrevThemeColor = null;
-            }
+        // iOS scroll lock — overflow:hidden alone doesn't truly freeze
+        // the page on iOS Safari (the floating URL bar can still
+        // collapse/expand and cause the menu to jitter at top + bottom
+        // during open). Pinning body with position:fixed at the saved
+        // scrollY is the standard pattern that fully freezes layout.
+        let menuSavedScrollY = 0;
+        function lockBodyScroll() {
+            menuSavedScrollY = window.scrollY || window.pageYOffset || 0;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${menuSavedScrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+        }
+        function unlockBodyScroll() {
+            const y = menuSavedScrollY;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            window.scrollTo(0, y);
         }
 
         function toggleMobileMenu() {
@@ -6667,21 +6669,17 @@
             const nav = document.getElementById('nav');
             const isActive = menu.classList.contains('mobile-menu--active');
             if (isActive) {
-                menu.style.opacity = '0';
-                menu.style.transform = 'translateY(-10px)';
+                menu.classList.remove('mobile-menu--active');
                 btn.classList.remove('nav__hamburger--active');
                 if (nav) nav.classList.remove('nav--menu-open');
                 document.documentElement.classList.remove('menu-open');
-                setMenuThemeColor(false);
-                setTimeout(() => { menu.classList.remove('mobile-menu--active'); document.body.style.overflow = ''; }, 400);
+                unlockBodyScroll();
             } else {
+                lockBodyScroll();
                 menu.classList.add('mobile-menu--active');
                 btn.classList.add('nav__hamburger--active');
                 if (nav) nav.classList.add('nav--menu-open');
                 document.documentElement.classList.add('menu-open');
-                setMenuThemeColor(true);
-                document.body.style.overflow = 'hidden';
-                requestAnimationFrame(() => { menu.style.opacity = '1'; menu.style.transform = 'translateY(0)'; });
             }
         }
 
@@ -6689,13 +6687,12 @@
             const menu = document.getElementById('mobileMenu');
             const btn = document.getElementById('hamburgerBtn');
             const nav = document.getElementById('nav');
-            menu.style.opacity = '0';
-            menu.style.transform = 'translateY(-10px)';
+            if (!menu.classList.contains('mobile-menu--active')) return;
+            menu.classList.remove('mobile-menu--active');
             btn.classList.remove('nav__hamburger--active');
             if (nav) nav.classList.remove('nav--menu-open');
             document.documentElement.classList.remove('menu-open');
-            setMenuThemeColor(false);
-            setTimeout(() => { menu.classList.remove('mobile-menu--active'); document.body.style.overflow = ''; }, 400);
+            unlockBodyScroll();
         }
 
         function toggleNavDropdown(e) {
