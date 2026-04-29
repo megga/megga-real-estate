@@ -5894,15 +5894,29 @@
             }
             .search-overlay__close svg { width: 16px; height: 16px; }
 
+            /* Dark-mode toggle on mobile: perfect circle that
+               mirrors the X close button on the right (40×40),
+               icon-only since the "Sombre" label is hidden. The
+               base CSS used height: 38px + asymmetric horizontal
+               padding which rendered as a 38×28 oval — visually
+               off vs. the right-side close. */
             .search-overlay__toggle {
-                top: calc(env(safe-area-inset-top) + 16px) !important;
+                top: calc(env(safe-area-inset-top) + 12px) !important;
                 left: 14px !important;
-                padding: 7px 12px !important;
-                font-size: 11px !important;
-                border-radius: 999px;
+                width: 40px;
+                height: 40px;
+                padding: 0 !important;
+                gap: 0;
+                justify-content: center;
+                align-items: center;
+                border-radius: 50% !important;
             }
             .search-overlay__toggle-label { display: none; }
-            .search-overlay__toggle-icon svg { width: 14px; height: 14px; }
+            .search-overlay__toggle-icon {
+                width: 16px;
+                height: 16px;
+            }
+            .search-overlay__toggle-icon svg { width: 16px; height: 16px; }
 
             .search-overlay__body {
                 padding: calc(env(safe-area-inset-top) + 70px) 0 32px;
