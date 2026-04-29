@@ -1692,27 +1692,24 @@
 
         .statement__circles-wrap {
             overflow: visible;
+            height: clamp(260px, 21vw, 380px);
             display: flex;
-            justify-content: center;
-            margin: 0 calc(var(--side) * -1);
+            align-items: flex-end;
+            margin: 0 calc(var(--side) * -1.8);
             perspective: 1400px;
         }
 
         .statement__circles {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: clamp(8px, 1vw, 18px);
-            width: 100%;
-            max-width: 1480px;
-            padding: 0 8px;
+            gap: 0;
+            width: 106%;
+            margin-left: -3%;
         }
 
         .statement__circle {
             position: relative;
             aspect-ratio: 1;
-            max-width: 340px;
-            justify-self: center;
-            width: 100%;
             border-radius: 50%;
             background: #EDEBE6;
             display: flex;
