@@ -5588,14 +5588,19 @@
          ============================================ -->
     <section class="hero">
         <div class="hero__image-wrapper">
-            <!-- Mobile (<=768px): no video to save data; the poster image
-                 fills the hero. Desktop: full video. JS swap below the source
-                 keeps the markup simple and lets us avoid a 2-3MB video on
-                 a phone hotspot. -->
-            <video id="heroVideo" autoplay muted loop playsinline preload="metadata"
+            <!-- Hero video: JS injects the right Cloudinary URL based on
+                 viewport. Mobile gets a portrait-cropped, low-bitrate variant
+                 (~600 KB) so iOS Safari autoplays it; desktop gets the full
+                 landscape with q_auto / f_auto (HEVC on Apple devices). The
+                 poster fills instantly while bytes are still in flight, and
+                 a single tap fallback restarts play() in case Low Power Mode
+                 prevented the autoplay. -->
+            <video id="heroVideo" autoplay muted loop playsinline preload="auto"
                    poster="https://res.cloudinary.com/dq9cuacrn/video/upload/so_0,c_fill,w_1080,h_1920,q_auto,f_jpg/v1/desktop-hero_ecbuqr.jpg"
                    style="width:100%;height:100%;object-fit:cover;">
-                <source id="heroVideoSrc" data-src="https://res.cloudinary.com/dq9cuacrn/video/upload/v1/desktop-hero_ecbuqr.mp4" type="video/mp4">
+                <source id="heroVideoSrc" type="video/mp4"
+                        data-src-mobile="https://res.cloudinary.com/dq9cuacrn/video/upload/c_fill,w_640,h_1136,q_auto:low,f_auto/v1/desktop-hero_ecbuqr.mp4"
+                        data-src-desktop="https://res.cloudinary.com/dq9cuacrn/video/upload/q_auto,f_auto/v1/desktop-hero_ecbuqr.mp4">
             </video>
 
             <h1 class="hero__headline">L'immobilier d'exception sur l'Arc Lémanique.</h1>
@@ -8054,18 +8059,37 @@
         })();
 
         // ============================================
-        // Hero video — desktop-only source, mobile uses the poster image
-        // (saves ~2-3 MB on phone networks)
+        // Hero video — load on every viewport, but pick the right Cloudinary
+        // variant: portrait-cropped + eco quality on mobile (~600 KB so iOS
+        // Safari actually autoplays it on cellular), full landscape with
+        // q_auto / f_auto on desktop. First user tap also retries play()
+        // in case iOS Low Power Mode blocked autoplay.
         // ============================================
         (function setupHeroVideo() {
             const src = document.getElementById('heroVideoSrc');
             const video = document.getElementById('heroVideo');
             if (!src || !video) return;
-            if (window.matchMedia('(min-width: 769px)').matches) {
-                src.src = src.dataset.src;
-                video.load();
-                video.play().catch(() => {});
-            }
+
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            src.src = isMobile ? src.dataset.srcMobile : src.dataset.srcDesktop;
+            video.load();
+
+            // First autoplay attempt
+            const tryPlay = () => video.play().catch(() => {});
+            tryPlay();
+
+            // Some iOS configurations (Low Power Mode, restricted background
+            // tab) silently reject autoplay. Retry on the user's first
+            // interaction with the page.
+            const retryOnce = () => {
+                tryPlay();
+                document.removeEventListener('touchstart', retryOnce);
+                document.removeEventListener('click', retryOnce);
+                document.removeEventListener('scroll', retryOnce);
+            };
+            document.addEventListener('touchstart', retryOnce, { passive: true, once: true });
+            document.addEventListener('click', retryOnce, { once: true });
+            document.addEventListener('scroll', retryOnce, { passive: true, once: true });
         })();
 
         // ============================================
