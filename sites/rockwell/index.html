@@ -5438,15 +5438,39 @@
                 align-items: center;
             }
 
-            /* --- Modal anchored near top on mobile (635px modal in 812px
-                   viewport felt cramped when centered) --- */
+            /* --- Mobile login modal: full-screen sheet, no bento.
+                   The card design (440px max-width, rounded, shadow,
+                   centered with backdrop) leaves visible iOS chrome
+                   strips top and bottom. On mobile we paint the whole
+                   viewport solid #FAFAFA so it feels like a dedicated
+                   page, not a popup. --- */
             .modal-overlay {
-                align-items: flex-start;
-                padding: clamp(32px, 7vh, 64px) 0 24px;
+                align-items: stretch;
+                justify-content: stretch;
+                padding: 0;
+                background: #FAFAFA;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
             }
             .modal {
-                padding: 36px 24px;
-                max-height: calc(100vh - clamp(64px, 12vh, 96px));
+                width: 100%;
+                max-width: 100%;
+                height: 100lvh;
+                max-height: none;
+                border-radius: 0;
+                box-shadow: none;
+                padding:
+                    calc(72px + env(safe-area-inset-top))
+                    24px
+                    calc(32px + env(safe-area-inset-bottom));
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                overflow-y: auto;
+            }
+            .modal__close {
+                top: calc(18px + env(safe-area-inset-top));
+                right: 18px;
             }
 
             /* Register: stack first/last name vertically on narrow screens
@@ -5607,7 +5631,7 @@
                     </div>
                 </div>
             </div>
-            <a href="#" class="nav__contact-btn" onclick="event.preventDefault(); document.getElementById('loginModal').classList.add('modal-overlay--active'); document.body.style.overflow='hidden';">Connexion</a>
+            <a href="#" class="nav__contact-btn" onclick="event.preventDefault(); openLoginModal();">Connexion</a>
             <button class="nav__hamburger" id="hamburgerBtn" onclick="toggleMobileMenu()"><span></span></button>
         </div>
     </nav>
@@ -5620,7 +5644,7 @@
         <a href="vendre.html" class="mobile-menu__link">Vendre</a>
         <a href="a-propos.html" class="mobile-menu__link">À Propos</a>
         <div class="mobile-menu__divider"></div>
-        <a href="#" class="mobile-menu__cta" onclick="event.preventDefault(); closeMobileMenu(); document.getElementById('loginModal').classList.add('modal-overlay--active'); document.body.style.overflow='hidden';">Connexion</a>
+        <a href="#" class="mobile-menu__cta" onclick="event.preventDefault(); closeMobileMenu(); openLoginModal();">Connexion</a>
 
         <!-- Language + currency switcher -->
         <div class="mobile-menu__prefs">
@@ -6392,9 +6416,9 @@
     <!-- ============================================
          LOGIN MODAL
          ============================================ -->
-    <div class="modal-overlay" id="loginModal" onclick="if(event.target===this){this.classList.remove('modal-overlay--active'); document.body.style.overflow='';}">
+    <div class="modal-overlay" id="loginModal" onclick="if(event.target===this){closeLoginModal();}">
         <div class="modal">
-            <div class="modal__close" onclick="document.getElementById('loginModal').classList.remove('modal-overlay--active'); document.body.style.overflow='';">
+            <div class="modal__close" onclick="closeLoginModal();">
                 <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </div>
 
@@ -6574,14 +6598,24 @@
             nav.classList.toggle('nav--scrolled', window.pageYOffset > 40);
         });
 
+        // Login modal open/close — share the iOS scroll-lock pattern
+        // with the mobile menu so we don't get the same URL-bar jitter
+        // at top + bottom when opening on mobile.
+        function openLoginModal() {
+            lockBodyScroll();
+            document.getElementById('loginModal').classList.add('modal-overlay--active');
+        }
+        function closeLoginModal() {
+            const modal = document.getElementById('loginModal');
+            if (!modal.classList.contains('modal-overlay--active')) return;
+            modal.classList.remove('modal-overlay--active');
+            unlockBodyScroll();
+        }
+
         // Modal — Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                const modal = document.getElementById('loginModal');
-                if (modal.classList.contains('modal-overlay--active')) {
-                    modal.classList.remove('modal-overlay--active');
-                    document.body.style.overflow = '';
-                }
+                closeLoginModal();
             }
         });
 
