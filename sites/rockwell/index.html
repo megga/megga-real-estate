@@ -1683,16 +1683,29 @@
 
         /* Bottom: 4 giant circles, overflow left/right + top clipped */
         /* ============================================
-           KPI CIRCLES — "Quiet luxury" animation
-           Layered choreography:
-             1. Settle: emerge from below with scale + blur fade
-             2. Reveal: number + label fade up, counter eases up
-             3. Breathe: very slow scale pulse, organic
-             4. Magnetic: pointer-driven 3D tilt (--mx / --my)
-             5. Hover: warm radial + accent number + label scale
-             6. Replay: triggers on every section re-entry
-             7. Reduced motion: skip choreography
+           KPI CIRCLES — Continuous magnetic field
+           ----------------------------------------------------------------
+           Architecture:
+             • Entrance lives on the independent `translate` / `scale` /
+               `opacity` / `filter` properties — those CAN transition
+               cleanly because they're separate from `transform`.
+             • Magnetic field lives on `transform` (translate3d + rotateX
+               + rotateY + scale), driven by JS rAF setting --tx/--ty/
+               --rx/--ry/--scl-h on each bubble. No transition on transform
+               so the rAF interpolation is the source of smoothness.
+             • A separate `--w` (0..1) drives shadow and a color-overlay
+               layer for the brand accent on hover-strength.
+             • One pointermove on the wrap, falloff per bubble → cursor
+               crossing the gap between two bubbles produces a continuous
+               handoff (no double :hover transition, no seam).
            ============================================ */
+
+        @property --w   { syntax: '<number>'; inherits: true;  initial-value: 0; }
+        @property --tx  { syntax: '<length>'; inherits: false; initial-value: 0px; }
+        @property --ty  { syntax: '<length>'; inherits: false; initial-value: 0px; }
+        @property --rx  { syntax: '<angle>';  inherits: false; initial-value: 0deg; }
+        @property --ry  { syntax: '<angle>';  inherits: false; initial-value: 0deg; }
+        @property --scl-h { syntax: '<number>'; inherits: false; initial-value: 1; }
 
         .statement__circles-wrap {
             overflow: visible;
@@ -1715,116 +1728,95 @@
             position: relative;
             aspect-ratio: 1;
             border-radius: 50%;
-            background: #EDEBE6;
+            background-color: #EDEBE6;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
             padding: 20px;
-            /* Start invisible — JS reveals on intersection */
-            opacity: 0;
-            transform: scale(0.92) translateY(28px);
-            filter: blur(10px);
-            transform-origin: center 60%;
-            transition:
-                background 0.6s ease,
-                box-shadow 0.6s ease;
-            /* Magnetic tilt vars (set by JS pointer move) */
-            --mx: 0;
-            --my: 0;
-            will-change: transform, opacity, filter;
-        }
+            transform-origin: center 55%;
 
-        /* 1. Settle — soft emergence from below */
-        .statement__circle--settle {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-            filter: blur(0);
+            /* Entrance state (transitionable, independent props) */
+            opacity: 0;
+            filter: blur(10px);
+            translate: 0 28px;
+            scale: 0.92;
+
+            /* Magnetic transform — JS rAF updates the custom props directly,
+               no CSS transition on transform itself. */
+            transform:
+                translate3d(var(--tx), var(--ty), 0)
+                rotateX(var(--rx))
+                rotateY(var(--ry))
+                scale(var(--scl-h));
+
             transition:
                 opacity 1.1s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 1.1s cubic-bezier(0.16, 1, 0.3, 1),
                 filter 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-                background 0.6s ease,
-                box-shadow 0.6s ease;
-        }
+                translate 1.1s cubic-bezier(0.16, 1, 0.3, 1),
+                scale 1.1s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 
-        /* 3. Breathe — very slow organic pulse, runs once settled */
-        @keyframes kpi-breathe-a {
-            0%, 100% { transform: scale(1) translateY(0); }
-            50%      { transform: scale(1.008) translateY(-3px); }
-        }
-        @keyframes kpi-breathe-b {
-            0%, 100% { transform: scale(1) translateY(0); }
-            50%      { transform: scale(1.006) translateY(-4px); }
-        }
-        @keyframes kpi-breathe-c {
-            0%, 100% { transform: scale(1) translateY(0); }
-            50%      { transform: scale(1.01) translateY(-2px); }
-        }
-        @keyframes kpi-breathe-d {
-            0%, 100% { transform: scale(1) translateY(0); }
-            50%      { transform: scale(1.007) translateY(-3px); }
-        }
-
-        .statement__circle--breathe { will-change: transform; }
-        .statement__circle--breathe:nth-child(1) { animation: kpi-breathe-a 8.5s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
-        .statement__circle--breathe:nth-child(2) { animation: kpi-breathe-b 9.2s cubic-bezier(0.45, 0, 0.55, 1) infinite 0.4s; }
-        .statement__circle--breathe:nth-child(3) { animation: kpi-breathe-c 7.8s cubic-bezier(0.45, 0, 0.55, 1) infinite 0.9s; }
-        .statement__circle--breathe:nth-child(4) { animation: kpi-breathe-d 9.6s cubic-bezier(0.45, 0, 0.55, 1) infinite 0.2s; }
-
-        /* 4. Magnetic tilt — pause breathe while hovering, apply pointer transform */
-        .statement__circle--breathe:hover {
-            animation-play-state: paused;
-            transform:
-                perspective(900px)
-                rotateX(calc(var(--my) * -4deg))
-                rotateY(calc(var(--mx) * 4deg))
-                scale(1.025)
-                translateZ(0);
-            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        /* 5. Hover enrichment — warm gradient + accent + label */
-        .statement__circle--settle:hover {
-            background: radial-gradient(circle at calc(50% + var(--mx) * 18%) calc(50% + var(--my) * 18%), #E4DAD0 0%, #EDEBE6 70%);
+            /* Shadow strength scales with --w */
             box-shadow:
-                0 32px 70px -20px rgba(28, 18, 13, 0.18),
-                inset 0 0 60px rgba(201, 168, 130, 0.1);
+                0 calc(6px + var(--w) * 30px)
+                  calc(18px + var(--w) * 56px)
+                  calc(-12px - var(--w) * 10px)
+                  rgba(28, 18, 13, calc(0.04 + var(--w) * 0.18));
+
+            will-change: transform, opacity, translate, scale, box-shadow;
         }
 
-        .statement__circle--settle:hover .statement__circle-num {
-            color: var(--accent);
+        /* Warm radial overlay — opacity follows --w */
+        .statement__circle::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle at 50% 45%, #E4DAD0 0%, #EDEBE6 70%);
+            opacity: var(--w);
+            pointer-events: none;
+            transition: opacity 0.25s linear;
+            z-index: 0;
         }
 
-        .statement__circle--settle:hover .statement__circle-label {
-            color: var(--text-2);
-            transform: translateY(0) scale(1.04);
+        /* Inner content sits above the overlay */
+        .statement__circle > * {
+            position: relative;
+            z-index: 1;
         }
 
-        /* No-JS / fallback */
+        .statement__circle--settle {
+            opacity: 1;
+            filter: blur(0);
+            translate: 0 0;
+            scale: 1;
+        }
+
+        /* Fallback / reduced motion: skip entrance choreography */
         .no-js .statement__circle,
         .statement__circle--instant {
             opacity: 1;
-            transform: scale(1) translateY(0);
             filter: blur(0);
-            animation: none;
+            translate: 0 0;
+            scale: 1;
         }
 
-        /* Inner content — number + label */
+        /* ----- Inner content ----- */
         .statement__circle-num {
             font-family: var(--font-body);
             font-size: clamp(48px, 6.5vw, 88px);
             font-weight: 300;
             font-style: italic;
-            color: var(--dark);
             line-height: 1;
             margin-bottom: 12px;
             opacity: 0;
             transform: translateY(14px);
             filter: blur(6px);
+            color: color-mix(in oklab, var(--dark), var(--accent) calc(var(--w) * 100%));
             transition:
-                color 0.45s ease,
+                color 0.3s linear,
                 opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
                 transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
                 filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1851,14 +1843,14 @@
             font-size: clamp(11px, 1.1vw, 14px);
             font-weight: 500;
             letter-spacing: 0.01em;
-            color: var(--text-3);
             line-height: 1.35;
             opacity: 0;
             transform: translateY(8px);
+            color: color-mix(in oklab, var(--text-3), var(--text-2) calc(var(--w) * 100%));
             transition:
                 opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
                 transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
-                color 0.4s ease;
+                color 0.3s linear;
         }
 
         .statement__circle--reveal .statement__circle-label {
@@ -1867,14 +1859,19 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .statement__circle,
+            .statement__circle {
+                opacity: 1 !important;
+                filter: none !important;
+                translate: 0 0 !important;
+                scale: 1 !important;
+                transform: none !important;
+                transition: color 0.2s ease, background 0.3s ease !important;
+            }
             .statement__circle-num,
             .statement__circle-label {
                 opacity: 1 !important;
                 transform: none !important;
                 filter: none !important;
-                animation: none !important;
-                transition: color 0.2s ease, background 0.3s ease !important;
             }
         }
 
@@ -6276,14 +6273,9 @@
         document.querySelector('.nav-dropdown__menu').addEventListener('click', (e) => e.stopPropagation());
 
         // ============================================
-        // KPI CIRCLES — Quiet luxury choreography
-        //   1. Settle (scale + blur fade)  — CSS class --settle
-        //   2. Reveal number + label       — CSS class --reveal
-        //   3. Counter eases up            — JS (easeOutQuart)
-        //   4. Breathe (subtle pulse)      — CSS class --breathe
-        //   5. Magnetic pointer tilt       — JS pointermove → --mx/--my
-        //   Replays on every section re-entry.
-        //   Skipped entirely under prefers-reduced-motion.
+        // KPI CIRCLES — Continuous magnetic field
+        // Single pointer tracker on .statement__circles-wrap
+        // drives a per-bubble influence that lerps each rAF.
         // ============================================
 
         function formatCH(num) {
@@ -6297,17 +6289,12 @@
             const isCH = el.dataset.format === 'ch';
             const duration = target > 100 ? 2200 : 1500;
             const start = performance.now();
-            // easeOutQuart — slower tail, more dramatic settle
-            const ease = (t) => 1 - Math.pow(1 - t, 4);
-
+            const ease = (t) => 1 - Math.pow(1 - t, 4); // easeOutQuart
             function update(now) {
                 const progress = Math.min((now - start) / duration, 1);
                 const current = Math.round(ease(progress) * target);
-                if (suffix) {
-                    el.innerHTML = prefix + current + '<sup>' + suffix + '</sup>';
-                } else {
-                    el.textContent = prefix + (isCH ? formatCH(current) : current);
-                }
+                if (suffix) el.innerHTML = prefix + current + '<sup>' + suffix + '</sup>';
+                else el.textContent = prefix + (isCH ? formatCH(current) : current);
                 if (progress < 1) requestAnimationFrame(update);
             }
             requestAnimationFrame(update);
@@ -6324,34 +6311,27 @@
 
         function resetKpiCircle(circle) {
             clearKpiTimers(circle);
-            circle.classList.remove('statement__circle--settle', 'statement__circle--reveal', 'statement__circle--breathe');
-            const numEl = circle.querySelector('.statement__circle-num');
-            if (numEl && numEl.dataset.count) {
-                const prefix = numEl.dataset.prefix || '';
-                const suffix = numEl.dataset.suffix || '';
-                if (suffix) numEl.innerHTML = prefix + '0<sup>' + suffix + '</sup>';
-                else numEl.textContent = prefix + '0';
+            circle.classList.remove('statement__circle--settle', 'statement__circle--reveal');
+            const n = circle.querySelector('.statement__circle-num');
+            if (n && n.dataset.count) {
+                const prefix = n.dataset.prefix || '';
+                const suffix = n.dataset.suffix || '';
+                if (suffix) n.innerHTML = prefix + '0<sup>' + suffix + '</sup>';
+                else n.textContent = prefix + '0';
             }
         }
 
         function playKpiCircle(circle, baseDelay) {
             const ids = [];
-            // 1. Settle entrance
             ids.push(setTimeout(() => {
                 circle.classList.add('statement__circle--settle');
-                // 2. Reveal number + label, slightly after the bubble starts settling
                 ids.push(setTimeout(() => {
                     circle.classList.add('statement__circle--reveal');
-                    // 3. Counter
-                    const numEl = circle.querySelector('.statement__circle-num');
-                    if (numEl && numEl.dataset.count) {
-                        ids.push(setTimeout(() => animateCounter(numEl), 220));
+                    const n = circle.querySelector('.statement__circle-num');
+                    if (n && n.dataset.count) {
+                        ids.push(setTimeout(() => animateCounter(n), 220));
                     }
                 }, 320));
-                // 4. Breathe — wait until everything has settled
-                ids.push(setTimeout(() => {
-                    circle.classList.add('statement__circle--breathe');
-                }, 1700));
             }, baseDelay));
             kpiTimers.set(circle, ids);
         }
@@ -6360,26 +6340,9 @@
         if (kpiWrap) {
             const circles = Array.from(kpiWrap.querySelectorAll('.statement__circle'));
 
-            // Magnetic pointer tilt (skip on touch + reduced motion)
-            if (!reduceMotion && window.matchMedia('(hover: hover)').matches) {
-                circles.forEach(circle => {
-                    circle.addEventListener('pointermove', (e) => {
-                        const r = circle.getBoundingClientRect();
-                        const mx = ((e.clientX - r.left) / r.width  - 0.5) * 2; // -1..1
-                        const my = ((e.clientY - r.top)  / r.height - 0.5) * 2;
-                        circle.style.setProperty('--mx', mx.toFixed(3));
-                        circle.style.setProperty('--my', my.toFixed(3));
-                    });
-                    circle.addEventListener('pointerleave', () => {
-                        circle.style.setProperty('--mx', 0);
-                        circle.style.setProperty('--my', 0);
-                    });
-                });
-            }
-
             if (reduceMotion) {
-                circles.forEach(c => c.classList.add('statement__circle--instant'));
                 circles.forEach(c => {
+                    c.classList.add('statement__circle--instant');
                     const n = c.querySelector('.statement__circle-num');
                     if (n && n.dataset.count) {
                         const target = parseInt(n.dataset.count);
@@ -6390,21 +6353,143 @@
                     }
                 });
             } else {
-                // Replay each time the section re-enters the viewport
+                // Replay on each re-entry
                 const kpiObserver = new IntersectionObserver((entries) => {
                     entries.forEach(entry => {
                         if (entry.isIntersecting) {
-                            circles.forEach((circle) => {
-                                const delay = parseInt(circle.dataset.delay) || 0;
-                                playKpiCircle(circle, delay);
+                            circles.forEach((c) => {
+                                const delay = parseInt(c.dataset.delay) || 0;
+                                playKpiCircle(c, delay);
                             });
                         } else {
-                            // Reset for replay on next entry
                             circles.forEach(resetKpiCircle);
                         }
                     });
                 }, { threshold: 0.25 });
                 kpiObserver.observe(kpiWrap);
+
+                // ---- Continuous magnetic field ----
+                // One pointer source, rAF-driven lerp on each bubble.
+                // No :hover, no per-bubble events: cursor crossing the
+                // gap between two bubbles produces a smooth handoff.
+                if (window.matchMedia('(hover: hover)').matches) {
+                    const state = circles.map(() => ({
+                        w: 0, tx: 0, ty: 0, rx: 0, ry: 0, scl: 1,
+                        tw: 0, ttx: 0, tty: 0, trx: 0, try_: 0, tscl: 1
+                    }));
+                    let pointerInside = false;
+                    let px = 0, py = 0;
+                    let rafId = 0;
+
+                    function recomputeTargets() {
+                        for (let i = 0; i < circles.length; i++) {
+                            const r = circles[i].getBoundingClientRect();
+                            const cx = r.left + r.width / 2;
+                            const cy = r.top + r.height / 2;
+                            const dx = px - cx;
+                            const dy = py - cy;
+                            const radius = r.width / 2;
+
+                            if (!pointerInside || radius <= 0) {
+                                state[i].tw = state[i].ttx = state[i].tty = state[i].trx = state[i].try_ = 0;
+                                state[i].tscl = 1;
+                                continue;
+                            }
+                            // Normalize distance against bubble radius.
+                            // Inside (d <= r): full influence. Outside up to 1.6r: smooth falloff.
+                            const d = Math.hypot(dx, dy);
+                            const maxField = radius * 1.6;
+                            let proximity;
+                            if (d <= radius) proximity = 1;
+                            else if (d >= maxField) proximity = 0;
+                            else {
+                                const t = (d - radius) / (maxField - radius); // 0..1 outside
+                                // smoothstep
+                                proximity = 1 - (t * t * (3 - 2 * t));
+                            }
+                            const nx = d > 0 ? dx / d : 0;
+                            const ny = d > 0 ? dy / d : 0;
+
+                            // Pull toward cursor (translate)
+                            const pullPx = proximity * 6;
+                            // Lean tilt (rotate) — opposite axis convention
+                            const tiltDeg = 3.5;
+
+                            state[i].tw   = proximity;
+                            state[i].ttx  = nx * pullPx;
+                            state[i].tty  = ny * pullPx;
+                            // Tilt: bubble face leans toward cursor, so rotate around X based on
+                            // vertical cursor offset (negative = up, positive = down).
+                            state[i].try_ = (nx * proximity) * tiltDeg;          // rotateY
+                            state[i].trx  = (-ny * proximity) * tiltDeg;         // rotateX
+                            state[i].tscl = 1 + proximity * 0.022;
+                        }
+                    }
+
+                    function tick() {
+                        let stillMoving = false;
+                        const ease = 0.16; // lerp factor per frame
+                        for (let i = 0; i < circles.length; i++) {
+                            const s = state[i];
+                            s.w   += (s.tw   - s.w)   * ease;
+                            s.tx  += (s.ttx  - s.tx)  * ease;
+                            s.ty  += (s.tty  - s.ty)  * ease;
+                            s.rx  += (s.trx  - s.rx)  * ease;
+                            s.ry  += (s.try_ - s.ry)  * ease;
+                            s.scl += (s.tscl - s.scl) * ease;
+                            const c = circles[i];
+                            c.style.setProperty('--w',     s.w.toFixed(4));
+                            c.style.setProperty('--tx',    s.tx.toFixed(2) + 'px');
+                            c.style.setProperty('--ty',    s.ty.toFixed(2) + 'px');
+                            c.style.setProperty('--rx',    s.rx.toFixed(3) + 'deg');
+                            c.style.setProperty('--ry',    s.ry.toFixed(3) + 'deg');
+                            c.style.setProperty('--scl-h', s.scl.toFixed(4));
+                            if (Math.abs(s.tw - s.w) > 0.001 ||
+                                Math.abs(s.ttx - s.tx) > 0.05 ||
+                                Math.abs(s.tty - s.ty) > 0.05 ||
+                                Math.abs(s.trx - s.rx) > 0.01 ||
+                                Math.abs(s.try_ - s.ry) > 0.01 ||
+                                Math.abs(s.tscl - s.scl) > 0.0008) stillMoving = true;
+                        }
+                        if (stillMoving || pointerInside) {
+                            rafId = requestAnimationFrame(tick);
+                        } else {
+                            rafId = 0;
+                        }
+                    }
+
+                    function ensureLoop() {
+                        if (!rafId) rafId = requestAnimationFrame(tick);
+                    }
+
+                    kpiWrap.addEventListener('pointermove', (e) => {
+                        pointerInside = true;
+                        px = e.clientX;
+                        py = e.clientY;
+                        recomputeTargets();
+                        ensureLoop();
+                    });
+                    kpiWrap.addEventListener('pointerleave', () => {
+                        pointerInside = false;
+                        recomputeTargets();
+                        ensureLoop();
+                    });
+                    // Recompute on scroll/resize (bubble positions change)
+                    let scrollTick = 0;
+                    window.addEventListener('scroll', () => {
+                        if (!pointerInside) return;
+                        if (scrollTick) return;
+                        scrollTick = requestAnimationFrame(() => {
+                            scrollTick = 0;
+                            recomputeTargets();
+                            ensureLoop();
+                        });
+                    }, { passive: true });
+                    window.addEventListener('resize', () => {
+                        recomputeTargets();
+                        ensureLoop();
+                    });
+                }
             }
         }
 
