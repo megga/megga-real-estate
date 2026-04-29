@@ -3196,6 +3196,13 @@
             display: flex;
             gap: clamp(16px, 2vw, 28px);
             overflow-x: auto;
+            overflow-y: hidden;
+            /* Constrain touch gesture to the horizontal axis only.
+               Without this, iOS reads horizontal swipes as ambiguous
+               and the carousel jitters vertically while also blocking
+               the page's vertical scroll. */
+            touch-action: pan-x;
+            overscroll-behavior-x: contain;
             scroll-behavior: smooth;
             scrollbar-width: none;
             -ms-overflow-style: none;
