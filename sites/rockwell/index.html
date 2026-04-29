@@ -2165,6 +2165,62 @@
             opacity: 0.75;
         }
 
+        /* ============================================
+           BACK-TO-TOP button — appears after 1.2 vh scrolled
+           ============================================ */
+        .back-to-top {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--dark);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: 0 14px 32px -10px rgba(28,18,13,0.4);
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(12px) scale(0.85);
+            pointer-events: none;
+            transition:
+                opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                background 0.25s ease;
+            z-index: 90;
+        }
+
+        .back-to-top--visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .back-to-top:hover,
+        .back-to-top:focus-visible {
+            background: var(--accent);
+            outline: none;
+        }
+
+        .back-to-top svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .back-to-top {
+                transition: opacity 0.2s linear, background 0.2s linear;
+            }
+        }
+
         /* Form panels */
         .modal__panel {
             display: none;
@@ -5185,8 +5241,54 @@
             .best__title,
             .services__title,
             .blog__title,
-            .team__title {
+            .team__title,
+            .statement__headline {
                 font-size: clamp(38px, 11vw, 56px);
+            }
+
+            /* À propos: kill the desktop 360px gap below text — the KPI
+               bubbles sit naturally below the copy on mobile. */
+            .statement__top {
+                margin-bottom: clamp(48px, 10vw, 120px);
+            }
+
+            /* KPI bubbles: small inset on the wrap so they don't bite the
+               viewport edge. Label up from 11px → 12px for readability. */
+            .statement__circles-wrap {
+                padding: 0 12px;
+            }
+            .statement__circle-label {
+                font-size: 12px;
+            }
+            /* "+2 Mrd": de-emphasize the Mrd superscript so it stops
+               competing with the italic +2. */
+            .statement__circle-num sup {
+                font-size: 0.26em;
+                opacity: 0.5;
+            }
+
+            /* --- Touch targets: bring everything to 44×44 (Apple HIG) --- */
+            .nav__hamburger {
+                width: 44px;
+                height: 44px;
+            }
+            .modal__close {
+                width: 44px;
+                height: 44px;
+            }
+            .modal__input-toggle {
+                width: 44px;
+                height: 44px;
+                /* Keep visual position but expand hit area */
+                right: 4px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            .modal__forgot {
+                padding: 10px 0;
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
             }
             .footer__grid { grid-template-columns: 1fr 1fr; gap: 32px; }
             .footer__bottom { flex-direction: column; gap: 16px; text-align: center; }
@@ -5210,9 +5312,9 @@
         }
 
         @media (max-width: 480px) {
-            /* KPIs — 1 column */
+            /* KPIs — 2x2 grid with breathing room on the sides */
             .statement__circles { grid-template-columns: 1fr 1fr; }
-            .statement__circles-wrap { height: auto; padding: 20px 0; }
+            .statement__circles-wrap { height: auto; padding: 20px 12px; }
             .statement__circle { padding: 24px 16px; }
 
             /* Team — single scroll */
@@ -5353,8 +5455,14 @@
          ============================================ -->
     <section class="hero">
         <div class="hero__image-wrapper">
-            <video autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;">
-                <source src="https://res.cloudinary.com/dq9cuacrn/video/upload/v1/desktop-hero_ecbuqr.mp4" type="video/mp4">
+            <!-- Mobile (<=768px): no video to save data; the poster image
+                 fills the hero. Desktop: full video. JS swap below the source
+                 keeps the markup simple and lets us avoid a 2-3MB video on
+                 a phone hotspot. -->
+            <video id="heroVideo" autoplay muted loop playsinline preload="metadata"
+                   poster="https://res.cloudinary.com/dq9cuacrn/video/upload/so_0,c_fill,w_1080,h_1920,q_auto,f_jpg/v1/desktop-hero_ecbuqr.jpg"
+                   style="width:100%;height:100%;object-fit:cover;">
+                <source id="heroVideoSrc" data-src="https://res.cloudinary.com/dq9cuacrn/video/upload/v1/desktop-hero_ecbuqr.mp4" type="video/mp4">
             </video>
 
             <h1 class="hero__headline">L'immobilier d'exception sur l'Arc Lémanique.</h1>
@@ -6258,6 +6366,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Back-to-top button -->
+    <button type="button" id="backToTop" class="back-to-top" aria-label="Retour en haut de la page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
 
     <!-- ============================================
          JS
@@ -7777,6 +7890,43 @@
             }, { rootMargin: '200px' });
             mapObserver.observe(mapSectionEl);
         }
+
+        // ============================================
+        // Hero video — desktop-only source, mobile uses the poster image
+        // (saves ~2-3 MB on phone networks)
+        // ============================================
+        (function setupHeroVideo() {
+            const src = document.getElementById('heroVideoSrc');
+            const video = document.getElementById('heroVideo');
+            if (!src || !video) return;
+            if (window.matchMedia('(min-width: 769px)').matches) {
+                src.src = src.dataset.src;
+                video.load();
+                video.play().catch(() => {});
+            }
+        })();
+
+        // ============================================
+        // Back-to-top button — appears after 1 viewport scrolled
+        // ============================================
+        (function setupBackToTop() {
+            const btn = document.getElementById('backToTop');
+            if (!btn) return;
+            const SHOW_AFTER = window.innerHeight * 1.2;
+            let visible = false;
+            function update() {
+                const should = window.scrollY > SHOW_AFTER;
+                if (should !== visible) {
+                    visible = should;
+                    btn.classList.toggle('back-to-top--visible', should);
+                }
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            btn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            update();
+        })();
     </script>
 
 </body>
