@@ -4217,7 +4217,10 @@
             position: fixed;
             inset: 0;
             z-index: 999999;
-            background: #ffffff;
+            /* Match the rest of the site (body, html, menu, modal
+               are all #FAFAFA) so the iOS status-bar tint and the
+               page content read as the same white. */
+            background: #FAFAFA;
             display: flex;
             flex-direction: column;
             opacity: 0;
@@ -8274,14 +8277,31 @@
             });
         }
 
+        // Switch between Liste and Carte without the previous hard
+        // display: none flicker. We dip the swap area's opacity for
+        // ~140ms, mutate the DOM while it's faded, then fade back in
+        // — gives a smooth crossfade without needing each element
+        // wrapped in its own animatable container.
+        let modeSwitchInFlight = false;
         function setSearchMode(mode) {
+            if (currentSearchMode === mode || modeSwitchInFlight) {
+                if (currentSearchMode === mode) return;
+            }
             currentSearchMode = mode;
             const listBtn = document.getElementById('modeListBtn');
             const mapBtn = document.getElementById('modeMapBtn');
             const mapContainer = document.getElementById('searchMapContainer');
             const mapResults = document.getElementById('searchMapResults');
 
-            // Toggle elements that belong to list mode
+            // Toggle button state immediately so the click feels responsive.
+            if (mode === 'map') {
+                listBtn.classList.remove('search-overlay__mode-btn--active');
+                mapBtn.classList.add('search-overlay__mode-btn--active');
+            } else {
+                mapBtn.classList.remove('search-overlay__mode-btn--active');
+                listBtn.classList.add('search-overlay__mode-btn--active');
+            }
+
             const listElements = [
                 document.getElementById('searchResults'),
                 document.getElementById('searchResultsBar'),
@@ -8291,24 +8311,40 @@
                 document.getElementById('searchRecent'),
                 document.querySelector('.search-overlay__confidential')
             ];
+            // Crossfade scope: everything below the mode toggle.
+            const swapTargets = listElements.concat([mapContainer, mapResults]).filter(Boolean);
 
-            if (mode === 'map') {
-                listBtn.classList.remove('search-overlay__mode-btn--active');
-                mapBtn.classList.add('search-overlay__mode-btn--active');
-                mapContainer.classList.add('search-overlay__map-container--visible');
-                listElements.forEach(el => { if (el) el.style.display = 'none'; });
+            modeSwitchInFlight = true;
+            swapTargets.forEach(el => {
+                el.style.transition = 'opacity 0.14s ease';
+                el.style.opacity = '0';
+            });
 
-                // Init map on first switch
-                initSearchMap();
-                setTimeout(() => searchMap.invalidateSize(), 100);
-            } else {
-                mapBtn.classList.remove('search-overlay__mode-btn--active');
-                listBtn.classList.add('search-overlay__mode-btn--active');
-                mapContainer.classList.remove('search-overlay__map-container--visible');
-                mapResults.classList.remove('search-overlay__map-results--visible');
-                mapResults.style.display = 'none';
-                listElements.forEach(el => { if (el) el.style.display = ''; });
-            }
+            setTimeout(() => {
+                if (mode === 'map') {
+                    mapContainer.classList.add('search-overlay__map-container--visible');
+                    listElements.forEach(el => { if (el) el.style.display = 'none'; });
+                    initSearchMap();
+                    setTimeout(() => searchMap && searchMap.invalidateSize(), 60);
+                } else {
+                    mapContainer.classList.remove('search-overlay__map-container--visible');
+                    mapResults.classList.remove('search-overlay__map-results--visible');
+                    mapResults.style.display = 'none';
+                    listElements.forEach(el => { if (el) el.style.display = ''; });
+                }
+                // Fade back in on the next frame so the browser commits
+                // the display + visibility change before the transition.
+                requestAnimationFrame(() => {
+                    swapTargets.forEach(el => {
+                        el.style.transition = 'opacity 0.22s ease';
+                        el.style.opacity = '';
+                    });
+                    setTimeout(() => {
+                        swapTargets.forEach(el => { el.style.transition = ''; });
+                        modeSwitchInFlight = false;
+                    }, 240);
+                });
+            }, 150);
         }
 
         // Toggle the search overlay map between its inline size
