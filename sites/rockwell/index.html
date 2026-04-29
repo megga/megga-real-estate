@@ -699,6 +699,16 @@
             animation: heroFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
         }
 
+        /* Mobile-only line break in the headline before "for" so
+           the headline reads on two clean lines on a phone:
+             Find the right home
+             for your lifestyle.
+           Hidden on tablet+ where the headline fits one line. */
+        .hero__headline-break { display: none; }
+        @media (max-width: 768px) {
+            .hero__headline-break { display: inline; }
+        }
+
         @keyframes heroFadeUp {
             from { opacity: 0; transform: translateY(calc(-60% + 30px)); }
             to { opacity: 1; transform: translateY(-60%); }
@@ -5736,6 +5746,18 @@
                 text-align: left;
             }
 
+            /* Recent searches — same horizontal padding as the
+               input + title so the pills align with the rest of
+               the column instead of sitting flush against the
+               viewport edge. */
+            .search-overlay__recent {
+                padding: 0 var(--side);
+                max-width: 100%;
+            }
+            .search-overlay__recent .search-overlay__section-title {
+                padding: 0;
+            }
+
             /* Popular searches — 2-col grid of visual cards
                (gradient bg with city/type label) instead of
                dry text pills. Images attached via data-bg
@@ -5972,7 +5994,7 @@
                         data-src-desktop="https://res.cloudinary.com/dq9cuacrn/video/upload/q_auto,f_auto/v1/desktop-hero_ecbuqr.mp4">
             </video>
 
-            <h1 class="hero__headline">Find the right home for your lifestyle.</h1>
+            <h1 class="hero__headline">Find the right home<br class="hero__headline-break"> for your lifestyle.</h1>
 
             <!-- Search card — compact single-line glass -->
             <div class="search-card" style="cursor: pointer;" onclick="openSearchOverlay()">
