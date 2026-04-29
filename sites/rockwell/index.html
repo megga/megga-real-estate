@@ -5383,16 +5383,179 @@
         /* Style Leaflet draw shapes */
         .leaflet-draw-guide-dash { stroke: var(--accent) !important; }
 
+        /* ============================================
+           MAP PROPERTY POPUP
+           Editorial card on click of a marker.
+           ============================================ */
         .map-popup-custom .leaflet-popup-content-wrapper {
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            border-radius: 16px;
+            box-shadow: 0 16px 48px rgba(28, 18, 13, 0.18), 0 4px 12px rgba(28, 18, 13, 0.08);
             padding: 0;
+            overflow: hidden;
+            background: #FAFAFA;
         }
         .map-popup-custom .leaflet-popup-content {
-            margin: 12px;
+            margin: 0;
+            width: 280px !important;
+            font-family: var(--font-sans);
         }
         .map-popup-custom .leaflet-popup-tip {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(28, 18, 13, 0.15);
+            background: #FAFAFA;
+        }
+        .map-popup-custom .leaflet-popup-close-button {
+            top: 8px !important;
+            right: 8px !important;
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 50% !important;
+            background: rgba(255, 255, 255, 0.92) !important;
+            color: var(--dark) !important;
+            font-size: 18px !important;
+            line-height: 26px !important;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: background 0.2s ease;
+        }
+        .map-popup-custom .leaflet-popup-close-button:hover {
+            background: white !important;
+        }
+
+        .prop-popup__media {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            overflow: hidden;
+            background: rgba(28, 18, 13, 0.08);
+        }
+        .prop-popup__media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .prop-popup__media::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(28, 18, 13, 0.3) 0%, transparent 40%);
+            pointer-events: none;
+        }
+        .prop-popup__type {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: var(--dark);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            z-index: 2;
+        }
+        .prop-popup__price {
+            position: absolute;
+            bottom: 10px;
+            left: 12px;
+            color: white;
+            font-family: var(--font-sans);
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+            z-index: 2;
+        }
+
+        .prop-popup__body {
+            padding: 14px 16px 16px;
+        }
+        .prop-popup__name {
+            font-family: var(--font-body);
+            font-style: italic;
+            font-weight: 400;
+            font-size: 17px;
+            line-height: 1.2;
+            color: var(--dark);
+            margin: 0 0 4px;
+            letter-spacing: -0.01em;
+        }
+        .prop-popup__location {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: rgba(28, 18, 13, 0.55);
+            margin-bottom: 10px;
+        }
+        .prop-popup__location svg {
+            width: 12px;
+            height: 12px;
+            stroke: rgba(28, 18, 13, 0.55);
+            stroke-width: 1.8;
+            fill: none;
+            flex-shrink: 0;
+        }
+        .prop-popup__meta {
+            display: flex;
+            gap: 14px;
+            padding: 8px 0 12px;
+            border-top: 1px solid rgba(28, 18, 13, 0.06);
+            border-bottom: 1px solid rgba(28, 18, 13, 0.06);
+            margin-bottom: 12px;
+        }
+        .prop-popup__meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--dark);
+            font-weight: 500;
+        }
+        .prop-popup__meta-item svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--accent);
+            stroke-width: 1.6;
+            fill: none;
+            flex-shrink: 0;
+        }
+        .prop-popup__cta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: var(--dark);
+            color: white;
+            font-size: 12.5px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.25s ease;
+        }
+        .prop-popup__cta:hover {
+            background: var(--accent);
+        }
+        .prop-popup__cta svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            fill: none;
+            transition: transform 0.25s ease;
+        }
+        .prop-popup__cta:hover svg { transform: translateX(2px); }
+
+        /* Mobile: tighter sizing so the popup never overflows. */
+        @media (max-width: 768px) {
+            .map-popup-custom .leaflet-popup-content {
+                width: 240px !important;
+            }
+            .prop-popup__name { font-size: 16px; }
         }
 
         @media (max-width: 768px) {
@@ -8301,19 +8464,45 @@
                 iconAnchor: [8, 8]
             });
 
-            // Add property markers
+            // Add property markers with editorial popup card.
+            const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
             propertyLocations.forEach((prop, i) => {
                 const icon = (i === 4 || i === 5) ? featuredPinIcon : pinIcon; // Feature Lausanne & Montreux
+                const matched = searchProperties.find(p => p.name === prop.name);
+                const type = matched ? matched.type : 'Bien';
+                const rooms = matched ? matched.rooms : null;
+                const popupHtml = `
+                    <div class="prop-popup">
+                        <div class="prop-popup__media">
+                            <span class="prop-popup__type">${escapeHtml(type)}</span>
+                            <img src="${escapeHtml(prop.img)}" alt="${escapeHtml(prop.name)}">
+                            <span class="prop-popup__price">${escapeHtml(prop.price)}</span>
+                        </div>
+                        <div class="prop-popup__body">
+                            <h3 class="prop-popup__name">${escapeHtml(prop.name)}</h3>
+                            <div class="prop-popup__location">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                ${escapeHtml(prop.location)}
+                            </div>
+                            ${rooms ? `
+                            <div class="prop-popup__meta">
+                                <span class="prop-popup__meta-item">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                                    ${rooms} pièces
+                                </span>
+                            </div>` : ''}
+                            <a href="#" class="prop-popup__cta">
+                                Voir le bien
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                `;
                 const marker = L.marker([prop.lat, prop.lng], { icon: icon })
                     .addTo(searchMap)
-                    .bindPopup(`
-                        <div style="font-family:'Instrument Sans',sans-serif;min-width:200px;">
-                            <img src="${prop.img}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:10px;">
-                            <div style="font-size:13px;font-weight:600;color:#C4704D;margin-bottom:3px;">${prop.price}</div>
-                            <div style="font-size:15px;font-weight:500;color:#1c120d;margin-bottom:3px;">${prop.name}</div>
-                            <div style="font-size:11px;color:rgba(28,18,13,0.5);">${prop.location}</div>
-                        </div>
-                    `, { className: 'map-popup-custom', maxWidth: 250 });
+                    .bindPopup(popupHtml, { className: 'map-popup-custom', maxWidth: 280, minWidth: 240, closeButton: true, autoPan: true });
                 searchMapMarkers.push(marker);
             });
         }
