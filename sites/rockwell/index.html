@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
     <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet">
     <meta name="author" content="Juarts — instagram.com/juarts">
@@ -117,7 +117,14 @@
             left: 0;
             right: 0;
             z-index: 100;
-            padding: 20px var(--side);
+            /* Pad the top by the iPhone safe-area inset (notch / Dynamic
+               Island) so the logo + hamburger stay clear, while the hero
+               below extends fully edge-to-edge underneath. */
+            padding:
+                calc(20px + env(safe-area-inset-top))
+                calc(var(--side) + env(safe-area-inset-right))
+                20px
+                calc(var(--side) + env(safe-area-inset-left));
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -132,7 +139,11 @@
             background: rgba(255, 255, 255, 0.65);
             backdrop-filter: blur(32px) saturate(180%);
             -webkit-backdrop-filter: blur(32px) saturate(180%);
-            padding: 16px var(--side);
+            padding:
+                calc(16px + env(safe-area-inset-top))
+                calc(var(--side) + env(safe-area-inset-right))
+                16px
+                calc(var(--side) + env(safe-area-inset-left));
             box-shadow: 0 1px 0 rgba(28,18,13,0.04), 0 8px 32px rgba(28,18,13,0.04);
             border-bottom: 1px solid rgba(255,255,255,0.5);
         }
@@ -474,7 +485,11 @@
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             z-index: 99;
-            padding: 100px var(--side) 40px;
+            padding:
+                calc(100px + env(safe-area-inset-top))
+                calc(var(--side) + env(safe-area-inset-right))
+                calc(40px + env(safe-area-inset-bottom))
+                calc(var(--side) + env(safe-area-inset-left));
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -2248,8 +2263,8 @@
            ============================================ */
         .back-to-top {
             position: fixed;
-            right: 18px;
-            bottom: 18px;
+            right: calc(18px + env(safe-area-inset-right));
+            bottom: calc(18px + env(safe-area-inset-bottom));
             width: 48px;
             height: 48px;
             border-radius: 50%;
