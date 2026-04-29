@@ -178,6 +178,13 @@
         .nav--menu-open .nav__logo { color: var(--dark) !important; }
         .nav--menu-open .nav__logo svg path { fill: var(--dark) !important; }
 
+        /* iOS Safari's floating bottom URL bar samples the page colour
+           near the viewport bottom rather than just reading theme-color,
+           so the dark body bg leaks through as a brown tint. While the
+           menu is open, paint html + body white to match the menu sheet. */
+        html.menu-open,
+        html.menu-open body { background: #FAFAFA !important; }
+
         .nav__center {
             display: flex;
             align-items: center;
@@ -613,11 +620,14 @@
         .hero {
             position: relative;
             width: 100%;
-            /* 100lvh = the LARGEST viewport height. Unlike 100vh which can
-               shrink to exclude system chrome on iOS, 100lvh always fills
-               the full screen including under the Dynamic Island. */
+            /* Leave the iOS safe-area-inset-top exposed so the white
+               page-wrap background shows behind the status bar (clock +
+               battery). iOS samples that area to tint the status bar
+               icons, so a white band there gives a clean light status
+               bar over the dark hero video. */
+            margin-top: env(safe-area-inset-top);
             height: 100vh; /* fallback for old browsers */
-            height: 100lvh;
+            height: calc(100lvh - env(safe-area-inset-top));
             min-height: 700px;
             overflow: hidden;
         }
@@ -6633,12 +6643,14 @@
                 menu.style.transform = 'translateY(-10px)';
                 btn.classList.remove('nav__hamburger--active');
                 if (nav) nav.classList.remove('nav--menu-open');
+                document.documentElement.classList.remove('menu-open');
                 setMenuThemeColor(false);
                 setTimeout(() => { menu.classList.remove('mobile-menu--active'); document.body.style.overflow = ''; }, 400);
             } else {
                 menu.classList.add('mobile-menu--active');
                 btn.classList.add('nav__hamburger--active');
                 if (nav) nav.classList.add('nav--menu-open');
+                document.documentElement.classList.add('menu-open');
                 setMenuThemeColor(true);
                 document.body.style.overflow = 'hidden';
                 requestAnimationFrame(() => { menu.style.opacity = '1'; menu.style.transform = 'translateY(0)'; });
@@ -6653,6 +6665,7 @@
             menu.style.transform = 'translateY(-10px)';
             btn.classList.remove('nav__hamburger--active');
             if (nav) nav.classList.remove('nav--menu-open');
+            document.documentElement.classList.remove('menu-open');
             setMenuThemeColor(false);
             setTimeout(() => { menu.classList.remove('mobile-menu--active'); document.body.style.overflow = ''; }, 400);
         }
