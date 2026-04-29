@@ -5674,41 +5674,68 @@
                 text-align: left;
             }
 
+            /* Search input wrap — use margin instead of padding so
+               the absolutely-positioned loupe / clear / voice
+               buttons stay anchored to the input's right edge
+               (with padding the wrap's content shrinks but the
+               buttons still measure from the wrap edge → they
+               ended up outside the visible input). */
             .search-overlay__input-wrap {
-                margin-bottom: 18px;
-                padding: 0 var(--side);
-                max-width: 100%;
+                margin: 0 var(--side) 18px;
+                padding: 0;
+                width: auto;
+                max-width: none;
             }
 
-            /* Mode toggle — keep visible, snug horizontal layout */
+            /* Mode toggle — don't stretch full width (parent
+               body uses align-items: stretch on mobile), keep it
+               snug to the content so there's no empty space
+               trailing after "Carte". */
             .search-overlay__mode-toggle {
+                align-self: flex-start;
+                width: fit-content;
                 margin: 0 var(--side) 18px;
             }
 
             /* Filter chips — single horizontal scroll rail.
                display: contents on the groups makes their
                children flow as direct children of .filters,
-               so all chips end up on one scrollable line. */
+               so all chips end up on one scrollable line.
+               No mask-image: it cut chip borders mid-curve and
+               showed parenthesis-shaped artefacts. Wrapped in a
+               relative parent further down so a ::after fade
+               can hint at scrollability without touching chip
+               geometry. */
             .search-overlay__filters {
                 flex-direction: row;
                 flex-wrap: nowrap;
                 align-items: center;
-                gap: 8px;
+                gap: 10px;
                 overflow-x: auto;
                 overflow-y: hidden;
                 touch-action: pan-x;
                 overscroll-behavior-x: contain;
                 scrollbar-width: none;
                 -ms-overflow-style: none;
-                padding: 4px var(--side) 12px;
+                /* extra padding-right so the trailing chip has
+                   breathing room before the scroll edge instead
+                   of being clipped halfway through its border */
+                padding: 6px var(--side) 14px;
+                padding-right: calc(var(--side) + 32px);
                 margin-bottom: 24px;
                 max-width: 100%;
-                /* Right-side fade so users see there's more
-                   beyond the first few chips. */
-                -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
-                mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+                -webkit-mask-image: none;
+                mask-image: none;
+                position: relative;
             }
             .search-overlay__filters::-webkit-scrollbar { display: none; }
+            /* Soft fade overlay on the right edge — pure visual
+               hint, never touches chip borders since it sits
+               above as a position-absolute child of body, not
+               masked into the row. */
+            .search-overlay__body::before {
+                content: none;
+            }
             .search-overlay__filter-group {
                 display: contents;
             }
