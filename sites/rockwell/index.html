@@ -5149,9 +5149,45 @@
         @media (max-width: 768px) {
             .nav__center { display: none; }
             .nav-dropdown { display: none; }
-            .search-card__fields { grid-template-columns: 1fr; }
+            /* Search card: collapse to a single search trigger that opens the
+               full search overlay. The 4-field grid was overflowing ~600px on
+               a 375px viewport. */
+            .search-card {
+                width: calc(100% - 32px);
+                border-radius: 32px;
+                padding: 8px 8px 8px 14px;
+            }
+            .search-card__fields {
+                gap: 0;
+            }
+            .search-card__fields .field + .field { display: none; }
+            .search-card__fields .field:first-child {
+                flex: 1;
+                min-width: 0;
+            }
+            .search-card__fields .field:first-child .field__input {
+                width: 100%;
+                font-size: 14px;
+            }
             .search-card__bottom { flex-direction: column; gap: 16px; align-items: flex-start; }
             .hero__headline { font-size: 32px; max-width: 90%; }
+
+            /* Section headers stack on mobile so the "Toutes…" link stops
+               overlapping the giant italic title. */
+            .best__header,
+            .services__header,
+            .blog__header,
+            .team__header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 14px;
+            }
+            .best__title,
+            .services__title,
+            .blog__title,
+            .team__title {
+                font-size: clamp(38px, 11vw, 56px);
+            }
             .footer__grid { grid-template-columns: 1fr 1fr; gap: 32px; }
             .footer__bottom { flex-direction: column; gap: 16px; text-align: center; }
             .footer__trust { flex-wrap: wrap; gap: 16px; }
@@ -5321,7 +5357,7 @@
                 <source src="https://res.cloudinary.com/dq9cuacrn/video/upload/v1/desktop-hero_ecbuqr.mp4" type="video/mp4">
             </video>
 
-            <h1 class="hero__headline">Find the right home for your lifestyle.</h1>
+            <h1 class="hero__headline">L'immobilier d'exception sur l'Arc Lémanique.</h1>
 
             <!-- Search card — compact single-line glass -->
             <div class="search-card" style="cursor: pointer;" onclick="openSearchOverlay()">
