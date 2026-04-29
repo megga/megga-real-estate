@@ -494,7 +494,11 @@
             background: var(--dark);
         }
 
-        /* Mobile menu overlay */
+        /* Mobile menu overlay — solid #FAFAFA (no alpha, no
+           backdrop-filter) so the menu sheet matches exactly the
+           same white as the body bg + theme-color tint behind it.
+           Any alpha/blur made the centre read slightly different
+           from the iOS-rendered status + URL bars. */
         .mobile-menu {
             display: none;
             position: fixed;
@@ -502,9 +506,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(250, 250, 250, 0.98);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
+            background: #FAFAFA;
             z-index: 99;
             padding:
                 calc(100px + env(safe-area-inset-top))
