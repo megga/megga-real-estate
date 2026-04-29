@@ -3108,12 +3108,13 @@
 
         @media (max-width: 580px) {
             .services__grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 14px;
+                grid-template-columns: 1fr;
+                gap: 28px;
             }
 
             .svc-card__img {
                 border-radius: var(--radius-md);
+                aspect-ratio: 4 / 3;
                 margin-bottom: 12px;
             }
 
@@ -5501,6 +5502,51 @@
             .footer__grid { grid-template-columns: 1fr 1fr; gap: 32px; }
             .footer__bottom { flex-direction: column; gap: 16px; text-align: center; }
             .footer__trust { flex-wrap: wrap; gap: 16px; }
+
+            /* --- Mobile touch targets — Apple HIG min 44px.
+                   Footer links were 19px tall, agency phones 15px.
+                   Pad them to a comfortable tap zone without changing
+                   the visible row spacing. --- */
+            .footer__links li { margin-bottom: 0; }
+            .footer__links a {
+                display: inline-flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 10px 0;
+            }
+            .footer__agency-phone {
+                display: inline-flex;
+                align-items: center;
+                min-height: 36px;
+                padding: 8px 0;
+                font-size: 13px;
+            }
+            .footer__social-links a { min-height: 44px; padding: 6px 0; margin-bottom: 0; }
+            .footer__legal a { padding: 10px 8px; display: inline-flex; align-items: center; min-height: 36px; }
+            .footer__info a {
+                display: inline-flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 10px 0;
+            }
+
+            /* Map filter tabs — pad to 36px so each tab is a real
+               tap target. The visible chip stays the same size. */
+            .map-section__tab {
+                font-size: 12px;
+                padding: 9px 14px;
+                min-height: 36px;
+            }
+
+            /* Section header links ("Toute l'équipe", "Tous les
+               articles", "Toutes les propriétés", etc.) — make the
+               whole row tappable. */
+            .team__intro-link,
+            .blog__header-link,
+            .best__link {
+                min-height: 44px;
+                padding: 12px 0;
+            }
             .footer-invite__form {
                 flex-direction: column;
                 align-items: stretch;
