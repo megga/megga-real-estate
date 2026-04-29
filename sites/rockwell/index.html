@@ -1609,7 +1609,11 @@
 
         .statement {
             padding: clamp(160px, 14vw, 220px) var(--side) 0;
-            overflow: hidden;
+            /* overflow-x clips horizontal bleed without becoming a vertical
+               scroll container, so KPI hover shadows can extend below the
+               section without being cut off. */
+            overflow-x: clip;
+            overflow-y: visible;
         }
 
         /* Top: 3-column grid — title left, 2 text blocks right */
