@@ -2174,6 +2174,55 @@
             display: block;
         }
 
+        /* Success state (forgot password) */
+        .modal__success {
+            text-align: center;
+            padding: 12px 0 4px;
+        }
+
+        .modal__success-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            background: rgba(196, 112, 77, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+        }
+
+        .modal__success-icon svg {
+            width: 26px;
+            height: 26px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .modal__success-title {
+            font-family: var(--font-body);
+            font-size: 22px;
+            font-weight: 400;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+
+        .modal__success-text {
+            font-family: var(--font-body);
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-2);
+        }
+
+        .modal__success-text strong {
+            color: var(--dark);
+            font-weight: 600;
+            font-family: var(--font-sans);
+        }
+
         /* Checkbox */
         .modal__checkbox {
             display: flex;
@@ -6057,7 +6106,7 @@
                 <div class="modal__field">
                     <div class="modal__label-row">
                         <label class="modal__label">Mot de passe</label>
-                        <a href="#" class="modal__forgot">Mot de passe oublié ?</a>
+                        <a href="#" class="modal__forgot" onclick="event.preventDefault(); document.getElementById('panelLogin').classList.remove('modal__panel--active'); document.getElementById('panelForgot').classList.add('modal__panel--active');">Mot de passe oublié ?</a>
                     </div>
                     <div class="modal__input-wrap">
                         <input class="modal__input" type="password" id="loginPassword" placeholder="••••••••">
@@ -6134,6 +6183,41 @@
 
                 <div class="modal__switch">
                     Déjà un compte ? <a onclick="document.getElementById('panelRegister').classList.remove('modal__panel--active'); document.getElementById('panelLogin').classList.add('modal__panel--active');">Se connecter</a>
+                </div>
+            </div>
+
+            <!-- Panel: Mot de passe oublié -->
+            <div class="modal__panel" id="panelForgot">
+                <div class="modal__title">Mot de passe oublié ?</div>
+                <div class="modal__subtitle">Entrez votre adresse e-mail. Nous vous enverrons un lien sécurisé pour réinitialiser votre mot de passe.</div>
+
+                <div id="forgotForm">
+                    <div class="modal__field">
+                        <label class="modal__label">Adresse e-mail</label>
+                        <div class="modal__input-wrap">
+                            <input class="modal__input" type="email" id="forgotEmail" placeholder="nom@exemple.com">
+                        </div>
+                    </div>
+
+                    <button class="modal__submit" onclick="event.preventDefault(); const e=document.getElementById('forgotEmail').value.trim(); if(!e){document.getElementById('forgotEmail').focus();return;} document.getElementById('forgotSentEmail').textContent=e; document.getElementById('forgotForm').style.display='none'; document.getElementById('forgotSuccess').style.display='block';">
+                        Envoyer le lien
+                        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+
+                <div id="forgotSuccess" class="modal__success" style="display:none;">
+                    <div class="modal__success-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+                    </div>
+                    <div class="modal__success-title">E-mail envoyé.</div>
+                    <div class="modal__success-text">
+                        Un lien de réinitialisation vient d'être envoyé à<br><strong id="forgotSentEmail"></strong>.<br>
+                        Pensez à vérifier vos courriers indésirables.
+                    </div>
+                </div>
+
+                <div class="modal__switch">
+                    <a onclick="document.getElementById('panelForgot').classList.remove('modal__panel--active'); document.getElementById('panelLogin').classList.add('modal__panel--active'); document.getElementById('forgotForm').style.display=''; document.getElementById('forgotSuccess').style.display='none'; document.getElementById('forgotEmail').value='';">← Retour à la connexion</a>
                 </div>
             </div>
         </div>
