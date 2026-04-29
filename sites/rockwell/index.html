@@ -1678,24 +1678,41 @@
         }
 
         /* Bottom: 4 giant circles, overflow left/right + top clipped */
+        /* ============================================
+           KPI CIRCLES — "Quiet luxury" animation
+           Layered choreography:
+             1. Settle: emerge from below with scale + blur fade
+             2. Reveal: number + label fade up, counter eases up
+             3. Breathe: very slow scale pulse, organic
+             4. Magnetic: pointer-driven 3D tilt (--mx / --my)
+             5. Hover: warm radial + accent number + label scale
+             6. Replay: triggers on every section re-entry
+             7. Reduced motion: skip choreography
+           ============================================ */
+
         .statement__circles-wrap {
             overflow: visible;
-            height: clamp(260px, 21vw, 380px);
             display: flex;
-            align-items: flex-end;
-            margin: 0 calc(var(--side) * -1.8);
+            justify-content: center;
+            margin: 0 calc(var(--side) * -1);
+            perspective: 1400px;
         }
 
         .statement__circles {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0;
-            width: 106%;
-            margin-left: -3%;
+            gap: clamp(8px, 1vw, 18px);
+            width: 100%;
+            max-width: 1480px;
+            padding: 0 8px;
         }
 
         .statement__circle {
+            position: relative;
             aspect-ratio: 1;
+            max-width: 340px;
+            justify-self: center;
+            width: 100%;
             border-radius: 50%;
             background: #EDEBE6;
             display: flex;
@@ -1704,106 +1721,160 @@
             justify-content: center;
             text-align: center;
             padding: 20px;
-            /* Start hidden, JS will animate in */
-            transform: scale(0);
+            /* Start invisible — JS reveals on intersection */
             opacity: 0;
-            transition: background 0.4s ease, box-shadow 0.4s ease;
+            transform: scale(0.92) translateY(28px);
+            filter: blur(10px);
+            transform-origin: center 60%;
+            transition:
+                background 0.6s ease,
+                box-shadow 0.6s ease;
+            /* Magnetic tilt vars (set by JS pointer move) */
+            --mx: 0;
+            --my: 0;
+            will-change: transform, opacity, filter;
         }
 
-        /* Layer 1: Bubble emergence */
-        @keyframes bubbleIn {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(1.06); opacity: 1; }
-            70% { transform: scale(0.97); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .statement__circle--visible {
-            animation: bubbleIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        .statement__circle:nth-child(1).statement__circle--visible { animation-delay: 0s; }
-        .statement__circle:nth-child(2).statement__circle--visible { animation-delay: 0.12s; }
-        .statement__circle:nth-child(3).statement__circle--visible { animation-delay: 0.24s; }
-        .statement__circle:nth-child(4).statement__circle--visible { animation-delay: 0.36s; }
-
-        /* Layer 3: Ambient floating — must keep scale(1) */
-        @keyframes float1 { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1) translateY(-5px); } }
-        @keyframes float2 { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1) translateY(-6px); } }
-        @keyframes float3 { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1) translateY(-4px); } }
-        @keyframes float4 { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1) translateY(-5px); } }
-
-        .statement__circle--floating {
+        /* 1. Settle — soft emergence from below */
+        .statement__circle--settle {
             opacity: 1;
-            transform: scale(1);
+            transform: scale(1) translateY(0);
+            filter: blur(0);
+            transition:
+                opacity 1.1s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 1.1s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+                background 0.6s ease,
+                box-shadow 0.6s ease;
         }
 
-        .statement__circle--floating:nth-child(1) { animation: float1 4s ease-in-out infinite; }
-        .statement__circle--floating:nth-child(2) { animation: float2 4.5s ease-in-out infinite; }
-        .statement__circle--floating:nth-child(3) { animation: float3 5s ease-in-out infinite; }
-        .statement__circle--floating:nth-child(4) { animation: float4 4.2s ease-in-out infinite; }
-
-        /* Layer 4: Enriched hover — no transform conflict */
-        .statement__circle--floating:hover {
-            background: radial-gradient(circle at center, #E4DAD0 0%, #EDEBE6 75%);
-            box-shadow: 0 24px 56px rgba(28, 18, 13, 0.1), inset 0 0 40px rgba(201, 168, 130, 0.08);
+        /* 3. Breathe — very slow organic pulse, runs once settled */
+        @keyframes kpi-breathe-a {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50%      { transform: scale(1.008) translateY(-3px); }
+        }
+        @keyframes kpi-breathe-b {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50%      { transform: scale(1.006) translateY(-4px); }
+        }
+        @keyframes kpi-breathe-c {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50%      { transform: scale(1.01) translateY(-2px); }
+        }
+        @keyframes kpi-breathe-d {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50%      { transform: scale(1.007) translateY(-3px); }
         }
 
-        .statement__circle--floating:hover .statement__circle-num {
+        .statement__circle--breathe { will-change: transform; }
+        .statement__circle--breathe:nth-child(1) { animation: kpi-breathe-a 8.5s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+        .statement__circle--breathe:nth-child(2) { animation: kpi-breathe-b 9.2s cubic-bezier(0.45, 0, 0.55, 1) infinite 0.4s; }
+        .statement__circle--breathe:nth-child(3) { animation: kpi-breathe-c 7.8s cubic-bezier(0.45, 0, 0.55, 1) infinite 0.9s; }
+        .statement__circle--breathe:nth-child(4) { animation: kpi-breathe-d 9.6s cubic-bezier(0.45, 0, 0.55, 1) infinite 0.2s; }
+
+        /* 4. Magnetic tilt — pause breathe while hovering, apply pointer transform */
+        .statement__circle--breathe:hover {
+            animation-play-state: paused;
+            transform:
+                perspective(900px)
+                rotateX(calc(var(--my) * -4deg))
+                rotateY(calc(var(--mx) * 4deg))
+                scale(1.025)
+                translateZ(0);
+            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* 5. Hover enrichment — warm gradient + accent + label */
+        .statement__circle--settle:hover {
+            background: radial-gradient(circle at calc(50% + var(--mx) * 18%) calc(50% + var(--my) * 18%), #E4DAD0 0%, #EDEBE6 70%);
+            box-shadow:
+                0 32px 70px -20px rgba(28, 18, 13, 0.18),
+                inset 0 0 60px rgba(201, 168, 130, 0.1);
+        }
+
+        .statement__circle--settle:hover .statement__circle-num {
             color: var(--accent);
         }
 
-        .statement__circle--floating:hover .statement__circle-label {
+        .statement__circle--settle:hover .statement__circle-label {
             color: var(--text-2);
+            transform: translateY(0) scale(1.04);
         }
 
-        /* Fallback: if JS fails, show circles */
-        .no-js .statement__circle {
-            transform: scale(1);
+        /* No-JS / fallback */
+        .no-js .statement__circle,
+        .statement__circle--instant {
             opacity: 1;
+            transform: scale(1) translateY(0);
+            filter: blur(0);
+            animation: none;
         }
 
-        /* Inner content entrance */
+        /* Inner content — number + label */
         .statement__circle-num {
             font-family: var(--font-body);
-            font-size: clamp(48px, 6.5vw, 96px);
+            font-size: clamp(48px, 6.5vw, 88px);
             font-weight: 300;
             font-style: italic;
             color: var(--dark);
             line-height: 1;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             opacity: 0;
-            transform: translateY(10px);
-            transition: color 0.4s ease, opacity 0.5s ease, transform 0.5s ease;
+            transform: translateY(14px);
+            filter: blur(6px);
+            transition:
+                color 0.45s ease,
+                opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .statement__circle--content-visible .statement__circle-num {
+        .statement__circle--reveal .statement__circle-num {
             opacity: 1;
             transform: translateY(0);
+            filter: blur(0);
         }
 
         .statement__circle-num sup {
-            font-size: 0.3em;
+            font-size: 0.32em;
             font-weight: 400;
             font-style: normal;
             vertical-align: super;
-            opacity: 0.5;
+            opacity: 0.55;
+            margin-left: 0.05em;
+            letter-spacing: 0.02em;
         }
 
         .statement__circle-label {
             font-family: var(--font-sans);
             font-size: clamp(11px, 1.1vw, 14px);
             font-weight: 500;
+            letter-spacing: 0.01em;
             color: var(--text-3);
             line-height: 1.35;
             opacity: 0;
-            transform: translateY(6px);
-            transition: opacity 0.4s ease, transform 0.4s ease, color 0.4s ease;
+            transform: translateY(8px);
+            transition:
+                opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
+                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
+                color 0.4s ease;
         }
 
-        .statement__circle--content-visible .statement__circle-label {
+        .statement__circle--reveal .statement__circle-label {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .statement__circle,
+            .statement__circle-num,
+            .statement__circle-label {
+                opacity: 1 !important;
+                transform: none !important;
+                filter: none !important;
+                animation: none !important;
+                transition: color 0.2s ease, background 0.3s ease !important;
+            }
         }
 
         /* ============================================
@@ -6204,7 +6275,14 @@
         document.querySelector('.nav-dropdown__menu').addEventListener('click', (e) => e.stopPropagation());
 
         // ============================================
-        // KPI CIRCLES — 4-layer animation
+        // KPI CIRCLES — Quiet luxury choreography
+        //   1. Settle (scale + blur fade)  — CSS class --settle
+        //   2. Reveal number + label       — CSS class --reveal
+        //   3. Counter eases up            — JS (easeOutQuart)
+        //   4. Breathe (subtle pulse)      — CSS class --breathe
+        //   5. Magnetic pointer tilt       — JS pointermove → --mx/--my
+        //   Replays on every section re-entry.
+        //   Skipped entirely under prefers-reduced-motion.
         // ============================================
 
         function formatCH(num) {
@@ -6216,69 +6294,118 @@
             const prefix = el.dataset.prefix || '';
             const suffix = el.dataset.suffix || '';
             const isCH = el.dataset.format === 'ch';
-            const duration = target > 100 ? 2000 : 1200;
+            const duration = target > 100 ? 2200 : 1500;
             const start = performance.now();
+            // easeOutQuart — slower tail, more dramatic settle
+            const ease = (t) => 1 - Math.pow(1 - t, 4);
 
             function update(now) {
-                const elapsed = now - start;
-                const progress = Math.min(elapsed / duration, 1);
-                // Ease out cubic
-                const eased = 1 - Math.pow(1 - progress, 3);
-                const current = Math.round(eased * target);
-
+                const progress = Math.min((now - start) / duration, 1);
+                const current = Math.round(ease(progress) * target);
                 if (suffix) {
                     el.innerHTML = prefix + current + '<sup>' + suffix + '</sup>';
                 } else {
                     el.textContent = prefix + (isCH ? formatCH(current) : current);
                 }
-
-                if (progress < 1) {
-                    requestAnimationFrame(update);
-                }
+                if (progress < 1) requestAnimationFrame(update);
             }
             requestAnimationFrame(update);
         }
 
-        // Observe the circles wrapper
-        const kpiObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const wrapper = document.getElementById('kpiCircles');
-                    const circles = wrapper.querySelectorAll('.statement__circle');
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const kpiTimers = new WeakMap();
 
-                    circles.forEach((circle) => {
-                        const delay = parseInt(circle.dataset.delay) || 0;
+        function clearKpiTimers(circle) {
+            const ids = kpiTimers.get(circle);
+            if (ids) ids.forEach(clearTimeout);
+            kpiTimers.set(circle, []);
+        }
 
-                        // Layer 1: Bubble entrance
-                        setTimeout(() => {
-                            circle.classList.add('statement__circle--visible');
+        function resetKpiCircle(circle) {
+            clearKpiTimers(circle);
+            circle.classList.remove('statement__circle--settle', 'statement__circle--reveal', 'statement__circle--breathe');
+            const numEl = circle.querySelector('.statement__circle-num');
+            if (numEl && numEl.dataset.count) {
+                const prefix = numEl.dataset.prefix || '';
+                const suffix = numEl.dataset.suffix || '';
+                if (suffix) numEl.innerHTML = prefix + '0<sup>' + suffix + '</sup>';
+                else numEl.textContent = prefix + '0';
+            }
+        }
 
-                            // Layer 1b: Content fade in (after bubble settles)
-                            setTimeout(() => {
-                                circle.classList.add('statement__circle--content-visible');
-
-                                // Layer 2: Counter animation
-                                const numEl = circle.querySelector('.statement__circle-num');
-                                if (numEl && numEl.dataset.count) {
-                                    setTimeout(() => animateCounter(numEl), 150);
-                                }
-                            }, 400);
-
-                            // Layer 3: Start floating (after all entrances done)
-                            setTimeout(() => {
-                                circle.classList.add('statement__circle--floating');
-                            }, 1400);
-
-                        }, delay);
-                    });
-
-                    kpiObserver.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.05, rootMargin: '0px 0px 0px 0px' });
+        function playKpiCircle(circle, baseDelay) {
+            const ids = [];
+            // 1. Settle entrance
+            ids.push(setTimeout(() => {
+                circle.classList.add('statement__circle--settle');
+                // 2. Reveal number + label, slightly after the bubble starts settling
+                ids.push(setTimeout(() => {
+                    circle.classList.add('statement__circle--reveal');
+                    // 3. Counter
+                    const numEl = circle.querySelector('.statement__circle-num');
+                    if (numEl && numEl.dataset.count) {
+                        ids.push(setTimeout(() => animateCounter(numEl), 220));
+                    }
+                }, 320));
+                // 4. Breathe — wait until everything has settled
+                ids.push(setTimeout(() => {
+                    circle.classList.add('statement__circle--breathe');
+                }, 1700));
+            }, baseDelay));
+            kpiTimers.set(circle, ids);
+        }
 
         const kpiWrap = document.querySelector('.statement__circles-wrap');
-        if (kpiWrap) kpiObserver.observe(kpiWrap);
+        if (kpiWrap) {
+            const circles = Array.from(kpiWrap.querySelectorAll('.statement__circle'));
+
+            // Magnetic pointer tilt (skip on touch + reduced motion)
+            if (!reduceMotion && window.matchMedia('(hover: hover)').matches) {
+                circles.forEach(circle => {
+                    circle.addEventListener('pointermove', (e) => {
+                        const r = circle.getBoundingClientRect();
+                        const mx = ((e.clientX - r.left) / r.width  - 0.5) * 2; // -1..1
+                        const my = ((e.clientY - r.top)  / r.height - 0.5) * 2;
+                        circle.style.setProperty('--mx', mx.toFixed(3));
+                        circle.style.setProperty('--my', my.toFixed(3));
+                    });
+                    circle.addEventListener('pointerleave', () => {
+                        circle.style.setProperty('--mx', 0);
+                        circle.style.setProperty('--my', 0);
+                    });
+                });
+            }
+
+            if (reduceMotion) {
+                circles.forEach(c => c.classList.add('statement__circle--instant'));
+                circles.forEach(c => {
+                    const n = c.querySelector('.statement__circle-num');
+                    if (n && n.dataset.count) {
+                        const target = parseInt(n.dataset.count);
+                        const prefix = n.dataset.prefix || '';
+                        const suffix = n.dataset.suffix || '';
+                        if (suffix) n.innerHTML = prefix + target + '<sup>' + suffix + '</sup>';
+                        else n.textContent = prefix + (n.dataset.format === 'ch' ? formatCH(target) : target);
+                    }
+                });
+            } else {
+                // Replay each time the section re-enters the viewport
+                const kpiObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            circles.forEach((circle) => {
+                                const delay = parseInt(circle.dataset.delay) || 0;
+                                playKpiCircle(circle, delay);
+                            });
+                        } else {
+                            // Reset for replay on next entry
+                            circles.forEach(resetKpiCircle);
+                        }
+                    });
+                }, { threshold: 0.25 });
+                kpiObserver.observe(kpiWrap);
+            }
+        }
 
         // ============================================
         // PAGE TRANSITIONS — Circle Reveal
