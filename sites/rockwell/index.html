@@ -584,7 +584,12 @@
             font-family: var(--font-sans);
             font-size: 14px;
             font-weight: 600;
-            transition: all 0.3s ease;
+            /* Specific properties only — `transition: all 0.3s` here
+               also animated `visibility`, so when the parent menu
+               toggled to visibility: hidden on close, this CTA
+               lingered 300ms longer than the rest of the sheet
+               before disappearing. */
+            transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease;
         }
 
         .mobile-menu__cta:hover {
