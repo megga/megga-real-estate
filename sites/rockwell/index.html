@@ -5620,6 +5620,170 @@
                 background: linear-gradient(to bottom, rgba(28,18,13,0.85) 0%, rgba(28,18,13,0.6) 50%, rgba(28,18,13,0.3) 100%);
             }
             .sell__content { padding: clamp(40px, 6vw, 80px) var(--side); }
+
+            /* ============================================
+               SEARCH OVERLAY — mobile-first redesign.
+               The desktop layout stacked 13 filter pills over
+               6 rows, decorative dark-mode toggle, oversized
+               italic title, and dry text suggestions. On a
+               375px screen that read as a wall of options
+               with no hierarchy.
+
+               The mobile version below:
+               - compact header (X close stays accessible in
+                 safe-area, dark-mode toggle becomes a small
+                 icon top-left)
+               - smaller serif title kept for brand feel
+               - search input full-width and prominent
+               - mode toggle Liste/Carte as a clear segmented
+                 control
+               - filter chips collapse into a single horizontal
+                 scroll rail (instead of a 6-row stack)
+               - popular searches in a 2-col grid card layout
+                 with imagery (instead of dry pills)
+               ============================================ */
+
+            .search-overlay__close {
+                top: calc(env(safe-area-inset-top) + 12px);
+                right: 14px;
+                width: 40px;
+                height: 40px;
+            }
+            .search-overlay__close svg { width: 16px; height: 16px; }
+
+            .search-overlay__toggle {
+                top: calc(env(safe-area-inset-top) + 16px) !important;
+                left: 14px !important;
+                padding: 7px 12px !important;
+                font-size: 11px !important;
+                border-radius: 999px;
+            }
+            .search-overlay__toggle-label { display: none; }
+            .search-overlay__toggle-icon svg { width: 14px; height: 14px; }
+
+            .search-overlay__body {
+                padding: calc(env(safe-area-inset-top) + 70px) 0 32px;
+                align-items: stretch;
+            }
+
+            .search-overlay__title {
+                font-size: 26px;
+                margin-bottom: 22px;
+                padding: 0 var(--side);
+                letter-spacing: -0.01em;
+                text-align: left;
+            }
+
+            .search-overlay__input-wrap {
+                margin-bottom: 18px;
+                padding: 0 var(--side);
+                max-width: 100%;
+            }
+
+            /* Mode toggle — keep visible, snug horizontal layout */
+            .search-overlay__mode-toggle {
+                margin: 0 var(--side) 18px;
+            }
+
+            /* Filter chips — single horizontal scroll rail.
+               display: contents on the groups makes their
+               children flow as direct children of .filters,
+               so all chips end up on one scrollable line. */
+            .search-overlay__filters {
+                flex-direction: row;
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 8px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                touch-action: pan-x;
+                overscroll-behavior-x: contain;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+                padding: 4px var(--side) 12px;
+                margin-bottom: 24px;
+                max-width: 100%;
+                /* Right-side fade so users see there's more
+                   beyond the first few chips. */
+                -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+                mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+            }
+            .search-overlay__filters::-webkit-scrollbar { display: none; }
+            .search-overlay__filter-group {
+                display: contents;
+            }
+            .search-overlay__filter {
+                flex: 0 0 auto;
+                white-space: nowrap;
+                font-size: 13px;
+                padding: 9px 14px;
+                min-height: 36px;
+            }
+            .search-overlay__filter-count {
+                opacity: 0.5;
+                margin-left: 2px;
+            }
+
+            /* Section title — left-aligned, comfortable padding */
+            .search-overlay__section-title {
+                padding: 0 var(--side);
+                margin-bottom: 14px;
+                text-align: left;
+            }
+
+            /* Popular searches — 2-col grid of visual cards
+               (gradient bg with city/type label) instead of
+               dry text pills. Images attached via data-bg
+               attributes inline below for the 5 defaults. */
+            .search-overlay__suggestions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                padding: 0 var(--side) 32px;
+                max-width: 100%;
+                margin-bottom: 0;
+            }
+            .search-overlay__suggestion {
+                position: relative;
+                aspect-ratio: 1.5 / 1;
+                border-radius: 14px;
+                padding: 14px;
+                display: flex;
+                align-items: flex-end;
+                color: white;
+                font-family: var(--font-body);
+                font-style: italic;
+                font-size: 16px;
+                font-weight: 400;
+                line-height: 1.2;
+                background-size: cover;
+                background-position: center;
+                background-color: var(--dark);
+                background-blend-mode: multiply;
+                overflow: hidden;
+                border: none;
+            }
+            .search-overlay__suggestion::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(to top, rgba(28,18,13,0.7), rgba(28,18,13,0.05));
+                pointer-events: none;
+            }
+            .search-overlay__suggestion > * {
+                position: relative;
+                z-index: 1;
+            }
+            .search-overlay__suggestion:hover {
+                color: white;
+                background-color: var(--dark);
+            }
+            /* First card (Villas Montreux) full-width hero */
+            .search-overlay__suggestion:first-child {
+                grid-column: 1 / -1;
+                aspect-ratio: 2.6 / 1;
+                font-size: 18px;
+            }
         }
 
         @media (max-width: 580px) {
@@ -7823,11 +7987,11 @@
 
             <div class="search-overlay__section-title" id="searchSectionTitle">Recherches populaires</div>
             <div class="search-overlay__suggestions" id="searchSuggestions">
-                <a class="search-overlay__suggestion" onclick="searchFor('Villa Montreux')">Villas à Montreux</a>
-                <a class="search-overlay__suggestion" onclick="searchFor('Appartement')">Appartements</a>
-                <a class="search-overlay__suggestion" onclick="searchFor('Lausanne')">Biens à Lausanne</a>
-                <a class="search-overlay__suggestion" onclick="searchFor('Maison')">Maisons de maître</a>
-                <a class="search-overlay__suggestion" onclick="searchFor('Vaud')">Arc Lémanique</a>
+                <a class="search-overlay__suggestion" onclick="searchFor('Villa Montreux')" style="background-image: url('https://res.cloudinary.com/dq9cuacrn/image/upload/c_fill,w_640,h_240,q_auto,f_auto/v1773225379/Generated_Image_March_10_2026_-_10_17PM_bixcft.jpg');">Villas à Montreux</a>
+                <a class="search-overlay__suggestion" onclick="searchFor('Appartement')" style="background-image: url('https://res.cloudinary.com/dq9cuacrn/image/upload/c_fill,w_360,h_240,q_auto,f_auto/v1773221909/Generated_Image_March_10_2026_-_10_01PM_z1cbbk.jpg');">Appartements</a>
+                <a class="search-overlay__suggestion" onclick="searchFor('Lausanne')" style="background-image: url('https://res.cloudinary.com/dq9cuacrn/image/upload/c_fill,w_360,h_240,q_auto,f_auto/v1773232433/Rockwell02_rlr3cp.jpg');">Biens à Lausanne</a>
+                <a class="search-overlay__suggestion" onclick="searchFor('Maison')" style="background-image: url('https://res.cloudinary.com/dq9cuacrn/image/upload/c_fill,w_360,h_240,q_auto,f_auto/v1773223533/Collonges_byRockwell__DdcXndbVNZ7M-85ujW7Kw_z5o5ow.webp');">Maisons de maître</a>
+                <a class="search-overlay__suggestion" onclick="searchFor('Vaud')" style="background-image: url('https://res.cloudinary.com/dq9cuacrn/image/upload/c_fill,w_360,h_240,q_auto,f_auto/v1773224653/photo-2025-05-02-12-01-53_86__2025-05-06-100815_snvedm.webp');">Arc Lémanique</a>
             </div>
 
             <div class="search-overlay__results-bar" id="searchResultsBar" style="display:none;">
