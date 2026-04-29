@@ -16,7 +16,10 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <meta name="theme-color" content="#1C120D">
+    <!-- Theme-color starts light to blend with the hero sky on iOS Safari;
+         JS swaps to #1C120D once the user scrolls past the hero so the
+         status-bar tint matches the dark page background below. -->
+    <meta name="theme-color" content="#FAFAFA" id="themeColor">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -5603,7 +5606,7 @@
                         data-src-desktop="https://res.cloudinary.com/dq9cuacrn/video/upload/q_auto,f_auto/v1/desktop-hero_ecbuqr.mp4">
             </video>
 
-            <h1 class="hero__headline">L'immobilier d'exception sur l'Arc Lémanique.</h1>
+            <h1 class="hero__headline">L'immobilier d'exception sur l'Arc&nbsp;Lémanique.</h1>
 
             <!-- Search card — compact single-line glass -->
             <div class="search-card" style="cursor: pointer;" onclick="openSearchOverlay()">
@@ -8090,6 +8093,31 @@
             document.addEventListener('touchstart', retryOnce, { passive: true, once: true });
             document.addEventListener('click', retryOnce, { once: true });
             document.addEventListener('scroll', retryOnce, { passive: true, once: true });
+        })();
+
+        // ============================================
+        // Theme-color — light over the hero, dark below it.
+        // Without this, Safari iOS tinted the status bar AND the home
+        // indicator bar with #1C120D, putting a brown band above and
+        // below the hero photo. Switching to a sky-blending light makes
+        // the hero feel edge-to-edge.
+        // ============================================
+        (function setupThemeColorSwap() {
+            const meta = document.getElementById('themeColor');
+            const hero = document.querySelector('.hero');
+            if (!meta || !hero) return;
+            const LIGHT = '#FAFAFA';
+            const DARK  = '#1C120D';
+            let last = LIGHT;
+            const set = (color) => {
+                if (color === last) return;
+                meta.content = color;
+                last = color;
+            };
+            const obs = new IntersectionObserver((entries) => {
+                entries.forEach(e => set(e.isIntersecting ? LIGHT : DARK));
+            }, { threshold: 0.1, rootMargin: '-1px 0px 0px 0px' });
+            obs.observe(hero);
         })();
 
         // ============================================
