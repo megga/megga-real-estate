@@ -515,16 +515,18 @@
             background: var(--dark);
         }
 
-        /* Mobile menu overlay — solid #FAFAFA, locked to 100lvh so
-           iOS Safari URL-bar collapse/expand cannot resize the sheet
-           mid-open. Always laid out (display: flex) and toggled via
-           opacity + visibility so the opacity transition actually
-           runs (display:none → flex would reset it). */
+        /* Mobile menu overlay — solid #FAFAFA, sized to 100dvh so the
+           sheet always fits the actually visible viewport (URL bar
+           shown or hidden). We previously used 100lvh which left the
+           bottom content clipped behind the iOS URL bar. Always laid
+           out (display: flex) and toggled via opacity + visibility so
+           the opacity transition runs (display:none → flex resets it). */
         .mobile-menu {
             display: flex;
             position: fixed;
             inset: 0;
-            height: 100lvh;
+            height: 100vh; /* fallback */
+            height: 100dvh;
             background: #FAFAFA;
             z-index: 99;
             padding:
@@ -5455,7 +5457,8 @@
             .modal {
                 width: 100%;
                 max-width: 100%;
-                height: 100lvh;
+                height: 100vh; /* fallback */
+                height: 100dvh;
                 max-height: none;
                 border-radius: 0;
                 box-shadow: none;
