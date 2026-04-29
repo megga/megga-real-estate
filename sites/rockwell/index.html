@@ -6820,7 +6820,18 @@
             document.body.style.left = '';
             document.body.style.right = '';
             document.body.style.width = '';
-            window.scrollTo(0, y);
+            // The page has html { scroll-behavior: smooth }, so a plain
+            // scrollTo(0, y) animates the restore — the user sees the
+            // page travel from the top back down to where they were.
+            // Force an instant snap so the close feels seamless.
+            const prevBehavior = document.documentElement.style.scrollBehavior;
+            document.documentElement.style.scrollBehavior = 'auto';
+            window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+            // Restore the smooth-scroll behaviour after the snap so
+            // anchor links keep animating normally.
+            requestAnimationFrame(() => {
+                document.documentElement.style.scrollBehavior = prevBehavior;
+            });
         }
 
         function toggleMobileMenu() {
