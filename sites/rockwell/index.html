@@ -947,7 +947,10 @@
             border-radius: var(--radius-lg);
             overflow: hidden;
             min-height: 420px;
-            border: 1px solid var(--border);
+            /* Drop the outer border — against the dark map and pale
+               intro it read as a hairline white seam at the row edges
+               (especially noticeable on phones where the row stacks). */
+            border: none;
         }
 
         /* --- Left: text panel --- */
@@ -1250,7 +1253,15 @@
             }
 
             .map-section__card {
+                /* On mobile we stack: intro above, map below.
+                   The base CSS sets flex: 1, which combined with
+                   the column container's min-height: auto flex
+                   layout collapses the map to 0 height on mobile.
+                   Override flex-basis explicitly so the 280px
+                   height actually takes effect. */
+                flex: 0 0 280px;
                 height: 280px;
+                width: 100%;
             }
 
             .map-section__card::after {
@@ -5141,7 +5152,9 @@
             max-height: 700px;
             border-radius: var(--radius-xl);
             overflow: hidden;
-            border: 1px solid rgba(28,18,13,0.08);
+            /* No border — the previous 1px rgba(28,18,13,0.08)
+               read as a thin white seam against the dark map. */
+            border: none;
             display: none;
             position: relative;
             box-shadow: 0 4px 24px rgba(0,0,0,0.06);
@@ -6387,16 +6400,16 @@
         <div class="map-section__row">
             <div class="map-section__intro">
                 <div class="map-section__label reveal">Carte interactive</div>
-                <h2 class="map-section__title reveal reveal--d1">Dessinez votre<br>recherche</h2>
-                <p class="map-section__subtitle reveal reveal--d2">Tracez une zone sur la carte et découvrez instantanément les biens disponibles dans le périmètre de votre choix.</p>
+                <h2 class="map-section__title reveal reveal--d1">Explorez<br>par lieu</h2>
+                <p class="map-section__subtitle reveal reveal--d2">Visualisez les biens disponibles sur la carte et naviguez par ville pour cibler le secteur qui vous intéresse.</p>
                 <div class="map-section__benefits reveal reveal--d2">
                     <div class="map-section__benefit">
                         <span class="map-section__benefit-icon"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
-                        Recherche par zone géographique précise
+                        Lausanne, Riviera, Genève en un clic
                     </div>
                     <div class="map-section__benefit">
                         <span class="map-section__benefit-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
-                        Résultats filtrés en temps réel
+                        Filtres et résultats en temps réel
                     </div>
                     <div class="map-section__benefit">
                         <span class="map-section__benefit-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
@@ -6404,8 +6417,8 @@
                     </div>
                 </div>
                 <button class="map-section__cta reveal reveal--d3" onclick="openSearchMapMode()">
-                    <svg viewBox="0 0 24 24"><path d="M12 2l9 7-3.5 11h-11L3 9z"/></svg>
-                    Dessiner une zone
+                    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Ouvrir la carte
                 </button>
             </div>
             <div class="map-section__card">
