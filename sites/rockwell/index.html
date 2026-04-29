@@ -5154,6 +5154,74 @@
             height: 100%;
             z-index: 1;
         }
+        /* Fullscreen toggle — bottom-right of the map container.
+           On mobile the map breaks out and covers the entire viewport
+           including under the iOS clock + battery zone (viewport-fit:
+           cover is set on the page-level meta). */
+        .search-overlay__map-fs-btn {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            z-index: 1000;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid rgba(28,18,13,0.08);
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.25s ease, transform 0.25s ease;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        }
+        .search-overlay__map-fs-btn:hover {
+            background: white;
+            transform: scale(1.05);
+        }
+        .search-overlay__map-fs-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--dark);
+            stroke-width: 2;
+            fill: none;
+        }
+        .search-overlay__map-fs-btn .map-fs-exit { display: none; }
+        .search-overlay__map-container--fullscreen .search-overlay__map-fs-btn .map-fs-enter { display: none; }
+        .search-overlay__map-container--fullscreen .search-overlay__map-fs-btn .map-fs-exit { display: block; }
+
+        /* Fullscreen state — break out of the search overlay layout
+           and cover the entire viewport including iOS safe-area zones
+           (status bar, home indicator). The exit button stays clear of
+           those zones via env(safe-area-inset-*) padding. */
+        .search-overlay__map-container--fullscreen {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            max-width: none !important;
+            max-height: none !important;
+            min-height: 0 !important;
+            border-radius: 0 !important;
+            border: none !important;
+            margin: 0 !important;
+            z-index: 9999999 !important;
+        }
+        .search-overlay__map-container--fullscreen .search-overlay__map-fs-btn {
+            bottom: calc(16px + env(safe-area-inset-bottom));
+            right: calc(16px + env(safe-area-inset-right));
+        }
+        .search-overlay__map-container--fullscreen .search-overlay__draw-toolbar {
+            top: calc(16px + env(safe-area-inset-top));
+            right: calc(16px + env(safe-area-inset-right));
+        }
+        .search-overlay__map-container--fullscreen .search-overlay__map-hint {
+            bottom: calc(72px + env(safe-area-inset-bottom));
+        }
+
         .search-overlay__map-hint {
             position: absolute;
             bottom: 20px;
@@ -5756,6 +5824,17 @@
             }
             .search-overlay__recent .search-overlay__section-title {
                 padding: 0;
+            }
+
+            /* When the map enters fullscreen on mobile, extend it
+               under the iOS status bar + home indicator. The
+               fullscreen toggle button is offset by safe-area
+               insets so it stays clear of iOS chrome. */
+            .search-overlay__map-container--fullscreen .search-overlay__map-fs-btn {
+                bottom: calc(20px + env(safe-area-inset-bottom));
+                right: calc(20px + env(safe-area-inset-right));
+                width: 44px;
+                height: 44px;
             }
 
             /* Popular searches — 2-col grid of visual cards
@@ -7981,19 +8060,10 @@
 
             <div class="search-overlay__map-container" id="searchMapContainer">
                 <div id="searchMap"></div>
-                <div class="search-overlay__draw-toolbar" id="drawToolbar">
-                    <button class="search-overlay__draw-btn" id="drawRectBtn" onclick="startDraw('rectangle')" title="Dessiner un rectangle">
-                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                    </button>
-                    <button class="search-overlay__draw-btn" id="drawCircleBtn" onclick="startDraw('circle')" title="Dessiner un cercle">
-                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
-                    </button>
-                    <button class="search-overlay__draw-btn" id="drawPolyBtn" onclick="startDraw('polygon')" title="Dessiner une forme libre">
-                        <svg viewBox="0 0 24 24"><path d="M12 2l9 7-3.5 11h-11L3 9z"/></svg>
-                    </button>
-                    <button class="search-overlay__draw-clear" id="drawClearBtn" onclick="clearDrawing()">Effacer</button>
-                </div>
-                <div class="search-overlay__map-hint" id="mapHint">Dessinez une zone sur la carte pour rechercher</div>
+                <button class="search-overlay__map-fs-btn" id="mapFsBtn" onclick="toggleSearchMapFullscreen()" aria-label="Plein écran">
+                    <svg class="map-fs-enter" viewBox="0 0 24 24"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>
+                    <svg class="map-fs-exit" viewBox="0 0 24 24"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6"/></svg>
+                </button>
             </div>
 
             <div class="search-overlay__map-results" id="searchMapResults">
@@ -8228,6 +8298,23 @@
             }
         }
 
+        // Toggle the search overlay map between its inline size
+        // and a true fullscreen state (covers the whole viewport
+        // including iOS safe-area zones via viewport-fit: cover).
+        // Calls invalidateSize() so Leaflet re-measures after the
+        // resize and tiles render at the new dimensions.
+        function toggleSearchMapFullscreen() {
+            const container = document.getElementById('searchMapContainer');
+            if (!container) return;
+            container.classList.toggle('search-overlay__map-container--fullscreen');
+            // Let the layout settle before telling Leaflet to recalc.
+            setTimeout(() => {
+                if (typeof searchMap !== 'undefined' && searchMap) {
+                    searchMap.invalidateSize();
+                }
+            }, 50);
+        }
+
         function startDraw(shape) {
             if (!searchMap) return;
 
@@ -8240,8 +8327,10 @@
             // Reset active states on buttons
             document.querySelectorAll('.search-overlay__draw-btn').forEach(b => b.classList.remove('search-overlay__draw-btn--active'));
 
-            // Hide hint
-            document.getElementById('mapHint').classList.add('search-overlay__map-hint--hidden');
+            // Hide hint (drawing UI was removed but keep this safe
+            // in case startDraw is invoked programmatically)
+            const mapHint = document.getElementById('mapHint');
+            if (mapHint) mapHint.classList.add('search-overlay__map-hint--hidden');
 
             const options = {
                 shapeOptions: {
@@ -8382,8 +8471,10 @@
                 currentDrawHandler = null;
             }
             document.querySelectorAll('.search-overlay__draw-btn').forEach(b => b.classList.remove('search-overlay__draw-btn--active'));
-            document.getElementById('drawClearBtn').classList.remove('search-overlay__draw-clear--visible');
-            document.getElementById('mapHint').classList.remove('search-overlay__map-hint--hidden');
+            const clearBtn = document.getElementById('drawClearBtn');
+            if (clearBtn) clearBtn.classList.remove('search-overlay__draw-clear--visible');
+            const mapHint = document.getElementById('mapHint');
+            if (mapHint) mapHint.classList.remove('search-overlay__map-hint--hidden');
 
             // Reset marker opacity
             searchMapMarkers.forEach(marker => {
