@@ -5681,14 +5681,19 @@
                 align-items: center;
                 gap: 10px;
                 overflow-x: auto;
-                overflow-y: hidden;
+                overflow-y: visible;
                 touch-action: pan-x;
                 overscroll-behavior-x: contain;
                 scrollbar-width: none;
                 -ms-overflow-style: none;
+                /* explicit height matches the chip pill (38px) plus
+                   padding on top + bottom — without this the parent
+                   collapses to the padding height and overflow-y
+                   then clips the chips horizontally, leaving a
+                   visible white cut through each pill. */
+                min-height: 60px;
                 /* extra padding-right so the trailing chip has
-                   breathing room before the scroll edge instead
-                   of being clipped halfway through its border */
+                   breathing room before the scroll edge */
                 padding: 6px var(--side) 14px;
                 padding-right: calc(var(--side) + 32px);
                 margin-bottom: 24px;
@@ -5698,15 +5703,19 @@
                 position: relative;
             }
             .search-overlay__filters::-webkit-scrollbar { display: none; }
-            /* Soft fade overlay on the right edge — pure visual
-               hint, never touches chip borders since it sits
-               above as a position-absolute child of body, not
-               masked into the row. */
-            .search-overlay__body::before {
-                content: none;
-            }
+            /* Filter groups: keep them as inline-flex units so they
+               contribute to the row's height. Earlier we used
+               display: contents to flatten chips into the row, but
+               that broke height calculation — the row collapsed to
+               20px (just its padding) and overflow-y: hidden then
+               clipped the chips horizontally, leaving a visible
+               white cut across the middle of each pill. */
             .search-overlay__filter-group {
-                display: contents;
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                flex: 0 0 auto;
+                margin: 0;
             }
             .search-overlay__filter {
                 flex: 0 0 auto;
