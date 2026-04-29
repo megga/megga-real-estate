@@ -101,10 +101,17 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        html { background: #FAFAFA; }
+
         body {
             font-family: var(--font-sans);
             color: var(--text);
-            background: var(--dark);
+            /* White body bg so iOS Safari, which samples html/body for
+               its status-bar tint when theme-color is ignored, paints
+               the clock + battery zone light instead of brown. The
+               in-flow page-wrap already has its own #FAFAFA bg, so
+               this only affects the safe-area + overscroll zones. */
+            background: #FAFAFA;
             overflow-x: hidden;
         }
 
@@ -636,14 +643,12 @@
         .hero {
             position: relative;
             width: 100%;
-            /* Leave the iOS safe-area-inset-top exposed so the white
-               page-wrap background shows behind the status bar (clock +
-               battery). iOS samples that area to tint the status bar
-               icons, so a white band there gives a clean light status
-               bar over the dark hero video. */
-            margin-top: env(safe-area-inset-top);
+            /* 100lvh = LARGEST viewport height. Unlike 100vh which
+               shrinks to exclude system chrome on iOS, 100lvh always
+               fills the full screen including the safe-area zone, so
+               the video meets the status bar with no visible seam. */
             height: 100vh; /* fallback for old browsers */
-            height: calc(100lvh - env(safe-area-inset-top));
+            height: 100lvh;
             min-height: 700px;
             overflow: hidden;
         }
@@ -8175,31 +8180,11 @@
         })();
 
         // ============================================
-        // Theme-color — light over the hero, dark below it.
-        // iOS Safari needs both light + dark variants declared, otherwise
-        // dark-mode iPhones ignore a single light theme-color and keep
-        // the status bar dark. We update both at once so the swap works
-        // regardless of the user's system color scheme.
-        // ============================================
-        (function setupThemeColorSwap() {
-            const lightMeta = document.getElementById('themeColorLight');
-            const darkMeta  = document.getElementById('themeColorDark');
-            const hero = document.querySelector('.hero');
-            if (!lightMeta || !darkMeta || !hero) return;
-            const LIGHT = '#FAFAFA';
-            const DARK  = '#1C120D';
-            let last = LIGHT;
-            const set = (color) => {
-                if (color === last) return;
-                lightMeta.content = color;
-                darkMeta.content = color;
-                last = color;
-            };
-            const obs = new IntersectionObserver((entries) => {
-                entries.forEach(e => set(e.isIntersecting ? LIGHT : DARK));
-            }, { threshold: 0.1, rootMargin: '-1px 0px 0px 0px' });
-            obs.observe(hero);
-        })();
+        // Theme-color — pinned to #FAFAFA at all times. Earlier we
+        // swapped to #1C120D below the hero for a dark status bar over
+        // dark sections, but the user wants the iOS clock + battery
+        // zone to stay light everywhere on this page, so we never
+        // change it after load.
 
         // ============================================
         // Back-to-top button — appears after 1 viewport scrolled
