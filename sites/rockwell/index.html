@@ -178,6 +178,20 @@
         .nav--menu-open .nav__logo { color: var(--dark) !important; }
         .nav--menu-open .nav__logo svg path { fill: var(--dark) !important; }
 
+        /* If the user scrolled before opening the menu, .nav--scrolled
+           adds rgba(255,255,255,0.65) + blur, which over the #FAFAFA
+           sheet reads as a brighter band where the logo + X live.
+           Strip that nav background while the menu is open so the
+           whole sheet is one uniform #FAFAFA. */
+        .nav--menu-open,
+        .nav--menu-open.nav--scrolled {
+            background: transparent !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            box-shadow: none !important;
+            border-bottom-color: transparent !important;
+        }
+
         /* iOS Safari's floating bottom URL bar samples the page colour
            near the viewport bottom rather than just reading theme-color,
            so the dark body bg leaks through as a brown tint. While the
