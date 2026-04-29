@@ -530,6 +530,44 @@
             background: #B5613F;
         }
 
+        /* Mobile menu language + currency chips */
+        .mobile-menu__prefs {
+            margin-top: 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mobile-menu__prefs-group {
+            display: flex;
+            gap: 6px;
+            background: rgba(28, 18, 13, 0.04);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-pill);
+            padding: 4px;
+        }
+
+        .mobile-menu__chip {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: var(--text-3);
+            background: transparent;
+            border: none;
+            padding: 8px 14px;
+            min-height: 36px;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .mobile-menu__chip--active {
+            background: var(--dark);
+            color: #fff;
+        }
+
         @media (max-width: 768px) {
             .nav__hamburger { display: flex; }
             .nav__contact-btn { display: none; }
@@ -1320,6 +1358,46 @@
 
         .prop-card:hover .prop-card__img::after {
             opacity: 1;
+        }
+
+        /* Photos count badge — gallery indicator on prop cards */
+        .prop-card__photos {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 11px;
+            background: rgba(28, 18, 13, 0.65);
+            backdrop-filter: blur(10px) saturate(1.2);
+            -webkit-backdrop-filter: blur(10px) saturate(1.2);
+            color: rgba(255, 255, 255, 0.95);
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 100px;
+            z-index: 3;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+        }
+
+        .prop-card .prop-card__photos {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .prop-card__photos svg {
+            width: 12px;
+            height: 12px;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         .prop-card__discover {
@@ -5290,10 +5368,36 @@
                 display: inline-flex;
                 align-items: center;
             }
+
+            /* --- Modal anchored near top on mobile (635px modal in 812px
+                   viewport felt cramped when centered) --- */
+            .modal-overlay {
+                align-items: flex-start;
+                padding: clamp(32px, 7vh, 64px) 0 24px;
+            }
+            .modal {
+                padding: 36px 24px;
+                max-height: calc(100vh - clamp(64px, 12vh, 96px));
+            }
+
+            /* Register: stack first/last name vertically on narrow screens
+                   so "Christophe" / "Marie-Claude" don't get truncated. */
+            .modal__row {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
             .footer__grid { grid-template-columns: 1fr 1fr; gap: 32px; }
             .footer__bottom { flex-direction: column; gap: 16px; text-align: center; }
             .footer__trust { flex-wrap: wrap; gap: 16px; }
-            .footer-invite__form { flex-direction: column; }
+            .footer-invite__form {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 18px;
+            }
+            .footer-invite__btn {
+                width: 100%;
+                padding: 14px 28px;
+            }
 
             /* Sell section mobile — stronger gradient */
             .sell { min-height: 60vh; }
@@ -5448,6 +5552,20 @@
         <a href="a-propos.html" class="mobile-menu__link">À Propos</a>
         <div class="mobile-menu__divider"></div>
         <a href="#" class="mobile-menu__cta" onclick="event.preventDefault(); closeMobileMenu(); document.getElementById('loginModal').classList.add('modal-overlay--active'); document.body.style.overflow='hidden';">Connexion</a>
+
+        <!-- Language + currency switcher -->
+        <div class="mobile-menu__prefs">
+            <div class="mobile-menu__prefs-group" role="radiogroup" aria-label="Langue">
+                <button type="button" class="mobile-menu__chip mobile-menu__chip--active" data-type="lang" data-val="FR" onclick="selectMobilePref(this)">FR</button>
+                <button type="button" class="mobile-menu__chip" data-type="lang" data-val="EN" onclick="selectMobilePref(this)">EN</button>
+                <button type="button" class="mobile-menu__chip" data-type="lang" data-val="DE" onclick="selectMobilePref(this)">DE</button>
+            </div>
+            <div class="mobile-menu__prefs-group" role="radiogroup" aria-label="Devise">
+                <button type="button" class="mobile-menu__chip mobile-menu__chip--active" data-type="currency" data-val="CHF" onclick="selectMobilePref(this)">CHF</button>
+                <button type="button" class="mobile-menu__chip" data-type="currency" data-val="EUR" onclick="selectMobilePref(this)">EUR</button>
+                <button type="button" class="mobile-menu__chip" data-type="currency" data-val="USD" onclick="selectMobilePref(this)">USD</button>
+            </div>
+        </div>
     </div>
 
     <!-- ============================================
@@ -6496,6 +6614,20 @@
             
             // Update label
             document.getElementById('navDropdownLabel').textContent = currentLang + ' · ' + currentCurrency;
+        }
+
+        // Mobile menu language + currency chips
+        function selectMobilePref(el) {
+            const type = el.dataset.type;
+            const val = el.dataset.val;
+            const group = el.parentElement;
+            group.querySelectorAll('.mobile-menu__chip').forEach(c => c.classList.remove('mobile-menu__chip--active'));
+            el.classList.add('mobile-menu__chip--active');
+            if (type === 'lang') currentLang = val;
+            if (type === 'currency') currentCurrency = val;
+            // Keep desktop dropdown label in sync
+            const lbl = document.getElementById('navDropdownLabel');
+            if (lbl) lbl.textContent = currentLang + ' · ' + currentCurrency;
         }
 
         // Close nav dropdown on click outside
@@ -7890,6 +8022,21 @@
             }, { rootMargin: '200px' });
             mapObserver.observe(mapSectionEl);
         }
+
+        // ============================================
+        // Property cards — inject a "X photos" gallery indicator
+        // ============================================
+        (function setupPhotoBadges() {
+            const counts = [12, 18, 9, 24, 14, 11, 16, 8, 22, 10, 15, 13];
+            document.querySelectorAll('.prop-card__img').forEach((img, i) => {
+                if (img.querySelector('.prop-card__photos')) return;
+                const badge = document.createElement('span');
+                badge.className = 'prop-card__photos';
+                badge.setAttribute('aria-label', counts[i % counts.length] + ' photos');
+                badge.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' + counts[i % counts.length];
+                img.appendChild(badge);
+            });
+        })();
 
         // ============================================
         // Hero video — desktop-only source, mobile uses the poster image
