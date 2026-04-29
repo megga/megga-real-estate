@@ -16,13 +16,18 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <!-- Theme-color: iOS Safari needs BOTH a light and a dark variant
-         declared explicitly, otherwise dark-mode iPhones ignore a single
-         light theme-color and tint the status bar dark. JS swaps both
-         once the user scrolls past the hero so the bar matches the dark
-         page background below. -->
-    <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)" id="themeColorLight">
-    <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: dark)" id="themeColorDark">
+    <!-- Theme-color: pure #FFFFFF to compensate for iOS Safari's
+         system tint over the status bar zone. iOS dims the rendered
+         tint by ~10% so #FFFFFF lands close to the #FAFAFA page bg.
+         No prefers-color-scheme variants — iOS in dark mode would
+         otherwise ignore the light value. -->
+    <meta name="theme-color" content="#FFFFFF" id="themeColorLight">
+    <meta name="theme-color" content="#FFFFFF" id="themeColorDark">
+    <!-- Apple PWA hints: even outside standalone mode, iOS Safari
+         honours these on some recent versions and renders the status
+         bar more faithfully. -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -518,9 +523,10 @@
         /* Mobile menu overlay — solid #FAFAFA, sized to 100dvh so the
            sheet always fits the actually visible viewport (URL bar
            shown or hidden). We previously used 100lvh which left the
-           bottom content clipped behind the iOS URL bar. Always laid
-           out (display: flex) and toggled via opacity + visibility so
-           the opacity transition runs (display:none → flex resets it). */
+           bottom content clipped behind the iOS URL bar. Snap toggle
+           via visibility — any opacity fade made iOS sample the page
+           content beneath during the transition and tint the status
+           bar to whatever colour the user had scrolled to. */
         .mobile-menu {
             display: flex;
             position: fixed;
@@ -538,17 +544,13 @@
             justify-content: center;
             align-items: center;
             gap: 8px;
-            opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.2s ease, visibility 0s linear 0.2s;
         }
 
         .mobile-menu--active {
-            opacity: 1;
             visibility: visible;
             pointer-events: auto;
-            transition: opacity 0.2s ease, visibility 0s linear 0s;
         }
 
         .mobile-menu__link {
@@ -5453,15 +5455,12 @@
                 background: #FAFAFA;
                 backdrop-filter: none;
                 -webkit-backdrop-filter: none;
-                /* Snap fade — the default `transition: all 0.3s` left
-                   the overlay partially transparent during open, so
-                   any non-white content scrolled underneath bled
-                   through and read as a different white once the
-                   modal landed. Same trick we used on the menu. */
-                transition: opacity 0.2s ease, visibility 0s linear 0.2s;
-            }
-            .modal-overlay--active {
-                transition: opacity 0.2s ease, visibility 0s linear 0s;
+                /* Snap toggle — any opacity fade lets iOS sample the
+                   scrolled page content beneath during the transition
+                   and tint the status bar to that colour, leaving a
+                   visible mismatch even after the sheet lands. */
+                opacity: 1;
+                transition: none;
             }
             .modal {
                 width: 100%;
@@ -5479,14 +5478,14 @@
                 flex-direction: column;
                 justify-content: center;
                 overflow-y: auto;
-                /* Drop the scale + slide so the modal doesn't briefly
-                   reveal the overlay edges (or a gap behind it) during
-                   the open animation — we just fade with the overlay. */
+                /* No scale, no fade — just appears with the overlay. */
                 transform: none;
-                transition: opacity 0.2s ease;
+                opacity: 1;
+                transition: none;
             }
             .modal-overlay--active .modal {
                 transform: none;
+                opacity: 1;
             }
             .modal__close {
                 top: calc(env(safe-area-inset-top) + 4px);
