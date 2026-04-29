@@ -170,6 +170,14 @@
 
         .nav--scrolled .nav__logo { color: var(--dark); }
 
+        /* When mobile menu is open, the nav sits over a white sheet —
+           flip the logo to dark so it stays visible. We force both the
+           color (which drives currentColor on the SVG paths) and the
+           fill explicitly so any preview/render quirks can't keep the
+           logo white against the white sheet. */
+        .nav--menu-open .nav__logo { color: var(--dark) !important; }
+        .nav--menu-open .nav__logo svg path { fill: var(--dark) !important; }
+
         .nav__center {
             display: flex;
             align-items: center;
@@ -6595,18 +6603,43 @@
         let currentLang = 'FR';
         let currentCurrency = 'CHF';
 
+        // Force the iOS status-bar tint to light while the menu is open
+        // (and restore the previous tint on close) so the white menu
+        // sheet visually extends under the clock + network indicators.
+        const MENU_LIGHT_TINT = '#FAFAFA';
+        let menuPrevThemeColor = null;
+        function setMenuThemeColor(open) {
+            const lightMeta = document.getElementById('themeColorLight');
+            const darkMeta  = document.getElementById('themeColorDark');
+            if (!lightMeta || !darkMeta) return;
+            if (open) {
+                menuPrevThemeColor = lightMeta.content;
+                lightMeta.content = MENU_LIGHT_TINT;
+                darkMeta.content  = MENU_LIGHT_TINT;
+            } else if (menuPrevThemeColor != null) {
+                lightMeta.content = menuPrevThemeColor;
+                darkMeta.content  = menuPrevThemeColor;
+                menuPrevThemeColor = null;
+            }
+        }
+
         function toggleMobileMenu() {
             const menu = document.getElementById('mobileMenu');
             const btn = document.getElementById('hamburgerBtn');
+            const nav = document.getElementById('nav');
             const isActive = menu.classList.contains('mobile-menu--active');
             if (isActive) {
                 menu.style.opacity = '0';
                 menu.style.transform = 'translateY(-10px)';
                 btn.classList.remove('nav__hamburger--active');
+                if (nav) nav.classList.remove('nav--menu-open');
+                setMenuThemeColor(false);
                 setTimeout(() => { menu.classList.remove('mobile-menu--active'); document.body.style.overflow = ''; }, 400);
             } else {
                 menu.classList.add('mobile-menu--active');
                 btn.classList.add('nav__hamburger--active');
+                if (nav) nav.classList.add('nav--menu-open');
+                setMenuThemeColor(true);
                 document.body.style.overflow = 'hidden';
                 requestAnimationFrame(() => { menu.style.opacity = '1'; menu.style.transform = 'translateY(0)'; });
             }
@@ -6615,9 +6648,12 @@
         function closeMobileMenu() {
             const menu = document.getElementById('mobileMenu');
             const btn = document.getElementById('hamburgerBtn');
+            const nav = document.getElementById('nav');
             menu.style.opacity = '0';
             menu.style.transform = 'translateY(-10px)';
             btn.classList.remove('nav__hamburger--active');
+            if (nav) nav.classList.remove('nav--menu-open');
+            setMenuThemeColor(false);
             setTimeout(() => { menu.classList.remove('mobile-menu--active'); document.body.style.overflow = ''; }, 400);
         }
 
