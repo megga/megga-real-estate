@@ -16,10 +16,13 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <!-- Theme-color starts light to blend with the hero sky on iOS Safari;
-         JS swaps to #1C120D once the user scrolls past the hero so the
-         status-bar tint matches the dark page background below. -->
-    <meta name="theme-color" content="#FAFAFA" id="themeColor">
+    <!-- Theme-color: iOS Safari needs BOTH a light and a dark variant
+         declared explicitly, otherwise dark-mode iPhones ignore a single
+         light theme-color and tint the status bar dark. JS swaps both
+         once the user scrolls past the hero so the bar matches the dark
+         page background below. -->
+    <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)" id="themeColorLight">
+    <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: dark)" id="themeColorDark">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -8097,21 +8100,23 @@
 
         // ============================================
         // Theme-color — light over the hero, dark below it.
-        // Without this, Safari iOS tinted the status bar AND the home
-        // indicator bar with #1C120D, putting a brown band above and
-        // below the hero photo. Switching to a sky-blending light makes
-        // the hero feel edge-to-edge.
+        // iOS Safari needs both light + dark variants declared, otherwise
+        // dark-mode iPhones ignore a single light theme-color and keep
+        // the status bar dark. We update both at once so the swap works
+        // regardless of the user's system color scheme.
         // ============================================
         (function setupThemeColorSwap() {
-            const meta = document.getElementById('themeColor');
+            const lightMeta = document.getElementById('themeColorLight');
+            const darkMeta  = document.getElementById('themeColorDark');
             const hero = document.querySelector('.hero');
-            if (!meta || !hero) return;
+            if (!lightMeta || !darkMeta || !hero) return;
             const LIGHT = '#FAFAFA';
             const DARK  = '#1C120D';
             let last = LIGHT;
             const set = (color) => {
                 if (color === last) return;
-                meta.content = color;
+                lightMeta.content = color;
+                darkMeta.content = color;
                 last = color;
             };
             const obs = new IntersectionObserver((entries) => {
