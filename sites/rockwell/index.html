@@ -5858,6 +5858,42 @@
                 height: 44px;
             }
 
+            /* ---- Carte mode (Option B) ----
+               When the user toggles to Carte, the map should be the
+               primary surface. We collapse the title, keep the
+               search input + mode toggle + filter chips as a sticky
+               minimal header, and let the map fill the remaining
+               vertical space — Airbnb / SeLoger style. */
+            .search-overlay--map-mode .search-overlay__title { display: none; }
+            .search-overlay--map-mode .search-overlay__body {
+                padding-top: calc(env(safe-area-inset-top) + 60px);
+                padding-bottom: 0;
+                gap: 0;
+            }
+            .search-overlay--map-mode .search-overlay__map-container {
+                flex: 1 1 auto;
+                width: 100%;
+                max-width: none;
+                height: auto;
+                min-height: 0;
+                max-height: none;
+                margin: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            /* Pull filters tighter to the input to free vertical
+               room for the map */
+            .search-overlay--map-mode .search-overlay__filters {
+                margin-bottom: 0;
+                padding-bottom: 10px;
+            }
+            .search-overlay--map-mode .search-overlay__mode-toggle {
+                margin-bottom: 12px;
+            }
+            .search-overlay--map-mode .search-overlay__input-wrap {
+                margin-bottom: 12px;
+            }
+
             /* Popular searches — 2-col grid of visual cards
                (gradient bg with city/type label) instead of
                dry text pills. Images attached via data-bg
@@ -8299,12 +8335,17 @@
             const mapResults = document.getElementById('searchMapResults');
 
             // Toggle button state immediately so the click feels responsive.
+            const overlay = document.getElementById('searchOverlay');
             if (mode === 'map') {
                 listBtn.classList.remove('search-overlay__mode-btn--active');
                 mapBtn.classList.add('search-overlay__mode-btn--active');
+                // Map-mode layout: title hides, map fills the viewport
+                // below a sticky search + filter header.
+                overlay.classList.add('search-overlay--map-mode');
             } else {
                 mapBtn.classList.remove('search-overlay__mode-btn--active');
                 listBtn.classList.add('search-overlay__mode-btn--active');
+                overlay.classList.remove('search-overlay--map-mode');
             }
 
             const listElements = [
