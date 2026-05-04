@@ -48,6 +48,7 @@ const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page
 const ParcoursSugarV2Page = lazy(() => import('@/pages/agent/ParcoursSugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
 const DocumentsSugarV2Page = lazy(() => import('@/pages/agent/DocumentsSugarV2Page'))
+const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
@@ -283,6 +284,7 @@ export default function App() {
                 <Route path="parcours" element={<ParcoursSugarV2Page />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
                 <Route path="documents" element={<DocumentsSugarV2Page />} />
+                <Route path="settings" element={<SettingsSugarV2Page />} />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
@@ -315,7 +317,7 @@ export default function App() {
                 <Route path="documents/view" element={<DocumentViewer />} />
                 <Route path="support" element={<SupportPage />} />
                 <Route path="support/:id" element={<SupportTicketDetailPage />} />
-                <Route path="settings" element={<SettingsPage />} />
+                <Route path="settings-legacy" element={<SettingsPage />} />
 
                 {/* Super-Admin routes */}
                 <Route path="admin" element={<SuperAdminGuard><AdminDashboardPage /></SuperAdminGuard>} />
