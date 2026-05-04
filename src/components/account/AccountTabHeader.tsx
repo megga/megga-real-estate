@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 
 interface Props {
   title: string
@@ -8,15 +9,17 @@ interface Props {
 }
 
 export default function AccountTabHeader({ title, subtitle, action }: Props) {
+  const isMobile = useIsMobile()
   return (
     <div
       style={{
         display: 'flex',
-        alignItems: 'flex-end',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'flex-start' : 'flex-end',
         justifyContent: 'space-between',
-        gap: 24,
-        marginBottom: 32,
-        paddingBottom: 24,
+        gap: isMobile ? 16 : 24,
+        marginBottom: isMobile ? 20 : 32,
+        paddingBottom: isMobile ? 16 : 24,
         borderBottom: `1px solid ${T.border}`,
       }}
     >
@@ -25,10 +28,10 @@ export default function AccountTabHeader({ title, subtitle, action }: Props) {
           style={{
             margin: '0 0 6px',
             fontFamily: T.fontStack,
-            fontSize: 40,
+            fontSize: isMobile ? 28 : 40,
             fontWeight: 700,
             color: T.ink,
-            letterSpacing: -1.2,
+            letterSpacing: isMobile ? -0.6 : -1.2,
             lineHeight: 1.05,
           }}
         >
@@ -45,7 +48,18 @@ export default function AccountTabHeader({ title, subtitle, action }: Props) {
           {subtitle}
         </div>
       </div>
-      {action && <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>{action}</div>}
+      {action && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            flexShrink: 0,
+            width: isMobile ? '100%' : 'auto',
+          }}
+        >
+          {action}
+        </div>
+      )}
     </div>
   )
 }

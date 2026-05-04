@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import { supabase } from '@/lib/supabase'
 import { pickPhoto } from '@/lib/listingPhotos'
 import EmptyState from '../EmptyState'
@@ -178,6 +179,7 @@ export default function FavoritesSection() {
   const { favoriteIds, toggleFavorite } = useFavorites()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   const { data: listings = [] } = useQuery({
     queryKey: ['account-favorites', favoriteIds.join(',')],
@@ -209,7 +211,13 @@ export default function FavoritesSection() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+        gap: 16,
+      }}
+    >
       {listings.map((l) => (
         <FavoriteCard
           key={l.id}

@@ -7,6 +7,7 @@ import AccountLayout from '@/components/account/AccountLayout'
 import AccountTabHeader from '@/components/account/AccountTabHeader'
 import LogoutModal from '@/components/account/LogoutModal'
 import MandateSigningModal from '@/components/account/MandateSigningModal'
+import ListingStatsDrawer from '@/components/account/ListingStatsDrawer'
 import ListingsSection from '@/components/account/sections/ListingsSection'
 import SearchesSection from '@/components/account/sections/SearchesSection'
 import FavoritesSection from '@/components/account/sections/FavoritesSection'
@@ -58,6 +59,7 @@ export default function ComptePage() {
   const [section, setSection] = useState<SectionKey>(readHashSection)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [signingDossier, setSigningDossier] = useState<VendorDossier | null>(null)
+  const [statsDossier, setStatsDossier] = useState<VendorDossier | null>(null)
 
   const { favoriteIds } = useFavorites()
   const { searches } = useSavedSearches()
@@ -217,7 +219,12 @@ export default function ComptePage() {
           subtitle={meta[section].subtitle}
           action={action}
         />
-        {section === 'listings' && <ListingsSection onSign={(d) => setSigningDossier(d)} />}
+        {section === 'listings' && (
+          <ListingsSection
+            onSign={(d) => setSigningDossier(d)}
+            onOpenStats={(d) => setStatsDossier(d)}
+          />
+        )}
         {section === 'searches' && <SearchesSection />}
         {section === 'favorites' && <FavoritesSection />}
         {section === 'messages' && <MessagesSection />}
@@ -234,6 +241,11 @@ export default function ComptePage() {
             setSigningDossier(null)
           }
         }}
+      />
+      <ListingStatsDrawer
+        open={!!statsDossier}
+        dossier={statsDossier}
+        onClose={() => setStatsDossier(null)}
       />
     </>
   )

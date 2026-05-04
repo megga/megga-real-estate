@@ -24,9 +24,12 @@ function Pipeline({ status }: PipelineProps) {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${PIPELINE_STEPS.length}, 1fr)`,
+        gridTemplateColumns: `repeat(${PIPELINE_STEPS.length}, minmax(80px, 1fr))`,
         gap: 0,
         position: 'relative',
+        overflowX: 'auto',
+        scrollbarWidth: 'thin',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
       {PIPELINE_STEPS.map((step, i) => {
@@ -575,9 +578,10 @@ interface CardProps {
   onAdvance: (id: string, status: PipelineStatus) => void
   onRemove: (id: string) => void
   onSign: (dossier: VendorDossier) => void
+  onOpenStats?: (dossier: VendorDossier) => void
 }
 
-function DossierCard({ dossier: d, onAdvance, onRemove, onSign }: CardProps) {
+function DossierCard({ dossier: d, onAdvance, onRemove, onSign, onOpenStats }: CardProps) {
   const dateStr = new Date(d.createdAt).toLocaleDateString('fr-CH', {
     day: '2-digit',
     month: 'short',
@@ -801,7 +805,49 @@ function DossierCard({ dossier: d, onAdvance, onRemove, onSign }: CardProps) {
       </div>
 
       {d.estimation && <EstimationPanel dossier={d} onSign={() => onSign(d)} />}
-      {d.publication && <PublicationPanel dossier={d} />}
+      {d.publication && (
+        <>
+          <PublicationPanel dossier={d} />
+          {onOpenStats && (
+            <div
+              style={{
+                padding: '0 22px 16px',
+                background: T.section,
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => onOpenStats(d)}
+                style={{
+                  height: 36,
+                  padding: '0 14px',
+                  borderRadius: 999,
+                  border: `1px solid ${T.border}`,
+                  background: '#fff',
+                  color: T.ink,
+                  fontFamily: T.fontStack,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 11 11" fill="none" aria-hidden>
+                  <rect x="1" y="6" width="2" height="4" fill="currentColor" rx="0.5" />
+                  <rect x="4.5" y="3" width="2" height="7" fill="currentColor" rx="0.5" />
+                  <rect x="8" y="1" width="2" height="9" fill="currentColor" rx="0.5" />
+                </svg>
+                Voir les statistiques détaillées
+              </button>
+            </div>
+          )}
+        </>
+      )}
 
       <details
         style={{
@@ -855,9 +901,10 @@ function DossierCard({ dossier: d, onAdvance, onRemove, onSign }: CardProps) {
 
 interface Props {
   onSign?: (dossier: VendorDossier) => void
+  onOpenStats?: (dossier: VendorDossier) => void
 }
 
-export default function ListingsSection({ onSign }: Props) {
+export default function ListingsSection({ onSign, onOpenStats }: Props) {
   const { dossiers, advance, remove, submit } = useVendorDossiers()
 
   if (dossiers.length === 0) {
@@ -930,6 +977,7 @@ export default function ListingsSection({ onSign }: Props) {
           onAdvance={advance}
           onRemove={remove}
           onSign={(dossier) => onSign?.(dossier)}
+          onOpenStats={onOpenStats}
         />
       ))}
     </div>

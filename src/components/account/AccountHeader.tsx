@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useAuth } from '@/hooks/useAuth'
 import { useAvatar } from '@/hooks/useAvatar'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import {
   UserIcon,
   HomeIcon,
@@ -44,6 +45,7 @@ const MENU_ITEMS: MenuItem[] = [
 export default function AccountHeader({ onLogout }: Props) {
   const { user, profile } = useAuth()
   const { avatarUrl } = useAvatar()
+  const isMobile = useIsMobile()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -77,7 +79,7 @@ export default function AccountHeader({ onLogout }: Props) {
         top: 0,
         zIndex: 50,
         height: 64,
-        padding: '0 32px',
+        padding: isMobile ? '0 16px' : '0 32px',
         background: 'rgba(251, 252, 250, 0.92)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
@@ -96,7 +98,13 @@ export default function AccountHeader({ onLogout }: Props) {
         />
       </Link>
 
-      <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <nav
+        style={{
+          display: isMobile ? 'none' : 'flex',
+          alignItems: 'center',
+          gap: 4,
+        }}
+      >
         {NAV_LINKS.map(([href, label], i) => (
           <Link
             key={`${href}-${i}`}
@@ -133,7 +141,7 @@ export default function AccountHeader({ onLogout }: Props) {
             aria-expanded={menuOpen}
             style={{
               height: 38,
-              padding: '0 6px 0 14px',
+              padding: isMobile ? '0 4px 0 4px' : '0 6px 0 14px',
               borderRadius: 999,
               border: `1px solid ${menuOpen ? T.ink : T.border}`,
               background: '#fff',
@@ -155,17 +163,19 @@ export default function AccountHeader({ onLogout }: Props) {
               if (!menuOpen) e.currentTarget.style.borderColor = T.border
             }}
           >
-            <span style={{ color: T.ink }}>{firstName}</span>
-            <span
-              style={{
-                color: T.soft,
-                display: 'inline-flex',
-                transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.18s ease',
-              }}
-            >
-              <ChevronDownIcon size={12} />
-            </span>
+            {!isMobile && <span style={{ color: T.ink }}>{firstName}</span>}
+            {!isMobile && (
+              <span
+                style={{
+                  color: T.soft,
+                  display: 'inline-flex',
+                  transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.18s ease',
+                }}
+              >
+                <ChevronDownIcon size={12} />
+              </span>
+            )}
             <div
               style={{
                 width: 30,

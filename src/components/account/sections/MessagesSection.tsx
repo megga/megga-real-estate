@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useAuth } from '@/hooks/useAuth'
 import { useMessaging } from '@/hooks/useMessaging'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import EmptyState from '../EmptyState'
-import { MessageIcon, AttachIcon, SendIcon } from '../icons'
+import { MessageIcon, AttachIcon, SendIcon, ChevronRightIcon } from '../icons'
 
 function formatTime(iso: string): string {
   const d = new Date(iso)
@@ -28,6 +29,7 @@ function formatBubbleTime(iso: string): string {
 
 export default function MessagesSection() {
   const { user, profile } = useAuth()
+  const isMobile = useIsMobile()
   const [selectedId, setSelectedId] = useState<string | null>(() => {
     try {
       return sessionStorage.getItem('megga_open_msg')
@@ -35,18 +37,19 @@ export default function MessagesSection() {
       return null
     }
   })
+  const [showThread, setShowThread] = useState(false)
   const [draft, setDraft] = useState('')
   const threadEndRef = useRef<HTMLDivElement>(null)
 
   const { threads, messages, sendMessage, markAsRead, isSending } = useMessaging(selectedId)
   const selected = threads.find((t) => t.id === selectedId) ?? threads[0] ?? null
 
-  // Auto-select first thread when none chosen
+  // Auto-select first thread when none chosen (desktop only — mobile starts on list)
   useEffect(() => {
-    if (!selectedId && threads.length > 0) {
+    if (!selectedId && threads.length > 0 && !isMobile) {
       setSelectedId(threads[0].id)
     }
-  }, [threads, selectedId])
+  }, [threads, selectedId, isMobile])
 
   // Mark as read on selection
   useEffect(() => {
@@ -74,7 +77,15 @@ export default function MessagesSection() {
     )
   }
 
-  if (!selected) return null
+  // On mobile, show only list OR only thread (toggle via showThread + selected)
+  const mobileShowList = isMobile && !showThread
+  const mobileShowThread = isMobile && showThread && selected
+
+  if (isMobile && !selected && threads.length > 0) {
+    // Selected was reset; ensure list is visible
+    if (showThread) setShowThread(false)
+  }
+  if (!selected && !isMobile) return null
 
   const send = async () => {
     const text = draft.trim()
@@ -94,17 +105,17 @@ export default function MessagesSection() {
         background: '#fff',
         overflow: 'hidden',
         display: 'grid',
-        gridTemplateColumns: 'minmax(280px, 360px) 1fr',
-        height: 'calc(100vh - 220px)',
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(280px, 360px) 1fr',
+        height: isMobile ? 'calc(100vh - 240px)' : 'calc(100vh - 220px)',
         minHeight: 520,
       }}
     >
       {/* List column */}
       <div
         style={{
-          borderRight: `1px solid ${T.border}`,
+          borderRight: isMobile ? 'none' : `1px solid ${T.border}`,
           background: T.page,
-          display: 'flex',
+          display: mobileShowList || !isMobile ? 'flex' : 'none',
           flexDirection: 'column',
           minHeight: 0,
         }}
@@ -146,7 +157,10 @@ export default function MessagesSection() {
             return (
               <button
                 key={t.id}
-                onClick={() => setSelectedId(t.id)}
+                onClick={() => {
+                  setSelectedId(t.id)
+                  if (isMobile) setShowThread(true)
+                }}
                 style={{
                   display: 'flex',
                   gap: 12,
@@ -267,7 +281,14 @@ export default function MessagesSection() {
       </div>
 
       {/* Thread column */}
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: '#fff' }}>
+      <div
+        style={{
+          display: mobileShowThread || !isMobile ? 'flex' : 'none',
+          flexDirection: 'column',
+          minHeight: 0,
+          background: '#fff',
+        }}
+      >
         <div
           style={{
             padding: '14px 22px',
@@ -277,25 +298,52 @@ export default function MessagesSection() {
             gap: 14,
           }}
         >
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 999,
-              flexShrink: 0,
-              background: T.ink,
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: T.fontStack,
-              fontSize: 13,
-              fontWeight: 700,
-              letterSpacing: 0.4,
-            }}
-          >
-            {selected.avatar_initials}
-          </div>
+          {isMobile && (
+            <button
+              type="button"
+              onClick={() => setShowThread(false)}
+              aria-label="Retour aux conversations"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 999,
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: T.ink,
+                marginLeft: -8,
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ transform: 'rotate(180deg)', display: 'inline-flex' }}>
+                <ChevronRightIcon size={18} />
+              </span>
+            </button>
+          )}
+          {selected && (
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 999,
+                flexShrink: 0,
+                background: T.ink,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: T.fontStack,
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: 0.4,
+              }}
+            >
+              {selected.avatar_initials}
+            </div>
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
@@ -306,13 +354,13 @@ export default function MessagesSection() {
                 letterSpacing: -0.1,
               }}
             >
-              {selected.contact_name}
+              {selected?.contact_name}
             </div>
             <div style={{ fontFamily: T.fontStack, fontSize: 12, color: T.muted }}>
-              {selected.contact_type === 'buyer' ? 'Acheteur' : 'Vendeur'}
+              {selected?.contact_type === 'buyer' ? 'Acheteur' : 'Vendeur'}
             </div>
           </div>
-          {selected.property_title && (
+          {selected?.property_title && (
             <div
               style={{
                 padding: '8px 12px',
@@ -339,7 +387,7 @@ export default function MessagesSection() {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {selected.property_title}
+                {selected?.property_title}
               </div>
             </div>
           )}
@@ -441,7 +489,7 @@ export default function MessagesSection() {
                 void send()
               }
             }}
-            placeholder={`Répondre à ${selected.contact_name}...`}
+            placeholder={`Répondre à ${selected?.contact_name ?? ''}...`}
             rows={1}
             style={{
               flex: 1,

@@ -6,6 +6,7 @@ import { useSavedSearches } from '@/hooks/useSavedSearches'
 import { useVendorDossiers } from '@/hooks/useVendorDossiers'
 import { useUserActivity } from '@/hooks/useUserActivity'
 import { useProfileMeta } from '@/hooks/useProfileMeta'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import ProfileHero from '../profile/ProfileHero'
 import ProfileSideNav, { type SideNavSection } from '../profile/ProfileSideNav'
 import SectionShell from '../profile/SectionShell'
@@ -106,6 +107,7 @@ export default function ProfileSection({ onLogout }: Props) {
   const { searches } = useSavedSearches()
   const { dossiers } = useVendorDossiers()
   const { events } = useUserActivity()
+  const isMobile = useIsMobile()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsPage, setSettingsPage] = useState<'info' | 'preferences' | 'notifications' | 'security' | 'privacy'>('info')
@@ -150,8 +152,8 @@ export default function ProfileSection({ onLogout }: Props) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 200px',
-          gap: 40,
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) 200px',
+          gap: isMobile ? 16 : 40,
           alignItems: 'flex-start',
         }}
       >
@@ -401,7 +403,7 @@ export default function ProfileSection({ onLogout }: Props) {
           </SectionShell>
         </div>
 
-        <ProfileSideNav sections={navItems} />
+        {!isMobile && <ProfileSideNav sections={navItems} />}
       </div>
 
       <ProfileSettingsDrawer
