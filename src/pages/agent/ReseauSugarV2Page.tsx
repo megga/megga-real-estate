@@ -21,10 +21,10 @@ import {
   BlackBtn, GhostBtn, KycIcon, Pill, SP,
 } from '@/components/crm-sugar/kyc/atoms'
 import {
-  BIEN_SHARE_RULES, RESEAU_FILTERS, RESEAU_PARTNERS, RESEAU_TABS,
+  BIEN_SHARE_RULES, RECEIVED_LISTINGS, RESEAU_FILTERS, RESEAU_PARTNERS, RESEAU_TABS,
   RELATION_LABELS, SHARE_LEVEL_LABELS, SHARE_LEVEL_TONE, partnerById,
   type AgencyPartner, type AgencyRelationStatus, type AgencyShareLevel,
-  type BienShareRule, type ReseauTabId,
+  type BienShareRule, type ReceivedListing, type ReseauTabId,
 } from '@/components/crm-sugar/reseau/data'
 
 const DARK_TONE: DarkTone = 'meggaAi'
@@ -66,6 +66,8 @@ export default function ReseauSugarV2Page() {
   const [search, setSearch] = useState('')
   const [sortantsFilterAgency, setSortantsFilterAgency] = useState<string>('all')
   const [sortantsSearch, setSortantsSearch] = useState('')
+  const [entrantsFilterAgency, setEntrantsFilterAgency] = useState<string>('all')
+  const [entrantsSearch, setEntrantsSearch] = useState('')
 
   const filtered = useMemo(() => {
     return RESEAU_PARTNERS.filter(a => {
@@ -282,9 +284,11 @@ export default function ReseauSugarV2Page() {
             />
           )}
           {activeTab === 'entrants' && (
-            <ComingSoonView
-              tab="Biens reçus"
-              desc="Vue des biens partagés par d'autres agences avec mon CRM, filtrable par agence et niveau d'autorisation."
+            <EntrantsView
+              filterAgency={entrantsFilterAgency}
+              setFilterAgency={setEntrantsFilterAgency}
+              search={entrantsSearch}
+              setSearch={setEntrantsSearch}
             />
           )}
           {activeTab === 'demandes' && (
@@ -683,7 +687,507 @@ function SortantsView({ filterAgency, setFilterAgency, search, setSearch }: Sort
   )
 }
 
-// ─── Vue 3-4-5 : stub Coming soon ────────────────────────────────────────
+// ─── Vue 3 : Biens reçus (entrants — listings partagés par d'autres agences) ─
+
+interface EntrantsViewProps {
+  filterAgency: string
+  setFilterAgency: (id: string) => void
+  search: string
+  setSearch: (s: string) => void
+}
+
+function EntrantsView({
+  filterAgency, setFilterAgency, search, setSearch,
+}: EntrantsViewProps) {
+  const filtered = useMemo(() => {
+    return RECEIVED_LISTINGS.filter(l => {
+      if (filterAgency !== 'all' && l.sourceAgencyId !== filterAgency) return false
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        const corpus = `${l.title} ${l.zone} ${l.city ?? ''} ${l.address ?? ''} ${l.sourceRef}`.toLowerCase()
+        if (!corpus.includes(q)) return false
+      }
+      return true
+    })
+  }, [filterAgency, search])
+
+  const kpis = useMemo(() => {
+    const total = RECEIVED_LISTINGS.length
+    const full = RECEIVED_LISTINGS.filter(l => l.level === 'full').length
+    const partial = RECEIVED_LISTINGS.filter(l => l.level === 'partial').length
+    const sources = new Set(RECEIVED_LISTINGS.filter(l => l.level !== 'pending').map(l => l.sourceAgencyId)).size
+    return [
+      { k: 'Biens reçus', v: String(total), sub: 'tous niveaux', tone: 'neutral' as const },
+      { k: 'Niveau Complet', v: String(full), sub: 'avec adresse + photos', tone: 'ok' as const },
+      { k: 'Niveau Partiel', v: String(partial), sub: 'photos floutées', tone: 'warn' as const },
+      { k: 'Agences sources', v: String(sources), sub: 'me partagent', tone: 'neutral' as const },
+    ]
+  }, [])
+
+  // Liste des agences qui apparaissent dans les biens reçus (pour le filter)
+  const sourceAgencies = useMemo(
+    () => Array.from(new Set(RECEIVED_LISTINGS.map(l => l.sourceAgencyId)))
+      .map(id => partnerById(id))
+      .filter((a): a is AgencyPartner => !!a),
+    [],
+  )
+
+  return (
+    <>
+      {/* KPIs */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 14,
+        }}
+      >
+        {kpis.map((k, i) => (
+          <div
+            key={i}
+            style={{
+              background: SP.surface,
+              borderRadius: 18,
+              padding: '16px 18px',
+              boxShadow: SP.shadowSm,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 800,
+                letterSpacing: '.09em',
+                textTransform: 'uppercase',
+                color: SP.muted,
+              }}
+            >
+              {k.k}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <div
+                style={{
+                  fontSize: 30,
+                  fontWeight: 700,
+                  letterSpacing: -0.8,
+                }}
+              >
+                {k.v}
+              </div>
+              <Pill tone={k.tone}>{k.sub}</Pill>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter par agence source + recherche */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          flexWrap: 'wrap',
+        }}
+      >
+        <button
+          onClick={() => setFilterAgency('all')}
+          style={{
+            padding: '7px 14px',
+            borderRadius: 999,
+            border: 0,
+            background: filterAgency === 'all' ? SP.ink : SP.surface,
+            color: filterAgency === 'all' ? '#fff' : SP.inkSoft,
+            fontSize: 12,
+            fontWeight: 700,
+            fontFamily: 'inherit',
+            boxShadow: filterAgency === 'all' ? 'none' : SP.shadowSm,
+            cursor: 'pointer',
+          }}
+        >
+          Toutes sources
+        </button>
+        {sourceAgencies.map(a => (
+          <button
+            key={a.id}
+            onClick={() => setFilterAgency(a.id)}
+            style={{
+              padding: '7px 14px',
+              borderRadius: 999,
+              border: 0,
+              background: filterAgency === a.id ? SP.ink : SP.surface,
+              color: filterAgency === a.id ? '#fff' : SP.inkSoft,
+              fontSize: 12,
+              fontWeight: 700,
+              fontFamily: 'inherit',
+              boxShadow: filterAgency === a.id ? 'none' : SP.shadowSm,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 2,
+                background: a.logoBg,
+                flexShrink: 0,
+              }}
+            />
+            {a.short}
+          </button>
+        ))}
+        <div style={{ flex: 1 }} />
+        <div
+          style={{
+            height: 36,
+            padding: '0 14px',
+            borderRadius: 999,
+            background: SP.surface,
+            boxShadow: SP.shadowSm,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: 280,
+          }}
+        >
+          <KycIcon name="scan" size={14} stroke={SP.muted} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher dans les biens reçus…"
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 0,
+              outline: 'none',
+              fontSize: 12.5,
+              color: SP.ink,
+              fontFamily: 'inherit',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Reçu bien grid */}
+      {filtered.length === 0 ? (
+        <div
+          style={{
+            background: SP.surface,
+            borderRadius: 18,
+            padding: '60px 24px',
+            textAlign: 'center',
+            color: SP.muted,
+            fontSize: 13,
+          }}
+        >
+          Aucun bien reçu ne correspond à ces critères.
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+            gap: 14,
+          }}
+        >
+          {filtered.map(l => (
+            <ReceivedListingCard key={l.id} listing={l} />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Carte d'un bien reçu — masquée selon le niveau de partage ───────────
+
+function ReceivedListingCard({ listing }: { listing: ReceivedListing }) {
+  const [hover, setHover] = useState(false)
+  const partner = partnerById(listing.sourceAgencyId)
+  if (!partner) return null
+
+  const formatPrice = (n: number, txn: 'vente' | 'location') => {
+    if (n === 0) return '—'
+    const formatted = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")
+    return txn === 'location' ? `CHF ${formatted}/mois` : `CHF ${formatted}`
+  }
+
+  const isPending = listing.level === 'pending'
+  const tone = SHARE_LEVEL_TONE[listing.level]
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: SP.surface,
+        borderRadius: 22,
+        padding: 0,
+        boxShadow: hover ? SP.shadow : SP.shadowSm,
+        transition: 'all .18s',
+        transform: hover && !isPending ? 'translateY(-1px)' : 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: isPending ? 'default' : 'pointer',
+        overflow: 'hidden',
+        opacity: isPending ? 0.7 : 1,
+      }}
+    >
+      {/* Photo placeholder — comportement par niveau */}
+      <PhotoPlaceholder listing={listing} />
+
+      <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Source agency + level pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: 4,
+              background: partner.logoBg,
+              color: partner.logoColor,
+              display: 'grid',
+              placeItems: 'center',
+              fontSize: 7,
+              fontWeight: 800,
+              letterSpacing: partner.logoLetterSpacing,
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              flexShrink: 0,
+            }}
+          >
+            {partner.short.slice(0, 4)}
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: SP.muted }}>
+            Partagé par {partner.name}
+          </span>
+          <div style={{ flex: 1 }} />
+          <Pill tone={tone} dot>
+            {SHARE_LEVEL_LABELS[listing.level]}
+          </Pill>
+        </div>
+
+        {/* Title */}
+        <div
+          style={{
+            fontSize: 14.5,
+            fontWeight: 700,
+            letterSpacing: -0.2,
+            color: SP.ink,
+            lineHeight: 1.3,
+          }}
+        >
+          {listing.title}
+        </div>
+
+        {/* Localisation — masquée selon le niveau */}
+        {!isPending && (
+          <div style={{ fontSize: 11.5, color: SP.muted, lineHeight: 1.5 }}>
+            {listing.level === 'full' && listing.address && (
+              <>
+                <KycIcon name="globe" size={11} stroke={SP.muted} sw={1.8} />
+                <span style={{ marginLeft: 6 }}>{listing.address}</span>
+              </>
+            )}
+            {listing.level === 'partial' && listing.city && (
+              <>{listing.zone} · {listing.city} <span style={{ color: SP.warn }}>(adresse masquée)</span></>
+            )}
+            {listing.level === 'preview' && (
+              <>{listing.zone} <span style={{ color: SP.muted }}>(zone large uniquement)</span></>
+            )}
+          </div>
+        )}
+
+        {/* Détails ligne — type + pièces + surface + prix */}
+        {!isPending && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              fontSize: 12,
+              color: SP.inkSoft,
+            }}
+          >
+            <span>{listing.type}</span>
+            {listing.rooms !== null && <><span>·</span><span>{listing.rooms} pièces</span></>}
+            <span>·</span>
+            <span>{listing.area} m²</span>
+            <span>·</span>
+            <span style={{ color: SP.ink, fontWeight: 700 }}>
+              {formatPrice(listing.price, listing.transaction)}
+            </span>
+          </div>
+        )}
+
+        {/* Pending state */}
+        {isPending && (
+          <div
+            style={{
+              fontSize: 12,
+              color: SP.pending,
+              fontStyle: 'italic',
+              padding: '6px 0',
+            }}
+          >
+            Demande de partage envoyée le{' '}
+            {new Date(listing.sharedAt).toLocaleDateString('fr-CH', {
+              day: '2-digit',
+              month: '2-digit',
+              year: '2-digit',
+            })}
+            . En attente de validation côté agence.
+          </div>
+        )}
+
+        {/* Source ref + sharedAt */}
+        <div
+          style={{
+            fontSize: 10.5,
+            color: SP.muted,
+            display: 'flex',
+            justifyContent: 'space-between',
+            paddingTop: 4,
+            borderTop: `1px solid ${SP.cardSubtle}`,
+            marginTop: 4,
+          }}
+        >
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{listing.sourceRef}</span>
+          <span>Partagé {fmtRelative(listing.sharedAt)}</span>
+        </div>
+
+        {/* CTA */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          {listing.level === 'full' && (
+            <BlackBtn
+              style={{ height: 34, padding: '0 14px', fontSize: 12, flex: 1 }}
+              icon={<KycIcon name="arrow" size={12} stroke="#fff" sw={2.2} />}
+            >
+              Ouvrir la fiche complète
+            </BlackBtn>
+          )}
+          {listing.level === 'partial' && (
+            <BlackBtn
+              style={{ height: 34, padding: '0 14px', fontSize: 12, flex: 1 }}
+              icon={<KycIcon name="arrow" size={12} stroke="#fff" sw={2.2} />}
+            >
+              Voir aperçu partiel
+            </BlackBtn>
+          )}
+          {listing.level === 'preview' && (
+            <GhostBtn style={{ height: 34, padding: '0 14px', fontSize: 12, flex: 1 }}>
+              Demander accès complet
+            </GhostBtn>
+          )}
+          {isPending && (
+            <GhostBtn style={{ height: 34, padding: '0 14px', fontSize: 12, flex: 1 }}>
+              Annuler la demande
+            </GhostBtn>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Photo placeholder — masquée/floutée selon le niveau
+function PhotoPlaceholder({ listing }: { listing: ReceivedListing }) {
+  const isPending = listing.level === 'pending'
+  const isPreview = listing.level === 'preview'
+  const isPartial = listing.level === 'partial'
+
+  return (
+    <div
+      style={{
+        height: 140,
+        background: isPending
+          ? SP.cardSubtle
+          : `linear-gradient(135deg, ${listing.accent}25 0%, ${listing.accent}10 100%)`,
+        position: 'relative',
+        display: 'grid',
+        placeItems: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Faux pattern décoratif (simule une photo) */}
+      {!isPending && (
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 360 140"
+          preserveAspectRatio="xMidYMid slice"
+          style={{ position: 'absolute', inset: 0, opacity: isPreview ? 0.15 : isPartial ? 0.4 : 0.7, filter: isPartial ? 'blur(6px)' : 'none' }}
+        >
+          <rect x="0" y="0" width="360" height="140" fill={listing.accent} opacity="0.15" />
+          <path d="M0 110 L80 70 L150 90 L240 50 L360 80 L360 140 L0 140 Z" fill={listing.accent} opacity="0.5" />
+          <circle cx="280" cy="40" r="14" fill={listing.accent} opacity="0.6" />
+        </svg>
+      )}
+
+      {/* Overlay selon niveau */}
+      {isPending && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <KycIcon name="lock" size={28} stroke={SP.muted} sw={1.5} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: SP.muted, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+            En attente
+          </span>
+        </div>
+      )}
+      {isPreview && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'grid',
+            placeItems: 'center',
+            background: 'rgba(255,255,255,0.7)',
+            backdropFilter: 'blur(2px)',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: SP.muted,
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+              padding: '5px 10px',
+              borderRadius: 999,
+              background: SP.surface,
+              boxShadow: SP.shadowSm,
+            }}
+          >
+            🔒 Aperçu — photo verrouillée
+          </span>
+        </div>
+      )}
+      {isPartial && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            padding: '3px 8px',
+            borderRadius: 999,
+            background: SP.surface,
+            boxShadow: SP.shadowSm,
+            fontSize: 10,
+            fontWeight: 700,
+            color: SP.warn,
+          }}
+        >
+          Photos floutées
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Vue 4-5 : stub Coming soon ──────────────────────────────────────────
 
 function ComingSoonView({ tab, desc }: { tab: string; desc: string }) {
   return (
