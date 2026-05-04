@@ -170,7 +170,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
         {created ? (
           <DealCreatedView sp={sp} archetype={arch}
             contact={selectedContact || newContact}
-            bien={selectedBien || null}
+            bien={selectedBien ?? undefined}
             stage={stage} value={value}
             onClose={onClose} />
         ) : (
@@ -210,7 +210,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
               <StageValueCard sp={sp}
                 stage={stage} setStage={setStage}
                 value={value} setValue={setValue}
-                bien={selectedBien} archetype={arch} />
+                bien={selectedBien ?? undefined} archetype={arch} />
 
               <SectionHeader n={arch?.needsBien ? '5' : '4'} title="Prochaine action" sp={sp} />
               <NextActionCard sp={sp}
