@@ -193,19 +193,16 @@ const PATHS: Record<SettingsIconName, ReactNode> = {
   ),
   mailSend: (
     <>
-      <path d="M22 11V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9" />
-      <path d="m2 7 10 6 10-6" />
-      <path d="M16 19h6M19 16l3 3-3 3" />
+      <path d="M22 2 11 13" />
+      <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
     </>
   ),
-  crown: (
-    <path d="M2 7l5 5 5-7 5 7 5-5-2 13H4L2 7Z" />
-  ),
+  crown: <path d="M2 19h20l-2-12-5 4-5-7-5 7-5-4-2 12Z" />,
   more: (
     <>
+      <circle cx="5" cy="12" r="1.5" />
       <circle cx="12" cy="12" r="1.5" />
-      <circle cx="6" cy="12" r="1.5" />
-      <circle cx="18" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" />
     </>
   ),
 }
@@ -280,7 +277,6 @@ export function SetInput({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: prefix || suffix ? 6 : 0,
           height: 48,
           padding: '0 16px',
           borderRadius: 14,
@@ -293,7 +289,14 @@ export function SetInput({
         }}
       >
         {prefix && (
-          <span style={{ fontSize: 14, color: SET.muted, fontWeight: 500 }}>
+          <span
+            style={{
+              fontSize: 14,
+              color: SET.muted,
+              fontWeight: 500,
+              marginRight: 8,
+            }}
+          >
             {prefix}
           </span>
         )}
@@ -318,7 +321,14 @@ export function SetInput({
           }}
         />
         {suffix && (
-          <span style={{ fontSize: 14, color: SET.muted, fontWeight: 500 }}>
+          <span
+            style={{
+              fontSize: 13,
+              color: SET.muted,
+              fontWeight: 500,
+              marginLeft: 8,
+            }}
+          >
             {suffix}
           </span>
         )}
