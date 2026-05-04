@@ -67,7 +67,16 @@ function UserAvatar({ name, email, avatarUrl, size = 'md' }: {
 
 // ─── Navbar ─────────────────────────────────────────────────────────────
 
-export default function Navbar() {
+interface NavbarProps {
+  /**
+   * Quand `transparent` est vrai (homepage avec hero full-bleed), la navbar
+   * démarre en mode glass (background transparent + texte blanc) et bascule
+   * en mode opaque dès que l'utilisateur scrolle au-delà du hero.
+   */
+  transparent?: boolean
+}
+
+export default function Navbar({ transparent = false }: NavbarProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, profile, loading, signOut, isAgent } = useAuth()
@@ -79,8 +88,7 @@ export default function Navbar() {
   const agentDropRef = useRef<HTMLDivElement>(null)
   const [mgmtOpen, setMgmtOpen] = useState(false)
   const mgmtTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  // Scroll state gardé pour Phase 2 (navbar transparente sur hero overlay)
-  const [, setScrolled] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const langRef = useRef<HTMLDivElement>(null)
 
@@ -97,13 +105,18 @@ export default function Navbar() {
 
   // const isHome = location.pathname === '/' // Phase 2: réactiver si hero transparent
 
-  // Scroll detection
+  // Scroll detection — bascule la navbar du mode glass au mode opaque dès
+  // qu'on a quitté le hero (~80vh). Désactivé hors mode transparent pour
+  // éviter un effet inutile sur les autres pages.
   useEffect(() => {
-    function handleScroll() { setScrolled(window.scrollY > 20) }
+    if (!transparent) return
+    function handleScroll() {
+      setScrolled(window.scrollY > 60)
+    }
     window.addEventListener('scroll', handleScroll, { passive: true })
     handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [transparent])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -147,9 +160,9 @@ export default function Navbar() {
     navigate('/')
   }
 
-  // Navbar toujours opaque — le mode transparent est désactivé car le hero
-  // ne chevauche pas la navbar (pas de -mt-[72px] sur la section hero).
-  const isTransparent = false
+  // Mode glass actif uniquement quand `transparent` (homepage) ET pas scrollé.
+  // Au-delà du hero, la navbar bascule en opaque (lecture confortable du body).
+  const isTransparent = transparent && !scrolled
 
   return (
     <>
