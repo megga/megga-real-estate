@@ -408,7 +408,10 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   })()
 
   return (
-    <div className="h-screen flex bg-white">
+    <div
+      className="h-screen flex bg-white"
+      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
+    >
       {/* ─── WCAG 1.3.1 — h1 caché visuellement pour screen readers ─── */}
       <h1 className="sr-only">
         {filters.context === 'rent' ? 'Biens à louer en Suisse' : 'Biens à vendre en Suisse'}
