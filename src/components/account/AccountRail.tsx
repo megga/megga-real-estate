@@ -1,30 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
-import {
-  SearchIcon,
-  HomeIcon,
-  BookmarkIcon,
-  HeartIcon,
-  MessageIcon,
-  UserIcon,
-} from './icons'
+import { SearchIcon } from './icons'
+import { SECTIONS, type SectionKey } from './sections-meta'
 
-export type SectionKey = 'listings' | 'searches' | 'favorites' | 'messages' | 'profile'
-
-interface SectionDef {
-  key: SectionKey
-  labelKey: string
-  icon: (props: { size?: number }) => React.ReactElement
-}
-
-export const SECTIONS: SectionDef[] = [
-  { key: 'listings', labelKey: 'rail.listings', icon: HomeIcon },
-  { key: 'searches', labelKey: 'rail.searches', icon: BookmarkIcon },
-  { key: 'favorites', labelKey: 'rail.favorites', icon: HeartIcon },
-  { key: 'messages', labelKey: 'rail.messages', icon: MessageIcon },
-  { key: 'profile', labelKey: 'rail.profile', icon: UserIcon },
-]
+export { SECTIONS, type SectionKey }
 
 interface RailTabProps {
   active: boolean

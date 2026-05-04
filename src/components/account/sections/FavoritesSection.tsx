@@ -30,7 +30,7 @@ function formatPrice(listing: FavoriteListing): string {
   const price = listing.price
   if (!price && price !== 0) return 'CHF —'
   const isRent = listing.transaction_type === 'rent'
-  const formatted = `CHF ${price.toLocaleString('fr-CH').replace(/ |,| /g, "'")}`
+  const formatted = `CHF ${price.toLocaleString('fr-CH').replace(/\s|,/g, "'")}`
   return isRent ? `${formatted} /mois` : formatted
 }
 
