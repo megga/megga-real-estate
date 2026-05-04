@@ -18,6 +18,7 @@ import type {
   KycDetailStep,
   KycPepStatus,
 } from './data'
+import type { KycContactBentoData } from './KycContactBento'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -164,6 +165,40 @@ function mapDocs(docs: KycDocument[] | undefined): KycDetailDoc[] {
     by: d.uploaded_by ? `Téléversé · ${fmtDateShort(d.created_at)}` : fmtDateShort(d.created_at),
     state: mapDocState(d),
   }))
+}
+
+// ─── Contact bento mapping ────────────────────────────────────────────────
+
+function mapBentoStatus(s: KycCase['status']): KycContactBentoData['status'] {
+  if (s === 'validated') return 'valid'
+  if (s === 'review' || s === 'rejected') return 'review'
+  return 'in'
+}
+
+const BENTO_TOTAL_STEPS = 6
+
+export function mapKycCaseToContactBento(kyc: KycCase): KycContactBentoData {
+  const pct = kyc.completion_pct ?? 0
+  const stepDone = Math.min(BENTO_TOTAL_STEPS, Math.floor((pct / 100) * BENTO_TOTAL_STEPS))
+  const docsDone = stepDone
+  const riskLabel =
+    kyc.risk_level === 'low'
+      ? 'Faible'
+      : kyc.risk_level === 'medium'
+        ? 'Moyen'
+        : kyc.risk_level === 'high'
+          ? 'Élevé'
+          : '—'
+  return {
+    status: mapBentoStatus(kyc.status),
+    riskScore: kyc.risk_score ?? 0,
+    riskLabel,
+    docsDone,
+    docsTotal: BENTO_TOTAL_STEPS,
+    lastScreening: fmtDateShort(kyc.last_screening_at),
+    stepDone,
+    stepActive: stepDone < BENTO_TOTAL_STEPS ? stepDone : BENTO_TOTAL_STEPS - 1,
+  }
 }
 
 export function mapKycCaseToDetail(

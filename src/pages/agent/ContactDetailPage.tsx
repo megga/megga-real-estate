@@ -14,6 +14,9 @@ import CopilotSummary from '@/components/ai-copilot/CopilotSummary'
 import BuyerIntelligence from '@/components/ai-copilot/BuyerIntelligence'
 import SellerIntelligence from '@/components/ai-copilot/SellerIntelligence'
 import { useContact } from '@/hooks/useContacts'
+import { useKycCases } from '@/hooks/useKyc'
+import { KycContactBento } from '@/components/crm-sugar/kyc/KycContactBento'
+import { mapKycCaseToContactBento } from '@/components/crm-sugar/kyc/mapping'
 import { useContactTransactions } from '@/hooks/useTransactions'
 import { useContactTimeline, type TimelineEvent } from '@/hooks/useContactTimeline'
 import { useCopilotContext } from '@/hooks/useCopilotContext'
@@ -204,6 +207,15 @@ export default function ContactDetailPage() {
   const { data: contact, isLoading, isError } = useContact(id)
   const { data: transactions = [] } = useContactTransactions(id)
   const { data: timeline = [], isLoading: timelineLoading } = useContactTimeline(id)
+  const { data: kycCases } = useKycCases()
+  const contactKycCase = useMemo(
+    () => kycCases?.find(c => c.contact_id === id) ?? null,
+    [kycCases, id],
+  )
+  const kycBentoData = useMemo(
+    () => (contactKycCase ? mapKycCaseToContactBento(contactKycCase) : null),
+    [contactKycCase],
+  )
   const { summary: aiSummary, isRefreshing: isRefreshingAi, refresh: refreshAiSummary } = useAiSummary(contact)
   const { getPortalForContact, getPortalUrl, markInviteSent } = useSellerPortals()
   const [existingPortal, setExistingPortal] = useState<{ id: string; token: string; contactId: string; status: string } | null>(null)
@@ -387,6 +399,19 @@ export default function ContactDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* KYC bento — visible si un dossier KYC est ouvert pour ce contact */}
+      {kycBentoData && contactKycCase && (
+        <KycContactBento
+          data={kycBentoData}
+          onOpen={() => navigate(`/dashboard/kyc/${contactKycCase.id}`)}
+          onRelance={() =>
+            window.alert(
+              `Relancer ${contact.first_name} ${contact.last_name} pour le dossier KYC — feature à venir.`,
+            )
+          }
+        />
+      )}
 
       {/* AI Summary */}
       {aiSummary && (
