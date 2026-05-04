@@ -1,7 +1,8 @@
 // MEGGA CRM Sugar v2 — KYC list/dashboard (Tier 4)
 // 1:1 port from `megga-kyc-variations.jsx` VariationC (lines 595-743).
+// Wiring Supabase via useKycCases — fallback sur KYC_ROWS mock si table vide.
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
@@ -16,6 +17,8 @@ import {
   KYC_FILTERS, KYC_KPIS, KYC_ROWS, KYC_STATUS_MAP,
 } from '@/components/crm-sugar/kyc/data'
 import { KycWizardModal } from '@/components/crm-sugar/kyc/KycWizardModal'
+import { mapKycCaseToRow } from '@/components/crm-sugar/kyc/mapping'
+import { useKycCases } from '@/hooks/useKyc'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -35,6 +38,39 @@ export default function KycListSugarV2Page() {
 
   const [activeFilter, setActiveFilter] = useState<number>(1)
   const [wizardOpen, setWizardOpen] = useState(false)
+
+  // ─── Real data from Supabase ──────────────────────────────────────────
+  const { data: kycCases, isLoading, isError, error } = useKycCases()
+  const isUsingMock = !kycCases || kycCases.length === 0
+  const rows = useMemo(
+    () =>
+      isUsingMock
+        ? KYC_ROWS
+        : kycCases.map(mapKycCaseToRow),
+    [kycCases, isUsingMock],
+  )
+
+  const kpis = useMemo(() => {
+    if (isUsingMock) return KYC_KPIS
+    const total = kycCases.length
+    const review = kycCases.filter(c => c.status === 'review').length
+    const high = kycCases.filter(c => (c.risk_score ?? 0) >= 60).length
+    const stale = kycCases.filter(c => {
+      if (!c.last_screening_at) return false
+      const months = (Date.now() - new Date(c.last_screening_at).getTime()) / (1000 * 60 * 60 * 24 * 30)
+      return months > 12
+    }).length
+    const avgRisk = total > 0
+      ? Math.round(kycCases.reduce((sum, c) => sum + (c.risk_score ?? 0), 0) / total)
+      : 0
+    return [
+      { k: 'Dossiers actifs', v: String(total), sub: `${total} au total`, tone: 'neutral' as const },
+      { k: 'À valider', v: String(review), sub: 'En revue', tone: 'warn' as const },
+      { k: 'Score moyen', v: String(avgRisk), sub: avgRisk < 30 ? 'Faible' : avgRisk < 60 ? 'Moyen' : 'Élevé', tone: avgRisk < 30 ? 'ok' as const : avgRisk < 60 ? 'warn' as const : 'danger' as const },
+      { k: 'Risque élevé', v: String(high), sub: 'Score ≥ 60', tone: 'danger' as const },
+      { k: 'Screenings > 12 mois', v: String(stale), sub: 'À rafraîchir', tone: 'pending' as const },
+    ]
+  }, [kycCases, isUsingMock])
 
   const onCmd = () => {}
   const onNavigate = (id: SugarScreenId | string) => {
@@ -135,6 +171,45 @@ export default function KycListSugarV2Page() {
             </BlackBtn>
           </div>
 
+          {/* Demo banner if using mock data */}
+          {isUsingMock && !isLoading && !isError && (
+            <div
+              style={{
+                padding: '10px 16px',
+                borderRadius: 14,
+                background: SP.pendingSoft,
+                color: SP.pending,
+                fontSize: 12,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <KycIcon name="alert" size={14} stroke={SP.pending} sw={2} />
+              Mode démo · aucun dossier KYC dans Supabase. Affichage des données
+              d'exemple. Cliquez « Nouveau dossier » pour créer le premier.
+            </div>
+          )}
+          {isError && (
+            <div
+              style={{
+                padding: '10px 16px',
+                borderRadius: 14,
+                background: SP.dangerSoft,
+                color: SP.danger,
+                fontSize: 12,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <KycIcon name="alert" size={14} stroke={SP.danger} sw={2} />
+              Erreur de chargement : {(error as Error)?.message || 'inconnue'}
+            </div>
+          )}
+
           {/* KPIs */}
           <div
             style={{
@@ -143,7 +218,7 @@ export default function KycListSugarV2Page() {
               gap: 14,
             }}
           >
-            {KYC_KPIS.map((k, i) => (
+            {kpis.map((k, i) => (
               <div
                 key={i}
                 style={{
@@ -280,7 +355,19 @@ export default function KycListSugarV2Page() {
               <div></div>
             </div>
             <div style={{ flex: 1, overflow: 'auto' }}>
-              {KYC_ROWS.map((r, i) => {
+              {isLoading && (
+                <div
+                  style={{
+                    padding: 60,
+                    textAlign: 'center',
+                    color: SP.muted,
+                    fontSize: 13,
+                  }}
+                >
+                  Chargement des dossiers KYC…
+                </div>
+              )}
+              {!isLoading && rows.map((r, i) => {
                 const riskColor =
                   r.risk >= 60 ? SP.danger : r.risk >= 30 ? SP.warn : SP.ok
                 const stConf = KYC_STATUS_MAP[r.st]
@@ -295,7 +382,7 @@ export default function KycListSugarV2Page() {
                       padding: '12px 22px',
                       alignItems: 'center',
                       borderBottom:
-                        i < KYC_ROWS.length - 1
+                        i < rows.length - 1
                           ? `1px solid ${SP.cardSubtle}`
                           : 'none',
                       fontSize: 13,
