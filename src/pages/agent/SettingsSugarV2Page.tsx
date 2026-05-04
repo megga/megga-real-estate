@@ -15,6 +15,9 @@ import { ProfileSection } from '@/components/crm-sugar/settings/ProfileSection'
 import { PlaceholderSection } from '@/components/crm-sugar/settings/PlaceholderSection'
 import { NotificationsSection } from '@/components/crm-sugar/settings/NotificationsSection'
 import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesSection'
+import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
+import { PrivacySection } from '@/components/crm-sugar/settings/PrivacySection'
+import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import {
   SETTINGS_SECTIONS, SET_PALETTE, type SectionId,
 } from '@/components/crm-sugar/settings/data'
@@ -71,6 +74,9 @@ export default function SettingsSugarV2Page() {
     if (active === 'profile') return <ProfileSection />
     if (active === 'notifications') return <NotificationsSection />
     if (active === 'preferences') return <PreferencesSection />
+    if (active === 'security') return <SecuritySection />
+    if (active === 'privacy') return <PrivacySection />
+    if (active === 'billing') return <BillingSection />
     return <PlaceholderSection section={activeSection} />
   }
 
