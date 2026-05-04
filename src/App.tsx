@@ -43,6 +43,7 @@ const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
 const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
+const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
@@ -273,6 +274,7 @@ export default function App() {
                 <Route index element={<TodaySugarPage />} />
                 <Route path="pipeline" element={<PipelineSugarV2Page />} />
                 <Route path="contacts" element={<ContactsSugarV2Page />} />
+                <Route path="listings" element={<BiensSugarV2Page />} />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
@@ -291,7 +293,7 @@ export default function App() {
                 <Route path="pipeline-legacy" element={<PipelinePage />} />
                 <Route path="matching" element={<MatchingPage />} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
-                <Route path="listings" element={<ListingsPage />} />
+                <Route path="listings-legacy" element={<ListingsPage />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="kyc" element={<KycListPage />} />
