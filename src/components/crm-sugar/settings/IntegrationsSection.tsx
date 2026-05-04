@@ -495,7 +495,7 @@ function IntegrationCard({
                 </>
               ) : (
                 <>
-                  <SetIcon name="check" size={11} stroke="#fff" sw={2.4} />
+                  <SetIcon name="link" size={11} stroke="#fff" sw={2.4} />
                   Connecter
                 </>
               )}
@@ -1296,7 +1296,7 @@ export function IntegrationsSection() {
         }}
       >
         <SectionHeader
-          kicker="Intégrations"
+          kicker="\n"
           title="Connectez votre stack métier"
           sub={`${connected.length} services actifs sur ${items.length} disponibles · agenda, email, signature, données marché, KYC, banque.`}
         />
@@ -1787,7 +1787,7 @@ export function IntegrationsSection() {
               }}
             >
               <SetGhostBtn
-                icon={<SetIcon name="arrowR" size={13} />}
+                icon={<SetIcon name="external" size={13} />}
                 onClick={() => {}}
               >
                 Documentation
@@ -1836,7 +1836,7 @@ export function IntegrationsSection() {
                     gap: 8,
                   }}
                 >
-                  <SetIcon name="check" size={14} stroke="#fff" />
+                  <SetIcon name="link" size={14} stroke="#fff" />
                   Connecter
                 </button>
               )}

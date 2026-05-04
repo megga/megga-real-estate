@@ -128,10 +128,9 @@ const PATHS: Record<SettingsIconName, ReactNode> = {
   ),
   key: (
     <>
-      <circle cx="8" cy="15" r="4" />
-      <path d="m10.85 12.15 7.85-7.85" />
-      <path d="M14.5 8.5l3 3" />
-      <path d="M16 6l3 3" />
+      <circle cx="7" cy="14" r="4" />
+      <path d="m21 2-9.5 9.5" />
+      <path d="M15 8l3 3" />
     </>
   ),
   download: (
@@ -203,6 +202,19 @@ const PATHS: Record<SettingsIconName, ReactNode> = {
       <circle cx="5" cy="12" r="1.5" />
       <circle cx="12" cy="12" r="1.5" />
       <circle cx="19" cy="12" r="1.5" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72" />
+    </>
+  ),
+  external: (
+    <>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <path d="M15 3h6v6" />
+      <path d="M10 14 21 3" />
     </>
   ),
 }
