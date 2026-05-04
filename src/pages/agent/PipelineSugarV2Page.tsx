@@ -7,7 +7,7 @@ import {
   CRM_TOKENS, CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette,
   type DarkTone, type StageId,
 } from '@/components/crm-sugar/tokens'
-import { CRM_DEALS, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
+import { CRM_DEALS, crmBienById, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
 import { KycSoftBanner } from '@/components/crm-sugar/kyc/KycNonBlocking'
 import {
@@ -90,11 +90,13 @@ export default function PipelineSugarV2Page() {
     return localDeals.filter(d => {
       const c = crmContactById(d.contactId)
       if (!c) return false
+      const b = d.bienId ? crmBienById(d.bienId) : null
       if (search) {
         const q = search.toLowerCase()
         const inContact = `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+        const inBien = b ? b.title.toLowerCase().includes(q) || b.addr.toLowerCase().includes(q) : false
         const inNote = d.nextAction?.note?.toLowerCase().includes(q)
-        if (!inContact && !inNote) return false
+        if (!inContact && !inBien && !inNote) return false
       }
       if (filterStages.length > 0 && !filterStages.includes(d.stage)) return false
       if (filterRisk !== 'all' && d.risk !== filterRisk) return false
