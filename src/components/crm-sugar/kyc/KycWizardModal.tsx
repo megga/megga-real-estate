@@ -1,12 +1,20 @@
 // MEGGA CRM Sugar v2 — KYC Wizard modal (Tier 4 — VariationA)
-// 1:1 port from `megga-kyc-variations.jsx` VariationA (lines 129-365).
+// Port from `megga-kyc-variations.jsx` VariationA (lines 129-365).
 // Modal stepper 5 étapes (Contexte / Identité / Origine fonds / Screening / Validation).
-// Le proto rend visuellement uniquement le contenu de l'étape Identité — les autres
-// étapes sont représentées par un placeholder card "à compléter".
+// Step 0 (Contexte) wiré sur Supabase via useCreateKycCase + useContacts ; les autres
+// étapes restent visuelles (Identité 1:1 du proto, 2-3-4 placeholder).
+// Step 4 « Terminer » crée le dossier KYC, lance un screening dilisense en arrière-plan
+// (si nationalité connue) et navigue vers le détail.
 
-import { Fragment, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { BlackBtn, GhostBtn, KycIcon, SectionLabel, SP } from './atoms'
+import { useNavigate } from 'react-router-dom'
+import { Avatar, BlackBtn, GhostBtn, KycIcon, SectionLabel, SP } from './atoms'
+import { useAuth } from '@/hooks/useAuth'
+import { useContacts } from '@/hooks/useContacts'
+import { useCreateKycCase, useScreenKycCase } from '@/hooks/useKyc'
+import type { Contact } from '@/types/contact'
+import type { KycType } from '@/types/kyc'
 
 const STEPS = ['Contexte', 'Identité', 'Origine fonds', 'Screening', 'Validation']
 
@@ -61,37 +69,137 @@ const STEP_KICKERS: Record<number, string> = {
   4: "Étape 5 sur 5 · LBA — Validation conformité",
 }
 
-const STEP_TITLES: Record<number, string> = {
-  0: 'Contexte — Élodie Schmidt',
-  1: 'Identité — Élodie Schmidt',
-  2: 'Origine des fonds — Élodie Schmidt',
-  3: 'Screening PEP & sanctions',
-  4: 'Validation finale du dossier',
-}
-
 const STEP_SUBS: Record<number, string> = {
-  0: 'Précisez le contexte de la relation : type de transaction, lien préexistant, et les indicateurs de risque pertinents.',
+  0: 'Sélectionnez le contact concerné, son rôle dans la transaction et un montant indicatif si déjà connu.',
   1: "Saisissez les données du document officiel et confirmez la vérification visuelle. Le screening sanctions/PEP est lancé en arrière-plan via Dilisense.",
   2: "Documentez l'origine des fonds (épargne, vente, héritage…) avec une attestation officielle.",
   3: 'Vérifiez les correspondances PEP et sanctions récupérées via les 4 sources interrogées.',
   4: 'Validation finale par le responsable conformité avant clôture du dossier.',
 }
 
+const KYC_TYPES: { k: KycType; label: string; sub: string; icon: 'user' | 'bank' }[] = [
+  { k: 'buyer_pp', label: 'Acheteur', sub: 'Personne physique', icon: 'user' },
+  { k: 'buyer_pm', label: 'Acheteur', sub: 'Personne morale', icon: 'bank' },
+  { k: 'seller_pp', label: 'Vendeur', sub: 'Personne physique', icon: 'user' },
+  { k: 'seller_pm', label: 'Vendeur', sub: 'Personne morale', icon: 'bank' },
+]
+
 interface KycWizardModalProps {
   onClose: () => void
 }
 
 export function KycWizardModal({ onClose }: KycWizardModalProps) {
-  const [step, setStep] = useState(1)
+  const navigate = useNavigate()
+  const { profile } = useAuth()
+  const { contacts, isLoading: isLoadingContacts } = useContacts()
+  const createMutation = useCreateKycCase()
+  const screenMutation = useScreenKycCase()
+
+  const [step, setStep] = useState(0)
+  const [contactId, setContactId] = useState<string | null>(null)
+  const [kycType, setKycType] = useState<KycType | null>(null)
+  const [amount, setAmount] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
   const [methodKey, setMethodKey] = useState('person')
   const [checks, setChecks] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(VISUAL_CHECKS.map(c => [c.l, c.on])),
   )
 
-  const goBack = () => setStep(s => Math.max(0, s - 1))
+  const selectedContact = useMemo(
+    () => contacts.find(c => c.id === contactId) ?? null,
+    [contacts, contactId],
+  )
+
+  const filteredContacts = useMemo(() => {
+    if (!searchTerm.trim()) return contacts.slice(0, 8)
+    const q = searchTerm.toLowerCase()
+    return contacts
+      .filter(
+        c =>
+          `${c.first_name} ${c.last_name}`.toLowerCase().includes(q) ||
+          (c.email ?? '').toLowerCase().includes(q),
+      )
+      .slice(0, 8)
+  }, [contacts, searchTerm])
+
+  const fullName = selectedContact
+    ? `${selectedContact.first_name} ${selectedContact.last_name}`.trim()
+    : 'Élodie Schmidt'
+
+  const stepTitles: Record<number, string> = {
+    0: selectedContact ? `Contexte — ${fullName}` : 'Démarrer un dossier',
+    1: `Identité — ${fullName}`,
+    2: `Origine des fonds — ${fullName}`,
+    3: 'Screening PEP & sanctions',
+    4: 'Validation finale du dossier',
+  }
+
+  const canAdvanceFromStep0 = !!contactId && !!kycType
+  const isLastStep = step === STEPS.length - 1
+  const submitting = createMutation.isPending
+  const nextDisabled =
+    submitting ||
+    (step === 0 && !canAdvanceFromStep0) ||
+    (isLastStep && !canAdvanceFromStep0)
+
+  const goBack = () => {
+    setErrorMsg(null)
+    setStep(s => Math.max(0, s - 1))
+  }
   const goNext = () => {
-    if (step < STEPS.length - 1) setStep(s => s + 1)
-    else onClose()
+    setErrorMsg(null)
+    if (isLastStep) {
+      handleSubmit()
+      return
+    }
+    if (step === 0 && !canAdvanceFromStep0) {
+      setErrorMsg('Sélectionnez un contact et un type de relation pour continuer.')
+      return
+    }
+    setStep(s => s + 1)
+  }
+
+  const handleSubmit = async () => {
+    if (!profile?.agency_id) {
+      setErrorMsg('Profil agence introuvable — impossible de créer le dossier.')
+      return
+    }
+    if (!contactId || !kycType) {
+      setStep(0)
+      setErrorMsg('Sélectionnez un contact et un type de relation.')
+      return
+    }
+    try {
+      const numAmount = amount.replace(/[^0-9]/g, '')
+      const created = await createMutation.mutateAsync({
+        agencyId: profile.agency_id,
+        contactId,
+        type: kycType,
+        contactNationality: selectedContact?.nationality ?? undefined,
+        transactionAmount: numAmount ? Number(numAmount) : undefined,
+      })
+
+      // Bonus : screening dilisense en tâche de fond si nationalité connue.
+      if (selectedContact?.nationality) {
+        const contactName = `${selectedContact.first_name} ${selectedContact.last_name}`.trim()
+        const entityType: 'individual' | 'entity' = kycType.endsWith('_pm')
+          ? 'entity'
+          : 'individual'
+        screenMutation.mutate({
+          kycCaseId: created.id,
+          contactName,
+          contactNationality: selectedContact.nationality,
+          entityType,
+        })
+      }
+
+      onClose()
+      navigate(`/dashboard/kyc/${created.id}`)
+    } catch (e) {
+      setErrorMsg((e as Error).message || 'Erreur lors de la création du dossier.')
+    }
   }
 
   return createPortal(
@@ -260,7 +368,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
               lineHeight: 1.15,
             }}
           >
-            {STEP_TITLES[step]}
+            {stepTitles[step]}
           </div>
           <div
             style={{
@@ -296,7 +404,29 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
               paddingRight: 6,
             }}
           >
-            {step === 1 ? (
+            {step === 0 ? (
+              <ContextStepBody
+                contactsLoading={isLoadingContacts}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                filteredContacts={filteredContacts}
+                selectedContact={selectedContact}
+                onContactSelect={c => {
+                  setContactId(c.id)
+                  setSearchTerm('')
+                  setErrorMsg(null)
+                }}
+                onContactClear={() => setContactId(null)}
+                kycType={kycType}
+                onKycTypeChange={k => {
+                  setKycType(k)
+                  setErrorMsg(null)
+                }}
+                amount={amount}
+                onAmountChange={setAmount}
+                errorMsg={errorMsg}
+              />
+            ) : step === 1 ? (
               <IdentityStepBody
                 methodKey={methodKey}
                 onMethodChange={setMethodKey}
@@ -451,14 +581,22 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
           <BlackBtn
             onClick={goNext}
             icon={
-              step < STEPS.length - 1 ? (
-                <KycIcon name="arrow" size={14} stroke="#fff" sw={2.2} />
-              ) : (
+              isLastStep ? (
                 <KycIcon name="check" size={14} stroke="#fff" sw={2.4} />
+              ) : (
+                <KycIcon name="arrow" size={14} stroke="#fff" sw={2.2} />
               )
             }
+            style={{
+              opacity: nextDisabled ? 0.5 : 1,
+              cursor: nextDisabled ? 'not-allowed' : 'pointer',
+            }}
           >
-            {step < STEPS.length - 1 ? 'Étape suivante' : 'Terminer'}
+            {submitting
+              ? 'Création…'
+              : isLastStep
+                ? 'Terminer'
+                : 'Étape suivante'}
           </BlackBtn>
         </div>
       </div>
@@ -697,6 +835,381 @@ function IdentityStepBody({
         })}
       </div>
     </>
+  )
+}
+
+interface ContextStepBodyProps {
+  contactsLoading: boolean
+  searchTerm: string
+  onSearchChange: (s: string) => void
+  filteredContacts: Contact[]
+  selectedContact: Contact | null
+  onContactSelect: (c: Contact) => void
+  onContactClear: () => void
+  kycType: KycType | null
+  onKycTypeChange: (k: KycType) => void
+  amount: string
+  onAmountChange: (s: string) => void
+  errorMsg: string | null
+}
+
+function ContextStepBody({
+  contactsLoading,
+  searchTerm,
+  onSearchChange,
+  filteredContacts,
+  selectedContact,
+  onContactSelect,
+  onContactClear,
+  kycType,
+  onKycTypeChange,
+  amount,
+  onAmountChange,
+  errorMsg,
+}: ContextStepBodyProps) {
+  return (
+    <>
+      {/* Contact picker */}
+      <SectionLabel>Contact concerné</SectionLabel>
+      {selectedContact ? (
+        <SelectedContactCard
+          contact={selectedContact}
+          onClear={onContactClear}
+        />
+      ) : (
+        <ContactPicker
+          loading={contactsLoading}
+          searchTerm={searchTerm}
+          onSearchChange={onSearchChange}
+          contacts={filteredContacts}
+          onSelect={onContactSelect}
+        />
+      )}
+
+      {/* Type de relation */}
+      <div style={{ height: 4 }} />
+      <SectionLabel>Type de relation</SectionLabel>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 10,
+        }}
+      >
+        {KYC_TYPES.map(t => {
+          const on = kycType === t.k
+          return (
+            <div
+              key={t.k}
+              onClick={() => onKycTypeChange(t.k)}
+              style={{
+                padding: '12px 14px',
+                borderRadius: 14,
+                background: on ? SP.surface : SP.cardSubtle,
+                boxShadow: on
+                  ? `0 0 0 2px ${SP.ink} inset, ${SP.shadowSm}`
+                  : 'none',
+                cursor: 'pointer',
+                transition: 'all .15s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  background: on ? SP.ink : SP.surface,
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: on ? '#fff' : SP.inkSoft,
+                  flexShrink: 0,
+                }}
+              >
+                <KycIcon
+                  name={t.icon}
+                  size={16}
+                  stroke={on ? '#fff' : SP.inkSoft}
+                  sw={1.8}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: SP.ink }}>
+                  {t.label}
+                </div>
+                <div style={{ fontSize: 11, color: SP.muted, marginTop: 2 }}>
+                  {t.sub}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Montant */}
+      <div style={{ height: 4 }} />
+      <SectionLabel>Montant de la transaction (optionnel)</SectionLabel>
+      <div style={{ position: 'relative' }}>
+        <span
+          style={{
+            position: 'absolute',
+            left: 14,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            fontSize: 11,
+            color: SP.muted,
+            fontWeight: 800,
+            letterSpacing: '.05em',
+            pointerEvents: 'none',
+          }}
+        >
+          CHF
+        </span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={amount}
+          onChange={e => onAmountChange(e.target.value)}
+          placeholder="720'000"
+          style={{
+            width: '100%',
+            height: 38,
+            padding: '0 14px 0 50px',
+            borderRadius: 10,
+            background: SP.surface,
+            boxShadow: `0 0 0 1px ${SP.cardSubtle} inset`,
+            border: 0,
+            fontSize: 13,
+            fontWeight: 600,
+            color: SP.ink,
+            fontFamily: SP.font,
+            fontVariantNumeric: 'tabular-nums',
+            outline: 'none',
+          }}
+        />
+      </div>
+
+      {errorMsg && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: '10px 14px',
+            borderRadius: 10,
+            background: SP.dangerSoft,
+            color: SP.danger,
+            fontSize: 12,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <KycIcon name="alert" size={13} stroke={SP.danger} sw={2} />
+          {errorMsg}
+        </div>
+      )}
+    </>
+  )
+}
+
+interface ContactPickerProps {
+  loading: boolean
+  searchTerm: string
+  onSearchChange: (s: string) => void
+  contacts: Contact[]
+  onSelect: (c: Contact) => void
+}
+
+function ContactPicker({
+  loading,
+  searchTerm,
+  onSearchChange,
+  contacts,
+  onSelect,
+}: ContactPickerProps) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={e => onSearchChange(e.target.value)}
+        placeholder="Rechercher un contact par nom ou email…"
+        style={{
+          width: '100%',
+          height: 38,
+          padding: '0 14px',
+          borderRadius: 10,
+          background: SP.surface,
+          boxShadow: `0 0 0 1px ${SP.cardSubtle} inset`,
+          border: 0,
+          fontSize: 12.5,
+          fontWeight: 500,
+          color: SP.ink,
+          fontFamily: SP.font,
+          outline: 'none',
+        }}
+      />
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          maxHeight: 220,
+          overflowY: 'auto',
+        }}
+      >
+        {loading ? (
+          <div
+            style={{
+              padding: '20px 14px',
+              textAlign: 'center',
+              fontSize: 12,
+              color: SP.muted,
+            }}
+          >
+            Chargement des contacts…
+          </div>
+        ) : contacts.length === 0 ? (
+          <div
+            style={{
+              padding: '20px 14px',
+              textAlign: 'center',
+              fontSize: 12,
+              color: SP.muted,
+            }}
+          >
+            Aucun contact trouvé
+          </div>
+        ) : (
+          contacts.map(c => (
+            <ContactRow key={c.id} contact={c} onSelect={onSelect} />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ContactRow({
+  contact,
+  onSelect,
+}: {
+  contact: Contact
+  onSelect: (c: Contact) => void
+}) {
+  const [hover, setHover] = useState(false)
+  const fullName = `${contact.first_name} ${contact.last_name}`.trim()
+  return (
+    <div
+      onClick={() => onSelect(contact)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        padding: '8px 12px',
+        borderRadius: 10,
+        background: hover ? SP.surface : SP.cardSubtle,
+        boxShadow: hover ? `0 0 0 1px ${SP.ghost} inset` : 'none',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        cursor: 'pointer',
+        transition: 'all .15s',
+      }}
+    >
+      <Avatar name={fullName || '?'} size={28} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 12.5,
+            fontWeight: 700,
+            color: SP.ink,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {fullName || '—'}
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: SP.muted,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {contact.email || contact.phone || '—'}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SelectedContactCard({
+  contact,
+  onClear,
+}: {
+  contact: Contact
+  onClear: () => void
+}) {
+  const fullName = `${contact.first_name} ${contact.last_name}`.trim()
+  const meta = [
+    contact.email,
+    contact.phone,
+    contact.nationality,
+  ].filter(Boolean).join(' · ')
+  return (
+    <div
+      style={{
+        padding: '12px 14px',
+        borderRadius: 14,
+        background: SP.cardSubtle,
+        boxShadow: `0 0 0 1.5px ${SP.ink} inset`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
+      <Avatar name={fullName || '?'} size={36} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: SP.ink }}>
+          {fullName || '—'}
+        </div>
+        <div
+          style={{
+            fontSize: 11.5,
+            color: SP.muted,
+            marginTop: 2,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {meta || '—'}
+        </div>
+      </div>
+      <button
+        onClick={onClear}
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 999,
+          border: 0,
+          background: SP.surface,
+          cursor: 'pointer',
+          display: 'grid',
+          placeItems: 'center',
+          color: SP.muted,
+          flexShrink: 0,
+        }}
+        title="Changer de contact"
+      >
+        <KycIcon name="x" size={12} sw={2} />
+      </button>
+    </div>
   )
 }
 
