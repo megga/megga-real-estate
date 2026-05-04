@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCDossierFrame + PCBigAvatar + RoundBtn).
 
 import { useState, type ReactNode } from 'react'
-import CRMIcon, { type CrmIconName } from '../CRMIcon'
+import CRMIcon from '../CRMIcon'
 import type { SugarPalette } from '../tokens'
 import { PCBentoShape } from './PCBentoShape'
 import { PCColumn } from './PCColumn'
