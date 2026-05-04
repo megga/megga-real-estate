@@ -65,6 +65,8 @@ export interface KycDetailStep {
   label: string
   sub: string
   state: KycStepState
+  /** Supabase checklist item id — when present, the step is clickable for toggling */
+  itemId?: string
 }
 
 export interface KycDetailDoc {
