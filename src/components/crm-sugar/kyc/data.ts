@@ -89,7 +89,7 @@ export interface KycDetailHero {
   ref: string
   name: string
   badge: string
-  meta: string
+  metaItems: string[]
   avatarSize?: number
   riskScore: number
   riskLabel: string
@@ -116,7 +116,11 @@ export const KYC_DETAIL_MOCK: KycDetailData = {
     ref: 'KYC-2026-0431',
     name: 'Élodie Schmidt',
     badge: 'Acheteuse · Personne physique',
-    meta: "🇨🇭 Suisse · né(e) 14.03.1981 · Carouge, GE · Transaction CHF 850'000 — Carouge 5p",
+    metaItems: [
+      '🇨🇭 Suisse · né(e) 14.03.1981',
+      'Carouge, GE',
+      "Transaction CHF 850'000 — Carouge 5p",
+    ],
     riskScore: 14,
     riskLabel: 'Faible',
     progressPct: 78,

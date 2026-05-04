@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — KYC detail (Tier 4)
 // 1:1 port from `megga-kyc-variations.jsx` VariationB (lines 370-590).
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
@@ -182,9 +182,16 @@ export default function KycDetailSugarV2Page() {
                 style={{
                   fontSize: 12.5,
                   color: SP.muted,
+                  display: 'flex',
+                  gap: 14,
                 }}
               >
-                {data.hero.meta}
+                {data.hero.metaItems.map((item, i) => (
+                  <Fragment key={i}>
+                    <span>{item}</span>
+                    {i < data.hero.metaItems.length - 1 && <span>·</span>}
+                  </Fragment>
+                ))}
               </div>
             </div>
             {heroStats.map(s => (
@@ -233,7 +240,6 @@ export default function KycDetailSugarV2Page() {
               gridTemplateColumns: '300px 1fr 320px',
               gap: 18,
               minHeight: 0,
-              alignItems: 'start',
             }}
           >
             {/* Colonne gauche : étapes du dossier */}
