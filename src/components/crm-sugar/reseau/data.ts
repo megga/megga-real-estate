@@ -495,3 +495,184 @@ export const RECEIVED_LISTINGS: ReceivedListing[] = [
     accent: '#C8102E', sharedAt: '2026-04-22T10:00:00',
   },
 ]
+
+// ─── Demandes de partage (vue 4) ─────────────────────────────────────────
+//
+// Workflow d'approbation :
+//   - Entrantes : agence X demande l'accès à un de mes biens (à un niveau donné)
+//     → je peux approuver tel quel, refuser, ou contre-proposer un autre niveau
+//   - Sortantes : j'ai demandé l'accès à un bien d'une autre agence
+//     → en attente de leur réponse, ou résolu (approuvée / refusée / contre-proposée)
+//
+// En prod : `share_requests` table avec statuts + audit trail. Mock pour MVP.
+
+export type ShareRequestDirection = 'incoming' | 'outgoing'
+export type ShareRequestStatus = 'pending' | 'approved' | 'refused' | 'countered'
+
+export interface ShareRequest {
+  id: string
+  direction: ShareRequestDirection
+  /** Agence qui demande (incoming) ou à qui je demande (outgoing) */
+  agencyId: string
+  /** Référence du bien chez le propriétaire — masquée si pas encore approuvée côté outgoing */
+  bienRef: string
+  bienTitle: string
+  bienType: string
+  bienPrice: number
+  bienTransaction: 'vente' | 'location'
+  /** Quartier / zone — toujours visible */
+  bienZone: string
+  /** Niveau demandé */
+  requestedLevel: AgencyShareLevel
+  status: ShareRequestStatus
+  /** Si countered : niveau proposé en contre */
+  counterLevel?: AgencyShareLevel
+  /** Message optionnel du demandeur */
+  message?: string
+  createdAt: string
+  /** Date de résolution (approved/refused/countered) */
+  resolvedAt?: string
+}
+
+export const SHARE_REQUESTS: ShareRequest[] = [
+  // ── ENTRANTES — d'autres agences demandent mes biens ──
+  {
+    id: 'req-in-001',
+    direction: 'incoming',
+    agencyId: 'bory',
+    bienRef: 'MG-2026-104',
+    bienTitle: 'Villa contemporaine Cologny',
+    bienType: 'Maison',
+    bienPrice: 3850000,
+    bienTransaction: 'vente',
+    bienZone: 'Cologny',
+    requestedLevel: 'full',
+    status: 'pending',
+    message: 'Client haut-de-gamme intéressé par les villas contemporaines Cologny — accès complet souhaité pour visite mardi.',
+    createdAt: '2026-05-03T09:15:00',
+  },
+  {
+    id: 'req-in-002',
+    direction: 'incoming',
+    agencyId: 'spg',
+    bienRef: 'MG-2026-101',
+    bienTitle: '4 pièces lumineux Eaux-Vives',
+    bienType: 'Appartement',
+    bienPrice: 850000,
+    bienTransaction: 'vente',
+    bienZone: 'Eaux-Vives',
+    requestedLevel: 'partial',
+    status: 'pending',
+    message: 'Intérêt pour vue en partie large sur ce bien — première rencontre de notre collaboration.',
+    createdAt: '2026-05-02T14:30:00',
+  },
+  {
+    id: 'req-in-003',
+    direction: 'incoming',
+    agencyId: 'cardis',
+    bienRef: 'MG-2026-103',
+    bienTitle: '5 pièces familial Carouge',
+    bienType: 'Appartement',
+    bienPrice: 1100000,
+    bienTransaction: 'vente',
+    bienZone: 'Carouge',
+    requestedLevel: 'full',
+    status: 'pending',
+    createdAt: '2026-05-01T16:00:00',
+  },
+  {
+    id: 'req-in-004',
+    direction: 'incoming',
+    agencyId: 'naef',
+    bienRef: 'MG-2026-102',
+    bienTitle: '3 pièces standing Champel',
+    bienType: 'Appartement',
+    bienPrice: 780000,
+    bienTransaction: 'vente',
+    bienZone: 'Champel',
+    requestedLevel: 'full',
+    status: 'approved',
+    createdAt: '2026-04-28T11:00:00',
+    resolvedAt: '2026-04-28T15:30:00',
+  },
+  {
+    id: 'req-in-005',
+    direction: 'incoming',
+    agencyId: 'spg',
+    bienRef: 'MG-2026-104',
+    bienTitle: 'Villa contemporaine Cologny',
+    bienType: 'Maison',
+    bienPrice: 3850000,
+    bienTransaction: 'vente',
+    bienZone: 'Cologny',
+    requestedLevel: 'full',
+    counterLevel: 'preview',
+    status: 'countered',
+    message: 'Demande contre-proposée en Aperçu — première relation, nous souhaitons commencer par voir les caractéristiques générales avant de partager l\'adresse.',
+    createdAt: '2026-04-25T10:00:00',
+    resolvedAt: '2026-04-25T18:00:00',
+  },
+  // ── SORTANTES — je demande des biens à d'autres agences ──
+  {
+    id: 'req-out-001',
+    direction: 'outgoing',
+    agencyId: 'spg',
+    bienRef: 'SPG-26-?',
+    bienTitle: 'Demande sur portfolio général',
+    bienType: '—',
+    bienPrice: 0,
+    bienTransaction: 'vente',
+    bienZone: '—',
+    requestedLevel: 'preview',
+    status: 'pending',
+    message: 'Première rencontre — souhait d\'accès Aperçu sur le portfolio Genève centre.',
+    createdAt: '2026-04-22T10:00:00',
+  },
+  {
+    id: 'req-out-002',
+    direction: 'outgoing',
+    agencyId: 'cardis',
+    bienRef: 'CARDIS-26-S22',
+    bienTitle: '6 pièces lac Versoix',
+    bienType: 'Maison',
+    bienPrice: 4200000,
+    bienTransaction: 'vente',
+    bienZone: 'Versoix',
+    requestedLevel: 'full',
+    counterLevel: 'partial',
+    status: 'countered',
+    message: 'Cardis a proposé Partiel — vous pouvez accepter ou re-négocier.',
+    createdAt: '2026-04-20T14:00:00',
+    resolvedAt: '2026-04-21T09:00:00',
+  },
+  {
+    id: 'req-out-003',
+    direction: 'outgoing',
+    agencyId: 'bory',
+    bienRef: 'BORY-26-Q19',
+    bienTitle: 'Penthouse vue lac Genève',
+    bienType: 'Appartement',
+    bienPrice: 8500000,
+    bienTransaction: 'vente',
+    bienZone: 'Genève centre',
+    requestedLevel: 'full',
+    status: 'refused',
+    message: 'Refusée — exclusivité contractuelle avec un autre partenaire.',
+    createdAt: '2026-04-18T11:00:00',
+    resolvedAt: '2026-04-19T16:00:00',
+  },
+]
+
+export const REQUEST_STATUS_LABELS: Record<ShareRequestStatus, string> = {
+  pending: 'En attente',
+  approved: 'Approuvée',
+  refused: 'Refusée',
+  countered: 'Contre-proposée',
+}
+
+export const REQUEST_STATUS_TONE: Record<ShareRequestStatus, 'ok' | 'warn' | 'pending' | 'danger' | 'neutral'> = {
+  pending: 'pending',
+  approved: 'ok',
+  refused: 'danger',
+  countered: 'warn',
+}
