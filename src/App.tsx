@@ -62,6 +62,7 @@ const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
 const ReseauSugarV2Page = lazy(() => import('@/pages/agent/ReseauSugarV2Page'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
+const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
 const ChatPage = lazy(() => import('@/pages/agent/ChatPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const AutomationPage = lazy(() => import('@/pages/agent/AutomationPage'))
@@ -255,6 +256,7 @@ export default function App() {
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
+              <Route path="/dev/mfa" element={<MfaShowcasePage />} />
 
               {/* Portail vendeur — accès tokénisé (production) */}
               <Route path="/portail/:token" element={<PortalGateway />}>
