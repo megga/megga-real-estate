@@ -15,6 +15,7 @@ import {
   Toast,
 } from './atoms'
 import { SET_PALETTE } from './data'
+import { SSOConnectionsCard } from './SSOConnectionsCard'
 
 const SET = SET_PALETTE
 
@@ -771,27 +772,6 @@ function AuditRow({ e, i }: AuditRowProps) {
   )
 }
 
-function SsoStubCard() {
-  return (
-    <SetCard
-      title="Méthodes de connexion"
-      sub="SSO Google · Microsoft · Facebook — bientôt disponible"
-    >
-      <div
-        style={{
-          padding: '24px 16px',
-          textAlign: 'center',
-          fontSize: 12,
-          color: SET.muted,
-          fontWeight: 500,
-        }}
-      >
-        À venir dans une prochaine PR (Tier 3.k SSO add-on)
-      </div>
-    </SetCard>
-  )
-}
-
 export function SecuritySection() {
   const [data, setData] = useState<SecurityData>(DEFAULT_SECURITY)
   const [saved, setSaved] = useState<SecurityData>(DEFAULT_SECURITY)
@@ -950,7 +930,7 @@ export function SecuritySection() {
           </SetCard>
         </div>
 
-        <SsoStubCard />
+        <SSOConnectionsCard />
       </div>
 
       <StickySaveBar
