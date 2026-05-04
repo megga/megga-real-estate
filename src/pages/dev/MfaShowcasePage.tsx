@@ -110,7 +110,11 @@ export default function MfaShowcasePage() {
         <MFAEnrollModal onClose={() => setOpen(null)} enforced onDone={() => alert('Enrôlement (forcé) terminé')} />
       )}
       {open === 'challenge' && (
-        <MFAChallengeModal onClose={() => setOpen(null)} onSuccess={() => alert('Challenge passé')} />
+        <MFAChallengeModal
+          onClose={() => setOpen(null)}
+          onSuccess={() => alert('Challenge passé')}
+          onLostDevice={() => setOpen('lost')}
+        />
       )}
       {open === 'reset-agent' && (
         <MFAResetAgentModal

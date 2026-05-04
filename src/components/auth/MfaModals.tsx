@@ -729,9 +729,14 @@ interface MFAChallengeModalProps {
   onSuccess?: () => void
   /** Label appareil détecté */
   deviceLabel?: string
+  /** Callback déclenché après onClose si l'utilisateur clique « Contacter votre admin d'agence ».
+   *  Le proto ouvre MFALostDeviceModal en différé de 200ms. */
+  onLostDevice?: () => void
 }
 
-export function MFAChallengeModal({ onClose, onSuccess, deviceLabel = 'Chrome · macOS · Genève' }: MFAChallengeModalProps) {
+export function MFAChallengeModal({
+  onClose, onSuccess, deviceLabel = 'Chrome · macOS · Genève', onLostDevice,
+}: MFAChallengeModalProps) {
   const [code, setCode] = useState('')
   const [useBackup, setUseBackup] = useState(false)
   const [backupCode, setBackupCode] = useState('')
@@ -857,7 +862,10 @@ export function MFAChallengeModal({ onClose, onSuccess, deviceLabel = 'Chrome ·
         <Icon name="help" size={13} stroke={SET.muted} />
         Téléphone perdu ?{' '}
         <button
-          onClick={onClose}
+          onClick={() => {
+            onClose()
+            if (onLostDevice) setTimeout(() => onLostDevice(), 200)
+          }}
           style={{
             background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
             color: SET.ink, textDecoration: 'underline', fontWeight: 600,

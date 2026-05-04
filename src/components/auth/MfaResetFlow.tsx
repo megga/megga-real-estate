@@ -155,7 +155,7 @@ function GhostBtn({ children, onClick, icon, size = 'md', fullWidth }: BtnProps)
 
 // ─── Modal shell ─────────────────────────────────────────────────────────
 
-function ResetModal({ children, onClose, width = 460 }: { children: ReactNode; onClose: () => void; width?: number }) {
+function ResetModal({ children, onClose, width = 480 }: { children: ReactNode; onClose: () => void; width?: number }) {
   return createPortal(
     <div
       onClick={onClose}
