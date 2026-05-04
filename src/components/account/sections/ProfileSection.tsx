@@ -6,6 +6,7 @@ import { useFavorites } from '@/hooks/useFavorites'
 import { useSavedSearches } from '@/hooks/useSavedSearches'
 import { useVendorDossiers } from '@/hooks/useVendorDossiers'
 import { useUserActivity } from '@/hooks/useUserActivity'
+import { useUserC2pa } from '@/hooks/useUserC2pa'
 import { useProfileMeta } from '@/hooks/useProfileMeta'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import ProfileHero from '../profile/ProfileHero'
@@ -14,7 +15,7 @@ import SectionShell from '../profile/SectionShell'
 import MyListingsRow from '../profile/MyListingsRow'
 import MySearchRow from '../profile/MySearchRow'
 import VisitsRow from '../profile/VisitsRow'
-import C2PASignatureGallery, { type Signature } from '../profile/C2PASignatureGallery'
+import C2PASignatureGallery from '../profile/C2PASignatureGallery'
 import ActivityTimeline from '../profile/ActivityTimeline'
 import ProfileSettingsDrawer from '../profile/ProfileSettingsDrawer'
 
@@ -108,6 +109,7 @@ export default function ProfileSection({ onLogout }: Props) {
   const { searches } = useSavedSearches()
   const { dossiers } = useVendorDossiers()
   const { events } = useUserActivity()
+  const signatures = useUserC2pa()
   const isMobile = useIsMobile()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -119,14 +121,11 @@ export default function ProfileSection({ onLogout }: Props) {
     ? new Date(profile.created_at).toLocaleDateString('fr-CH', { month: 'long', year: 'numeric' })
     : '—'
 
-  // Mock C2PA signatures (will be wired to real data when staging studio writes them)
-  const mockSignatures: Signature[] = []
-
   const stats = [
     { label: dossiers.length > 1 ? 'annonces' : 'annonce', value: dossiers.length },
     { label: 'favoris', value: favoriteIds.length },
     { label: 'recherches', value: searches.length },
-    { label: 'signatures', value: mockSignatures.length },
+    { label: 'signatures', value: signatures.length },
   ]
 
   const showSeller = meta.mode === 'seller' || meta.mode === 'mixed'
@@ -134,7 +133,7 @@ export default function ProfileSection({ onLogout }: Props) {
 
   const navItems: SideNavSection[] = [
     { id: 'profile-hero', label: 'Identité' },
-    { id: 'profile-c2pa', label: 'Signatures C2PA', count: mockSignatures.length },
+    { id: 'profile-c2pa', label: 'Signatures C2PA', count: signatures.length },
     ...(showSeller ? [{ id: 'profile-listings', label: 'Mes annonces', count: dossiers.length }] : []),
     ...(showBuyer
       ? [{ id: 'profile-search', label: 'Ma recherche', count: searches.length + favoriteIds.length }]
@@ -168,7 +167,7 @@ export default function ProfileSection({ onLogout }: Props) {
             />
           </section>
 
-          <C2PASignatureGallery signatures={mockSignatures} />
+          <C2PASignatureGallery signatures={signatures} />
 
           {showSeller && <MyListingsRow />}
 

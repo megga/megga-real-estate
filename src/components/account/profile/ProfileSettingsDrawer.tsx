@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useAuth } from '@/hooks/useAuth'
 import { useProfileMeta } from '@/hooks/useProfileMeta'
+import { supabase } from '@/lib/supabase'
 
 type PageKey = 'info' | 'preferences' | 'notifications' | 'security' | 'privacy'
 
@@ -166,13 +167,57 @@ interface Props {
 }
 
 export default function ProfileSettingsDrawer({ open, onClose, initialPage = 'info' }: Props) {
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const { meta, update } = useProfileMeta()
   const [page, setPage] = useState<PageKey>(initialPage)
 
+  // Local state for the "info" page form fields, hydrated from profile when opened.
+  const [fullName, setFullName] = useState(profile?.full_name ?? '')
+  const [phone, setPhone] = useState(profile?.phone ?? '')
+  const [canton, setCanton] = useState(profile?.canton ?? '')
+  const [savingInfo, setSavingInfo] = useState(false)
+  const [savedInfo, setSavedInfo] = useState(false)
+  const [infoError, setInfoError] = useState<string | null>(null)
+
   useEffect(() => {
-    if (open) setPage(initialPage)
-  }, [open, initialPage])
+    if (open) {
+      setPage(initialPage)
+      // Hydrate form state from latest profile on open
+      setFullName(profile?.full_name ?? '')
+      setPhone(profile?.phone ?? '')
+      setCanton(profile?.canton ?? '')
+      setSavedInfo(false)
+      setInfoError(null)
+    }
+  }, [open, initialPage, profile])
+
+  async function saveInfo() {
+    if (!user || !profile) return
+    setSavingInfo(true)
+    setInfoError(null)
+    setSavedInfo(false)
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: fullName.trim() || null,
+        phone: phone.trim() || null,
+        canton: canton.trim() || null,
+      })
+      .eq('id', profile.id)
+    setSavingInfo(false)
+    if (error) {
+      setInfoError(error.message)
+      return
+    }
+    setSavedInfo(true)
+    void refreshProfile()
+    setTimeout(() => setSavedInfo(false), 2500)
+  }
+
+  const infoDirty =
+    (fullName.trim() || null) !== (profile?.full_name ?? null) ||
+    (phone.trim() || null) !== (profile?.phone ?? null) ||
+    (canton.trim() || null) !== (profile?.canton ?? null)
 
   useEffect(() => {
     if (!open) return
@@ -196,21 +241,38 @@ export default function ProfileSettingsDrawer({ open, onClose, initialPage = 'in
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
             <div>
               <FieldLabel>Nom complet</FieldLabel>
-              <TextInput value={profile?.full_name ?? ''} onChange={() => undefined} placeholder="Camille Aebischer" />
+              <TextInput value={fullName} onChange={setFullName} placeholder="Camille Aebischer" />
             </div>
             <div>
-              <FieldLabel>E-mail</FieldLabel>
-              <TextInput value={user?.email ?? ''} onChange={() => undefined} type="email" />
+              <FieldLabel hint="Géré par votre fournisseur de connexion.">E-mail</FieldLabel>
+              <input
+                type="email"
+                value={user?.email ?? ''}
+                disabled
+                style={{
+                  width: '100%',
+                  height: 38,
+                  padding: '0 12px',
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 10,
+                  fontFamily: T.fontStack,
+                  fontSize: 13,
+                  color: T.muted,
+                  outline: 'none',
+                  background: T.section,
+                  cursor: 'not-allowed',
+                }}
+              />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
             <div>
               <FieldLabel>Téléphone</FieldLabel>
-              <TextInput value={profile?.phone ?? ''} onChange={() => undefined} placeholder="+41 79 …" />
+              <TextInput value={phone} onChange={setPhone} placeholder="+41 79 …" type="tel" />
             </div>
             <div>
-              <FieldLabel>Canton</FieldLabel>
-              <TextInput value={profile?.canton ?? ''} onChange={() => undefined} placeholder="GE" />
+              <FieldLabel hint="Code de canton (GE, VD, ZH...).">Canton</FieldLabel>
+              <TextInput value={canton} onChange={setCanton} placeholder="GE" />
             </div>
           </div>
           <div style={{ marginBottom: 18 }}>
@@ -232,6 +294,48 @@ export default function ProfileSettingsDrawer({ open, onClose, initialPage = 'in
                 resize: 'vertical',
               }}
             />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => void saveInfo()}
+              disabled={!infoDirty || savingInfo}
+              style={{
+                height: 40,
+                padding: '0 18px',
+                borderRadius: 999,
+                border: 'none',
+                background: infoDirty && !savingInfo ? T.ink : T.section,
+                color: infoDirty && !savingInfo ? '#fff' : T.muted,
+                cursor: infoDirty && !savingInfo ? 'pointer' : 'not-allowed',
+                fontFamily: T.fontStack,
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              {savingInfo ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+            {savedInfo && (
+              <span
+                style={{
+                  fontFamily: T.fontStack,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: T.green,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                ✓ Enregistré
+              </span>
+            )}
+            {infoError && (
+              <span style={{ fontFamily: T.fontStack, fontSize: 12, color: T.dangerDark }}>
+                {infoError}
+              </span>
+            )}
           </div>
         </>
       )
