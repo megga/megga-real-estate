@@ -137,6 +137,9 @@ export default function ContactsSugarV2Page() {
         navigate('/dashboard/kyc'); break
       case 'reseau':
         navigate('/dashboard/reseau'); break
+      case 'ai':
+      case 'julien':
+        navigate('/dashboard/julien'); break
       case 'auto':
         navigate('/dashboard/automation'); break
       case 'chat':
