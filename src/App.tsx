@@ -47,6 +47,7 @@ const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
 const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
 const ParcoursSugarV2Page = lazy(() => import('@/pages/agent/ParcoursSugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
+const DocumentsSugarV2Page = lazy(() => import('@/pages/agent/DocumentsSugarV2Page'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
@@ -281,6 +282,7 @@ export default function App() {
                 <Route path="matching" element={<MatchingSugarV2Page />} />
                 <Route path="parcours" element={<ParcoursSugarV2Page />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
+                <Route path="documents" element={<DocumentsSugarV2Page />} />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
@@ -307,7 +309,7 @@ export default function App() {
                 <Route path="messages" element={<ChatPage />} />
                 <Route path="calendar-legacy" element={<CalendarPage />} />
                 <Route path="automation" element={<AutomationPage />} />
-                <Route path="documents" element={<TemplatesPage />} />
+                <Route path="documents-legacy" element={<TemplatesPage />} />
                 <Route path="documents/generate" element={<DocumentGenerator />} />
                 <Route path="documents/templates/new" element={<CustomTemplatePage />} />
                 <Route path="documents/view" element={<DocumentViewer />} />
