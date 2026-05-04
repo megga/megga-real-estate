@@ -12,7 +12,8 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import PasswordGate from '@/components/layout/PasswordGate'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import AgentLayout from '@/components/layout/AgentLayout'
-import ActionBoardPage from '@/pages/agent/ActionBoardPage'
+import AgentSugarLayout from '@/components/layout/AgentSugarLayout'
+import TodaySugarPage from '@/pages/agent/TodaySugarPage'
 import FavoritesLoginPrompt from '@/components/auth/FavoritesLoginPrompt'
 import CookieBanner from '@/components/CookieBanner'
 
@@ -246,7 +247,19 @@ export default function App() {
                 }
               />
 
-              {/* Agent dashboard (protected) */}
+              {/* Tier 3 — Sugar v2 Today screen (no traditional sidebar chrome) */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AgentSugarLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<TodaySugarPage />} />
+              </Route>
+
+              {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
               <Route
                 path="/dashboard"
                 element={
@@ -255,7 +268,6 @@ export default function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<ActionBoardPage />} />
                 <Route path="analytics" element={<DashboardPage />} />
                 <Route path="contacts" element={<ContactsPage />} />
                 <Route path="contacts/import" element={<ContactImportPage />} />
