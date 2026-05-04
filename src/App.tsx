@@ -56,6 +56,8 @@ const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
 const KycListPage = lazy(() => import('@/pages/agent/KycListPage'))
 const KycDetailPage = lazy(() => import('@/pages/agent/KycDetailPage'))
+const KycListSugarV2Page = lazy(() => import('@/pages/agent/KycListSugarV2Page'))
+const KycDetailSugarV2Page = lazy(() => import('@/pages/agent/KycDetailSugarV2Page'))
 const ChatPage = lazy(() => import('@/pages/agent/ChatPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const AutomationPage = lazy(() => import('@/pages/agent/AutomationPage'))
@@ -285,6 +287,8 @@ export default function App() {
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
                 <Route path="documents" element={<DocumentsSugarV2Page />} />
                 <Route path="settings" element={<SettingsSugarV2Page />} />
+                <Route path="kyc" element={<KycListSugarV2Page />} />
+                <Route path="kyc/:id" element={<KycDetailSugarV2Page />} />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
@@ -306,8 +310,8 @@ export default function App() {
                 <Route path="listings-legacy" element={<ListingsPage />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
-                <Route path="kyc" element={<KycListPage />} />
-                <Route path="kyc/:id" element={<KycDetailPage />} />
+                <Route path="kyc-legacy" element={<KycListPage />} />
+                <Route path="kyc-legacy/:id" element={<KycDetailPage />} />
                 <Route path="messages" element={<ChatPage />} />
                 <Route path="calendar-legacy" element={<CalendarPage />} />
                 <Route path="automation" element={<AutomationPage />} />
