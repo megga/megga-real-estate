@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useAuth } from '@/hooks/useAuth'
 import { useMessaging } from '@/hooks/useMessaging'
@@ -30,6 +31,7 @@ function formatBubbleTime(iso: string): string {
 export default function MessagesSection() {
   const { user, profile } = useAuth()
   const isMobile = useIsMobile()
+  const { t } = useTranslation('compte')
   const [selectedId, setSelectedId] = useState<string | null>(() => {
     try {
       return sessionStorage.getItem('megga_open_msg')
@@ -69,9 +71,9 @@ export default function MessagesSection() {
     return (
       <EmptyState
         icon={<MessageIcon size={28} />}
-        title="Aucun message"
-        body="Vos échanges avec les agents apparaîtront ici."
-        cta="Parcourir les biens"
+        title={t('empty.messages.title')}
+        body={t('empty.messages.body')}
+        cta={t('empty.messages.cta')}
         ctaHref="/louer"
       />
     )

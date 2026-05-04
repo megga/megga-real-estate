@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useSavedSearches } from '@/hooks/useSavedSearches'
 import { useMessaging } from '@/hooks/useMessaging'
@@ -55,6 +56,7 @@ function useManropeFont() {
 
 export default function ComptePage() {
   useManropeFont()
+  const { t } = useTranslation('compte')
 
   const [section, setSection] = useState<SectionKey>(readHashSection)
   const [logoutOpen, setLogoutOpen] = useState(false)
@@ -96,36 +98,37 @@ export default function ComptePage() {
 
   const meta: Record<SectionKey, { title: string; subtitle: string }> = {
     listings: {
-      title: 'Mes annonces',
+      title: t('tabs.listings.title'),
       subtitle:
         counts.listings === 0
-          ? 'Soumettez un dossier pour suivre la mise en vente ici.'
-          : `${counts.listings} dossier${counts.listings > 1 ? 's' : ''} en cours`,
+          ? t('tabs.listings.subtitle_empty')
+          : t('tabs.listings.subtitle_count', { count: counts.listings }),
     },
     searches: {
-      title: 'Mes recherches',
+      title: t('tabs.searches.title'),
       subtitle:
         counts.searches === 0
-          ? 'Sauvegardez une recherche pour recevoir des alertes.'
-          : `${counts.searches} recherche${counts.searches > 1 ? 's' : ''} sauvegardée${counts.searches > 1 ? 's' : ''}`,
+          ? t('tabs.searches.subtitle_empty')
+          : t('tabs.searches.subtitle_count', { count: counts.searches }),
     },
     favorites: {
-      title: 'Favoris',
+      title: t('tabs.favorites.title'),
       subtitle:
         counts.favorites === 0
-          ? 'Les biens que vous aimez apparaîtront ici.'
-          : `${counts.favorites} bien${counts.favorites > 1 ? 's' : ''} enregistré${counts.favorites > 1 ? 's' : ''}`,
+          ? t('tabs.favorites.subtitle_empty')
+          : t('tabs.favorites.subtitle_count', { count: counts.favorites }),
     },
     messages: {
-      title: 'Messagerie',
+      title: t('tabs.messages.title'),
       subtitle:
         threads.length === 0
-          ? 'Vos conversations avec les agents apparaîtront ici.'
-          : `${threads.length} conversation${threads.length > 1 ? 's' : ''}${unreadMessages > 0 ? ` · ${unreadMessages} non lu${unreadMessages > 1 ? 's' : ''}` : ''}`,
+          ? t('tabs.messages.subtitle_empty')
+          : t('tabs.messages.subtitle_count', { count: threads.length }) +
+            (unreadMessages > 0 ? t('tabs.messages.subtitle_unread', { count: unreadMessages }) : ''),
     },
     profile: {
-      title: 'Profil',
-      subtitle: 'Gérez votre compte et vos préférences.',
+      title: t('tabs.profile.title'),
+      subtitle: t('tabs.profile.subtitle'),
     },
   }
 
@@ -150,7 +153,7 @@ export default function ComptePage() {
             whiteSpace: 'nowrap',
           }}
         >
-          + Soumettre un bien
+          {t('tabs.listings.cta_submit')}
         </a>
       )
     }
@@ -174,7 +177,7 @@ export default function ComptePage() {
             whiteSpace: 'nowrap',
           }}
         >
-          <SearchIcon size={15} /> Nouvelle recherche
+          <SearchIcon size={15} /> {t('tabs.searches.cta_new')}
         </a>
       )
     }
@@ -199,7 +202,7 @@ export default function ComptePage() {
             whiteSpace: 'nowrap',
           }}
         >
-          Voir plus de biens
+          {t('tabs.favorites.cta_more')}
         </a>
       )
     }

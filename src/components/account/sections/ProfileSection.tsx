@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useAuth } from '@/hooks/useAuth'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -22,6 +23,7 @@ interface Props {
 }
 
 function GuestPanel() {
+  const { t } = useTranslation('compte')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>
       <div
@@ -42,7 +44,7 @@ function GuestPanel() {
             letterSpacing: -0.4,
           }}
         >
-          Créez votre compte MEGGA
+          {t('guest.title')}
         </div>
         <div
           style={{
@@ -54,8 +56,7 @@ function GuestPanel() {
             maxWidth: 520,
           }}
         >
-          Synchronisez vos favoris, recevez des alertes sur vos recherches sauvegardées, et échangez
-          avec les agents directement depuis votre tableau de bord.
+          {t('guest.body')}
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <a
@@ -74,7 +75,7 @@ function GuestPanel() {
               alignItems: 'center',
             }}
           >
-            Créer un compte
+            {t('guest.create')}
           </a>
           <a
             href="/login"
@@ -92,7 +93,7 @@ function GuestPanel() {
               alignItems: 'center',
             }}
           >
-            Se connecter
+            {t('guest.login')}
           </a>
         </div>
       </div>

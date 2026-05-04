@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
@@ -180,6 +181,7 @@ export default function FavoritesSection() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
+  const { t } = useTranslation('compte')
 
   const { data: listings = [] } = useQuery({
     queryKey: ['account-favorites', favoriteIds.join(',')],
@@ -202,9 +204,9 @@ export default function FavoritesSection() {
     return (
       <EmptyState
         icon={<HeartIcon size={28} />}
-        title="Aucun favori"
-        body="Cliquez sur le cœur d'un bien pour l'enregistrer ici. Vos favoris vous suivent sur tous vos appareils."
-        cta="Parcourir les biens"
+        title={t('empty.favorites.title')}
+        body={t('empty.favorites.body')}
+        cta={t('empty.favorites.cta')}
         ctaHref="/louer"
       />
     )

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import {
   SearchIcon,
@@ -13,16 +14,16 @@ export type SectionKey = 'listings' | 'searches' | 'favorites' | 'messages' | 'p
 
 interface SectionDef {
   key: SectionKey
-  label: string
+  labelKey: string
   icon: (props: { size?: number }) => React.ReactElement
 }
 
 export const SECTIONS: SectionDef[] = [
-  { key: 'listings', label: 'Mes annonces', icon: HomeIcon },
-  { key: 'searches', label: 'Mes recherches', icon: BookmarkIcon },
-  { key: 'favorites', label: 'Favoris', icon: HeartIcon },
-  { key: 'messages', label: 'Messagerie', icon: MessageIcon },
-  { key: 'profile', label: 'Profil', icon: UserIcon },
+  { key: 'listings', labelKey: 'rail.listings', icon: HomeIcon },
+  { key: 'searches', labelKey: 'rail.searches', icon: BookmarkIcon },
+  { key: 'favorites', labelKey: 'rail.favorites', icon: HeartIcon },
+  { key: 'messages', labelKey: 'rail.messages', icon: MessageIcon },
+  { key: 'profile', labelKey: 'rail.profile', icon: UserIcon },
 ]
 
 interface RailTabProps {
@@ -132,6 +133,7 @@ interface Props {
 
 export default function AccountRail({ section, counts, onSelect }: Props) {
   const navigate = useNavigate()
+  const { t } = useTranslation('compte')
 
   return (
     <aside
@@ -150,7 +152,7 @@ export default function AccountRail({ section, counts, onSelect }: Props) {
       <RailTab
         active={false}
         Icon={SearchIcon}
-        label="Recherche"
+        label={t('rail.search')}
         onClick={() => navigate('/louer')}
       />
       <div style={{ height: 1, background: T.border, margin: '8px 12px' }} />
@@ -159,7 +161,7 @@ export default function AccountRail({ section, counts, onSelect }: Props) {
           key={s.key}
           active={section === s.key}
           Icon={s.icon}
-          label={s.label}
+          label={t(s.labelKey)}
           count={counts[s.key]}
           onClick={() => onSelect(s.key)}
         />

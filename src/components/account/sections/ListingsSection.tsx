@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import {
   useVendorDossiers,
@@ -906,15 +907,16 @@ interface Props {
 
 export default function ListingsSection({ onSign, onOpenStats }: Props) {
   const { dossiers, advance, remove, submit } = useVendorDossiers()
+  const { t } = useTranslation('compte')
 
   if (dossiers.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <EmptyState
           icon={<HomeIcon size={28} />}
-          title="Vous n'avez pas encore d'annonce"
-          body="Soumettez un dossier pour vendre ou louer votre bien. Un agent partenaire vous contacte sous 48h, et vous suivez chaque étape ici."
-          cta="Soumettre un bien"
+          title={t('empty.listings.title')}
+          body={t('empty.listings.body')}
+          cta={t('empty.listings.cta')}
           ctaHref="/vendre"
         />
         {/* Demo seed button (only when empty) */}

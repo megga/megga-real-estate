@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { SECTIONS, type SectionKey } from './AccountRail'
 
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function AccountBottomBar({ section, counts, onSelect }: Props) {
+  const { t } = useTranslation('compte')
   return (
     <nav
       style={{
@@ -85,7 +87,7 @@ export default function AccountBottomBar({ section, counts, onSelect }: Props) {
                 whiteSpace: 'nowrap',
               }}
             >
-              {s.label.replace('Mes ', '')}
+              {t(s.labelKey).replace(/^Mes |^My /, '')}
             </span>
           </button>
         )

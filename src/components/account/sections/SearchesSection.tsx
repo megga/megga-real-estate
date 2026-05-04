@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useSavedSearches, type SavedSearch } from '@/hooks/useSavedSearches'
 import EmptyState from '../EmptyState'
@@ -210,14 +211,15 @@ function SearchCard({ search, onToggleAlert, onSetFreq, onDelete, onOpen }: Card
 export default function SearchesSection() {
   const { searches, deleteSearch, toggleAlert, updateFrequency } = useSavedSearches()
   const navigate = useNavigate()
+  const { t } = useTranslation('compte')
 
   if (searches.length === 0) {
     return (
       <EmptyState
         icon={<BookmarkIcon size={28} />}
-        title="Aucune recherche sauvegardée"
-        body="Sauvegardez vos critères depuis la page de recherche pour recevoir une alerte dès qu'un nouveau bien correspond."
-        cta="Lancer une recherche"
+        title={t('empty.searches.title')}
+        body={t('empty.searches.body')}
+        cta={t('empty.searches.cta')}
         ctaHref="/louer"
       />
     )

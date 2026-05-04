@@ -1,0 +1,78 @@
+{
+  "rail": {
+    "search": "Suche",
+    "listings": "Meine Inserate",
+    "searches": "Meine Suchen",
+    "favorites": "Favoriten",
+    "messages": "Nachrichten",
+    "profile": "Profil"
+  },
+  "header": {
+    "settings": "Einstellungen",
+    "help": "Hilfe & Support",
+    "logout": "Abmelden"
+  },
+  "tabs": {
+    "listings": {
+      "title": "Meine Inserate",
+      "subtitle_empty": "Reichen Sie eine Akte ein, um die Vermarktung hier zu verfolgen.",
+      "subtitle_count_one": "{{count}} laufende Akte",
+      "subtitle_count_other": "{{count}} laufende Akten",
+      "cta_submit": "+ Objekt einreichen"
+    },
+    "searches": {
+      "title": "Meine Suchen",
+      "subtitle_empty": "Speichern Sie eine Suche, um Benachrichtigungen zu erhalten.",
+      "subtitle_count_one": "{{count}} gespeicherte Suche",
+      "subtitle_count_other": "{{count}} gespeicherte Suchen",
+      "cta_new": "Neue Suche"
+    },
+    "favorites": {
+      "title": "Favoriten",
+      "subtitle_empty": "Die Objekte, die Ihnen gefallen, erscheinen hier.",
+      "subtitle_count_one": "{{count}} gespeichertes Objekt",
+      "subtitle_count_other": "{{count}} gespeicherte Objekte",
+      "cta_more": "Mehr Objekte ansehen"
+    },
+    "messages": {
+      "title": "Nachrichten",
+      "subtitle_empty": "Ihre Gespräche mit den Maklern erscheinen hier.",
+      "subtitle_count_one": "{{count}} Konversation",
+      "subtitle_count_other": "{{count}} Konversationen",
+      "subtitle_unread_one": " · {{count}} ungelesen",
+      "subtitle_unread_other": " · {{count}} ungelesene"
+    },
+    "profile": {
+      "title": "Profil",
+      "subtitle": "Verwalten Sie Ihr Konto und Ihre Präferenzen."
+    }
+  },
+  "empty": {
+    "favorites": {
+      "title": "Keine Favoriten",
+      "body": "Klicken Sie auf das Herzsymbol eines Objekts, um es hier zu speichern. Ihre Favoriten folgen Ihnen auf allen Geräten.",
+      "cta": "Objekte durchsuchen"
+    },
+    "searches": {
+      "title": "Keine gespeicherte Suche",
+      "body": "Speichern Sie Ihre Kriterien auf der Suchseite, um benachrichtigt zu werden, sobald ein neues Objekt passt.",
+      "cta": "Suche starten"
+    },
+    "messages": {
+      "title": "Keine Nachrichten",
+      "body": "Ihre Gespräche mit den Maklern erscheinen hier.",
+      "cta": "Objekte durchsuchen"
+    },
+    "listings": {
+      "title": "Noch kein Inserat",
+      "body": "Reichen Sie eine Akte ein, um Ihr Objekt zu verkaufen oder zu vermieten. Ein Partner-Makler kontaktiert Sie innerhalb von 48 Stunden.",
+      "cta": "Objekt einreichen"
+    }
+  },
+  "guest": {
+    "title": "Erstellen Sie Ihr MEGGA-Konto",
+    "body": "Synchronisieren Sie Ihre Favoriten, erhalten Sie Benachrichtigungen zu gespeicherten Suchen und tauschen Sie sich direkt aus Ihrem Dashboard mit Maklern aus.",
+    "create": "Konto erstellen",
+    "login": "Anmelden"
+  }
+}

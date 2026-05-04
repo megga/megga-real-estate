@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
-// Vendor dossiers — local-first store mirroring what /vendre's wizard
-// will eventually persist to Supabase. For now it lives in localStorage so
-// the account page can show realistic pipeline cards without a new migration.
+// Vendor dossiers — local-first store synced to Supabase when authenticated.
 //
-// When a `vendor_dossiers` table lands, swap the read/write paths to mirror
-// the saved_searches pattern (localStorage → DB on login, then DB-only).
+// Pattern identique à useSavedSearches v2 :
+//   - Anonyme : localStorage uniquement
+//   - Connecté : merge localStorage → DB au premier login (idempotent),
+//     puis bascule en mode DB-first
+//   - Toutes les mutations passent par DB si user connecté, sinon localStorage
 
 export const PIPELINE_STEPS = [
   { key: 'received', label: 'Reçu', sub: 'Dossier transmis' },
@@ -73,7 +75,16 @@ const TYPE_LABELS: Record<VendorDossier['propertyType'], string> = {
   commercial: 'Local commercial',
 }
 
-function load(): VendorDossier[] {
+const AGENTS = [
+  { name: 'Marc Dubois', role: 'Agent · Genève', initials: 'MD' },
+  { name: 'Sophie Martin', role: 'Agente · Lausanne', initials: 'SM' },
+  { name: 'Thomas Berger', role: 'Agent · Zürich', initials: 'TB' },
+  { name: 'Léa Clément', role: 'Agente · Vaud', initials: 'LC' },
+]
+
+// ─── localStorage helpers ─────────────────────────────────────────────────
+
+function loadLocal(): VendorDossier[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
@@ -84,7 +95,7 @@ function load(): VendorDossier[] {
   }
 }
 
-function save(items: VendorDossier[]) {
+function saveLocal(items: VendorDossier[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
   } catch {
@@ -92,18 +103,140 @@ function save(items: VendorDossier[]) {
   }
 }
 
-let global = typeof window === 'undefined' ? [] : load()
+function clearLocal() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+// ─── DB row ↔ frontend type mapping ───────────────────────────────────────
+
+interface DbRow {
+  id: string
+  user_id: string
+  title: string
+  transaction: VendorDossier['transaction']
+  property_type: VendorDossier['propertyType']
+  address: string
+  surface: string | null
+  rooms: number | null
+  photos_count: number
+  status: PipelineStatus
+  status_history: VendorDossier['statusHistory']
+  agent: VendorDossier['agent']
+  estimation: VendorDossier['estimation'] | null
+  publication: VendorDossier['publication'] | null
+  next_action: VendorDossier['nextAction'] | null
+  msg_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+function dbToFrontend(row: DbRow): VendorDossier {
+  return {
+    id: row.id,
+    title: row.title,
+    transaction: row.transaction,
+    propertyType: row.property_type,
+    address: row.address,
+    surface: row.surface ?? '',
+    rooms: row.rooms,
+    photos: row.photos_count,
+    status: row.status,
+    statusHistory: row.status_history ?? [],
+    createdAt: new Date(row.created_at).getTime(),
+    agent: row.agent,
+    estimation: row.estimation ?? undefined,
+    publication: row.publication ?? undefined,
+    nextAction: row.next_action ?? undefined,
+    msgId: row.msg_id ?? undefined,
+  }
+}
+
+function frontendToDb(d: VendorDossier, userId: string): Omit<DbRow, 'created_at' | 'updated_at'> {
+  return {
+    id: d.id,
+    user_id: userId,
+    title: d.title,
+    transaction: d.transaction,
+    property_type: d.propertyType,
+    address: d.address,
+    surface: typeof d.surface === 'number' ? String(d.surface) : d.surface || null,
+    rooms: typeof d.rooms === 'number' ? d.rooms : null,
+    photos_count: d.photos,
+    status: d.status,
+    status_history: d.statusHistory,
+    agent: d.agent,
+    estimation: d.estimation ?? null,
+    publication: d.publication ?? null,
+    next_action: d.nextAction ?? null,
+    msg_id: d.msgId ?? null,
+  }
+}
+
+// ─── Singleton state ──────────────────────────────────────────────────────
+
+let cache: VendorDossier[] = typeof window === 'undefined' ? [] : loadLocal()
 const listeners = new Set<() => void>()
+let migratedUserId: string | null = null
+
 function notify() {
   listeners.forEach((fn) => fn())
 }
 
-const AGENTS = [
-  { name: 'Marc Dubois', role: 'Agent · Genève', initials: 'MD' },
-  { name: 'Sophie Martin', role: 'Agente · Lausanne', initials: 'SM' },
-  { name: 'Thomas Berger', role: 'Agent · Zürich', initials: 'TB' },
-  { name: 'Léa Clément', role: 'Agente · Vaud', initials: 'LC' },
-]
+// ─── DB sync ──────────────────────────────────────────────────────────────
+
+async function fetchRemote(userId: string): Promise<VendorDossier[]> {
+  const { data, error } = await supabase
+    .from('vendor_dossiers')
+    .select(
+      'id, user_id, title, transaction, property_type, address, surface, rooms, photos_count, status, status_history, agent, estimation, publication, next_action, msg_id, created_at, updated_at'
+    )
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return ((data ?? []) as DbRow[]).map(dbToFrontend)
+}
+
+async function upsertRemote(d: VendorDossier, userId: string) {
+  await supabase.from('vendor_dossiers').upsert(frontendToDb(d, userId))
+}
+
+async function deleteRemote(id: string, userId: string) {
+  await supabase.from('vendor_dossiers').delete().match({ id, user_id: userId })
+}
+
+async function migrateOnLogin(userId: string) {
+  if (migratedUserId === userId) return
+  migratedUserId = userId
+
+  const local = loadLocal()
+  const remote = await fetchRemote(userId)
+
+  // Push local-only dossiers to remote (idempotent — id is the same)
+  const remoteIds = new Set(remote.map((d) => d.id))
+  const onlyLocal = local.filter((d) => !remoteIds.has(d.id))
+  if (onlyLocal.length > 0) {
+    await Promise.all(onlyLocal.map((d) => upsertRemote(d, userId)))
+  }
+
+  // Use union (remote + local-only) as the new cache, sorted by createdAt
+  const union = [...remote, ...onlyLocal].sort((a, b) => b.createdAt - a.createdAt)
+  cache = union
+  saveLocal(union)
+  notify()
+}
+
+function resetSync() {
+  migratedUserId = null
+  // Reload from localStorage (anonymous mode)
+  cache = loadLocal()
+  notify()
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────────────
 
 export function useVendorDossiers() {
   const [, setTick] = useState(0)
@@ -116,16 +249,52 @@ export function useVendorDossiers() {
     }
   }, [])
 
+  // Sync with auth user on mount + auth changes
+  useEffect(() => {
+    let cancelled = false
+    async function run() {
+      const { data } = await supabase.auth.getUser()
+      if (cancelled) return
+      if (data.user) {
+        migrateOnLogin(data.user.id).catch(() => {
+          /* silent — fall back to local */
+        })
+      } else {
+        resetSync()
+      }
+    }
+    run()
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        migrateOnLogin(session.user.id).catch(() => {
+          /* silent */
+        })
+      } else {
+        resetSync()
+      }
+    })
+    return () => {
+      cancelled = true
+      sub.subscription.unsubscribe()
+    }
+  }, [])
+
   const submit = useCallback(
-    (input: Partial<VendorDossier> & { propertyType: VendorDossier['propertyType']; transaction: VendorDossier['transaction']; address: string }) => {
+    (input: Partial<VendorDossier> & {
+      propertyType: VendorDossier['propertyType']
+      transaction: VendorDossier['transaction']
+      address: string
+    }) => {
       const id = `L${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
-      const agent = AGENTS[global.length % AGENTS.length]
+      const agent = AGENTS[cache.length % AGENTS.length]
       const now = Date.now()
 
       const typeLabel = TYPE_LABELS[input.propertyType]
       const baseTitle =
         input.title?.trim() ||
-        `${typeLabel}${input.rooms ? ` ${input.rooms} pces` : ''}${input.address ? ` · ${input.address.split(',')[0]}` : ''}`
+        `${typeLabel}${input.rooms ? ` ${input.rooms} pces` : ''}${
+          input.address ? ` · ${input.address.split(',')[0]}` : ''
+        }`
 
       const dossier: VendorDossier = {
         id,
@@ -143,16 +312,23 @@ export function useVendorDossiers() {
         nextAction: { label: "L'agent vous contacte sous 48h", due: now + 48 * 3600 * 1000 },
       }
 
-      global = [dossier, ...global]
-      save(global)
+      cache = [dossier, ...cache]
+      saveLocal(cache)
       notify()
+
+      // Write-through to DB if synced
+      if (migratedUserId) {
+        upsertRemote(dossier, migratedUserId).catch(() => {
+          /* silent */
+        })
+      }
       return dossier
     },
     []
   )
 
   const advance = useCallback((id: string, status: PipelineStatus) => {
-    global = global.map((d) => {
+    cache = cache.map((d) => {
       if (d.id !== id) return d
       const next: VendorDossier = {
         ...d,
@@ -198,24 +374,46 @@ export function useVendorDossiers() {
         }
       }
 
+      // Write-through to DB
+      if (migratedUserId) {
+        upsertRemote(next, migratedUserId).catch(() => {
+          /* silent */
+        })
+      }
+
       return next
     })
-    save(global)
+    saveLocal(cache)
     notify()
   }, [])
 
   const remove = useCallback((id: string) => {
-    global = global.filter((d) => d.id !== id)
-    save(global)
+    cache = cache.filter((d) => d.id !== id)
+    saveLocal(cache)
     notify()
+    if (migratedUserId) {
+      deleteRemote(id, migratedUserId).catch(() => {
+        /* silent */
+      })
+    }
+  }, [])
+
+  const clearAll = useCallback(() => {
+    cache = []
+    saveLocal(cache)
+    notify()
+    if (migratedUserId) {
+      void supabase.from('vendor_dossiers').delete().eq('user_id', migratedUserId)
+    }
   }, [])
 
   return {
-    dossiers: global,
+    dossiers: cache,
     submit,
     advance,
     remove,
+    clearAll,
   }
 }
 
-export { STATUS_LABELS, TYPE_LABELS }
+export { STATUS_LABELS, TYPE_LABELS, clearLocal as _clearLocalDossiersStorage }
