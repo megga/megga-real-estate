@@ -190,9 +190,9 @@ export default function HomeHeroSection() {
             textShadow: '0 2px 20px rgba(0,0,0,0.3)',
           }}
         >
-          Trouvez votre bien.
+          Trouvez votre prochain
           <br />
-          Partout en Suisse.
+          bien en Suisse.
         </h1>
       </div>
 
@@ -217,8 +217,7 @@ export default function HomeHeroSection() {
             margin: 0,
           }}
         >
-          La marketplace de référence pour acheter, louer ou vendre un bien immobilier en Suisse —
-          avec la transparence et la conformité MEGGA.
+          Plus de 33'000 biens à louer ou à acheter, dans les 26 cantons.
         </p>
       </div>
 

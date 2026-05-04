@@ -120,7 +120,12 @@
     "whatUsersSay": "Ce qu'en disent nos utilisateurs",
     "everythingYouNeed": "Tout ce dont vous avez besoin",
     "completePlatform": "Une plateforme complète pour gérer votre activité immobilière",
-    "integrationsPartners": "Intégrations & partenaires"
+    "integrationsPartners": "Intégrations & partenaires",
+    "trustTitle": "Conçu en Suisse, ouvert au reste du monde.",
+    "trustSms": "Logiciel suisse certifié",
+    "trustC2pa": "Photos d'annonces authentifiées",
+    "trustGcal": "Visites synchronisées Google Calendar",
+    "trustOutlook": "Compatible Outlook & Microsoft 365"
   },
   "footer": {
     "certifiedRecognized": "Certifié et reconnu",
