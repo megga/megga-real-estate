@@ -18,6 +18,8 @@ import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesS
 import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
 import { PrivacySection } from '@/components/crm-sugar/settings/PrivacySection'
 import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
+import { AgencySection } from '@/components/crm-sugar/settings/AgencySection'
+import { TeamSection } from '@/components/crm-sugar/settings/TeamSection'
 import {
   SETTINGS_SECTIONS, SET_PALETTE, type SectionId,
 } from '@/components/crm-sugar/settings/data'
@@ -72,6 +74,8 @@ export default function SettingsSugarV2Page() {
 
   const renderContent = () => {
     if (active === 'profile') return <ProfileSection />
+    if (active === 'agency') return <AgencySection />
+    if (active === 'team') return <TeamSection />
     if (active === 'notifications') return <NotificationsSection />
     if (active === 'preferences') return <PreferencesSection />
     if (active === 'security') return <SecuritySection />

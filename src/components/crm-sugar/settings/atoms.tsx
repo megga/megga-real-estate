@@ -191,6 +191,23 @@ const PATHS: Record<SettingsIconName, ReactNode> = {
       <path d="M8 8h8M8 12h8M8 16h5" />
     </>
   ),
+  mailSend: (
+    <>
+      <path d="M22 11V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9" />
+      <path d="m2 7 10 6 10-6" />
+      <path d="M16 19h6M19 16l3 3-3 3" />
+    </>
+  ),
+  crown: (
+    <path d="M2 7l5 5 5-7 5 7 5-5-2 13H4L2 7Z" />
+  ),
+  more: (
+    <>
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="6" cy="12" r="1.5" />
+      <circle cx="18" cy="12" r="1.5" />
+    </>
+  ),
 }
 
 interface SetIconProps {
@@ -220,12 +237,14 @@ export function SetIcon({ name, size = 18, stroke = 'currentColor', sw = 1.6 }: 
 interface SetInputProps {
   label?: string
   hint?: string
-  value: string
+  value: string | number
   onChange: (v: string) => void
   type?: string
   placeholder?: string
   disabled?: boolean
   autoFocus?: boolean
+  prefix?: string
+  suffix?: string
 }
 
 export function SetInput({
@@ -237,6 +256,8 @@ export function SetInput({
   placeholder,
   disabled,
   autoFocus,
+  prefix,
+  suffix,
 }: SetInputProps) {
   const [focus, setFocus] = useState(false)
   return (
@@ -259,6 +280,7 @@ export function SetInput({
         style={{
           display: 'flex',
           alignItems: 'center',
+          gap: prefix || suffix ? 6 : 0,
           height: 48,
           padding: '0 16px',
           borderRadius: 14,
@@ -270,9 +292,14 @@ export function SetInput({
           transition: 'all .18s ease',
         }}
       >
+        {prefix && (
+          <span style={{ fontSize: 14, color: SET.muted, fontWeight: 500 }}>
+            {prefix}
+          </span>
+        )}
         <input
           type={type}
-          value={value || ''}
+          value={value === undefined || value === null ? '' : String(value)}
           autoFocus={autoFocus}
           disabled={disabled}
           onChange={e => onChange(e.target.value)}
@@ -290,6 +317,11 @@ export function SetInput({
             color: SET.ink,
           }}
         />
+        {suffix && (
+          <span style={{ fontSize: 14, color: SET.muted, fontWeight: 500 }}>
+            {suffix}
+          </span>
+        )}
       </div>
       {hint && (
         <div style={{ marginTop: 6, fontSize: 12, color: SET.muted }}>{hint}</div>
