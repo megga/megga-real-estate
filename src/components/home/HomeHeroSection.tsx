@@ -161,12 +161,13 @@ export default function HomeHeroSection() {
         }}
       />
 
-      {/* Hero copy — bottom-left */}
+      {/* Hero copy — bottom-left (desktop) / top-area (mobile au-dessus de la search) */}
       <div
+        className="hero-copy"
         style={{
           position: 'absolute',
           left: 'clamp(20px, 5vw, 80px)',
-          bottom: 'clamp(280px, 32vh, 360px)',
+          bottom: 'clamp(420px, 38vh, 380px)',
           maxWidth: 760,
           zIndex: 2,
         }}
@@ -177,14 +178,16 @@ export default function HomeHeroSection() {
           <Chip>Terrain</Chip>
         </div>
         <h1
+          className="hero-h1"
           style={{
             fontFamily: FONT,
-            fontSize: 'clamp(44px, 7vw, 88px)',
+            fontSize: 'clamp(36px, 7vw, 88px)',
             fontWeight: 700,
             lineHeight: 1.0,
             color: '#fff',
             margin: 0,
             letterSpacing: -2.5,
+            textShadow: '0 2px 20px rgba(0,0,0,0.3)',
           }}
         >
           Trouvez votre bien.
@@ -410,6 +413,16 @@ export default function HomeHeroSection() {
           }
           .hero-search-grid > button[type="submit"] {
             grid-column: 1 / -1;
+          }
+        }
+        @media (max-width: 767px) {
+          /* On mobile, position hero copy near top so it stays above the search card */
+          .hero-copy {
+            bottom: auto !important;
+            top: 96px !important;
+          }
+          .hero-h1 {
+            letter-spacing: -1.2 !important;
           }
         }
       `}</style>
