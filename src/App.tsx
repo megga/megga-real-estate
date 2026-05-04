@@ -42,6 +42,7 @@ const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
 const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
+const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
@@ -271,6 +272,7 @@ export default function App() {
               >
                 <Route index element={<TodaySugarPage />} />
                 <Route path="pipeline" element={<PipelineSugarV2Page />} />
+                <Route path="contacts" element={<ContactsSugarV2Page />} />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
@@ -283,7 +285,7 @@ export default function App() {
                 }
               >
                 <Route path="analytics" element={<DashboardPage />} />
-                <Route path="contacts" element={<ContactsPage />} />
+                <Route path="contacts-legacy" element={<ContactsPage />} />
                 <Route path="contacts/import" element={<ContactImportPage />} />
                 <Route path="contacts/:id" element={<ContactDetailPage />} />
                 <Route path="pipeline-legacy" element={<PipelinePage />} />
