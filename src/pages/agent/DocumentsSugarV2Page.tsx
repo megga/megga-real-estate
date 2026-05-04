@@ -125,7 +125,7 @@ export default function DocumentsSugarV2Page() {
           style={{
             flex: 1,
             minWidth: 0,
-            padding: '32px 40px 24px 0',
+            padding: '100px 40px 24px 40px',
             display: 'flex',
             flexDirection: 'column',
             gap: 14,

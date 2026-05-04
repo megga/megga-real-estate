@@ -123,7 +123,7 @@ export default function SettingsSugarV2Page() {
           style={{
             flex: 1,
             minWidth: 0,
-            padding: '32px 40px 60px 40px',
+            padding: '100px 40px 60px 40px',
             maxWidth: 1480,
             margin: '0 auto',
             width: '100%',
