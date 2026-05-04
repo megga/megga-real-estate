@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark } from 'lucide-react'
+import { Menu, X, LogOut, LayoutDashboard, User, Plus, Heart, Bookmark, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useAvatar } from '@/hooks/useAvatar'
@@ -537,30 +537,38 @@ export default function Navbar() {
                   </div>
                   <div className="py-1">
                     <Link
-                      to={isAgent ? '/dashboard' : '/portail'}
+                      to={isAgent ? '/dashboard' : '/compte#profile'}
                       className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
                       {isAgent ? <LayoutDashboard className="h-4 w-4 text-theme-muted" /> : <User className="h-4 w-4 text-theme-muted" />}
-                      {isAgent ? 'Dashboard' : 'Mon espace'}
+                      {isAgent ? 'Dashboard' : 'Mon compte'}
                     </Link>
                     {!isAgent && (
                       <>
                         <Link
-                          to="/acheter?favorites=true"
+                          to="/compte#favorites"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
                           <Heart className="h-4 w-4 text-theme-muted" />
-                          Mes favoris
+                          Favoris
                         </Link>
                         <Link
-                          to="/acheter?saved=true"
+                          to="/compte#searches"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
                           <Bookmark className="h-4 w-4 text-theme-muted" />
                           Mes recherches
+                        </Link>
+                        <Link
+                          to="/compte#messages"
+                          className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <MessageSquare className="h-4 w-4 text-theme-muted" />
+                          Messagerie
                         </Link>
                       </>
                     )}
