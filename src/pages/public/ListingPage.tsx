@@ -246,7 +246,10 @@ export default function ListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div
+      className="min-h-screen bg-white"
+      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
+    >
       <Navbar />
 
       {/* ── Hero Gallery ── */}
