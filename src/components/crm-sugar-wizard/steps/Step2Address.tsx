@@ -1,0 +1,513 @@
+// MEGGA CRM Sugar v2 Wizard — Step 2 : Adresse
+// 1:1 port from the Claude Design bundle (crm-wizard-sugar-step2.jsx).
+// Mapbox Light + geocoding live, autocomplete, accordion "Affiner".
+
+import { useState, useEffect, useRef } from 'react'
+import { SugarV2, cantonShortFromName, type WizardData } from '../tokens'
+import { SgInput } from '../primitives'
+import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
+
+const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN as string | undefined) || ''
+const MAPBOX_STYLE = 'mapbox/light-v11'
+
+interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
+
+interface MapboxFeature {
+  id: string
+  place_name: string
+  text: string
+  center: [number, number]
+  context: { id?: string; text?: string }[]
+  properties: { address?: string }
+  address?: string
+}
+
+declare global {
+  interface Window {
+    mapboxgl?: {
+      accessToken: string
+      Map: new (opts: object) => {
+        on: (event: string, cb: (e: { error?: { status?: number } }) => void) => void
+        flyTo: (opts: { center: [number, number]; zoom: number; duration: number; essential: boolean }) => void
+        remove: () => void
+      }
+      Marker: new (el: HTMLElement) => { setLngLat: (c: [number, number]) => { addTo: (m: object) => unknown }; remove: () => void }
+    }
+  }
+}
+
+export function Step2Address({ data, set }: StepProps) {
+  const allContacts = CRM_CONTACTS
+  const linkedOwner = data.ownerContactId
+    ? (allContacts.find(c => c.id === data.ownerContactId) || data._newContact)
+    : null
+
+  const [query, setQuery] = useState(data.addr || '')
+  const [suggestions, setSuggestions] = useState<MapboxFeature[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [confirmed, setConfirmed] = useState(!!data.addrConfirmed)
+  const [loading, setLoading] = useState(false)
+  const [showRefine, setShowRefine] = useState(false)
+  const [coords, setCoords] = useState<[number, number] | null>(data.coords || null)
+  const debounceRef = useRef<number | null>(null)
+
+  const geocode = async (q: string, autoConfirm = false) => {
+    if (!q || q.length < 3) { setSuggestions([]); return }
+    setLoading(true)
+    try {
+      if (!MAPBOX_TOKEN) throw new Error('No Mapbox token')
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json`
+        + `?access_token=${MAPBOX_TOKEN}&country=ch&limit=5&language=fr&types=address`
+      const res = await fetch(url)
+      const json = await res.json()
+      const feats: MapboxFeature[] = (json.features || []).map((f: { id: string; place_name: string; text: string; center: [number, number]; context?: { id?: string; text?: string }[]; properties?: { address?: string }; address?: string }) => ({
+        id: f.id,
+        place_name: f.place_name,
+        text: f.text,
+        center: f.center,
+        context: f.context || [],
+        properties: f.properties || {},
+        address: f.address,
+      }))
+      setSuggestions(feats)
+      setShowSuggestions(!autoConfirm)
+      if (autoConfirm && feats[0]) chooseSuggestion(feats[0], true)
+    } catch {
+      const fake = mockSuggestions(q)
+      setSuggestions(fake)
+      setShowSuggestions(!autoConfirm)
+      if (autoConfirm && fake[0]) chooseSuggestion(fake[0], true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Pré-fill : si data.addr présente (depuis soumission), tenter un geocode auto
+  useEffect(() => {
+    if (data.addr && !confirmed && !coords) {
+      geocode(data.addr, true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const onChangeQuery = (v: string) => {
+    setQuery(v)
+    setConfirmed(false)
+    set({ addr: v, addrConfirmed: false })
+    if (debounceRef.current) window.clearTimeout(debounceRef.current)
+    debounceRef.current = window.setTimeout(() => geocode(v), 250)
+  }
+
+  const chooseSuggestion = (s: MapboxFeature, _silent = false) => {
+    const ctx = s.context || []
+    const postcode = (ctx.find(c => c.id?.startsWith('postcode')) || {}).text || ''
+    const place = (ctx.find(c => c.id?.startsWith('place')) || {}).text || ''
+    const region = (ctx.find(c => c.id?.startsWith('region')) || {}).text || ''
+    const cantonShort = cantonShortFromName(region)
+    const houseNum = s.address || s.properties?.address || ''
+    const street = s.text || ''
+
+    setQuery(s.place_name)
+    setSuggestions([])
+    setShowSuggestions(false)
+    setConfirmed(true)
+    setCoords(s.center)
+    set({
+      addr: s.place_name, addrConfirmed: true,
+      addrStreet: street, addrHouseNumber: houseNum,
+      postCode: postcode, city: place,
+      canton: region, cantonShort,
+      coords: s.center,
+    })
+  }
+
+  const reset = () => {
+    setConfirmed(false)
+    setQuery('')
+    setSuggestions([])
+    setCoords(null)
+    set({ addr: '', addrConfirmed: false, coords: null })
+  }
+
+  return (
+    <div style={{ maxWidth: 980, margin: '0 auto',
+      animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
+
+      <div style={{ marginBottom: 32, maxWidth: 720 }}>
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: SugarV2.muted,
+          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
+        }}>Étape 3 sur 8 · Adresse</div>
+        <h1 style={{
+          margin: '0 0 14px', fontSize: 38, fontWeight: 700,
+          color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
+        }}>Où se situe le bien&nbsp;?</h1>
+        <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
+          Tapez une adresse, MEGGA AI complète le code postal, le canton et les coordonnées.
+        </p>
+
+        {linkedOwner && (
+          <div style={{
+            marginTop: 18,
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            padding: '8px 14px 8px 8px', borderRadius: 999,
+            background: SugarV2.card, boxShadow: SugarV2.shadowSm,
+          }}>
+            <div style={{
+              width: 26, height: 26, borderRadius: 999,
+              background: linkedOwner.avatarBg || '#3B82F6',
+              color: '#fff', display: 'grid', placeItems: 'center',
+              fontSize: 10, fontWeight: 700, flexShrink: 0,
+            }}>{(linkedOwner.firstName?.[0] || '') + (linkedOwner.lastName?.[0] || '')}</div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: SugarV2.ink }}>
+              Pour {linkedOwner.firstName} {linkedOwner.lastName}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Recherche centrale */}
+      <div style={{ position: 'relative', marginBottom: 14 }}>
+        <div style={{
+          background: SugarV2.card, borderRadius: 24,
+          padding: '8px 8px 8px 22px',
+          boxShadow: confirmed ? SugarV2.shadowSm : SugarV2.shadow,
+          display: 'flex', alignItems: 'center', gap: 14,
+          transition: 'all .25s ease',
+        }}>
+          {confirmed ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ok} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+            </svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={SugarV2.muted} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 10c0 7-8 13-8 13S4 17 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+          )}
+          <input autoFocus={!confirmed}
+            value={query}
+            onChange={e => onChangeQuery(e.target.value)}
+            onFocus={() => setShowSuggestions(suggestions.length > 0)}
+            placeholder="Rue, numéro, ville…"
+            style={{
+              flex: 1, height: 56, border: 0, background: 'transparent',
+              outline: 'none', fontFamily: 'inherit',
+              fontSize: 17, color: SugarV2.ink, fontWeight: 500, letterSpacing: -0.2,
+            }} />
+          {loading && (
+            <div style={{
+              width: 16, height: 16, borderRadius: 999,
+              border: `2px solid ${SugarV2.ghost}`, borderTopColor: SugarV2.ink,
+              animation: 'sgSpin .8s linear infinite', marginRight: 8,
+            }} />
+          )}
+          {confirmed && (
+            <button onClick={reset} style={{
+              height: 36, padding: '0 14px', borderRadius: 999, border: 0,
+              background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
+              fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              marginRight: 6,
+            }}>Modifier</button>
+          )}
+        </div>
+
+        {showSuggestions && suggestions.length > 0 && !confirmed && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0,
+            marginTop: 8, background: SugarV2.card, borderRadius: 18,
+            boxShadow: SugarV2.shadowLg, padding: 6, zIndex: 20,
+            animation: 'sgFadeUp .25s cubic-bezier(.2,.8,.2,1) both',
+          }}>
+            {suggestions.map(s => (
+              <button key={s.id} onClick={() => chooseSuggestion(s)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                  padding: '12px 14px', borderRadius: 12, border: 0,
+                  background: 'transparent', color: SugarV2.ink, fontFamily: 'inherit',
+                  textAlign: 'left', cursor: 'pointer',
+                  transition: 'background .15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = SugarV2.cardSubtle}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={SugarV2.muted} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M20 10c0 7-8 13-8 13S4 17 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 14, fontWeight: 600, color: SugarV2.ink,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{s.place_name}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Carte */}
+      <div style={{
+        position: 'relative', marginTop: 22, marginBottom: 22,
+        borderRadius: 24, overflow: 'hidden',
+        boxShadow: SugarV2.shadow,
+        background: SugarV2.cardSubtle,
+        height: 380,
+      }}>
+        <SgMapbox coords={coords} confirmed={confirmed} />
+      </div>
+
+      {/* Card "Données extraites" + Affiner */}
+      {confirmed && (
+        <div style={{
+          background: SugarV2.card, borderRadius: 24, padding: 24,
+          boxShadow: SugarV2.shadow,
+          animation: 'sgScaleIn .35s cubic-bezier(.2,.8,.2,1) both',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 11,
+              background: 'rgba(16,185,129,0.12)',
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ok} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
+                  Adresse confirmée
+                </span>
+                <span style={{
+                  padding: '3px 9px', borderRadius: 999,
+                  background: SugarV2.black, color: '#fff',
+                  fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                }}>MEGGA AI</span>
+              </div>
+              <div style={{ fontSize: 12, color: SugarV2.muted, fontWeight: 500 }}>
+                Code postal, canton et coordonnées détectés automatiquement.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            {[
+              { label: 'Code postal', value: data.postCode || '—' },
+              { label: 'Ville', value: data.city || '—' },
+              { label: 'Canton', value: data.canton ? `${data.canton} (${data.cantonShort || '—'})` : '—' },
+              { label: 'Coordonnées', value: coords ? `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}` : '—' },
+            ].map((f, i) => (
+              <div key={i} style={{
+                padding: '12px 14px', borderRadius: 12,
+                background: SugarV2.cardSubtle,
+              }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 600, color: SugarV2.muted,
+                  letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4,
+                }}>{f.label}</div>
+                <div style={{
+                  fontSize: 13, fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{f.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 18 }}>
+            <button onClick={() => setShowRefine(s => !s)} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 14px', borderRadius: 12, border: 0,
+              background: 'transparent', color: SugarV2.ink,
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: showRefine ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform .2s ease' }}>
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+              Affiner les détails (étage, lot, parcelle…)
+            </button>
+
+            {showRefine && (
+              <div style={{
+                marginTop: 8, padding: 18,
+                borderRadius: 16, background: SugarV2.cardSubtle,
+                animation: 'sgFadeUp .3s cubic-bezier(.2,.8,.2,1) both',
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 14 }}>
+                  <SgInput label="N° d'appartement / lot" value={data.unit || ''} onChange={v => set({ unit: v })} placeholder="Ex: 3B" />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <SgInput label="Étage" value={data.floor != null ? String(data.floor) : ''} onChange={v => set({ floor: v ? parseInt(v) : null })} placeholder="3" />
+                    <SgInput label="Sur" value={data.floorsTotal != null ? String(data.floorsTotal) : ''} onChange={v => set({ floorsTotal: v ? parseInt(v) : null })} placeholder="5" />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+                  <SgInput label="N° parcelle cadastrale" value={data.cadastralId || ''} onChange={v => set({ cadastralId: v })} placeholder="Ex: 1234-567" />
+                  <SgInput label="Code postal (ajuster)" value={data.postCode || ''} onChange={v => set({ postCode: v })} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Composant Mapbox (avec fallback élégant) ────────────────────────
+function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; confirmed: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<ReturnType<NonNullable<Window['mapboxgl']>['Map']['prototype']['constructor']> | null>(null)
+  const markerRef = useRef<{ setLngLat: (c: [number, number]) => { addTo: (m: object) => unknown }; remove: () => void } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Charger la lib Mapbox une seule fois
+  useEffect(() => {
+    if (window.mapboxgl) return
+    if (!MAPBOX_TOKEN) { setError('Token Mapbox absent'); return }
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css'
+    document.head.appendChild(link)
+    const script = document.createElement('script')
+    script.src = 'https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js'
+    script.onload = () => setError(null)
+    script.onerror = () => setError('Mapbox script failed to load')
+    document.head.appendChild(script)
+  }, [])
+
+  // Init map
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return
+    const tryInit = () => {
+      if (!window.mapboxgl) { setTimeout(tryInit, 200); return }
+      try {
+        window.mapboxgl.accessToken = MAPBOX_TOKEN
+        const map = new window.mapboxgl.Map({
+          container: containerRef.current!,
+          style: `mapbox://styles/${MAPBOX_STYLE}`,
+          center: coords || [6.6323, 46.5197],
+          zoom: coords ? 16 : 8,
+          attributionControl: false,
+          interactive: false,
+        })
+        map.on('error', (e: { error?: { status?: number } }) => {
+          if (e.error?.status === 401) setError('Token Mapbox invalide')
+          else setError('Erreur carte')
+        })
+        mapRef.current = map
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur carte')
+      }
+    }
+    tryInit()
+    return () => {
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Move map when coords change
+  useEffect(() => {
+    if (!mapRef.current || !coords || !window.mapboxgl) return
+    mapRef.current.flyTo({ center: coords, zoom: 16, duration: 1400, essential: true })
+    if (markerRef.current) markerRef.current.remove()
+    const el = document.createElement('div')
+    el.style.cssText = `
+      width: 22px; height: 22px; border-radius: 999px;
+      background: #0B0C0E; border: 4px solid #fff;
+      box-shadow: 0 8px 24px rgba(11,12,14,0.4);
+      animation: sgPinPulse 2s ease-in-out infinite;
+    `
+    markerRef.current = new window.mapboxgl.Marker(el).setLngLat(coords).addTo(mapRef.current) as unknown as typeof markerRef.current
+  }, [coords])
+
+  return (
+    <div ref={containerRef} style={{
+      width: '100%', height: '100%', position: 'relative',
+      background: SugarV2.cardSubtle,
+    }}>
+      {error && <SgMapFallback error={error} confirmed={confirmed} />}
+      {!confirmed && !error && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'grid', placeItems: 'center',
+          background: 'linear-gradient(180deg, rgba(237,239,243,0) 0%, rgba(237,239,243,0.6) 100%)',
+          pointerEvents: 'none',
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)',
+            padding: '10px 16px', borderRadius: 999,
+            boxShadow: '0 4px 12px rgba(11,12,14,0.08)',
+            fontSize: 12, fontWeight: 600, color: SugarV2.muted,
+            letterSpacing: 0.4, textTransform: 'uppercase',
+          }}>Tapez une adresse pour voir la carte</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: `
+        radial-gradient(circle at 30% 40%, rgba(11,12,14,0.04) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(11,12,14,0.04) 0%, transparent 50%),
+        linear-gradient(135deg, #f0f3f8 0%, #e6ebf3 100%)
+      `,
+      overflow: 'hidden',
+    }}>
+      <svg width="100%" height="100%" viewBox="0 0 800 380" preserveAspectRatio="none"
+        style={{ position: 'absolute', inset: 0, opacity: 0.5 }}>
+        <line x1="0" y1="120" x2="800" y2="100" stroke="#c5cdd9" strokeWidth="2"/>
+        <line x1="0" y1="220" x2="800" y2="240" stroke="#c5cdd9" strokeWidth="2"/>
+        <line x1="120" y1="0" x2="100" y2="380" stroke="#c5cdd9" strokeWidth="2"/>
+        <line x1="350" y1="0" x2="380" y2="380" stroke="#c5cdd9" strokeWidth="2"/>
+        <line x1="620" y1="0" x2="640" y2="380" stroke="#c5cdd9" strokeWidth="2"/>
+        <line x1="0" y1="60" x2="800" y2="50" stroke="#dbe1ea" strokeWidth="1.5"/>
+        <line x1="0" y1="320" x2="800" y2="310" stroke="#dbe1ea" strokeWidth="1.5"/>
+      </svg>
+
+      {confirmed && (
+        <div style={{
+          position: 'absolute', left: '50%', top: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}>
+          <div style={{
+            width: 22, height: 22, borderRadius: 999,
+            background: '#0B0C0E', border: '4px solid #fff',
+            boxShadow: '0 8px 24px rgba(11,12,14,0.4)',
+            animation: 'sgPinPulse 2s ease-in-out infinite',
+          }} />
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          position: 'absolute', bottom: 14, left: 14,
+          padding: '7px 12px', borderRadius: 10,
+          background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
+          fontSize: 11, fontWeight: 500, color: SugarV2.muted,
+          boxShadow: '0 2px 8px rgba(11,12,14,0.06)',
+        }}>
+          ⚠ Carte indisponible — token Mapbox à configurer
+        </div>
+      )}
+    </div>
+  )
+}
+
+function mockSuggestions(q: string): MapboxFeature[] {
+  const seed: Omit<MapboxFeature, 'id'>[] = [
+    { place_name: `${q}, 1227 Carouge, Genève, Suisse`, text: q, address: '22',
+      center: [6.1336, 46.1839], context: [
+        { id: 'postcode.1', text: '1227' }, { id: 'place.1', text: 'Carouge' }, { id: 'region.1', text: 'Genève' },
+      ], properties: {} },
+    { place_name: `${q}, 1206 Genève, Genève, Suisse`, text: q, address: '15',
+      center: [6.1432, 46.1958], context: [
+        { id: 'postcode.2', text: '1206' }, { id: 'place.2', text: 'Genève' }, { id: 'region.2', text: 'Genève' },
+      ], properties: {} },
+  ]
+  return seed.slice(0, q.length > 5 ? 2 : 1).map((s, i) => ({ id: 'mock-' + i, ...s }))
+}

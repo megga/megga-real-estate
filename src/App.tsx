@@ -45,6 +45,7 @@ const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
+const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
 const KycListPage = lazy(() => import('@/pages/agent/KycListPage'))
 const KycDetailPage = lazy(() => import('@/pages/agent/KycDetailPage'))
 const ChatPage = lazy(() => import('@/pages/agent/ChatPage'))
@@ -276,7 +277,7 @@ export default function App() {
                 <Route path="matching" element={<MatchingPage />} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="listings" element={<ListingsPage />} />
-                <Route path="listings/new" element={<ListingFormPage />} />
+                <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="kyc" element={<KycListPage />} />
                 <Route path="kyc/:id" element={<KycDetailPage />} />
