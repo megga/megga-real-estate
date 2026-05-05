@@ -161,6 +161,11 @@ export default function HomeHeroSection() {
         }}
       />
 
+      {/* Hero overlay navbar — port 1:1 du proto megga-hero.jsx Navbar.
+          Position absolute en haut, zIndex 10, glass pill au centre.
+          Toujours visible quand l'utilisateur est sur le hero. */}
+      <HeroNavOverlay />
+
       {/* Hero copy — bottom-left (desktop) / top-area (mobile au-dessus de la search) */}
       <div
         className="hero-copy"
@@ -423,8 +428,134 @@ export default function HomeHeroSection() {
           .hero-h1 {
             letter-spacing: -1.2 !important;
           }
+          /* On mobile, hide the hero overlay navbar pills (logo + login stay) */
+          .hero-nav-pills {
+            display: none !important;
+          }
         }
       `}</style>
     </section>
+  )
+}
+
+// ── Hero overlay navbar ───────────────────────────────────────────────────
+// Port 1:1 du proto megga-hero.jsx Navbar.
+// Logo gauche (white) · pill nav glass center · lang + login droite.
+
+const HERO_NAV_LINKS = [
+  { label: 'Acheter', to: '/acheter' },
+  { label: 'Louer', to: '/louer' },
+  { label: 'Estimer', to: '/estimations' },
+  { label: 'Services', to: '/services' },
+]
+
+function HeroNavOverlay() {
+  return (
+    <nav
+      style={{
+        position: 'absolute',
+        top: 28,
+        left: 'clamp(16px, 5vw, 80px)',
+        right: 'clamp(16px, 5vw, 80px)',
+        zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+      }}
+    >
+      {/* Logo white */}
+      <a
+        href="/"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          textDecoration: 'none',
+          flexShrink: 0,
+        }}
+      >
+        <img
+          src="/megga-logo.svg"
+          alt="MEGGA"
+          style={{
+            height: 26,
+            width: 'auto',
+            display: 'block',
+            filter: 'brightness(0) invert(1)',
+          }}
+        />
+      </a>
+
+      {/* Glass nav pill */}
+      <div
+        className="hero-nav-pills"
+        style={{
+          display: 'flex',
+          gap: 4,
+          padding: 6,
+          borderRadius: 999,
+          background: 'rgba(255,255,255,0.18)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.3)',
+        }}
+      >
+        {HERO_NAV_LINKS.map((it, i) => (
+          <a
+            key={it.label}
+            href={it.to}
+            style={{
+              height: 32,
+              padding: '0 14px',
+              borderRadius: 999,
+              fontFamily: FONT,
+              fontSize: 13,
+              fontWeight: 600,
+              background: i === 0 ? '#fff' : 'transparent',
+              color: i === 0 ? INK : '#fff',
+              boxShadow: i === 0 ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              transition: 'background 0.15s ease, color 0.15s ease',
+            }}
+          >
+            {it.label}
+          </a>
+        ))}
+      </div>
+
+      {/* Right: login button */}
+      <a
+        href="/login"
+        style={{
+          height: 36,
+          padding: '0 16px',
+          borderRadius: 999,
+          background: 'rgba(255,255,255,0.18)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.3)',
+          fontFamily: FONT,
+          fontSize: 12,
+          fontWeight: 600,
+          color: '#fff',
+          textDecoration: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          flexShrink: 0,
+          transition: 'background 0.15s ease',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.28)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.18)'
+        }}
+      >
+        Connexion
+      </a>
+    </nav>
   )
 }
