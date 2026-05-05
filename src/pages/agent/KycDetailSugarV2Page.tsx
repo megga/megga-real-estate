@@ -1,8 +1,10 @@
 // MEGGA CRM Sugar v2 — KYC detail (Tier 4)
 // 1:1 port from `megga-kyc-variations.jsx` VariationB (lines 370-590).
+// Wiring Supabase via useKycCase + useKycDocuments — fallback sur KYC_DETAIL_MOCK
+// si l'id n'est pas un UUID Supabase ou si la requête retourne null.
 
 import { Fragment, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
@@ -13,11 +15,29 @@ import {
   Avatar, BlackBtn, GhostBtn, KycIcon, Pill, SectionLabel, SP,
 } from '@/components/crm-sugar/kyc/atoms'
 import { KYC_DETAIL_MOCK } from '@/components/crm-sugar/kyc/data'
+import { mapKycCaseToDetail } from '@/components/crm-sugar/kyc/mapping'
+import { useKycCase, useKycDocuments } from '@/hooks/useKyc'
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function KycDetailSugarV2Page() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+
+  const isUuid = !!id && UUID_REGEX.test(id)
+
+  const { data: kycCase, isLoading, isError, error } = useKycCase(
+    isUuid ? id : undefined,
+  )
+  const { data: documents } = useKycDocuments(
+    isUuid ? id : undefined,
+  )
+
+  const realData = mapKycCaseToDetail(kycCase, documents)
+  const isUsingMock = !realData
+  const data = realData || KYC_DETAIL_MOCK
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -51,7 +71,6 @@ export default function KycDetailSugarV2Page() {
     }
   }
 
-  const data = KYC_DETAIL_MOCK
   const heroStats: { label: string; v: string; sub: string; tone: 'ok' | 'neutral' }[] = [
     { label: 'Risque', v: String(data.hero.riskScore), sub: data.hero.riskLabel, tone: 'ok' },
     {
@@ -110,6 +129,59 @@ export default function KycDetailSugarV2Page() {
             gap: 18,
           }}
         >
+          {/* Demo banner if not real data */}
+          {isUsingMock && !isLoading && !isError && (
+            <div
+              style={{
+                padding: '10px 16px',
+                borderRadius: 14,
+                background: SP.pendingSoft,
+                color: SP.pending,
+                fontSize: 12,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <KycIcon name="alert" size={14} stroke={SP.pending} sw={2} />
+              Mode démo · ID « {id} » non trouvé en base. Affichage des données
+              d'exemple Élodie Schmidt.
+            </div>
+          )}
+          {isLoading && (
+            <div
+              style={{
+                padding: '10px 16px',
+                borderRadius: 14,
+                background: SP.cardSubtle,
+                color: SP.muted,
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              Chargement du dossier KYC…
+            </div>
+          )}
+          {isError && (
+            <div
+              style={{
+                padding: '10px 16px',
+                borderRadius: 14,
+                background: SP.dangerSoft,
+                color: SP.danger,
+                fontSize: 12,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              <KycIcon name="alert" size={14} stroke={SP.danger} sw={2} />
+              Erreur de chargement : {(error as Error)?.message || 'inconnue'}
+            </div>
+          )}
+
           {/* Top bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button
