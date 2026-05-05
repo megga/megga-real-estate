@@ -15,6 +15,8 @@ import RequestVisitModal from '@/components/listings/RequestVisitModal'
 import ListingHeroGallery from '@/components/listing/ListingHeroGallery'
 import ListingStickyNav, { type SectionDef } from '@/components/listing/ListingStickyNav'
 import ListingHeader from '@/components/listing/ListingHeader'
+import BienBreadcrumb from '@/components/listing/BienBreadcrumb'
+import BienTitleBar from '@/components/listing/BienTitleBar'
 import ListingDescription from '@/components/listing/ListingDescription'
 import ListingFeatures from '@/components/listing/ListingFeatures'
 import ListingMap from '@/components/listing/ListingMap'
@@ -245,20 +247,57 @@ export default function ListingPage() {
     setLightboxOpen(true)
   }
 
+  // Mode pour Breadcrumb + TitleBar : 'louer' si rent, 'acheter' sinon
+  // (cast nécessaire — MockListing n'a pas transaction_type, market sí)
+  const txType = (listing as { transaction_type?: string }).transaction_type
+  const mode: 'louer' | 'acheter' = txType === 'rent' ? 'louer' : 'acheter'
+  const isPriceReduced =
+    !!(listing as { price_reduced?: boolean }).price_reduced || !!listing.is_hot
+  const constructionYear = (listing as { construction_year?: number | null })
+    .construction_year
+  const isNew = !!constructionYear && constructionYear >= 2020
+
   return (
     <div
-      className="min-h-screen bg-white"
-      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
+      className="min-h-screen"
+      style={{
+        fontFamily: "'Manrope', system-ui, -apple-system, sans-serif",
+        background: '#FAFBFD',
+      }}
     >
       <HomeStickyHeader alwaysShow />
 
-      {/* ── Hero Gallery ── */}
-      <ListingHeroGallery
-        photos={listing.photos}
+      {/* ── Breadcrumb (proto megga-bien-page.jsx) ── */}
+      <BienBreadcrumb
+        mode={mode}
+        canton={listing.canton}
+        address={listing.address}
+        type={listing.type}
+        rooms={listing.rooms}
+      />
+
+      {/* ── Hero Gallery (max-width 1280) ── */}
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '16px clamp(20px, 4vw, 32px) 0' }}>
+        <ListingHeroGallery
+          photos={listing.photos}
+          title={listing.title}
+          onOpenLightbox={openLightbox}
+          activeRoom={floorPlanRoom}
+          photoTags={(listingAny?.photo_tags as import('@/types/floorPlan').PhotoTag[]) ?? []}
+        />
+      </div>
+
+      {/* ── Title bar (chips + h1 + address + actions, port proto) ── */}
+      <BienTitleBar
         title={listing.title}
-        onOpenLightbox={openLightbox}
-        activeRoom={floorPlanRoom}
-        photoTags={(listingAny?.photo_tags as import('@/types/floorPlan').PhotoTag[]) ?? []}
+        type={listing.type}
+        mode={mode}
+        isNew={isNew}
+        isPriceReduced={isPriceReduced}
+        address={`${listing.address}, ${listing.postal_code} ${listing.city}`}
+        canton={listing.canton}
+        isFavorite={isFavorite}
+        onToggleFavorite={() => setIsFavorite(!isFavorite)}
       />
 
       {/* ── Sticky Section Navigation ── */}
