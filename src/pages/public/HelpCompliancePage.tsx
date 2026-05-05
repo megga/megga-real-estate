@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import { COMPLIANCE_FAQ } from '@/lib/helpArticles'
 import ComplianceIllustration from '@/components/illustrations/ComplianceIllustration'
@@ -12,7 +12,7 @@ export default function HelpCompliancePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
           <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>

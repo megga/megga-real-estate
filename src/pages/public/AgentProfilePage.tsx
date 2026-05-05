@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Star, Phone, Mail, Globe, ArrowLeft, User } from 'lucide-react'
 import { useAgentProfile } from '@/hooks/useAgentProfile'
 import { useAgentReviews } from '@/hooks/useAgentReviews'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import VerifiedBadge from '@/components/directory/VerifiedBadge'
 import ClaimProfileCTA from '@/components/directory/ClaimProfileCTA'
 import AgentStatsPanel from '@/components/directory/AgentStatsPanel'
@@ -71,7 +71,7 @@ export default function AgentProfilePage() {
   if (isLoading) {
     return (
       <div style={{ background: T.bg, minHeight: '100vh', fontFamily: FF }}>
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '120px 80px' }}>
           <div style={{ height: 12, width: 200, background: T.fade, marginBottom: 16 }} />
           <div style={{ height: 80, width: 600, background: T.fade }} />
@@ -83,7 +83,7 @@ export default function AgentProfilePage() {
   if (error || !data?.agent) {
     return (
       <div style={{ background: T.bg, minHeight: '100vh', fontFamily: FF }}>
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '120px 32px', textAlign: 'center' }}>
           <User style={{ width: 56, height: 56, color: T.muted, margin: '0 auto 24px' }} />
           <p style={{ fontFamily: FF, fontSize: 24, fontWeight: 500, color: T.ink, marginBottom: 12, letterSpacing: -0.5 }}>
@@ -122,7 +122,7 @@ export default function AgentProfilePage() {
 
   return (
     <div style={{ background: T.bg, fontFamily: FF }}>
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
 
       {/* HERO Editorial — meta strip + portrait + name + identity */}
       <section style={{ background: T.bg, padding: '72px 80px 0' }}>

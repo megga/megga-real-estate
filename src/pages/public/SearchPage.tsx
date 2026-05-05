@@ -11,7 +11,7 @@ import {
   Check,
   Bookmark,
 } from 'lucide-react'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import BuyerSidebar from '@/components/search/BuyerSidebar'
 import PriceRangeDropdown from '@/components/search/PriceRangeDropdown'
 import { FilterPill, FilterOption } from '@/components/search/FilterPill'
@@ -422,7 +422,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
 
       {/* ─── RIGHT CONTENT ─── */}
       <main id="main-content" className="flex-1 flex flex-col overflow-hidden">
-      {!mapImmersive && <Navbar />}
+      {!mapImmersive && <HomeStickyHeader alwaysShow />}
 
       {/* ─── UNIFIED STICKY BAR: Search + Filters ─── */}
       <div className={cn('sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100', (mapImmersive || sidebarView !== 'search') && 'hidden')}>

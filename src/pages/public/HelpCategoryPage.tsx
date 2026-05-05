@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { ArrowRight, ChevronRight } from 'lucide-react'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import HelpSearchBar from '@/components/help/HelpSearchBar'
 import SupportIllustration from '@/components/illustrations/SupportIllustration'
@@ -31,7 +31,7 @@ export default function HelpCategoryPage() {
   if (!meta || articles.length === 0) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <p className="text-gray-500 text-base">Cat\u00e9gorie introuvable.</p>
           <Link
@@ -48,7 +48,7 @@ export default function HelpCategoryPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
 
       <div className="max-w-6xl mx-auto px-6 md:px-10 py-12">
         {/* Breadcrumb */}

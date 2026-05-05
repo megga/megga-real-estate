@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import HelpChatbot from '@/components/help/HelpChatbot'
 import { supabase } from '@/lib/supabase'
 import { getArticle } from '@/lib/helpArticles'
@@ -162,7 +162,7 @@ export default function HelpCenterPage() {
   const { t } = useTranslation('common')
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
 
       <main id="main-content">
       {/* ── Hero section ── */}

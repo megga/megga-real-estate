@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import { useSubmitCsat } from '@/hooks/useTickets'
 
@@ -34,7 +34,7 @@ export default function TicketFeedbackPage() {
   if (!ticketNumber || !token) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <p className="text-gray-500">Lien invalide.</p>
         </div>
@@ -46,7 +46,7 @@ export default function TicketFeedbackPage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
             <Check className="w-7 h-7 text-emerald-600" />
@@ -61,7 +61,7 @@ export default function TicketFeedbackPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <div className="max-w-md mx-auto px-4 py-20 text-center">
         <p className="text-xs text-gray-500 capitalize mb-2">MEGGA Support</p>
         <h1 className="text-xl font-semibold text-gray-900 mb-2">Votre avis sur le ticket {ticketNumber}</h1>

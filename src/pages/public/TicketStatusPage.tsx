@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Loader2, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import { useTicketByToken, useAddMessage } from '@/hooks/useTickets'
 
@@ -38,7 +38,7 @@ export default function TicketStatusPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
         </div>
@@ -50,7 +50,7 @@ export default function TicketStatusPage() {
   if (!data) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <p className="text-gray-500">Ticket introuvable ou lien invalide.</p>
         </div>
@@ -64,7 +64,7 @@ export default function TicketStatusPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <div className="max-w-2xl mx-auto px-4 py-12">
         <p className="text-xs text-gray-500 capitalize mb-2">MEGGA Support</p>
         <h1 className="text-xl font-semibold text-gray-900 mb-1">Ticket {ticket.ticket_number}</h1>

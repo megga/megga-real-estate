@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import BuyerSidebar from '@/components/search/BuyerSidebar'
 import Footer from '@/components/layout/Footer'
 import { usePropertyEstimation, type EstimationParams, type EstimationResult } from '@/hooks/usePropertyEstimation'
@@ -477,7 +477,7 @@ export default function VendrePage() {
         className="min-h-screen bg-white"
         style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
       >
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
         <main id="main-content" className="max-w-2xl mx-auto px-4 py-10 flex flex-col justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
           <button
@@ -515,7 +515,7 @@ export default function VendrePage() {
       className="min-h-screen bg-white"
       style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
     >
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
 
       <main id="main-content">
@@ -1342,7 +1342,7 @@ function SuccessScreen({
       className="min-h-screen bg-white"
       style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
     >
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
       <main id="main-content" className="max-w-lg mx-auto px-4 text-center flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
         <style>{`@keyframes draw { to { stroke-dashoffset: 0; } } @keyframes scaleIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }`}</style>

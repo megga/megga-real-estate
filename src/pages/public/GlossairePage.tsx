@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import Navbar from '@/components/layout/Navbar';
+import HomeStickyHeader from '@/components/home/HomeStickyHeader';
 import Footer from '@/components/layout/Footer';
 import { Search } from 'lucide-react';
 
@@ -266,7 +266,7 @@ export default function GlossairePage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
 
       <main className="flex-1 max-w-4xl mx-auto px-6 py-12 w-full">
         {/* Header */}

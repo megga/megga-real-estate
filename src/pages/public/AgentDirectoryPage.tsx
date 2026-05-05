@@ -5,7 +5,7 @@ import { Search, MapPin, ChevronRight, Star, Shield, Phone, ShieldCheck } from '
 import { cn } from '@/lib/utils'
 import { useAgentDirectory, DEFAULT_FILTERS } from '@/hooks/useAgentDirectory'
 import type { DirectoryFilters, AgentProfileRow } from '@/hooks/useAgentDirectory'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import BuyerSidebar from '@/components/search/BuyerSidebar'
 
@@ -210,7 +210,7 @@ export default function AgentDirectoryPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
 
       <div className="md:ml-[90px]">

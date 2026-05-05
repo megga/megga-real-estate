@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import WhyMegga from '@/components/home/WhyMegga'
 
@@ -662,7 +662,7 @@ export default function ServicesPage() {
 
   return (
     <>
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} t={t} />
       <main>
         {/* ═══ Section 1 — Hero ═══ */}
