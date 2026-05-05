@@ -43,7 +43,7 @@ import { cn } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS } from '@/lib/constants'
 import { useMarketTemperature } from '@/hooks/useMarketInsights'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import SearchListingCard from '@/components/search/SearchListingCard'
+import SearchListingCard from '@/components/search/MarketSearchCard'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import {
   type Filters,
