@@ -473,7 +473,10 @@ export default function VendrePage() {
   // Estimation result screen (between step 3 and step 4)
   if (showEstimation) {
     return (
-      <div className="min-h-screen bg-white">
+      <div
+        className="min-h-screen bg-white"
+        style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
+      >
         <Navbar />
         <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
         <main id="main-content" className="max-w-2xl mx-auto px-4 py-10 flex flex-col justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>
@@ -508,7 +511,10 @@ export default function VendrePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div
+      className="min-h-screen bg-white"
+      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
+    >
       <Navbar />
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
 
@@ -1332,7 +1338,10 @@ function SuccessScreen({
   const firstName = form.contactName.split(' ')[0] || form.contactName
 
   return (
-    <div className="min-h-screen bg-white">
+    <div
+      className="min-h-screen bg-white"
+      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
+    >
       <Navbar />
       <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
       <main id="main-content" className="max-w-lg mx-auto px-4 text-center flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 72px)' }}>

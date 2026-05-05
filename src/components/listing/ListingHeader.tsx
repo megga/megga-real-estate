@@ -16,14 +16,34 @@ interface ListingHeaderProps {
     is_hot?: boolean
     is_new?: boolean
     is_exclusive?: boolean
+    type?: string
+    transaction_type?: 'sale' | 'rent' | string
+    construction_year?: number | null
+    price_reduced?: boolean
   }
 }
 
-function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'hot' | 'new' | 'exclusive' | 'default' }) {
+const TYPE_LABEL: Record<string, string> = {
+  apartment: 'Appartement',
+  appartement: 'Appartement',
+  house: 'Maison',
+  maison: 'Maison',
+  villa: 'Villa',
+  commercial: 'Commercial',
+  office: 'Bureau',
+  parking: 'Parking',
+  storage: 'Dépôt',
+  land: 'Terrain',
+  chalet: 'Chalet',
+}
+
+function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'hot' | 'new' | 'exclusive' | 'primary' | 'alert' | 'default' }) {
   const styles = {
     hot: 'bg-red-500 text-white',
     new: 'bg-accent text-white',
     exclusive: 'bg-gray-900 text-white',
+    primary: 'bg-blue-50 text-blue-700',
+    alert: 'bg-red-50 text-red-600',
     default: 'bg-gray-100 text-gray-700',
   }
   return (
@@ -53,8 +73,22 @@ const STATS: StatDef[] = [
 export default function ListingHeader({ listing }: ListingHeaderProps) {
   return (
     <div id="description" className="scroll-mt-28">
-      {/* Badges */}
+      {/* Badges — proto megga-bien-page.jsx:52-56 (type / transaction / Neuf / Baisse de prix / status) */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
+        {listing.type && (
+          <Badge variant="default">{TYPE_LABEL[listing.type] || listing.type}</Badge>
+        )}
+        {listing.transaction_type && (
+          <Badge variant="primary">
+            {listing.transaction_type === 'rent' ? 'À louer' : 'À vendre'}
+          </Badge>
+        )}
+        {listing.construction_year && listing.construction_year >= 2020 && (
+          <Badge variant="default">Neuf</Badge>
+        )}
+        {listing.price_reduced && listing.transaction_type !== 'rent' && (
+          <Badge variant="alert">Baisse de prix</Badge>
+        )}
         {listing.is_hot && <Badge variant="hot">Hot price</Badge>}
         {listing.is_new && <Badge variant="new">Nouveau</Badge>}
         {listing.is_exclusive && <Badge variant="exclusive">Exclusif</Badge>}
