@@ -22,7 +22,7 @@ import ListingFeatures from '@/components/listing/ListingFeatures'
 import ListingMap from '@/components/listing/ListingMap'
 import ListingMarketSection from '@/components/listing/ListingMarketSection'
 import ListingSimilarCarousel from '@/components/listing/ListingSimilarCarousel'
-import ListingSidebar from '@/components/listing/ListingSidebar'
+import BienAgentCard from '@/components/listing/BienAgentCard'
 import C2PaBadge from '@/components/listing/C2PaBadge'
 import ListingLightbox from '@/components/listing/ListingLightbox'
 import ListingMobileBar from '@/components/listing/ListingMobileBar'
@@ -344,15 +344,24 @@ export default function ListingPage() {
             )}
           </div>
 
-          {/* Right: Sidebar (desktop) */}
-          <ListingSidebar
-            listing={{ ...listing, agent: resolvedAgent }}
-            isFavorite={isFavorite}
-            onToggleFavorite={() => setIsFavorite(!isFavorite)}
-            onContact={() => setShowContactModal(true)}
-            onVisit={() => setShowVisitModal(true)}
-            onCalculator={() => setShowCalculator(true)}
-          />
+          {/* Right: BienAgentCard (port proto megga-bien-contact.jsx sticky) */}
+          <div style={{ width: 380, flexShrink: 0, display: 'block' }} className="hidden lg:block">
+            <BienAgentCard
+              agent={{
+                name: resolvedAgent.name,
+                agency: resolvedAgent.agency,
+                phone: resolvedAgent.phone,
+                email: resolvedAgent.email,
+                photo: resolvedAgent.photo || null,
+              }}
+              bienId={listing.id}
+              status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
+              isFavorite={isFavorite}
+              onToggleFavorite={() => setIsFavorite(!isFavorite)}
+              onAskVisit={() => setShowVisitModal(true)}
+              onContact={() => setShowContactModal(true)}
+            />
+          </div>
         </div>
       </div>
 
