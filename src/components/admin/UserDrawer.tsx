@@ -1,12 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Mail, Phone, Building2, Clock, Eye } from 'lucide-react'
+import { X, Mail, Phone, Building2, Clock, Eye, ShieldOff } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity } from '@/hooks/useAdminUsers'
 import { useImpersonate } from '@/hooks/useImpersonate'
+import { MFAResetAgentModal } from '@/components/auth/MfaModals'
 
 const ROLE_OPTIONS = [
   { value: 'super_admin', i18nKey: 'common.role.superAdmin' },
@@ -50,9 +51,11 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
   const { startImpersonate } = useImpersonate()
+  const [mfaResetOpen, setMfaResetOpen] = useState(false)
 
   const user = users.find(u => u.id === userId)
   const focusTrapRef = useFocusTrap(true)
+  const isAgent = user?.role === 'agent' || user?.role === 'agent_admin'
 
   // Close on Escape
   useEffect(() => {
@@ -196,6 +199,17 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
               {t('userDrawer.impersonate')}
             </button>
 
+            {/* Reset 2FA — agents seulement */}
+            {isAgent && (
+              <button
+                onClick={() => setMfaResetOpen(true)}
+                className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-amber-500/30 text-amber-600 rounded-lg hover:bg-amber-500/5 transition-colors"
+              >
+                <ShieldOff className="h-4 w-4" />
+                Réinitialiser la 2FA
+              </button>
+            )}
+
             {/* Activity timeline */}
             <div>
               <h3 className="text-xs font-medium text-theme-secondary mb-3">{t('userDrawer.recentActivity')}</h3>
@@ -241,6 +255,23 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
           </div>
         )}
       </div>
+
+      {/* MFA reset modal — port du proto crm-mfa-modals.jsx */}
+      {mfaResetOpen && user && (
+        <MFAResetAgentModal
+          agent={{
+            id: user.id,
+            name: user.full_name || 'Agent',
+            email: user.email,
+          }}
+          onClose={() => setMfaResetOpen(false)}
+          onConfirm={() => {
+            // TODO: appel Supabase pour révoquer le facteur TOTP de l'agent.
+            // Pour l'instant : confirmation visuelle seulement.
+            setMfaResetOpen(false)
+          }}
+        />
+      )}
     </div>,
     document.body
   )

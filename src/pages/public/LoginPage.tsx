@@ -22,7 +22,14 @@ import GoogleOneTap from '@/components/auth/GoogleOneTap'
 import AuthChoice from '@/components/auth/AuthChoice'
 import ParticulierPreview from '@/components/auth/ParticulierPreview'
 import AgentPreview from '@/components/auth/AgentPreview'
+import { MFAChallengeModal } from '@/components/auth/MfaModals'
+import { MFALostDeviceModal } from '@/components/auth/MfaResetFlow'
 import { AUTH_FONT, AUTH_M } from '@/components/auth/authTokens'
+
+// localStorage flag — opt-in pour la démo visuelle du flow MFA challenge.
+// En prod (post-Supabase MFA wiring), il sera remplacé par la vérification
+// `user.factors` retournée par Supabase Auth après le signIn.
+const MFA_DEMO_FLAG = 'megga_mfa_demo'
 
 type View = 'choice' | 'particulier' | 'agent'
 type Step =
@@ -257,7 +264,17 @@ export default function LoginPage() {
   >(null)
   const [error, setError] = useState<string | null>(null)
 
+  // MFA challenge state — gate le redirect post-login si MFA est activée.
+  const [mfaChallengeOpen, setMfaChallengeOpen] = useState(false)
+  const [mfaPassed, setMfaPassed] = useState(false)
+  const [lostDeviceOpen, setLostDeviceOpen] = useState(false)
+
   const isAgent = view === 'agent'
+
+  // Vérifie si MFA est requise (en prod : factors Supabase ; ici : flag demo).
+  const mfaRequired =
+    typeof window !== 'undefined' &&
+    window.localStorage.getItem(MFA_DEMO_FLAG) === '1'
 
   // Persist redirect URL
   useEffect(() => {
@@ -271,8 +288,19 @@ export default function LoginPage() {
     window.localStorage.setItem(REMEMBER_KEY, remember ? 'true' : 'false')
   }, [remember])
 
-  // Already logged in → redirect
-  if (!authLoading && user && profile) {
+  // Ouvre le MFA challenge dès que l'utilisateur est logué et que MFA est
+  // requise (mais pas encore validée). Ne s'ouvre qu'une seule fois par
+  // session de login.
+  useEffect(() => {
+    if (!authLoading && user && mfaRequired && !mfaPassed && !mfaChallengeOpen) {
+      setMfaChallengeOpen(true)
+    }
+  }, [authLoading, user, mfaRequired, mfaPassed, mfaChallengeOpen])
+
+  // Already logged in → redirect (gated by MFA si requis)
+  const canRedirect = !mfaRequired || mfaPassed
+
+  if (!authLoading && user && profile && canRedirect) {
     const redirect = sessionStorage.getItem('megga_redirect')
     if (redirect) {
       sessionStorage.removeItem('megga_redirect')
@@ -281,12 +309,13 @@ export default function LoginPage() {
     if (isAgentRole(profile.role)) return <Navigate to="/dashboard" replace />
     return <Navigate to="/acheter" replace />
   }
-  if (!authLoading && user && !profile) {
+  if (!authLoading && user && !profile && canRedirect) {
     const metaRole = user.user_metadata?.role as string | undefined
     if (metaRole && isAgentRole(metaRole as UserRole))
       return <Navigate to="/dashboard" replace />
     return <Navigate to="/acheter" replace />
   }
+
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -458,6 +487,40 @@ export default function LoginPage() {
             onBackToEmail={backToEmail}
           />
         </SplitShell>
+      )}
+
+      {/* MFA challenge — bloque le redirect tant que pas validé */}
+      {mfaChallengeOpen && (
+        <MFAChallengeModal
+          onClose={() => {
+            // Si l'utilisateur ferme sans valider → on log out pour repartir clean.
+            // (Sinon il resterait logué Supabase mais bloqué sur /login.)
+            setMfaChallengeOpen(false)
+            // NB: on ne déclenche pas signOut() ici pour éviter une boucle.
+            // L'utilisateur peut soit reverify, soit cliquer "j'ai perdu mon
+            // téléphone", soit fermer l'onglet.
+          }}
+          onSuccess={() => {
+            setMfaChallengeOpen(false)
+            setMfaPassed(true)
+            // Le useEffect de redirect va maintenant fire car canRedirect=true.
+          }}
+          onLostDevice={() => {
+            setMfaChallengeOpen(false)
+            setLostDeviceOpen(true)
+          }}
+        />
+      )}
+
+      {lostDeviceOpen && (
+        <MFALostDeviceModal
+          onClose={() => setLostDeviceOpen(false)}
+          onSubmitted={() => {
+            setLostDeviceOpen(false)
+            // Demande envoyée à l'admin · l'utilisateur est notifié par toast
+            // dans MFALostDeviceModal puis le modal se ferme. Reste sur /login.
+          }}
+        />
       )}
     </main>
   )
