@@ -9,6 +9,7 @@ import {
 } from '@/components/crm-sugar/tokens'
 import { CRM_DEALS, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
+import { KycSoftBanner } from '@/components/crm-sugar/kyc/KycNonBlocking'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -49,6 +50,7 @@ export default function PipelineSugarV2Page() {
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
   const [openDealId, setOpenDealId] = useState<string | null>(null)
+  const [kycSoftDismissed, setKycSoftDismissed] = useState(false)
 
   // ── Drag & drop ──────────────────────────────────────────────────────
   const [localDeals, setLocalDeals] = useState<CrmDeal[]>(CRM_DEALS)
@@ -112,6 +114,19 @@ export default function PipelineSugarV2Page() {
 
   const totalValue = localDeals.reduce((s, d) => s + (d.value || 0), 0)
   const atRisk = localDeals.filter(d => d.risk !== 'healthy').length
+
+  // ── KYC soft-banner (non-bloquant) ──────────────────────────────────
+  const kycIncompleteCount = useMemo(() => {
+    const seen = new Set<string>()
+    return localDeals.filter(d => {
+      const c = crmContactById(d.contactId)
+      if (!c) return false
+      if (seen.has(c.id)) return false
+      seen.add(c.id)
+      return c.kyc?.status !== 'verified'
+    }).length
+  }, [localDeals])
+  const showKycSoft = !kycSoftDismissed && kycIncompleteCount > 0
 
   // ── Cmd palette + nav (shared with Today) ────────────────────────────
   const onCmd = () => window.alert('Recherche — ⌘K (à venir)')
@@ -178,6 +193,18 @@ export default function PipelineSugarV2Page() {
               Nouveau deal
             </button>
           </div>
+
+          {/* KYC soft banner — non-bloquant, agrégé sur tous les deals */}
+          {showKycSoft && (
+            <div style={{ marginBottom: 18 }}>
+              <KycSoftBanner
+                title={`${kycIncompleteCount} dossier${kycIncompleteCount > 1 ? 's' : ''} KYC à compléter`}
+                desc="Pièces manquantes ou non lancé. Vous pouvez continuer à travailler ces deals — pensez à compléter avant la signature."
+                onComplete={() => navigate('/dashboard/kyc')}
+                onDismiss={() => setKycSoftDismissed(true)}
+              />
+            </div>
+          )}
 
           {/* KPI tiles */}
           <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>

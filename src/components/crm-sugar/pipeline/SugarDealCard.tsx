@@ -5,7 +5,21 @@ import { useState, type DragEvent as ReactDragEvent } from 'react'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
 import { CRM_STAGES, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
 import { crmContactById, crmBienById, type CrmContact, type CrmDeal } from '../mockData'
+import { KycDealBadge } from '../kyc/KycNonBlocking'
 import { SugarMiniRing } from './SugarMiniRing'
+
+const KYC_TOTAL_DOCS = 6
+
+/** Compute KYC progress (done/total) from the mock contact KYC status — returns null if KYC is verified (no badge needed). */
+function kycProgressFromContact(c: CrmContact): { done: number; total: number } | null {
+  switch (c.kyc?.status) {
+    case 'verified': return null
+    case 'stale':    return { done: KYC_TOTAL_DOCS, total: KYC_TOTAL_DOCS }
+    case 'pending':  return { done: 4, total: KYC_TOTAL_DOCS }
+    case 'none':
+    default:         return { done: 0, total: KYC_TOTAL_DOCS }
+  }
+}
 
 interface DealCardProps {
   deal: CrmDeal
@@ -32,6 +46,7 @@ export function SugarDealCard({
   const c = crmContactById(deal.contactId)!
   const b = deal.bienId ? crmBienById(deal.bienId) : null
   const riskColor = deal.risk === 'at-risk' ? '#F59E0B' : deal.risk === 'stalled' ? '#E53935' : null
+  const kycProg = kycProgressFromContact(c)
   const stage = CRM_STAGES[deal.stage]
   const ink = focused ? sp.focusInk : sp.ink
   const sub = focused ? 'rgba(255,255,255,.65)' : sp.sub
@@ -95,7 +110,10 @@ export function SugarDealCard({
             {b ? b.title : 'Recherche active'}
           </div>
         </div>
-        {riskColor && !focused && !hover && !menuOpen && (
+        {kycProg && !focused && !hover && !menuOpen && (
+          <KycDealBadge done={kycProg.done} total={kycProg.total} />
+        )}
+        {!kycProg && riskColor && !focused && !hover && !menuOpen && (
           <span style={{
             width: 18, height: 18, borderRadius: 999,
             background: riskColor + '1F', color: riskColor,
