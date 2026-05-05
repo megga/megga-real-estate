@@ -2,12 +2,14 @@ import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 
 const FONT = '"Manrope", system-ui, -apple-system, sans-serif'
+// Tokens alignés sur le proto (megga-hero.jsx) — cream froid + muted neutre.
+// Cohérent avec homeTokens.ts utilisé par les autres sections home.
 const M = {
   ink: '#0E1410',
   border: '#DDE2EA',
-  cream: '#FAF8F4',
+  cream: '#FAFBFD',
   card: '#FFFFFF',
-  muted: '#7A8079',
+  muted: '#847D6E',
 }
 
 interface LogoCellProps {
