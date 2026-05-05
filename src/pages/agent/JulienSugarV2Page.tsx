@@ -1,0 +1,1522 @@
+// MEGGA CRM Sugar v2 — Julien IA (interface chat style Claude.ai)
+// Port from `crm-julien.jsx` du bundle (proto v2 : drawer historique glassy +
+// capsule contexte dossier).
+//
+// Différences avec le proto :
+// - useCopilot (hook existant) câble la vraie Edge Function `ai-copilot` avec
+//   streaming token-by-token natif → on retire la simulation streaming locale.
+// - useAuth().profile remplace window.CRM_AGENT pour le prénom et l'avatar.
+
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  CRM_TOKENS, crmSugarPalette, type DarkTone,
+} from '@/components/crm-sugar/tokens'
+import {
+  SugarTopNav, SugarIconRail, type SugarScreenId,
+} from '@/components/crm-sugar/SugarShell'
+import { useAuth } from '@/hooks/useAuth'
+import { useCopilot } from '@/hooks/useCopilot'
+
+const DARK_TONE: DarkTone = 'meggaAi'
+
+// ─── Suggestions ────────────────────────────────────────────────────────
+
+interface Suggestion {
+  id: string
+  icon: JIconName
+  label: string
+  prompt: string
+}
+
+// ─── Salutations selon l'heure ──────────────────────────────────────────
+
+function getGreeting(firstName: string): string {
+  const h = new Date().getHours()
+  if (h < 5) return `Encore là, ${firstName} ?`
+  if (h < 12) return `Bon matin, ${firstName}`
+  if (h < 14) return `Bon midi, ${firstName}`
+  if (h < 18) return `Bon après-midi, ${firstName}`
+  if (h < 22) return `Bonsoir, ${firstName}`
+  return `Bonne soirée, ${firstName}`
+}
+
+function getSubgreeting(): string {
+  const h = new Date().getHours()
+  const d = new Date().getDay()
+  if (h < 9) return 'Comment démarrons-nous la journée ?'
+  if (h < 12) return 'Que puis-je préparer pour vous ce matin ?'
+  if (h < 14) return 'Une pause ? Je peux résumer la matinée.'
+  if (h < 17) return "On attaque l'après-midi ?"
+  if (h < 19) return 'Bouclons la journée ensemble.'
+  if (d === 5 || d === 6) return 'On prépare la semaine prochaine ?'
+  return 'Comment puis-je vous aider ?'
+}
+
+// ─── Suggestions dynamiques selon heure + écran précédent ───────────────
+
+type PrevScreen = 'today' | 'pipeline' | 'biens' | 'contacts' | 'matching' | 'calendar' | 'docs' | null
+
+function getDynamicSuggestions(prevScreen: PrevScreen): Suggestion[] {
+  const h = new Date().getHours()
+  const day = new Date().getDay()
+  if (prevScreen === 'pipeline') return [
+    { id: 'px1', icon: 'chart', label: 'Analyse de mon pipeline', prompt: 'Analyse mon pipeline actuel : où sont les blocages, quelles opportunités prioriser ?' },
+    { id: 'px2', icon: 'draft', label: 'Relance dossiers en pause', prompt: 'Rédige un message de relance pour mes dossiers stagnants depuis plus de 14 jours.' },
+    { id: 'px3', icon: 'checklist', label: 'Prochaines actions', prompt: 'Quelles sont les 3 prochaines actions concrètes à mener sur mon pipeline ?' },
+  ]
+  if (prevScreen === 'biens') return [
+    { id: 'bx1', icon: 'draft', label: 'Annonce premium', prompt: 'Rédige une annonce premium pour le bien que je viens de consulter, ton MEGGA, mise en avant des points forts.' },
+    { id: 'bx2', icon: 'chart', label: 'Estimation comparable', prompt: 'Donne-moi une estimation comparable rapide pour ce bien à partir des transactions récentes du quartier.' },
+    { id: 'bx3', icon: 'folder', label: 'Pitch propriétaire', prompt: 'Prépare un pitch pour convaincre le propriétaire de signer en mandat exclusif.' },
+  ]
+  if (prevScreen === 'contacts') return [
+    { id: 'cx1', icon: 'draft', label: 'Email de prise de nouvelles', prompt: "Rédige un email de prise de nouvelles chaleureux pour un contact que je n'ai pas relancé depuis longtemps." },
+    { id: 'cx2', icon: 'folder', label: 'Préparer un appel', prompt: 'Prépare-moi 5 questions ouvertes pour qualifier un nouveau contact acheteur.' },
+    { id: 'cx3', icon: 'checklist', label: 'Plan de relance', prompt: 'Construis un plan de relance progressif sur 3 semaines pour mes contacts inactifs.' },
+  ]
+  if (prevScreen === 'matching') return [
+    { id: 'mx1', icon: 'draft', label: 'Email de matching', prompt: 'Rédige un email présentant un bien matché à un acheteur, avec arguments personnalisés.' },
+    { id: 'mx2', icon: 'folder', label: 'Affiner les critères', prompt: "Aide-moi à affiner les critères de recherche d'un acheteur pour améliorer le matching." },
+    { id: 'mx3', icon: 'chart', label: 'Pertinence des matchs', prompt: 'Analyse la pertinence des correspondances actuelles : quels sont les vrais top-matchs ?' },
+  ]
+  if (prevScreen === 'calendar') return [
+    { id: 'kx1', icon: 'checklist', label: 'Préparer mes RDV du jour', prompt: 'Liste mes rendez-vous du jour avec un brief synthétique pour chacun.' },
+    { id: 'kx2', icon: 'draft', label: 'Confirmer les visites', prompt: 'Rédige un SMS court de confirmation pour mes visites planifiées.' },
+    { id: 'kx3', icon: 'folder', label: 'Récap après visite', prompt: 'Modèle de récap à envoyer après une visite de bien.' },
+  ]
+  if (prevScreen === 'docs') return [
+    { id: 'dx1', icon: 'checklist', label: 'Checklist compromis', prompt: "Donne-moi la checklist complète des points à vérifier avant signature d'un compromis à Genève." },
+    { id: 'dx2', icon: 'draft', label: 'Clause spécifique', prompt: 'Rédige une clause de condition suspensive pour un financement bancaire.' },
+    { id: 'dx3', icon: 'folder', label: 'Modèle de mandat', prompt: 'Génère un modèle de mandat de vente exclusif conforme au droit suisse.' },
+  ]
+  if (prevScreen === 'today') return [
+    { id: 'tx1', icon: 'folder', label: 'Résume mes dossiers', prompt: 'Donne-moi un résumé de mes dossiers actifs en ce moment.' },
+    { id: 'tx2', icon: 'checklist', label: 'Priorités du jour', prompt: "Quelles sont mes 3 priorités absolues aujourd'hui d'après mon planning ?" },
+    { id: 'tx3', icon: 'chart', label: 'Météo de la semaine', prompt: 'Synthèse de la semaine : ce qui avance, ce qui bloque, ce qui manque.' },
+  ]
+  if (h < 10) return [
+    { id: 'hx1', icon: 'checklist', label: 'Mes RDV du jour', prompt: 'Résume mes rendez-vous du jour avec un brief pour chacun.' },
+    { id: 'hx2', icon: 'folder', label: 'Priorités matinales', prompt: 'Quelles sont mes 3 priorités à attaquer ce matin ?' },
+    { id: 'hx3', icon: 'draft', label: 'Emails à envoyer', prompt: 'Quels emails dois-je envoyer en priorité ce matin ?' },
+  ]
+  if (h < 14) return [
+    { id: 'hx4', icon: 'folder', label: 'Avancement matinal', prompt: 'Fais le point sur ce qui a avancé ce matin sur mes dossiers.' },
+    { id: 'hx5', icon: 'draft', label: 'Email de suivi visite', prompt: 'Rédige un email professionnel de suivi après une visite pour un appartement à Genève.' },
+    { id: 'hx6', icon: 'chart', label: 'Marché genevois', prompt: 'Analyse rapide du marché immobilier genevois : tendances, délais, segments actifs.' },
+  ]
+  if (h < 18) return [
+    { id: 'hx7', icon: 'draft', label: 'Suivi visite', prompt: 'Rédige un email professionnel de suivi après une visite pour un appartement à Genève.' },
+    { id: 'hx8', icon: 'folder', label: 'Résume mes dossiers', prompt: 'Donne-moi un résumé de mes dossiers actifs en ce moment.' },
+    { id: 'hx9', icon: 'checklist', label: 'Reste à faire aujourd\'hui', prompt: 'Que me reste-t-il à boucler aujourd\'hui ?' },
+  ]
+  if (day === 5) return [
+    { id: 'hxa', icon: 'folder', label: 'Bilan de la semaine', prompt: "Bilan de ma semaine : succès, points d'attention, dossiers à reprendre lundi." },
+    { id: 'hxb', icon: 'checklist', label: 'Préparer lundi', prompt: 'Liste les actions clés pour bien démarrer lundi matin.' },
+    { id: 'hxc', icon: 'draft', label: 'Emails de fin de semaine', prompt: 'Rédige un email de fin de semaine à envoyer à mes clients actifs.' },
+  ]
+  return [
+    { id: 'hxd', icon: 'folder', label: 'Bilan du jour', prompt: 'Fais le bilan de ma journée : ce qui a avancé, ce qui reste.' },
+    { id: 'hxe', icon: 'checklist', label: 'Préparer demain', prompt: 'Quelles sont les 3 actions prioritaires à préparer pour demain ?' },
+    { id: 'hxf', icon: 'draft', label: 'Email de fin de journée', prompt: 'Rédige un email de fin de journée à un client en attente d\'un retour.' },
+  ]
+}
+
+// ─── Historique simulé (mock pour MVP visuel) ────────────────────────────
+
+interface HistoryEntry {
+  id: string
+  title: string
+  group: 'today' | 'week' | 'month' | 'older'
+  preview: string
+  dossier?: { label: string; color: string }
+  pinned?: boolean
+}
+
+const HISTORY: HistoryEntry[] = [
+  { id: 'h1', title: 'Analyse marché Rive Gauche', group: 'today', preview: 'Le marché genevois montre une légère...', dossier: { label: 'Champel', color: '#0041D9' }, pinned: true },
+  { id: 'h2', title: 'Email suivi visite Champel', group: 'today', preview: "Madame Müller, suite à notre visite de l'appartement de Champel...", dossier: { label: 'Martinez', color: '#0E9F6E' } },
+  { id: 'h3', title: 'Checklist compromis Carouge', group: 'week', preview: 'Voici la liste complète des points à vérifier avant signature...' },
+  { id: 'h4', title: 'Résumé dossiers semaine', group: 'week', preview: 'Cette semaine : 3 dossiers actifs, 2 visites planifiées...' },
+  { id: 'h5', title: 'Pitch mandat Eaux-Vives', group: 'week', preview: 'Pour convaincre M. Leclerc, insistez sur la rareté du bien...', dossier: { label: 'Eaux-Vives', color: '#F59E0B' } },
+  { id: 'h6', title: 'Argumentaire Cologny villa', group: 'month', preview: 'Trois angles à privilégier pour votre présentation...' },
+  { id: 'h7', title: 'Estimation T5 Florissant', group: 'month', preview: 'Sur la base des comparables récents dans le quartier...' },
+  { id: 'h8', title: 'Réponse offre acheteur', group: 'older', preview: 'Voici une réponse mesurée à l\'offre proposée par...' },
+]
+
+const GROUPS = [
+  { key: 'today', label: "Aujourd'hui" },
+  { key: 'week', label: 'Cette semaine' },
+  { key: 'month', label: 'Ce mois-ci' },
+  { key: 'older', label: 'Plus ancien' },
+] as const
+
+// Contextes dossiers simulés (pour le ContextPicker)
+interface DossierContext {
+  id: string
+  label: string
+  icon: JIconName
+  color: string
+}
+
+const DOSSIERS_CONTEXT: DossierContext[] = [
+  { id: 'd1', label: 'Champel · T4 · 2.1M CHF', icon: 'folder', color: '#0041D9' },
+  { id: 'd2', label: 'Martinez · Acheteur · Actif', icon: 'contacts', color: '#0E9F6E' },
+  { id: 'd3', label: 'Carouge · Mandat excl.', icon: 'bien', color: '#F59E0B' },
+]
+
+// ─── Tokens Julien (modèle dark/light propre, distinct de SP) ────────────
+
+interface JulienTokens {
+  bg: string
+  surface: string
+  surfaceB: string
+  ink: string
+  inkSoft: string
+  muted: string
+  ghost: string
+  border: string
+  borderHov: string
+  black: string
+  selInk: string
+  shadow: string
+  drawerBg: string
+}
+
+function tok(dark: boolean): JulienTokens {
+  return dark ? {
+    bg: '#0A0A0B',
+    surface: 'rgba(255,255,255,0.04)',
+    surfaceB: 'rgba(255,255,255,0.06)',
+    ink: '#F2F0EC',
+    inkSoft: '#9C9A95',
+    muted: '#6B6964',
+    ghost: '#3A3936',
+    border: 'rgba(255,255,255,0.08)',
+    borderHov: 'rgba(255,255,255,0.2)',
+    black: '#F2F0EC',
+    selInk: '#0A0A0B',
+    shadow: '0 24px 80px rgba(0,0,0,.6), 0 4px 16px rgba(0,0,0,.4)',
+    drawerBg: 'rgba(12,12,14,0.92)',
+  } : {
+    bg: '#F4F5F7',
+    surface: '#FFFFFF',
+    surfaceB: '#F7F8FA',
+    ink: '#0B0C0E',
+    inkSoft: '#3A3D44',
+    muted: '#7A8088',
+    ghost: '#B5BAC2',
+    border: '#E4E6EC',
+    borderHov: '#0B0C0E',
+    black: '#0B0C0E',
+    selInk: '#FFFFFF',
+    shadow: '0 8px 32px rgba(15,23,42,0.08)',
+    drawerBg: 'rgba(245,246,248,0.96)',
+  }
+}
+
+// ─── Icon factory (subset utilisé par Julien) ────────────────────────────
+
+type JIconName =
+  | 'folder' | 'draft' | 'chart' | 'pen' | 'checklist' | 'translate' | 'send'
+  | 'stop' | 'copy' | 'sparkle' | 'attach' | 'mic' | 'plus' | 'clock' | 'x'
+  | 'mail' | 'folderAdd' | 'task' | 'check' | 'contacts' | 'bien' | 'newchat'
+  | 'chevL'
+
+const JICON_PATHS: Record<JIconName, ReactNode> = {
+  folder: <path d="M3 7a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />,
+  draft: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" /></>,
+  chart: <><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></>,
+  pen: <><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></>,
+  checklist: <><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></>,
+  translate: <path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1m15 20-5-10-5 10M14 18h6" />,
+  send: <><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>,
+  stop: <rect x="3" y="3" width="18" height="18" rx="2" />,
+  copy: <><rect width="14" height="14" x="8" y="8" rx="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></>,
+  sparkle: <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />,
+  attach: <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />,
+  mic: <><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8" /></>,
+  plus: <path d="M12 5v14M5 12h14" />,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></>,
+  x: <path d="M18 6 6 18M6 6l12 12" />,
+  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
+  folderAdd: <><path d="M3 7a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" /><path d="M12 11v5M9.5 13.5h5" /></>,
+  task: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M8 2v4M16 2v4M3 10h18M8 15l2 2 4-4" /></>,
+  check: <path d="m5 12 5 5 9-11" />,
+  contacts: <><circle cx="9" cy="8" r="3.5" /><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5" /></>,
+  bien: <><path d="M3 11 12 4l9 7" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></>,
+  newchat: <path d="M12 5v14M5 12h14" />,
+  chevL: <path d="m15 18-6-6 6-6" />,
+}
+
+interface JIconProps { name: JIconName; size?: number; color?: string; sw?: number }
+
+function JIcon({ name, size = 18, color = 'currentColor', sw = 1.6 }: JIconProps) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"
+    >
+      {JICON_PATHS[name] || null}
+    </svg>
+  )
+}
+
+// ─── Détection email (heuristique FR) ────────────────────────────────────
+
+interface ParsedEmail { to: string; subject: string; body: string }
+
+function parseEmail(text: string): ParsedEmail | null {
+  if (!text || text.length < 60) return null
+  const t = text.trim()
+  const greet = /(^|\n)\s*(Bonjour|Madame|Monsieur|Cher|Chère|Chers|Bonsoir)\b/i
+  const sign = /(Cordialement|Bien cordialement|Bien à vous|Sincères salutations|Excellente journée|Belle journée|À très vite|À bientôt)\b/i
+  const hasGreet = greet.test(t)
+  const hasSign = sign.test(t)
+  const subjectMatch = t.match(/(?:^|\n)\s*(?:Objet|Sujet)\s*[:：]\s*(.+?)(?:\n|$)/i)
+  const toMatch = t.match(/(?:^|\n)\s*(?:À|A|Destinataire|Pour)\s*[:：]\s*(.+?)(?:\n|$)/i)
+  if (!hasGreet || !hasSign) {
+    if (!subjectMatch) return null
+  }
+  let body = t
+  if (subjectMatch) body = body.replace(subjectMatch[0], '')
+  if (toMatch) body = body.replace(toMatch[0], '')
+  body = body.replace(/^\s*\n+/, '').trim()
+  let subject = subjectMatch ? subjectMatch[1].trim() : ''
+  if (!subject) {
+    const firstLine = body.split('\n')[0]?.trim() || ''
+    if (firstLine.length < 80 && !greet.test(firstLine) && /^[A-ZÉÈÀ]/.test(firstLine)) {
+      subject = firstLine
+      body = body.split('\n').slice(1).join('\n').replace(/^\s*\n+/, '')
+    }
+  }
+  return { to: toMatch ? toMatch[1].trim() : '', subject: subject || '(sans objet)', body: body || t }
+}
+
+// ─── Page principale ─────────────────────────────────────────────────────
+
+export default function JulienSugarV2Page() {
+  const navigate = useNavigate()
+  const { profile } = useAuth()
+
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const saved = window.localStorage.getItem('megga.sugar.dark')
+    if (saved === '1') return true
+    if (saved === '0') return false
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+  useEffect(() => {
+    window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+  }, [dark])
+
+  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const s = tok(dark)
+
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [prevScreen] = useState<PrevScreen>(() => {
+    const ref = document.referrer
+    if (ref.includes('/dashboard/pipeline')) return 'pipeline'
+    if (ref.includes('/dashboard/listings')) return 'biens'
+    if (ref.includes('/dashboard/contacts')) return 'contacts'
+    if (ref.includes('/dashboard/matching')) return 'matching'
+    if (ref.includes('/dashboard/calendar')) return 'calendar'
+    if (ref.includes('/dashboard/documents')) return 'docs'
+    if (ref.includes('/dashboard') && !ref.includes('/dashboard/')) return 'today'
+    return null
+  })
+
+  const onCmd = () => {}
+  const onNavigate = (id: SugarScreenId | string) => {
+    switch (id) {
+      case 'today': navigate('/dashboard'); break
+      case 'pipeline': navigate('/dashboard/pipeline'); break
+      case 'matching': navigate('/dashboard/matching'); break
+      case 'contacts': navigate('/dashboard/contacts'); break
+      case 'biens': navigate('/dashboard/listings'); break
+      case 'biens-new': navigate('/dashboard/listings/new'); break
+      case 'parcours': navigate('/dashboard/parcours'); break
+      case 'calendar': navigate('/dashboard/calendar'); break
+      case 'docs': navigate('/dashboard/documents'); break
+      case 'kyc': navigate('/dashboard/kyc'); break
+      case 'reseau': navigate('/dashboard/reseau'); break
+      case 'auto': navigate('/dashboard/automation'); break
+      case 'chat': navigate('/dashboard/messages'); break
+      case 'dashboard': navigate('/dashboard/analytics'); break
+      case 'settings': navigate('/dashboard/settings'); break
+      case 'ai':
+      case 'julien': break
+      default:
+    }
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        width: '100%',
+        background: dark
+          ? 'radial-gradient(ellipse 100% 70% at 50% 0%, #15141A 0%, #0A0A0B 50%, #050506 100%)'
+          : 'radial-gradient(ellipse 120% 90% at 50% 110%, #C8D5E0 0%, #DDE2E9 40%, #EAEDF3 100%)',
+        fontFamily: 'Manrope, system-ui, sans-serif',
+        color: s.ink,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Orb de fond — uniquement en mode sombre, discret */}
+      {dark && (
+        <div
+          style={{
+            position: 'absolute', pointerEvents: 'none',
+            width: 700, height: 700, borderRadius: '50%',
+            left: '50%', top: '50%',
+            transform: 'translate(-50%, -30%)',
+            background: 'radial-gradient(circle, rgba(255,235,200,0.04) 0%, transparent 65%)',
+            filter: 'blur(40px)',
+          }}
+        />
+      )}
+
+      <style>{`
+        @keyframes jpulse  { 0%,60%,100%{opacity:.2;transform:scale(.85)} 30%{opacity:1;transform:scale(1)} }
+        @keyframes jbar    { from{transform:scaleY(0.4)} to{transform:scaleY(1)} }
+        @keyframes capsule-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes item-in    { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes jcaret  { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+        @keyframes gg-spin    { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+        @keyframes gg-breathe { 0%,100%{transform:scale(1);opacity:.85} 50%{transform:scale(1.08);opacity:1} }
+        @keyframes gg-halo    { 0%,100%{transform:scale(.9);opacity:.6} 50%{transform:scale(1.15);opacity:1} }
+        @keyframes gg-shimmer { 0%,100%{opacity:.55} 50%{opacity:1} }
+        @keyframes gg-fade-in { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes hist-in    { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+      `}</style>
+
+      <SugarTopNav
+        active={'julien' as SugarScreenId}
+        t={t} sp={sp} onNavigate={onNavigate} onCmd={onCmd}
+      />
+
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+        <div style={{ position: 'relative', zIndex: 10, flexShrink: 0 }}>
+          <SugarIconRail
+            active="ai"
+            onNavigate={onNavigate} onCmd={onCmd}
+            dark={dark} setDark={setDark} sp={sp}
+            extraBottomBtn={
+              <HistoryRailBtn
+                open={drawerOpen}
+                onToggle={() => setDrawerOpen(o => !o)}
+                dark={dark}
+                spInk={sp.ink}
+                spFocusInk={sp.focusInk}
+                spSoft={sp.soft}
+                spFocusShadow={sp.focusShadow}
+              />
+            }
+          />
+        </div>
+
+        <HistoryPanel
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          onSelect={() => { /* TODO charger conversation */ }}
+          dark={dark} s={s}
+        />
+
+        <main
+          style={{
+            flex: 1, minWidth: 0,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            height: 'calc(100vh - 88px)',
+            transition: 'margin-left .32s cubic-bezier(.2,.8,.2,1)',
+          }}
+        >
+          <JulienConversation
+            s={s} dark={dark} prevScreen={prevScreen}
+            firstName={(profile?.full_name?.split(' ')[0]) || 'Grégory'}
+          />
+        </main>
+      </div>
+    </div>
+  )
+}
+
+// ─── Conversation : page vide (greeting) ou messages ─────────────────────
+
+interface JulienMessage {
+  id: number
+  role: 'user' | 'assistant'
+  content: string
+  loading?: boolean
+  streaming?: boolean
+}
+
+interface JulienConversationProps {
+  s: JulienTokens
+  dark: boolean
+  prevScreen: PrevScreen
+  firstName: string
+}
+
+function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversationProps) {
+  const [messages, setMessages] = useState<JulienMessage[]>([])
+  const [context, setContext] = useState<DossierContext | null>(null)
+  const bottomRef = useRef<HTMLDivElement | null>(null)
+  const { sendMessageStream, isLoading } = useCopilot()
+
+  useEffect(() => {
+    if (bottomRef.current && bottomRef.current.parentElement) {
+      bottomRef.current.parentElement.scrollTop = bottomRef.current.offsetTop
+    }
+  }, [messages])
+
+  const sendMessage = async (text: string) => {
+    if (isLoading) return
+    const uid = Date.now()
+    const lid = uid + 1
+    const contextNote = context ? `\n\nContexte actif : ${context.label}` : ''
+    setMessages(prev => [
+      ...prev,
+      { id: uid, role: 'user', content: text },
+      { id: lid, role: 'assistant', content: '', loading: true, streaming: false },
+    ])
+
+    setMessages(prev => prev.map(m =>
+      m.id === lid ? { ...m, loading: false, streaming: true, content: '' } : m,
+    ))
+
+    try {
+      let acc = ''
+      await sendMessageStream(
+        text + contextNote,
+        undefined,
+        chunk => {
+          acc += chunk
+          setMessages(prev => prev.map(m =>
+            m.id === lid ? { ...m, content: acc } : m,
+          ))
+        },
+      )
+      setMessages(prev => prev.map(m =>
+        m.id === lid ? { ...m, streaming: false } : m,
+      ))
+    } catch {
+      setMessages(prev => prev.map(m =>
+        m.id === lid ? { ...m, content: "Désolé, je n'ai pas pu traiter ta demande. Réessaie.", loading: false, streaming: false } : m,
+      ))
+    }
+  }
+
+  const isEmpty = messages.length === 0
+  const greeting = useMemo(() => getGreeting(firstName), [firstName])
+  const subgreeting = useMemo(() => getSubgreeting(), [])
+  const dynamicSuggestions = useMemo(() => getDynamicSuggestions(prevScreen), [prevScreen])
+
+  return (
+    <div
+      style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: isEmpty ? 'center' : 'flex-start',
+        width: '100%', overflow: 'hidden',
+      }}
+    >
+      {isEmpty ? (
+        <div
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 28, width: '100%', padding: '0 24px 40px',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <h1
+              style={{
+                margin: 0, fontSize: 48, fontWeight: 800,
+                color: s.ink, letterSpacing: '-1.2px', textAlign: 'center', lineHeight: 1.1,
+              }}
+            >
+              {greeting}
+            </h1>
+            <div style={{ fontSize: 16, color: s.inkSoft, fontWeight: 500, textAlign: 'center' }}>
+              {subgreeting}
+            </div>
+          </div>
+
+          <PromptBar
+            onSend={sendMessage} loading={isLoading} dark={dark} s={s}
+            context={context} onRemoveContext={() => setContext(null)}
+            onSetContext={setContext}
+          />
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 580 }}>
+            {dynamicSuggestions.map((sug, i) => (
+              <button
+                key={sug.id}
+                onClick={() => sendMessage(sug.prompt)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '9px 16px', borderRadius: 999,
+                  background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.75)',
+                  backdropFilter: 'blur(16px) saturate(1.4)',
+                  WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+                  border: dark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.8)',
+                  boxShadow: dark ? '0 4px 16px rgba(0,0,0,.25)' : '0 4px 20px rgba(15,23,42,0.07)',
+                  color: s.inkSoft, fontSize: 13, fontWeight: 600,
+                  fontFamily: 'Manrope, system-ui, sans-serif', cursor: 'pointer',
+                  transition: 'all .18s',
+                  animation: `capsule-in .35s ease ${i * 0.06}s both`,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = s.borderHov; e.currentTarget.style.color = s.ink }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = s.border; e.currentTarget.style.color = s.inkSoft }}
+              >
+                <JIcon name={sug.icon} size={14} color="currentColor" />
+                {sug.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ flex: 1, width: '100%', maxWidth: 580, overflowY: 'auto', padding: '24px 0 8px' }}>
+          {messages.map(msg => <Bubble key={msg.id} msg={msg} s={s} dark={dark} />)}
+          <div ref={bottomRef} style={{ height: 1 }} />
+        </div>
+      )}
+
+      {!isEmpty && (
+        <div style={{ width: '100%', padding: '12px 24px 24px', display: 'flex', justifyContent: 'center' }}>
+          <PromptBar
+            onSend={sendMessage} loading={isLoading} dark={dark} s={s}
+            context={context} onRemoveContext={() => setContext(null)}
+            onSetContext={setContext}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Message bubble (user vs assistant) ──────────────────────────────────
+
+interface BubbleProps { msg: JulienMessage; s: JulienTokens; dark: boolean }
+
+function Bubble({ msg, s, dark }: BubbleProps) {
+  const isUser = msg.role === 'user'
+  const [copied, setCopied] = useState(false)
+  const [actionDone, setActionDone] = useState<string | null>(null)
+
+  const fireAction = (key: string) => {
+    setActionDone(key)
+    setTimeout(() => setActionDone(null), 2200)
+  }
+
+  const email = (!msg.streaming && !msg.loading && msg.content) ? parseEmail(msg.content) : null
+
+  const copyEmail = () => {
+    if (!email) return
+    const formatted = [
+      email.to ? `À : ${email.to}` : '',
+      `Objet : ${email.subject}`,
+      '',
+      email.body,
+    ].filter(Boolean).join('\n')
+    navigator.clipboard.writeText(formatted).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
+  }
+
+  if (isUser) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div
+          style={{
+            maxWidth: '72%', padding: '13px 18px',
+            borderRadius: '20px 20px 4px 20px',
+            background: dark ? 'rgba(255,255,255,0.08)' : s.surface,
+            border: '1px solid ' + s.border,
+            fontSize: 15, lineHeight: 1.7, color: s.ink, fontWeight: 500,
+          }}
+        >
+          {msg.content}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginBottom: 16, maxWidth: 580 }}>
+      <div
+        style={{
+          fontSize: 13, fontWeight: 700, color: s.ink,
+          marginBottom: 8, display: 'flex', alignItems: 'center', gap: 7,
+        }}
+      >
+        <div
+          style={{
+            width: 22, height: 22, borderRadius: 7,
+            background: s.black, display: 'grid', placeItems: 'center',
+          }}
+        >
+          <JIcon name="sparkle" size={11} color={s.selInk} sw={2} />
+        </div>
+        Julien
+      </div>
+      <div style={{ fontSize: 15.5, lineHeight: 1.8, color: s.ink, fontWeight: 400, paddingLeft: 30 }}>
+        {msg.loading && !msg.content ? (
+          <div style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '4px 0' }}>
+            {[0, 1, 2].map(i => (
+              <div
+                key={i}
+                style={{
+                  width: 7, height: 7, borderRadius: '50%', background: s.muted,
+                  animation: `jpulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }}
+              />
+            ))}
+          </div>
+        ) : email ? (
+          <EmailDraft email={email} s={s} dark={dark} onCopy={copyEmail} copied={copied} />
+        ) : (
+          <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+        )}
+
+        {msg.streaming && <StreamingIndicator dark={dark} s={s} />}
+      </div>
+      {!msg.loading && !msg.streaming && msg.content && (
+        <div style={{ paddingLeft: 30, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div
+            style={{
+              display: 'flex', flexWrap: 'wrap', gap: 6,
+              padding: '10px 12px', borderRadius: 14,
+              background: dark ? 'rgba(255,255,255,0.025)' : 'rgba(11,12,14,0.025)',
+              border: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(11,12,14,0.04)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '7px 8px 7px 4px', marginRight: 4,
+                fontSize: 11, fontWeight: 700, color: s.muted,
+                textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}
+            >
+              <JIcon name="sparkle" size={11} color="currentColor" sw={2} />
+              Actions
+            </div>
+            <QuickAction
+              icon="mail"
+              label={email ? 'Ouvrir dans un email' : 'Envoyer par email'}
+              done={actionDone === 'email'}
+              doneLabel={email ? 'Brouillon prêt' : 'Brouillon créé'}
+              onClick={() => fireAction('email')}
+              s={s} dark={dark}
+            />
+            <QuickAction
+              icon="folderAdd" label="Ajouter au dossier"
+              done={actionDone === 'folder'} doneLabel="Ajouté au dossier"
+              onClick={() => fireAction('folder')}
+              s={s} dark={dark}
+            />
+            <QuickAction
+              icon="task" label="Créer une tâche"
+              done={actionDone === 'task'} doneLabel="Tâche créée"
+              onClick={() => fireAction('task')}
+              s={s} dark={dark}
+            />
+          </div>
+
+          {!email && (
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(msg.content).catch(() => {})
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 1800)
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px', borderRadius: 999, border: 0,
+                  background: 'transparent', color: s.muted,
+                  fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+                }}
+              >
+                <JIcon name={copied ? 'check' : 'copy'} size={12} color="currentColor" />
+                {copied ? 'Copié !' : 'Copier'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Indicateur de streaming (logo GG animé) ─────────────────────────────
+
+function StreamingIndicator({ dark, s }: { dark: boolean; s: JulienTokens }) {
+  return (
+    <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', animation: 'gg-fade-in .3s ease' }}>
+      <div style={{ position: 'relative', width: 32, height: 32, display: 'grid', placeItems: 'center' }}>
+        <div
+          style={{
+            position: 'absolute', inset: -4, borderRadius: '50%',
+            background: dark
+              ? 'radial-gradient(circle, rgba(242,240,236,0.18) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(11,12,14,0.10) 0%, transparent 70%)',
+            animation: 'gg-halo 1.8s ease-in-out infinite',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            border: `1.5px solid ${dark ? 'rgba(242,240,236,0.18)' : 'rgba(11,12,14,0.12)'}`,
+            borderTopColor: s.ink,
+            animation: 'gg-spin 1.4s linear infinite',
+          }}
+        />
+        <svg
+          viewBox="0 0 694.81 419.02" width="18" height="13"
+          fill={s.ink}
+          style={{ animation: 'gg-breathe 1.6s ease-in-out infinite', transformOrigin: 'center' }}
+        >
+          <path d="M212.94,0c46.64,5.38,88.55,22.94,122.21,59.67-22.79,28.12-37.71,60.3-47.08,96.28-7.89-14.68-16.56-27.02-28.35-37.25-40.39-35.04-99.55-30.53-134.81,9.66-40.25,45.89-40.1,117.16.48,162.82,35.48,39.93,94.73,44.05,134.83,8.67,14.5-12.89,25.12-28.95,32.24-48.42l-95.26-.1-.03-83.65,192.78-.02c8.8,28.23,5.09,73.7-2.86,101.4-22.71,79.15-85.98,140.1-169.06,149-2.17.23-4.11.34-5.1.93h-31c-42.03-4.33-81.34-20.79-113.04-49.92C-27.8,280.23-21.84,119.65,81.31,39.5,110.93,16.49,145.39,3.92,181.93,0h31.01Z" />
+          <path d="M511.94,419.01h-29c-47.56,0-91.35-24.53-123.87-60,24.65-30.5,36.53-57.89,47.2-96.18,7.43,14.3,16.5,27.51,28.71,37.93,36.96,31.55,90.34,30.86,126.22-1.89,13.97-12.75,24.27-28.48,31.18-47.43l-94.84-.08-.05-83.65,192.4-.03c2.59,9.14,3.94,17.82,4.5,27.2,4.34,72.2-25.1,142.48-83.13,186.34-29.43,22.24-63.45,34.03-99.32,37.8h0Z" />
+          <path d="M511.94,0c43.2,4.34,82.78,21.02,114.61,50.52,6.43,5.96,12.05,11.43,17.39,19.2l-56.72,84.95c-7.57-14.34-16.16-25.96-27.71-36.03-33.9-29.56-83.44-31.58-119.35-4.39-12.97,9.71-22.64,21.92-30.74,35.77l-101.14-.14c10.87-40.77,32.85-75.32,63.12-102.25C402.99,19.45,441.75,4.18,482.95.02h29-.01Z" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+// ─── EmailDraft (rendu d'un email parsé en composer card) ───────────────
+
+interface EmailDraftProps {
+  email: ParsedEmail
+  s: JulienTokens
+  dark: boolean
+  onCopy: () => void
+  copied: boolean
+}
+
+function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
+  return (
+    <div
+      style={{
+        marginTop: 4, borderRadius: 18,
+        border: `1px solid ${s.border}`,
+        background: dark ? 'rgba(255,255,255,0.025)' : '#FFFFFF',
+        overflow: 'hidden',
+        boxShadow: dark ? '0 4px 16px rgba(0,0,0,0.25)' : '0 2px 10px rgba(11,12,14,0.04)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px',
+          borderBottom: `1px solid ${s.border}`,
+          background: dark ? 'rgba(255,255,255,0.02)' : s.surfaceB,
+        }}
+      >
+        <div
+          style={{
+            width: 22, height: 22, borderRadius: 7,
+            background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(11,12,14,0.06)',
+            display: 'grid', placeItems: 'center',
+          }}
+        >
+          <JIcon name="mail" size={12} color={s.ink} sw={2} />
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: s.ink, letterSpacing: '0.01em' }}>
+          Brouillon email
+        </div>
+        <div
+          style={{
+            marginLeft: 6, padding: '2px 8px', borderRadius: 999,
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+            background: dark ? 'rgba(217,119,87,0.18)' : 'rgba(217,119,87,0.12)',
+            color: '#B5582F',
+          }}
+        >
+          Non envoyé
+        </div>
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={onCopy}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '5px 11px', borderRadius: 999, border: 0,
+            background: copied ? (dark ? 'rgba(46,160,67,0.18)' : 'rgba(46,160,67,0.10)') : s.black,
+            color: copied ? '#2EA043' : s.selInk,
+            fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+            transition: 'all .18s',
+          }}
+        >
+          <JIcon name={copied ? 'check' : 'copy'} size={11} color="currentColor" sw={2.2} />
+          {copied ? 'Copié' : "Copier l'email"}
+        </button>
+      </div>
+
+      <div style={{ padding: '4px 14px' }}>
+        <div
+          style={{
+            display: 'flex', alignItems: 'baseline', gap: 10,
+            padding: '9px 0',
+            borderBottom: `1px solid ${s.border}`,
+          }}
+        >
+          <div
+            style={{
+              width: 48, fontSize: 11.5, fontWeight: 700, color: s.muted,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}
+          >
+            À
+          </div>
+          <div
+            style={{
+              flex: 1, fontSize: 14,
+              color: email.to ? s.ink : s.muted,
+              fontStyle: email.to ? 'normal' : 'italic',
+            }}
+          >
+            {email.to || 'destinataire@email.com'}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '9px 0' }}>
+          <div
+            style={{
+              width: 48, fontSize: 11.5, fontWeight: 700, color: s.muted,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}
+          >
+            Objet
+          </div>
+          <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: s.ink }}>
+            {email.subject}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          padding: '16px 18px 18px',
+          borderTop: `1px solid ${s.border}`,
+          fontSize: 14.5, lineHeight: 1.75, color: s.ink,
+          whiteSpace: 'pre-wrap',
+          fontFamily: 'Manrope, system-ui, sans-serif',
+        }}
+      >
+        {email.body}
+      </div>
+    </div>
+  )
+}
+
+// ─── QuickAction (post-réponse) ──────────────────────────────────────────
+
+interface QuickActionProps {
+  icon: JIconName
+  label: string
+  onClick: () => void
+  done?: boolean
+  doneLabel?: string
+  s: JulienTokens
+  dark: boolean
+}
+
+function QuickAction({ icon, label, onClick, done, doneLabel, s, dark }: QuickActionProps) {
+  const [hov, setHov] = useState(false)
+  const isDone = !!done
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '7px 12px', borderRadius: 10, border: 0,
+        background: isDone
+          ? (dark ? 'rgba(34,197,94,0.14)' : 'rgba(34,197,94,0.10)')
+          : (hov
+            ? (dark ? 'rgba(255,255,255,0.10)' : 'rgba(11,12,14,0.07)')
+            : (dark ? 'rgba(255,255,255,0.05)' : 'rgba(11,12,14,0.04)')),
+        color: isDone ? '#16A34A' : s.inkSoft,
+        fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
+        cursor: isDone ? 'default' : 'pointer',
+        transition: 'all .15s ease',
+        boxShadow: hov && !isDone
+          ? (dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(15,23,42,0.06)')
+          : 'none',
+      }}
+    >
+      <JIcon name={isDone ? 'check' : icon} size={13} color="currentColor" sw={2} />
+      {isDone ? (doneLabel || 'Fait') : label}
+    </button>
+  )
+}
+
+// ─── PromptBar (textarea + attach + mic + ContextPicker + send) ──────────
+
+interface PromptBarProps {
+  onSend: (text: string) => void
+  loading: boolean
+  dark: boolean
+  s: JulienTokens
+  context: DossierContext | null
+  onRemoveContext: () => void
+  onSetContext: (d: DossierContext) => void
+}
+
+function PromptBar({ onSend, loading, dark, s, context, onRemoveContext, onSetContext }: PromptBarProps) {
+  const [val, setVal] = useState('')
+  const [listening, setListening] = useState(false)
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+
+  const send = () => {
+    if (!val.trim() || loading) return
+    onSend(val.trim())
+    setVal('')
+    setFiles([])
+  }
+  const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      send()
+    }
+  }
+
+  return (
+    <div style={{ width: '100%', maxWidth: 580, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+      <ContextCapsule dossier={context} onRemove={onRemoveContext} dark={dark} s={s} />
+
+      <div
+        style={{
+          width: '100%',
+          background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(24px) saturate(1.6)',
+          WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+          borderRadius: 26,
+          boxShadow: dark
+            ? 'inset 0 0 0 1px rgba(255,255,255,0.08), 0 32px 80px rgba(0,0,0,.55)'
+            : 'inset 0 0 0 1px rgba(255,255,255,0.9), 0 32px 80px rgba(15,23,42,0.12), 0 4px 16px rgba(15,23,42,0.06)',
+          overflow: 'hidden',
+        }}
+      >
+        {files.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '12px 16px 0' }}>
+            {files.map((f, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
+                  borderRadius: 999, background: s.surfaceB, fontSize: 12, color: s.inkSoft,
+                }}
+              >
+                <JIcon name="attach" size={12} color={s.muted} />
+                {f.name}
+                <button
+                  onClick={() => setFiles(fs => fs.filter((_, j) => j !== i))}
+                  style={{ border: 0, background: 'transparent', cursor: 'pointer', color: s.muted, padding: 0, fontSize: 14 }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ padding: '14px 16px 0' }}>
+          <textarea
+            value={val} onChange={e => setVal(e.target.value)} onKeyDown={onKey}
+            placeholder="Comment puis-je vous aider ?" rows={1}
+            style={{
+              width: '100%', border: 0, background: 'transparent',
+              color: s.ink, fontSize: 15.5, fontFamily: 'Manrope, system-ui, sans-serif',
+              resize: 'none', outline: 'none', lineHeight: 1.65,
+              maxHeight: 200, overflowY: 'auto', padding: 0,
+            }}
+            onInput={e => {
+              const ta = e.currentTarget
+              ta.style.height = 'auto'
+              ta.style.height = Math.min(ta.scrollHeight, 200) + 'px'
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <input
+              ref={fileRef} type="file" multiple style={{ display: 'none' }}
+              onChange={e => {
+                if (e.target.files) setFiles(fs => [...fs, ...Array.from(e.target.files!)])
+              }}
+            />
+            <button
+              onClick={() => fileRef.current?.click()}
+              style={{ width: 34, height: 34, borderRadius: 10, border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', color: s.muted, transition: 'background .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = s.surfaceB }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <JIcon name="plus" size={18} color="currentColor" />
+            </button>
+            <button
+              onClick={() => setListening(l => !l)}
+              style={{ width: 34, height: 34, borderRadius: 10, border: 0, background: listening ? s.black : 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', transition: 'all .2s' }}
+              onMouseEnter={e => { if (!listening) e.currentTarget.style.background = s.surfaceB }}
+              onMouseLeave={e => { if (!listening) e.currentTarget.style.background = 'transparent' }}
+            >
+              {listening ? (
+                <div style={{ display: 'flex', gap: 2, alignItems: 'center', height: 16 }}>
+                  {[4, 7, 5, 9, 6, 4, 8].map((h, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 2.5, borderRadius: 2, background: s.selInk, height: h,
+                        animation: `jbar 0.8s ease-in-out ${i * 0.08}s infinite alternate`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <JIcon name="mic" size={18} color={s.muted} />
+              )}
+            </button>
+
+            <ContextPicker onSelect={onSetContext} dark={dark} s={s} />
+          </div>
+
+          <button
+            onClick={send}
+            disabled={!val.trim() && !loading}
+            style={{
+              width: 34, height: 34, borderRadius: 10, border: 0,
+              background: val.trim() ? s.black : s.surfaceB,
+              cursor: val.trim() ? 'pointer' : 'default',
+              display: 'grid', placeItems: 'center',
+              boxShadow: val.trim() ? '0 4px 12px rgba(11,12,14,0.2)' : 'none',
+              transition: 'all .18s',
+            }}
+          >
+            <JIcon name="send" size={15} color={val.trim() ? s.selInk : s.muted} sw={1.8} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Capsule contexte (au-dessus de la PromptBar) ───────────────────────
+
+interface ContextCapsuleProps { dossier: DossierContext | null; onRemove: () => void; dark: boolean; s: JulienTokens }
+
+function ContextCapsule({ dossier, onRemove, dark, s }: ContextCapsuleProps) {
+  if (!dossier) return null
+  return (
+    <div
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        padding: '7px 14px', borderRadius: 999,
+        background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.85)',
+        backdropFilter: 'blur(20px) saturate(1.5)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
+        border: dark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.9)',
+        boxShadow: dark ? '0 4px 20px rgba(0,0,0,.3)' : '0 4px 20px rgba(15,23,42,0.08)',
+        marginBottom: 8,
+        animation: 'capsule-in .25s cubic-bezier(.2,.8,.2,1)',
+      }}
+    >
+      <div style={{ width: 8, height: 8, borderRadius: '50%', background: dossier.color, flexShrink: 0 }} />
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: s.ink }}>Contexte :</span>
+      <span style={{ fontSize: 12.5, fontWeight: 500, color: s.inkSoft }}>{dossier.label}</span>
+      <button
+        onClick={onRemove}
+        style={{
+          width: 18, height: 18, borderRadius: 999, border: 0,
+          background: 'transparent', cursor: 'pointer',
+          display: 'grid', placeItems: 'center', marginLeft: 2,
+        }}
+      >
+        <JIcon name="x" size={12} color={s.muted} />
+      </button>
+    </div>
+  )
+}
+
+// ─── ContextPicker (@-dossier dropdown dans la PromptBar) ──────────────
+
+function ContextPicker({ onSelect, dark, s }: { onSelect: (d: DossierContext) => void; dark: boolean; s: JulienTokens }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          height: 28, padding: '0 10px', borderRadius: 999, border: 0,
+          background: open ? s.black : (dark ? 'rgba(255,255,255,0.07)' : 'rgba(11,12,14,0.06)'),
+          color: open ? s.selInk : s.muted,
+          fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 5, transition: 'all .15s',
+        }}
+      >
+        <span style={{ fontSize: 14 }}>@</span>
+        Contexte
+      </button>
+      {open && (
+        <div
+          style={{
+            position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
+            width: 230, borderRadius: 16,
+            background: dark ? 'rgba(18,18,22,0.97)' : 'rgba(255,255,255,0.98)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            boxShadow: dark
+              ? '0 0 0 1px rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,.6)'
+              : '0 0 0 1px rgba(0,0,0,0.08), 0 24px 60px rgba(15,23,42,0.15)',
+            overflow: 'hidden', zIndex: 200,
+            animation: 'capsule-in .2s cubic-bezier(.2,.8,.2,1)',
+          }}
+        >
+          <div
+            style={{
+              padding: '8px 12px 6px', fontSize: 11, fontWeight: 700,
+              color: s.muted, textTransform: 'uppercase', letterSpacing: '0.08em',
+            }}
+          >
+            Injecter un contexte
+          </div>
+          {DOSSIERS_CONTEXT.map(d => (
+            <button
+              key={d.id}
+              onClick={() => { onSelect(d); setOpen(false) }}
+              style={{
+                width: '100%', textAlign: 'left', padding: '9px 14px',
+                border: 0, background: 'transparent', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 10,
+                fontFamily: 'inherit', transition: 'background .12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.05)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: s.ink }}>{d.label}</span>
+            </button>
+          ))}
+          <div style={{ height: 8 }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── HistoryRailBtn (extra rail bouton bas) ──────────────────────────────
+
+interface HistoryRailBtnProps {
+  open: boolean
+  onToggle: () => void
+  dark: boolean
+  spInk: string
+  spFocusInk: string
+  spSoft: string
+  spFocusShadow: string
+}
+
+function HistoryRailBtn({ open, onToggle, dark, spInk, spFocusInk, spSoft, spFocusShadow }: HistoryRailBtnProps) {
+  const idleBg = dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'
+  return (
+    <button
+      title="Historique"
+      onClick={onToggle}
+      style={{
+        width: 52, height: 52, borderRadius: 16, border: 0,
+        background: open ? spInk : idleBg,
+        boxShadow: open ? spFocusShadow : 'none',
+        display: 'grid', placeItems: 'center', cursor: 'pointer',
+        transition: 'background .16s ease',
+        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+      }}
+      onMouseEnter={e => { if (!open) e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)' }}
+      onMouseLeave={e => { if (!open) e.currentTarget.style.background = idleBg }}
+    >
+      <JIcon name="clock" size={22} color={open ? spFocusInk : spSoft} sw={1.7} />
+    </button>
+  )
+}
+
+// ─── HistoryPanel (drawer historique inline Sugar) ──────────────────────
+
+interface HistoryPanelProps {
+  open: boolean
+  onClose: () => void
+  onSelect: (h: HistoryEntry) => void
+  dark: boolean
+  s: JulienTokens
+}
+
+function HistoryPanel({ open, onClose, onSelect, dark, s }: HistoryPanelProps) {
+  const [hov, setHov] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [pinned, setPinned] = useState<string[]>(() =>
+    HISTORY.filter(h => h.pinned).map(h => h.id),
+  )
+
+  const togglePin = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setPinned(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
+  }
+
+  if (!open) return null
+
+  const q = query.trim().toLowerCase()
+  const filtered = HISTORY.filter(h =>
+    !q || h.title.toLowerCase().includes(q) || h.preview.toLowerCase().includes(q),
+  )
+  const pinnedItems = filtered.filter(h => pinned.includes(h.id))
+  const grouped = GROUPS.map(g => ({
+    ...g,
+    items: filtered.filter(h => h.group === g.key && !pinned.includes(h.id)),
+  })).filter(g => g.items.length > 0)
+
+  const cardBg = dark ? '#15151A' : '#FFFFFF'
+  const cardSubtle = dark ? 'rgba(255,255,255,0.04)' : '#F5F6F8'
+  const shadow = dark
+    ? '0 24px 60px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.25)'
+    : '0 24px 60px rgba(15,23,42,0.10), 0 4px 16px rgba(15,23,42,0.05)'
+
+  return (
+    <aside
+      style={{
+        width: 340, flexShrink: 0,
+        marginRight: 20, marginTop: 12, marginBottom: 24,
+        background: cardBg,
+        borderRadius: 28,
+        boxShadow: shadow,
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+        animation: 'hist-in .35s cubic-bezier(.2,.85,.25,1)',
+        height: 'calc(100vh - 175px)',
+        maxHeight: 720,
+        alignSelf: 'flex-start',
+      }}
+    >
+      <div style={{ padding: '22px 22px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <div
+              style={{
+                width: 36, height: 36, borderRadius: 12,
+                background: cardSubtle,
+                display: 'grid', placeItems: 'center', flexShrink: 0,
+              }}
+            >
+              <JIcon name="clock" size={17} color={s.ink} sw={1.8} />
+            </div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: s.ink, letterSpacing: '-0.4px', lineHeight: 1.1 }}>
+                Historique
+              </div>
+              <div style={{ fontSize: 11.5, color: s.muted, fontWeight: 500, marginTop: 2 }}>
+                {HISTORY.length} conversations
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            title="Fermer"
+            style={{
+              width: 32, height: 32, borderRadius: 10, border: 0,
+              background: cardSubtle, cursor: 'pointer',
+              display: 'grid', placeItems: 'center', transition: 'background .15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.10)' : '#EBECF0' }}
+            onMouseLeave={e => { e.currentTarget.style.background = cardSubtle }}
+          >
+            <JIcon name="x" size={14} color={s.inkSoft} sw={2} />
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 9,
+            padding: '11px 14px', borderRadius: 14,
+            background: cardSubtle,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={s.muted} strokeWidth="2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+          </svg>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Rechercher…"
+            style={{
+              flex: 1, border: 0, background: 'transparent', outline: 'none',
+              color: s.ink, fontSize: 13, fontFamily: 'Manrope, system-ui, sans-serif',
+              fontWeight: 500,
+            }}
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 0, display: 'grid', placeItems: 'center' }}
+            >
+              <JIcon name="x" size={12} color={s.muted} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 14px 14px' }}>
+        {filtered.length === 0 && (
+          <div
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', padding: '50px 20px', gap: 10,
+            }}
+          >
+            <div
+              style={{
+                width: 52, height: 52, borderRadius: 16,
+                background: cardSubtle,
+                display: 'grid', placeItems: 'center',
+              }}
+            >
+              <JIcon name="clock" size={22} color={s.muted} />
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: s.inkSoft }}>Aucun résultat</div>
+          </div>
+        )}
+
+        {pinnedItems.length > 0 && (
+          <HistorySection
+            label="Épinglés"
+            icon={<svg width="10" height="10" viewBox="0 0 24 24" fill={s.muted}><path d="M16 4v3l2 5v2h-5v6l-1 1-1-1v-6H6v-2l2-5V4z" /></svg>}
+            s={s}
+          >
+            {pinnedItems.map((h, i) => (
+              <HistoryItem
+                key={h.id} h={h} idx={i} hov={hov} setHov={setHov}
+                onSelect={hh => { onSelect(hh); onClose() }}
+                togglePin={togglePin} pinned dark={dark} s={s} cardSubtle={cardSubtle}
+              />
+            ))}
+          </HistorySection>
+        )}
+
+        {grouped.map(g => (
+          <HistorySection key={g.key} label={g.label} s={s}>
+            {g.items.map((h, i) => (
+              <HistoryItem
+                key={h.id} h={h} idx={i} hov={hov} setHov={setHov}
+                onSelect={hh => { onSelect(hh); onClose() }}
+                togglePin={togglePin} pinned={pinned.includes(h.id)} dark={dark} s={s} cardSubtle={cardSubtle}
+              />
+            ))}
+          </HistorySection>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
+function HistorySection({ label, icon, children, s }: { label: string; icon?: ReactNode; children: ReactNode; s: JulienTokens }) {
+  return (
+    <div style={{ marginBottom: 6 }}>
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '10px 8px 6px',
+          fontSize: 10.5, fontWeight: 700, color: s.muted,
+          textTransform: 'uppercase', letterSpacing: '0.09em',
+        }}
+      >
+        {icon}{label}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+interface HistoryItemProps {
+  h: HistoryEntry
+  idx: number
+  hov: string | null
+  setHov: (id: string | null) => void
+  onSelect: (h: HistoryEntry) => void
+  togglePin: (e: React.MouseEvent, id: string) => void
+  pinned: boolean
+  dark: boolean
+  s: JulienTokens
+  cardSubtle: string
+}
+
+function HistoryItem({ h, idx, hov, setHov, onSelect, togglePin, pinned, dark, s, cardSubtle }: HistoryItemProps) {
+  const isHov = hov === h.id
+  const itemStyle: CSSProperties = {
+    width: '100%', textAlign: 'left', padding: '12px 14px',
+    borderRadius: 14, border: 0,
+    background: isHov ? cardSubtle : 'transparent',
+    cursor: 'pointer', fontFamily: 'Manrope, system-ui, sans-serif',
+    transition: 'background .15s',
+    display: 'flex', flexDirection: 'column', gap: 4,
+    position: 'relative',
+    animation: `item-in .35s ease ${idx * 0.04}s both`,
+  }
+  return (
+    <button
+      onClick={() => onSelect(h)}
+      onMouseEnter={() => setHov(h.id)}
+      onMouseLeave={() => setHov(null)}
+      style={itemStyle}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div
+          style={{
+            fontSize: 13, fontWeight: 600, color: s.ink, lineHeight: 1.3,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
+          }}
+        >
+          {h.title}
+        </div>
+        <button
+          onClick={e => togglePin(e, h.id)}
+          style={{
+            width: 22, height: 22, borderRadius: 6, border: 0,
+            background: 'transparent', cursor: 'pointer',
+            display: 'grid', placeItems: 'center',
+            opacity: isHov || pinned ? 1 : 0,
+            transition: 'opacity .15s',
+            color: pinned ? s.ink : s.muted,
+          }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+            <path d="M16 4v3l2 5v2h-5v6l-1 1-1-1v-6H6v-2l2-5V4z" />
+          </svg>
+        </button>
+      </div>
+      <div
+        style={{
+          fontSize: 11.5, color: s.muted, fontWeight: 500,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          lineHeight: 1.4,
+        }}
+      >
+        {h.preview}
+      </div>
+      {h.dossier && (
+        <div
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            marginTop: 3, padding: '2px 8px', borderRadius: 999,
+            background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(11,12,14,0.04)',
+            alignSelf: 'flex-start',
+          }}
+        >
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: h.dossier.color }} />
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: s.inkSoft }}>{h.dossier.label}</span>
+        </div>
+      )}
+    </button>
+  )
+}

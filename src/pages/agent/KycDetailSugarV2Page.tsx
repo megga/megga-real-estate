@@ -111,6 +111,8 @@ export default function KycDetailSugarV2Page() {
       case 'docs': navigate('/dashboard/documents'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'reseau': navigate('/dashboard/reseau'); break
+      case 'ai':
+      case 'julien': navigate('/dashboard/julien'); break
       case 'auto': navigate('/dashboard/automation'); break
       case 'chat': navigate('/dashboard/messages'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
