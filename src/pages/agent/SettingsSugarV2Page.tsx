@@ -1,0 +1,151 @@
+// MEGGA CRM Sugar v2 — Settings (Tier 3.k)
+// 1:1 port from the Claude Design bundle (`crm-screen-settings-sugar.jsx`).
+// Bandeau pill par défaut. 9 sections placeholder, Profile en plein.
+
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  CRM_TOKENS, crmSugarPalette, type DarkTone,
+} from '@/components/crm-sugar/tokens'
+import {
+  SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
+} from '@/components/crm-sugar/SugarShell'
+import { BannerPill } from '@/components/crm-sugar/settings/BannerPill'
+import { ProfileSection } from '@/components/crm-sugar/settings/ProfileSection'
+import { PlaceholderSection } from '@/components/crm-sugar/settings/PlaceholderSection'
+import {
+  SETTINGS_SECTIONS, SET_PALETTE, type SectionId,
+} from '@/components/crm-sugar/settings/data'
+
+const DARK_TONE: DarkTone = 'meggaAi'
+
+export default function SettingsSugarV2Page() {
+  const navigate = useNavigate()
+
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const saved = window.localStorage.getItem('megga.sugar.dark')
+    if (saved === '1') return true
+    if (saved === '0') return false
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+    }
+  }, [dark])
+
+  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const sp = crmSugarPalette(t, dark, DARK_TONE)
+
+  const [active, setActive] = useState<SectionId>('profile')
+  const activeSection =
+    SETTINGS_SECTIONS.find(s => s.id === active) || SETTINGS_SECTIONS[0]
+
+  const onCmd = () => {
+    /* placeholder */
+  }
+  const onNavigate = (id: SugarScreenId | string) => {
+    switch (id) {
+      case 'today': navigate('/dashboard'); break
+      case 'pipeline': navigate('/dashboard/pipeline'); break
+      case 'matching': navigate('/dashboard/matching'); break
+      case 'contacts': navigate('/dashboard/contacts'); break
+      case 'biens': navigate('/dashboard/listings'); break
+      case 'biens-new': navigate('/dashboard/listings/new'); break
+      case 'parcours': navigate('/dashboard/parcours'); break
+      case 'calendar': navigate('/dashboard/calendar'); break
+      case 'docs': navigate('/dashboard/documents'); break
+      case 'kyc': navigate('/dashboard/kyc'); break
+      case 'auto': navigate('/dashboard/automation'); break
+      case 'chat': navigate('/dashboard/messages'); break
+      case 'dashboard': navigate('/dashboard/analytics'); break
+      case 'settings': break
+      default:
+    }
+  }
+
+  const renderContent = () => {
+    if (active === 'profile') return <ProfileSection />
+    return <PlaceholderSection section={activeSection} />
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: SET_PALETTE.bgGradient,
+        fontFamily: 'Manrope, system-ui, sans-serif',
+        color: SET_PALETTE.ink,
+      }}
+    >
+      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{`
+        @keyframes setFadeUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes setSlideUp {
+          from { opacity: 0; transform: translate(-50%, 16px); }
+          to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+        @keyframes setFadeIn {
+          from { opacity: 0; } to { opacity: 1; }
+        }
+        @keyframes setScaleIn {
+          from { opacity: 0; transform: scale(.94); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes setSpin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      <SugarTopNav
+        active={'settings' as SugarScreenId}
+        t={t}
+        sp={sp}
+        onNavigate={onNavigate}
+        onCmd={onCmd}
+      />
+
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
+        <SugarIconRail
+          active="settings"
+          onNavigate={onNavigate}
+          onCmd={onCmd}
+          dark={dark}
+          setDark={setDark}
+          sp={sp}
+        />
+
+        <main
+          style={{
+            flex: 1,
+            minWidth: 0,
+            padding: '100px 40px 60px 40px',
+            maxWidth: 1480,
+            margin: '0 auto',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 18,
+          }}
+        >
+          <BannerPill active={active} onChange={setActive} />
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 20,
+              alignItems: 'flex-start',
+              flex: 1,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>{renderContent()}</div>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}

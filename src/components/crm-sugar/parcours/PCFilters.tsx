@@ -1,0 +1,227 @@
+// MEGGA CRM Sugar v2 — Parcours filters (Agent / Stade / Urgence)
+// 1:1 port from `crm-screen-parcours-sugar.jsx` (PCFilters).
+
+import type { SugarPalette } from '../tokens'
+import {
+  PARCOURS_STAGES,
+  PARCOURS_TEAM,
+  URGENCY_MAP,
+  type StageId,
+  type Urgency,
+} from './parcoursData'
+
+interface PCFiltersProps {
+  sp: SugarPalette
+  dark: boolean
+  agentFilter: string
+  setAgentFilter: (v: string) => void
+  stageFilter: StageId | 'all'
+  setStageFilter: (v: StageId | 'all') => void
+  urgencyFilter: Urgency | 'all'
+  setUrgencyFilter: (v: Urgency | 'all') => void
+  count: number
+}
+
+export function PCFilters({
+  sp,
+  dark,
+  agentFilter,
+  setAgentFilter,
+  stageFilter,
+  setStageFilter,
+  urgencyFilter,
+  setUrgencyFilter,
+  count,
+}: PCFiltersProps) {
+  const pillBase = {
+    height: 36,
+    padding: '0 14px',
+    borderRadius: 999,
+    border: 0,
+    cursor: 'pointer',
+    background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.6)',
+    color: sp.ink,
+    fontSize: 13,
+    fontWeight: 600,
+    fontFamily: 'inherit',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    boxShadow: sp.shadowSm,
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+  } as const
+
+  const activePill = (active: boolean) => ({
+    ...pillBase,
+    background: active ? sp.focusBg : pillBase.background,
+    color: active ? sp.focusInk : sp.ink,
+    boxShadow: active ? sp.focusShadow : sp.shadowSm,
+  })
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 10,
+        alignItems: 'center',
+      }}
+    >
+      {/* Agent */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: sp.sub,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+          }}
+        >
+          Agent
+        </span>
+        <button
+          style={activePill(agentFilter === 'all')}
+          onClick={() => setAgentFilter('all')}
+        >
+          Tous
+        </button>
+        {PARCOURS_TEAM.slice(0, 5).map(a => (
+          <button
+            key={a.id}
+            style={{
+              ...activePill(agentFilter === a.id),
+              padding: '0 12px 0 4px',
+            }}
+            onClick={() => setAgentFilter(a.id)}
+          >
+            <span
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: 999,
+                background: a.avatarBg,
+                color: '#fff',
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: 9.5,
+                fontWeight: 700,
+              }}
+            >
+              {a.initials}
+            </span>
+            {a.firstName}
+          </button>
+        ))}
+      </div>
+
+      <div
+        style={{
+          width: 1,
+          height: 22,
+          background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)',
+        }}
+      />
+
+      {/* Stade */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: sp.sub,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+          }}
+        >
+          Stade
+        </span>
+        <button
+          style={activePill(stageFilter === 'all')}
+          onClick={() => setStageFilter('all')}
+        >
+          Tous
+        </button>
+        {PARCOURS_STAGES.map(s => (
+          <button
+            key={s.id}
+            style={activePill(stageFilter === s.id)}
+            onClick={() => setStageFilter(s.id)}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: 999,
+                background: s.color,
+              }}
+            />
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        style={{
+          width: 1,
+          height: 22,
+          background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)',
+        }}
+      />
+
+      {/* Urgence */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: sp.sub,
+            textTransform: 'uppercase',
+            letterSpacing: 0.6,
+          }}
+        >
+          Urgence
+        </span>
+        <button
+          style={activePill(urgencyFilter === 'all')}
+          onClick={() => setUrgencyFilter('all')}
+        >
+          Toutes
+        </button>
+        {(['high', 'medium', 'low'] as const).map(u => (
+          <button
+            key={u}
+            style={activePill(urgencyFilter === u)}
+            onClick={() => setUrgencyFilter(u)}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: 999,
+                background: URGENCY_MAP[u].dot,
+              }}
+            />
+            {URGENCY_MAP[u].label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      <span
+        style={{
+          fontSize: 12,
+          color: sp.sub,
+          fontWeight: 600,
+          padding: '6px 12px',
+          borderRadius: 999,
+          background: dark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.5)',
+        }}
+      >
+        {count} dossier{count > 1 ? 's' : ''} actif{count > 1 ? 's' : ''}
+      </span>
+    </div>
+  )
+}

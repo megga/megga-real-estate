@@ -42,6 +42,13 @@ const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
 const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
+const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
+const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
+const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
+const ParcoursSugarV2Page = lazy(() => import('@/pages/agent/ParcoursSugarV2Page'))
+const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
+const DocumentsSugarV2Page = lazy(() => import('@/pages/agent/DocumentsSugarV2Page'))
+const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
@@ -271,6 +278,13 @@ export default function App() {
               >
                 <Route index element={<TodaySugarPage />} />
                 <Route path="pipeline" element={<PipelineSugarV2Page />} />
+                <Route path="contacts" element={<ContactsSugarV2Page />} />
+                <Route path="listings" element={<BiensSugarV2Page />} />
+                <Route path="matching" element={<MatchingSugarV2Page />} />
+                <Route path="parcours" element={<ParcoursSugarV2Page />} />
+                <Route path="calendar" element={<CalendarSugarV2Page />} />
+                <Route path="documents" element={<DocumentsSugarV2Page />} />
+                <Route path="settings" element={<SettingsSugarV2Page />} />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
@@ -283,27 +297,27 @@ export default function App() {
                 }
               >
                 <Route path="analytics" element={<DashboardPage />} />
-                <Route path="contacts" element={<ContactsPage />} />
+                <Route path="contacts-legacy" element={<ContactsPage />} />
                 <Route path="contacts/import" element={<ContactImportPage />} />
                 <Route path="contacts/:id" element={<ContactDetailPage />} />
                 <Route path="pipeline-legacy" element={<PipelinePage />} />
-                <Route path="matching" element={<MatchingPage />} />
+                <Route path="matching-legacy" element={<MatchingPage />} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
-                <Route path="listings" element={<ListingsPage />} />
+                <Route path="listings-legacy" element={<ListingsPage />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="kyc" element={<KycListPage />} />
                 <Route path="kyc/:id" element={<KycDetailPage />} />
                 <Route path="messages" element={<ChatPage />} />
-                <Route path="calendar" element={<CalendarPage />} />
+                <Route path="calendar-legacy" element={<CalendarPage />} />
                 <Route path="automation" element={<AutomationPage />} />
-                <Route path="documents" element={<TemplatesPage />} />
+                <Route path="documents-legacy" element={<TemplatesPage />} />
                 <Route path="documents/generate" element={<DocumentGenerator />} />
                 <Route path="documents/templates/new" element={<CustomTemplatePage />} />
                 <Route path="documents/view" element={<DocumentViewer />} />
                 <Route path="support" element={<SupportPage />} />
                 <Route path="support/:id" element={<SupportTicketDetailPage />} />
-                <Route path="settings" element={<SettingsPage />} />
+                <Route path="settings-legacy" element={<SettingsPage />} />
 
                 {/* Super-Admin routes */}
                 <Route path="admin" element={<SuperAdminGuard><AdminDashboardPage /></SuperAdminGuard>} />
