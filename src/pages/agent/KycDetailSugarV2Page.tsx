@@ -15,6 +15,7 @@ import {
   Avatar, BlackBtn, GhostBtn, KycIcon, Pill, SectionLabel, SP,
 } from '@/components/crm-sugar/kyc/atoms'
 import { KYC_DETAIL_MOCK } from '@/components/crm-sugar/kyc/data'
+import { KycUploadDocModal } from '@/components/crm-sugar/kyc/KycUploadDocModal'
 import { mapKycCaseToDetail } from '@/components/crm-sugar/kyc/mapping'
 import {
   useKycCase, useKycDocuments, useUpdateKycItem, useValidateKycCase,
@@ -47,10 +48,17 @@ export default function KycDetailSugarV2Page() {
   const data = realData || KYC_DETAIL_MOCK
 
   const [showValidateModal, setShowValidateModal] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
   const [actionToast, setActionToast] = useState<string | null>(null)
 
   const canValidate = !isUsingMock && !!profile && !!isUuid && !!id
   const canToggleSteps = !isUsingMock && !!profile && !!isUuid
+  const canUpload = !isUsingMock && !!profile?.agency_id && !!isUuid && !!id
+
+  const showToast = (msg: string, durationMs = 2400) => {
+    setActionToast(msg)
+    setTimeout(() => setActionToast(null), durationMs)
+  }
 
   const handleValidate = () => {
     if (!canValidate || !id || !profile) return
@@ -60,12 +68,10 @@ export default function KycDetailSugarV2Page() {
       {
         onSuccess: () => {
           setShowValidateModal(false)
-          setActionToast('Dossier KYC validé')
-          setTimeout(() => setActionToast(null), 2400)
+          showToast('Dossier KYC validé')
         },
         onError: err => {
-          setActionToast(`Erreur : ${(err as Error).message}`)
-          setTimeout(() => setActionToast(null), 3500)
+          showToast(`Erreur : ${(err as Error).message}`, 3500)
         },
       },
     )
@@ -803,10 +809,13 @@ export default function KycDetailSugarV2Page() {
                 <SectionLabel>Pièces du dossier</SectionLabel>
                 <div style={{ flex: 1 }} />
                 <GhostBtn
+                  onClick={() => canUpload && setShowUploadModal(true)}
                   style={{
                     height: 28,
                     padding: '0 10px',
                     fontSize: 11.5,
+                    opacity: canUpload ? 1 : 0.5,
+                    cursor: canUpload ? 'pointer' : 'not-allowed',
                   }}
                 >
                   + Ajouter
@@ -880,6 +889,18 @@ export default function KycDetailSugarV2Page() {
           </div>
         </main>
       </div>
+
+      {/* Upload document modal */}
+      {showUploadModal && canUpload && profile?.agency_id && id && (
+        <KycUploadDocModal
+          kycCaseId={id}
+          agencyId={profile.agency_id}
+          uploadedBy={profile.id}
+          onClose={() => setShowUploadModal(false)}
+          onSuccess={msg => showToast(msg)}
+          onError={msg => showToast(`Erreur : ${msg}`, 3500)}
+        />
+      )}
 
       {/* Validate confirm modal */}
       {showValidateModal && (
