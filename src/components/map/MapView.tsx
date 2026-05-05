@@ -854,10 +854,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           const map = e.target
           // Lazy-register the price pill sprite via `styleimagemissing` so it
           // works even if the layer renders before our addImage call.
+          // Pill colors — port 1:1 du proto megga-search-map.jsx PricePin.
+          // Default : fond blanc + border ink, texte ink. Hover : fond ink,
+          // texte blanc. Une transition entre les deux suffit visuellement.
+          // Le 'dim' state n'est plus utilisé mais conservé pour compat éventuelle.
           const PILL_COLORS: Record<string, { fill: string; stroke: string }> = {
-            'price-pill': { fill: '#B91C1C', stroke: '#FFFFFF' },
-            'price-pill-hover': { fill: '#15803D', stroke: '#FFFFFF' }, // green-700 — darker, matches red-700 intensity
-            'price-pill-dim': { fill: '#9CA3AF', stroke: '#FFFFFF' },
+            'price-pill': { fill: '#FFFFFF', stroke: '#0E1410' },           // proto default
+            'price-pill-hover': { fill: '#0E1410', stroke: '#0E1410' },     // proto active
+            'price-pill-dim': { fill: '#FFFFFF', stroke: '#DDE2EA' },       // dim/grise (rarely used)
           }
           const addPill = (id: string) => {
             const c = PILL_COLORS[id]
@@ -947,19 +951,20 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
           data={listingsGeoJSON}
           promoteId="id"
         >
-          {/* Dots — far zoom: slightly larger red dot per home */}
+          {/* Dots — far zoom : port 1:1 du proto megga-search-map.jsx PricePin
+              dot mode. Default = green MEGGA (#0041D9), hover = ink. */}
           <Layer
             id="unclustered-dot"
             type="circle"
             paint={{
               'circle-color': (dimPolygon
                 ? ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
+                    ['boolean', ['feature-state', 'hover'], false], '#0E1410',
                     ['!', ['within', dimPolygon]], '#9CA3AF',
-                    '#B91C1C']
+                    '#0041D9']
                 : ['case',
-                    ['boolean', ['feature-state', 'hover'], false], '#2563EB',
-                    '#B91C1C']) as unknown as string,
+                    ['boolean', ['feature-state', 'hover'], false], '#0E1410',
+                    '#0041D9']) as unknown as string,
               'circle-radius': [
                 'interpolate', ['linear'], ['zoom'],
                 8, 3,
@@ -994,16 +999,14 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               'text-offset': [0, -0.75],
             }}
             paint={{
-              'text-color': '#FFFFFF',
-              // feature-state / within work in PAINT but not LAYOUT — so color variation
-              // (hover, dim) is only possible through icon-color on an SDF icon or
-              // stacked layers. Keep static for now; revisit if hover colouring matters.
+              // Proto-fidèle : texte ink sur pill blanche (default state)
+              'text-color': '#0E1410',
               'icon-opacity': ['step', ['zoom'], 0, 13, 1],
               'text-opacity': ['step', ['zoom'], 0, 13, 1],
             }}
           />
 
-          {/* Green hover pill — same fixed size as red pill, renders only the hovered listing */}
+          {/* Hover pill — proto: fond ink, texte blanc */}
           <Layer
             id="unclustered-label-hover"
             type="symbol"
@@ -1023,6 +1026,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
               'text-offset': [0, -0.75],
             }}
             paint={{
+              // Proto-fidèle : texte blanc sur pill ink (hover state)
               'text-color': '#FFFFFF',
               'icon-opacity': ['step', ['zoom'], 0, 13, 1],
               'text-opacity': ['step', ['zoom'], 0, 13, 1],
