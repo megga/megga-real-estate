@@ -191,6 +191,20 @@ const PATHS: Record<SettingsIconName, ReactNode> = {
       <path d="M8 8h8M8 12h8M8 16h5" />
     </>
   ),
+  mailSend: (
+    <>
+      <path d="M22 2 11 13" />
+      <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+    </>
+  ),
+  crown: <path d="M2 19h20l-2-12-5 4-5-7-5 7-5-4-2 12Z" />,
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" />
+    </>
+  ),
 }
 
 interface SetIconProps {
@@ -220,12 +234,14 @@ export function SetIcon({ name, size = 18, stroke = 'currentColor', sw = 1.6 }: 
 interface SetInputProps {
   label?: string
   hint?: string
-  value: string
+  value: string | number
   onChange: (v: string) => void
   type?: string
   placeholder?: string
   disabled?: boolean
   autoFocus?: boolean
+  prefix?: string
+  suffix?: string
 }
 
 export function SetInput({
@@ -237,6 +253,8 @@ export function SetInput({
   placeholder,
   disabled,
   autoFocus,
+  prefix,
+  suffix,
 }: SetInputProps) {
   const [focus, setFocus] = useState(false)
   return (
@@ -270,9 +288,21 @@ export function SetInput({
           transition: 'all .18s ease',
         }}
       >
+        {prefix && (
+          <span
+            style={{
+              fontSize: 14,
+              color: SET.muted,
+              fontWeight: 500,
+              marginRight: 8,
+            }}
+          >
+            {prefix}
+          </span>
+        )}
         <input
           type={type}
-          value={value || ''}
+          value={value === undefined || value === null ? '' : String(value)}
           autoFocus={autoFocus}
           disabled={disabled}
           onChange={e => onChange(e.target.value)}
@@ -290,6 +320,18 @@ export function SetInput({
             color: SET.ink,
           }}
         />
+        {suffix && (
+          <span
+            style={{
+              fontSize: 13,
+              color: SET.muted,
+              fontWeight: 500,
+              marginLeft: 8,
+            }}
+          >
+            {suffix}
+          </span>
+        )}
       </div>
       {hint && (
         <div style={{ marginTop: 6, fontSize: 12, color: SET.muted }}>{hint}</div>
