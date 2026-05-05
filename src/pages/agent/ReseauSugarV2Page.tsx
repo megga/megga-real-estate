@@ -23,8 +23,10 @@ import {
 import {
   BIEN_SHARE_RULES, RECEIVED_LISTINGS, RESEAU_FILTERS, RESEAU_PARTNERS, RESEAU_TABS,
   RELATION_LABELS, SHARE_LEVEL_LABELS, SHARE_LEVEL_TONE, partnerById,
+  REQUEST_STATUS_LABELS, REQUEST_STATUS_TONE, SHARE_REQUESTS,
   type AgencyPartner, type AgencyRelationStatus, type AgencyShareLevel,
   type BienShareRule, type ReceivedListing, type ReseauTabId,
+  type ShareRequest, type ShareRequestDirection,
 } from '@/components/crm-sugar/reseau/data'
 
 const DARK_TONE: DarkTone = 'meggaAi'
@@ -68,6 +70,7 @@ export default function ReseauSugarV2Page() {
   const [sortantsSearch, setSortantsSearch] = useState('')
   const [entrantsFilterAgency, setEntrantsFilterAgency] = useState<string>('all')
   const [entrantsSearch, setEntrantsSearch] = useState('')
+  const [demandesDirection, setDemandesDirection] = useState<ShareRequestDirection>('incoming')
 
   const filtered = useMemo(() => {
     return RESEAU_PARTNERS.filter(a => {
@@ -292,9 +295,9 @@ export default function ReseauSugarV2Page() {
             />
           )}
           {activeTab === 'demandes' && (
-            <ComingSoonView
-              tab="Demandes"
-              desc="Workflow d'approbation entrante / sortante : approuver, refuser, négocier le niveau de partage."
+            <DemandesView
+              direction={demandesDirection}
+              setDirection={setDemandesDirection}
             />
           )}
           {activeTab === 'settings' && (
@@ -1187,7 +1190,381 @@ function PhotoPlaceholder({ listing }: { listing: ReceivedListing }) {
   )
 }
 
-// ─── Vue 4-5 : stub Coming soon ──────────────────────────────────────────
+// ─── Vue 4 : Demandes (workflow approbation entrantes/sortantes) ─────────
+
+interface DemandesViewProps {
+  direction: ShareRequestDirection
+  setDirection: (d: ShareRequestDirection) => void
+}
+
+function DemandesView({ direction, setDirection }: DemandesViewProps) {
+  const filtered = useMemo(
+    () => SHARE_REQUESTS.filter(r => r.direction === direction),
+    [direction],
+  )
+
+  const kpis = useMemo(() => {
+    const incomingPending = SHARE_REQUESTS.filter(r => r.direction === 'incoming' && r.status === 'pending').length
+    const outgoingPending = SHARE_REQUESTS.filter(r => r.direction === 'outgoing' && r.status === 'pending').length
+    const approved = SHARE_REQUESTS.filter(r => r.status === 'approved').length
+    const refusedOrCountered = SHARE_REQUESTS.filter(r => r.status === 'refused' || r.status === 'countered').length
+    return [
+      { k: 'Entrantes en attente', v: String(incomingPending), sub: incomingPending > 0 ? 'à traiter' : 'à jour', tone: incomingPending > 0 ? 'warn' as const : 'neutral' as const },
+      { k: 'Sortantes en attente', v: String(outgoingPending), sub: 'côté agence', tone: 'pending' as const },
+      { k: 'Approuvées', v: String(approved), sub: 'historique', tone: 'ok' as const },
+      { k: 'Refusées / négociées', v: String(refusedOrCountered), sub: 'à examiner', tone: 'neutral' as const },
+    ]
+  }, [])
+
+  return (
+    <>
+      {/* KPIs */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 14,
+        }}
+      >
+        {kpis.map((k, i) => (
+          <div
+            key={i}
+            style={{
+              background: SP.surface,
+              borderRadius: 18,
+              padding: '16px 18px',
+              boxShadow: SP.shadowSm,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 800,
+                letterSpacing: '.09em',
+                textTransform: 'uppercase',
+                color: SP.muted,
+              }}
+            >
+              {k.k}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <div
+                style={{
+                  fontSize: 30,
+                  fontWeight: 700,
+                  letterSpacing: -0.8,
+                }}
+              >
+                {k.v}
+              </div>
+              <Pill tone={k.tone}>{k.sub}</Pill>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Direction toggle */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 4,
+          padding: 4,
+          background: SP.surface,
+          borderRadius: 12,
+          boxShadow: SP.shadowSm,
+          alignSelf: 'flex-start',
+        }}
+      >
+        {(['incoming', 'outgoing'] as ShareRequestDirection[]).map(dir => {
+          const on = dir === direction
+          const label = dir === 'incoming' ? 'Entrantes' : 'Sortantes'
+          const sub = dir === 'incoming' ? 'reçues à traiter' : 'envoyées par moi'
+          return (
+            <button
+              key={dir}
+              onClick={() => setDirection(dir)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 9,
+                border: 0,
+                background: on ? SP.ink : 'transparent',
+                color: on ? '#fff' : SP.inkSoft,
+                cursor: 'pointer',
+                fontSize: 12.5,
+                fontWeight: 700,
+                fontFamily: 'inherit',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 1,
+                textAlign: 'left',
+                transition: 'all .15s',
+              }}
+            >
+              <span>{label}</span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: on ? 'rgba(255,255,255,0.55)' : SP.muted,
+                  letterSpacing: '.04em',
+                }}
+              >
+                {sub}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Liste des demandes */}
+      {filtered.length === 0 ? (
+        <div
+          style={{
+            background: SP.surface,
+            borderRadius: 18,
+            padding: '60px 24px',
+            textAlign: 'center',
+            color: SP.muted,
+            fontSize: 13,
+          }}
+        >
+          Aucune demande {direction === 'incoming' ? 'entrante' : 'sortante'} pour
+          le moment.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filtered.map(req => (
+            <RequestRow key={req.id} request={req} />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function RequestRow({ request }: { request: ShareRequest }) {
+  const partner = partnerById(request.agencyId)
+  if (!partner) return null
+  const isPending = request.status === 'pending'
+  const isIncoming = request.direction === 'incoming'
+
+  const formatPrice = (n: number, txn: 'vente' | 'location') => {
+    if (n === 0) return '—'
+    const formatted = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")
+    return txn === 'location' ? `CHF ${formatted}/mois` : `CHF ${formatted}`
+  }
+
+  return (
+    <div
+      style={{
+        background: SP.surface,
+        borderRadius: 18,
+        padding: '18px 22px',
+        boxShadow: SP.shadowSm,
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
+        gap: 18,
+        alignItems: 'flex-start',
+        opacity: !isPending ? 0.85 : 1,
+      }}
+    >
+      {/* Agency logo */}
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: 12,
+          background: partner.logoBg,
+          color: partner.logoColor,
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: partner.logoLetterSpacing,
+            fontFamily: 'Helvetica, Arial, sans-serif',
+          }}
+        >
+          {partner.short}
+        </span>
+      </div>
+
+      {/* Body */}
+      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Top line : agency + status pill + date */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: SP.ink, letterSpacing: -0.2 }}>
+            {partner.name}
+          </span>
+          <Pill tone={REQUEST_STATUS_TONE[request.status]} dot>
+            {REQUEST_STATUS_LABELS[request.status]}
+          </Pill>
+          <span style={{ fontSize: 11, color: SP.muted }}>
+            {isIncoming ? '←' : '→'} {fmtRelative(request.createdAt)}
+          </span>
+        </div>
+
+        {/* Bien info */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 800,
+              letterSpacing: '.08em',
+              color: SP.muted,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {request.bienRef}
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: SP.ink }}>
+            {request.bienTitle}
+          </span>
+          {request.bienPrice > 0 && (
+            <>
+              <span style={{ fontSize: 11.5, color: SP.muted }}>·</span>
+              <span style={{ fontSize: 11.5, color: SP.muted }}>
+                {request.bienType} · {request.bienZone} · {formatPrice(request.bienPrice, request.bienTransaction)}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Niveau demandé + counter (si applicable) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: SP.muted,
+              textTransform: 'uppercase',
+              letterSpacing: '.07em',
+            }}
+          >
+            Niveau demandé
+          </span>
+          <Pill tone={SHARE_LEVEL_TONE[request.requestedLevel]}>
+            {SHARE_LEVEL_LABELS[request.requestedLevel]}
+          </Pill>
+          {request.counterLevel && (
+            <>
+              <span style={{ fontSize: 11.5, color: SP.muted }}>→</span>
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: SP.muted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '.07em',
+                }}
+              >
+                Contre-proposé
+              </span>
+              <Pill tone={SHARE_LEVEL_TONE[request.counterLevel]}>
+                {SHARE_LEVEL_LABELS[request.counterLevel]}
+              </Pill>
+            </>
+          )}
+        </div>
+
+        {/* Message */}
+        {request.message && (
+          <div
+            style={{
+              fontSize: 12,
+              color: SP.inkSoft,
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: SP.cardSubtle,
+              lineHeight: 1.5,
+              fontStyle: 'italic',
+            }}
+          >
+            « {request.message} »
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          alignItems: 'stretch',
+          minWidth: 160,
+        }}
+      >
+        {isIncoming && isPending && (
+          <>
+            <BlackBtn
+              style={{ height: 32, padding: '0 12px', fontSize: 12 }}
+              icon={<KycIcon name="check" size={11} stroke="#fff" sw={2.4} />}
+            >
+              Approuver
+            </BlackBtn>
+            <GhostBtn style={{ height: 32, padding: '0 12px', fontSize: 11.5 }}>
+              Négocier le niveau
+            </GhostBtn>
+            <GhostBtn
+              style={{
+                height: 32,
+                padding: '0 12px',
+                fontSize: 11.5,
+                color: SP.danger,
+              }}
+            >
+              Refuser
+            </GhostBtn>
+          </>
+        )}
+        {isIncoming && !isPending && (
+          <span style={{ fontSize: 11, color: SP.muted, textAlign: 'center', fontStyle: 'italic' }}>
+            Résolu {request.resolvedAt ? fmtRelative(request.resolvedAt) : ''}
+          </span>
+        )}
+        {!isIncoming && isPending && (
+          <GhostBtn style={{ height: 32, padding: '0 12px', fontSize: 11.5 }}>
+            Annuler la demande
+          </GhostBtn>
+        )}
+        {!isIncoming && request.status === 'countered' && (
+          <>
+            <BlackBtn
+              style={{ height: 32, padding: '0 12px', fontSize: 12 }}
+              icon={<KycIcon name="check" size={11} stroke="#fff" sw={2.4} />}
+            >
+              Accepter contre
+            </BlackBtn>
+            <GhostBtn style={{ height: 32, padding: '0 12px', fontSize: 11.5 }}>
+              Re-négocier
+            </GhostBtn>
+          </>
+        )}
+        {!isIncoming && request.status === 'refused' && (
+          <span style={{ fontSize: 11, color: SP.muted, textAlign: 'center', fontStyle: 'italic' }}>
+            Refusée {request.resolvedAt ? fmtRelative(request.resolvedAt) : ''}
+          </span>
+        )}
+        {!isIncoming && request.status === 'approved' && (
+          <span style={{ fontSize: 11, color: SP.ok, textAlign: 'center', fontWeight: 700 }}>
+            Approuvée — accessible
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Vue 5 : stub Coming soon ────────────────────────────────────────────
 
 function ComingSoonView({ tab, desc }: { tab: string; desc: string }) {
   return (
