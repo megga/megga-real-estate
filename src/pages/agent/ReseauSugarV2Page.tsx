@@ -1,7 +1,13 @@
-// MEGGA CRM Sugar v2 — Réseau d'agences (Tier 5 — vue 1 « Mon réseau »)
-// Visual MVP du module multi-tenant. Mock data uniquement (5 agences partenaires).
-// Les écritures + RLS + templates PDF arrivent dans des PRs ultérieures
-// (cf. HANDOFF_RESEAU_AGENCES.md du bundle).
+// MEGGA CRM Sugar v2 — Réseau d'agences (Tier 5)
+// Module multi-tenant — 5 vues organisées en tabs :
+//   1. Mon réseau (agences partenaires) — implémenté
+//   2. Biens partagés / sortants (matrice biens × agences × niveau) — implémenté
+//   3. Biens reçus / entrants — stub Coming soon
+//   4. Demandes (workflow approuver/refuser) — stub Coming soon
+//   5. Settings agence (niveau par défaut, PDF avec/sans logo) — stub Coming soon
+//
+// Mock data uniquement. Les écritures + RLS + templates PDF arrivent dans des
+// PRs ultérieures (cf. HANDOFF_RESEAU_AGENCES.md du bundle).
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -15,8 +21,10 @@ import {
   BlackBtn, GhostBtn, KycIcon, Pill, SP,
 } from '@/components/crm-sugar/kyc/atoms'
 import {
-  RESEAU_FILTERS, RESEAU_PARTNERS, RELATION_LABELS, SHARE_LEVEL_LABELS,
-  type AgencyPartner, type AgencyRelationStatus,
+  BIEN_SHARE_RULES, RESEAU_FILTERS, RESEAU_PARTNERS, RESEAU_TABS,
+  RELATION_LABELS, SHARE_LEVEL_LABELS, SHARE_LEVEL_TONE, partnerById,
+  type AgencyPartner, type AgencyRelationStatus, type AgencyShareLevel,
+  type BienShareRule, type ReseauTabId,
 } from '@/components/crm-sugar/reseau/data'
 
 const DARK_TONE: DarkTone = 'meggaAi'
@@ -53,8 +61,11 @@ export default function ReseauSugarV2Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
+  const [activeTab, setActiveTab] = useState<ReseauTabId>('mon-reseau')
   const [activeFilter, setActiveFilter] = useState<AgencyRelationStatus | 'all'>('all')
   const [search, setSearch] = useState('')
+  const [sortantsFilterAgency, setSortantsFilterAgency] = useState<string>('all')
+  const [sortantsSearch, setSortantsSearch] = useState('')
 
   const filtered = useMemo(() => {
     return RESEAU_PARTNERS.filter(a => {
@@ -199,7 +210,118 @@ export default function ReseauSugarV2Page() {
             trail RLS) arrivent dans une prochaine PR. Données mock pour l'instant.
           </div>
 
-          {/* KPIs */}
+          {/* Tabs */}
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              padding: 4,
+              background: SP.surface,
+              borderRadius: 14,
+              boxShadow: SP.shadowSm,
+              alignSelf: 'flex-start',
+              flexWrap: 'wrap',
+            }}
+          >
+            {RESEAU_TABS.map(tab => {
+              const on = tab.id === activeTab
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    border: 0,
+                    background: on ? SP.ink : 'transparent',
+                    color: on ? '#fff' : SP.inkSoft,
+                    cursor: 'pointer',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    fontFamily: 'inherit',
+                    transition: 'all .15s',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: 1,
+                    textAlign: 'left',
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: on ? 'rgba(255,255,255,0.55)' : SP.muted,
+                      letterSpacing: '.04em',
+                    }}
+                  >
+                    {tab.sub}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {activeTab === 'mon-reseau' && (
+            <MonReseauView
+              activeFilter={activeFilter}
+              setActiveFilter={setActiveFilter}
+              search={search}
+              setSearch={setSearch}
+              filtered={filtered}
+              kpis={kpis}
+            />
+          )}
+          {activeTab === 'sortants' && (
+            <SortantsView
+              filterAgency={sortantsFilterAgency}
+              setFilterAgency={setSortantsFilterAgency}
+              search={sortantsSearch}
+              setSearch={setSortantsSearch}
+            />
+          )}
+          {activeTab === 'entrants' && (
+            <ComingSoonView
+              tab="Biens reçus"
+              desc="Vue des biens partagés par d'autres agences avec mon CRM, filtrable par agence et niveau d'autorisation."
+            />
+          )}
+          {activeTab === 'demandes' && (
+            <ComingSoonView
+              tab="Demandes"
+              desc="Workflow d'approbation entrante / sortante : approuver, refuser, négocier le niveau de partage."
+            />
+          )}
+          {activeTab === 'settings' && (
+            <ComingSoonView
+              tab="Settings agence"
+              desc="Niveau de partage par défaut, auto-approbation, choix du template PDF (avec ou sans logo agence)."
+            />
+          )}
+        </main>
+      </div>
+    </div>
+  )
+}
+
+// ─── Vue 1 : Mon réseau (KPIs + filters + agency cards grid) ─────────────
+
+interface MonReseauViewProps {
+  activeFilter: AgencyRelationStatus | 'all'
+  setActiveFilter: (f: AgencyRelationStatus | 'all') => void
+  search: string
+  setSearch: (s: string) => void
+  filtered: AgencyPartner[]
+  kpis: { k: string; v: string; sub: string; tone: 'ok' | 'warn' | 'pending' | 'neutral' }[]
+}
+
+function MonReseauView({
+  activeFilter, setActiveFilter, search, setSearch, filtered, kpis,
+}: MonReseauViewProps) {
+  return (
+    <>
+      {/* KPIs */}
           <div
             style={{
               display: 'grid',
@@ -349,9 +471,410 @@ export default function ReseauSugarV2Page() {
               ))}
             </div>
           )}
-        </main>
+    </>
+  )
+}
+
+// ─── Vue 2 : Biens partagés (sortants — biens × agences × niveau) ────────
+
+interface SortantsViewProps {
+  filterAgency: string
+  setFilterAgency: (id: string) => void
+  search: string
+  setSearch: (s: string) => void
+}
+
+function SortantsView({ filterAgency, setFilterAgency, search, setSearch }: SortantsViewProps) {
+  const filtered = useMemo(() => {
+    return BIEN_SHARE_RULES.filter(b => {
+      if (filterAgency !== 'all') {
+        if (!b.shares.some(s => s.agencyId === filterAgency)) return false
+      }
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        if (!b.title.toLowerCase().includes(q) && !b.address.toLowerCase().includes(q) && !b.ref.toLowerCase().includes(q)) return false
+      }
+      return true
+    })
+  }, [filterAgency, search])
+
+  // KPIs sortants
+  const kpis = useMemo(() => {
+    const totalBiens = BIEN_SHARE_RULES.filter(b => b.shares.length > 0).length
+    const totalShares = BIEN_SHARE_RULES.reduce((s, b) => s + b.shares.length, 0)
+    const fullShares = BIEN_SHARE_RULES.reduce(
+      (s, b) => s + b.shares.filter(sh => sh.level === 'full').length,
+      0,
+    )
+    const pendingShares = BIEN_SHARE_RULES.reduce(
+      (s, b) => s + b.shares.filter(sh => sh.level === 'pending').length,
+      0,
+    )
+    return [
+      { k: 'Biens partagés', v: String(totalBiens), sub: 'avec au moins 1 agence', tone: 'neutral' as const },
+      { k: 'Partages totaux', v: String(totalShares), sub: 'tous niveaux', tone: 'ok' as const },
+      { k: 'Niveau Complet', v: String(fullShares), sub: 'avec adresse + photos HD', tone: 'ok' as const },
+      { k: 'En attente', v: String(pendingShares), sub: pendingShares > 0 ? 'à valider' : 'à jour', tone: pendingShares > 0 ? 'warn' as const : 'neutral' as const },
+    ]
+  }, [])
+
+  return (
+    <>
+      {/* KPIs */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 14,
+        }}
+      >
+        {kpis.map((k, i) => (
+          <div
+            key={i}
+            style={{
+              background: SP.surface,
+              borderRadius: 18,
+              padding: '16px 18px',
+              boxShadow: SP.shadowSm,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 800,
+                letterSpacing: '.09em',
+                textTransform: 'uppercase',
+                color: SP.muted,
+              }}
+            >
+              {k.k}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <div
+                style={{
+                  fontSize: 30,
+                  fontWeight: 700,
+                  letterSpacing: -0.8,
+                }}
+              >
+                {k.v}
+              </div>
+              <Pill tone={k.tone}>{k.sub}</Pill>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter par agence + recherche */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          flexWrap: 'wrap',
+        }}
+      >
+        <button
+          onClick={() => setFilterAgency('all')}
+          style={{
+            padding: '7px 14px',
+            borderRadius: 999,
+            border: 0,
+            background: filterAgency === 'all' ? SP.ink : SP.surface,
+            color: filterAgency === 'all' ? '#fff' : SP.inkSoft,
+            fontSize: 12,
+            fontWeight: 700,
+            fontFamily: 'inherit',
+            boxShadow: filterAgency === 'all' ? 'none' : SP.shadowSm,
+            cursor: 'pointer',
+          }}
+        >
+          Toutes agences
+        </button>
+        {RESEAU_PARTNERS.map(a => (
+          <button
+            key={a.id}
+            onClick={() => setFilterAgency(a.id)}
+            style={{
+              padding: '7px 14px',
+              borderRadius: 999,
+              border: 0,
+              background: filterAgency === a.id ? SP.ink : SP.surface,
+              color: filterAgency === a.id ? '#fff' : SP.inkSoft,
+              fontSize: 12,
+              fontWeight: 700,
+              fontFamily: 'inherit',
+              boxShadow: filterAgency === a.id ? 'none' : SP.shadowSm,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 2,
+                background: a.logoBg,
+                flexShrink: 0,
+              }}
+            />
+            {a.short}
+          </button>
+        ))}
+        <div style={{ flex: 1 }} />
+        <div
+          style={{
+            height: 36,
+            padding: '0 14px',
+            borderRadius: 999,
+            background: SP.surface,
+            boxShadow: SP.shadowSm,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: 280,
+          }}
+        >
+          <KycIcon name="scan" size={14} stroke={SP.muted} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher un bien…"
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 0,
+              outline: 'none',
+              fontSize: 12.5,
+              color: SP.ink,
+              fontFamily: 'inherit',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Bien cards */}
+      {filtered.length === 0 ? (
+        <div
+          style={{
+            background: SP.surface,
+            borderRadius: 18,
+            padding: '60px 24px',
+            textAlign: 'center',
+            color: SP.muted,
+            fontSize: 13,
+          }}
+        >
+          Aucun bien ne correspond à ces critères.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {filtered.map(b => (
+            <BienShareRow key={b.bienId} bien={b} />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Vue 3-4-5 : stub Coming soon ────────────────────────────────────────
+
+function ComingSoonView({ tab, desc }: { tab: string; desc: string }) {
+  return (
+    <div
+      style={{
+        background: SP.surface,
+        borderRadius: 22,
+        padding: '60px 32px',
+        textAlign: 'center',
+        boxShadow: SP.shadow,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 14,
+      }}
+    >
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 18,
+          background: SP.cardSubtle,
+          display: 'grid',
+          placeItems: 'center',
+          color: SP.inkSoft,
+        }}
+      >
+        <KycIcon name="lock" size={28} stroke={SP.inkSoft} sw={1.6} />
+      </div>
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 700,
+          letterSpacing: -0.3,
+        }}
+      >
+        {tab} · prochaine PR
+      </div>
+      <div
+        style={{
+          fontSize: 13,
+          color: SP.muted,
+          maxWidth: 480,
+          lineHeight: 1.55,
+        }}
+      >
+        {desc}
       </div>
     </div>
+  )
+}
+
+// ─── Bien share row (carte horizontale avec pills agences) ───────────────
+
+function BienShareRow({ bien }: { bien: BienShareRule }) {
+  const [hover, setHover] = useState(false)
+  const formatPrice = (n: number, txn: 'vente' | 'location') => {
+    const formatted = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")
+    return txn === 'location' ? `CHF ${formatted}/mois` : `CHF ${formatted}`
+  }
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: SP.surface,
+        borderRadius: 18,
+        padding: '16px 20px',
+        boxShadow: hover ? SP.shadow : SP.shadowSm,
+        transition: 'all .18s',
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
+        gap: 18,
+        alignItems: 'center',
+        cursor: 'pointer',
+      }}
+    >
+      {/* Visual placeholder */}
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 14,
+          background: bien.accent + '22',
+          display: 'grid',
+          placeItems: 'center',
+          color: bien.accent,
+          flexShrink: 0,
+        }}
+      >
+        <KycIcon name="doc" size={22} stroke={bien.accent} sw={1.7} />
+      </div>
+
+      {/* Bien info + share pills */}
+      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 800,
+              letterSpacing: '.09em',
+              color: SP.muted,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {bien.ref}
+          </span>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              letterSpacing: -0.2,
+              color: SP.ink,
+            }}
+          >
+            {bien.title}
+          </span>
+          {bien.status !== 'active' && (
+            <Pill tone={bien.status === 'reserved' ? 'warn' : 'neutral'}>
+              {bien.status === 'reserved'
+                ? 'Réservé'
+                : bien.status === 'draft'
+                  ? 'Brouillon'
+                  : bien.status}
+            </Pill>
+          )}
+        </div>
+        <div
+          style={{
+            fontSize: 11.5,
+            color: SP.muted,
+            display: 'flex',
+            gap: 10,
+            flexWrap: 'wrap',
+          }}
+        >
+          <span>{bien.address}</span>
+          <span>·</span>
+          <span>{bien.type}</span>
+          {bien.rooms !== null && <><span>·</span><span>{bien.rooms} pièces</span></>}
+          <span>·</span>
+          <span>{bien.area} m²</span>
+          <span>·</span>
+          <span style={{ color: SP.ink, fontWeight: 600 }}>{formatPrice(bien.price, bien.transaction)}</span>
+        </div>
+        {bien.shares.length === 0 ? (
+          <div style={{ fontSize: 12, color: SP.muted, fontStyle: 'italic' }}>
+            Pas encore partagé.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {bien.shares.map(share => (
+              <SharePill key={share.agencyId} share={share} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* CTA */}
+      <GhostBtn
+        style={{ height: 34, padding: '0 14px', fontSize: 12 }}
+      >
+        Régler partage
+      </GhostBtn>
+    </div>
+  )
+}
+
+function SharePill({
+  share,
+}: {
+  share: { agencyId: string; level: AgencyShareLevel }
+}) {
+  const partner = partnerById(share.agencyId)
+  if (!partner) return null
+  const tone = SHARE_LEVEL_TONE[share.level]
+  return (
+    <Pill tone={tone}>
+      <span
+        style={{
+          width: 10,
+          height: 10,
+          borderRadius: 2,
+          background: partner.logoBg,
+          flexShrink: 0,
+          marginRight: 4,
+        }}
+      />
+      {partner.short} · {SHARE_LEVEL_LABELS[share.level]}
+    </Pill>
   )
 }
 
