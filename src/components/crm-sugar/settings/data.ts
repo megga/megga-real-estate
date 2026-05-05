@@ -22,6 +22,7 @@ export type SettingsIconName =
   | 'key' | 'download' | 'help' | 'eye' | 'eyeOff' | 'clock' | 'alert'
   | 'doc' | 'trash' | 'plus' | 'receipt'
   | 'mailSend' | 'crown' | 'more'
+  | 'link' | 'external'
 
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },

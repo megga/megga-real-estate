@@ -21,6 +21,7 @@ import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import { AgencySection } from '@/components/crm-sugar/settings/AgencySection'
 import { TeamSection } from '@/components/crm-sugar/settings/TeamSection'
 import { BrandSection } from '@/components/crm-sugar/settings/BrandSection'
+import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
 import {
   SETTINGS_SECTIONS, SET_PALETTE, type SectionId,
 } from '@/components/crm-sugar/settings/data'
@@ -78,6 +79,7 @@ export default function SettingsSugarV2Page() {
     if (active === 'agency') return <AgencySection />
     if (active === 'team') return <TeamSection />
     if (active === 'brand') return <BrandSection />
+    if (active === 'integrations') return <IntegrationsSection />
     if (active === 'notifications') return <NotificationsSection />
     if (active === 'preferences') return <PreferencesSection />
     if (active === 'security') return <SecuritySection />
