@@ -324,3 +324,174 @@ export const SHARE_LEVEL_TONE: Record<AgencyShareLevel, 'ok' | 'warn' | 'pending
 export function partnerById(id: string): AgencyPartner | undefined {
   return RESEAU_PARTNERS.find(p => p.id === id)
 }
+
+// ─── Biens reçus (entrants — vue 3) ──────────────────────────────────────
+//
+// Biens que d'autres agences partagent avec mon CRM. Le niveau de partage
+// définit ce que je peux voir :
+//   - full    : tout (adresse, photos HD, dossier complet, propriétaire)
+//   - partial : quartier seul, photos floutées sur certains éléments
+//   - preview : quelques lignes (type, surface, prix, quartier large)
+//   - pending : demande envoyée, en attente de validation côté agence source
+//
+// Le composant rendant ces biens doit MASQUER les données selon le niveau.
+// Mock pour MVP — en prod, vit dans `listing_share_rules` côté inverse +
+// requête RLS scoped sur l'agence reveiveuse.
+
+export interface ReceivedListing {
+  /** ID local côté agence source (pour audit) */
+  id: string
+  sourceAgencyId: string
+  level: AgencyShareLevel
+  /** Référence côté agence source (NAEF-2026-A12) */
+  sourceRef: string
+  /** Type de bien (commun à tous les niveaux) */
+  type: string
+  transaction: 'vente' | 'location'
+  rooms: number | null
+  area: number
+  price: number
+  /** Quartier large — visible dès Aperçu */
+  zone: string
+  /** Ville — visible dès Partiel */
+  city: string | null
+  /** Adresse complète — visible uniquement à Complet */
+  address: string | null
+  /** Titre éditorialisé — visible dès Aperçu (mais générique sur Aperçu) */
+  title: string
+  /** Couleur d'accent pour le visuel */
+  accent: string
+  /** Date de partage */
+  sharedAt: string
+}
+
+export const RECEIVED_LISTINGS: ReceivedListing[] = [
+  // ── Naef (8 biens partagés en Complet — partenaire historique) ──
+  {
+    id: 'naef-001', sourceAgencyId: 'naef', level: 'full',
+    sourceRef: 'NAEF-26-A12',
+    type: 'Appartement', transaction: 'vente',
+    rooms: 4, area: 110, price: 1850000,
+    zone: 'Genève centre', city: 'Genève',
+    address: 'Rue du Rhône 78, 1204 Genève',
+    title: '4 pièces standing Rue du Rhône',
+    accent: '#1E3A5F', sharedAt: '2026-04-30T10:00:00',
+  },
+  {
+    id: 'naef-002', sourceAgencyId: 'naef', level: 'full',
+    sourceRef: 'NAEF-26-A18',
+    type: 'Maison', transaction: 'vente',
+    rooms: 6, area: 180, price: 2950000,
+    zone: 'Cologny', city: 'Cologny',
+    address: 'Chemin de la Tulette 14, 1223 Cologny',
+    title: 'Maison familiale jardin Cologny',
+    accent: '#1E3A5F', sharedAt: '2026-05-01T09:30:00',
+  },
+  {
+    id: 'naef-003', sourceAgencyId: 'naef', level: 'full',
+    sourceRef: 'NAEF-26-V03',
+    type: 'Appartement', transaction: 'location',
+    rooms: 3, area: 85, price: 4200,
+    zone: 'Eaux-Vives', city: 'Genève',
+    address: "Rue du 31-Décembre 22, 1207 Genève",
+    title: '3 pièces meublé Eaux-Vives',
+    accent: '#1E3A5F', sharedAt: '2026-04-28T14:15:00',
+  },
+  {
+    id: 'naef-004', sourceAgencyId: 'naef', level: 'partial',
+    sourceRef: 'NAEF-26-A22',
+    type: 'Appartement', transaction: 'vente',
+    rooms: 5, area: 145, price: 2400000,
+    zone: 'Champel', city: 'Genève',
+    address: null, // partial : pas d'adresse exacte
+    title: '5 pièces familial quartier Champel',
+    accent: '#1E3A5F', sharedAt: '2026-04-25T11:00:00',
+  },
+
+  // ── Bory (4 biens — éditorial haut-de-gamme) ──
+  {
+    id: 'bory-001', sourceAgencyId: 'bory', level: 'full',
+    sourceRef: 'BORY-26-Q08',
+    type: 'Maison', transaction: 'vente',
+    rooms: 8, area: 320, price: 6500000,
+    zone: 'Vandœuvres', city: 'Vandœuvres',
+    address: 'Chemin de la Voie-Creuse 6, 1253 Vandœuvres',
+    title: 'Propriété contemporaine Vandœuvres',
+    accent: '#2C2416', sharedAt: '2026-05-02T08:00:00',
+  },
+  {
+    id: 'bory-002', sourceAgencyId: 'bory', level: 'partial',
+    sourceRef: 'BORY-26-Q12',
+    type: 'Appartement', transaction: 'vente',
+    rooms: 5, area: 165, price: 3200000,
+    zone: 'Eaux-Vives', city: 'Genève',
+    address: null,
+    title: '5 pièces piscine couverte Eaux-Vives',
+    accent: '#2C2416', sharedAt: '2026-04-29T16:00:00',
+  },
+
+  // ── Cardis (11 biens — réseau international, mix de niveaux) ──
+  {
+    id: 'cardis-001', sourceAgencyId: 'cardis', level: 'full',
+    sourceRef: 'CARDIS-26-S04',
+    type: 'Maison', transaction: 'vente',
+    rooms: 9, area: 410, price: 12500000,
+    zone: 'Genolier', city: 'Genolier',
+    address: 'Route de Genolier 18, 1272 Genolier',
+    title: 'Domaine prestige avec vignoble',
+    accent: '#002855', sharedAt: '2026-05-03T11:00:00',
+  },
+  {
+    id: 'cardis-002', sourceAgencyId: 'cardis', level: 'full',
+    sourceRef: 'CARDIS-26-S07',
+    type: 'Maison', transaction: 'vente',
+    rooms: 7, area: 280, price: 5800000,
+    zone: 'Anières', city: 'Anières',
+    address: "Chemin de Sous-l'Église 4, 1247 Anières",
+    title: 'Villa pieds dans l\'eau Anières',
+    accent: '#002855', sharedAt: '2026-05-01T15:30:00',
+  },
+  {
+    id: 'cardis-003', sourceAgencyId: 'cardis', level: 'preview',
+    sourceRef: 'CARDIS-26-S15',
+    type: 'Appartement', transaction: 'vente',
+    rooms: 4, area: 130, price: 2100000,
+    zone: 'Carouge', city: null,
+    address: null,
+    title: 'Appartement Carouge centre',
+    accent: '#002855', sharedAt: '2026-04-26T09:45:00',
+  },
+
+  // ── MEGGA Lausanne (14 — réseau interne, tous Complet) ──
+  {
+    id: 'megga-laus-001', sourceAgencyId: 'megga-lausanne', level: 'full',
+    sourceRef: 'MGL-26-101',
+    type: 'Appartement', transaction: 'vente',
+    rooms: 4, area: 95, price: 1200000,
+    zone: 'Lausanne Ouchy', city: 'Lausanne',
+    address: 'Avenue d\'Ouchy 36, 1006 Lausanne',
+    title: '4 pièces vue lac Ouchy',
+    accent: '#0B0C0E', sharedAt: '2026-05-03T10:30:00',
+  },
+  {
+    id: 'megga-laus-002', sourceAgencyId: 'megga-lausanne', level: 'full',
+    sourceRef: 'MGL-26-104',
+    type: 'Maison', transaction: 'vente',
+    rooms: 6, area: 220, price: 2400000,
+    zone: 'Pully', city: 'Pully',
+    address: 'Chemin du Liaudoz 2, 1009 Pully',
+    title: 'Maison familiale Pully avec jardin',
+    accent: '#0B0C0E', sharedAt: '2026-05-02T13:00:00',
+  },
+
+  // ── SPG (0 biens partagés Complet — relation nouvelle, demande pending) ──
+  {
+    id: 'spg-001', sourceAgencyId: 'spg', level: 'pending',
+    sourceRef: 'SPG-26-?',
+    type: '—', transaction: 'vente',
+    rooms: null, area: 0, price: 0,
+    zone: '—', city: null, address: null,
+    title: 'Demande de partage envoyée',
+    accent: '#C8102E', sharedAt: '2026-04-22T10:00:00',
+  },
+]
