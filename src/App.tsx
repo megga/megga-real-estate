@@ -67,6 +67,7 @@ const MesMessagesPage = lazy(() => import('@/pages/particulier/MesMessagesPage')
 const AnalysePage = lazy(() => import('@/pages/particulier/AnalysePage'))
 const MonProfilPage = lazy(() => import('@/pages/particulier/MonProfilPage'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
+const ComptePage = lazy(() => import('@/pages/public/ComptePage'))
 
 // Lazy-loaded help center pages
 const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
@@ -193,6 +194,16 @@ export default function App() {
               <Route path="/agences" element={<AgenciesPage />} />
               <Route path="/agences/:slug" element={<AgencyProfilePage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
+
+              {/* Mon compte — public-side dashboard (favoris, recherches, messagerie, profil) */}
+              <Route
+                path="/compte"
+                element={
+                  <ProtectedRoute>
+                    <ComptePage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Help Center */}
               <Route path="/aide" element={<HelpCenterPage />} />

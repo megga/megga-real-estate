@@ -1,0 +1,78 @@
+{
+  "rail": {
+    "search": "Ricerca",
+    "listings": "I miei annunci",
+    "searches": "Le mie ricerche",
+    "favorites": "Preferiti",
+    "messages": "Messaggi",
+    "profile": "Profilo"
+  },
+  "header": {
+    "settings": "Impostazioni",
+    "help": "Assistenza",
+    "logout": "Disconnetti"
+  },
+  "tabs": {
+    "listings": {
+      "title": "I miei annunci",
+      "subtitle_empty": "Invia una pratica per seguire la vendita qui.",
+      "subtitle_count_one": "{{count}} pratica in corso",
+      "subtitle_count_other": "{{count}} pratiche in corso",
+      "cta_submit": "+ Invia un immobile"
+    },
+    "searches": {
+      "title": "Le mie ricerche",
+      "subtitle_empty": "Salva una ricerca per ricevere avvisi.",
+      "subtitle_count_one": "{{count}} ricerca salvata",
+      "subtitle_count_other": "{{count}} ricerche salvate",
+      "cta_new": "Nuova ricerca"
+    },
+    "favorites": {
+      "title": "Preferiti",
+      "subtitle_empty": "Gli immobili che ti piacciono appariranno qui.",
+      "subtitle_count_one": "{{count}} immobile salvato",
+      "subtitle_count_other": "{{count}} immobili salvati",
+      "cta_more": "Vedi altri immobili"
+    },
+    "messages": {
+      "title": "Messaggi",
+      "subtitle_empty": "Le tue conversazioni con gli agenti appariranno qui.",
+      "subtitle_count_one": "{{count}} conversazione",
+      "subtitle_count_other": "{{count}} conversazioni",
+      "subtitle_unread_one": " · {{count}} non letta",
+      "subtitle_unread_other": " · {{count}} non lette"
+    },
+    "profile": {
+      "title": "Profilo",
+      "subtitle": "Gestisci il tuo account e le preferenze."
+    }
+  },
+  "empty": {
+    "favorites": {
+      "title": "Nessun preferito",
+      "body": "Clicca sul cuore di un immobile per salvarlo qui. I tuoi preferiti ti seguono su tutti i dispositivi.",
+      "cta": "Esplora gli immobili"
+    },
+    "searches": {
+      "title": "Nessuna ricerca salvata",
+      "body": "Salva i tuoi criteri dalla pagina di ricerca per essere avvisato non appena un nuovo immobile corrisponde.",
+      "cta": "Avvia una ricerca"
+    },
+    "messages": {
+      "title": "Nessun messaggio",
+      "body": "Le tue conversazioni con gli agenti appariranno qui.",
+      "cta": "Esplora gli immobili"
+    },
+    "listings": {
+      "title": "Nessun annuncio ancora",
+      "body": "Invia una pratica per vendere o affittare il tuo immobile. Un agente partner ti contatta entro 48 ore.",
+      "cta": "Invia un immobile"
+    }
+  },
+  "guest": {
+    "title": "Crea il tuo account MEGGA",
+    "body": "Sincronizza i tuoi preferiti, ricevi avvisi sulle ricerche salvate e contatta gli agenti direttamente dalla tua dashboard.",
+    "create": "Crea account",
+    "login": "Accedi"
+  }
+}

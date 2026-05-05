@@ -1,0 +1,78 @@
+{
+  "rail": {
+    "search": "Search",
+    "listings": "My listings",
+    "searches": "My searches",
+    "favorites": "Favorites",
+    "messages": "Messages",
+    "profile": "Profile"
+  },
+  "header": {
+    "settings": "Settings",
+    "help": "Help & support",
+    "logout": "Sign out"
+  },
+  "tabs": {
+    "listings": {
+      "title": "My listings",
+      "subtitle_empty": "Submit a dossier to track the sale here.",
+      "subtitle_count_one": "{{count}} dossier in progress",
+      "subtitle_count_other": "{{count}} dossiers in progress",
+      "cta_submit": "+ Submit a property"
+    },
+    "searches": {
+      "title": "My searches",
+      "subtitle_empty": "Save a search to receive alerts.",
+      "subtitle_count_one": "{{count}} saved search",
+      "subtitle_count_other": "{{count}} saved searches",
+      "cta_new": "New search"
+    },
+    "favorites": {
+      "title": "Favorites",
+      "subtitle_empty": "The properties you love will appear here.",
+      "subtitle_count_one": "{{count}} property saved",
+      "subtitle_count_other": "{{count}} properties saved",
+      "cta_more": "See more properties"
+    },
+    "messages": {
+      "title": "Messages",
+      "subtitle_empty": "Your conversations with agents will appear here.",
+      "subtitle_count_one": "{{count}} conversation",
+      "subtitle_count_other": "{{count}} conversations",
+      "subtitle_unread_one": " · {{count}} unread",
+      "subtitle_unread_other": " · {{count}} unread"
+    },
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Manage your account and preferences."
+    }
+  },
+  "empty": {
+    "favorites": {
+      "title": "No favorites yet",
+      "body": "Click the heart on a property to save it here. Your favorites follow you across all your devices.",
+      "cta": "Browse properties"
+    },
+    "searches": {
+      "title": "No saved search",
+      "body": "Save your criteria from the search page to get alerted as soon as a new property matches.",
+      "cta": "Start a search"
+    },
+    "messages": {
+      "title": "No messages",
+      "body": "Your conversations with agents will appear here.",
+      "cta": "Browse properties"
+    },
+    "listings": {
+      "title": "No listing yet",
+      "body": "Submit a dossier to sell or rent your property. A partner agent contacts you within 48 hours, and you follow each step here.",
+      "cta": "Submit a property"
+    }
+  },
+  "guest": {
+    "title": "Create your MEGGA account",
+    "body": "Sync your favorites, get alerts on saved searches, and chat with agents directly from your dashboard.",
+    "create": "Create account",
+    "login": "Sign in"
+  }
+}
