@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import ArticleFeedback from '@/components/help/ArticleFeedback'
 import SupportIllustration from '@/components/illustrations/SupportIllustration'
@@ -127,7 +127,7 @@ export default function HelpArticlePage() {
   if (!article) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
           <p className="text-gray-500">Article introuvable.</p>
           <Link to="/aide" className="text-sm text-gray-900 underline mt-4 inline-block">
@@ -153,7 +153,7 @@ export default function HelpArticlePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
 
       <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Breadcrumb */}

@@ -6,7 +6,7 @@ import { Building2, ArrowLeft } from 'lucide-react'
 import { formatCHF } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAgencyProfile } from '@/hooks/useAgentProfile'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 
 // ─────────────────────────────────────────────────────────────────────────
 // MEGGA Agence — Direction A "Sugar Editorial"
@@ -1010,7 +1010,7 @@ export default function AgencyProfilePage() {
   if (isLoading) {
     return (
       <div style={{ background: T.bg, minHeight: '100vh', fontFamily: FF }}>
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '120px 80px' }}>
           <div style={{ height: 12, width: 200, background: T.fade, marginBottom: 16, animation: 'pulse 1.5s infinite' }} />
           <div style={{ height: 80, width: 600, background: T.fade, animation: 'pulse 1.5s infinite' }} />
@@ -1022,7 +1022,7 @@ export default function AgencyProfilePage() {
   if (error || !data?.agency) {
     return (
       <div style={{ background: T.bg, minHeight: '100vh', fontFamily: FF }}>
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '120px 32px', textAlign: 'center' }}>
           <Building2 style={{ width: 56, height: 56, color: T.muted, margin: '0 auto 24px' }} />
           <p style={{ fontFamily: FF, fontSize: 24, fontWeight: 500, color: T.ink, marginBottom: 12, letterSpacing: -0.5 }}>
@@ -1058,7 +1058,7 @@ export default function AgencyProfilePage() {
 
   return (
     <div style={{ background: T.bg, fontFamily: FF }}>
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <Hero agency={agency} agentsCount={agents.length} />
       <Bio agency={agency} />
       <Bureaux agency={agency} />

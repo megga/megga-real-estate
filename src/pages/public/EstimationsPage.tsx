@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { usePageMeta } from '@/hooks/usePageMeta'
 import { Button } from '@/components/ui/button'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import EstimationForm from '@/components/estimation/EstimationForm'
 
@@ -79,7 +79,7 @@ export default function EstimationsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
 
       {/* Section 1 — Hero */}
       <section className="bg-gradient-to-b from-blue-50/50 to-white py-16 md:py-20">

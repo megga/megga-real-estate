@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { type LucideIcon } from 'lucide-react';
-import Navbar from '@/components/layout/Navbar';
+import HomeStickyHeader from '@/components/home/HomeStickyHeader';
 import Footer from '@/components/layout/Footer';
 
 interface PlaceholderPageProps {
@@ -11,7 +11,7 @@ interface PlaceholderPageProps {
 export default function PlaceholderPage({ icon: Icon, subtitle }: PlaceholderPageProps) {
   return (
     <>
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <main className="min-h-[calc(100vh-64px-200px)] flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <Icon className="w-16 h-16 text-accent/20 mx-auto mb-6" />

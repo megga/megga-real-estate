@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight } from 'lucide-react'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import HelpSearchBar from '@/components/help/HelpSearchBar'
 import SupportIllustration from '@/components/illustrations/SupportIllustration'
@@ -52,7 +52,7 @@ export default function HelpResourcesPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
 
       {/* ── Header ── */}
       <div className="max-w-6xl mx-auto px-6 md:px-10 pt-16 pb-12 text-center">

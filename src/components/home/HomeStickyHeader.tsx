@@ -1,12 +1,14 @@
-// MEGGA Homepage — Sticky header (port 1:1 du proto megga-header.jsx).
-// Hidden au load (translateY -100%), slides down quand scrollY > 80% viewport.
-// Background opaque blanc 88% + backdrop blur · 64px hauteur · logo centré.
+// MEGGA — Sticky header (port 1:1 du proto megga-header.jsx).
 //
-// Différence importante vs l'ancien Navbar global :
-// - L'ancien Navbar était sticky avec mode transparent sur la homepage
-//   → posait des problèmes de lisibilité sur les fonds clairs de l'hero photo.
-// - Ce header est INVISIBLE au load (proto-fidèle) et apparaît à la transition
-//   hero → body. La hero est 100vh full-bleed sans aucun chrome.
+// Deux modes via la prop `alwaysShow` :
+// - `alwaysShow={false}` (défaut, homepage) : Hidden au load, slides down
+//   quand scrollY > 80% viewport. Permet au hero d'être full-bleed sans
+//   chrome au load.
+// - `alwaysShow={true}` (search/listing/vendre) : Toujours visible en
+//   haut de page (le proto MEGGA Recherche.html utilise ce mode).
+//
+// Background opaque rgba(250,251,253,0.88) + backdrop blur 14px · 64px
+// hauteur · logo noir gauche, nav center, lang + Connexion droite.
 
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -14,6 +16,12 @@ import { ChevronDown } from 'lucide-react'
 import { HOME_FONT, HOME_M } from './homeTokens'
 
 const HEADER_HEIGHT = 64
+
+interface HomeStickyHeaderProps {
+  /** Si true, le header est toujours visible (utile sur /louer, /acheter,
+   *  /biens/:id, etc.). Si false (défaut, homepage), il slide-down au scroll. */
+  alwaysShow?: boolean
+}
 
 interface NavItem {
   key: string
@@ -29,13 +37,17 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'pro', label: 'Pour les pros', to: '/agences' },
 ]
 
-export default function HomeStickyHeader() {
+export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeaderProps = {}) {
   const navigate = useNavigate()
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(alwaysShow)
   const [langOpen, setLangOpen] = useState(false)
   const [lang, setLang] = useState<'FR' | 'DE' | 'IT' | 'EN'>('FR')
 
   useEffect(() => {
+    if (alwaysShow) {
+      setShow(true)
+      return
+    }
     const onScroll = () => {
       // Apparaît une fois passé 80% du premier viewport (proto-fidèle).
       setShow(window.scrollY > window.innerHeight * 0.8)
@@ -43,7 +55,7 @@ export default function HomeStickyHeader() {
     window.addEventListener('scroll', onScroll, { passive: true })
     onScroll()
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  }, [alwaysShow])
 
   return (
     <header
@@ -54,7 +66,7 @@ export default function HomeStickyHeader() {
         right: 0,
         zIndex: 50,
         transform: show ? 'translateY(0)' : 'translateY(-100%)',
-        transition: 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+        transition: alwaysShow ? 'none' : 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
         background: 'rgba(250, 251, 253, 0.88)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',

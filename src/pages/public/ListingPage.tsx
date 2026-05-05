@@ -7,7 +7,7 @@ import { useMarketListings, useMarketListing } from '@/hooks/useMarketListings'
 import { getListingById } from '@/lib/mockData'
 import { generateListingTitle, type Lang } from '@/lib/listingTitle'
 import { Button } from '@/components/ui/button'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import AffordabilityCalculator from '@/components/listings/AffordabilityCalculator'
 import RequestVisitModal from '@/components/listings/RequestVisitModal'
 
@@ -217,7 +217,7 @@ export default function ListingPage() {
   if (isLoadingData) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
           <p className="text-sm text-gray-500">Chargement du bien...</p>
@@ -230,7 +230,7 @@ export default function ListingPage() {
   if (!listing) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <p className="text-xl font-semibold text-gray-900 mb-2">Bien non trouvé</p>
           <p className="text-sm text-gray-500 mb-6">Ce bien n'existe pas ou a été retiré.</p>
@@ -250,7 +250,7 @@ export default function ListingPage() {
       className="min-h-screen bg-white"
       style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
     >
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
 
       {/* ── Hero Gallery ── */}
       <ListingHeroGallery

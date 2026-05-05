@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight, Loader2, ArrowRight, Check, ArrowLeft } from 'lucide-react'
-import Navbar from '@/components/layout/Navbar'
+import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import AgentIllustration from '@/components/illustrations/AgentIllustration'
 import SellerIllustration from '@/components/illustrations/SellerIllustration'
@@ -75,7 +75,7 @@ export default function HelpContactPage() {
     const trackingUrl = `/support/${result.ticketNumber}?token=${result.accessToken}`
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
             <Check className="w-7 h-7 text-emerald-600" />
@@ -101,7 +101,7 @@ export default function HelpContactPage() {
   if (selectedPersona && persona) {
     return (
       <div className="min-h-screen bg-white">
-        <Navbar />
+        <HomeStickyHeader alwaysShow />
         <div className="max-w-xl mx-auto px-4 py-12">
           <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
             <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
@@ -223,7 +223,7 @@ export default function HelpContactPage() {
   // ── Persona selection screen (Zillow-style) ──
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      <HomeStickyHeader alwaysShow />
       <div className="max-w-5xl mx-auto px-4 py-12">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-10">
