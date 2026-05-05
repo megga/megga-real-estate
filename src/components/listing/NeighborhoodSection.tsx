@@ -1,3 +1,16 @@
+// MEGGA — Section Quartier (port focused proto megga-bien-features.jsx
+// EditorialScores).
+//
+// Match proto pour :
+// - Card wrapper (white border ink/border 14px radius padding 22)
+// - SectionTitle eyebrow blue + h2 ink "Vivre dans le quartier"
+// - Editorial summary "Le mot de MEGGA" (encart bordure gauche bleue)
+// - Catégories grouped (Transport · Commerce · École · Santé · Loisir)
+//   — préservé de l'ancienne implémentation (data réelle Mapbox vs mock proto)
+//
+// Mode compact (sidebar/preview) : pas de Card wrapper, juste l'eyebrow.
+// Mode full (page biens) : Card complet proto-fidèle.
+
 import { Train, ShoppingBag, GraduationCap, HeartPulse, Coffee, MapPin, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNeighborhood, useNeighborhoodSummary, type PoiCategory } from '@/hooks/useNeighborhood'
@@ -10,10 +23,6 @@ interface NeighborhoodSectionProps {
   compact?: boolean
 }
 
-// Monochrome-first categories. The icon is the only visual signal; we keep
-// type (light vs bold stroke) consistent with the rest of the premium
-// design language. No tinted badges — that clashed with the Apple/Linear
-// minimalism used everywhere else in the preview panel.
 const CATEGORY_CONFIG: Record<PoiCategory, { icon: typeof Train; label: string }> = {
   transport: { icon: Train, label: 'Transports' },
   commerce: { icon: ShoppingBag, label: 'Commerces' },
@@ -21,6 +30,8 @@ const CATEGORY_CONFIG: Record<PoiCategory, { icon: typeof Train; label: string }
   sante: { icon: HeartPulse, label: 'Santé' },
   loisir: { icon: Coffee, label: 'Loisirs' },
 }
+
+const FONT = '"Manrope", system-ui, -apple-system, sans-serif'
 
 function formatDistance(meters: number): string {
   if (meters < 1000) return `${meters} m`
@@ -43,25 +54,55 @@ export default function NeighborhoodSection({ lat, lng, canton, city, compact }:
 
   const hasData = Object.values(categories).some(c => c.count > 0)
 
-  return (
-    <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4">
-        Le quartier
-      </p>
-
-      {/* AI Summary */}
+  // ── Inner content (réutilisé en mode compact + full) ──
+  const inner = (
+    <>
+      {/* Editorial summary "Le mot de MEGGA" — port proto encart bleu gauche */}
       {(summaryLoading || aiSummary) && (
-        <div className="mb-5 px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+        <div
+          style={{
+            marginBottom: compact ? 16 : 20,
+            padding: '18px 22px',
+            borderLeft: '3px solid #0041D9',
+            background: '#F6F8FC',
+            borderRadius: '0 10px 10px 0',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: FONT,
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#0041D9',
+              textTransform: 'uppercase',
+              letterSpacing: 0.8,
+              marginBottom: 6,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <Sparkles size={11} strokeWidth={2} />
+            Le mot de MEGGA
+          </div>
           {summaryLoading ? (
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div className="h-3 w-3/4 bg-gray-200/70 rounded animate-pulse" />
               <div className="h-3 w-1/2 bg-gray-200/70 rounded animate-pulse" />
             </div>
           ) : aiSummary ? (
-            <div className="flex gap-2.5">
-              <Sparkles className="h-3.5 w-3.5 text-gray-900 shrink-0 mt-1" strokeWidth={2} />
-              <p className="text-[13px] text-gray-700 leading-relaxed">{aiSummary}</p>
-            </div>
+            <p
+              style={{
+                fontFamily: FONT,
+                fontSize: 15,
+                lineHeight: 1.55,
+                color: '#0E1410',
+                fontWeight: 500,
+                margin: 0,
+              }}
+            >
+              {aiSummary}
+            </p>
           ) : null}
         </div>
       )}
@@ -93,18 +134,18 @@ export default function NeighborhoodSection({ lat, lng, canton, city, compact }:
                     <div className="h-7 w-7 rounded-full bg-white border border-gray-100 flex items-center justify-center shrink-0 group-hover:border-gray-200 transition-colors">
                       <Icon className="h-3.5 w-3.5 text-gray-900" strokeWidth={2} />
                     </div>
-                    <p className="text-[12px] font-semibold text-gray-900 truncate">{config.label}</p>
+                    <p className="text-[12px] font-semibold text-gray-900 truncate" style={{ fontFamily: FONT }}>{config.label}</p>
                   </div>
                   <div className="flex items-baseline gap-1.5 pl-0.5">
-                    <span className="text-[13px] font-semibold text-gray-900 tabular-nums">
+                    <span className="text-[13px] font-semibold text-gray-900 tabular-nums" style={{ fontFamily: FONT }}>
                       {cat.count}
                     </span>
-                    <span className="text-[11px] text-gray-500">
+                    <span className="text-[11px] text-gray-500" style={{ fontFamily: FONT }}>
                       {cat.count > 1 ? 'lieux' : 'lieu'}
                     </span>
                   </div>
                   {cat.nearest && (
-                    <p className="text-[11px] text-gray-400 tabular-nums pl-0.5">
+                    <p className="text-[11px] text-gray-400 tabular-nums pl-0.5" style={{ fontFamily: FONT }}>
                       {formatDistance(cat.nearest.distanceM)}
                     </p>
                   )}
@@ -122,8 +163,8 @@ export default function NeighborhoodSection({ lat, lng, canton, city, compact }:
             <Train className="h-4 w-4 text-gray-900" strokeWidth={2} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold text-gray-900 truncate">{station.name}</p>
-            <p className="text-[11px] text-gray-500 tabular-nums">
+            <p className="text-[13px] font-semibold text-gray-900 truncate" style={{ fontFamily: FONT }}>{station.name}</p>
+            <p className="text-[11px] text-gray-500 tabular-nums" style={{ fontFamily: FONT }}>
               {formatWalkTime(station.distanceM)} · {formatDistance(station.distanceM)}
             </p>
           </div>
@@ -134,9 +175,64 @@ export default function NeighborhoodSection({ lat, lng, canton, city, compact }:
       {!isLoading && !hasData && !station && (
         <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-100">
           <MapPin className="h-4 w-4 text-gray-400 shrink-0" strokeWidth={1.75} />
-          <p className="text-[13px] text-gray-500">Données du quartier non disponibles pour cette localisation</p>
+          <p className="text-[13px] text-gray-500" style={{ fontFamily: FONT }}>
+            Données du quartier non disponibles pour cette localisation
+          </p>
         </div>
       )}
+    </>
+  )
+
+  // En mode compact (sidebar/preview), pas de Card wrapper.
+  if (compact) {
+    return (
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-4" style={{ fontFamily: FONT }}>
+          Le quartier
+        </p>
+        {inner}
+      </div>
+    )
+  }
+
+  // Mode full : Card wrapper proto-fidèle.
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid #DDE2EA',
+        borderRadius: 14,
+        padding: 22,
+        fontFamily: FONT,
+      }}
+    >
+      <div style={{ marginBottom: 16 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#0041D9',
+            letterSpacing: 1.4,
+            textTransform: 'uppercase',
+            marginBottom: 6,
+          }}
+        >
+          Le quartier
+        </div>
+        <h2
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            color: '#0E1410',
+            margin: 0,
+            letterSpacing: -0.5,
+          }}
+        >
+          Vivre dans le quartier
+        </h2>
+      </div>
+
+      {inner}
     </div>
   )
 }
