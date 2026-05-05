@@ -59,6 +59,7 @@ const KycDetailPage = lazy(() => import('@/pages/agent/KycDetailPage'))
 const KycListSugarV2Page = lazy(() => import('@/pages/agent/KycListSugarV2Page'))
 const KycDetailSugarV2Page = lazy(() => import('@/pages/agent/KycDetailSugarV2Page'))
 const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
+const ReseauSugarV2Page = lazy(() => import('@/pages/agent/ReseauSugarV2Page'))
 const ChatPage = lazy(() => import('@/pages/agent/ChatPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const AutomationPage = lazy(() => import('@/pages/agent/AutomationPage'))
@@ -291,6 +292,7 @@ export default function App() {
                 <Route path="kyc" element={<KycListSugarV2Page />} />
                 <Route path="kyc/showcase" element={<KycShowcasePage />} />
                 <Route path="kyc/:id" element={<KycDetailSugarV2Page />} />
+                <Route path="reseau" element={<ReseauSugarV2Page />} />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}

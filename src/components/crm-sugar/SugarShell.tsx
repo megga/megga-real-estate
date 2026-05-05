@@ -147,8 +147,9 @@ export function SugarIconRail({
     { id: 'chat', icon: 'chat', label: 'Messages' },
   ]
   const tools: RailItem[] = [
-    { id: 'kyc',  icon: 'kyc',  label: 'KYC' },
-    { id: 'auto', icon: 'auto', label: 'Automatisation' },
+    { id: 'kyc',    icon: 'kyc',   label: 'KYC' },
+    { id: 'reseau', icon: 'share', label: "Réseau d'agences" },
+    { id: 'auto',   icon: 'auto',  label: 'Automatisation' },
   ]
 
   const RailBtn = ({ it }: { it: RailItem }) => {

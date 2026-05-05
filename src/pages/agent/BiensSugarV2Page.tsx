@@ -161,6 +161,8 @@ export default function BiensSugarV2Page() {
         navigate('/dashboard/documents'); break
       case 'kyc':
         navigate('/dashboard/kyc'); break
+      case 'reseau':
+        navigate('/dashboard/reseau'); break
       case 'auto':
         navigate('/dashboard/automation'); break
       case 'chat':
