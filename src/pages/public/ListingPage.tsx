@@ -14,9 +14,10 @@ import RequestVisitModal from '@/components/listings/RequestVisitModal'
 // New listing components
 import ListingHeroGallery from '@/components/listing/ListingHeroGallery'
 import ListingStickyNav, { type SectionDef } from '@/components/listing/ListingStickyNav'
-import ListingHeader from '@/components/listing/ListingHeader'
+// ListingHeader supprimé : BienPriceCard.KpiRow couvre les stats désormais.
 import BienBreadcrumb from '@/components/listing/BienBreadcrumb'
 import BienTitleBar from '@/components/listing/BienTitleBar'
+import BienPriceCard from '@/components/listing/BienPriceCard'
 import ListingDescription from '@/components/listing/ListingDescription'
 import ListingFeatures from '@/components/listing/ListingFeatures'
 import ListingMap from '@/components/listing/ListingMap'
@@ -307,8 +308,17 @@ export default function ListingPage() {
       <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="flex gap-10">
           {/* Left: Content */}
-          <div className="flex-1 min-w-0">
-            <ListingHeader listing={listing} />
+          <div className="flex-1 min-w-0 flex flex-col gap-6">
+            <BienPriceCard
+              price={listing.price}
+              priceOriginal={(listing as { price_original?: number | null }).price_original ?? null}
+              mode={mode}
+              surface={listing.surface_m2}
+              charges={listing.charges_monthly}
+              rooms={listing.rooms}
+              bedrooms={listing.bedrooms}
+              bathrooms={listing.bathrooms}
+            />
             {(listing as { c2pa_verified?: boolean; c2pa_verified_at?: string }).c2pa_verified && (
               <div className="mb-4">
                 <C2PaBadge
