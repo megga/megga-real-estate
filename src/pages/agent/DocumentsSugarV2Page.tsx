@@ -1,6 +1,5 @@
 // MEGGA CRM Sugar v2 — Documents (Tier 3.j)
 // 1:1 port from the Claude Design bundle (`crm-documents-sugar.jsx`).
-// Modals NewDoc + TemplateEditor stubbées (toast "à venir") pour rester réaliste.
 
 import { useState } from 'react'
 import { useEffect } from 'react'
@@ -19,6 +18,10 @@ import {
   DocGridView, DocTemplatesView,
 } from '@/components/crm-sugar/documents/DocViews'
 import { DocStudioModal } from '@/components/crm-sugar/documents/DocStudioModal'
+import { NewDocModal, type NewDocPayload } from '@/components/crm-sugar/documents/NewDocModal'
+import {
+  TemplateEditorModal, type TemplateEditorPayload,
+} from '@/components/crm-sugar/documents/TemplateEditorModal'
 import {
   DOC_FOLDERS, DOC_TEMPLATES,
   type DocItem, type DocTemplate,
@@ -54,6 +57,10 @@ export default function DocumentsSugarV2Page() {
     doc: DocItem
     folder: typeof DOC_FOLDERS[number]
   } | null>(null)
+  const [showNewDoc, setShowNewDoc] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<{
+    template: DocTemplate | null
+  } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
@@ -73,9 +80,26 @@ export default function DocumentsSugarV2Page() {
     setView('living')
   }
 
-  const handleNewDocClick = () => setToast('Création de document — à venir')
-  const handleEditTemplate = (_tpl: DocTemplate | null) =>
-    setToast('Éditeur de modèles — à venir')
+  const handleNewDocClick = () => setShowNewDoc(true)
+  const handleEditTemplate = (tpl: DocTemplate | null) =>
+    setEditingTemplate({ template: tpl })
+
+  const handleCreateDoc = (payload: NewDocPayload) => {
+    const target = DOC_FOLDERS.find(f => f.id === payload.folderId)
+    setToast(
+      payload.mode === 'template'
+        ? `Document généré dans ${target?.title ?? 'le dossier'}`
+        : `Document importé dans ${target?.title ?? 'le dossier'}`,
+    )
+  }
+
+  const handleSaveTemplate = (payload: TemplateEditorPayload) => {
+    setToast(
+      editingTemplate?.template
+        ? `Modèle « ${payload.name} » enregistré`
+        : `Nouveau modèle « ${payload.name} » créé`,
+    )
+  }
 
   const onCmd = () => {
     /* placeholder */
@@ -345,6 +369,25 @@ export default function DocumentsSugarV2Page() {
           folder={studioState.folder}
           dark={dark}
           onClose={() => setStudioState(null)}
+        />
+      )}
+
+      {showNewDoc && (
+        <NewDocModal
+          folders={DOC_FOLDERS}
+          templates={DOC_TEMPLATES}
+          dark={dark}
+          onClose={() => setShowNewDoc(false)}
+          onCreate={handleCreateDoc}
+        />
+      )}
+
+      {editingTemplate && (
+        <TemplateEditorModal
+          template={editingTemplate.template}
+          dark={dark}
+          onClose={() => setEditingTemplate(null)}
+          onSave={handleSaveTemplate}
         />
       )}
 
