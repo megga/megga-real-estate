@@ -16,6 +16,7 @@ import {
 } from './atoms'
 import { SET_PALETTE } from './data'
 import { SSOConnectionsCard } from './SSOConnectionsCard'
+import { MFAEnrollModal, MFABackupCodesModal } from '@/components/auth/MfaModals'
 
 const SET = SET_PALETTE
 
@@ -781,6 +782,8 @@ export function SecuritySection() {
   const [pwdModalOpen, setPwdModalOpen] = useState(false)
   const [pwdMode, setPwdMode] = useState<PwdMode>('change')
   const [revokeAll, setRevokeAll] = useState(false)
+  const [mfaEnabled, setMfaEnabled] = useState(false)
+  const [mfaModal, setMfaModal] = useState<'enroll' | 'backup' | null>(null)
 
   const handleSave = () => {
     setSaving(true)
@@ -930,6 +933,105 @@ export function SecuritySection() {
           </SetCard>
         </div>
 
+        {/* MFA / 2FA — port des protos crm-mfa-modals.jsx */}
+        <SetCard
+          title="Authentification à deux facteurs (2FA)"
+          sub={
+            mfaEnabled
+              ? 'Activée · Application Authenticator + 10 codes de secours.'
+              : 'Renforcez la sécurité de votre compte avec un code temporaire (TOTP) en plus de votre mot de passe.'
+          }
+          action={
+            mfaEnabled ? (
+              <SetGhostBtn
+                size="sm"
+                onClick={() => setMfaModal('backup')}
+                icon={<SetIcon name="key" size={13} stroke={SET.inkSoft} />}
+              >
+                Régénérer les codes de secours
+              </SetGhostBtn>
+            ) : (
+              <SetBlackBtn
+                size="sm"
+                onClick={() => setMfaModal('enroll')}
+                icon={<SetIcon name="lock" size={13} stroke="#fff" sw={2.2} />}
+              >
+                Activer 2FA
+              </SetBlackBtn>
+            )
+          }
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              padding: '14px 16px',
+              borderRadius: 14,
+              background: SET.cardSubtle,
+              boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: mfaEnabled ? `${SET.ok}18` : `${SET.muted}1A`,
+                color: mfaEnabled ? SET.ok : SET.muted,
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <SetIcon
+                name={mfaEnabled ? 'check' : 'lock'}
+                size={16}
+                stroke={mfaEnabled ? SET.ok : SET.muted}
+                sw={2.2}
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  color: SET.ink,
+                  letterSpacing: -0.1,
+                }}
+              >
+                {mfaEnabled
+                  ? 'Protection 2FA active'
+                  : 'Compatible Google Authenticator, Authy, 1Password, etc.'}
+              </div>
+              <div
+                style={{
+                  fontSize: 11.5,
+                  color: SET.muted,
+                  fontWeight: 500,
+                  marginTop: 2,
+                }}
+              >
+                {mfaEnabled
+                  ? 'Code 6 chiffres demandé à chaque nouvelle connexion.'
+                  : 'TOTP standard (RFC 6238) · prend 30 secondes à activer.'}
+              </div>
+            </div>
+            {mfaEnabled && (
+              <SetGhostBtn
+                size="sm"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.confirm('Désactiver la 2FA ? Votre compte sera moins protégé.')) {
+                    setMfaEnabled(false)
+                  }
+                }}
+              >
+                Désactiver
+              </SetGhostBtn>
+            )}
+          </div>
+        </SetCard>
+
         <SSOConnectionsCard />
       </div>
 
@@ -957,6 +1059,19 @@ export function SecuritySection() {
           onCancel={() => setRevokeAll(false)}
           onConfirm={() => setRevokeAll(false)}
         />
+      )}
+
+      {mfaModal === 'enroll' && (
+        <MFAEnrollModal
+          onClose={() => setMfaModal(null)}
+          onDone={() => {
+            setMfaEnabled(true)
+            setMfaModal(null)
+          }}
+        />
+      )}
+      {mfaModal === 'backup' && (
+        <MFABackupCodesModal onClose={() => setMfaModal(null)} />
       )}
     </>
   )
