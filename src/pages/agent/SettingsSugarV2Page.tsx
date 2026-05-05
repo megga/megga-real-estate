@@ -13,6 +13,8 @@ import {
 import { BannerPill } from '@/components/crm-sugar/settings/BannerPill'
 import { ProfileSection } from '@/components/crm-sugar/settings/ProfileSection'
 import { PlaceholderSection } from '@/components/crm-sugar/settings/PlaceholderSection'
+import { NotificationsSection } from '@/components/crm-sugar/settings/NotificationsSection'
+import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesSection'
 import {
   SETTINGS_SECTIONS, SET_PALETTE, type SectionId,
 } from '@/components/crm-sugar/settings/data'
@@ -67,6 +69,8 @@ export default function SettingsSugarV2Page() {
 
   const renderContent = () => {
     if (active === 'profile') return <ProfileSection />
+    if (active === 'notifications') return <NotificationsSection />
+    if (active === 'preferences') return <PreferencesSection />
     return <PlaceholderSection section={activeSection} />
   }
 

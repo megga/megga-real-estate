@@ -95,6 +95,37 @@ const PATHS: Record<SettingsIconName, ReactNode> = {
       <path d="M12 16v-4M12 8h.01" />
     </>
   ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </>
+  ),
+  sms: (
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
+  ),
+  app: (
+    <>
+      <rect x="5" y="2" width="14" height="20" rx="3" />
+      <path d="M11 18h2" />
+    </>
+  ),
+  moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />,
+  keyboard: (
+    <>
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M10 14h.01M14 14h.01M18 14h.01" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" />
+    </>
+  ),
+  sparkle: (
+    <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+  ),
 }
 
 interface SetIconProps {
@@ -383,6 +414,196 @@ export function SetGhostBtn({ children, onClick, disabled }: SetGhostBtnProps) {
     >
       {children}
     </button>
+  )
+}
+
+interface SetSwitchProps {
+  value: boolean
+  onChange: (v: boolean) => void
+  size?: 'sm' | 'md'
+}
+
+export function SetSwitch({ value, onChange, size = 'md' }: SetSwitchProps) {
+  const w = size === 'sm' ? 36 : 44
+  const h = size === 'sm' ? 22 : 26
+  const t = size === 'sm' ? 16 : 20
+  return (
+    <button
+      onClick={() => onChange(!value)}
+      style={{
+        width: w,
+        height: h,
+        borderRadius: 999,
+        border: 0,
+        background: value ? SET.black : SET.ghost,
+        position: 'relative',
+        cursor: 'pointer',
+        flexShrink: 0,
+        transition: 'background .2s',
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: (h - t) / 2,
+          left: value ? w - t - (h - t) / 2 : (h - t) / 2,
+          width: t,
+          height: t,
+          borderRadius: 999,
+          background: '#fff',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+          transition: 'left .2s cubic-bezier(.2,.8,.2,1)',
+        }}
+      />
+    </button>
+  )
+}
+
+interface SectionHeaderProps {
+  kicker: string
+  title: string
+  sub: string
+}
+
+export function SectionHeader({ kicker, title, sub }: SectionHeaderProps) {
+  return (
+    <div style={{ marginBottom: 4, maxWidth: 760 }}>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: SET.muted,
+          letterSpacing: 1.2,
+          textTransform: 'uppercase',
+          marginBottom: 12,
+        }}
+      >
+        {kicker}
+      </div>
+      <h1
+        style={{
+          margin: '0 0 12px',
+          fontSize: 32,
+          fontWeight: 700,
+          color: SET.ink,
+          letterSpacing: -0.6,
+          lineHeight: 1.1,
+        }}
+      >
+        {title}
+      </h1>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 14.5,
+          color: SET.inkSoft,
+          fontWeight: 500,
+          lineHeight: 1.55,
+        }}
+      >
+        {sub}
+      </p>
+    </div>
+  )
+}
+
+interface StickySaveBarProps {
+  dirty: boolean
+  saving: boolean
+  onSave: () => void
+  onCancel: () => void
+}
+
+export function StickySaveBar({ dirty, saving, onSave, onCancel }: StickySaveBarProps) {
+  if (!dirty) return null
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 100,
+        background: SET.card,
+        borderRadius: 999,
+        padding: '8px 8px 8px 24px',
+        boxShadow:
+          '0 24px 60px rgba(11,12,14,0.20), 0 6px 20px rgba(11,12,14,0.10)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        animation: 'setSlideUp .3s cubic-bezier(.2,.8,.2,1) both',
+      }}
+    >
+      <span
+        style={{
+          fontSize: 13,
+          fontWeight: 600,
+          color: SET.inkSoft,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <span
+          style={{ width: 7, height: 7, borderRadius: 999, background: SET.warn }}
+        />
+        Modifications non enregistrées
+      </span>
+      <SetGhostBtn onClick={onCancel}>Annuler</SetGhostBtn>
+      <SetBlackBtn
+        onClick={onSave}
+        loading={saving}
+        icon={!saving && <SetIcon name="check" size={14} stroke="#fff" sw={2.4} />}
+      >
+        {saving ? 'Enregistrement…' : 'Enregistrer'}
+      </SetBlackBtn>
+    </div>
+  )
+}
+
+interface ToastProps {
+  open: boolean
+  label: string
+}
+
+export function Toast({ open, label }: ToastProps) {
+  if (!open) return null
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 101,
+        background: SET.black,
+        color: '#fff',
+        borderRadius: 999,
+        padding: '12px 22px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        boxShadow: '0 24px 60px rgba(11,12,14,0.30)',
+        fontSize: 13.5,
+        fontWeight: 600,
+        animation: 'setSlideUp .3s cubic-bezier(.2,.8,.2,1) both',
+      }}
+    >
+      <span
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 999,
+          background: SET.ok,
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        <SetIcon name="check" size={12} stroke="#fff" sw={3} />
+      </span>
+      {label}
+    </div>
   )
 }
 

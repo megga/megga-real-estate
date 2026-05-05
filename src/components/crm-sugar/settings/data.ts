@@ -18,6 +18,7 @@ export type SettingsIconName =
   | 'user' | 'building' | 'users' | 'palette' | 'bell' | 'plug'
   | 'card' | 'lock' | 'shield' | 'sliders' | 'check' | 'camera'
   | 'pen' | 'arrowR' | 'chevR' | 'x' | 'info'
+  | 'mail' | 'sms' | 'app' | 'moon' | 'keyboard' | 'globe' | 'sparkle'
 
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },
