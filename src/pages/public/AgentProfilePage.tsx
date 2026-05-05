@@ -1,18 +1,57 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Star, Phone, Mail, Globe, ArrowLeft } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Star, Phone, Mail, Globe, ArrowLeft, User } from 'lucide-react'
 import { useAgentProfile } from '@/hooks/useAgentProfile'
 import { useAgentReviews } from '@/hooks/useAgentReviews'
 import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
-import BuyerSidebar from '@/components/search/BuyerSidebar'
 import VerifiedBadge from '@/components/directory/VerifiedBadge'
 import ClaimProfileCTA from '@/components/directory/ClaimProfileCTA'
 import AgentStatsPanel from '@/components/directory/AgentStatsPanel'
 import ReviewCard from '@/components/directory/ReviewCard'
 import ReviewForm from '@/components/directory/ReviewForm'
+
+// Page agent publique en design Sugar Editorial — cohérente avec la page Agence
+// (Helvetica Neue + JetBrains Mono pour les méta, fond #FAFAFA, sections numérotées).
+
+const FF = "'Helvetica Neue', Helvetica, Arial, 'Inter', system-ui, sans-serif"
+const FF_MONO = "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+
+const T = {
+  bg: '#FAFAFA',
+  paper: '#FFFFFF',
+  ink: '#0B0C0E',
+  soft: '#3A3D44',
+  muted: '#7A8088',
+  rule: '#E8E8EA',
+  fade: '#F2F2F4',
+}
+
+interface SectionLabelProps {
+  num: string
+  label: string
+  right?: string
+}
+
+function SectionLabel({ num, label, right }: SectionLabelProps) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
+        gap: 18,
+        alignItems: 'center',
+        padding: '0 0 18px',
+        borderBottom: `1px solid ${T.ink}`,
+        marginBottom: 36,
+      }}
+    >
+      <span style={{ fontFamily: FF_MONO, fontSize: 11, color: T.ink, fontWeight: 500, letterSpacing: 0.6 }}>§ {num}</span>
+      <span style={{ fontFamily: FF, fontSize: 13, fontWeight: 600, color: T.ink, letterSpacing: 0.5, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontFamily: FF_MONO, fontSize: 11, color: T.muted, letterSpacing: 0.4 }}>{right ?? ''}</span>
+    </div>
+  )
+}
 
 const SPECIALTY_KEYS: Record<string, string> = {
   residential: 'specialty.residential',
@@ -29,39 +68,49 @@ export default function AgentProfilePage() {
   const [reviewSort, setReviewSort] = useState<'recent' | 'best'>('recent')
   const { data: reviews } = useAgentReviews(data?.agent?.id ?? '', reviewSort)
 
-  // Loading state
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-12">
-        <div className="animate-pulse space-y-6">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 rounded-full bg-theme-hover" />
-            <div className="space-y-3 flex-1">
-              <div className="h-6 w-48 bg-theme-hover rounded" />
-              <div className="h-4 w-32 bg-theme-hover rounded" />
-              <div className="h-4 w-24 bg-theme-hover rounded" />
-            </div>
-          </div>
-          <div className="h-40 bg-theme-hover rounded-xl" />
-          <div className="h-60 bg-theme-hover rounded-xl" />
+      <div style={{ background: T.bg, minHeight: '100vh', fontFamily: FF }}>
+        <Navbar />
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '120px 80px' }}>
+          <div style={{ height: 12, width: 200, background: T.fade, marginBottom: 16 }} />
+          <div style={{ height: 80, width: 600, background: T.fade }} />
         </div>
       </div>
     )
   }
 
-  // Error / 404
   if (error || !data?.agent) {
     return (
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-16 text-center">
-        <p className="text-base font-medium text-theme-primary mb-2">{t('noResults')}</p>
-        <p className="text-sm text-theme-secondary mb-6">{t('noResultsSubtitle')}</p>
-        <Link
-          to="/agents"
-          className="inline-flex h-9 px-4 items-center rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors gap-1.5"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('toggleAgents')}
-        </Link>
+      <div style={{ background: T.bg, minHeight: '100vh', fontFamily: FF }}>
+        <Navbar />
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: '120px 32px', textAlign: 'center' }}>
+          <User style={{ width: 56, height: 56, color: T.muted, margin: '0 auto 24px' }} />
+          <p style={{ fontFamily: FF, fontSize: 24, fontWeight: 500, color: T.ink, marginBottom: 12, letterSpacing: -0.5 }}>
+            {t('noResults')}
+          </p>
+          <p style={{ fontFamily: FF, fontSize: 14, color: T.soft, marginBottom: 32 }}>{t('noResultsSubtitle')}</p>
+          <Link
+            to="/agents"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 24px',
+              border: `1px solid ${T.ink}`,
+              color: T.ink,
+              textDecoration: 'none',
+              fontFamily: FF,
+              fontSize: 13,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+            }}
+          >
+            <ArrowLeft style={{ width: 16, height: 16 }} />
+            {t('toggleAgents')}
+          </Link>
+        </div>
       </div>
     )
   }
@@ -69,233 +118,424 @@ export default function AgentProfilePage() {
   const { agent, agency } = data
   const fullName = `${agent.first_name} ${agent.last_name}`
   const initials = `${agent.first_name[0] ?? ''}${agent.last_name[0] ?? ''}`.toUpperCase()
+  const slugUpper = (slug ?? fullName).toUpperCase()
 
   return (
-    <>
-    <Navbar />
-    <BuyerSidebar className="hidden md:flex fixed top-[72px] bottom-0 left-0 z-40" />
-    <div className="md:ml-[90px] max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-12">
-      {/* Back link */}
-      <Link
-        to="/agents"
-        className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors mb-8"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {t('toggleAgents')}
-      </Link>
+    <div style={{ background: T.bg, fontFamily: FF }}>
+      <Navbar />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
-        {/* Photo */}
-        {agent.photo_url ? (
-          <img
-            src={agent.photo_url}
-            alt={fullName}
-            className="w-24 h-24 rounded-full object-cover flex-shrink-0"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="w-24 h-24 rounded-full bg-theme-hover flex items-center justify-center flex-shrink-0">
-            <span className="text-2xl font-semibold text-theme-secondary">{initials}</span>
-          </div>
-        )}
+      {/* HERO Editorial — meta strip + portrait + name + identity */}
+      <section style={{ background: T.bg, padding: '72px 80px 0' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            alignItems: 'center',
+            fontFamily: FF_MONO,
+            fontSize: 11,
+            color: T.muted,
+            letterSpacing: 0.5,
+            paddingBottom: 28,
+            borderBottom: `1px solid ${T.rule}`,
+            textTransform: 'uppercase',
+          }}
+        >
+          <span>MEGGA / AGENT / {slugUpper}</span>
+          <span style={{ fontFamily: FF, fontWeight: 600, color: T.ink }}>
+            {agent.experience_years ? `EXP. ${agent.experience_years} ANS` : 'COURTIER PROFESSIONNEL'}
+          </span>
+          <span style={{ textAlign: 'right' }}>
+            {agent.city || ''} {agent.canton ? `· ${agent.canton}` : ''}
+          </span>
+        </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold text-theme-primary">{fullName}</h1>
-            <VerifiedBadge status={agent.status} />
-          </div>
-
-          {agency && (
-            <Link
-              to={`/agences/${agency.slug}`}
-              className="text-sm text-accent hover:underline mt-1 block"
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 56, padding: '64px 0 60px', alignItems: 'start' }}>
+          {/* Photo */}
+          <div>
+            <div
+              style={{
+                width: '100%',
+                paddingTop: '120%',
+                position: 'relative',
+                background: agent.photo_url ? `center/cover no-repeat url(${agent.photo_url})` : T.fade,
+                filter: 'grayscale(0.2) contrast(1.05)',
+              }}
             >
-              {agency.name}
-            </Link>
-          )}
-
-          <p className="text-sm text-theme-secondary mt-1">
-            {agent.city}{agent.canton ? `, ${agent.canton}` : ''}
-          </p>
-
-          {/* Rating */}
-          {agent.rating_count > 0 && (
-            <div className="flex items-center gap-1.5 mt-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn('h-4 w-4', i < Math.round(agent.rating_avg) ? 'fill-amber-400 text-amber-400' : 'text-theme-border')}
-                />
-              ))}
-              <span className="text-sm text-theme-muted ml-1">({agent.rating_count})</span>
+              {!agent.photo_url && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: FF,
+                    fontSize: 64,
+                    fontWeight: 500,
+                    color: T.muted,
+                    letterSpacing: -2,
+                  }}
+                >
+                  {initials}
+                </div>
+              )}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 16,
+                  bottom: 16,
+                  padding: '6px 10px',
+                  background: T.paper,
+                  fontFamily: FF_MONO,
+                  fontSize: 10,
+                  color: T.ink,
+                  letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Portrait
+              </div>
             </div>
-          )}
-
-          {/* Contact actions */}
-          <div className="flex items-center gap-2 mt-4">
-            {agent.phone && (
-              <a
-                href={`tel:${agent.phone}`}
-                className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors inline-flex items-center gap-1.5"
-              >
-                <Phone className="h-3.5 w-3.5" />
-                {t('contact')}
-              </a>
-            )}
-            {agent.email && (
-              <a
-                href={`mailto:${agent.email}`}
-                className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors inline-flex items-center gap-1.5"
-              >
-                <Mail className="h-3.5 w-3.5" />
-                Email
-              </a>
-            )}
           </div>
-        </div>
-      </div>
 
-      {/* Claim CTA */}
-      {agent.status !== 'verified' && (
-        <div className="mb-8">
-          <ClaimProfileCTA name={fullName} status={agent.status} />
-        </div>
-      )}
+          {/* Title block */}
+          <div style={{ paddingTop: 12 }}>
+            <div style={{ fontFamily: FF_MONO, fontSize: 12, color: T.muted, letterSpacing: 1, marginBottom: 16, textTransform: 'uppercase' }}>
+              Courtier en immobilier
+            </div>
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: FF,
+                fontWeight: 500,
+                fontSize: 'clamp(48px, 7vw, 96px)',
+                lineHeight: 0.95,
+                letterSpacing: -3,
+                color: T.ink,
+              }}
+            >
+              {agent.first_name}
+              <br />
+              <span style={{ fontStyle: 'italic', fontWeight: 400 }}>{agent.last_name}</span>
+            </h1>
 
-      {/* 2-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main content */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* About */}
-          <section>
-            <h2 className="text-lg font-semibold text-theme-primary mb-4">{t('profile.about')}</h2>
+            <div
+              style={{
+                marginTop: 20,
+                display: 'flex',
+                gap: 12,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
+              <VerifiedBadge status={agent.status} />
+              {agency && (
+                <Link
+                  to={`/agences/${agency.slug}`}
+                  style={{
+                    fontFamily: FF,
+                    fontSize: 14,
+                    color: T.ink,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: 3,
+                  }}
+                >
+                  {agency.name}
+                </Link>
+              )}
+              {agent.rating_count > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      style={{
+                        width: 14,
+                        height: 14,
+                        fill: i < Math.round(agent.rating_avg) ? '#0B0C0E' : 'none',
+                        color: i < Math.round(agent.rating_avg) ? '#0B0C0E' : T.muted,
+                      }}
+                    />
+                  ))}
+                  <span style={{ fontFamily: FF_MONO, fontSize: 11, color: T.muted, letterSpacing: 0.4 }}>
+                    ({agent.rating_count})
+                  </span>
+                </span>
+              )}
+            </div>
 
             {agent.bio && (
-              <p className="text-sm text-theme-secondary leading-relaxed mb-4">{agent.bio}</p>
-            )}
-
-            {agent.experience_years != null && agent.experience_years > 0 && (
-              <p className="text-sm text-theme-secondary mb-4">
-                {t('profile.experience', { years: agent.experience_years })}
+              <p
+                style={{
+                  marginTop: 28,
+                  fontFamily: FF,
+                  fontSize: 19,
+                  fontWeight: 400,
+                  lineHeight: 1.5,
+                  color: T.soft,
+                  letterSpacing: -0.2,
+                  maxWidth: 640,
+                }}
+              >
+                {agent.bio}
               </p>
             )}
 
-            {/* Specialties */}
-            {agent.specialties.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-theme-muted mb-2">{t('profile.specialties')}</p>
-                <div className="flex flex-wrap gap-2">
-                  {agent.specialties.map(s => (
-                    <span key={s} className="h-7 px-3 rounded-lg text-xs font-medium bg-theme-hover text-theme-secondary inline-flex items-center">
-                      {SPECIALTY_KEYS[s] ? t(SPECIALTY_KEYS[s]) : s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Languages */}
-            {agent.languages.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-theme-muted mb-2">{t('profile.languages')}</p>
-                <div className="flex flex-wrap gap-2">
-                  {agent.languages.map(l => (
-                    <span key={l} className="h-7 px-3 rounded-lg text-xs font-medium bg-theme-hover text-theme-secondary inline-flex items-center capitalize">
-                      {l}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Certifications */}
-            {agent.certifications.length > 0 && (
-              <div>
-                <p className="text-xs text-theme-muted mb-2">{t('profile.certifications')}</p>
-                <div className="flex flex-wrap gap-2">
-                  {agent.certifications.map(c => (
-                    <span key={c} className="h-7 px-3 rounded-lg text-xs font-medium bg-theme-hover text-theme-secondary inline-flex items-center">
-                      {c}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Reviews */}
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-theme-primary">{t('profile.reviews')}</h2>
-              <div className="flex items-center gap-2">
-                {(['recent', 'best'] as const).map(sort => (
-                  <button
-                    key={sort}
-                    onClick={() => setReviewSort(sort)}
-                    className={cn(
-                      'h-8 px-3 rounded-lg text-xs transition-colors',
-                      reviewSort === sort
-                        ? 'bg-theme-active text-theme-primary font-medium'
-                        : 'text-theme-secondary hover:text-theme-primary'
-                    )}
-                  >
-                    {sort === 'recent' ? t('review.sortRecent') : t('review.sortBest')}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {reviews && reviews.length > 0 ? (
-              <div className="space-y-4">
-                {reviews.map(review => (
-                  <ReviewCard key={review.id} review={review} />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-theme-muted py-6 text-center">{t('review.noReviews')}</p>
-            )}
-
-            {/* Review form */}
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold text-theme-primary mb-3">{t('review.writeReview')}</h3>
-              <ReviewForm agentProfileId={agent.id} />
-            </div>
-          </section>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <AgentStatsPanel agent={agent} />
-
-          {/* Contact info */}
-          {(agent.phone || agent.email || agent.website_url) && (
-            <div className="rounded-xl border border-theme-border p-5 space-y-3">
+            {/* Contact actions */}
+            <div style={{ marginTop: 32, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {agent.phone && (
-                <a href={`tel:${agent.phone}`} className="flex items-center gap-2 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-                  <Phone className="h-4 w-4 text-theme-muted flex-shrink-0" />
-                  {agent.phone}
+                <a
+                  href={`tel:${agent.phone}`}
+                  style={{
+                    height: 48,
+                    padding: '0 20px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: T.ink,
+                    color: '#fff',
+                    textDecoration: 'none',
+                    fontFamily: FF,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    letterSpacing: 0.6,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  <Phone style={{ width: 14, height: 14 }} />
+                  {t('contact')}
                 </a>
               )}
               {agent.email && (
-                <a href={`mailto:${agent.email}`} className="flex items-center gap-2 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-                  <Mail className="h-4 w-4 text-theme-muted flex-shrink-0" />
-                  {agent.email}
+                <a
+                  href={`mailto:${agent.email}`}
+                  style={{
+                    height: 48,
+                    padding: '0 20px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    border: `1px solid ${T.ink}`,
+                    color: T.ink,
+                    textDecoration: 'none',
+                    fontFamily: FF,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    letterSpacing: 0.6,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  <Mail style={{ width: 14, height: 14 }} />
+                  Email
                 </a>
               )}
               {agent.website_url && (
-                <a href={agent.website_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-                  <Globe className="h-4 w-4 text-theme-muted flex-shrink-0" />
-                  {t('profile.website')}
+                <a
+                  href={agent.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    height: 48,
+                    padding: '0 20px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    border: `1px solid ${T.ink}`,
+                    color: T.ink,
+                    textDecoration: 'none',
+                    fontFamily: FF,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    letterSpacing: 0.6,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  <Globe style={{ width: 14, height: 14 }} />
+                  Site
                 </a>
               )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Claim CTA */}
+      {agent.status !== 'verified' && (
+        <section style={{ padding: '0 80px 60px' }}>
+          <ClaimProfileCTA name={fullName} status={agent.status} />
+        </section>
+      )}
+
+      {/* §01 Profil — specialties / langues / certifs */}
+      <section style={{ background: T.bg, padding: '80px 80px', scrollMarginTop: 80 }}>
+        <SectionLabel num="01" label="Profil" right="Compétences" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 64 }}>
+          <div>
+            <div style={{ fontFamily: FF_MONO, fontSize: 11, color: T.muted, letterSpacing: 1, marginBottom: 14, textTransform: 'uppercase' }}>
+              Spécialités
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {agent.specialties.length > 0 ? (
+                agent.specialties.map((s) => (
+                  <div key={s} style={{ fontFamily: FF, fontSize: 17, color: T.ink, letterSpacing: -0.2 }}>
+                    {SPECIALTY_KEYS[s] ? t(SPECIALTY_KEYS[s]) : s}
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontFamily: FF, fontSize: 14, color: T.muted, fontStyle: 'italic' }}>—</div>
+              )}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontFamily: FF_MONO, fontSize: 11, color: T.muted, letterSpacing: 1, marginBottom: 14, textTransform: 'uppercase' }}>
+              Langues parlées
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {agent.languages.length > 0 ? (
+                agent.languages.map((l) => (
+                  <div key={l} style={{ fontFamily: FF, fontSize: 17, color: T.ink, letterSpacing: -0.2, textTransform: 'capitalize' }}>
+                    {l}
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontFamily: FF, fontSize: 14, color: T.muted, fontStyle: 'italic' }}>—</div>
+              )}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontFamily: FF_MONO, fontSize: 11, color: T.muted, letterSpacing: 1, marginBottom: 14, textTransform: 'uppercase' }}>
+              Certifications
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {agent.certifications.length > 0 ? (
+                agent.certifications.map((c) => (
+                  <div key={c} style={{ fontFamily: FF, fontSize: 17, color: T.ink, letterSpacing: -0.2 }}>
+                    {c}
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontFamily: FF, fontSize: 14, color: T.muted, fontStyle: 'italic' }}>—</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* §02 Statistiques + contact card */}
+      <section style={{ background: T.bg, padding: '80px 80px', borderTop: `1px solid ${T.rule}` }}>
+        <SectionLabel num="02" label="Performance" right="Sur 12 mois" />
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 48, alignItems: 'start' }}>
+          <AgentStatsPanel agent={agent} />
+          <div style={{ background: T.paper, padding: 28, border: `1px solid ${T.rule}` }}>
+            <div style={{ fontFamily: FF_MONO, fontSize: 11, color: T.muted, letterSpacing: 1, marginBottom: 18, textTransform: 'uppercase' }}>
+              Coordonnées
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontFamily: FF, fontSize: 14 }}>
+              {agent.phone && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${T.rule}`, paddingBottom: 8 }}>
+                  <span style={{ fontFamily: FF_MONO, fontSize: 10.5, color: T.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>Tél.</span>
+                  <a href={`tel:${agent.phone}`} style={{ color: T.ink, textDecoration: 'none', fontVariantNumeric: 'tabular-nums' }}>
+                    {agent.phone}
+                  </a>
+                </div>
+              )}
+              {agent.email && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px solid ${T.rule}`, paddingBottom: 8 }}>
+                  <span style={{ fontFamily: FF_MONO, fontSize: 10.5, color: T.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>Email</span>
+                  <a href={`mailto:${agent.email}`} style={{ color: T.ink, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                    {agent.email}
+                  </a>
+                </div>
+              )}
+              {agent.website_url && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: FF_MONO, fontSize: 10.5, color: T.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>Site</span>
+                  <a href={agent.website_url} target="_blank" rel="noopener noreferrer" style={{ color: T.ink, textDecoration: 'none' }}>
+                    Visiter ↗
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* §03 Avis clients */}
+      <section style={{ background: T.bg, padding: '80px 80px', borderTop: `1px solid ${T.rule}` }}>
+        <SectionLabel num="03" label="Avis clients" right={`${reviews?.length ?? 0} témoignage${(reviews?.length ?? 0) > 1 ? 's' : ''}`} />
+
+        <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
+          {(['recent', 'best'] as const).map((sort) => (
+            <button
+              key={sort}
+              onClick={() => setReviewSort(sort)}
+              style={{
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                padding: '0 24px 14px 0',
+                fontFamily: FF,
+                fontSize: 15,
+                fontWeight: 500,
+                color: reviewSort === sort ? T.ink : T.muted,
+                borderBottom: reviewSort === sort ? `2px solid ${T.ink}` : '2px solid transparent',
+                marginBottom: -1,
+                letterSpacing: -0.2,
+              }}
+            >
+              {sort === 'recent' ? t('review.sortRecent') : t('review.sortBest')}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 64, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {reviews && reviews.length > 0 ? (
+              reviews.map((review) => <ReviewCard key={review.id} review={review} />)
+            ) : (
+              <div
+                style={{
+                  fontFamily: FF_MONO,
+                  fontSize: 12,
+                  color: T.muted,
+                  letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                  padding: '40px 0',
+                  textAlign: 'center',
+                  border: `1px dashed ${T.rule}`,
+                }}
+              >
+                {t('review.noReviews')}
+              </div>
+            )}
+          </div>
+          <div style={{ background: T.paper, padding: 28, border: `1px solid ${T.rule}` }}>
+            <div style={{ fontFamily: FF_MONO, fontSize: 11, color: T.muted, letterSpacing: 1, marginBottom: 14, textTransform: 'uppercase' }}>
+              {t('review.writeReview')}
+            </div>
+            <ReviewForm agentProfileId={agent.id} />
+          </div>
+        </div>
+      </section>
+
+      {/* Footer minimal */}
+      <footer style={{ background: T.bg, padding: '60px 80px 40px', borderTop: `1px solid ${T.ink}` }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontFamily: FF_MONO,
+            fontSize: 10.5,
+            color: T.muted,
+            letterSpacing: 0.6,
+            textTransform: 'uppercase',
+          }}
+        >
+          <span>© 2026 {fullName}</span>
+          <span>
+            Hébergé par <span style={{ color: T.ink, fontWeight: 600 }}>MEGGA</span>
+          </span>
+        </div>
+      </footer>
     </div>
-    <Footer />
-    </>
   )
 }
