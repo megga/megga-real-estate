@@ -19,6 +19,8 @@ export type SettingsIconName =
   | 'card' | 'lock' | 'shield' | 'sliders' | 'check' | 'camera'
   | 'pen' | 'arrowR' | 'chevR' | 'x' | 'info'
   | 'mail' | 'sms' | 'app' | 'moon' | 'keyboard' | 'globe' | 'sparkle'
+  | 'key' | 'download' | 'help' | 'eye' | 'eyeOff' | 'clock' | 'alert'
+  | 'doc' | 'trash' | 'plus' | 'receipt'
 
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },
@@ -91,6 +93,7 @@ export interface SettingsPalette {
   ok: string
   warn: string
   err: string
+  bad: string
 }
 
 export const SET_PALETTE: SettingsPalette = {
@@ -112,6 +115,7 @@ export const SET_PALETTE: SettingsPalette = {
   ok: '#10B981',
   warn: '#F59E0B',
   err: '#EF4444',
+  bad: '#EF4444',
 }
 
 export function profileCompletionScore(p: ProfileData): number {

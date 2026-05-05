@@ -126,6 +126,71 @@ const PATHS: Record<SettingsIconName, ReactNode> = {
   sparkle: (
     <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
   ),
+  key: (
+    <>
+      <circle cx="8" cy="15" r="4" />
+      <path d="m10.85 12.15 7.85-7.85" />
+      <path d="M14.5 8.5l3 3" />
+      <path d="M16 6l3 3" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M12 15V3" />
+    </>
+  ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <path d="M2 2l20 20" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="M10.3 3.5 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.5a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4M12 17h.01" />
+    </>
+  ),
+  doc: (
+    <>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <path d="M14 3v6h6M9 13h6M9 17h4" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M3 6h18M19 6l-1.5 14a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </>
+  ),
+  plus: <path d="M12 5v14M5 12h14" />,
+  receipt: (
+    <>
+      <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2L17 4l-3-2-3 2-3-2L5 4 4 2Z" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </>
+  ),
 }
 
 interface SetIconProps {
@@ -387,10 +452,21 @@ interface SetGhostBtnProps {
   children: ReactNode
   onClick?: () => void
   disabled?: boolean
+  icon?: ReactNode
+  size?: 'sm' | 'md'
+  danger?: boolean
 }
 
-export function SetGhostBtn({ children, onClick, disabled }: SetGhostBtnProps) {
+export function SetGhostBtn({
+  children,
+  onClick,
+  disabled,
+  icon,
+  size = 'md',
+  danger,
+}: SetGhostBtnProps) {
   const [hover, setHover] = useState(false)
+  const h = size === 'sm' ? 36 : 44
   return (
     <button
       onClick={onClick}
@@ -398,22 +474,268 @@ export function SetGhostBtn({ children, onClick, disabled }: SetGhostBtnProps) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        height: 44,
-        padding: '0 20px',
+        height: h,
+        padding: size === 'sm' ? '0 14px' : '0 20px',
         borderRadius: 999,
         border: 0,
-        background: hover ? SET.cardSubtle : 'transparent',
-        color: SET.inkSoft,
+        background: hover
+          ? danger
+            ? `${SET.bad}14`
+            : SET.cardSubtle
+          : 'transparent',
+        color: danger ? SET.bad : SET.inkSoft,
         fontFamily: 'inherit',
-        fontSize: 13.5,
+        fontSize: size === 'sm' ? 12.5 : 13.5,
         fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 7,
         transition: 'all .15s',
       }}
     >
+      {icon}
       {children}
     </button>
+  )
+}
+
+interface ToggleRowProps {
+  label: string
+  desc?: string
+  value: boolean
+  onChange: (v: boolean) => void
+  emphasis?: boolean
+}
+
+export function ToggleRow({ label, desc, value, onChange, emphasis }: ToggleRowProps) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: emphasis ? '14px 16px' : 0,
+        borderRadius: emphasis ? 14 : 0,
+        background: emphasis ? SET.cardSubtle : 'transparent',
+        boxShadow: emphasis ? 'inset 0 0 0 1px rgba(15,23,42,0.04)' : 'none',
+      }}
+    >
+      <div style={{ flex: 1 }}>
+        <div
+          style={{
+            fontSize: 13.5,
+            fontWeight: 700,
+            color: SET.ink,
+            letterSpacing: -0.1,
+          }}
+        >
+          {label}
+        </div>
+        {desc && (
+          <div
+            style={{
+              fontSize: 12.5,
+              color: SET.muted,
+              fontWeight: 500,
+              marginTop: 2,
+              lineHeight: 1.4,
+            }}
+          >
+            {desc}
+          </div>
+        )}
+      </div>
+      <SetSwitch value={value} onChange={onChange} />
+    </div>
+  )
+}
+
+interface ModalProps {
+  title: string
+  children: ReactNode
+  onClose: () => void
+  wide?: boolean
+}
+
+export function Modal({ title, children, onClose, wide }: ModalProps) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        background: 'rgba(11,12,14,0.40)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        display: 'grid',
+        placeItems: 'center',
+        padding: 20,
+        animation: 'setFadeUp .2s ease both',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: SET.card,
+          borderRadius: 24,
+          padding: 28,
+          width: wide ? 720 : 480,
+          maxWidth: '100%',
+          boxShadow: '0 40px 100px rgba(11,12,14,0.30)',
+          maxHeight: '86vh',
+          overflowY: 'auto',
+          animation: 'setSlideUp .25s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        {title && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 16,
+              marginBottom: 18,
+            }}
+          >
+            <h3
+              style={{
+                flex: 1,
+                margin: 0,
+                fontSize: 20,
+                fontWeight: 700,
+                color: SET.ink,
+                letterSpacing: -0.4,
+              }}
+            >
+              {title}
+            </h3>
+            <button
+              onClick={onClose}
+              style={{
+                width: 34,
+                height: 34,
+                border: 0,
+                borderRadius: 999,
+                background: SET.cardSubtle,
+                color: SET.inkSoft,
+                cursor: 'pointer',
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <SetIcon name="x" size={14} stroke={SET.inkSoft} sw={2.4} />
+            </button>
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
+  )
+}
+
+interface ConfirmModalProps {
+  title: string
+  desc: string
+  danger?: string
+  confirm?: string
+  onCancel: () => void
+  onConfirm: () => void
+  icon?: SettingsIconName
+  tone?: 'bad' | 'ok' | 'warn'
+}
+
+export function ConfirmModal({
+  title,
+  desc,
+  danger,
+  confirm,
+  onCancel,
+  onConfirm,
+  icon = 'alert',
+  tone = 'bad',
+}: ConfirmModalProps) {
+  const toneMap = { bad: SET.bad, ok: SET.ok, warn: SET.warn }
+  const c = toneMap[tone]
+  return (
+    <Modal title="" onClose={onCancel}>
+      <div style={{ display: 'flex', gap: 16, marginTop: -6, marginBottom: 8 }}>
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            background: `${c}18`,
+            color: c,
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <SetIcon name={icon} size={22} stroke={c} sw={2} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <h3
+            style={{
+              margin: '4px 0 8px',
+              fontSize: 18,
+              fontWeight: 700,
+              color: SET.ink,
+              letterSpacing: -0.3,
+            }}
+          >
+            {title}
+          </h3>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 13.5,
+              color: SET.inkSoft,
+              fontWeight: 500,
+              lineHeight: 1.55,
+            }}
+          >
+            {desc}
+          </p>
+        </div>
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 10,
+          marginTop: 22,
+        }}
+      >
+        <SetGhostBtn onClick={onCancel}>Annuler</SetGhostBtn>
+        {danger ? (
+          <button
+            onClick={onConfirm}
+            style={{
+              height: 44,
+              padding: '0 22px',
+              border: 0,
+              borderRadius: 999,
+              background: SET.bad,
+              color: '#fff',
+              fontFamily: 'inherit',
+              fontSize: 13.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 6px 16px rgba(220,38,38,0.30)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            {danger}
+          </button>
+        ) : (
+          <SetBlackBtn onClick={onConfirm}>{confirm}</SetBlackBtn>
+        )}
+      </div>
+    </Modal>
   )
 }
 
