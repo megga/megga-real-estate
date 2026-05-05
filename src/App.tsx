@@ -12,7 +12,8 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import PasswordGate from '@/components/layout/PasswordGate'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import AgentLayout from '@/components/layout/AgentLayout'
-import ActionBoardPage from '@/pages/agent/ActionBoardPage'
+import AgentSugarLayout from '@/components/layout/AgentSugarLayout'
+import TodaySugarPage from '@/pages/agent/TodaySugarPage'
 import FavoritesLoginPrompt from '@/components/auth/FavoritesLoginPrompt'
 import CookieBanner from '@/components/CookieBanner'
 
@@ -40,10 +41,12 @@ const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
 const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
 const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
+const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
+const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
 const KycListPage = lazy(() => import('@/pages/agent/KycListPage'))
 const KycDetailPage = lazy(() => import('@/pages/agent/KycDetailPage'))
 const ChatPage = lazy(() => import('@/pages/agent/ChatPage'))
@@ -257,7 +260,20 @@ export default function App() {
                 }
               />
 
-              {/* Agent dashboard (protected) */}
+              {/* Tier 3 — Sugar v2 Today screen (no traditional sidebar chrome) */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AgentSugarLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<TodaySugarPage />} />
+                <Route path="pipeline" element={<PipelineSugarV2Page />} />
+              </Route>
+
+              {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
               <Route
                 path="/dashboard"
                 element={
@@ -266,16 +282,15 @@ export default function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<ActionBoardPage />} />
                 <Route path="analytics" element={<DashboardPage />} />
                 <Route path="contacts" element={<ContactsPage />} />
                 <Route path="contacts/import" element={<ContactImportPage />} />
                 <Route path="contacts/:id" element={<ContactDetailPage />} />
-                <Route path="pipeline" element={<PipelinePage />} />
+                <Route path="pipeline-legacy" element={<PipelinePage />} />
                 <Route path="matching" element={<MatchingPage />} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="listings" element={<ListingsPage />} />
-                <Route path="listings/new" element={<ListingFormPage />} />
+                <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="kyc" element={<KycListPage />} />
                 <Route path="kyc/:id" element={<KycDetailPage />} />
