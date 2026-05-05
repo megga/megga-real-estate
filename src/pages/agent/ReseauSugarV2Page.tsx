@@ -9,7 +9,7 @@
 // Mock data uniquement. Les écritures + RLS + templates PDF arrivent dans des
 // PRs ultérieures (cf. HANDOFF_RESEAU_AGENCES.md du bundle).
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
@@ -300,12 +300,7 @@ export default function ReseauSugarV2Page() {
               setDirection={setDemandesDirection}
             />
           )}
-          {activeTab === 'settings' && (
-            <ComingSoonView
-              tab="Settings agence"
-              desc="Niveau de partage par défaut, auto-approbation, choix du template PDF (avec ou sans logo agence)."
-            />
-          )}
+          {activeTab === 'settings' && <SettingsView />}
         </main>
       </div>
     </div>
@@ -1564,54 +1559,406 @@ function RequestRow({ request }: { request: ShareRequest }) {
   )
 }
 
-// ─── Vue 5 : stub Coming soon ────────────────────────────────────────────
+// ─── Vue 5 : Settings agence (réglages multi-tenant) ─────────────────────
 
-function ComingSoonView({ tab, desc }: { tab: string; desc: string }) {
+function SettingsView() {
+  const [defaultLevel, setDefaultLevel] = useState<AgencyShareLevel>('preview')
+  const [autoApprovePartner, setAutoApprovePartner] = useState(true)
+  const [autoApproveMegga, setAutoApproveMegga] = useState(true)
+  const [autoApproveNew, setAutoApproveNew] = useState(false)
+  const [pdfTemplate, setPdfTemplate] = useState<'branded-with-logo' | 'branded-no-logo' | 'none'>('branded-with-logo')
+  const [requireKyc, setRequireKyc] = useState(true)
+  const [revokeOnSuspicion, setRevokeOnSuspicion] = useState(true)
+  const [keepC2pa, setKeepC2pa] = useState(true)
+  const [notifyOnView, setNotifyOnView] = useState(false)
+  const [notifyNewBien, setNotifyNewBien] = useState(true)
+
+  return (
+    <>
+      {/* 1. Niveau par défaut */}
+      <SettingsSection
+        title="Niveau de partage par défaut"
+        desc="Le niveau qui s'applique automatiquement quand une nouvelle agence demande l'accès à un de mes biens, sauf si une règle d'auto-approbation s'applique."
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 8,
+          }}
+        >
+          {(['full', 'partial', 'preview', 'pending'] as AgencyShareLevel[]).map(level => {
+            const on = defaultLevel === level
+            return (
+              <button
+                key={level}
+                onClick={() => setDefaultLevel(level)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  border: 0,
+                  background: on ? SP.surface : SP.cardSubtle,
+                  boxShadow: on
+                    ? `0 0 0 2px ${SP.ink} inset, ${SP.shadowSm}`
+                    : 'none',
+                  cursor: 'pointer',
+                  fontFamily: SP.font,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: 4,
+                  transition: 'all .15s',
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 700, color: SP.ink }}>
+                  {level === 'pending' ? 'Demande manuelle' : SHARE_LEVEL_LABELS[level]}
+                </span>
+                <span style={{ fontSize: 11, color: SP.muted, lineHeight: 1.4 }}>
+                  {level === 'full' && 'Adresse + photos HD + dossier complet'}
+                  {level === 'partial' && 'Quartier + photos floutées'}
+                  {level === 'preview' && 'Type, surface, prix, zone large'}
+                  {level === 'pending' && 'Validation manuelle obligatoire'}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </SettingsSection>
+
+      {/* 2. Auto-approbation par statut */}
+      <SettingsSection
+        title="Auto-approbation"
+        desc="Règles automatiques par statut de relation. Désactivez pour exiger une validation manuelle à chaque demande."
+      >
+        <ReseauToggleRow
+          label="Partenaires de confiance"
+          desc="Auto-approuver au niveau Complet — partage par défaut Complet sur tous mes mandats."
+          value={autoApprovePartner}
+          onChange={setAutoApprovePartner}
+        />
+        <ReseauToggleRow
+          label="Réseau MEGGA"
+          desc="Auto-approuver tous les biens entre antennes MEGGA (Lausanne, Sion, etc.) au niveau Complet."
+          value={autoApproveMegga}
+          onChange={setAutoApproveMegga}
+        />
+        <ReseauToggleRow
+          label="Nouvelles relations"
+          desc="Auto-approuver au niveau Aperçu pour faciliter la prise de contact, sans révéler l'adresse."
+          value={autoApproveNew}
+          onChange={setAutoApproveNew}
+        />
+      </SettingsSection>
+
+      {/* 3. Templates PDF */}
+      <SettingsSection
+        title="Templates PDF des biens partagés"
+        desc="Le PDF généré quand une agence partenaire télécharge la fiche d'un bien. Choisissez le branding par défaut."
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <PdfTemplateRadio
+            value="branded-with-logo"
+            current={pdfTemplate}
+            onSelect={setPdfTemplate}
+            title="PDF brandé MEGGA + logo agence partenaire"
+            desc="Recommandé pour les niveaux Complet — co-branding visible, l'agence cliente sait qui partage."
+            recommended
+          />
+          <PdfTemplateRadio
+            value="branded-no-logo"
+            current={pdfTemplate}
+            onSelect={setPdfTemplate}
+            title="PDF brandé MEGGA sans logo agence"
+            desc="Recommandé pour les niveaux Partiel — l'agence partenaire reste anonyme côté client final."
+          />
+          <PdfTemplateRadio
+            value="none"
+            current={pdfTemplate}
+            onSelect={setPdfTemplate}
+            title="Pas de PDF généré"
+            desc="Niveau Aperçu uniquement — pas de fiche téléchargeable, juste consultation à l'écran."
+          />
+        </div>
+      </SettingsSection>
+
+      {/* 4. Sécurité & conformité */}
+      <SettingsSection
+        title="Sécurité & conformité"
+        desc="Garde-fous LBA / LPD pour le partage entre agences. Toutes les actions sont loggées dans le journal d'audit (LBA art. 7)."
+      >
+        <ReseauToggleRow
+          label="Vérification KYC partenaire avant partage"
+          desc="L'agence partenaire doit avoir un dossier KYC validé pour recevoir un partage Complet ou Partiel."
+          value={requireKyc}
+          onChange={setRequireKyc}
+        />
+        <ReseauToggleRow
+          label="Audit trail complet"
+          desc="Qui voit quoi, depuis quelle IP, à quel moment — conformité LBA art. 7. Toujours actif."
+          value={true}
+          onChange={() => {}}
+          locked
+        />
+        <ReseauToggleRow
+          label="Révocation immédiate"
+          desc="En cas de suspicion (signalement, alerte fraude), accès coupé en temps réel et notifications envoyées."
+          value={revokeOnSuspicion}
+          onChange={setRevokeOnSuspicion}
+        />
+        <ReseauToggleRow
+          label="Photos C2PA signées conservées"
+          desc="Les photos partagées gardent leur signature cryptographique (preuve d'authenticité, anti-deepfake)."
+          value={keepC2pa}
+          onChange={setKeepC2pa}
+        />
+      </SettingsSection>
+
+      {/* 5. Notifications */}
+      <SettingsSection
+        title="Notifications"
+        desc="Alertes quand quelque chose se passe sur les biens partagés ou reçus."
+      >
+        <ReseauToggleRow
+          label="Bien partagé consulté"
+          desc="M'alerter quand un de mes biens partagés est consulté par un partenaire."
+          value={notifyOnView}
+          onChange={setNotifyOnView}
+        />
+        <ReseauToggleRow
+          label="Nouveau bien partagé par un partenaire"
+          desc="M'alerter quand une agence partenaire ajoute un nouveau bien à mon niveau d'accès."
+          value={notifyNewBien}
+          onChange={setNotifyNewBien}
+        />
+      </SettingsSection>
+
+      {/* Save bar — mock */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          justifyContent: 'flex-end',
+          padding: '12px 0',
+        }}
+      >
+        <GhostBtn>Annuler</GhostBtn>
+        <BlackBtn icon={<KycIcon name="check" size={14} stroke="#fff" sw={2.4} />}>
+          Enregistrer les réglages
+        </BlackBtn>
+      </div>
+    </>
+  )
+}
+
+interface SettingsSectionProps {
+  title: string
+  desc?: string
+  children: ReactNode
+}
+
+function SettingsSection({ title, desc, children }: SettingsSectionProps) {
   return (
     <div
       style={{
         background: SP.surface,
         borderRadius: 22,
-        padding: '60px 32px',
-        textAlign: 'center',
-        boxShadow: SP.shadow,
+        padding: 24,
+        boxShadow: SP.shadowSm,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        gap: 14,
+        gap: 16,
       }}
     >
+      <div>
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            letterSpacing: -0.3,
+            color: SP.ink,
+          }}
+        >
+          {title}
+        </div>
+        {desc && (
+          <div
+            style={{
+              fontSize: 12.5,
+              color: SP.muted,
+              marginTop: 4,
+              lineHeight: 1.55,
+              maxWidth: 720,
+            }}
+          >
+            {desc}
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+interface ReseauToggleRowProps {
+  label: string
+  desc?: string
+  value: boolean
+  onChange: (v: boolean) => void
+  locked?: boolean
+}
+
+function ReseauToggleRow({ label, desc, value, onChange, locked }: ReseauToggleRowProps) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '12px 14px',
+        borderRadius: 12,
+        background: SP.cardSubtle,
+        opacity: locked ? 0.85 : 1,
+      }}
+    >
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: SP.ink }}>
+            {label}
+          </span>
+          {locked && (
+            <span style={{ display: 'inline-flex', color: SP.muted }}>
+              <KycIcon name="lock" size={11} stroke={SP.muted} sw={2} />
+            </span>
+          )}
+        </div>
+        {desc && (
+          <div
+            style={{
+              fontSize: 12,
+              color: SP.muted,
+              marginTop: 3,
+              lineHeight: 1.5,
+            }}
+          >
+            {desc}
+          </div>
+        )}
+      </div>
+      <ReseauSwitch value={value} onChange={onChange} locked={locked} />
+    </div>
+  )
+}
+
+function ReseauSwitch({
+  value, onChange, locked,
+}: { value: boolean; onChange: (v: boolean) => void; locked?: boolean }) {
+  return (
+    <button
+      onClick={() => !locked && onChange(!value)}
+      disabled={locked}
+      style={{
+        width: 38,
+        height: 22,
+        borderRadius: 999,
+        border: 0,
+        background: value ? SP.ink : SP.ghost,
+        cursor: locked ? 'not-allowed' : 'pointer',
+        position: 'relative',
+        transition: 'background .15s',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: 3,
+          left: value ? 19 : 3,
+          width: 16,
+          height: 16,
+          borderRadius: 999,
+          background: '#fff',
+          transition: 'left .15s ease',
+          boxShadow: '0 1px 3px rgba(11,12,14,0.25)',
+        }}
+      />
+    </button>
+  )
+}
+
+interface PdfTemplateRadioProps {
+  value: 'branded-with-logo' | 'branded-no-logo' | 'none'
+  current: 'branded-with-logo' | 'branded-no-logo' | 'none'
+  onSelect: (v: 'branded-with-logo' | 'branded-no-logo' | 'none') => void
+  title: string
+  desc: string
+  recommended?: boolean
+}
+
+function PdfTemplateRadio({
+  value, current, onSelect, title, desc, recommended,
+}: PdfTemplateRadioProps) {
+  const on = value === current
+  return (
+    <div
+      onClick={() => onSelect(value)}
+      style={{
+        padding: '14px 16px',
+        borderRadius: 14,
+        background: on ? SP.surface : SP.cardSubtle,
+        boxShadow: on
+          ? `0 0 0 2px ${SP.ink} inset, ${SP.shadowSm}`
+          : 'none',
+        cursor: 'pointer',
+        transition: 'all .15s',
+        display: 'flex',
+        gap: 14,
+        alignItems: 'flex-start',
+      }}
+    >
+      {/* Radio dot */}
       <div
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 18,
-          background: SP.cardSubtle,
+          width: 18,
+          height: 18,
+          borderRadius: 999,
+          background: on ? SP.ink : 'transparent',
+          boxShadow: on ? 'none' : `0 0 0 1.5px ${SP.ghost} inset`,
           display: 'grid',
           placeItems: 'center',
-          color: SP.inkSoft,
+          flexShrink: 0,
+          marginTop: 2,
         }}
       >
-        <KycIcon name="lock" size={28} stroke={SP.inkSoft} sw={1.6} />
+        {on && (
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 999,
+              background: '#fff',
+            }}
+          />
+        )}
       </div>
-      <div
-        style={{
-          fontSize: 18,
-          fontWeight: 700,
-          letterSpacing: -0.3,
-        }}
-      >
-        {tab} · prochaine PR
-      </div>
-      <div
-        style={{
-          fontSize: 13,
-          color: SP.muted,
-          maxWidth: 480,
-          lineHeight: 1.55,
-        }}
-      >
-        {desc}
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: SP.ink, letterSpacing: -0.2 }}>
+            {title}
+          </span>
+          {recommended && <Pill tone="ok">Recommandé</Pill>}
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: SP.muted,
+            marginTop: 3,
+            lineHeight: 1.5,
+          }}
+        >
+          {desc}
+        </div>
       </div>
     </div>
   )
