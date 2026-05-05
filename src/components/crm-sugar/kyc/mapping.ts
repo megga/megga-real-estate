@@ -128,6 +128,7 @@ function buildSteps(checklist: KycChecklistItem[] | undefined, status: KycCase['
       label: item.label,
       sub: item.category,
       state: item.is_completed ? 'done' : 'todo',
+      itemId: item.id,
     }))
   }
   // Fallback : 7 standard phases avec progression dérivée du statut

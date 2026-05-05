@@ -16,7 +16,10 @@ import {
 } from '@/components/crm-sugar/kyc/atoms'
 import { KYC_DETAIL_MOCK } from '@/components/crm-sugar/kyc/data'
 import { mapKycCaseToDetail } from '@/components/crm-sugar/kyc/mapping'
-import { useKycCase, useKycDocuments } from '@/hooks/useKyc'
+import {
+  useKycCase, useKycDocuments, useUpdateKycItem, useValidateKycCase,
+} from '@/hooks/useKyc'
+import { useAuth } from '@/hooks/useAuth'
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -28,6 +31,7 @@ export default function KycDetailSugarV2Page() {
 
   const isUuid = !!id && UUID_REGEX.test(id)
 
+  const { profile } = useAuth()
   const { data: kycCase, isLoading, isError, error } = useKycCase(
     isUuid ? id : undefined,
   )
@@ -35,9 +39,46 @@ export default function KycDetailSugarV2Page() {
     isUuid ? id : undefined,
   )
 
+  const validateMutation = useValidateKycCase()
+  const toggleItemMutation = useUpdateKycItem()
+
   const realData = mapKycCaseToDetail(kycCase, documents)
   const isUsingMock = !realData
   const data = realData || KYC_DETAIL_MOCK
+
+  const [showValidateModal, setShowValidateModal] = useState(false)
+  const [actionToast, setActionToast] = useState<string | null>(null)
+
+  const canValidate = !isUsingMock && !!profile && !!isUuid && !!id
+  const canToggleSteps = !isUsingMock && !!profile && !!isUuid
+
+  const handleValidate = () => {
+    if (!canValidate || !id || !profile) return
+    const validatedBy = profile.full_name || profile.email || profile.id
+    validateMutation.mutate(
+      { id, validated_by: validatedBy },
+      {
+        onSuccess: () => {
+          setShowValidateModal(false)
+          setActionToast('Dossier KYC validé')
+          setTimeout(() => setActionToast(null), 2400)
+        },
+        onError: err => {
+          setActionToast(`Erreur : ${(err as Error).message}`)
+          setTimeout(() => setActionToast(null), 3500)
+        },
+      },
+    )
+  }
+
+  const handleToggleStep = (itemId: string, currentlyDone: boolean) => {
+    if (!canToggleSteps || !profile) return
+    toggleItemMutation.mutate({
+      id: itemId,
+      is_completed: !currentlyDone,
+      actorId: profile.id,
+    })
+  }
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -209,8 +250,13 @@ export default function KycDetailSugarV2Page() {
             </Pill>
             <GhostBtn>Imprimer</GhostBtn>
             <BlackBtn
+              onClick={() => canValidate && setShowValidateModal(true)}
               icon={<KycIcon name="shield" size={14} stroke="#fff" sw={2} />}
-              style={{ height: 38 }}
+              style={{
+                height: 38,
+                opacity: canValidate ? 1 : 0.5,
+                cursor: canValidate ? 'pointer' : 'not-allowed',
+              }}
             >
               Valider le dossier
             </BlackBtn>
@@ -362,9 +408,15 @@ export default function KycDetailSugarV2Page() {
                           bg: '#fff',
                           mark: null,
                         }
+                const isClickable = !!s.itemId && canToggleSteps
                 return (
                   <div
                     key={s.k}
+                    onClick={
+                      isClickable
+                        ? () => handleToggleStep(s.itemId!, s.state === 'done')
+                        : undefined
+                    }
                     style={{
                       display: 'flex',
                       gap: 12,
@@ -373,7 +425,26 @@ export default function KycDetailSugarV2Page() {
                       borderRadius: 12,
                       background:
                         s.state === 'active' ? SP.cardSubtle : 'transparent',
+                      cursor: isClickable ? 'pointer' : 'default',
+                      transition: 'background .15s',
                     }}
+                    onMouseEnter={
+                      isClickable
+                        ? e => {
+                            e.currentTarget.style.background = SP.cardSubtle
+                          }
+                        : undefined
+                    }
+                    onMouseLeave={
+                      isClickable
+                        ? e => {
+                            e.currentTarget.style.background =
+                              s.state === 'active'
+                                ? SP.cardSubtle
+                                : 'transparent'
+                          }
+                        : undefined
+                    }
                   >
                     <div
                       style={{
@@ -809,6 +880,132 @@ export default function KycDetailSugarV2Page() {
           </div>
         </main>
       </div>
+
+      {/* Validate confirm modal */}
+      {showValidateModal && (
+        <div
+          onClick={() => setShowValidateModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(11,12,14,0.45)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'grid',
+            placeItems: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: SP.surface,
+              borderRadius: 24,
+              padding: 32,
+              width: '100%',
+              maxWidth: 480,
+              boxShadow: '0 40px 100px rgba(11,12,14,0.30)',
+            }}
+          >
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                background: `${SP.ok}18`,
+                display: 'grid',
+                placeItems: 'center',
+                marginBottom: 18,
+              }}
+            >
+              <KycIcon name="shield" size={26} stroke={SP.ok} sw={2} />
+            </div>
+            <h3
+              style={{
+                margin: '0 0 8px',
+                fontSize: 20,
+                fontWeight: 700,
+                color: SP.ink,
+                letterSpacing: -0.4,
+              }}
+            >
+              Valider le dossier KYC ?
+            </h3>
+            <p
+              style={{
+                margin: '0 0 22px',
+                fontSize: 13.5,
+                color: SP.inkSoft,
+                lineHeight: 1.55,
+              }}
+            >
+              Validation finale du dossier <strong style={{ color: SP.ink }}>{data.hero.ref}</strong>{' '}
+              pour <strong style={{ color: SP.ink }}>{data.hero.name}</strong>. Action loggée
+              dans le journal d'audit (LBA art. 7) — irréversible.
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 10,
+              }}
+            >
+              <GhostBtn onClick={() => setShowValidateModal(false)}>Annuler</GhostBtn>
+              <BlackBtn
+                onClick={handleValidate}
+                style={{
+                  height: 44,
+                  opacity: validateMutation.isPending ? 0.7 : 1,
+                  cursor: validateMutation.isPending ? 'not-allowed' : 'pointer',
+                }}
+                icon={
+                  <KycIcon name="check" size={14} stroke="#fff" sw={2.4} />
+                }
+              >
+                {validateMutation.isPending ? 'Validation…' : 'Valider'}
+              </BlackBtn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action toast */}
+      {actionToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1100,
+            background: SP.ink,
+            color: '#fff',
+            borderRadius: 999,
+            padding: '12px 22px',
+            fontSize: 13.5,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            boxShadow: '0 24px 60px rgba(11,12,14,0.30)',
+          }}
+        >
+          <span
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: 999,
+              background: SP.ok,
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
+            <KycIcon name="check" size={12} stroke="#fff" sw={3} />
+          </span>
+          {actionToast}
+        </div>
+      )}
     </div>
   )
 }
