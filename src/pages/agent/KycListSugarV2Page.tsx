@@ -15,6 +15,7 @@ import {
 import {
   KYC_FILTERS, KYC_KPIS, KYC_ROWS, KYC_STATUS_MAP,
 } from '@/components/crm-sugar/kyc/data'
+import { KycWizardModal } from '@/components/crm-sugar/kyc/KycWizardModal'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -33,6 +34,7 @@ export default function KycListSugarV2Page() {
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
   const [activeFilter, setActiveFilter] = useState<number>(1)
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   const onCmd = () => {}
   const onNavigate = (id: SugarScreenId | string) => {
@@ -125,6 +127,7 @@ export default function KycListSugarV2Page() {
             </div>
             <GhostBtn>Exporter</GhostBtn>
             <BlackBtn
+              onClick={() => setWizardOpen(true)}
               icon={<KycIcon name="plus" size={14} stroke="#fff" sw={2.2} />}
               style={{ height: 40 }}
             >
@@ -427,6 +430,8 @@ export default function KycListSugarV2Page() {
           </div>
         </main>
       </div>
+
+      {wizardOpen && <KycWizardModal onClose={() => setWizardOpen(false)} />}
     </div>
   )
 }
