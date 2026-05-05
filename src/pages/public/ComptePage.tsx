@@ -4,10 +4,11 @@ import { useFavorites } from '@/hooks/useFavorites'
 import { useSavedSearches } from '@/hooks/useSavedSearches'
 import { useMessaging } from '@/hooks/useMessaging'
 import { useVendorDossiers, type VendorDossier } from '@/hooks/useVendorDossiers'
+import { useAuth } from '@/hooks/useAuth'
 import AccountLayout from '@/components/account/AccountLayout'
 import AccountTabHeader from '@/components/account/AccountTabHeader'
 import LogoutModal from '@/components/account/LogoutModal'
-import MandateSigningModal from '@/components/account/MandateSigningModal'
+import { MandateSignModal, type MandateListing } from '@/components/seller-portal/MandateSignModal'
 import ListingStatsDrawer from '@/components/account/ListingStatsDrawer'
 import ListingsSection from '@/components/account/sections/ListingsSection'
 import SearchesSection from '@/components/account/sections/SearchesSection'
@@ -54,9 +55,53 @@ function useManropeFont() {
   }, [])
 }
 
+// Mapping VendorDossier → MandateListing pour le MandateSignModal Swisscom QES.
+// Les champs manquants côté VendorDossier (firstName, lastName, email, phone,
+// city/npa/canton détaillés) sont reconstruits à partir du profil utilisateur
+// + parsing best-effort de l'adresse libre.
+function vendorDossierToMandateListing(
+  d: VendorDossier,
+  userMeta?: { firstName?: string; lastName?: string; email?: string; phone?: string }
+): MandateListing {
+  // Best-effort parsing of "Rue X 12, 1227 Carouge" → { addr, npa, city }
+  const parts = d.address.split(',').map(s => s.trim())
+  const street = parts[0] || d.address
+  const tail = parts[1] || ''
+  const npaMatch = tail.match(/(\d{4})/)
+  const npa = npaMatch ? npaMatch[1] : ''
+  const city = tail.replace(/\d{4}/, '').trim() || ''
+
+  return {
+    id: d.id,
+    dossier: {
+      firstName: userMeta?.firstName || '',
+      lastName: userMeta?.lastName || '',
+      email: userMeta?.email || '',
+      phone: userMeta?.phone || '',
+      address: street,
+      city,
+      npa,
+      surface: typeof d.surface === 'number' ? d.surface : Number(d.surface) || 0,
+    },
+    estimation: d.estimation
+      ? {
+          low: d.estimation.low,
+          mid: d.estimation.mid,
+          high: d.estimation.high,
+          isRent: d.estimation.isRent,
+        }
+      : undefined,
+    agent: {
+      name: d.agent.name,
+      agency: d.agent.role,
+    },
+  }
+}
+
 export default function ComptePage() {
   useManropeFont()
   const { t } = useTranslation('compte')
+  const { user, profile } = useAuth()
 
   const [section, setSection] = useState<SectionKey>(readHashSection)
   const [logoutOpen, setLogoutOpen] = useState(false)
@@ -234,17 +279,29 @@ export default function ComptePage() {
         {section === 'profile' && <ProfileSection onLogout={() => setLogoutOpen(true)} />}
       </AccountLayout>
       <LogoutModal open={logoutOpen} onClose={() => setLogoutOpen(false)} />
-      <MandateSigningModal
-        open={!!signingDossier}
-        dossier={signingDossier}
-        onClose={() => setSigningDossier(null)}
-        onConfirm={() => {
-          if (signingDossier) {
-            advance(signingDossier.id, 'mandate')
-            setSigningDossier(null)
-          }
-        }}
-      />
+      {signingDossier && (() => {
+        // Split user.full_name → firstName + lastName best-effort.
+        const nameParts = (profile?.full_name || '').trim().split(/\s+/)
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.slice(1).join(' ') || ''
+        return (
+          <MandateSignModal
+            listing={vendorDossierToMandateListing(signingDossier, {
+              firstName,
+              lastName,
+              email: user?.email || undefined,
+            })}
+            open={!!signingDossier}
+            onClose={() => setSigningDossier(null)}
+            onSigned={() => {
+              if (signingDossier) {
+                advance(signingDossier.id, 'mandate')
+                setSigningDossier(null)
+              }
+            }}
+          />
+        )
+      })()}
       <ListingStatsDrawer
         open={!!statsDossier}
         dossier={statsDossier}
