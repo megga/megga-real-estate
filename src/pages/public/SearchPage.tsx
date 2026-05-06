@@ -909,7 +909,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
             mapImmersive && 'hidden',
             !mapImmersive && 'w-full lg:shrink-0',
           )}
-          style={!mapImmersive ? { flex: '1.6 1 0%', minWidth: 0 } : undefined}
+          style={!mapImmersive ? { flex: '1 1 0%', minWidth: 0 } : undefined}
         >
 
           {/* Old ZONE 2 + mobile filter button removed — merged into unified bar above */}
