@@ -1180,6 +1180,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                           listing={listing}
                           onHover={setHoveredListing}
                           isHovered={hoveredListing === listing.id}
+                          isSelected={previewId === listing.id}
                           eager={virtualRow.index < 2}
                           isFavorite={isFavorite(listing.id)}
                           onToggleFavorite={() => toggleFavorite(listing.id)}

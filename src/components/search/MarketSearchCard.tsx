@@ -98,6 +98,8 @@ interface MarketSearchCardProps {
   listing: ListingCardData
   onHover?: (id: string | undefined) => void
   isHovered?: boolean
+  /** Selected (clicked / opened in preview) — gives the design proto's ink border */
+  isSelected?: boolean
   eager?: boolean
   isFavorite?: boolean
   onToggleFavorite?: () => void
@@ -114,6 +116,7 @@ export default function MarketSearchCard({
   listing,
   onHover,
   isHovered = false,
+  isSelected = false,
   eager: _eager = false,
   isFavorite = false,
   onToggleFavorite,
@@ -142,6 +145,10 @@ export default function MarketSearchCard({
   const photoCount = listing.photos?.length || 0
 
   const currentPrice = listing.price
+  const dropPct = listing.price_drop_pct && listing.price_drop_pct >= 1 ? listing.price_drop_pct : 0
+  const hasDrop = dropPct > 0 && !isLouer
+  // Reverse-derive original price: current = original * (1 - dropPct/100)
+  const originalPrice = hasDrop ? Math.round(currentPrice / (1 - dropPct / 100)) : null
   const priceLabel = isLouer
     ? `${formatCHF(currentPrice)} /mois`
     : formatCHF(currentPrice)
@@ -189,7 +196,8 @@ export default function MarketSearchCard({
         background: M.card,
         borderRadius: 14,
         overflow: 'hidden',
-        border: `1px solid ${isHov ? M.muted : M.border}`,
+        // Design proto: 3 border states — selected (ink) / hover (muted) / idle
+        border: `1px solid ${isSelected ? M.ink : isHov ? M.muted : M.border}`,
         cursor: 'pointer',
         transition:
           'border-color 0.15s ease, transform 0.15s ease, box-shadow 0.2s ease',
@@ -219,7 +227,8 @@ export default function MarketSearchCard({
               padding: '4px 9px',
               borderRadius: 999,
               background: isLouer ? M.ink : M.green,
-              color: '#fff',
+              // Design proto: À louer = white text on ink, À vendre = ink text on blue
+              color: isLouer ? '#fff' : M.ink,
               fontSize: 10,
               fontWeight: 700,
               letterSpacing: 0.6,
@@ -350,13 +359,30 @@ export default function MarketSearchCard({
             {listing.title}
           </h3>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            {/* Design proto: original price line-through above when there's a drop */}
+            {originalPrice && (
+              <div
+                style={{
+                  fontFamily: FONT,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: M.muted,
+                  fontVariantNumeric: 'tabular-nums',
+                  textDecoration: 'line-through',
+                  marginBottom: 1,
+                }}
+              >
+                {formatCHF(originalPrice)}
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
               <div
                 style={{
                   fontFamily: FONT,
                   fontSize: 16,
                   fontWeight: 800,
-                  color: M.ink,
+                  // Design: green when price was reduced
+                  color: hasDrop ? '#1A7A3A' : M.ink,
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: -0.2,
                   whiteSpace: 'nowrap',
@@ -364,6 +390,21 @@ export default function MarketSearchCard({
               >
                 {priceLabel}
               </div>
+              {hasDrop && (
+                <span
+                  style={{
+                    padding: '2px 7px',
+                    borderRadius: 999,
+                    background: '#E6F5EA',
+                    color: '#1A7A3A',
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  -{Math.round(dropPct)}%
+                </span>
+              )}
             </div>
             {ppm !== null && (
               <div
