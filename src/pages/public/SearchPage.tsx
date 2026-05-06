@@ -411,28 +411,18 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
 
   return (
     <div
-      className="h-screen flex"
-      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif", backgroundColor: '#FAFBFD' }}
+      className="h-screen flex flex-col"
+      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif", backgroundColor: '#FAFBFD', paddingTop: 64 }}
     >
       {/* ─── WCAG 1.3.1 — h1 caché visuellement pour screen readers ─── */}
       <h1 className="sr-only">
         {filters.context === 'rent' ? 'Biens à louer en Suisse' : 'Biens à vendre en Suisse'}
       </h1>
 
-      {/* ─── LEFT SIDEBAR (design proto MEGGA Recherche.html · AccountRail) ─── */}
-      {!mapImmersive && (
-        <MarketAccountRail
-          activeView={sidebarView}
-          onViewChange={setSidebarView}
-          stickyTop={131}
-        />
-      )}
-
-      {/* ─── RIGHT CONTENT ─── */}
-      <main id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ paddingTop: 64 }}>
+      {/* ─── HEADER (position: fixed, no flow space) ─── */}
       {!mapImmersive && <HomeStickyHeader alwaysShow />}
 
-      {/* ─── DESKTOP STICKY BAR (design proto MEGGA Recherche.html) ─── */}
+      {/* ─── DESKTOP STICKY BAR (design proto — full width, traverses sidebar) ─── */}
       {!mapImmersive && sidebarView === 'search' && (
         <div className="hidden md:block">
           <MarketRechercheFiltersBar
@@ -445,6 +435,20 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
           />
         </div>
       )}
+
+      {/* ─── BODY: Sidebar + Main content ─── */}
+      <div className="flex flex-1 overflow-hidden">
+      {/* ─── LEFT SIDEBAR (design proto MEGGA Recherche.html · AccountRail) ─── */}
+      {!mapImmersive && (
+        <MarketAccountRail
+          activeView={sidebarView}
+          onViewChange={setSidebarView}
+          stickyTop={0}
+        />
+      )}
+
+      {/* ─── RIGHT CONTENT (cards + map) ─── */}
+      <main id="main-content" className="flex-1 flex flex-col overflow-hidden">
 
       {/* ─── MOBILE STICKY BAR ─── */}
       <div className={cn('md:hidden sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100', (mapImmersive || sidebarView !== 'search') && 'hidden')}>
@@ -1289,6 +1293,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
       />
 
     </main>
+    </div>
     </div>
   )
 }
