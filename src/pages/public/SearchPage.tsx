@@ -49,8 +49,7 @@ import SearchListingCard from '@/components/search/MarketSearchCard'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import {
   type Filters,
-  SORT_OPTIONS, ROOM_OPTIONS, BEDROOM_OPTIONS, BATHROOM_OPTIONS,
-  LIFESTYLE_TAGS, ENERGY_OPTIONS, CANTON_LABELS,
+  SORT_OPTIONS, ROOM_OPTIONS, CANTON_LABELS,
   parseNaturalLanguageQuery,
   parseFiltersFromParams, filtersToParams, toServerFilters,
 } from '@/lib/searchFilters'
@@ -119,6 +118,8 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
   }, [])
   const [zoneFilterIds, setZoneFilterIds] = useState<string[] | null>(null)
   const [plusOpen, setPlusOpen] = useState(false)
+  // Year filter — UI-only for now, not yet wired to backend filtering
+  const [minYearLocal, setMinYearLocal] = useState<number | null>(null)
   const [compareIds, setCompareIds] = useState<string[]>(() => {
     // Restore from URL params first, then localStorage
     const urlCompare = searchParams.get('compare')
@@ -635,161 +636,217 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                     <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', plusActive ? 'text-white/70' : 'text-gray-500', plusOpen && 'rotate-180')} />
                   </button>
                   {plusOpen && (() => {
-                    const chipBase = 'h-8 px-3.5 rounded-full text-xs font-medium transition-colors cursor-pointer whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-300'
-                    const chipIdle = 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-transparent'
-                    const chipActive = 'bg-gray-900 text-white border border-gray-900'
-                    const sectionLabel = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-2.5'
-                    const toggleTag = (v: string) => {
-                      const next = filters.lifestyleTags.includes(v)
-                        ? filters.lifestyleTags.filter((t) => t !== v)
-                        : [...filters.lifestyleTags, v]
-                      updateFilter({ lifestyleTags: next })
-                    }
-                    const equipTags = LIFESTYLE_TAGS.filter(t => ['terrasse', 'balcon', 'jardin', 'parking', 'piscine', 'ascenseur', 'meuble', 'dernier_etage'].includes(t.value))
-                    const envTags = LIFESTYLE_TAGS.filter(t => ['vue_lac', 'vue_montagne', 'lumineux', 'quartier_calme', 'proche_transports', 'proche_ecoles', 'centre_ville'].includes(t.value))
+                    // Faithful port of design proto MoreFiltersModal (megga-search-results.jsx)
+                    // — 720px max width, 4 sections, A-G colored energy chips
+                    const FONT = '"Manrope", system-ui, -apple-system, sans-serif'
+                    const M_INK = '#0E1410'
+                    const M_MUTED = '#7A8079'
+                    const M_BORDER = '#E6E8EC'
+                    const ENERGY_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const
+                    const ENERGY_COLORS = ['#2D7A2D', '#5DA240', '#A0C04A', '#E8B14B', '#E89C4B', '#D9742B', '#A85020']
+                    const FEATURE_LABELS = ['Balcon', 'Parking', 'Garage', 'Jardin', 'Ascenseur', 'Vue lac', 'Vue panoramique', 'Cheminée', 'Climatisation', 'Cave', 'Terrasse', 'Piscine']
+                    const BATH_OPTIONS = [1, 2, 3, 4]
+                    const YEAR_OPTIONS: (number | null)[] = [null, 1990, 2000, 2010, 2015, 2020]
+
+                    const close = () => setPlusOpen(false)
                     const onBackdropClick = (e: React.MouseEvent) => {
-                      if (e.target === e.currentTarget) setPlusOpen(false)
+                      if (e.target === e.currentTarget) close()
                     }
+                    const toggleFeature = (f: string) => {
+                      const next = filters.features.includes(f)
+                        ? filters.features.filter((x) => x !== f)
+                        : [...filters.features, f]
+                      updateFilter({ features: next })
+                    }
+                    const resetAll = () => updateFilter({
+                      bathrooms: '', energyLabel: '', features: [], lifestyleTags: [],
+                    })
+
                     const modalNode = (
                       <div
-                        className="fixed inset-0 z-[200] flex items-start justify-center pt-32 px-4"
-                        style={{ background: 'rgba(14,20,16,0.45)', backdropFilter: 'blur(6px)' }}
                         onClick={onBackdropClick}
+                        style={{
+                          position: 'fixed',
+                          inset: 0,
+                          zIndex: 200,
+                          background: 'rgba(14,20,16,0.55)',
+                          backdropFilter: 'blur(6px)',
+                          WebkitBackdropFilter: 'blur(6px)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 24,
+                          fontFamily: FONT,
+                        }}
                       >
-                      <div
-                        className="w-full max-w-[640px] bg-white rounded-2xl border border-gray-100 origin-top animate-in fade-in zoom-in-95 slide-in-from-top-1 duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col max-h-[min(72vh,680px)]"
-                        style={{ boxShadow: '0 24px 64px -20px rgba(15, 23, 42, 0.22), 0 6px 16px -6px rgba(15, 23, 42, 0.08)' }}
-                      >
-                        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-                          <h2 className="text-base font-bold text-gray-900" style={{ fontFamily: '"Manrope", system-ui, sans-serif' }}>Plus de filtres</h2>
-                          <button onClick={() => setPlusOpen(false)} className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center cursor-pointer text-gray-700">×</button>
-                        </div>
-                        {/* Scrollable body */}
-                        <div className="flex-1 overflow-y-auto scrollbar-hide p-5">
-                          <div className="grid grid-cols-2 gap-6">
-                            {/* Surface */}
+                        <div
+                          style={{
+                            width: '100%',
+                            maxWidth: 720,
+                            maxHeight: 'calc(100vh - 48px)',
+                            background: '#fff',
+                            borderRadius: 18,
+                            overflow: 'hidden',
+                            boxShadow: '0 30px 80px rgba(0,0,0,0.4)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                          }}
+                        >
+                          {/* Header */}
+                          <div style={{ padding: '22px 28px', borderBottom: `1px solid ${M_BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h2 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 700, color: M_INK, margin: 0, letterSpacing: -0.4 }}>
+                              Plus de filtres
+                            </h2>
+                            <button
+                              type="button"
+                              onClick={close}
+                              style={{ width: 36, height: 36, borderRadius: 999, border: 'none', background: '#F2F4F8', cursor: 'pointer', fontSize: 16, color: M_INK }}
+                            >
+                              ×
+                            </button>
+                          </div>
+
+                          {/* Body */}
+                          <div style={{ overflow: 'auto', padding: 28, display: 'flex', flexDirection: 'column', gap: 24 }}>
+                            {/* Salles de bains minimum */}
                             <div>
-                              <p className={sectionLabel}>Surface min.</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {['30', '50', '80', '100', '150', '200'].map((s) => (
-                                  <button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => updateFilter({ minSurface: filters.minSurface === s ? '' : s })}
-                                    className={cn(chipBase, filters.minSurface === s ? chipActive : chipIdle)}
-                                  >
-                                    {s} m²
-                                  </button>
-                                ))}
+                              <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: M_INK, marginBottom: 10 }}>
+                                Salles de bains minimum
+                              </div>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                {BATH_OPTIONS.map((n) => {
+                                  const active = filters.bathrooms === String(n) || (n === 3 && filters.bathrooms === '3+')
+                                  return (
+                                    <button
+                                      key={n}
+                                      type="button"
+                                      onClick={() => updateFilter({ bathrooms: active ? '' : (n >= 3 ? '3+' : String(n)) })}
+                                      style={{
+                                        width: 56, height: 40,
+                                        border: `1px solid ${active ? M_INK : M_BORDER}`,
+                                        borderRadius: 8,
+                                        background: active ? M_INK : '#fff',
+                                        color: active ? '#fff' : M_INK,
+                                        fontFamily: FONT, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                                      }}
+                                    >
+                                      {n}+
+                                    </button>
+                                  )
+                                })}
                               </div>
                             </div>
 
-                            {/* Chambres */}
+                            {/* Année de construction */}
                             <div>
-                              <p className={sectionLabel}>Chambres</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {BEDROOM_OPTIONS.map((b) => (
-                                  <button
-                                    key={`bed-${b}`}
-                                    type="button"
-                                    onClick={() => updateFilter({ bedrooms: filters.bedrooms === b ? '' : b })}
-                                    className={cn(chipBase, 'min-w-[44px]', filters.bedrooms === b ? chipActive : chipIdle)}
-                                  >
-                                    {b}
-                                  </button>
-                                ))}
+                              <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: M_INK, marginBottom: 10 }}>
+                                Année de construction (à partir de)
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {YEAR_OPTIONS.map((y) => {
+                                  const active = minYearLocal === y
+                                  return (
+                                    <button
+                                      key={y ?? 'tout'}
+                                      type="button"
+                                      onClick={() => setMinYearLocal(y)}
+                                      style={{
+                                        height: 36, padding: '0 14px', borderRadius: 999,
+                                        border: `1px solid ${active ? M_INK : M_BORDER}`,
+                                        background: active ? M_INK : '#fff',
+                                        color: active ? '#fff' : M_INK,
+                                        fontFamily: FONT, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                      }}
+                                    >
+                                      {y ? 'Après ' + y : 'Indifférent'}
+                                    </button>
+                                  )
+                                })}
                               </div>
                             </div>
 
-                            {/* Énergie */}
+                            {/* Classe énergétique CECB */}
                             <div>
-                              <p className={sectionLabel}>Énergie</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {ENERGY_OPTIONS.map((e) => (
-                                  <button
-                                    key={e.value}
-                                    type="button"
-                                    onClick={() => updateFilter({ energyLabel: filters.energyLabel === e.value ? '' : e.value })}
-                                    className={cn(chipBase, filters.energyLabel === e.value ? chipActive : chipIdle)}
-                                  >
-                                    {e.label}
-                                  </button>
-                                ))}
+                              <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: M_INK, marginBottom: 10 }}>
+                                Classe énergétique (CECB)
+                              </div>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                {ENERGY_LETTERS.map((letter, i) => {
+                                  const active = filters.energyLabel === letter
+                                  return (
+                                    <button
+                                      key={letter}
+                                      type="button"
+                                      onClick={() => updateFilter({ energyLabel: active ? '' : letter })}
+                                      style={{
+                                        flex: 1, height: 40, borderRadius: 8,
+                                        border: `2px solid ${active ? M_INK : 'transparent'}`,
+                                        background: ENERGY_COLORS[i],
+                                        color: '#fff',
+                                        fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                                      }}
+                                    >
+                                      {letter}
+                                    </button>
+                                  )
+                                })}
                               </div>
                             </div>
 
-                            {/* Salles de bain */}
+                            {/* Caractéristiques */}
                             <div>
-                              <p className={sectionLabel}>Salles de bain</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {BATHROOM_OPTIONS.map((b) => (
-                                  <button
-                                    key={`bath-${b}`}
-                                    type="button"
-                                    onClick={() => updateFilter({ bathrooms: filters.bathrooms === b ? '' : b })}
-                                    className={cn(chipBase, 'min-w-[44px]', filters.bathrooms === b ? chipActive : chipIdle)}
-                                  >
-                                    {b}
-                                  </button>
-                                ))}
+                              <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: M_INK, marginBottom: 10 }}>
+                                Caractéristiques
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {FEATURE_LABELS.map((label) => {
+                                  const active = filters.features.includes(label)
+                                  return (
+                                    <button
+                                      key={label}
+                                      type="button"
+                                      onClick={() => toggleFeature(label)}
+                                      style={{
+                                        height: 36, padding: '0 14px', borderRadius: 999,
+                                        border: `1px solid ${active ? M_INK : M_BORDER}`,
+                                        background: active ? M_INK : '#fff',
+                                        color: active ? '#fff' : M_INK,
+                                        fontFamily: FONT, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                      }}
+                                    >
+                                      {label}
+                                    </button>
+                                  )
+                                })}
                               </div>
                             </div>
                           </div>
 
-                          {/* Équipements — full width */}
-                          <div className="mt-5 pt-5 border-t border-gray-100">
-                            <p className={sectionLabel}>Équipements</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {equipTags.map((tag) => (
-                                <button
-                                  key={tag.value}
-                                  type="button"
-                                  onClick={() => toggleTag(tag.value)}
-                                  className={cn(chipBase, filters.lifestyleTags.includes(tag.value) ? chipActive : chipIdle)}
-                                >
-                                  {tag.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Environnement — full width */}
-                          <div className="mt-5 pt-5 border-t border-gray-100">
-                            <p className={sectionLabel}>Environnement</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {envTags.map((tag) => (
-                                <button
-                                  key={tag.value}
-                                  type="button"
-                                  onClick={() => toggleTag(tag.value)}
-                                  className={cn(chipBase, filters.lifestyleTags.includes(tag.value) ? chipActive : chipIdle)}
-                                >
-                                  {tag.label}
-                                </button>
-                              ))}
-                            </div>
+                          {/* Footer */}
+                          <div style={{ padding: '16px 28px', borderTop: `1px solid ${M_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <button
+                              type="button"
+                              onClick={resetAll}
+                              style={{
+                                background: 'transparent', border: 'none', color: M_MUTED,
+                                fontFamily: FONT, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                              }}
+                            >
+                              Réinitialiser
+                            </button>
+                            <button
+                              type="button"
+                              onClick={close}
+                              style={{
+                                height: 44, padding: '0 24px', borderRadius: 999,
+                                border: 'none', background: M_INK, color: '#fff',
+                                fontFamily: FONT, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                              }}
+                            >
+                              Voir les résultats
+                            </button>
                           </div>
                         </div>
-
-                        {/* Sticky footer */}
-                        <div className="border-t border-gray-100 px-5 py-3 flex items-center justify-between gap-3 bg-white rounded-b-2xl">
-                          <button
-                            type="button"
-                            onClick={() => updateFilter({ minSurface: '', bedrooms: '', bathrooms: '', energyLabel: '', lifestyleTags: [] })}
-                            disabled={!plusActive}
-                            className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            Tout effacer
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPlusOpen(false)}
-                            className="h-9 px-5 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors cursor-pointer tabular-nums"
-                          >
-                            Voir {visible.length.toLocaleString('fr-CH')} {visible.length > 1 ? 'biens' : 'bien'}
-                          </button>
-                        </div>
-                      </div>
                       </div>
                     )
                     return createPortal(modalNode, document.body)
