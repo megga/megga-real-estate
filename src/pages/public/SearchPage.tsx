@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import MarketAccountRail from '@/components/search/MarketAccountRail'
+import ListingPreviewModal from '@/components/listing/ListingPreviewModal'
 import PriceRangeDropdown from '@/components/search/PriceRangeDropdown'
 import { FilterPill, FilterOption } from '@/components/search/FilterPill'
 import MarketRechercheFiltersBar from '@/components/search/MarketRechercheFiltersBar'
@@ -26,7 +27,6 @@ import ContactPanel from '@/components/search/ContactPanel'
 const MapView = lazy(() => import('@/components/map/MapView'))
 import type { MapViewHandle } from '@/components/map/MapView'
 import CompareDrawer from '@/components/listings/CompareDrawer'
-import ListingPreviewPanel from '@/components/listing/ListingPreviewPanel'
 import SaveSearchDialog from '@/components/search/SaveSearchDialog'
 import SavedSearchesList from '@/components/search/SavedSearchesList'
 import { useMarketListings, useMapPoints, useMarketStats } from '@/hooks/useMarketListings'
@@ -64,7 +64,6 @@ interface SearchPageProps {
 
 export default function SearchPage({ context }: SearchPageProps = {}) {
   const { t } = useTranslation('common')
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<Filters>(() => {
     const parsed = parseFiltersFromParams(searchParams)
@@ -204,12 +203,6 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     window.history.replaceState(null, '', `?${params.toString()}`)
   }, [])
 
-  // Navigate to the listing detail page on card click. Preview is kept for
-  // map pin clicks (kept in openPreview) where a quick lookahead is preferred.
-  const navigateToListing = useCallback((id: string) => {
-    setViewedIds(prev => prev.includes(id) ? prev : [...prev, id])
-    navigate(`/listing/${id}`)
-  }, [navigate])
   const closePreview = useCallback(() => {
     setPreviewId(null)
     const params = new URLSearchParams(window.location.search)
@@ -1195,7 +1188,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                           isCompared={compareIds.includes(listing.id)}
                           onToggleCompare={() => toggleCompare(listing.id)}
                           medianPricePerM2={medianPricePerM2}
-                          onPreview={navigateToListing}
+                          onPreview={openPreview}
                         />
                       ))}
                     </div>
@@ -1329,12 +1322,12 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
       )}
 
 
-      {/* ─── Listing preview panel (Zillow-style overlay) ─── */}
-      <ListingPreviewPanel
-        listingId={previewId}
+      {/* ─── Listing preview modal (design proto MEGGA_ListingModal) ─── */}
+      <ListingPreviewModal
+        listing={previewId ? allListings.find((l) => l.id === previewId) ?? null : null}
         onClose={closePreview}
-        isCompared={previewId ? compareIds.includes(previewId) : false}
-        onToggleCompare={previewId ? () => toggleCompare(previewId) : undefined}
+        isFavorite={previewId ? isFavorite(previewId) : false}
+        onToggleFavorite={previewId ? () => toggleFavorite(previewId) : undefined}
       />
 
       {/* ─── Save search dialog ─── */}
