@@ -52,7 +52,7 @@ export function fmtCHF(n: number | string | null | undefined): string {
   if (n == null || n === '') return ''
   const num = typeof n === 'number' ? n : parseInt(String(n).replace(/\D/g, ''), 10)
   if (Number.isNaN(num)) return ''
-  return num.toLocaleString('fr-CH').replace(/[  ,]/g, "'")
+  return num.toLocaleString('fr-CH').replace(/[\u00A0\u202F,]/g, "'")
 }
 
 export function shade(hex: string, amt: number): string {

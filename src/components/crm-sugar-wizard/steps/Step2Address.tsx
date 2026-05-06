@@ -71,12 +71,12 @@ export function Step2Address({ data, set }: StepProps) {
       }))
       setSuggestions(feats)
       setShowSuggestions(!autoConfirm)
-      if (autoConfirm && feats[0]) chooseSuggestion(feats[0], true)
+      if (autoConfirm && feats[0]) chooseSuggestion(feats[0])
     } catch {
       const fake = mockSuggestions(q)
       setSuggestions(fake)
       setShowSuggestions(!autoConfirm)
-      if (autoConfirm && fake[0]) chooseSuggestion(fake[0], true)
+      if (autoConfirm && fake[0]) chooseSuggestion(fake[0])
     } finally {
       setLoading(false)
     }
@@ -98,7 +98,7 @@ export function Step2Address({ data, set }: StepProps) {
     debounceRef.current = window.setTimeout(() => geocode(v), 250)
   }
 
-  const chooseSuggestion = (s: MapboxFeature, _silent = false) => {
+  const chooseSuggestion = (s: MapboxFeature) => {
     const ctx = s.context || []
     const postcode = (ctx.find(c => c.id?.startsWith('postcode')) || {}).text || ''
     const place = (ctx.find(c => c.id?.startsWith('place')) || {}).text || ''

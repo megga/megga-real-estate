@@ -15,6 +15,7 @@ export interface SugarPopoverState<P = unknown> {
   close: () => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSugarPopover<P = unknown>(): SugarPopoverState<P> {
   const [state, setState] = useState<{ open: boolean; anchorRect: DOMRect | null; kind: string | null; payload: P | null }>({
     open: false, anchorRect: null, kind: null, payload: null,
@@ -119,7 +120,7 @@ export function SugarQuickAdd({ sp, onPick }: { sp: SugarPalette; onPick?: (id: 
         {items.map(it => (
           <button
             key={it.id}
-            onClick={() => onPick && onPick(it.id)}
+            onClick={() => onPick?.(it.id)}
             style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
               border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left',
@@ -186,7 +187,7 @@ export function SugarReschedule({ sp, currentLabel, onPick, onClose }: {
         {slots.map(s => (
           <button
             key={s.id}
-            onClick={() => { onPick && onPick(s); onClose && onClose() }}
+            onClick={() => { onPick?.(s); onClose?.() }}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               gap: 10, padding: '9px 12px', border: 0, background: 'transparent', cursor: 'pointer',
@@ -360,7 +361,7 @@ export function SugarRowMenu({ sp, label, onPick, onClose }: {
             <Fragment key={it.id}>
               {sep && <div style={{ height: 1, background: sp.cardBorder, margin: '6px 8px' }} />}
               <button
-                onClick={() => { onPick && onPick(it); onClose && onClose() }}
+                onClick={() => { onPick?.(it); onClose?.() }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '9px 12px', border: 0, background: 'transparent', cursor: 'pointer',
@@ -473,7 +474,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <button
-                  onClick={() => { setBusy(`reject-${l.id}`); setTimeout(() => { onReject && onReject(l); setBusy(null) }, 260) }}
+                  onClick={() => { setBusy(`reject-${l.id}`); setTimeout(() => { onReject?.(l); setBusy(null) }, 260) }}
                   title="Rejeter"
                   style={{
                     width: 26, height: 26, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
@@ -487,7 +488,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
                   <CRMIcon name="x" size={11} stroke="currentColor" />
                 </button>
                 <button
-                  onClick={() => { setBusy(`accept-${l.id}`); setTimeout(() => { onAccept && onAccept(l); setBusy(null) }, 320) }}
+                  onClick={() => { setBusy(`accept-${l.id}`); setTimeout(() => { onAccept?.(l); setBusy(null) }, 320) }}
                   title="Accepter et qualifier"
                   style={{
                     width: 26, height: 26, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
@@ -511,7 +512,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
         display: 'flex', gap: 6,
       }}>
         <button
-          onClick={() => { onAccept && onAccept({ id: 'all' }); onClose && onClose() }}
+          onClick={() => { onAccept?.({ id: 'all' }); onClose?.() }}
           style={{
             flex: 1, height: 34, borderRadius: 12, border: 0, cursor: 'pointer',
             background: sp.ink, color: sp.pageBg,
@@ -523,7 +524,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
           Tout qualifier avec l'IA
         </button>
         <button
-          onClick={() => { onPickLead && onPickLead({ id: 'review' }); onClose && onClose() }}
+          onClick={() => { onPickLead?.({ id: 'review' }); onClose?.() }}
           style={{
             height: 34, padding: '0 12px', borderRadius: 12, border: `1px solid ${sp.cardBorder}`, cursor: 'pointer',
             background: 'transparent', color: sp.ink,
@@ -580,7 +581,7 @@ export function SugarStatusMenu({ sp, currentStatus, onPick, onClose }: {
           return (
             <button
               key={it.id}
-              onClick={() => { if (!isCurrent) { onPick && onPick(it) } onClose && onClose() }}
+              onClick={() => { if (!isCurrent) { onPick?.(it) } onClose?.() }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '9px 12px', border: 0, background: 'transparent', cursor: isCurrent ? 'default' : 'pointer',
@@ -696,7 +697,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 320, overflowY: 'auto' }}>
         {cfg.items.map(it => (
           <button key={it.id}
-            onClick={() => { onPickItem && onPickItem(it); onClose && onClose() }}
+            onClick={() => { onPickItem?.(it); onClose?.() }}
             style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '9px 12px', border: 0, background: 'transparent', cursor: 'pointer',
@@ -727,7 +728,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
         borderTop: `1px solid ${sp.cardBorder}`,
       }}>
         <button
-          onClick={() => { if (onPickItem) onPickItem({ id: 'all' }); onClose && onClose() }}
+          onClick={() => { onPickItem?.({ id: 'all' }); onClose?.() }}
           style={{
             flex: 1, height: 36, borderRadius: 12, border: 0, cursor: 'pointer',
             background: sp.ink, color: sp.pageBg,
