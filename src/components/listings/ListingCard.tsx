@@ -43,6 +43,19 @@ export interface ListingCardData {
   price_per_m2?: number
   days_on_market?: number
   price_drop_pct?: number
+  // Listing detail extras (used in preview modal)
+  bathrooms?: number
+  year_built?: number
+  energy_label?: string
+  has_balcony?: boolean
+  has_swimming_pool?: boolean
+  has_nice_view?: boolean
+  has_garage?: boolean
+  has_parking?: boolean
+  has_elevator?: boolean
+  has_fireplace?: boolean
+  is_new_building?: boolean
+  is_minergie?: boolean
   // Rental support
   transaction_type?: 'buy' | 'rent'
   is_furnished?: boolean

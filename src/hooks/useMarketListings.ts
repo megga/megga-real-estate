@@ -208,6 +208,18 @@ function transformToCardData(
     agency_logo_url: ml.agency_logo_url as string | undefined,
     price_per_m2: ml.price_per_m2 as number | undefined,
     days_on_market: ml.days_on_market as number | undefined,
+    bathrooms: ml.bathrooms as number | undefined,
+    year_built: ml.year_built as number | undefined,
+    energy_label: ml.energy_label as string | undefined,
+    has_balcony: !!ml.has_balcony,
+    has_swimming_pool: !!ml.has_swimming_pool,
+    has_nice_view: !!ml.has_nice_view,
+    has_garage: !!ml.has_garage,
+    has_parking: !!ml.has_parking,
+    has_elevator: !!ml.has_elevator,
+    has_fireplace: !!ml.has_fireplace,
+    is_new_building: !!ml.is_new_building,
+    is_minergie: !!ml.is_minergie,
     transaction_type: txType,
     is_furnished: isFurnished,
     deposit_months: depositMonths,
@@ -245,7 +257,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
       let marketQuery = supabase
         .from('market_listings')
         .select(
-          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, photos_cf, type, lat, lng, source_portal, source_url, agency_name, agency_logo_url, price_per_m2, days_on_market, status, first_seen_at, created_at, transaction_type, is_furnished, deposit_months, charges_monthly, external_regie'
+          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, bathrooms, surface_m2, photos, photos_cf, type, lat, lng, description, source_portal, source_url, agency_name, agency_logo_url, price_per_m2, days_on_market, status, first_seen_at, created_at, transaction_type, is_furnished, deposit_months, charges_monthly, external_regie, year_built, energy_label, has_balcony, has_swimming_pool, has_nice_view, has_garage, has_parking, has_elevator, has_fireplace, is_new_building, is_minergie'
         )
 
       marketQuery = applyFilters(marketQuery, filters)
