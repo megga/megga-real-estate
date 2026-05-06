@@ -803,6 +803,18 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             La configuration de la carte est manquante. Les biens restent consultables dans la liste.
           </p>
         </div>
+
+        {/* Even without Mapbox, show the design's UX elements (proto megga-search-map.jsx) */}
+        <div
+          className="absolute bottom-10 right-6 z-[5] px-3 py-1.5 rounded-full bg-white text-[#0E1410] text-xs font-bold pointer-events-none"
+          style={{
+            fontFamily: '"Manrope", system-ui, sans-serif',
+            boxShadow: '0 4px 12px rgba(14,20,16,0.12)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {listings.length.toLocaleString('fr-CH')} {listings.length > 1 ? 'biens visibles' : 'bien visible'}
+        </div>
       </div>
     )
   }
@@ -1033,6 +1045,58 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
             }}
           />
         </Source>
+
+        {/* Hover preview card — port proto megga-search-map.jsx PinPreview.
+             Shows a compact card when the user hovers a pin (no click). */}
+        {hoveredPin && !selectedListing && hoveredPin.lat && hoveredPin.lng && !isDrawing && (() => {
+          const photo = hoveredPin.photos?.[0]
+          const isRent = hoveredPin.context === 'rent'
+          return (
+            <Popup
+              longitude={hoveredPin.lng}
+              latitude={hoveredPin.lat}
+              anchor="bottom"
+              closeButton={false}
+              closeOnClick={false}
+              offset={22}
+              maxWidth="280px"
+              className="[&_.mapboxgl-popup-content]:p-0 [&_.mapboxgl-popup-content]:rounded-xl [&_.mapboxgl-popup-content]:overflow-hidden [&_.mapboxgl-popup-content]:shadow-xl [&_.mapboxgl-popup-tip]:hidden pointer-events-none"
+            >
+              <div
+                className="w-[260px] bg-white rounded-xl overflow-hidden border"
+                style={{
+                  fontFamily: '"Manrope", system-ui, sans-serif',
+                  borderColor: '#E6E8EC',
+                  boxShadow: '0 14px 36px rgba(14,20,16,0.22)',
+                }}
+              >
+                <div
+                  className="h-[72px] bg-cover bg-center"
+                  style={{
+                    backgroundImage: photo ? `url(${photo})` : undefined,
+                    background: photo ? `url(${photo}) center/cover` : '#F2F4F8',
+                  }}
+                />
+                <div className="px-3 pt-2 pb-2.5">
+                  <div className="text-[13px] font-bold text-[#0E1410] truncate leading-tight">
+                    {hoveredPin.title}
+                  </div>
+                  <div className="text-[11px] text-[#7A8079] mb-1 truncate">
+                    {hoveredPin.address || hoveredPin.city}
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[13px] font-extrabold text-[#0E1410] tabular-nums">
+                      {formatCHF(hoveredPin.price)}{isRent ? '/mo' : ''}
+                    </span>
+                    <span className="text-[10px] text-[#7A8079]">
+                      {hoveredPin.surface_m2 || '—'} m² · {hoveredPin.rooms || '—'} p
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Popup>
+          )
+        })()}
 
         {/* Popup — Zillow-style card on pin click */}
         {selectedListing && selectedListing.lat && selectedListing.lng && !isDrawing && (() => {
@@ -1950,6 +2014,48 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
                 <X className="h-3.5 w-3.5" />
                 Effacer le marqueur
               </button>
+            </div>
+          )}
+
+          {/* "Rechercher dans cette zone" pill — proto megga-search-map.jsx (bottom center) */}
+          {!isImmersive && !isDrawing && onViewportChange && (
+            <button
+              onClick={() => {
+                const map = mapRef.current?.getMap()
+                if (!map) return
+                const b = map.getBounds()
+                if (!b) return
+                onViewportChange({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() })
+              }}
+              className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[6] flex items-center gap-2 h-10 px-5 rounded-full text-white text-sm font-semibold cursor-pointer transition-all"
+              style={{
+                background: '#0E1410',
+                fontFamily: '"Manrope", system-ui, sans-serif',
+                boxShadow: '0 10px 26px rgba(14,20,16,0.25)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#000' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#0E1410' }}
+              title="Re-rechercher dans la zone visible"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="6" r="4" />
+                <path d="M9.5 9.5l3 3" />
+              </svg>
+              Rechercher dans cette zone
+            </button>
+          )}
+
+          {/* "X biens visibles" count badge — proto megga-search-map.jsx (bottom right) */}
+          {!isImmersive && (
+            <div
+              className="absolute bottom-10 right-16 z-[5] px-3 py-1.5 rounded-full bg-white text-[#0E1410] text-xs font-bold pointer-events-none"
+              style={{
+                fontFamily: '"Manrope", system-ui, sans-serif',
+                boxShadow: '0 4px 12px rgba(14,20,16,0.12)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {listings.length.toLocaleString('fr-CH')} {listings.length > 1 ? 'biens visibles' : 'bien visible'}
             </div>
           )}
         </>

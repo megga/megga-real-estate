@@ -11,8 +11,7 @@
 // hauteur · logo noir gauche, nav center, lang + Connexion droite.
 
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown } from 'lucide-react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { HOME_FONT, HOME_M } from './homeTokens'
 
 const HEADER_HEIGHT = 64
@@ -39,9 +38,17 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeaderProps = {}) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [show, setShow] = useState(alwaysShow)
   const [langOpen, setLangOpen] = useState(false)
   const [lang, setLang] = useState<'FR' | 'DE' | 'IT' | 'EN'>('FR')
+
+  // Match nav active state against current pathname (proto-fidèle: highlight la
+  // section où on est, pas toujours "Acheter")
+  const isNavActive = (to: string) => {
+    if (to === '/') return location.pathname === '/'
+    return location.pathname === to || location.pathname.startsWith(`${to}/`)
+  }
 
   useEffect(() => {
     if (alwaysShow) {
@@ -77,7 +84,7 @@ export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeade
       <div
         style={{
           height: HEADER_HEIGHT,
-          padding: '0 clamp(20px, 5vw, 80px)',
+          padding: '0 80px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -118,118 +125,137 @@ export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeade
           }}
           className="home-sticky-nav"
         >
-          {NAV_ITEMS.map((it, i) => (
-            <Link
-              key={it.key}
-              to={it.to}
-              style={{
-                padding: '8px 14px',
-                fontFamily: HOME_FONT,
-                fontSize: 13,
-                fontWeight: 600,
-                color: i === 0 ? HOME_M.ink : HOME_M.soft,
-                textDecoration: 'none',
-                borderRadius: 999,
-                transition: 'color 0.15s ease, background 0.15s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.color = HOME_M.ink
-                e.currentTarget.style.background = HOME_M.section
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.color = i === 0 ? HOME_M.ink : HOME_M.soft
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              {it.label}
-            </Link>
-          ))}
+          {NAV_ITEMS.map((it) => {
+            const active = isNavActive(it.to)
+            return (
+              <Link
+                key={it.key}
+                to={it.to}
+                style={{
+                  padding: '8px 14px',
+                  fontFamily: HOME_FONT,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: active ? HOME_M.ink : HOME_M.soft,
+                  textDecoration: 'none',
+                  borderRadius: 999,
+                  transition: 'color 0.15s ease, background 0.15s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.color = HOME_M.ink
+                  e.currentTarget.style.background = HOME_M.section
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = active ? HOME_M.ink : HOME_M.soft
+                  e.currentTarget.style.background = 'transparent'
+                }}
+              >
+                {it.label}
+              </Link>
+            )
+          })}
         </nav>
 
-        {/* Right cluster: lang + account */}
+        {/* Right cluster: lang + account (port proto megga-i18n.jsx + megga-account-store.jsx) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          {/* Lang selector */}
+          {/* Lang selector — globe icon + pill bordée (proto-fidèle) */}
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setLangOpen(!langOpen)}
               style={{
                 height: 36,
-                padding: '0 12px',
+                padding: '0 14px',
                 borderRadius: 999,
-                border: 'none',
-                background: 'transparent',
+                border: '1px solid rgba(0,0,0,0.15)',
+                background: '#fff',
+                color: HOME_M.ink,
                 cursor: 'pointer',
                 fontFamily: HOME_FONT,
                 fontSize: 12,
                 fontWeight: 600,
-                color: HOME_M.soft,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 8,
               }}
             >
-              {lang} <ChevronDown size={12} strokeWidth={2.4} />
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="7" r="6" stroke={HOME_M.ink} strokeWidth="1.2" />
+                <path d="M1 7h12M7 1c2 2 2 10 0 12M7 1c-2 2-2 10 0 12" stroke={HOME_M.ink} strokeWidth="1.2" />
+              </svg>
+              {lang}
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transition: 'transform 0.2s', transform: langOpen ? 'rotate(180deg)' : 'none' }}>
+                <path d="M2 4l3 3 3-3" stroke={HOME_M.ink} strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
             {langOpen && (
               <div
                 style={{
                   position: 'absolute',
-                  top: 40,
+                  top: 44,
                   right: 0,
+                  minWidth: 160,
                   background: '#fff',
-                  border: `1px solid ${HOME_M.border}`,
+                  border: '1px solid rgba(0,0,0,0.06)',
                   borderRadius: 12,
-                  padding: 4,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
-                  boxShadow: '0 8px 24px rgba(14,20,16,0.12)',
-                  minWidth: 100,
-                  zIndex: 60,
+                  padding: 6,
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
+                  zIndex: 100,
                 }}
               >
-                {(['FR', 'DE', 'IT', 'EN'] as const).map(l => (
+                {([
+                  { code: 'FR', label: 'Français' },
+                  { code: 'DE', label: 'Deutsch' },
+                  { code: 'EN', label: 'English' },
+                  { code: 'IT', label: 'Italiano' },
+                ] as const).map(l => (
                   <button
-                    key={l}
+                    key={l.code}
                     onClick={() => {
-                      setLang(l)
+                      setLang(l.code)
                       setLangOpen(false)
                     }}
                     style={{
-                      height: 30,
-                      padding: '0 12px',
+                      width: '100%',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 12px',
                       borderRadius: 8,
                       border: 'none',
-                      background: lang === l ? HOME_M.section : 'transparent',
+                      background: lang === l.code ? '#E8EDF5' : 'transparent',
                       cursor: 'pointer',
                       fontFamily: HOME_FONT,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: 600,
                       color: HOME_M.ink,
                       textAlign: 'left',
                     }}
                   >
-                    {l}
+                    <span>{l.label}</span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: HOME_M.muted, letterSpacing: 0.5 }}>{l.code}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Compte / Connexion */}
+          {/* Compte pill (port proto MEGGA_AccountLink — guest state) */}
           <button
             onClick={() => navigate('/login')}
             style={{
               height: 36,
-              padding: '0 16px',
+              padding: '0 14px',
               borderRadius: 999,
               border: `1px solid ${HOME_M.border}`,
               background: '#fff',
+              color: HOME_M.ink,
               cursor: 'pointer',
               fontFamily: HOME_FONT,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
-              color: HOME_M.ink,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
               transition: 'border-color 0.15s ease, background 0.15s ease',
             }}
             onMouseEnter={e => {
@@ -241,7 +267,11 @@ export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeade
               e.currentTarget.style.background = '#fff'
             }}
           >
-            Connexion
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="9" r="3.6" />
+              <path d="M4.5 21c1.5-4.5 4.5-6 7.5-6s6 1.5 7.5 6" />
+            </svg>
+            <span>Compte</span>
           </button>
         </div>
       </div>

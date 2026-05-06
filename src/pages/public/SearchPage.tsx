@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, lazy, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -12,9 +13,10 @@ import {
   Bookmark,
 } from 'lucide-react'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
-import BuyerSidebar from '@/components/search/BuyerSidebar'
+import MarketAccountRail from '@/components/search/MarketAccountRail'
 import PriceRangeDropdown from '@/components/search/PriceRangeDropdown'
 import { FilterPill, FilterOption } from '@/components/search/FilterPill'
+import MarketRechercheFiltersBar from '@/components/search/MarketRechercheFiltersBar'
 import FavoritesPanel from '@/components/search/FavoritesPanel'
 import SavedSearchesPanel from '@/components/search/SavedSearchesPanel'
 import AlertsPanel from '@/components/search/AlertsPanel'
@@ -409,27 +411,47 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
 
   return (
     <div
-      className="h-screen flex bg-white"
-      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}
+      className="h-screen flex"
+      style={{ fontFamily: "'Manrope', system-ui, -apple-system, sans-serif", backgroundColor: '#FAFBFD' }}
     >
       {/* ─── WCAG 1.3.1 — h1 caché visuellement pour screen readers ─── */}
       <h1 className="sr-only">
         {filters.context === 'rent' ? 'Biens à louer en Suisse' : 'Biens à vendre en Suisse'}
       </h1>
 
-      {/* ─── LEFT SIDEBAR (Zillow-style) ─── */}
-      {!mapImmersive && <BuyerSidebar activeView={sidebarView} onViewChange={setSidebarView} context={filters.context} />}
+      {/* ─── LEFT SIDEBAR (design proto MEGGA Recherche.html · AccountRail) ─── */}
+      {!mapImmersive && (
+        <MarketAccountRail
+          activeView={sidebarView}
+          onViewChange={setSidebarView}
+          stickyTop={131}
+        />
+      )}
 
       {/* ─── RIGHT CONTENT ─── */}
-      <main id="main-content" className="flex-1 flex flex-col overflow-hidden">
+      <main id="main-content" className="flex-1 flex flex-col overflow-hidden" style={{ paddingTop: 64 }}>
       {!mapImmersive && <HomeStickyHeader alwaysShow />}
 
-      {/* ─── UNIFIED STICKY BAR: Search + Filters ─── */}
-      <div className={cn('sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100', (mapImmersive || sidebarView !== 'search') && 'hidden')}>
-        <div className="px-4 md:px-6 py-4">
+      {/* ─── DESKTOP STICKY BAR (design proto MEGGA Recherche.html) ─── */}
+      {!mapImmersive && sidebarView === 'search' && (
+        <div className="hidden md:block">
+          <MarketRechercheFiltersBar
+            filters={filters}
+            updateFilter={updateFilter}
+            onOpenMore={() => setPlusOpen(true)}
+            morePlusActiveCount={[filters.minSurface, filters.bedrooms, filters.bathrooms, filters.lifestyleTags.length > 0, filters.energyLabel].filter(Boolean).length}
+            onSaveSearch={() => setSaveDialogOpen(true)}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </div>
+      )}
 
-          {/* Desktop: single unified row — constrained to left panel width */}
-          <div className="hidden md:flex items-center gap-2.5" style={{ maxWidth: '45%' }}>
+      {/* ─── MOBILE STICKY BAR ─── */}
+      <div className={cn('md:hidden sticky top-14 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100', (mapImmersive || sidebarView !== 'search') && 'hidden')}>
+        <div className="px-4 py-4">
+
+          {/* Hidden desktop bar (kept for plus dropdown anchor + filter state) */}
+          <div className="hidden" style={{ maxWidth: '45%' }}>
             {/* Search input — smart: city lookup OR natural-language parser */}
             <form onSubmit={handleSearch} className="relative flex items-center gap-2.5 bg-gray-50 border border-transparent rounded-full px-4 h-10 flex-[2] min-w-[312px] transition-colors focus-within:bg-white focus-within:border-gray-900 [&_*]:outline-none">
               {/* First-visit onboarding popover — dismisses on focus or × */}
@@ -621,11 +643,23 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                     }
                     const equipTags = LIFESTYLE_TAGS.filter(t => ['terrasse', 'balcon', 'jardin', 'parking', 'piscine', 'ascenseur', 'meuble', 'dernier_etage'].includes(t.value))
                     const envTags = LIFESTYLE_TAGS.filter(t => ['vue_lac', 'vue_montagne', 'lumineux', 'quartier_calme', 'proche_transports', 'proche_ecoles', 'centre_ville'].includes(t.value))
-                    return (
+                    const onBackdropClick = (e: React.MouseEvent) => {
+                      if (e.target === e.currentTarget) setPlusOpen(false)
+                    }
+                    const modalNode = (
                       <div
-                        className="absolute top-full left-0 mt-2 w-[560px] bg-white rounded-2xl border border-gray-100 z-50 origin-top animate-in fade-in zoom-in-95 slide-in-from-top-1 duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col max-h-[min(72vh,680px)]"
+                        className="fixed inset-0 z-[200] flex items-start justify-center pt-32 px-4"
+                        style={{ background: 'rgba(14,20,16,0.45)', backdropFilter: 'blur(6px)' }}
+                        onClick={onBackdropClick}
+                      >
+                      <div
+                        className="w-full max-w-[640px] bg-white rounded-2xl border border-gray-100 origin-top animate-in fade-in zoom-in-95 slide-in-from-top-1 duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col max-h-[min(72vh,680px)]"
                         style={{ boxShadow: '0 24px 64px -20px rgba(15, 23, 42, 0.22), 0 6px 16px -6px rgba(15, 23, 42, 0.08)' }}
                       >
+                        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+                          <h2 className="text-base font-bold text-gray-900" style={{ fontFamily: '"Manrope", system-ui, sans-serif' }}>Plus de filtres</h2>
+                          <button onClick={() => setPlusOpen(false)} className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center cursor-pointer text-gray-700">×</button>
+                        </div>
                         {/* Scrollable body */}
                         <div className="flex-1 overflow-y-auto scrollbar-hide p-5">
                           <div className="grid grid-cols-2 gap-6">
@@ -752,7 +786,9 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                           </button>
                         </div>
                       </div>
+                      </div>
                     )
+                    return createPortal(modalNode, document.body)
                   })()}
                 </div>
               )
@@ -873,7 +909,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
             mapImmersive && 'hidden',
             !mapImmersive && 'w-full lg:shrink-0',
           )}
-          style={!mapImmersive ? { width: '45%' } : undefined}
+          style={!mapImmersive ? { flex: '1.6 1 0%', minWidth: 0 } : undefined}
         >
 
           {/* Old ZONE 2 + mobile filter button removed — merged into unified bar above */}
@@ -967,22 +1003,52 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
             />
           ) : (
           <div ref={listScrollRef} className="flex-1 overflow-y-auto scrollbar-hide px-4 md:px-6 pt-8 pb-4">
-            {/* Results header — Zillow style */}
+            {/* Results header — design proto megga-search-results.jsx ResultsColumn */}
             {!isLoadingListings && filtered.length > 0 && (
-              <div className="flex items-baseline justify-between mb-4">
+              <div className="flex items-start justify-between mb-5" style={{ minHeight: 52, fontFamily: '"Manrope", system-ui, sans-serif' }}>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">
+                  <div style={{ fontSize: 26, fontWeight: 700, color: '#0E1410', letterSpacing: -0.5, lineHeight: 1.15 }}>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{filtered.length.toLocaleString('fr-CH')}</span>{' '}
+                    {filtered.length > 1 ? 'biens' : 'bien'}{' '}
+                    <span style={{ fontWeight: 500, color: '#3F4640' }}>
+                      {filters.context === 'rent' ? 'à louer' : 'à vendre'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#7A8079', marginTop: 6, fontWeight: 500 }}>
+                    {filters.city || (filters.canton ? CANTON_LABELS[filters.canton] || filters.canton : 'Toute la Suisse')}
+                    {' · '}
                     {filters.types.length > 0
                       ? filters.types.map(t => PROPERTY_TYPE_LABELS[t as keyof typeof PROPERTY_TYPE_LABELS] || t).join(', ')
-                      : t('search.realEstate')
-                    }
-                    {filters.context === 'rent' ? ' à louer' : ' à vendre'}
-                    {filters.city && ` à ${filters.city}`}
-                    {!filters.city && filters.canton && ` à ${CANTON_LABELS[filters.canton] || filters.canton}`}
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {filtered.length.toLocaleString('fr-CH')} résultat{filtered.length !== 1 ? 's' : ''}
-                  </p>
+                      : 'tous types'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: '#7A8079', fontWeight: 600, fontFamily: '"Manrope", system-ui, sans-serif' }}>Trier par</span>
+                  <select
+                    value={filters.sort}
+                    onChange={(e) => updateFilter({ sort: e.target.value as Filters['sort'] })}
+                    style={{
+                      height: 36,
+                      padding: '0 30px 0 12px',
+                      borderRadius: 8,
+                      border: '1px solid #E6E8EC',
+                      background: '#fff',
+                      fontFamily: '"Manrope", system-ui, sans-serif',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#0E1410',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      appearance: 'none',
+                      backgroundImage: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='%237A8079'><path d='M2 4l3 3 3-3z'/></svg>\")",
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 10px center',
+                    }}
+                  >
+                    {SORT_OPTIONS.filter((opt) => filters.context !== 'rent' || opt.value !== 'recommended').map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             )}
@@ -1093,7 +1159,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
               ? 'block flex-1 border-l-0 h-screen'
               : 'sticky top-[124px] h-[calc(100vh-124px)] hidden lg:block lg:flex-1'
           )}
-          style={!mapImmersive ? { width: '55%' } : undefined}
+          style={!mapImmersive ? { flex: '1 1 0%', minWidth: 0 } : undefined}
         >
           <Suspense fallback={<div className="w-full h-full bg-gray-50 animate-pulse" />}>
             <MapView

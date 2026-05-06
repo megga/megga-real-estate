@@ -2,8 +2,8 @@ import { Search, Heart, Bell, Calculator, Bookmark, MessageCircle } from 'lucide
 import { cn } from '@/lib/utils'
 import { useFavorites } from '@/hooks/useFavorites'
 
-const BLUE = '#2563EB'
-const BLUE_BG = '#EFF6FF'
+const BLUE = '#0041D9'
+const BLUE_BG = '#E8EFFE'
 
 const NAV_ITEMS = [
   { id: 'search', label: 'Recherche', icon: Search },
@@ -89,9 +89,10 @@ export default function BuyerSidebar({ activeView = 'search', onViewChange, clas
     <nav
       aria-label="Outils acheteur"
       className={cn(
-        'flex flex-col items-center w-[90px] shrink-0 bg-white border-r border-gray-200 h-full',
+        'flex flex-col items-center w-[90px] shrink-0 border-r border-gray-200 h-full',
         className
       )}
+      style={{ backgroundColor: '#FAFBFD' }}
     >
       {/* Top spacer — only when sidebar is NOT fixed (static position, e.g. SearchPage) */}
       {!className?.includes('fixed') && (
