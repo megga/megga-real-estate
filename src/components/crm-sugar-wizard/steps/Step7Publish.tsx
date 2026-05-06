@@ -11,7 +11,7 @@ interface StepProps {
   onClose: () => void
 }
 
-export function Step7Publish({ data, set, onClose: _onClose }: StepProps) {
+export function Step7Publish({ data, set }: StepProps) {
   const allContacts = CRM_CONTACTS
   const owner = data.ownerContactId
     ? (allContacts.find(c => c.id === data.ownerContactId) || data._newContact)

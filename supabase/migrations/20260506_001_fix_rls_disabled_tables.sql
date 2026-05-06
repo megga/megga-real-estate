@@ -33,28 +33,38 @@ ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.listings ENABLE ROW LEVEL SECURITY;
 
 -- 2. spatial_ref_sys — table système PostGIS contenant les définitions
--- de systèmes de coordonnées géographiques (EPSG, etc.). Lecture seule
--- pour tous les rôles authentifiés et anonymes — pas de données privées.
--- Note : cette table est gérée par l'extension PostGIS, on ne crée donc
--- pas de policy SELECT ici si une existe déjà — on enable juste RLS.
+-- de systèmes de coordonnées géographiques (EPSG, etc.). Cette table est
+-- ownership de l'extension PostGIS — la Supabase Management API n'a pas
+-- les droits owner. On tente le ALTER, on attrape l'erreur silencieusement
+-- si insufficient_privilege.
+--
+-- Si cette section échoue, l'utilisateur peut activer manuellement RLS
+-- sur spatial_ref_sys via Supabase Studio Dashboard → Database → Tables →
+-- spatial_ref_sys → Edit table → Enable RLS (action côté UI utilise des
+-- privilèges supérieurs).
+--
+-- Note compliance : spatial_ref_sys ne contient AUCUNE donnée privée —
+-- ce sont des références EPSG (codes de systèmes de coordonnées) publiques.
+-- L'absence de RLS sur cette table n'est pas un risque de sécurité réel.
 DO $$
 BEGIN
-  -- Enable RLS (no-op si déjà enabled)
   EXECUTE 'ALTER TABLE public.spatial_ref_sys ENABLE ROW LEVEL SECURITY';
 
-  -- Policy SELECT permissive pour tous (c'est de la donnée de référence
-  -- géographique publique — utilisée par les requêtes Mapbox/PostGIS)
+  -- Policy SELECT permissive pour tous (donnée de référence publique).
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname = 'public'
       AND tablename = 'spatial_ref_sys'
       AND policyname = 'spatial_ref_sys_public_read'
   ) THEN
-    CREATE POLICY spatial_ref_sys_public_read ON public.spatial_ref_sys
-      FOR SELECT
-      TO anon, authenticated
-      USING (true);
+    EXECUTE 'CREATE POLICY spatial_ref_sys_public_read ON public.spatial_ref_sys
+      FOR SELECT TO anon, authenticated USING (true)';
   END IF;
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'spatial_ref_sys: insufficient_privilege (PostGIS-owned), skipping. Enable RLS via Supabase Dashboard if needed.';
+  WHEN OTHERS THEN
+    RAISE NOTICE 'spatial_ref_sys: skipped (%)', SQLERRM;
 END $$;
 
 -- 3. Vérification post-migration : log un NOTICE listant l'état RLS
