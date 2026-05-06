@@ -74,7 +74,7 @@ export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeade
         zIndex: 50,
         transform: show ? 'translateY(0)' : 'translateY(-100%)',
         transition: alwaysShow ? 'none' : 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
-        background: 'rgba(250, 251, 253, 0.88)',
+        background: 'rgba(255, 255, 255, 0.92)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
         borderBottom: `1px solid ${HOME_M.border}`,
