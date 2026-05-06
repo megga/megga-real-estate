@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Search,
@@ -64,6 +64,7 @@ interface SearchPageProps {
 
 export default function SearchPage({ context }: SearchPageProps = {}) {
   const { t } = useTranslation('common')
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<Filters>(() => {
     const parsed = parseFiltersFromParams(searchParams)
@@ -202,6 +203,13 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     params.set('listing', id)
     window.history.replaceState(null, '', `?${params.toString()}`)
   }, [])
+
+  // Navigate to the listing detail page on card click. Preview is kept for
+  // map pin clicks (kept in openPreview) where a quick lookahead is preferred.
+  const navigateToListing = useCallback((id: string) => {
+    setViewedIds(prev => prev.includes(id) ? prev : [...prev, id])
+    navigate(`/listing/${id}`)
+  }, [navigate])
   const closePreview = useCallback(() => {
     setPreviewId(null)
     const params = new URLSearchParams(window.location.search)
@@ -1187,7 +1195,7 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
                           isCompared={compareIds.includes(listing.id)}
                           onToggleCompare={() => toggleCompare(listing.id)}
                           medianPricePerM2={medianPricePerM2}
-                          onPreview={openPreview}
+                          onPreview={navigateToListing}
                         />
                       ))}
                     </div>
