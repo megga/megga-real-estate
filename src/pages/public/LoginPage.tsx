@@ -767,7 +767,7 @@ function FormColumn(props: FormColumnProps) {
         <>
           <BackButton onClick={onBackToEmail} />
           <TitleBlock
-            title="Bienvenue de retour"
+            title="Connexion"
             subtitle={email}
           />
 
