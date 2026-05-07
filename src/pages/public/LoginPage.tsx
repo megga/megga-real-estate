@@ -678,6 +678,15 @@ function FormColumn(props: FormColumnProps) {
     >
       {step === 'email' ? (
         <>
+          <TitleBlock
+            title="Connexion ou inscription"
+            subtitle={
+              isAgent
+                ? 'Accédez à votre CRM ou créez votre agence en 30 secondes.'
+                : 'Connectez-vous ou créez votre compte gratuit en 30 secondes.'
+            }
+          />
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SsoButton
               icon={isAgent ? <MicrosoftIcon /> : <GoogleIcon />}
