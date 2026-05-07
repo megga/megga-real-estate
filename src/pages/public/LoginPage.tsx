@@ -452,8 +452,6 @@ export default function LoginPage() {
       ) : (
         <SplitShell
           isAgent={isAgent}
-          onBackToChoice={() => setView('choice')}
-          onSwitchView={() => setView(isAgent ? 'particulier' : 'agent')}
         >
           <FormColumn
             isAgent={isAgent}
@@ -556,12 +554,10 @@ function ChoiceShell({ onChoose }: { onChoose: (view: View) => void }) {
 
 interface SplitShellProps {
   isAgent: boolean
-  onBackToChoice: () => void
-  onSwitchView: () => void
   children: React.ReactNode
 }
 
-function SplitShell({ isAgent, onBackToChoice, children }: SplitShellProps) {
+function SplitShell({ isAgent, children }: SplitShellProps) {
   return (
     <div
       style={{
@@ -593,7 +589,7 @@ function SplitShell({ isAgent, onBackToChoice, children }: SplitShellProps) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
             width: '100%',
             padding: '0 32px',
             marginBottom: 32,
@@ -602,24 +598,6 @@ function SplitShell({ isAgent, onBackToChoice, children }: SplitShellProps) {
           <Link to="/">
             <img src="/megga-logo.svg" alt="MEGGA" style={{ height: 22, width: 'auto' }} />
           </Link>
-          <button
-            onClick={onBackToChoice}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: AUTH_FONT,
-              fontSize: 12,
-              fontWeight: 600,
-              color: AUTH_M.muted,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: 0,
-            }}
-          >
-            <span>←</span> Retour
-          </button>
         </div>
         {children}
       </div>
