@@ -679,11 +679,11 @@ function FormColumn(props: FormColumnProps) {
       {step === 'email' ? (
         <>
           <TitleBlock
-            title="Connexion ou inscription"
+            title={isAgent ? 'Accès au CRM' : 'Espace particulier'}
             subtitle={
               isAgent
-                ? 'Accédez à votre CRM ou créez votre agence en 30 secondes.'
-                : 'Connectez-vous ou créez votre compte gratuit en 30 secondes.'
+                ? 'Connectez-vous à votre CRM ou créez votre agence en 30 secondes.'
+                : 'Connectez-vous ou créez votre compte gratuit pour acheter, vendre et gérer vos biens.'
             }
           />
 
