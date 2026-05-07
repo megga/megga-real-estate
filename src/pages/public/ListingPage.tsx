@@ -88,6 +88,9 @@ function transformSupabaseToListing(data: Record<string, any>, source: 'market' 
     source_portal: source === 'market' ? ((data.source_portal as string) || null) : null,
     source_url: source === 'market' ? ((data.source_url as string) || null) : null,
     gallery_layout: source === 'internal' ? ((data.gallery_layout as 'hero' | 'mosaic' | 'carousel' | null | undefined) ?? 'hero') : 'hero',
+    contact_layout: source === 'internal' ? ((data.contact_layout as 'right' | 'banner' | 'floating' | null | undefined) ?? 'right') : 'right',
+    neighborhood_variant: source === 'internal' ? ((data.neighborhood_variant as 'scores' | 'map' | null | undefined) ?? 'map') : 'map',
+    partner_agency: source === 'internal' ? ((data.partner_agency as 'naef' | 'cardis' | 'bernard' | null | undefined) ?? null) : null,
     // Amenity flags (proto SpecsBlock + équipements pills)
     year_built: (data.year_built as number | null | undefined) ?? null,
     energy_label: (data.energy_label as string | null | undefined) ?? null,
@@ -263,6 +266,12 @@ export default function ListingPage() {
     null
   const isNew = !!yearBuilt && yearBuilt >= 2020
 
+  // ── Display variants choisis par l'agent (port proto MEGGA Bien.html tweaks) ──
+  const contactLayout: 'right' | 'banner' | 'floating' =
+    ((listingAny?.contact_layout as 'right' | 'banner' | 'floating' | undefined) ?? 'right')
+  const partnerKey: 'naef' | 'cardis' | 'bernard' | null =
+    ((listingAny?.partner_agency as 'naef' | 'cardis' | 'bernard' | null | undefined) ?? null)
+
   // Build équipements list from booleans + raw features array (proto-fidèle pills)
   const equipmentsList: string[] = (() => {
     const out: string[] = []
@@ -339,8 +348,8 @@ export default function ListingPage() {
           margin: '0 auto',
           padding: '0 clamp(20px, 4vw, 32px) 60px',
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 380px',
-          gap: 32,
+          gridTemplateColumns: contactLayout === 'right' ? 'minmax(0, 1fr) 380px' : 'minmax(0, 1fr)',
+          gap: contactLayout === 'right' ? 32 : 0,
           alignItems: 'start',
         }}
       >
@@ -418,10 +427,12 @@ export default function ListingPage() {
             </div>
           )}
 
-          {/* Quartier (port proto NeighborhoodBlock — variant map Leaflet) */}
+          {/* Quartier (port proto NeighborhoodBlock — variant choisi par l'agent) */}
           <BienNeighborhoodBlock
             neighborhood={listing.city || listing.canton || ''}
-            variant="map"
+            variant={
+              ((listingAny?.neighborhood_variant as 'scores' | 'map' | undefined) ?? 'map')
+            }
             bienId={listing.id}
             title={listing.title}
             type={listing.type}
@@ -433,29 +444,32 @@ export default function ListingPage() {
           <BienDocumentsBlock />
         </div>
 
-        {/* Right column — sticky agent card (proto: 380px, partenaire Naef) */}
-        <div className="bien-sidebar" style={{ minWidth: 0 }}>
-          <BienAgentCard
-            agent={{
-              name: resolvedAgent.name,
-              agency: resolvedAgent.agency,
-              phone: resolvedAgent.phone || '',
-              email: resolvedAgent.email,
-              photo: resolvedAgent.photo || null,
-            }}
-            bienId={listing.id}
-            partnerKey="naef"
-            soldThisYear={12}
-            rating={4.8}
-            ratingCount={64}
-            langs={['FR', 'EN']}
-            status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
-            isFavorite={isFavorite}
-            onToggleFavorite={() => setIsFavorite(!isFavorite)}
-            onAskVisit={() => setShowVisitModal(true)}
-            onContact={() => setShowContactModal(true)}
-          />
-        </div>
+        {/* Right column — agent card (sticky uniquement si contact_layout === 'right') */}
+        {contactLayout === 'right' && (
+          <div className="bien-sidebar" style={{ minWidth: 0 }}>
+            <BienAgentCard
+              agent={{
+                name: resolvedAgent.name,
+                agency: resolvedAgent.agency,
+                phone: resolvedAgent.phone || '',
+                email: resolvedAgent.email,
+                photo: resolvedAgent.photo || null,
+              }}
+              bienId={listing.id}
+              partnerKey={partnerKey}
+              soldThisYear={12}
+              rating={4.8}
+              ratingCount={64}
+              langs={['FR', 'EN']}
+              layout="sticky"
+              status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
+              isFavorite={isFavorite}
+              onToggleFavorite={() => setIsFavorite(!isFavorite)}
+              onAskVisit={() => setShowVisitModal(true)}
+              onContact={() => setShowContactModal(true)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Responsive: collapse to single column under 1024 */}
@@ -465,6 +479,58 @@ export default function ListingPage() {
           .bien-sidebar { display: none !important; }
         }
       `}</style>
+
+      {/* Floating contact (alternate layout per agent's choice) */}
+      {contactLayout === 'floating' && (
+        <BienAgentCard
+          agent={{
+            name: resolvedAgent.name,
+            agency: resolvedAgent.agency,
+            phone: resolvedAgent.phone || '',
+            email: resolvedAgent.email,
+            photo: resolvedAgent.photo || null,
+          }}
+          bienId={listing.id}
+          partnerKey={partnerKey}
+          soldThisYear={12}
+          rating={4.8}
+          ratingCount={64}
+          langs={['FR', 'EN']}
+          layout="floating"
+          status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
+          isFavorite={isFavorite}
+          onToggleFavorite={() => setIsFavorite(!isFavorite)}
+          onAskVisit={() => setShowVisitModal(true)}
+          onContact={() => setShowContactModal(true)}
+        />
+      )}
+
+      {/* Banner contact — affichée en pleine largeur sous le split body */}
+      {contactLayout === 'banner' && (
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 clamp(20px, 4vw, 32px) 40px' }}>
+          <BienAgentCard
+            agent={{
+              name: resolvedAgent.name,
+              agency: resolvedAgent.agency,
+              phone: resolvedAgent.phone || '',
+              email: resolvedAgent.email,
+              photo: resolvedAgent.photo || null,
+            }}
+            bienId={listing.id}
+            partnerKey={partnerKey}
+            soldThisYear={12}
+            rating={4.8}
+            ratingCount={64}
+            langs={['FR', 'EN']}
+            layout="banner"
+            status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
+            isFavorite={isFavorite}
+            onToggleFavorite={() => setIsFavorite(!isFavorite)}
+            onAskVisit={() => setShowVisitModal(true)}
+            onContact={() => setShowContactModal(true)}
+          />
+        </div>
+      )}
 
       {/* ── Similar Listings (proto megga-bien-similar.jsx) ── */}
       <BienSimilarBlock

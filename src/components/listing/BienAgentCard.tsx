@@ -91,6 +91,11 @@ interface BienAgentCardProps {
   langs?: string[] | null
   /** Clé du partenaire dans PARTNER_AGENCIES — active la variante partner */
   partnerKey?: 'naef' | 'cardis' | 'bernard' | null
+  /** Disposition de la card (port proto megga-bien-contact.jsx wrapper).
+   *  - sticky (default) : sticky 380px en colonne droite
+   *  - banner           : card simple sans sticky (à intégrer dans le flow)
+   *  - floating         : fixed bottom-right widget                        */
+  layout?: 'sticky' | 'banner' | 'floating'
   /** Statut du bien — désactive le CTA si sold/compromis */
   status?: 'available' | 'compromis' | 'sold'
   isFavorite?: boolean
@@ -107,6 +112,7 @@ export default function BienAgentCard({
   ratingCount,
   langs,
   partnerKey,
+  layout = 'sticky',
   status = 'available',
   isFavorite: _isFavorite,
   onToggleFavorite: _onToggleFavorite,
@@ -152,19 +158,48 @@ export default function BienAgentCard({
     }
   }
 
-  return (
-    <div
-      style={{
-        position: 'sticky',
-        top: 24,
+  // Wrapper styles — port proto megga-bien-contact.jsx wrapper switch
+  const wrapperStyle: React.CSSProperties = (() => {
+    if (layout === 'banner') {
+      return {
+        background: M.card,
+        border: `1px solid ${M.border}`,
+        borderRadius: 14,
+        padding: 22,
+        marginBottom: 24,
+        fontFamily: FONT,
+      }
+    }
+    if (layout === 'floating') {
+      return {
+        position: 'fixed',
+        bottom: 24,
+        right: 24,
+        zIndex: 90,
+        width: 360,
         background: M.card,
         border: `1px solid ${M.border}`,
         borderRadius: 16,
         padding: 22,
-        boxShadow: '0 1px 3px rgba(14,20,16,0.04)',
+        boxShadow: '0 20px 50px rgba(14,20,16,0.18)',
         fontFamily: FONT,
-      }}
-    >
+      }
+    }
+    // sticky (default)
+    return {
+      position: 'sticky',
+      top: 24,
+      background: M.card,
+      border: `1px solid ${M.border}`,
+      borderRadius: 16,
+      padding: 22,
+      boxShadow: '0 1px 3px rgba(14,20,16,0.04)',
+      fontFamily: FONT,
+    }
+  })()
+
+  return (
+    <div style={wrapperStyle}>
       {/* === Partner agency banner (only when partner is set) === */}
       {partner && (
         <div

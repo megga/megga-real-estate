@@ -32,6 +32,11 @@ import { useVirtualStaging, STAGING_STYLES, ROOM_TYPES, type StagingStyle, type 
 import FloorPlanEditor from '@/components/listings/FloorPlanEditor'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
 import GalleryLayoutPicker from '@/components/listing/GalleryLayoutPicker'
+import {
+  ContactLayoutPicker,
+  NeighborhoodVariantPicker,
+  PartnerAgencyPicker,
+} from '@/components/listing/ListingDisplayPickers'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
@@ -113,6 +118,9 @@ const step3Schema = step3SchemaBase.superRefine((d, ctx) => {
 const step4Schema = z.object({
   photos: z.array(z.string()).optional(),
   gallery_layout: z.enum(['hero', 'mosaic', 'carousel']).optional(),
+  contact_layout: z.enum(['right', 'banner', 'floating']).optional(),
+  neighborhood_variant: z.enum(['scores', 'map']).optional(),
+  partner_agency: z.enum(['naef', 'cardis', 'bernard']).nullable().optional(),
 })
 
 const step5Schema = z.object({
@@ -1151,12 +1159,38 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
         </DndContext>
       )}
 
-      {/* Gallery layout picker — port proto megga-bien-gallery.jsx 3 variants */}
+      {/* === Disposition de la fiche publique (port proto MEGGA Bien.html) === */}
       {allPhotos.length > 0 && (
-        <GalleryLayoutPicker
-          value={(watch('gallery_layout') as 'hero' | 'mosaic' | 'carousel' | undefined) || 'hero'}
-          onChange={(layout) => setValue('gallery_layout', layout)}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0E1410', margin: 0 }}>
+              Disposition de la fiche publique
+            </h3>
+            <p style={{ fontSize: 12, color: '#7A8079', marginTop: 4 }}>
+              Choisissez comment votre annonce sera mise en page sur la fiche publique du bien.
+            </p>
+          </div>
+
+          <GalleryLayoutPicker
+            value={(watch('gallery_layout') as 'hero' | 'mosaic' | 'carousel' | undefined) || 'hero'}
+            onChange={(layout) => setValue('gallery_layout', layout)}
+          />
+
+          <ContactLayoutPicker
+            value={(watch('contact_layout') as 'right' | 'banner' | 'floating' | undefined) || 'right'}
+            onChange={(v) => setValue('contact_layout', v)}
+          />
+
+          <NeighborhoodVariantPicker
+            value={(watch('neighborhood_variant') as 'scores' | 'map' | undefined) || 'map'}
+            onChange={(v) => setValue('neighborhood_variant', v)}
+          />
+
+          <PartnerAgencyPicker
+            value={(watch('partner_agency') as 'naef' | 'cardis' | 'bernard' | null | undefined) ?? null}
+            onChange={(v) => setValue('partner_agency', v)}
+          />
+        </div>
       )}
 
       {/* MEGGA Staging — Virtual Staging IA */}
@@ -2054,6 +2088,9 @@ export default function ListingFormPage() {
       external_regie: undefined,
       photos: [],
       gallery_layout: 'hero',
+      contact_layout: 'right',
+      neighborhood_variant: 'map',
+      partner_agency: null,
       description: '',
       tags: [],
     },
@@ -2181,6 +2218,9 @@ export default function ListingFormPage() {
       floor_plan_hotspots: floorPlanHotspots,
       photo_tags: photoTags,
       gallery_layout: values.gallery_layout ?? 'hero',
+      contact_layout: values.contact_layout ?? 'right',
+      neighborhood_variant: values.neighborhood_variant ?? 'map',
+      partner_agency: values.partner_agency ?? null,
       published_at: status === 'active' ? new Date().toISOString() : undefined,
     }
   }
