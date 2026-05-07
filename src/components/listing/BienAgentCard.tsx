@@ -127,13 +127,6 @@ export default function BienAgentCard({
   const [phoneShown, setPhoneShown] = useState(false)
   const [shared, setShared] = useState(false)
 
-  // Initials from agent name (e.g. "Sophie Martin" → "SM")
-  const initials = agent.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(n => n[0]?.toUpperCase() || '')
-    .join('')
-    .slice(0, 2)
 
   const isUnavail = status === 'sold' || status === 'compromis'
   const statusLabel = status === 'sold' ? 'vendu' : 'sous compromis'
@@ -200,166 +193,58 @@ export default function BienAgentCard({
 
   return (
     <div style={wrapperStyle}>
-      {/* === Partner agency banner (only when partner is set) === */}
-      {partner && (
-        <div
+      {/* === Agent identity === proto-fidèle: badge centered + name + agency (no avatar in this variant) */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 18, gap: 6 }}>
+        <span
           style={{
-            margin: '-22px -22px 18px',
-            padding: '14px 16px',
-            background: partner.accentSoft,
-            borderBottom: `1px solid ${M.border}`,
-            borderRadius: '16px 16px 0 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 4,
-              background: partner.accent,
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: partner.monogramFont,
-              fontSize: partner.monogram.length > 1 ? 16 : 22,
-              fontWeight: 700,
-              letterSpacing: -0.5,
-              flexShrink: 0,
-            }}
-          >
-            {partner.monogram}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontFamily: FONT,
-                fontSize: 14,
-                fontWeight: 700,
-                color: M.ink,
-                lineHeight: 1.2,
-                letterSpacing: -0.2,
-              }}
-            >
-              {partner.name}
-            </div>
-            <div
-              style={{
-                fontFamily: FONT,
-                fontSize: 11,
-                color: partner.accent,
-                fontWeight: 600,
-                marginTop: 2,
-                letterSpacing: 0.2,
-              }}
-            >
-              {partner.tagline}
-            </div>
-          </div>
-          <div
-            style={{
-              fontFamily: FONT,
-              fontSize: 9,
-              fontWeight: 800,
-              letterSpacing: 0.6,
-              color: partner.accent,
-              border: `1px solid ${partner.accent}`,
-              padding: '3px 7px',
-              borderRadius: 3,
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            {partner.badge}
-          </div>
-        </div>
-      )}
-
-      {/* === Agent identity === */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 999,
-            background: partner
-              ? partner.accent
-              : 'linear-gradient(135deg, #0041D9, #6A8CFF)',
-            color: '#fff',
             fontFamily: FONT,
-            fontSize: 20,
+            fontSize: 11,
             fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            letterSpacing: 0.5,
-            flexShrink: 0,
-            backgroundImage: agent.photo ? `url(${agent.photo})` : undefined,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            letterSpacing: 0.8,
+            color: M.green,
+            background: '#E8EFFE',
+            padding: '3px 10px',
+            borderRadius: 6,
+            textTransform: 'uppercase',
           }}
         >
-          {!agent.photo && initials}
+          Partenaire MEGGA
+        </span>
+        <div
+          style={{
+            fontFamily: FONT,
+            fontSize: 22,
+            fontWeight: 700,
+            color: M.ink,
+            lineHeight: 1.2,
+            letterSpacing: -0.4,
+            marginTop: 2,
+          }}
+        >
+          {agent.name}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {!partner && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-              <span
-                style={{
-                  fontFamily: FONT,
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: 0.6,
-                  color: M.green,
-                  background: '#E8EFFE',
-                  padding: '2px 7px',
-                  borderRadius: 4,
-                  textTransform: 'uppercase',
-                }}
-              >
-                Partenaire MEGGA
-              </span>
-            </div>
-          )}
-          <div
-            style={{
-              fontFamily: FONT,
-              fontSize: 16,
-              fontWeight: 700,
-              color: M.ink,
-              lineHeight: 1.2,
-            }}
-          >
-            {agent.name}
-          </div>
-          <div
-            style={{
-              fontFamily: FONT,
-              fontSize: 12,
-              color: M.muted,
-              marginTop: 2,
-              lineHeight: 1.4,
-            }}
-          >
-            {partner ? `Courtier · ${partner.name}` : (agent.agency || 'MEGGA Real Estate')}
-          </div>
+        <div
+          style={{
+            fontFamily: FONT,
+            fontSize: 14,
+            color: M.muted,
+            lineHeight: 1.4,
+          }}
+        >
+          {partner ? partner.name : (agent.agency || 'MEGGA Real Estate')}
         </div>
       </div>
 
-      {/* === Stats row (proto: 3 cols Biens / Avis / Langues) === */}
+      {/* === Stats row (3 cols Biens / Avis / Langues) — match user mockup: bigger values, more padding === */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr',
           gap: 0,
           background: M.cardSoft,
-          borderRadius: 10,
-          padding: '10px 4px',
-          marginBottom: 16,
+          borderRadius: 12,
+          padding: '16px 4px',
+          marginBottom: 18,
         }}
       >
         {[
@@ -373,18 +258,19 @@ export default function BienAgentCard({
             key={i}
             style={{
               textAlign: 'center',
-              padding: '0 4px',
+              padding: '0 6px',
               borderRight: i < 2 ? `1px solid ${M.border}` : 'none',
             }}
           >
             <div
               style={{
                 fontFamily: FONT,
-                fontSize: 14,
-                fontWeight: 800,
+                fontSize: 22,
+                fontWeight: 700,
                 color: M.ink,
                 fontVariantNumeric: 'tabular-nums',
-                letterSpacing: -0.2,
+                letterSpacing: -0.4,
+                lineHeight: 1.1,
               }}
             >
               {s.v}
@@ -392,10 +278,10 @@ export default function BienAgentCard({
             <div
               style={{
                 fontFamily: FONT,
-                fontSize: 10,
+                fontSize: 13,
                 color: M.muted,
-                fontWeight: 600,
-                marginTop: 2,
+                fontWeight: 500,
+                marginTop: 6,
               }}
             >
               {s.l}
