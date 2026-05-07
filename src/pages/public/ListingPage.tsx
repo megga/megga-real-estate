@@ -9,6 +9,7 @@ import { generateListingTitle, type Lang } from '@/lib/listingTitle'
 import { Button } from '@/components/ui/button'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import FooterMega from '@/components/layout/FooterMega'
+import ListingPageSkeleton from '@/components/listing/ListingPageSkeleton'
 import AffordabilityCalculator from '@/components/listings/AffordabilityCalculator'
 import RequestVisitModal from '@/components/listings/RequestVisitModal'
 
@@ -222,15 +223,12 @@ export default function ListingPage() {
   const floorPlanUrl = listingAny?.floor_plan_url as string | null ?? null
   const floorPlanHotspots = (listingAny?.floor_plan_hotspots as FloorPlanHotspot[]) ?? []
 
-  // ── Loading state ──
+  // ── Loading state — skeleton screens (style Airbnb/Booking) ──
   if (isLoadingData) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <HomeStickyHeader alwaysShow />
-        <div className="flex flex-col items-center justify-center h-[60vh]">
-          <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
-          <p className="text-sm text-gray-500">Chargement du bien...</p>
-        </div>
+        <ListingPageSkeleton />
       </div>
     )
   }
