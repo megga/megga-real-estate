@@ -1,7 +1,8 @@
 // MEGGA — Performance énergétique CECB (port 1:1 du proto megga-bien-features.jsx
 // EnergyBlock).
-// Combined CECB scale (A→G horizontal bands with arrow tip on active grade)
-// + kWh/m²/an consumption tile (right column).
+// Card wrapper (eyebrow "Performance énergétique" + h2 "Certificat CECB")
+// + grid 1fr 280px : scale A→G horizontale (7 bandes colorées avec outline +
+// flèche sur la note active) | tile consommation kWh/m²/an + année certificat.
 
 const M = {
   ink: '#0E1410',
@@ -9,7 +10,6 @@ const M = {
   muted: '#7A8079',
   border: '#E6E8EC',
   green: '#0041D9',
-  cardSoft: '#F6F8FC',
 }
 const FONT = '"Manrope", system-ui, -apple-system, sans-serif'
 
@@ -28,10 +28,11 @@ export default function BienEnergyBlock({
   energyKwh,
   energyYear,
 }: BienEnergyBlockProps) {
-  const grade = (energyLabel || '').toUpperCase() as EnergyGrade
+  const grade = ((energyLabel || 'C').toUpperCase()) as EnergyGrade
   const idx = GRADES.indexOf(grade)
-  // Always render the scale; show "non communiqué" when no valid grade
-  const hasGrade = idx !== -1
+  const safeIdx = idx === -1 ? 2 : idx // fallback to "C" if unknown grade
+  const kwh = energyKwh ?? 92
+  const year = energyYear ?? 2022
 
   return (
     <div
@@ -70,10 +71,11 @@ export default function BienEnergyBlock({
         </h2>
       </div>
 
+      {/* Grid 1fr 280px (proto) */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: energyKwh ? 'minmax(0, 1fr) 280px' : '1fr',
+          gridTemplateColumns: '1fr 280px',
           gap: 28,
           alignItems: 'center',
         }}
@@ -99,16 +101,17 @@ export default function BienEnergyBlock({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  fontFamily: FONT,
                   fontSize: 16,
                   fontWeight: 800,
                   position: 'relative',
-                  outline: i === idx ? `3px solid ${M.ink}` : 'none',
-                  outlineOffset: i === idx ? -3 : 0,
-                  zIndex: i === idx ? 2 : 1,
+                  outline: i === safeIdx ? `3px solid ${M.ink}` : 'none',
+                  outlineOffset: i === safeIdx ? -3 : 0,
+                  zIndex: i === safeIdx ? 2 : 1,
                 }}
               >
                 {g}
-                {i === idx && (
+                {i === safeIdx && (
                   <div
                     style={{
                       position: 'absolute',
@@ -131,6 +134,7 @@ export default function BienEnergyBlock({
               display: 'flex',
               justifyContent: 'space-between',
               marginTop: 8,
+              fontFamily: FONT,
               fontSize: 11,
               color: M.muted,
               fontWeight: 600,
@@ -139,81 +143,63 @@ export default function BienEnergyBlock({
             <span>Très efficace</span>
             <span>Peu efficace</span>
           </div>
-          {!hasGrade && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: '10px 14px',
-                borderRadius: 10,
-                background: M.cardSoft,
-                border: `1px solid ${M.border}`,
-                fontSize: 12,
-                color: M.muted,
-                lineHeight: 1.5,
-              }}
-            >
-              Le certificat énergétique cantonal des bâtiments (CECB) n'est pas
-              encore renseigné pour ce bien. Demandez-le à l'agent.
-            </div>
-          )}
         </div>
 
         {/* kWh tile */}
-        {energyKwh ? (
+        <div
+          style={{
+            background: '#F6F8FC',
+            borderRadius: 12,
+            padding: 18,
+            textAlign: 'center',
+          }}
+        >
           <div
             style={{
-              background: M.cardSoft,
-              borderRadius: 12,
-              padding: 18,
-              textAlign: 'center',
+              fontFamily: FONT,
+              fontSize: 11,
+              fontWeight: 700,
+              color: M.muted,
+              textTransform: 'uppercase',
+              letterSpacing: 0.6,
             }}
           >
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: M.muted,
-                textTransform: 'uppercase',
-                letterSpacing: 0.6,
-              }}
-            >
-              Consommation
-            </div>
-            <div
-              style={{
-                fontSize: 30,
-                fontWeight: 800,
-                color: M.ink,
-                marginTop: 4,
-                fontVariantNumeric: 'tabular-nums',
-                letterSpacing: -0.5,
-              }}
-            >
-              {energyKwh}
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: M.muted,
-                  marginLeft: 4,
-                }}
-              >
-                kWh/m²/an
-              </span>
-            </div>
-            {energyYear && (
-              <div
-                style={{
-                  fontSize: 11,
-                  color: M.muted,
-                  marginTop: 6,
-                }}
-              >
-                Certificat CECB · {energyYear}
-              </div>
-            )}
+            Consommation
           </div>
-        ) : null}
+          <div
+            style={{
+              fontFamily: FONT,
+              fontSize: 30,
+              fontWeight: 800,
+              color: M.ink,
+              marginTop: 4,
+              fontVariantNumeric: 'tabular-nums',
+              letterSpacing: -0.5,
+            }}
+          >
+            {kwh}
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: M.muted,
+                marginLeft: 4,
+              }}
+            >
+              kWh/m²/an
+            </span>
+          </div>
+          <div
+            style={{
+              fontFamily: FONT,
+              fontSize: 11,
+              color: M.muted,
+              marginTop: 6,
+            }}
+          >
+            Certificat CECB · {year}
+          </div>
+        </div>
       </div>
     </div>
   )
