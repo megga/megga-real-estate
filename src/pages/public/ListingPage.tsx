@@ -414,13 +414,16 @@ export default function ListingPage() {
             </div>
           )}
 
-          {/* Quartier (proto: card avec map embarquée + amenities) */}
+          {/* Quartier (port proto NeighborhoodBlock — variant map Leaflet) */}
           <BienNeighborhoodBlock
             neighborhood={listing.city || listing.canton || ''}
+            variant="map"
+            bienId={listing.id}
+            title={listing.title}
+            type={listing.type}
+            addr={listing.address}
             lat={listing.lat}
             lng={listing.lng}
-            address={listing.address}
-            city={listing.city}
           />
 
           <BienDocumentsBlock />
