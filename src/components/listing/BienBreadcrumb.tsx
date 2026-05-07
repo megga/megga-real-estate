@@ -5,8 +5,8 @@ import { Link } from 'react-router-dom'
 
 const M = {
   ink: '#0E1410',
-  soft: '#4A5249',
-  muted: '#847D6E',
+  soft: '#3F4640',
+  muted: '#7A8079',
   green: '#0041D9',
 }
 const FONT = '"Manrope", system-ui, -apple-system, sans-serif'

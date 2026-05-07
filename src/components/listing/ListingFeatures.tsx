@@ -14,8 +14,8 @@ interface ListingFeaturesProps {
 
 const M = {
   ink: '#0E1410',
-  muted: '#847D6E',
-  border: '#DDE2EA',
+  muted: '#7A8079',
+  border: '#E6E8EC',
   green: '#0041D9',
   pillBg: '#E8EFFE',
 }

@@ -200,7 +200,7 @@ export default function NeighborhoodSection({ lat, lng, canton, city, compact }:
     <div
       style={{
         background: '#fff',
-        border: '1px solid #DDE2EA',
+        border: '1px solid #E6E8EC',
         borderRadius: 14,
         padding: 22,
         fontFamily: FONT,

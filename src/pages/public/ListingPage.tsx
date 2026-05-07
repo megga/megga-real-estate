@@ -8,40 +8,28 @@ import { getListingById } from '@/lib/mockData'
 import { generateListingTitle, type Lang } from '@/lib/listingTitle'
 import { Button } from '@/components/ui/button'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
+import FooterMega from '@/components/layout/FooterMega'
 import AffordabilityCalculator from '@/components/listings/AffordabilityCalculator'
 import RequestVisitModal from '@/components/listings/RequestVisitModal'
 
-// New listing components
+// New listing components (port proto MEGGA Bien.html)
 import ListingHeroGallery from '@/components/listing/ListingHeroGallery'
-import ListingStickyNav, { type SectionDef } from '@/components/listing/ListingStickyNav'
-// ListingHeader supprimé : BienPriceCard.KpiRow couvre les stats désormais.
 import BienBreadcrumb from '@/components/listing/BienBreadcrumb'
 import BienTitleBar from '@/components/listing/BienTitleBar'
 import BienPriceCard from '@/components/listing/BienPriceCard'
 import ListingDescription from '@/components/listing/ListingDescription'
-import ListingFeatures from '@/components/listing/ListingFeatures'
-import ListingMap from '@/components/listing/ListingMap'
-import ListingMarketSection from '@/components/listing/ListingMarketSection'
-import ListingSimilarCarousel from '@/components/listing/ListingSimilarCarousel'
+import BienSpecsBlock from '@/components/listing/BienSpecsBlock'
+import BienEnergyBlock from '@/components/listing/BienEnergyBlock'
+import BienNeighborhoodBlock from '@/components/listing/BienNeighborhoodBlock'
+import BienDocumentsBlock from '@/components/listing/BienDocumentsBlock'
+import BienSimilarBlock from '@/components/listing/BienSimilarBlock'
 import BienAgentCard from '@/components/listing/BienAgentCard'
 import C2PaBadge from '@/components/listing/C2PaBadge'
 import ListingLightbox from '@/components/listing/ListingLightbox'
 import ListingMobileBar from '@/components/listing/ListingMobileBar'
-import NeighborhoodSection from '@/components/listing/NeighborhoodSection'
 import InteractiveFloorPlan from '@/components/listing/InteractiveFloorPlan'
 import ContactAgentModal from '@/components/listing/ContactAgentModal'
 import type { FloorPlanHotspot } from '@/types/floorPlan'
-
-// ─── Section definitions for sticky nav ─────────────────────────────────
-
-const BASE_SECTIONS: SectionDef[] = [
-  { id: 'description', label: 'Description' },
-  { id: 'caracteristiques', label: 'Caractéristiques' },
-  { id: 'localisation', label: 'Localisation' },
-  { id: 'quartier', label: 'Quartier' },
-  { id: 'marche', label: 'Marché' },
-  { id: 'similaires', label: 'Similaires' },
-]
 
 // ─── Transform raw Supabase data to listing format ──────────────────────
 
@@ -97,6 +85,18 @@ function transformSupabaseToListing(data: Record<string, any>, source: 'market' 
     is_furnished: !!data.is_furnished,
     deposit_months: (data.deposit_months as number | null | undefined) ?? null,
     external_regie: (data.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null,
+    // Amenity flags (proto SpecsBlock + équipements pills)
+    year_built: (data.year_built as number | null | undefined) ?? null,
+    energy_label: (data.energy_label as string | null | undefined) ?? null,
+    has_balcony: !!data.has_balcony,
+    has_swimming_pool: !!data.has_swimming_pool,
+    has_nice_view: !!data.has_nice_view,
+    has_garage: !!data.has_garage,
+    has_parking: !!data.has_parking,
+    has_elevator: !!data.has_elevator,
+    has_fireplace: !!data.has_fireplace,
+    is_new_building: !!data.is_new_building,
+    is_minergie: !!data.is_minergie,
   }
 }
 
@@ -178,13 +178,12 @@ export default function ListingPage() {
   }, [isInternalListing, isMarketListing, agentProfile, marketData, listing])
 
   // ── Similar listings ──
+  const similarTxType = (listing as { transaction_type?: string } | null)?.transaction_type
   const similarFilters = useMemo(() => listing ? {
-    context: 'buy' as const,
+    context: similarTxType === 'rent' ? ('rent' as const) : ('buy' as const),
     canton: listing.canton,
     types: [listing.type],
-    minPrice: Math.round(listing.price * 0.7),
-    maxPrice: Math.round(listing.price * 1.3),
-  } : {}, [listing])
+  } : {}, [listing, similarTxType])
   const { data: similarData } = useMarketListings(listing ? similarFilters : {})
   const similarListings = useMemo(
     () => (similarData?.pages.flatMap(p => p.listings) ?? [])
@@ -210,11 +209,6 @@ export default function ListingPage() {
   const listingAny = listing as Record<string, any> | null
   const floorPlanUrl = listingAny?.floor_plan_url as string | null ?? null
   const floorPlanHotspots = (listingAny?.floor_plan_hotspots as FloorPlanHotspot[]) ?? []
-
-  // Dynamic sections (add Plan tab if floor plan exists)
-  const SECTIONS: SectionDef[] = floorPlanUrl
-    ? [BASE_SECTIONS[0], BASE_SECTIONS[1], { id: 'plan', label: 'Plan' }, ...BASE_SECTIONS.slice(2)]
-    : BASE_SECTIONS
 
   // ── Loading state ──
   if (isLoadingData) {
@@ -254,9 +248,33 @@ export default function ListingPage() {
   const mode: 'louer' | 'acheter' = txType === 'rent' ? 'louer' : 'acheter'
   const isPriceReduced =
     !!(listing as { price_reduced?: boolean }).price_reduced || !!listing.is_hot
-  const constructionYear = (listing as { construction_year?: number | null })
-    .construction_year
-  const isNew = !!constructionYear && constructionYear >= 2020
+  const yearBuilt =
+    (listing as { year_built?: number | null }).year_built ??
+    (listing as { construction_year?: number | null }).construction_year ??
+    null
+  const isNew = !!yearBuilt && yearBuilt >= 2020
+
+  // Build équipements list from booleans + raw features array (proto-fidèle pills)
+  const equipmentsList: string[] = (() => {
+    const out: string[] = []
+    const l = listing as Record<string, unknown>
+    if (l.has_balcony) out.push('Balcon')
+    if (l.has_garage) out.push('Garage')
+    if (l.has_parking && !l.has_garage) out.push('Parking')
+    if (l.has_elevator) out.push('Ascenseur')
+    if (l.has_nice_view) out.push('Vue dégagée')
+    if (l.has_swimming_pool) out.push('Piscine')
+    if (l.has_fireplace) out.push('Cheminée')
+    if (l.is_minergie) out.push('Minergie')
+    if (l.is_new_building) out.push('Construction récente')
+    if (l.is_furnished) out.push('Meublé')
+    if (Array.isArray(l.features)) {
+      for (const f of l.features as unknown[]) {
+        if (typeof f === 'string' && !out.includes(f)) out.push(f)
+      }
+    }
+    return out
+  })()
 
   return (
     <div
@@ -301,108 +319,145 @@ export default function ListingPage() {
         onToggleFavorite={() => setIsFavorite(!isFavorite)}
       />
 
-      {/* ── Sticky Section Navigation ── */}
-      <ListingStickyNav sections={SECTIONS} />
-
-      {/* ── Main Content + Sidebar ── */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-8">
-        <div className="flex gap-10">
-          {/* Left: Content */}
-          <div className="flex-1 min-w-0 flex flex-col gap-6">
-            <BienPriceCard
-              price={listing.price}
-              priceOriginal={(listing as { price_original?: number | null }).price_original ?? null}
-              mode={mode}
-              surface={listing.surface_m2}
-              charges={listing.charges_monthly}
-              rooms={listing.rooms}
-              bedrooms={listing.bedrooms}
-              bathrooms={listing.bathrooms}
+      {/* ── Split Body (proto megga-bien-page.jsx: maxWidth 1280, 1fr 380px, gap 32) ── */}
+      <div
+        className="bien-split-body"
+        style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '0 clamp(20px, 4vw, 32px) 60px',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 380px',
+          gap: 32,
+          alignItems: 'start',
+        }}
+      >
+        {/* Left column — proto: gap 20 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+          <BienPriceCard
+            price={listing.price}
+            priceOriginal={(listing as { price_original?: number | null }).price_original ?? null}
+            mode={mode}
+            surface={listing.surface_m2}
+            charges={listing.charges_monthly}
+            rooms={listing.rooms}
+            bedrooms={listing.bedrooms}
+            bathrooms={listing.bathrooms}
+          />
+          {(listing as { c2pa_verified?: boolean; c2pa_verified_at?: string }).c2pa_verified && (
+            <C2PaBadge
+              verified={(listing as { c2pa_verified?: boolean }).c2pa_verified || false}
+              verifiedAt={(listing as { c2pa_verified_at?: string }).c2pa_verified_at}
             />
-            {(listing as { c2pa_verified?: boolean; c2pa_verified_at?: string }).c2pa_verified && (
-              <div className="mb-4">
-                <C2PaBadge
-                  verified={(listing as { c2pa_verified?: boolean }).c2pa_verified || false}
-                  verifiedAt={(listing as { c2pa_verified_at?: string }).c2pa_verified_at}
-                />
-              </div>
-            )}
-            <ListingDescription description={listing.description} />
-            <ListingFeatures features={listing.features} />
+          )}
 
-            {/* Floor Plan Interactif */}
-            {floorPlanUrl && floorPlanHotspots.length > 0 && (
-              <div id="plan" className="scroll-mt-28 mt-10 pt-8 border-t border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Plan interactif</h2>
-                <InteractiveFloorPlan
-                  floorPlanUrl={floorPlanUrl}
-                  hotspots={floorPlanHotspots}
-                  activeRoom={floorPlanRoom}
-                  onRoomClick={(roomKey, photoUrls) => {
-                    if (!roomKey || roomKey === floorPlanRoom) {
-                      setFloorPlanRoom(null)
-                    } else {
-                      setFloorPlanRoom(roomKey)
-                      if (photoUrls.length > 0) {
-                        setLightboxIndex(0)
-                        setLightboxOpen(true)
-                      }
-                    }
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          <ListingDescription description={listing.description} />
 
-          {/* Right: BienAgentCard (port proto megga-bien-contact.jsx sticky) */}
-          <div style={{ width: 380, flexShrink: 0, display: 'block' }} className="hidden lg:block">
-            <BienAgentCard
-              agent={{
-                name: resolvedAgent.name,
-                agency: resolvedAgent.agency,
-                phone: resolvedAgent.phone,
-                email: resolvedAgent.email,
-                photo: resolvedAgent.photo || null,
+          <BienSpecsBlock
+            bienId={listing.id}
+            type={listing.type}
+            yearBuilt={yearBuilt}
+            floor={listing.floor}
+            surfaceM2={listing.surface_m2}
+            hasElevator={(listing as { has_elevator?: boolean }).has_elevator ?? null}
+            chargesMonthly={listing.charges_monthly}
+            hasGarage={(listing as { has_garage?: boolean }).has_garage ?? null}
+            hasParking={(listing as { has_parking?: boolean }).has_parking ?? null}
+            equipments={equipmentsList}
+          />
+
+          <BienEnergyBlock
+            energyLabel={(listing as { energy_label?: string | null }).energy_label ?? null}
+          />
+
+          {/* Floor Plan Interactif (kept inside left column) */}
+          {floorPlanUrl && floorPlanHotspots.length > 0 && (
+            <div
+              id="plan"
+              className="scroll-mt-28"
+              style={{
+                background: '#fff',
+                border: '1px solid #DDE2EA',
+                borderRadius: 14,
+                padding: 22,
               }}
-              bienId={listing.id}
-              status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
-              isFavorite={isFavorite}
-              onToggleFavorite={() => setIsFavorite(!isFavorite)}
-              onAskVisit={() => setShowVisitModal(true)}
-              onContact={() => setShowContactModal(true)}
-            />
-          </div>
+            >
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0E1410', marginBottom: 16 }}>
+                Plan interactif
+              </h2>
+              <InteractiveFloorPlan
+                floorPlanUrl={floorPlanUrl}
+                hotspots={floorPlanHotspots}
+                activeRoom={floorPlanRoom}
+                onRoomClick={(roomKey, photoUrls) => {
+                  if (!roomKey || roomKey === floorPlanRoom) {
+                    setFloorPlanRoom(null)
+                  } else {
+                    setFloorPlanRoom(roomKey)
+                    if (photoUrls.length > 0) {
+                      setLightboxIndex(0)
+                      setLightboxOpen(true)
+                    }
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Quartier (proto: card avec map embarquée + amenities) */}
+          <BienNeighborhoodBlock
+            neighborhood={listing.city || listing.canton || ''}
+            lat={listing.lat}
+            lng={listing.lng}
+            address={listing.address}
+            city={listing.city}
+          />
+
+          <BienDocumentsBlock />
+        </div>
+
+        {/* Right column — sticky agent card (proto: 380px) */}
+        <div className="bien-sidebar" style={{ minWidth: 0 }}>
+          <BienAgentCard
+            agent={{
+              name: resolvedAgent.name,
+              agency: resolvedAgent.agency,
+              phone: resolvedAgent.phone || '+41 22 555 00 00',
+              email: resolvedAgent.email,
+              photo: resolvedAgent.photo || null,
+            }}
+            bienId={listing.id}
+            soldThisYear={6}
+            rating={4.8}
+            ratingCount={42}
+            langs={['FR', 'EN']}
+            status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
+            isFavorite={isFavorite}
+            onToggleFavorite={() => setIsFavorite(!isFavorite)}
+            onAskVisit={() => setShowVisitModal(true)}
+            onContact={() => setShowContactModal(true)}
+          />
         </div>
       </div>
 
-      {/* ── Map (full-bleed) ── */}
-      <ListingMap
-        lat={listing.lat}
-        lng={listing.lng}
-        address={listing.address}
-        city={listing.city}
-        postal_code={listing.postal_code}
+      {/* Responsive: collapse to single column under 1024 */}
+      <style>{`
+        @media (max-width: 1023px) {
+          .bien-split-body { grid-template-columns: 1fr !important; }
+          .bien-sidebar { display: none !important; }
+        }
+      `}</style>
+
+      {/* ── Similar Listings (proto megga-bien-similar.jsx) ── */}
+      <BienSimilarBlock
+        listings={similarListings}
+        type={listing.type}
+        canton={listing.canton}
+        mode={mode}
       />
 
-      {/* ── Neighborhood Insights ── */}
-      <div id="quartier" className="scroll-mt-28 max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-12">
-        <NeighborhoodSection lat={listing.lat} lng={listing.lng} canton={listing.canton} city={listing.city} />
-      </div>
-
-      {/* ── Market Analysis ── */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-12">
-        <ListingMarketSection
-          isMarket={!!isMarketListing}
-          rawId={rawId}
-          canton={listing.canton}
-          city={listing.city}
-          lat={listing.lat}
-          lng={listing.lng}
-        />
-      </div>
-
-      {/* ── Similar Listings Carousel (full-bleed) ── */}
-      <ListingSimilarCarousel listings={similarListings} />
+      {/* ── Footer (proto MEGGA_FooterMega) ── */}
+      <FooterMega />
 
       {/* ── Overlays ── */}
       <ListingLightbox

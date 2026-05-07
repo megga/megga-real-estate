@@ -231,7 +231,7 @@ export default function ListingPreviewModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: 1280,
+          maxWidth: 1200,
           maxHeight: 'calc(100vh - 80px)',
           background: '#fff',
           borderRadius: 24,
@@ -569,7 +569,7 @@ export default function ListingPreviewModal({
                     width: 48,
                     height: 48,
                     borderRadius: 999,
-                    background: '#DCE3D4',
+                    background: 'linear-gradient(135deg, #c8d2bc, #a8b598)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

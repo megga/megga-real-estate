@@ -17,9 +17,9 @@ import { useState } from 'react'
 
 const M = {
   ink: '#0E1410',
-  soft: '#4A5249',
-  muted: '#847D6E',
-  border: '#DDE2EA',
+  soft: '#3F4640',
+  muted: '#7A8079',
+  border: '#E6E8EC',
   card: '#FFFFFF',
   cardSoft: '#F6F8FC',
   green: '#0041D9',
@@ -80,7 +80,16 @@ export default function BienAgentCard({
   const isUnavail = status === 'sold' || status === 'compromis'
   const statusLabel = status === 'sold' ? 'vendu' : 'sous compromis'
 
-  const verifiedRef = bienId ? `MG-${String(bienId).padStart(5, '0')}` : 'MG-—'
+  const verifiedRef = (() => {
+    if (!bienId) return 'MG-—'
+    const digits = String(bienId).replace(/\D/g, '')
+    if (digits) return `MG-${digits.slice(-5).padStart(5, '0')}`
+    let hash = 0
+    for (let i = 0; i < String(bienId).length; i++) {
+      hash = (hash * 31 + String(bienId).charCodeAt(i)) >>> 0
+    }
+    return `MG-${String(hash % 100000).padStart(5, '0')}`
+  })()
 
   const handleShare = () => {
     if (typeof window !== 'undefined' && navigator.clipboard) {

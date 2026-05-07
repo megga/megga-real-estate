@@ -9,9 +9,9 @@ import { useTranslatedDescription } from '@/hooks/useTranslatedDescription'
 
 const M = {
   ink: '#0E1410',
-  soft: '#4A5249',
-  muted: '#847D6E',
-  border: '#DDE2EA',
+  soft: '#3F4640',
+  muted: '#7A8079',
+  border: '#E6E8EC',
   card: '#FFFFFF',
   green: '#0041D9',
 }
