@@ -1,17 +1,7 @@
-// MEGGA — Bien agent card sticky (port focused du proto megga-bien-contact.jsx).
-//
-// Différences vs proto complet :
-// - Pas de PARTNER_AGENCIES registry (Naef/Cardis/Bernard Nicod) — sera porté
-//   dans une PR ultérieure quand on aura les vraies agences partenaires
-// - Pas de QuickQuestionForm inline (le bouton "Poser une question" ouvre
-//   l'ancien ContactAgentModal via onContact)
-// - Pas de visit-request modal 3-step (le bouton "Demander une visite"
-//   ouvre l'ancien RequestVisitModal via onVisit)
-//
-// Match proto pour : layout sticky, avatar 56px gradient ink/blue, chip
-// "Partenaire MEGGA", stats row 3 cols (biens / rating / langues),
-// CTAs (Demander visite ink/blue · Poser question outline · Voir numéro),
-// footer Vérifiée + Partager.
+// MEGGA — Bien agent card sticky (port 1:1 du proto megga-bien-contact.jsx).
+// Inclut le registre PARTNER_AGENCIES (Naef, Cardis, Bernard Nicod) et la
+// variante "partenaire" complète : bandeau agence en haut + avatar/CTA aux
+// couleurs partenaire + footer agence (fullName, address, USPI, mandat).
 
 import { useState } from 'react'
 
@@ -23,9 +13,65 @@ const M = {
   card: '#FFFFFF',
   cardSoft: '#F6F8FC',
   green: '#0041D9',
-  greenAccent: '#1A7A3A',
 }
 const FONT = '"Manrope", system-ui, -apple-system, sans-serif'
+
+/** Partner agencies registry — port 1:1 du proto megga-bien-contact.jsx. */
+export interface PartnerAgency {
+  name: string
+  monogram: string
+  monogramFont: string
+  accent: string
+  accentSoft: string
+  tagline: string
+  establishedYear: number
+  address: string
+  badge: 'Exclusif' | 'Partagé'
+  fullName: string
+  site: string
+}
+
+export const PARTNER_AGENCIES: Record<string, PartnerAgency> = {
+  naef: {
+    name: 'Naef Immobilier',
+    monogram: 'N',
+    monogramFont: "'Cormorant Garamond', 'Times New Roman', serif",
+    accent: '#0E1410',
+    accentSoft: '#F4F2EE',
+    tagline: 'Depuis 1881',
+    establishedYear: 1881,
+    address: 'Av. de la Gare 4, 1003 Lausanne',
+    badge: 'Exclusif',
+    fullName: 'Naef Immobilier Lausanne SA',
+    site: 'naef.ch',
+  },
+  cardis: {
+    name: "Cardis Sotheby's",
+    monogram: 'C',
+    monogramFont: "'Cormorant Garamond', 'Times New Roman', serif",
+    accent: '#0B2545',
+    accentSoft: '#EEF2F7',
+    tagline: "Sotheby's International Realty",
+    establishedYear: 1979,
+    address: 'Rue du Mont-Blanc 17, 1201 Genève',
+    badge: 'Exclusif',
+    fullName: "Cardis Immobilier Sotheby's SA",
+    site: 'cardis.ch',
+  },
+  bernard: {
+    name: 'Bernard Nicod',
+    monogram: 'BN',
+    monogramFont: "'Manrope', sans-serif",
+    accent: '#9C1B2C',
+    accentSoft: '#FBEDEF',
+    tagline: 'Régie immobilière',
+    establishedYear: 1973,
+    address: 'Av. de la Gare 25, 1001 Lausanne',
+    badge: 'Partagé',
+    fullName: 'Bernard Nicod SA',
+    site: 'bernard-nicod.ch',
+  },
+}
 
 interface AgentInfo {
   name: string
@@ -38,33 +84,19 @@ interface AgentInfo {
 interface BienAgentCardProps {
   agent: AgentInfo
   bienId?: string | null
-  /** Stats agent — affichées en row 3 cols. Tous optionnels. */
+  /** Stats agent — affichées en row 3 cols. */
   soldThisYear?: number | null
   rating?: number | null
   ratingCount?: number | null
   langs?: string[] | null
-  /** Pour les annonces marketplace — source d'origine (Flatfox, Homegate…) */
-  sourcePortal?: string | null
-  sourceUrl?: string | null
-  /** Canton du bien — utilisé pour déduire les langues quand non spécifiées */
-  cantonLabel?: string | null
-  /** True si le bien vient de market_listings (pas un mandat MEGGA exclusif) */
-  isMarketListing?: boolean
-  /** Statut du bien — désactive le CTA "Demander une visite" si sold/compromis */
+  /** Clé du partenaire dans PARTNER_AGENCIES — active la variante partner */
+  partnerKey?: 'naef' | 'cardis' | 'bernard' | null
+  /** Statut du bien — désactive le CTA si sold/compromis */
   status?: 'available' | 'compromis' | 'sold'
   isFavorite?: boolean
   onToggleFavorite?: () => void
   onAskVisit?: () => void
   onContact?: () => void
-}
-
-/** Map canton code → langues principales (proto: stats row "Langues") */
-const CANTON_LANGS: Record<string, string[]> = {
-  GE: ['FR'], VD: ['FR'], VS: ['FR', 'DE'], NE: ['FR'], FR: ['FR', 'DE'], JU: ['FR'],
-  BE: ['DE', 'FR'], BS: ['DE'], BL: ['DE'], AG: ['DE'], SO: ['DE'], ZH: ['DE'],
-  LU: ['DE'], ZG: ['DE'], SZ: ['DE'], NW: ['DE'], OW: ['DE'], UR: ['DE'],
-  GL: ['DE'], SH: ['DE'], TG: ['DE'], AR: ['DE'], AI: ['DE'], SG: ['DE'],
-  GR: ['DE', 'IT'], TI: ['IT'],
 }
 
 export default function BienAgentCard({
@@ -74,10 +106,7 @@ export default function BienAgentCard({
   rating,
   ratingCount,
   langs,
-  sourcePortal,
-  sourceUrl,
-  cantonLabel,
-  isMarketListing = false,
+  partnerKey,
   status = 'available',
   isFavorite: _isFavorite,
   onToggleFavorite: _onToggleFavorite,
@@ -86,16 +115,13 @@ export default function BienAgentCard({
 }: BienAgentCardProps) {
   void _isFavorite
   void _onToggleFavorite
-  void sourceUrl
 
-  // Derive languages from canton when not explicitly provided
-  const resolvedLangs = (langs && langs.length > 0)
-    ? langs
-    : (cantonLabel && CANTON_LANGS[cantonLabel.toUpperCase()]) || ['FR']
+  const partner = partnerKey ? PARTNER_AGENCIES[partnerKey] : null
 
   const [phoneShown, setPhoneShown] = useState(false)
   const [shared, setShared] = useState(false)
 
+  // Initials from agent name (e.g. "Sophie Martin" → "SM")
   const initials = agent.name
     .split(/\s+/)
     .filter(Boolean)
@@ -106,6 +132,7 @@ export default function BienAgentCard({
   const isUnavail = status === 'sold' || status === 'compromis'
   const statusLabel = status === 'sold' ? 'vendu' : 'sous compromis'
 
+  // Build 5-digit reference from bien id
   const verifiedRef = (() => {
     if (!bienId) return 'MG-—'
     const digits = String(bienId).replace(/\D/g, '')
@@ -138,14 +165,95 @@ export default function BienAgentCard({
         fontFamily: FONT,
       }}
     >
-      {/* Agent identity */}
+      {/* === Partner agency banner (only when partner is set) === */}
+      {partner && (
+        <div
+          style={{
+            margin: '-22px -22px 18px',
+            padding: '14px 16px',
+            background: partner.accentSoft,
+            borderBottom: `1px solid ${M.border}`,
+            borderRadius: '16px 16px 0 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 4,
+              background: partner.accent,
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: partner.monogramFont,
+              fontSize: partner.monogram.length > 1 ? 16 : 22,
+              fontWeight: 700,
+              letterSpacing: -0.5,
+              flexShrink: 0,
+            }}
+          >
+            {partner.monogram}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: FONT,
+                fontSize: 14,
+                fontWeight: 700,
+                color: M.ink,
+                lineHeight: 1.2,
+                letterSpacing: -0.2,
+              }}
+            >
+              {partner.name}
+            </div>
+            <div
+              style={{
+                fontFamily: FONT,
+                fontSize: 11,
+                color: partner.accent,
+                fontWeight: 600,
+                marginTop: 2,
+                letterSpacing: 0.2,
+              }}
+            >
+              {partner.tagline}
+            </div>
+          </div>
+          <div
+            style={{
+              fontFamily: FONT,
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: 0.6,
+              color: partner.accent,
+              border: `1px solid ${partner.accent}`,
+              padding: '3px 7px',
+              borderRadius: 3,
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            {partner.badge}
+          </div>
+        </div>
+      )}
+
+      {/* === Agent identity === */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
         <div
           style={{
             width: 56,
             height: 56,
             borderRadius: 999,
-            background: 'linear-gradient(135deg, #0041D9, #6A8CFF)',
+            background: partner
+              ? partner.accent
+              : 'linear-gradient(135deg, #0041D9, #6A8CFF)',
             color: '#fff',
             fontFamily: FONT,
             fontSize: 20,
@@ -163,23 +271,25 @@ export default function BienAgentCard({
           {!agent.photo && initials}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-            <span
-              style={{
-                fontFamily: FONT,
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 0.6,
-                color: M.green,
-                background: '#E8EFFE',
-                padding: '2px 7px',
-                borderRadius: 4,
-                textTransform: 'uppercase',
-              }}
-            >
-              Partenaire MEGGA
-            </span>
-          </div>
+          {!partner && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <span
+                style={{
+                  fontFamily: FONT,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 0.6,
+                  color: M.green,
+                  background: '#E8EFFE',
+                  padding: '2px 7px',
+                  borderRadius: 4,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Partenaire MEGGA
+              </span>
+            </div>
+          )}
           <div
             style={{
               fontFamily: FONT,
@@ -191,25 +301,21 @@ export default function BienAgentCard({
           >
             {agent.name}
           </div>
-          {agent.agency && (
-            <div
-              style={{
-                fontFamily: FONT,
-                fontSize: 12,
-                color: M.muted,
-                marginTop: 2,
-                lineHeight: 1.4,
-              }}
-            >
-              {agent.agency}
-            </div>
-          )}
+          <div
+            style={{
+              fontFamily: FONT,
+              fontSize: 12,
+              color: M.muted,
+              marginTop: 2,
+              lineHeight: 1.4,
+            }}
+          >
+            {partner ? `Courtier · ${partner.name}` : (agent.agency || 'MEGGA Real Estate')}
+          </div>
         </div>
       </div>
 
-      {/* Stats row — proto: 3 cols Biens 2026 / Avis / Langues
-          Pour les annonces marketplace : on remplace les stats agence (qu'on
-          n'a pas) par des infos honnêtes : Source, Canton, Langues. */}
+      {/* === Stats row (proto: 3 cols Biens / Avis / Langues) === */}
       <div
         style={{
           display: 'grid',
@@ -221,27 +327,13 @@ export default function BienAgentCard({
           marginBottom: 16,
         }}
       >
-        {(() => {
-          const portalLabel = sourcePortal
-            ? sourcePortal.charAt(0).toUpperCase() + sourcePortal.slice(1)
-            : null
-          // Internal/MEGGA mandate stats (proto faithful)
-          if (!isMarketListing && (soldThisYear != null || rating != null)) {
-            return [
-              { v: soldThisYear != null ? String(soldThisYear) : '—', l: `Biens ${new Date().getFullYear()}` },
-              rating != null
-                ? { v: `${rating}/5`, l: `${ratingCount || 0} avis` }
-                : { v: '—', l: 'Avis' },
-              { v: resolvedLangs.join(' · '), l: 'Langues' },
-            ]
-          }
-          // Marketplace listing — show meaningful info
-          return [
-            { v: portalLabel || 'MEGGA', l: 'Source' },
-            { v: cantonLabel || '—', l: 'Canton' },
-            { v: resolvedLangs.join(' · '), l: 'Langues' },
-          ]
-        })().map((s, i) => (
+        {[
+          { v: soldThisYear != null ? String(soldThisYear) : '—', l: `Biens ${new Date().getFullYear()}` },
+          rating != null
+            ? { v: `${rating}/5`, l: `${ratingCount || 0} avis` }
+            : { v: '—', l: 'Avis' },
+          { v: (langs && langs.length > 0 ? langs.join(' · ') : 'FR'), l: 'Langues' },
+        ].map((s, i) => (
           <div
             key={i}
             style={{
@@ -258,9 +350,6 @@ export default function BienAgentCard({
                 color: M.ink,
                 fontVariantNumeric: 'tabular-nums',
                 letterSpacing: -0.2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
               }}
             >
               {s.v}
@@ -280,7 +369,7 @@ export default function BienAgentCard({
         ))}
       </div>
 
-      {/* Primary CTA */}
+      {/* === Primary CTA "Demander une visite" === */}
       {isUnavail ? (
         <div
           style={{
@@ -306,7 +395,7 @@ export default function BienAgentCard({
             height: 48,
             borderRadius: 999,
             border: 'none',
-            background: M.green,
+            background: partner ? partner.accent : M.green,
             color: '#fff',
             fontFamily: FONT,
             fontSize: 14,
@@ -334,7 +423,7 @@ export default function BienAgentCard({
         </button>
       )}
 
-      {/* Secondary CTA — Poser une question (ouvre ContactAgentModal existant) */}
+      {/* === Secondary CTA "Poser une question" (outline) === */}
       <button
         onClick={onContact}
         style={{
@@ -357,7 +446,7 @@ export default function BienAgentCard({
         Poser une question
       </button>
 
-      {/* Phone reveal */}
+      {/* === Phone reveal button === */}
       {agent.phone && (
         <button
           onClick={() => setPhoneShown(true)}
@@ -396,10 +485,33 @@ export default function BienAgentCard({
         </button>
       )}
 
-      {/* Footer: Verified + Share */}
+      {/* === Partner footer (only when partner is set) === */}
+      {partner && (
+        <div
+          style={{
+            marginTop: 14,
+            paddingTop: 12,
+            borderTop: `1px solid ${M.border}`,
+            fontFamily: FONT,
+            fontSize: 11,
+            color: M.muted,
+            lineHeight: 1.5,
+          }}
+        >
+          <div style={{ fontWeight: 700, color: M.ink, marginBottom: 2 }}>
+            {partner.fullName}
+          </div>
+          <div>{partner.address}</div>
+          <div style={{ marginTop: 2 }}>
+            {partner.site} · Membre USPI · Mandat depuis {partner.establishedYear}
+          </div>
+        </div>
+      )}
+
+      {/* === Verified row + Share === */}
       <div
         style={{
-          marginTop: 16,
+          marginTop: partner ? 12 : 16,
           paddingTop: 14,
           borderTop: `1px solid ${M.border}`,
           display: 'flex',
@@ -430,7 +542,7 @@ export default function BienAgentCard({
               strokeLinejoin="round"
             />
           </svg>
-          Vérifiée · {verifiedRef}
+          {partner ? 'Vérifié MEGGA' : 'Vérifiée'} · {verifiedRef}
         </div>
         <button
           onClick={handleShare}
