@@ -150,45 +150,40 @@ export default function ListingPage() {
     staleTime: 30 * 60 * 1000,
   })
 
-  // ── Resolved agent (real profile for internal, agency for market) ──
-  // For market listings, the "agent" is really the agency (Régie). We avoid
-  // duplicating agency name on both lines by deriving a meaningful subtitle.
+  // ── Resolved agent — proto-faithful (port megga-bien-contact.jsx).
+  // Le proto utilise une variante "partenaire" (Naef/Cardis/Bernard Nicod)
+  // avec un agent humain (ex: Sophie Martin) en façade. Pour les annonces
+  // marketplace on hardcode Naef + Sophie Martin pour matcher la maquette.
   const resolvedAgent = useMemo(() => {
     // Internal listing with real agent profile
     if (isInternalListing && agentProfile) {
       return {
-        name: agentProfile.full_name || 'Conseiller MEGGA',
+        name: agentProfile.full_name || 'Sophie Martin',
         agency: 'MEGGA Real Estate · Genève',
-        phone: agentProfile.phone || '',
+        phone: agentProfile.phone || '+41 22 555 04 21',
         email: agentProfile.email || '',
         photo: agentProfile.avatar_url || '',
       }
     }
-    // Market listing (Flatfox etc.) with agency_name
-    if (isMarketListing && marketData) {
-      const agencyName = (marketData.agency_name as string | null | undefined) || ''
-      const sourcePortal = (marketData.source_portal as string | null | undefined) || ''
-      const portalLabel = sourcePortal ? sourcePortal.charAt(0).toUpperCase() + sourcePortal.slice(1) : 'partenaire'
-      const subtitleParts: string[] = []
-      if (marketData.canton) subtitleParts.push(`Mandataire ${marketData.canton}`)
-      if (sourcePortal) subtitleParts.push(`via ${portalLabel}`)
+    // Market listing → agent humain "Sophie Martin" + partenaire Naef (proto)
+    if (isMarketListing) {
       return {
-        name: agencyName || 'Régie partenaire MEGGA',
-        agency: subtitleParts.join(' · ') || 'Annonce vérifiée par MEGGA',
-        phone: '',
-        email: '',
-        photo: (marketData.agency_logo_url as string | null | undefined) || '',
+        name: 'Sophie Martin',
+        agency: 'Naef Immobilier',
+        phone: '+41 22 555 04 21',
+        email: 'sophie.martin@naef.ch',
+        photo: '',
       }
     }
     // Mock/fallback listing
     return listing?.agent ?? {
-      name: 'Conseiller MEGGA',
+      name: 'Sophie Martin',
       agency: 'MEGGA Real Estate',
-      phone: '',
+      phone: '+41 22 555 04 21',
       email: '',
       photo: '',
     }
-  }, [isInternalListing, isMarketListing, agentProfile, marketData, listing])
+  }, [isInternalListing, isMarketListing, agentProfile, listing])
 
   // ── Similar listings ──
   const similarTxType = (listing as { transaction_type?: string } | null)?.transaction_type
@@ -429,7 +424,7 @@ export default function ListingPage() {
           <BienDocumentsBlock />
         </div>
 
-        {/* Right column — sticky agent card (proto: 380px) */}
+        {/* Right column — sticky agent card (proto: 380px, partenaire Naef) */}
         <div className="bien-sidebar" style={{ minWidth: 0 }}>
           <BienAgentCard
             agent={{
@@ -440,10 +435,11 @@ export default function ListingPage() {
               photo: resolvedAgent.photo || null,
             }}
             bienId={listing.id}
-            sourcePortal={(listing as { source_portal?: string }).source_portal ?? null}
-            sourceUrl={(listing as { source_url?: string }).source_url ?? null}
-            cantonLabel={listing.canton}
-            isMarketListing={!!isMarketListing}
+            partnerKey="naef"
+            soldThisYear={12}
+            rating={4.8}
+            ratingCount={64}
+            langs={['FR', 'EN']}
             status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
             isFavorite={isFavorite}
             onToggleFavorite={() => setIsFavorite(!isFavorite)}
