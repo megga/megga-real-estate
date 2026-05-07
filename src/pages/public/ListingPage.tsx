@@ -226,7 +226,7 @@ export default function ListingPage() {
   // ── Loading state — skeleton screens (style Airbnb/Booking) ──
   if (isLoadingData) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen" style={{ paddingTop: 64 }}>
         <HomeStickyHeader alwaysShow />
         <ListingPageSkeleton />
       </div>
@@ -236,7 +236,7 @@ export default function ListingPage() {
   // ── Not found state ──
   if (!listing) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white" style={{ paddingTop: 64 }}>
         <HomeStickyHeader alwaysShow />
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <p className="text-xl font-semibold text-gray-900 mb-2">Bien non trouvé</p>
@@ -298,6 +298,7 @@ export default function ListingPage() {
       style={{
         fontFamily: "'Manrope', system-ui, -apple-system, sans-serif",
         background: '#FAFBFD',
+        paddingTop: 64, // proto megga-bien-page.jsx ligne 165 — décale sous le header fixed
       }}
     >
       <HomeStickyHeader alwaysShow />
