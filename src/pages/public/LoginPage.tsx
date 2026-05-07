@@ -702,15 +702,6 @@ function FormColumn(props: FormColumnProps) {
     >
       {step === 'email' ? (
         <>
-          <TitleBlock
-            title={isAgent ? 'Connexion à votre CRM' : 'Bienvenue sur MEGGA'}
-            subtitle={
-              isAgent
-                ? '100% gratuit, sans carte de crédit, sans limite d’utilisateurs.'
-                : 'Connectez-vous ou créez un compte gratuit en 30 secondes.'
-            }
-          />
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SsoButton
               icon={isAgent ? <MicrosoftIcon /> : <GoogleIcon />}
