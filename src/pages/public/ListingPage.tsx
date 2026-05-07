@@ -376,6 +376,8 @@ export default function ListingPage() {
 
           <BienEnergyBlock
             energyLabel={(listing as { energy_label?: string | null }).energy_label ?? null}
+            energyKwh={(listing as { energy_kwh?: number | null }).energy_kwh ?? null}
+            energyYear={(listing as { energy_year?: number | null }).energy_year ?? null}
           />
 
           {/* Floor Plan Interactif (kept inside left column) */}
