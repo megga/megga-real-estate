@@ -10,7 +10,6 @@ interface AuthChoiceProps {
 const CARDS = [
   {
     view: 'particulier' as const,
-    eyebrow: 'Particulier',
     title: 'Trouver, vendre, gérer',
     body:
       "Publiez votre annonce, suivez vos favoris, recevez des alertes prix et estimez votre bien gratuitement.",
@@ -27,7 +26,6 @@ const CARDS = [
   },
   {
     view: 'agent' as const,
-    eyebrow: 'Agent · Agence',
     title: 'CRM immobilier complet',
     body:
       "Pipeline de mandats, équipes, mailing, signature, agenda et rapports. 100% gratuit, sans engagement.",
@@ -84,23 +82,6 @@ export default function AuthChoice({ onChoose }: AuthChoiceProps) {
             e.currentTarget.style.boxShadow = 'none'
           }}
         >
-          <div
-            style={{
-              display: 'inline-flex',
-              alignSelf: 'flex-start',
-              padding: '5px 10px',
-              borderRadius: 999,
-              background:
-                card.bg === '#fff' ? '#F2F4F8' : 'rgba(255,255,255,0.12)',
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: 0.8,
-              textTransform: 'uppercase',
-              color: card.bg === '#fff' ? AUTH_M.muted : 'rgba(255,255,255,0.8)',
-            }}
-          >
-            {card.eyebrow}
-          </div>
           <div
             style={{
               fontSize: 28,

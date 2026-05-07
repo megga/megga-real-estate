@@ -548,33 +548,6 @@ function ChoiceShell({ onChoose }: { onChoose: (view: View) => void }) {
       <Link to="/" style={{ display: 'inline-block' }}>
         <img src="/megga-logo.svg" alt="MEGGA" style={{ height: 24, width: 'auto' }} />
       </Link>
-      <div style={{ textAlign: 'center', maxWidth: 520, padding: '0 40px' }}>
-        <h2
-          style={{
-            fontFamily: AUTH_FONT,
-            fontSize: 'clamp(26px, 3.5vw, 32px)',
-            fontWeight: 700,
-            color: AUTH_M.ink,
-            margin: 0,
-            letterSpacing: -0.8,
-            lineHeight: 1.1,
-          }}
-        >
-          Bienvenue sur MEGGA
-        </h2>
-        <p
-          style={{
-            fontFamily: AUTH_FONT,
-            fontSize: 15,
-            color: AUTH_M.soft,
-            margin: '10px 0 0',
-            lineHeight: 1.5,
-          }}
-        >
-          Choisissez l’espace qui vous correspond.<br />
-          Vous pourrez basculer à tout moment.
-        </p>
-      </div>
       <AuthChoice onChoose={view => onChoose(view)} />
     </div>
   )
@@ -714,8 +687,6 @@ function FormColumn(props: FormColumnProps) {
     onMagicLink, onForgotPassword, onBackToEmail,
   } = props
 
-  const eyebrow = isAgent ? 'Espace agent' : 'Espace particulier'
-
   return (
     <div
       style={{
@@ -730,8 +701,6 @@ function FormColumn(props: FormColumnProps) {
       {step === 'email' ? (
         <>
           <TitleBlock
-            isAgent={isAgent}
-            eyebrow={eyebrow}
             title={isAgent ? 'Connexion à votre CRM' : 'Bienvenue sur MEGGA'}
             subtitle={
               isAgent
@@ -805,8 +774,6 @@ function FormColumn(props: FormColumnProps) {
         <>
           <BackButton onClick={onBackToEmail} />
           <TitleBlock
-            isAgent={isAgent}
-            eyebrow={eyebrow}
             title="Bienvenue de retour"
             subtitle={email}
           />
@@ -872,8 +839,6 @@ function FormColumn(props: FormColumnProps) {
         <>
           <BackButton onClick={onBackToEmail} />
           <TitleBlock
-            isAgent={isAgent}
-            eyebrow={eyebrow}
             title={isAgent ? 'Créer mon agence' : 'Créer un compte'}
             subtitle={email}
           />
@@ -934,8 +899,6 @@ function FormColumn(props: FormColumnProps) {
         <>
           <BackButton onClick={onBackToEmail} />
           <TitleBlock
-            isAgent={isAgent}
-            eyebrow={eyebrow}
             title="Mot de passe oublié ?"
             subtitle="Entrez votre email · nous vous enverrons un lien pour le réinitialiser."
           />
@@ -978,45 +941,14 @@ function FormColumn(props: FormColumnProps) {
 // ── Sub-components ────────────────────────────────────────────────────────
 
 function TitleBlock({
-  isAgent,
-  eyebrow,
   title,
   subtitle,
 }: {
-  isAgent: boolean
-  eyebrow: string
   title: string
   subtitle: string
 }) {
   return (
     <div>
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '4px 10px',
-          borderRadius: 999,
-          background: isAgent ? AUTH_M.ink : '#F2F4F8',
-          color: isAgent ? '#fff' : AUTH_M.muted,
-          fontFamily: AUTH_FONT,
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: 0.6,
-          textTransform: 'uppercase',
-          marginBottom: 14,
-        }}
-      >
-        <span
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: 999,
-            background: isAgent ? AUTH_M.green : AUTH_M.ink,
-          }}
-        />
-        {eyebrow}
-      </div>
       <h2
         style={{
           fontFamily: AUTH_FONT,

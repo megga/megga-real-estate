@@ -103,32 +103,6 @@ export default function AgentPreview() {
 
       {/* Headline */}
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '5px 10px',
-            borderRadius: 999,
-            background: 'rgba(0, 65, 217, 0.18)',
-            color: '#fff',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
-            marginBottom: 16,
-          }}
-        >
-          <span
-            style={{
-              width: 5,
-              height: 5,
-              borderRadius: 999,
-              background: AUTH_M.green,
-            }}
-          />
-          CRM gratuit · sans engagement
-        </div>
         <h2
           style={{
             fontSize: 'clamp(26px, 3.5vw, 32px)',
