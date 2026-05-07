@@ -16,7 +16,7 @@ import { useState, useEffect } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { Loader2, Eye, EyeOff, Mail } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { REMEMBER_KEY } from '@/lib/supabase'
+import { REMEMBER_KEY, supabase } from '@/lib/supabase'
 import { isAgentRole, type UserRole } from '@/types/auth'
 import GoogleOneTap from '@/components/auth/GoogleOneTap'
 import AuthChoice from '@/components/auth/AuthChoice'
@@ -324,19 +324,17 @@ export default function LoginPage() {
     if (!email.trim()) return
     setLoading(true)
     setError(null)
-    const { error: err } = await signInWithPassword(
-      email.trim(),
-      '__check_existence__'
-    )
+    const { data, error: err } = await supabase.rpc('check_email_exists', {
+      p_email: email.trim(),
+    })
     setLoading(false)
     if (err) {
-      if (err.toLowerCase().includes('invalid') || err.toLowerCase().includes('credentials')) {
-        setStep('login')
-        return
-      }
-      setStep('register')
+      // Fallback : on bascule sur login en cas d'erreur RPC, l'utilisateur
+      // pourra cliquer 'Créer un compte' depuis cet écran si besoin.
+      setStep('login')
       return
     }
+    setStep(data === true ? 'login' : 'register')
   }
 
   async function handleLogin(e: React.FormEvent) {
