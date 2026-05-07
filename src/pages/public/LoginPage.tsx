@@ -712,7 +712,7 @@ function FormColumn(props: FormColumnProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SsoButton
               icon={isAgent ? <MicrosoftIcon /> : <GoogleIcon />}
-              label={isAgent ? 'Microsoft 365 / Workspace' : 'Continuer avec Google'}
+              label={isAgent ? 'Microsoft 365' : 'Continuer avec Google'}
               onClick={() => onSso(isAgent ? 'microsoft' : 'google')}
               disabled={!!oauthLoading}
               loading={oauthLoading === (isAgent ? 'microsoft' : 'google')}
