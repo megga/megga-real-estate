@@ -43,12 +43,28 @@ interface BienAgentCardProps {
   rating?: number | null
   ratingCount?: number | null
   langs?: string[] | null
+  /** Pour les annonces marketplace — source d'origine (Flatfox, Homegate…) */
+  sourcePortal?: string | null
+  sourceUrl?: string | null
+  /** Canton du bien — utilisé pour déduire les langues quand non spécifiées */
+  cantonLabel?: string | null
+  /** True si le bien vient de market_listings (pas un mandat MEGGA exclusif) */
+  isMarketListing?: boolean
   /** Statut du bien — désactive le CTA "Demander une visite" si sold/compromis */
   status?: 'available' | 'compromis' | 'sold'
   isFavorite?: boolean
   onToggleFavorite?: () => void
   onAskVisit?: () => void
   onContact?: () => void
+}
+
+/** Map canton code → langues principales (proto: stats row "Langues") */
+const CANTON_LANGS: Record<string, string[]> = {
+  GE: ['FR'], VD: ['FR'], VS: ['FR', 'DE'], NE: ['FR'], FR: ['FR', 'DE'], JU: ['FR'],
+  BE: ['DE', 'FR'], BS: ['DE'], BL: ['DE'], AG: ['DE'], SO: ['DE'], ZH: ['DE'],
+  LU: ['DE'], ZG: ['DE'], SZ: ['DE'], NW: ['DE'], OW: ['DE'], UR: ['DE'],
+  GL: ['DE'], SH: ['DE'], TG: ['DE'], AR: ['DE'], AI: ['DE'], SG: ['DE'],
+  GR: ['DE', 'IT'], TI: ['IT'],
 }
 
 export default function BienAgentCard({
@@ -58,6 +74,10 @@ export default function BienAgentCard({
   rating,
   ratingCount,
   langs,
+  sourcePortal,
+  sourceUrl,
+  cantonLabel,
+  isMarketListing = false,
   status = 'available',
   isFavorite: _isFavorite,
   onToggleFavorite: _onToggleFavorite,
@@ -66,6 +86,12 @@ export default function BienAgentCard({
 }: BienAgentCardProps) {
   void _isFavorite
   void _onToggleFavorite
+  void sourceUrl
+
+  // Derive languages from canton when not explicitly provided
+  const resolvedLangs = (langs && langs.length > 0)
+    ? langs
+    : (cantonLabel && CANTON_LANGS[cantonLabel.toUpperCase()]) || ['FR']
 
   const [phoneShown, setPhoneShown] = useState(false)
   const [shared, setShared] = useState(false)
@@ -161,9 +187,6 @@ export default function BienAgentCard({
               fontWeight: 700,
               color: M.ink,
               lineHeight: 1.2,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
             }}
           >
             {agent.name}
@@ -175,9 +198,7 @@ export default function BienAgentCard({
                 fontSize: 12,
                 color: M.muted,
                 marginTop: 2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                lineHeight: 1.4,
               }}
             >
               {agent.agency}
@@ -186,63 +207,78 @@ export default function BienAgentCard({
         </div>
       </div>
 
-      {/* Stats row */}
-      {(soldThisYear || rating || (langs && langs.length > 0)) && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 0,
-            background: M.cardSoft,
-            borderRadius: 10,
-            padding: '10px 4px',
-            marginBottom: 16,
-          }}
-        >
-          {[
-            soldThisYear != null
-              ? { v: String(soldThisYear), l: `Biens ${new Date().getFullYear()}` }
-              : { v: '—', l: 'Biens' },
-            rating != null
-              ? { v: `${rating}/5`, l: `${ratingCount || 0} avis` }
-              : { v: '—', l: 'Avis' },
-            { v: (langs && langs.length > 0 ? langs.join(' · ') : 'FR'), l: 'Langues' },
-          ].map((s, i) => (
+      {/* Stats row — proto: 3 cols Biens 2026 / Avis / Langues
+          Pour les annonces marketplace : on remplace les stats agence (qu'on
+          n'a pas) par des infos honnêtes : Source, Canton, Langues. */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gap: 0,
+          background: M.cardSoft,
+          borderRadius: 10,
+          padding: '10px 4px',
+          marginBottom: 16,
+        }}
+      >
+        {(() => {
+          const portalLabel = sourcePortal
+            ? sourcePortal.charAt(0).toUpperCase() + sourcePortal.slice(1)
+            : null
+          // Internal/MEGGA mandate stats (proto faithful)
+          if (!isMarketListing && (soldThisYear != null || rating != null)) {
+            return [
+              { v: soldThisYear != null ? String(soldThisYear) : '—', l: `Biens ${new Date().getFullYear()}` },
+              rating != null
+                ? { v: `${rating}/5`, l: `${ratingCount || 0} avis` }
+                : { v: '—', l: 'Avis' },
+              { v: resolvedLangs.join(' · '), l: 'Langues' },
+            ]
+          }
+          // Marketplace listing — show meaningful info
+          return [
+            { v: portalLabel || 'MEGGA', l: 'Source' },
+            { v: cantonLabel || '—', l: 'Canton' },
+            { v: resolvedLangs.join(' · '), l: 'Langues' },
+          ]
+        })().map((s, i) => (
+          <div
+            key={i}
+            style={{
+              textAlign: 'center',
+              padding: '0 4px',
+              borderRight: i < 2 ? `1px solid ${M.border}` : 'none',
+            }}
+          >
             <div
-              key={i}
               style={{
-                textAlign: 'center',
-                padding: '0 4px',
-                borderRight: i < 2 ? `1px solid ${M.border}` : 'none',
+                fontFamily: FONT,
+                fontSize: 14,
+                fontWeight: 800,
+                color: M.ink,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: -0.2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
-              <div
-                style={{
-                  fontFamily: FONT,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: M.ink,
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: -0.2,
-                }}
-              >
-                {s.v}
-              </div>
-              <div
-                style={{
-                  fontFamily: FONT,
-                  fontSize: 10,
-                  color: M.muted,
-                  fontWeight: 600,
-                  marginTop: 2,
-                }}
-              >
-                {s.l}
-              </div>
+              {s.v}
             </div>
-          ))}
-        </div>
-      )}
+            <div
+              style={{
+                fontFamily: FONT,
+                fontSize: 10,
+                color: M.muted,
+                fontWeight: 600,
+                marginTop: 2,
+              }}
+            >
+              {s.l}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Primary CTA */}
       {isUnavail ? (

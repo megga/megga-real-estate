@@ -85,6 +85,8 @@ function transformSupabaseToListing(data: Record<string, any>, source: 'market' 
     is_furnished: !!data.is_furnished,
     deposit_months: (data.deposit_months as number | null | undefined) ?? null,
     external_regie: (data.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null,
+    source_portal: source === 'market' ? ((data.source_portal as string) || null) : null,
+    source_url: source === 'market' ? ((data.source_url as string) || null) : null,
     // Amenity flags (proto SpecsBlock + équipements pills)
     year_built: (data.year_built as number | null | undefined) ?? null,
     energy_label: (data.energy_label as string | null | undefined) ?? null,
@@ -148,31 +150,42 @@ export default function ListingPage() {
     staleTime: 30 * 60 * 1000,
   })
 
-  // ── Resolved agent (real profile for internal, agency name for market) ──
+  // ── Resolved agent (real profile for internal, agency for market) ──
+  // For market listings, the "agent" is really the agency (Régie). We avoid
+  // duplicating agency name on both lines by deriving a meaningful subtitle.
   const resolvedAgent = useMemo(() => {
+    // Internal listing with real agent profile
     if (isInternalListing && agentProfile) {
       return {
-        name: agentProfile.full_name || 'Agent MEGGA',
-        agency: 'MEGGA Real Estate',
+        name: agentProfile.full_name || 'Conseiller MEGGA',
+        agency: 'MEGGA Real Estate · Genève',
         phone: agentProfile.phone || '',
-        email: agentProfile.email || 'contact@megga.ch',
+        email: agentProfile.email || '',
         photo: agentProfile.avatar_url || '',
       }
     }
-    if (isMarketListing && marketData?.agency_name) {
+    // Market listing (Flatfox etc.) with agency_name
+    if (isMarketListing && marketData) {
+      const agencyName = (marketData.agency_name as string | null | undefined) || ''
+      const sourcePortal = (marketData.source_portal as string | null | undefined) || ''
+      const portalLabel = sourcePortal ? sourcePortal.charAt(0).toUpperCase() + sourcePortal.slice(1) : 'partenaire'
+      const subtitleParts: string[] = []
+      if (marketData.canton) subtitleParts.push(`Mandataire ${marketData.canton}`)
+      if (sourcePortal) subtitleParts.push(`via ${portalLabel}`)
       return {
-        name: marketData.agency_name as string,
-        agency: marketData.agency_name as string,
+        name: agencyName || 'Régie partenaire MEGGA',
+        agency: subtitleParts.join(' · ') || 'Annonce vérifiée par MEGGA',
         phone: '',
-        email: 'contact@megga.ch',
-        photo: '',
+        email: '',
+        photo: (marketData.agency_logo_url as string | null | undefined) || '',
       }
     }
+    // Mock/fallback listing
     return listing?.agent ?? {
-      name: 'Agent MEGGA',
+      name: 'Conseiller MEGGA',
       agency: 'MEGGA Real Estate',
-      phone: '+41 22 000 00 00',
-      email: 'contact@megga.ch',
+      phone: '',
+      email: '',
       photo: '',
     }
   }, [isInternalListing, isMarketListing, agentProfile, marketData, listing])
@@ -422,15 +435,15 @@ export default function ListingPage() {
             agent={{
               name: resolvedAgent.name,
               agency: resolvedAgent.agency,
-              phone: resolvedAgent.phone || '+41 22 555 00 00',
+              phone: resolvedAgent.phone || '',
               email: resolvedAgent.email,
               photo: resolvedAgent.photo || null,
             }}
             bienId={listing.id}
-            soldThisYear={6}
-            rating={4.8}
-            ratingCount={42}
-            langs={['FR', 'EN']}
+            sourcePortal={(listing as { source_portal?: string }).source_portal ?? null}
+            sourceUrl={(listing as { source_url?: string }).source_url ?? null}
+            cantonLabel={listing.canton}
+            isMarketListing={!!isMarketListing}
             status={(listing as { status?: string }).status as 'available' | 'compromis' | 'sold' | undefined}
             isFavorite={isFavorite}
             onToggleFavorite={() => setIsFavorite(!isFavorite)}
