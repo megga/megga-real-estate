@@ -31,6 +31,7 @@ import { useSignPhotos } from '@/hooks/useC2pa'
 import { useVirtualStaging, STAGING_STYLES, ROOM_TYPES, type StagingStyle, type RoomType } from '@/hooks/useVirtualStaging'
 import FloorPlanEditor from '@/components/listings/FloorPlanEditor'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
+import GalleryLayoutPicker from '@/components/listing/GalleryLayoutPicker'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
@@ -111,6 +112,7 @@ const step3Schema = step3SchemaBase.superRefine((d, ctx) => {
 
 const step4Schema = z.object({
   photos: z.array(z.string()).optional(),
+  gallery_layout: z.enum(['hero', 'mosaic', 'carousel']).optional(),
 })
 
 const step5Schema = z.object({
@@ -1149,6 +1151,14 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
         </DndContext>
       )}
 
+      {/* Gallery layout picker — port proto megga-bien-gallery.jsx 3 variants */}
+      {allPhotos.length > 0 && (
+        <GalleryLayoutPicker
+          value={(watch('gallery_layout') as 'hero' | 'mosaic' | 'carousel' | undefined) || 'hero'}
+          onChange={(layout) => setValue('gallery_layout', layout)}
+        />
+      )}
+
       {/* MEGGA Staging — Virtual Staging IA */}
       {allPhotos.length > 0 && <StagingSection photos={allPhotos} propertyId="draft" onStagedPhoto={(url) => {
         const currentPhotos = form.getValues('photos') || []
@@ -2043,6 +2053,7 @@ export default function ListingFormPage() {
       is_furnished: false,
       external_regie: undefined,
       photos: [],
+      gallery_layout: 'hero',
       description: '',
       tags: [],
     },
@@ -2169,6 +2180,7 @@ export default function ListingFormPage() {
       floor_plan_url: floorPlanUrl,
       floor_plan_hotspots: floorPlanHotspots,
       photo_tags: photoTags,
+      gallery_layout: values.gallery_layout ?? 'hero',
       published_at: status === 'active' ? new Date().toISOString() : undefined,
     }
   }

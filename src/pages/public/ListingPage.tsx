@@ -87,6 +87,7 @@ function transformSupabaseToListing(data: Record<string, any>, source: 'market' 
     external_regie: (data.external_regie as { name?: string; phone?: string; email?: string; website?: string } | null) ?? null,
     source_portal: source === 'market' ? ((data.source_portal as string) || null) : null,
     source_url: source === 'market' ? ((data.source_url as string) || null) : null,
+    gallery_layout: source === 'internal' ? ((data.gallery_layout as 'hero' | 'mosaic' | 'carousel' | null | undefined) ?? 'hero') : 'hero',
     // Amenity flags (proto SpecsBlock + équipements pills)
     year_built: (data.year_built as number | null | undefined) ?? null,
     energy_label: (data.energy_label as string | null | undefined) ?? null,
@@ -303,7 +304,7 @@ export default function ListingPage() {
         rooms={listing.rooms}
       />
 
-      {/* ── Hero Gallery (max-width 1280) ── */}
+      {/* ── Hero Gallery (max-width 1280) — variant choisie par l'agent ── */}
       <div style={{ maxWidth: 1280, margin: '0 auto', padding: '16px clamp(20px, 4vw, 32px) 0' }}>
         <ListingHeroGallery
           photos={listing.photos}
@@ -311,6 +312,9 @@ export default function ListingPage() {
           onOpenLightbox={openLightbox}
           activeRoom={floorPlanRoom}
           photoTags={(listingAny?.photo_tags as import('@/types/floorPlan').PhotoTag[]) ?? []}
+          variant={
+            ((listingAny?.gallery_layout as 'hero' | 'mosaic' | 'carousel' | undefined) ?? 'hero')
+          }
         />
       </div>
 
