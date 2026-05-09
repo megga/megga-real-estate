@@ -2,24 +2,19 @@
 // Cloudflare Pages middleware : intercepte chaque requête, sert une page custom
 // "Entrer le mot de passe" si la session n'est pas valide.
 //
-// Configuration : définir la var d'environnement dans le dashboard Cloudflare Pages
-//   Settings → Environment variables → Production
-//   ROCKWELL_AUTH_PASSWORD (ex: générer un mot de passe long)
-//
-// Si la var n'est pas définie, le site reste public (no-op).
-// Pour désactiver la protection : supprimer la var OU supprimer ce fichier.
+// Mot de passe hardcodé ci-dessous (DEFAULT_PASSWORD).
+// Override possible via la var d'env Cloudflare Pages :
+//   Settings → Environment variables → Production → ROCKWELL_AUTH_PASSWORD
+// Si la var est définie, elle écrase le default.
+// Pour désactiver la protection : supprimer ce fichier.
 
+const DEFAULT_PASSWORD = "rockwell2026";
 const COOKIE_NAME = "rockwell_auth";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 jours
 
 export const onRequest = async (context) => {
   const { request, env, next } = context;
-  const expectedPass = env.ROCKWELL_AUTH_PASSWORD;
-
-  // Pas de mot de passe configuré → site ouvert (fallback safe).
-  if (!expectedPass) {
-    return next();
-  }
+  const expectedPass = env.ROCKWELL_AUTH_PASSWORD || DEFAULT_PASSWORD;
 
   const url = new URL(request.url);
   const expectedHash = await sha256(expectedPass);
