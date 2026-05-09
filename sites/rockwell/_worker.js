@@ -1,50 +1,50 @@
-// Rockwell Properties — Password gate (page custom)
-// Cloudflare Pages middleware : intercepte chaque requête, sert une page custom
-// "Entrer le mot de passe" si la session n'est pas valide.
+// Rockwell Properties — Password gate (single-file Pages Worker)
+// Alternative à functions/_middleware.js : ce fichier est détecté
+// nativement par `wrangler pages deploy` et intercepte 100% du trafic.
 //
 // Mot de passe hardcodé ci-dessous (DEFAULT_PASSWORD).
-// Override possible via la var d'env Cloudflare Pages :
+// Override via la var d'env Cloudflare Pages :
 //   Settings → Environment variables → Production → ROCKWELL_AUTH_PASSWORD
-// Si la var est définie, elle écrase le default.
-// Pour désactiver la protection : supprimer ce fichier.
+// Pour désactiver : supprimer ce fichier (Pages servira directement les assets).
 
 const DEFAULT_PASSWORD = "rockwell2026";
 const COOKIE_NAME = "rockwell_auth";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 jours
 
-export const onRequest = async (context) => {
-  const { request, env, next } = context;
-  const expectedPass = env.ROCKWELL_AUTH_PASSWORD || DEFAULT_PASSWORD;
+export default {
+  async fetch(request, env) {
+    const expectedPass = env.ROCKWELL_AUTH_PASSWORD || DEFAULT_PASSWORD;
+    const url = new URL(request.url);
+    const expectedHash = await sha256(expectedPass);
 
-  const url = new URL(request.url);
-  const expectedHash = await sha256(expectedPass);
-
-  // Endpoint POST /__auth pour valider le mot de passe
-  if (url.pathname === "/__auth" && request.method === "POST") {
-    const form = await request.formData();
-    const submitted = String(form.get("password") || "");
-    if (submitted === expectedPass) {
-      return new Response(null, {
-        status: 302,
-        headers: {
-          Location: "/",
-          "Set-Cookie": `${COOKIE_NAME}=${expectedHash}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; Secure; SameSite=Lax`,
-          "Cache-Control": "no-store",
-        },
-      });
+    // Endpoint POST /__auth pour valider le mot de passe
+    if (url.pathname === "/__auth" && request.method === "POST") {
+      const form = await request.formData();
+      const submitted = String(form.get("password") || "");
+      if (submitted === expectedPass) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: "/",
+            "Set-Cookie": `${COOKIE_NAME}=${expectedHash}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; Secure; SameSite=Lax`,
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+      return gatePage({ error: "Mot de passe incorrect" });
     }
-    return gatePage({ error: "Mot de passe incorrect" });
-  }
 
-  // Cookie déjà valide → laisse passer
-  const cookie = request.headers.get("Cookie") || "";
-  const cookieValue = parseCookie(cookie, COOKIE_NAME);
-  if (cookieValue && timingSafeEqual(cookieValue, expectedHash)) {
-    return next();
-  }
+    // Cookie déjà valide → laisse passer aux assets
+    const cookie = request.headers.get("Cookie") || "";
+    const cookieValue = parseCookie(cookie, COOKIE_NAME);
+    if (cookieValue && timingSafeEqual(cookieValue, expectedHash)) {
+      // env.ASSETS est l'API Cloudflare Pages pour servir les fichiers statiques
+      return env.ASSETS.fetch(request);
+    }
 
-  // Sinon → page custom de saisie
-  return gatePage({});
+    // Sinon → page custom de saisie
+    return gatePage({});
+  },
 };
 
 // ─── Utilitaires ─────────────────────────────────────────────────
