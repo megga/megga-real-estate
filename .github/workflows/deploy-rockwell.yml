@@ -50,6 +50,10 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Pin wrangler v4 — v3.x silently skips functions/_middleware.js detection
+          # on direct uploads (lesson: previous deploy uploaded only 4 static files,
+          # the gate middleware was never deployed)
+          wranglerVersion: "4.86.0"
           command: pages deploy sites/rockwell --project-name=rockwell-megga --branch=main
 
       - name: Attach custom domain
