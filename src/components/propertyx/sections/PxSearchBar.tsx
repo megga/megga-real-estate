@@ -97,10 +97,12 @@ export default function PxSearchBar() {
   return (
     <section style={{
       // SearchBar pill height = 100 (form padding 24+24 + field 52)
-      // marginTop -50 = chevauchement 50/50 entre image et zone vide
+      // marginTop -50 = chevauchement 50/50 entre image et zone vide.
+      // IMPORTANT : section bg transparent — sinon le bg blanc couvrirait
+      // la moitié inférieure de l'image dans la zone d'overlap.
       display: 'flex',
       justifyContent: 'center',
-      background: PX.neutral100,
+      background: 'transparent',
       padding: '0 24px',
       position: 'relative',
       marginTop: -50,
