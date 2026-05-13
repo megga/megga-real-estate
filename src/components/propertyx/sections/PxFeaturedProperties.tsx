@@ -130,13 +130,12 @@ function ForRentBadge({ label }: { label: string }) {
 
 function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) {
   if (peek) {
-    // Card 2 : w-221, h-440, opacity 30% (faded peek)
+    // Card 2 : w-221, h-440, simple thumbnail (pas d'opacité, fidèle Figma 11755:27894)
     return (
       <div style={{
         width: 221,
         height: 440,
         flexShrink: 0,
-        opacity: 0.3,
         borderRadius: PX.radius.large,
         overflow: 'hidden',
         backgroundImage: `url("${p.image}")`,
@@ -211,7 +210,8 @@ function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) 
               letterSpacing: '-0.72px',
               color: PX.neutral100,
             }}>{p.title}</h3>
-            {/* Paragraph : Paragraph/Default/Regular = 16/1.5/-0.48/400 */}
+            {/* Paragraph : Paragraph/Default/Regular = 16/1.5/-0.48/400, opacité 0.72
+                pour soft white comme Figma (variable inkInverseSoft) */}
             <p style={{
               margin: 0,
               fontFamily: PX.font.display,
@@ -219,7 +219,7 @@ function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) 
               fontWeight: 400,
               lineHeight: 1.5,
               letterSpacing: '-0.48px',
-              color: PX.neutral100,
+              color: PX.inkInverseSoft,
             }}>{p.description}</p>
           </div>
 
