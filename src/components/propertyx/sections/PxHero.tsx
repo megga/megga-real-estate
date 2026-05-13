@@ -17,7 +17,7 @@
 //
 // La SearchBar (Browser) suit dans PxSearchBar mais doit overlap -56.
 
-import { PX, PxButton, PxIcon, PxLink } from '..'
+import { PX, PxButton, PxIcon, PxFigmaIcon, PxLink } from '..'
 
 // POI pins fidèles Figma : 55×55 pill + icon home 29px. Positions exactes.
 const POI_PINS = [
@@ -45,7 +45,7 @@ function HomeMarker({ rightOffset, top }: { rightOffset: number; top: number }) 
       display: 'grid',
       placeItems: 'center',
     }}>
-      <PxIcon name="home" size={29} color={PX.neutral700} strokeWidth={1.6} />
+      <PxFigmaIcon name="home-poi" size={29} color={PX.neutral700} />
     </div>
   )
 }

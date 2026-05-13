@@ -63,7 +63,7 @@ const FEATURED: FeaturedItem[] = [
 
 // Badge dark "Featured properties" — fidèle Figma 11755:27868 :
 // bg neutral600, pl-6 pr-12 py-6, rounded-pill, contient cercle icône + texte
-function FeaturedBadge({ icon, label }: { icon: 'star' | 'key'; label: string }) {
+function FeaturedBadge({ label }: { icon?: 'star' | 'key'; label: string }) {
   return (
     <span style={{
       display: 'inline-flex',
@@ -76,7 +76,7 @@ function FeaturedBadge({ icon, label }: { icon: 'star' | 'key'; label: string })
       background: PX.neutral600,  // #202127
       borderRadius: PX.radius.pill,
     }}>
-      {/* Cercle icône bg-neutral500, size 26, icône 14.857px */}
+      {/* Cercle icône bg-neutral500, size 26 — VRAIE icône Figma star V25 */}
       <span style={{
         width: 26,
         height: 26,
@@ -86,7 +86,7 @@ function FeaturedBadge({ icon, label }: { icon: 'star' | 'key'; label: string })
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name={icon} size={15} color={PX.neutral100} />
+        <PxFigmaIcon name="badge-featured-star" size={14.857} color={PX.neutral100} />
       </span>
       <span style={{
         fontFamily: PX.font.display,

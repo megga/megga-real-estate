@@ -72,7 +72,7 @@ function ProcessBadge() {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name="check" size={15} color={PX.neutral100} />
+        <PxFigmaIcon name="badge-process-check" size={14.857} color={PX.neutral100} />
       </span>
       <span style={{
         fontFamily: PX.font.display,

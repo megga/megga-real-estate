@@ -25,7 +25,7 @@
 //     </Cards Wrapper>
 //   </section>
 
-import { PX, PxAvatar, PxButton, PxIcon } from '..'
+import { PX, PxAvatar, PxButton, PxFigmaIcon } from '..'
 
 interface Testimonial {
   id: string
@@ -89,7 +89,7 @@ function TestimonialsBadge() {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name="message" size={15} color={PX.neutral100} />
+        <PxFigmaIcon name="badge-testimonials-message" size={14.857} color={PX.neutral100} />
       </span>
       <span style={{
         fontFamily: PX.font.display,

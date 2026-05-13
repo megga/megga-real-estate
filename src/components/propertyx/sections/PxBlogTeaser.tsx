@@ -28,7 +28,7 @@
 //   </section>
 
 import { Link } from 'react-router-dom'
-import { PX, PxIcon } from '..'
+import { PX, PxIcon, PxFigmaIcon } from '..'
 
 interface BlogPost {
   id: string
@@ -84,7 +84,7 @@ function BlogBadge() {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name="edit" size={15} color={PX.neutral100} />
+        <PxFigmaIcon name="badge-blog-edit" size={14.857} color={PX.neutral100} />
       </span>
       <span style={{
         fontFamily: PX.font.display,

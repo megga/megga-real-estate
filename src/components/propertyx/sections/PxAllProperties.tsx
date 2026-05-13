@@ -93,7 +93,7 @@ function AllPropertiesBadge() {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name="home" size={15} color={PX.neutral100} />
+        <PxFigmaIcon name="badge-allprops-home" size={14.857} color={PX.neutral100} />
       </span>
       <span style={{
         fontFamily: PX.font.display,

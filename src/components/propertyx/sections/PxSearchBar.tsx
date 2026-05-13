@@ -15,7 +15,7 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PX, PxIcon } from '..'
+import { PX, PxFigmaIcon } from '..'
 
 const CANTONS = [
   { value: '', label: 'Toute la Suisse' },
@@ -168,7 +168,7 @@ export default function PxSearchBar() {
               cursor: 'pointer',
             }}
           >
-            <PxIcon name="search" size={22} color={PX.neutral100} />
+            <PxFigmaIcon name="search" size={22} color={PX.neutral100} />
           </button>
         </div>
 
@@ -181,7 +181,7 @@ export default function PxSearchBar() {
           >
             {TX_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
-          <PxIcon name="chevron-down" size={16} color={PX.neutral500} />
+          <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
         </div>
 
         {/* Zone 3 : Location (Canton) — 220×52 */}
@@ -196,7 +196,7 @@ export default function PxSearchBar() {
           >
             {CANTONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
-          <PxIcon name="chevron-down" size={16} color={PX.neutral500} />
+          <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
         </div>
 
         {/* Zone 4 : Type — 220×52, rounded RIGHT pill */}
@@ -215,7 +215,7 @@ export default function PxSearchBar() {
           >
             {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
-          <PxIcon name="chevron-down" size={16} color={PX.neutral500} />
+          <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
         </div>
       </form>
     </section>

@@ -1,7 +1,44 @@
 // MEGGA Marketplace — Property X "About" section.
-// Refactor utilisant les atomes (PxSectionLabel, PxButton, PxBadge).
+// Refactor utilisant les atomes + VRAIE icône Figma user pour le badge eyebrow.
 
-import { PX, PxSectionLabel, PxButton, PxBadge } from '..'
+import { PX, PxButton, PxBadge, PxFigmaIcon } from '..'
+
+// Badge "About us" — LIGHT bg-neutral300 + cercle bg-neutral400 + icône user Figma
+function AboutBadge() {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      paddingLeft: 6,
+      paddingRight: 12,
+      paddingTop: 6,
+      paddingBottom: 6,
+      background: PX.neutral300,
+      borderRadius: PX.radius.pill,
+    }}>
+      <span style={{
+        width: 26,
+        height: 26,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral400,
+        display: 'grid',
+        placeItems: 'center',
+        flexShrink: 0,
+      }}>
+        <PxFigmaIcon name="badge-about-user" size={14.857} color={PX.neutral100} />
+      </span>
+      <span style={{
+        fontFamily: PX.font.display,
+        fontSize: 16,
+        fontWeight: 500,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral700,
+      }}>À propos de MEGGA</span>
+    </span>
+  )
+}
 
 export default function PxAboutSection() {
   return (
@@ -11,7 +48,7 @@ export default function PxAboutSection() {
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <PxSectionLabel icon="user">À propos de MEGGA</PxSectionLabel>
+          <AboutBadge />
           <h2 style={{
             margin: '16px auto 0',
             maxWidth: 720,

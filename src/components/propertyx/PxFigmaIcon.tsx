@@ -27,11 +27,22 @@ export type PxFigmaIconName =
   | 'bed'         // V23 : chambres
   | 'bath'        // V33 : salles de bain
   | 'parking'     // V27 : garage / parking
+  | 'home-poi'    // Home icon utilisée pour les POI du Hero (Property X logo style)
   // UI controls (Line Rounded)
   | 'chevron-right'
   | 'chevron-left'
+  | 'chevron-down'
+  | 'arrow-right'
   | 'plus'
+  | 'search'
   | 'sparkle'
+  // Badges des eyebrows (icônes dans les pills LIGHT/DARK des sections)
+  | 'badge-featured-star'        // Featured Properties
+  | 'badge-allprops-home'        // All Properties
+  | 'badge-process-check'        // Our process (HowItWorks)
+  | 'badge-about-user'           // About us
+  | 'badge-testimonials-message' // Testimonials
+  | 'badge-blog-edit'            // Our blog
 
 interface PxFigmaIconProps {
   name: PxFigmaIconName
