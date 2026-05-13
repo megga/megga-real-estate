@@ -1,15 +1,23 @@
 // MEGGA Marketplace — Property X hero section.
-// Refactor utilisant les atomes du DS (PxButton, PxIcon).
+// Source : Figma node 11754:25560 ("Hero Section") :
+//   - Outer padding 24px (container 1392×900 dans viewport 1440)
+//   - Background image fills container with radius large (24)
+//   - Top fade overlay 480px (top half)
+//   - 6 POI pins (Logo frames 55×55) à positions exactes
+//   - Top Content centered horizontally, H1 à 80px du top
+//   - CTAs : Primary dark pill (172×40) + Link ghost (141×22)
 
-import { PX, PxButton, PxIcon } from '..'
+import { PX, PxButton, PxIcon, PxLink } from '..'
 
-function HomeMarker({ top, left, size = 'md' }: { top: string; left: string; size?: 'sm' | 'md' | 'lg' }) {
-  const dim = size === 'lg' ? 52 : size === 'sm' ? 36 : 44
+interface MarkerProps { top: string; left: string }
+
+function HomeMarker({ top, left }: MarkerProps) {
+  // Pin size 55×55 d'après Figma (Logo frame), icône intérieure 29×29 (~52%)
   return (
     <div style={{
       position: 'absolute',
       top, left,
-      width: dim, height: dim,
+      width: 55, height: 55,
       borderRadius: PX.radius.pill,
       background: PX.neutral100,
       boxShadow: PX.shadow.regular,
@@ -17,7 +25,7 @@ function HomeMarker({ top, left, size = 'md' }: { top: string; left: string; siz
       placeItems: 'center',
       animation: 'px-pulse 2.6s ease-in-out infinite',
     }}>
-      <PxIcon name="home" size={dim * 0.45} color={PX.neutral700} strokeWidth={1.6} />
+      <PxIcon name="home" size={29} color={PX.neutral700} strokeWidth={1.6} />
     </div>
   )
 }
@@ -26,7 +34,8 @@ export default function PxHero() {
   return (
     <section style={{
       position: 'relative',
-      padding: '120px 40px 0',
+      // 24px padding around (fidèle Figma container 1392 dans 1440)
+      padding: '24px 24px 0',
       background: PX.neutral100,
     }}>
       <style>{`
@@ -38,34 +47,42 @@ export default function PxHero() {
 
       <div style={{
         position: 'relative',
-        maxWidth: PX.containerDesktop,
+        maxWidth: PX.containerDesktop - 48,  // 1392
         margin: '0 auto',
-        height: 720,
+        height: 900,
         borderRadius: PX.radius.large,
         overflow: 'hidden',
         backgroundImage: `url("https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=2400&q=85")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}>
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(180deg, rgba(20,22,28,0.15) 0%, rgba(20,22,28,0.40) 100%)',
-        }} />
-
-        <HomeMarker top="18%" left="14%" size="md" />
-        <HomeMarker top="44%" left="8%" size="sm" />
-        <HomeMarker top="68%" left="28%" size="md" />
-        <HomeMarker top="28%" left="76%" size="md" />
-        <HomeMarker top="58%" left="84%" size="sm" />
-
+        {/* Fade overlay top — 480px du top, gradient sombre vers transparent en bas */}
         <div style={{
           position: 'absolute',
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
+          top: 0, left: 0, right: 0,
+          height: 480,
+          background: 'linear-gradient(180deg, rgba(20,22,28,0.30) 0%, rgba(20,22,28,0) 100%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* 6 POI pins — positions fidèles Figma (ratios sur 1392×900) */}
+        <HomeMarker top="44.6%" left="2.5%"  />{/* x=34,  y=401 */}
+        <HomeMarker top="53.3%" left="30.1%" />{/* x=419, y=479 */}
+        <HomeMarker top="73.7%" left="11.3%" />{/* x=157, y=663 */}
+        <HomeMarker top="65.4%" left="56.5%" />{/* x=787, y=588 */}
+        <HomeMarker top="74.6%" left="86.9%" />{/* x=1210,y=671 */}
+        <HomeMarker top="52.8%" left="89.1%" />{/* x=1240,y=475 */}
+
+        {/* Top Content : centré horizontalement, ~80px depuis le top */}
+        <div style={{
+          position: 'absolute',
+          top: 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
           textAlign: 'center',
           color: PX.neutral100,
           width: '100%',
-          maxWidth: 880,
+          maxWidth: 613,  // fidèle Figma
           padding: '0 24px',
         }}>
           <h1 style={{
@@ -80,19 +97,21 @@ export default function PxHero() {
           }}>
             Élevez votre style de vie avec MEGGA
           </h1>
+          {/* Buttons Row : Primary dark pill + Link ghost */}
           <div style={{
             marginTop: 32,
             display: 'flex',
             justifyContent: 'center',
-            gap: 12,
+            alignItems: 'center',
+            gap: 16,
             flexWrap: 'wrap',
           }}>
-            <PxButton to="/acheter" variant="invert" size="lg">
+            <PxButton to="/acheter" variant="primary" size="lg">
               Commencer
             </PxButton>
-            <PxButton to="/louer" variant="ghost" size="lg" showIcon={false}>
-              <span style={{ color: PX.neutral100, opacity: 0.92 }}>Explorer les biens</span>
-            </PxButton>
+            <PxLink to="/publier" variant="light">
+              Publier un bien
+            </PxLink>
           </div>
         </div>
       </div>

@@ -1,14 +1,12 @@
 // MEGGA Marketplace — Property X search bar.
-// Refactor utilisant les atomes du DS (PxInput, PxSelect, PxIcon, PxButton).
+// Source : Figma node 11754:25582 ("Browser") — 1114×100 pill blanc overlap hero.
+// Layout fidèle :
+//   [Search input + magnifier circle button] | Location ⌄ | Property ⌄ | Type ⌄
+//   Dividers verticaux entre chaque zone.
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PX, PxInput, PxSelect, PxIcon, PxButton } from '..'
-
-const TX_TYPES = [
-  { value: 'buy', label: 'Acheter' },
-  { value: 'rent', label: 'Louer' },
-] as const
+import { PX, PxIcon } from '..'
 
 const PROPERTY_TYPES = [
   { value: '', label: 'Tous types' },
@@ -34,6 +32,24 @@ const CANTONS = [
   { value: 'TI', label: 'Tessin' },
 ] as const
 
+const TX_TYPES = [
+  { value: 'buy', label: 'Acheter' },
+  { value: 'rent', label: 'Louer' },
+] as const
+
+const inputStyleBase: React.CSSProperties = {
+  border: 0,
+  outline: 'none',
+  background: 'transparent',
+  fontFamily: 'inherit',
+  fontSize: 14,
+  fontWeight: 400,
+  letterSpacing: '-0.42px',
+  color: PX.neutral700,
+  width: '100%',
+  padding: 0,
+}
+
 export default function PxSearchBar() {
   const navigate = useNavigate()
   const [q, setQ] = useState('')
@@ -53,50 +69,123 @@ export default function PxSearchBar() {
 
   return (
     <section style={{
-      padding: `0 40px`,
+      // Section largeur viewport, positionnement absolu sur le hero
+      padding: '0 24px',
       background: PX.neutral100,
-      marginTop: -36,
+      marginTop: -50,  // overlap : moitié de la hauteur du pill (100/2)
       position: 'relative',
       zIndex: 5,
     }}>
       <form onSubmit={handleSubmit} style={{
-        maxWidth: 1100,
+        // Pill 1114×100 centré (fidèle Figma)
+        maxWidth: 1114,
+        height: 100,
         margin: '0 auto',
-        display: 'flex',
+        display: 'grid',
+        // 4 zones : search (large) | location | property | type
+        gridTemplateColumns: '2fr 1px 1fr 1px 1fr 1px 1fr',
         alignItems: 'center',
-        gap: 8,
         background: PX.neutral100,
         borderRadius: PX.radius.pill,
         boxShadow: PX.shadow.large,
-        padding: 10,
+        padding: '0 16px',
       }}>
-        <div style={{ flex: 2, minWidth: 0 }}>
-          <PxInput
-            variant="light"
+        {/* Zone 1 : Search input avec circle button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px' }}>
+          <input
+            type="text"
             value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder="Rechercher un bien, un quartier…"
-            leftIcon={<PxIcon name="search" size={18} color={PX.neutral500} />}
+            placeholder="Rechercher un bien…"
+            style={{ ...inputStyleBase, flex: 1 }}
           />
+          <button
+            type="submit"
+            aria-label="Rechercher"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: PX.radius.pill,
+              border: 0,
+              background: PX.neutral700,
+              color: PX.neutral100,
+              display: 'grid',
+              placeItems: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <PxIcon name="search" size={16} color={PX.neutral100} />
+          </button>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <PxSelect value={tx} onChange={e => setTx(e.target.value as 'buy' | 'rent')}>
+
+        {/* Divider 1 */}
+        <div style={{ width: 1, height: 32, background: PX.neutral300 }} />
+
+        {/* Zone 2 : Transaction type */}
+        <div style={{ padding: '0 20px', position: 'relative' }}>
+          <select
+            value={tx}
+            onChange={e => setTx(e.target.value as 'buy' | 'rent')}
+            style={{
+              ...inputStyleBase,
+              appearance: 'none',
+              cursor: 'pointer',
+              paddingRight: 24,
+            }}
+          >
             {TX_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </PxSelect>
+          </select>
+          <span style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <PxIcon name="chevron-down" size={14} color={PX.neutral500} />
+          </span>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <PxSelect value={canton} onChange={e => setCanton(e.target.value)}>
+
+        {/* Divider 2 */}
+        <div style={{ width: 1, height: 32, background: PX.neutral300 }} />
+
+        {/* Zone 3 : Canton (Location) */}
+        <div style={{ padding: '0 20px', position: 'relative' }}>
+          <select
+            value={canton}
+            onChange={e => setCanton(e.target.value)}
+            style={{
+              ...inputStyleBase,
+              appearance: 'none',
+              cursor: 'pointer',
+              paddingRight: 24,
+              color: canton ? PX.neutral700 : PX.neutral500,
+            }}
+          >
             {CANTONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </PxSelect>
+          </select>
+          <span style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <PxIcon name="chevron-down" size={14} color={PX.neutral500} />
+          </span>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <PxSelect value={type} onChange={e => setType(e.target.value)}>
+
+        {/* Divider 3 */}
+        <div style={{ width: 1, height: 32, background: PX.neutral300 }} />
+
+        {/* Zone 4 : Type de bien */}
+        <div style={{ padding: '0 20px', position: 'relative' }}>
+          <select
+            value={type}
+            onChange={e => setType(e.target.value)}
+            style={{
+              ...inputStyleBase,
+              appearance: 'none',
+              cursor: 'pointer',
+              paddingRight: 24,
+              color: type ? PX.neutral700 : PX.neutral500,
+            }}
+          >
             {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </PxSelect>
+          </select>
+          <span style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <PxIcon name="chevron-down" size={14} color={PX.neutral500} />
+          </span>
         </div>
-        <PxButton type="submit" variant="primary" size="lg">
-          Rechercher
-        </PxButton>
       </form>
     </section>
   )
