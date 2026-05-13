@@ -256,9 +256,6 @@ export function SugarIconRail({
     { id: 'dashboard', icon: 'dash',  label: 'Dashboard' },
     { id: 'biens-new', icon: 'plus',  label: 'Créer un bien' },
   ]
-  const comm: RailItem[] = [
-    { id: 'chat', icon: 'chat', label: 'Messages' },
-  ]
   const tools: RailItem[] = [
     { id: 'kyc',    icon: 'kyc',   label: 'KYC' },
     { id: 'reseau', icon: 'share', label: "Réseau d'agences" },
@@ -307,7 +304,6 @@ export function SugarIconRail({
     }}>
       {top.map(it => <RailBtn key={it.id} it={it} />)}
       {modules.map(it => <RailBtn key={it.id} it={it} />)}
-      {comm.map(it => <RailBtn key={it.id} it={it} />)}
       {tools.map(it => <RailBtn key={it.id} it={it} />)}
 
       {extraBottomBtn && <>{extraBottomBtn}<Divider /></>}
