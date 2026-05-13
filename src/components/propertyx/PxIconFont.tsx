@@ -72,6 +72,69 @@ export type PxIconFontName =
   | 'plane-arrival' | 'plane-departure' | 'beach' | 'hotel'
   // Loader
   | 'loader' | 'spinner'
+  // — Propriété & immobilier (spécifique) —
+  | 'garden' | 'balcony' | 'terrace' | 'pool' | 'gym' | 'sauna'
+  | 'fireplace' | 'garage' | 'basement' | 'attic' | 'elevator' | 'stairs'
+  | 'roof' | 'wall' | 'window' | 'shutter' | 'doormat' | 'fence'
+  // — Documents & contrats —
+  | 'pdf' | 'doc' | 'xls' | 'ppt' | 'zip' | 'image-file'
+  | 'video-file' | 'audio-file' | 'contract' | 'signature' | 'stamp'
+  | 'invoice' | 'receipt' | 'certificate' | 'license'
+  // — Finance —
+  | 'transfer' | 'refund' | 'tax' | 'percent' | 'piggy-bank'
+  | 'safe' | 'check' | 'cash' | 'coin' | 'savings'
+  // — Outils & équipement —
+  | 'tool' | 'hammer' | 'screwdriver' | 'wrench' | 'drill' | 'saw'
+  | 'paint-roller' | 'measuring-tape' | 'level' | 'ladder'
+  // — Connectivité & réseau —
+  | 'wifi' | 'bluetooth' | 'rss' | 'antenna' | 'broadcast'
+  | 'signal' | 'satellite' | 'server' | 'router' | 'cable'
+  // — Mobile & device —
+  | 'mobile' | 'tablet' | 'smartwatch' | 'monitor' | 'tv'
+  | 'speaker' | 'mic' | 'volume' | 'mute'
+  // — Direction & cible —
+  | 'crosshair' | 'cursor' | 'pointer' | 'tap' | 'click'
+  | 'drag' | 'resize' | 'zoom-in' | 'zoom-out'
+  // — Météo détaillée —
+  | 'cloudy' | 'rainy' | 'stormy' | 'thunder' | 'foggy' | 'windy'
+  // — Faces & émotions étendues —
+  | 'angry' | 'surprised' | 'neutral' | 'kiss' | 'cool' | 'sleepy'
+  // — Visualisation / IA —
+  | 'ai' | 'magic-wand' | 'sparkles' | 'star-shine' | 'idea'
+  | 'brain' | 'mind' | 'robot' | 'chip' | 'circuit'
+  // — Workflow —
+  | 'workflow' | 'flowchart' | 'pipeline' | 'connect' | 'merge' | 'split'
+  // — Photographie —
+  | 'aperture' | 'focus' | 'flash' | 'exposure' | 'no-flash'
+  // — Médical & santé étendu —
+  | 'first-aid' | 'pill' | 'syringe' | 'stethoscope' | 'thermometer'
+  // — Plantes & jardin —
+  | 'plant' | 'leaf' | 'seed' | 'palm-tree' | 'cactus'
+  // — Vêtement & shopping —
+  | 'shirt' | 'shoe' | 'hat' | 'bag' | 'glasses'
+  // — Énergie —
+  | 'plug' | 'outlet' | 'battery' | 'battery-full' | 'battery-low'
+  | 'solar' | 'wind-turbine' | 'recycle'
+  // — Bureau —
+  | 'desk' | 'chair' | 'office-chair' | 'whiteboard' | 'presentation'
+  | 'projector' | 'pin-board'
+  // — Bouquin / éducation —
+  | 'graduation' | 'school' | 'library' | 'magazine' | 'newspaper'
+  // — Plus de UI —
+  | 'sort-asc' | 'sort-desc' | 'sort-az' | 'sort-za'
+  | 'list-bullet' | 'list-numbered' | 'list-checkbox' | 'list-tree'
+  | 'view-grid' | 'view-list' | 'view-board' | 'view-timeline'
+  // — Voyage étendu —
+  | 'passport' | 'luggage' | 'visa' | 'boarding-pass'
+  // — Sports détaillés —
+  | 'football' | 'basketball' | 'tennis' | 'golf' | 'skiing'
+  | 'swimming' | 'running' | 'cycling' | 'yoga' | 'dumbbell'
+  // — Web / online —
+  | 'browser' | 'window-frame' | 'tab' | 'incognito'
+  | 'bookmark-tab' | 'bookmarked' | 'home-page'
+  // — Misc utilité —
+  | 'megaphone' | 'speaker-phone' | 'antenna-broadcast'
+  | 'calculator-detailed' | 'abacus' | 'binoculars' | 'magnifier'
 
 // Paths SVG filled (solid). Conventions universelles d'iconographie.
 const PATHS: Record<PxIconFontName, ReactNode> = {
@@ -266,6 +329,218 @@ const PATHS: Record<PxIconFontName, ReactNode> = {
   // — Loader —
   loader: <path d="M12 2v4a6 6 0 0 0-6 6H2a10 10 0 0 1 10-10Z" />,
   spinner: <path d="M12 2v4a6 6 0 0 0-6 6H2a10 10 0 0 1 10-10Zm0 16v4A10 10 0 0 1 2 12h4a6 6 0 0 0 6 6Zm10-6a10 10 0 0 1-10 10v-4a6 6 0 0 0 6-6h4ZM12 2a10 10 0 0 1 10 10h-4a6 6 0 0 0-6-6V2Z" />,
+  // — Propriété & immobilier (spécifique) —
+  garden: <path d="M3 18v-2c0-2 2-3 4-3 1 0 2 .5 3 1V7a2 2 0 0 1 4 0v7c1-.5 2-1 3-1 2 0 4 1 4 3v2H3Zm0 2h18v2H3v-2Zm9-15a3 3 0 0 1 3 3v1c-1 0-2 1-3 2-1-1-2-2-3-2V8a3 3 0 0 1 3-3Z" />,
+  balcony: <path d="M4 4h16v6h-2V6H6v4H4V4Zm0 8h16v10h-2v-2H6v2H4V12Zm2 2v2h2v-2H6Zm4 0v2h2v-2h-2Zm4 0v2h2v-2h-2Zm-8 4v2h12v-2H6Z" />,
+  terrace: <path d="M2 8 12 2l10 6v2H2V8Zm2 4h16v8H4v-8Zm2 2v4h12v-4H6Z" />,
+  pool: <path d="M2 14c1 0 2-1 3-1s2 1 3 1 2-1 3-1 2 1 3 1 2-1 3-1 2 1 3 1v2c-1 0-2-1-3-1s-2 1-3 1-2-1-3-1-2 1-3 1-2-1-3-1-2 1-3 1v-2Zm0 4c1 0 2-1 3-1s2 1 3 1 2-1 3-1 2 1 3 1 2-1 3-1 2 1 3 1v2c-1 0-2-1-3-1s-2 1-3 1-2-1-3-1-2 1-3 1-2-1-3-1-2 1-3 1v-2Zm5-13a3 3 0 1 1 6 0v6h-2V5a1 1 0 1 0-2 0v6H7V5Zm10 0a3 3 0 1 1 6 0v6h-2V5a1 1 0 1 0-2 0v6h-2V5Z" />,
+  gym: <path d="M2 11h3v-3h2v3h10v-3h2v3h3v2h-3v3h-2v-3H7v3H5v-3H2v-2Z" />,
+  sauna: <path d="M4 4h16v16H4V4Zm2 2v4h12V6H6Zm0 6v6h12v-6H6Zm1 2c0-1 1-2 2-2h6c1 0 2 1 2 2h-2v2H9v-2H7Z" />,
+  fireplace: <path d="M3 4h18v3H3V4Zm0 5h18v13H3V9Zm2 2v9h14v-9H5Zm5 2c1-1 1 0 2 1 1-1 1-2 0-3 3 1 4 4 2 6-1 1-3 1-4 0 0-1 0-2 1-3-1-.5-1-.5-1-1Z" />,
+  garage: <path d="M2 10 12 4l10 6v2h-2v8h-2v-4H6v4H4v-8H2v-2Zm6 4v2h8v-2H8Z" />,
+  basement: <path d="M3 12h18v2H3v-2Zm0 4h18v2H3v-2Zm0 4h18v2H3v-2ZM12 2l10 8H2L12 2Z" />,
+  attic: <path d="M12 2 2 14h3v8h14v-8h3L12 2Zm0 3 7 9H5l7-9Z" />,
+  elevator: <path d="M5 3h14v18H5V3Zm2 2v14h10V5H7Zm5 1 3 3h-2v3h-2V9H9l3-3Zm0 12-3-3h2v-3h2v3h2l-3 3Z" />,
+  stairs: <path d="M3 20v-2h3v-3h3v-3h3V9h3V6h3V3h3v17H3Z" />,
+  roof: <path d="M2 14 12 4l10 10v6H2v-6Zm10-7-7 7h14l-7-7Z" />,
+  wall: <path d="M3 4h18v4h-4v4h4v4h-8v4h4v4H3V4Zm2 2v4h6V6H5Zm8 0v4h6V6h-6ZM5 12v4h6v-4H5Zm0 6v4h4v-4H5Z" />,
+  window: <path d="M4 3h16v18H4V3Zm2 2v6h5V5H6Zm7 0v6h5V5h-5ZM6 13v6h5v-6H6Zm7 0v6h5v-6h-5Z" />,
+  shutter: <path d="M3 3h18v3H3V3Zm0 4h18v3H3V7Zm0 4h18v3H3v-3Zm0 4h18v3H3v-3Zm0 4h18v3H3v-3Z" />,
+  doormat: <path d="M3 17h18v2H3v-2Zm2-2h14v1H5v-1Zm-1-3h16v1H4v-1Zm0-3h2v2H4v-2Zm4 0h2v2H8v-2Zm4 0h2v2h-2v-2Zm4 0h2v2h-2v-2Z" />,
+  fence: <path d="M3 8h2V4l2-2 2 2v4h2V4l2-2 2 2v4h2V4l2-2 2 2v4h2v3H3V8Zm0 5h18v3H3v-3Zm0 5h18v3H3v-3Z" />,
+  // — Documents & contrats —
+  pdf: <path d="M6 2h9l5 5v15H6V2Zm9 1v5h5L15 3ZM8 11h2c1 0 2 1 2 2s-1 2-2 2H9v2H8v-6Zm1 1v2c1 0 1-.5 1-1s0-1-1-1Zm4-1h2c1.5 0 2 .7 2 2v2c0 1.3-.5 2-2 2h-2v-6Zm1 1v4h1c.5 0 1-.3 1-1v-2c0-.7-.5-1-1-1h-1Zm4-1h3v1h-2v2h2v1h-2v2h-1v-6Z" />,
+  doc: <path d="M6 2h9l5 5v15H6V2Zm9 1v5h5L15 3ZM8 11h2v6H8v-6Zm3 0h2c1.5 0 2 .7 2 2v2c0 1.3-.5 2-2 2h-2v-6Zm1 1v4h1c.5 0 1-.3 1-1v-2c0-.7-.5-1-1-1h-1Zm4 0v6h1v-3l1 3h1v-6h-1v3l-1-3h-1Z" />,
+  xls: <path d="M6 2h9l5 5v15H6V2Zm9 1v5h5L15 3ZM8 12l1.5 2.5L8 17h1l1-2 1 2h1l-1.5-2.5L12 12h-1l-1 2-1-2H8Zm5 0h1v4h2v1h-3v-5Zm5 0v1l-1.5.5 1.5.5v1l-2-1v2h-1v-4l2 1 1-1Z" />,
+  ppt: <path d="M6 2h9l5 5v15H6V2Zm9 1v5h5L15 3ZM8 11h2c1 0 2 1 2 2s-1 2-2 2H9v2H8v-6Zm1 1v2c1 0 1-.5 1-1s0-1-1-1Zm3-1h2c1 0 2 1 2 2s-1 2-2 2h-1v2h-1v-6Zm1 1v2c1 0 1-.5 1-1s0-1-1-1Zm3-1h4v1h-1.5v5H17v-5h-1v-1Z" />,
+  zip: <path d="M6 2h9l5 5v15H6V2Zm9 1v5h5L15 3Zm-4 0h-2v2H9v2h2v2H9v2h2v2H9v2h2c1 0 2-1 2-2v-2c0-1-1-1-1-1s1 0 1-1V5c0-1-1-2-2-2Z" />,
+  'image-file': <path d="M6 2h9l5 5v15H6V2Zm9 1v5h5L15 3ZM8 12h10v8H8v-8Zm2 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm-1 5 3-3 2 2 2-2v3H9Z" />,
+  'video-file': <path d="M6 2h9l5 5v15H6V2Zm9 1v5h5L15 3ZM8 12h10v8H8v-8Zm3 1v6l5-3-5-3Z" />,
+  'audio-file': <path d="M6 2h9l5 5v15H6V2Zm9 1v5h5L15 3ZM10 12v6.5a1.5 1.5 0 1 1-1-1.5V13h6v4.5a1.5 1.5 0 1 1-1-1.5V12h-4Z" />,
+  contract: <path d="M5 2h11l4 4v16H5V2Zm10 1v4h4l-4-4ZM7 9v1h10V9H7Zm0 3v1h10v-1H7Zm0 3v1h7v-1H7Zm0 3v1h5v-1H7Zm6 0 3-3 1 1-3 3-1-1Z" />,
+  signature: <path d="M3 17c4 0 6-13 9-13 2 0 3 6 5 6 1 0 2-1 3-2v3c-2 1-3 2-4 2-3 0-4-6-5-6-2 0-3 13-8 13v-3Zm0 4h18v2H3v-2Z" />,
+  stamp: <path d="M12 2c-2 0-4 2-4 4 0 1 .5 2 1 3-1 0-2 1-2 2v3h10v-3c0-1-1-2-2-2 .5-1 1-2 1-3 0-2-2-4-4-4Zm-7 14h14v3H5v-3Zm0 4h14v2H5v-2Z" />,
+  invoice: <path d="M5 2h14v20l-2-2-2 2-2-2-2 2-2-2-2 2-2-2V2Zm2 4v2h10V6H7Zm0 4v2h10v-2H7Zm0 4v2h7v-2H7Z" />,
+  receipt: <path d="M5 2h14v22l-2-2-2 2-2-2-2 2-2-2-2 2-2-2V2Zm2 4v2h10V6H7Zm0 4v2h10v-2H7Zm0 4v2h6v-2H7Z" />,
+  certificate: <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2ZM9 13v8l3-2 3 2v-8c-1 .5-2 1-3 1s-2-.5-3-1Z" />,
+  license: <path d="M3 5h18v14H3V5Zm2 2v10h14V7H5Zm2 2h6v2H7V9Zm0 4h10v1H7v-1Zm0 2h10v1H7v-1Zm9-6a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z" />,
+  // — Finance détaillée —
+  transfer: <path d="M5 6h12V4l4 4-4 4V10H5V6Zm14 8H7v-2l-4 4 4 4v-2h12v-4Z" />,
+  refund: <path d="M5 12a7 7 0 0 1 12-5l2-2v6h-6l2-2a5 5 0 1 0-1 8l1.4 1.4A7 7 0 0 1 5 12Z" />,
+  tax: <path d="M5 2h14v20H5V2Zm2 2v2h10V4H7Zm0 4v3h3V8H7Zm5 0v3h3V8h-3ZM7 13v3h3v-3H7Zm5 0v3h3v-3h-3Zm-5 5v2h10v-2H7Z" />,
+  percent: <path d="M7 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm10 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM18 5 5 19l1.5 1.5L19.5 6.5 18 5Z" />,
+  'piggy-bank': <path d="M5 12c0-3 2-5 5-5h7l3-2v4l-1 1c1 1 1 2 1 3v3h-2l-2 3h-2l-1-2c-1 0-2 0-3-.3l-1 2.3H7l-2-3H3v-3h2v-1Zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z" />,
+  safe: <path d="M3 3h18v18H3V3Zm2 2v14h14V5H5Zm10 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-1 5v2h-4v-2h4Z" />,
+  check: <path d="M5 4h12l2 4v12H5V4Zm2 4v2h10l-1-2H7Zm0 4v2h10v-2H7Zm0 4v2h7v-2H7Z" />,
+  cash: <path d="M3 5h18v14H3V5Zm2 4v6c1 0 2 1 2 2h10c0-1 1-2 2-2V9c-1 0-2-1-2-2H7c0 1-1 2-2 2Zm7-1a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />,
+  coin: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm-1 2v1H9v2h2v1H9v2h2v1h2v-1h2v-2h-2v-1h2V9h-2V8h-2Z" />,
+  savings: <path d="M12 3 5 8v3h2v8h10v-8h2V8l-7-5Zm0 2.5L17 9v1H7V9l5-3.5Zm-3 8h2v3H9v-3Zm4 0h2v3h-2v-3Z" />,
+  // — Outils & équipement —
+  tool: <path d="M22 6 18 2l-4 4 1 1-7 7-2-1-3 3 6 6 3-3-1-2 7-7 1 1Z" />,
+  hammer: <path d="M14 2 7 9l-1 4-4 4 4 4 4-4 4-1 7-7-7-7Zm0 3 4 4-2 2-4-4 2-2Z" />,
+  screwdriver: <path d="m4 20 3 1 9-9-4-4-9 9 1 3Zm13-13 5-5-4-1-1-4-5 5 5 5Z" />,
+  wrench: <path d="M21 7a5 5 0 0 0-7 0c-1.5 1.5-1.5 4 0 6L4 23l1 1L18 11c2 1 4.5 1.5 6-0 2-2 1.5-5 0-7l-3 3-1-1 1-1Z" />,
+  drill: <path d="M3 6h12v3H3V6Zm0 3v4h2v4h2v-4h2v4h2v-4h2V9H3Zm14-1 4-3v6l-4-3Zm0 0v4l4-3v-1l-4-0Z" />,
+  saw: <path d="m2 17 8-8h11l-7 9-3-3-2 2-3-3-2 3-2 0Zm10-8 1-3 2-1 3 1 3-1 2 1 1 2-1 3-3 2-3-1-3 1-1 1h-1Z" />,
+  'paint-roller': <path d="M3 4h12v5H3V4Zm0 7h12v2H3v-2Zm5 4h2v6H8v-6Zm-2 0v4h6v-4h-6Zm12-9h2v6h-2V6Z" />,
+  'measuring-tape': <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM7 12a5 5 0 1 1 10 0 5 5 0 0 1-10 0Zm5-3v3h2v-3h-2Zm-3 3v2h2v-2H9Zm6 0v2h2v-2h-2Zm-3 3v2h2v-2h-2Z" />,
+  level: <path d="M2 9h20v6H2V9Zm10 0v2h-2V9H8v6h2v-2h2v2h2V9h-2Z" />,
+  ladder: <path d="M6 2v20h2V2H6Zm10 0v20h2V2h-2ZM8 5h8v2H8V5Zm0 4h8v2H8V9Zm0 4h8v2H8v-2Zm0 4h8v2H8v-2Z" />,
+  // — Connectivité —
+  wifi: <path d="M12 19a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0-5a5 5 0 0 0-5 3l-2-2a7 7 0 0 1 14 0l-2 2a5 5 0 0 0-5-3Zm0-5a10 10 0 0 0-9 5l-2-2a13 13 0 0 1 22 0l-2 2a10 10 0 0 0-9-5Z" />,
+  bluetooth: <path d="m7 4 10 8-5 4v4l5-4 5 4-10 8L7 12 17 4 12 8V4H7Z" />,
+  rss: <path d="M4 4a16 16 0 0 1 16 16h-3A13 13 0 0 0 4 7V4Zm0 6a10 10 0 0 1 10 10h-3A7 7 0 0 0 4 13v-3Zm0 6a4 4 0 0 1 4 4H4v-4Z" />,
+  antenna: <path d="M12 2 5 9l1 1 6-6 6 6 1-1L12 2Zm0 3-4 4 1 1 3-3 3 3 1-1-4-4Zm-1 6v11h2V11h-2Z" />,
+  broadcast: <path d="M12 2 5 16h3l4-9 4 9h3L12 2Zm0 13a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />,
+  signal: <path d="M3 18h2v3H3v-3Zm4-4h2v7H7v-7Zm4-4h2v11h-2V10Zm4-4h2v15h-2V6Zm4-4h2v19h-2V2Z" />,
+  satellite: <path d="m4 17 3-3 4 4-3 3-4-4Zm6-6 3-3 4 4-3 3-4-4Zm-1 9c-2 0-4-1-4-3l2-2c0 1 1 2 2 2l2 2Zm-5-5c0-2 1-4 3-4l2 2c-1 0-2 1-2 2L4 15Zm14 4 2 2c-2 1-4 1-6 0l1-2c1 1 2 1 3 0Zm-2-2 2-2c1 1 1 2 0 3l-2-1Z" />,
+  server: <path d="M3 4h18v6H3V4Zm0 8h18v6H3v-6Zm2-7v2h2V5H5Zm0 8v2h2v-2H5Zm10-8v2h2V5h-2Zm0 8v2h2v-2h-2Z" />,
+  router: <path d="M3 14h18v6H3v-6Zm2 2v2h2v-2H5Zm10 0v2h2v-2h-2ZM7 8l2 2-2 2 3-3-3-3 2 2ZM9 4l4 4-4 4 5-5-5-5 4 4Zm6 0 3 3-3 3 4-4-4-4 3 3Z" />,
+  cable: <path d="M5 2v4h2V2H5Zm10 0v4h2V2h-2ZM4 6h6v3H4V6Zm10 0h6v3h-6V6Zm-7 4v8a5 5 0 0 0 10 0v-8h-2v8a3 3 0 0 1-6 0v-8H7Z" />,
+  // — Devices —
+  mobile: <path d="M7 2h10v20H7V2Zm2 2v14h6V4H9Zm3 15a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" />,
+  tablet: <path d="M5 2h14v20H5V2Zm2 2v14h10V4H7Zm5 15a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" />,
+  smartwatch: <path d="M9 2h6v3h2v14h-2v3H9v-3H7V5h2V2Zm0 5v10h6V7H9Z" />,
+  monitor: <path d="M3 4h18v12H3V4Zm5 14h8v2H8v-2Z" />,
+  tv: <path d="M3 5h18v13H3V5Zm2 2v9h14V7H5Zm3 13h8v2H8v-2Z" />,
+  speaker: <path d="M5 3h14v18H5V3Zm2 2v3h10V5H7Zm5 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z" />,
+  mic: <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Zm-5 9a5 5 0 0 0 10 0h2a7 7 0 0 1-6 7v3h-2v-3a7 7 0 0 1-6-7h2Z" />,
+  volume: <path d="M3 9h4l5-4v14l-5-4H3V9Zm12 1 5-1v6l-5-1v-4Z" />,
+  mute: <path d="M3 9h4l5-4v14l-5-4H3V9Zm15-1 4 8-1 1-4-3-4 3-1-1 4-8h2Z" />,
+  // — Direction & cible —
+  crosshair: <path d="M11 2v3h2V2h-2Zm0 17v3h2v-3h-2ZM2 11h3v2H2v-2Zm17 0h3v2h-3v-2Zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z" />,
+  cursor: <path d="m3 2 14 7-6 1 4 9-2 1-4-9-6 1V2Z" />,
+  pointer: <path d="M5 3v15l4-3 3 7 3-1-3-7 4-1L5 3Z" />,
+  tap: <path d="M8 9V6a2 2 0 1 1 4 0v6l2-2 2 1-1 7H7l-3-5 2-1 2 3V9Z" />,
+  click: <path d="M9 4a7 7 0 0 0-3 5l1 1c1-2 2-3 4-3v2c-1 0-2 1-2 2l-3 9 4-1 5-3 1-4c0-3-3-7-7-8Zm9 6 4-2-2-2-2 4Zm-3-4 2-4-2-2v4l-4 2 2 2 2-2Zm5 6h4l-2 2 2 2h-4v-4Z" />,
+  drag: <path d="M9 4h2v2H9V4Zm0 4h2v2H9V8Zm0 4h2v2H9v-2Zm0 4h2v2H9v-2Zm4-12h2v2h-2V4Zm0 4h2v2h-2V8Zm0 4h2v2h-2v-2Zm0 4h2v2h-2v-2Z" />,
+  resize: <path d="M3 3h7v2H5v5H3V3Zm11 0h7v7h-2V5h-5V3ZM3 14h2v5h5v2H3v-7Zm16 0h2v7h-7v-2h5v-5ZM8 8h8v8H8V8Z" />,
+  'zoom-in': <path d="M11 4a7 7 0 1 1-7 7 7 7 0 0 1 7-7Zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm-1 2v2H8v2h2v2h2v-2h2v-2h-2V8h-2Zm6 10 4 4-2 2-4-4 2-2Z" />,
+  'zoom-out': <path d="M11 4a7 7 0 1 1-7 7 7 7 0 0 1 7-7Zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM7 10h8v2H7v-2Zm9 8 4 4-2 2-4-4 2-2Z" />,
+  // — Météo détaillée —
+  cloudy: <path d="M19 9a6 6 0 0 0-12 0 4 4 0 0 0 0 8h12a4 4 0 0 0 0-8Z" />,
+  rainy: <path d="M19 5a6 6 0 0 0-12 0 4 4 0 0 0 0 8h12a4 4 0 0 0 0-8Zm-12 11 2-3-1-1-2 3 1 1Zm5 0 2-3-1-1-2 3 1 1Zm5 0 2-3-1-1-2 3 1 1Zm-9 4 2-3-1-1-2 3 1 1Zm5 0 2-3-1-1-2 3 1 1Zm5 0 2-3-1-1-2 3 1 1Z" />,
+  stormy: <path d="M19 7a6 6 0 0 0-12 0 4 4 0 0 0 0 8h12a4 4 0 0 0 0-8Zm-10 9-1 3h2l-2 5 4-5h-2l1-3H9Z" />,
+  thunder: <path d="M13 2 4 13h6l-2 9 11-12h-6l2-8h-2Z" />,
+  foggy: <path d="M2 8h20v2H2V8Zm2 4h20v2H4v-2Zm-2 4h20v2H2v-2Zm2 4h16v2H4v-2Z" />,
+  windy: <path d="M2 7h12a2 2 0 1 0 0-4l-1 2 1 2Zm0 5h14a2 2 0 1 0 0-4l-1 2 1 2Zm0 5h16a2 2 0 1 0 0-4l-1 2 1 2Z" />,
+  // — Émotions étendues —
+  angry: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-3 8L7 8h4l-2 2Zm6 0-2-2h4l-2 2Zm-3 5c2 0 4 1 5 3H7c1-2 3-3 5-3Z" />,
+  surprised: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-3 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm-3 7a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" />,
+  neutral: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-3 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm-7 6h10v1H8v-1Z" />,
+  kiss: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-3 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm-2 6c-1 1-3 1-4 0l2-2 2 2Z" />,
+  cool: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-5 6h4v3H7c-1 0-1-1-1-2s.5-1 1-1Zm6 0h4c.5 0 1 0 1 1s0 2-1 2h-4V8Zm-1 9c-2 0-4-1-5-3h10c-1 2-3 3-5 3Z" />,
+  sleepy: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-4 6h4v1H8V8Zm4 0h4v1h-4V8Zm-1 6a2 2 0 1 0-2 2h4a2 2 0 1 0-2-2Z" />,
+  // — IA & visualisation —
+  ai: <path d="M12 2 9 9 2 12l7 3 3 7 3-7 7-3-7-3-3-7Zm0 5 2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4Z" />,
+  'magic-wand': <path d="M9 2 11 7 14 8 11 9 9 14 7 9 4 8 7 7 9 2Zm5 7-7 7 1 1 7-7-1-1Zm5 6 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z" />,
+  sparkles: <path d="m5 3 1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Zm10 5 2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Zm-7 8 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z" />,
+  'star-shine': <path d="M12 2 14.7 9 22 9.6l-5.6 4.7L18 22l-6-3.6L6 22l1.6-7.7L2 9.6 9.3 9 12 2Zm-8 16 2 2-2 2-1-1 1-1-1-1 1-1Zm16 0 1 1-1 1 1 1-1 1-2-2 2-2Z" />,
+  idea: <path d="M12 2a7 7 0 0 1 4 12.7V17H8v-2.3A7 7 0 0 1 12 2Zm-3 17h6v2H9v-2Zm1 3h4v1h-4v-1Z" />,
+  brain: <path d="M9 2a3 3 0 0 0-3 3v1a3 3 0 0 0-2 3v2c0 1 .5 2 1 3-1 .5-1 1.5-1 3v1a3 3 0 0 0 3 3h4V2H9Zm6 0v20h4a3 3 0 0 0 3-3v-1c0-1.5 0-2.5-1-3 .5-1 1-2 1-3v-2a3 3 0 0 0-2-3V5a3 3 0 0 0-3-3h-2Z" />,
+  mind: <path d="M12 2a4 4 0 0 0-4 4 4 4 0 0 0-3 7 3 3 0 0 0 1 5l-1 2 5-2v3h4v-3l5 2-1-2a3 3 0 0 0 1-5 4 4 0 0 0-3-7 4 4 0 0 0-4-4Zm0 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z" />,
+  robot: <path d="M8 2v3H5v6h2v9h10v-9h2V5h-3V2h-2v3h-4V2H8Zm1 7a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm-6 5h6v2H9v-2Z" />,
+  chip: <path d="M5 5h14v14H5V5Zm2 2v10h10V7H7Zm-3-1V3h2v3H4Zm14 0V3h2v3h-2ZM4 21v-3h2v3H4Zm14 0v-3h2v3h-2ZM3 9V7h-1V9h1Zm0 6v-2h-1v2h1Zm18-6V7h1V9h-1Zm0 6v-2h1v2h-1Z" />,
+  circuit: <path d="M3 6h2v2H3V6Zm4 0h2v4H7V6Zm4 0h2v6h-2V6Zm4 0h2v8h-2V6Zm4 0h2v10h-2V6ZM3 12h2v2H3v-2Zm4 4h2v2H7v-2Zm4-2h2v4h-2v-4Zm4 2h2v2h-2v-2Z" />,
+  // — Workflow —
+  workflow: <path d="M3 3h6v6H3V3Zm12 12h6v6h-6v-6ZM3 15h6v6H3v-6Zm6-9h3v2H9V6Zm3 9h3v-2h-3v2Zm0-4h6v-2h-6v2Z" />,
+  flowchart: <path d="M9 3h6v4h-2v3h5v4h-2v4h-4v-4H8v4H4v-4h2v-4h5V7H9V3Z" />,
+  pipeline: <path d="M2 9h6v2H4v8H2V9Zm6 4h4v2H8v-2Zm6 0h2v4h2v-4h4v8h-4v-2h-4v2h-2v-8Zm0-8h6v2h-2v6h-2V7h-2V5Z" />,
+  connect: <path d="M5 4a3 3 0 1 0 3 3H5V4Zm14 13a3 3 0 1 0-3 3v-3h3ZM8 7h2v4l4 4v2h-2v-2l-4-4V7Z" />,
+  merge: <path d="M5 3h4v2H5V3Zm10 0h4v2h-4V3ZM7 7l5 5 5-5v6l-5 5-5-5V7Z" />,
+  split: <path d="M5 19h4v2H5v-2Zm10 0h4v2h-4v-2ZM7 17V11l5-5 5 5v6l-5-5-5 5Z" />,
+  // — Photographie —
+  aperture: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 4 1.5 3-1 .5L10 7l1-1Zm5 3-1 2.5-2-1L15 7l1 2Zm2 5-2.5-1 1-2 1.5 1v2ZM12 18l-1.5-3 1-.5L13 16l-1 2Zm-5-3 1-2.5 2 1L9 16l-2-1Zm-2-5 2.5 1-1 2L5 12v-2Z" />,
+  focus: <path d="M3 3h7v2H5v5H3V3Zm11 0h7v7h-2V5h-5V3ZM3 14h2v5h5v2H3v-7Zm16 0h2v7h-7v-2h5v-5ZM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" />,
+  flash: <path d="M13 2 4 13h6l-2 9 11-12h-6l2-8h-2Z" />,
+  exposure: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 4h2v3h3v2h-3v3h3v2h-3v3h-2v-3H8v-2h3v-3H8V9h3V6Z" />,
+  'no-flash': <path d="m2 2 20 20-1.5 1.5L18 21l-9 1 2-9L2 4l1.5-1.5L2 2Zm11 0 6 11h-3l2 5L9 22l9-12 1 1Z" />,
+  // — Médical —
+  'first-aid': <path d="M5 7h14v15H5V7Zm-2-4h18v3H3V3Zm9 6v3H9v2h3v3h2v-3h3v-2h-3V9h-2Z" />,
+  pill: <path d="M9 2a7 7 0 1 0 7 14L21 11A7 7 0 0 0 16 4L11 9 6 4 5 5l5 5-5 5 1 1 5-5 5 5-5-5-1-1Z" />,
+  syringe: <path d="m18 2 4 4-3 3-1-1-2 2 1 1-2 2-2-2-1 1L6 5 4 7l1 1L2 11l1 1 3-3 1 1 6 6 1-1 2 2-1 1 1 1 3-3 1 1 3-3-4-4-1-1Z" />,
+  stethoscope: <path d="M5 3v8a4 4 0 0 0 4 4 4 4 0 0 0 4-4V3h-2v8a2 2 0 0 1-4 0V3H5Zm10 16a4 4 0 1 1 0-8c0-4-1-4-4-4v-2c4 0 6 1 6 6a2 2 0 1 0 2 2 2 2 0 1 0-2-2h-2c0 2 2 4 4 4s4-2 4-4-2-4-4-4Z" />,
+  thermometer: <path d="M12 2a3 3 0 0 1 3 3v9.5a5 5 0 1 1-6 0V5a3 3 0 0 1 3-3Z" />,
+  // — Plantes —
+  plant: <path d="M12 22V13c-2 0-7-2-7-7 5 0 7 5 7 5s-1-7 5-7c0 6-3 7-5 9v9h-2v-9c-2-2-5-3-5-9 6 0 7 7 7 7Z" />,
+  leaf: <path d="M17 2c-6 0-9 5-13 12 1 2 4 6 8 7 7 1 12-8 10-19Zm-1 4c-2 5-5 8-9 11l1 1c4-2 7-6 9-12h-1Z" />,
+  seed: <path d="M12 2c4 0 6 4 6 8s-2 12-6 12-6-8-6-12 2-8 6-8Zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />,
+  'palm-tree': <path d="M11 22V9c-3 1-5 0-5 0s5-3 7-7c2 4 7 7 7 7s-2 1-5 0v13h-4Z" />,
+  cactus: <path d="M10 22V8a3 3 0 0 0-3-3v6a3 3 0 0 0 3 3v8h4v-5a3 3 0 0 0 3-3V8a3 3 0 0 0-3 3v-5a3 3 0 0 0-3-3v19h-1Z" />,
+  // — Vêtement & shopping —
+  shirt: <path d="M5 3h4l1 2h4l1-2h4l4 3-3 4-2-1v13H6V9l-2 1-3-4 4-3Z" />,
+  shoe: <path d="M2 14c0-3 4-5 6-7l3 1 2-4h3v5l4 2c2 1 4 2 4 4v3H2v-4Z" />,
+  hat: <path d="M12 2a4 4 0 0 0-4 4v8H6v3h12v-3h-2V6a4 4 0 0 0-4-4Z" />,
+  bag: <path d="M5 5h14l2 17H3L5 5Zm3 2v3h2V7h4v3h2V7" />,
+  glasses: <path d="M5 8h6l1 1 1-1h6l2 6c0 3-2 5-5 5s-5-2-5-4c0-2-2-2-2 0s-1 4-4 4-5-2-5-5l2-6Zm2 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm10 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />,
+  // — Énergie —
+  plug: <path d="M9 2v6H7l1 5 4 2 4-2 1-5h-2V2h-2v6h-2V2H9Z" />,
+  outlet: <path d="M5 3h14v18H5V3Zm2 2v14h10V5H7Zm2 4v3h2V9H9Zm4 0v3h2V9h-2Zm-2 5v3h2v-3h-2Z" />,
+  battery: <path d="M4 7h14v10H4V7Zm15 2h2v6h-2V9Z" />,
+  'battery-full': <path d="M4 7h14v10H4V7Zm15 2h2v6h-2V9Zm-13 2v6H6v-6Zm3 0v6h-1v-6Zm3 0v6h-1v-6Zm3 0v6h-1v-6Z" />,
+  'battery-low': <path d="M4 7h14v10H4V7Zm15 2h2v6h-2V9ZM6 11v6h2v-6H6Z" />,
+  solar: <path d="M2 12h20l-4 8H6L2 12Zm10-8 2 2-2 2-2-2 2-2Zm-7 3 3 1-1 3-3-1 1-3Zm14 0 1 3-3 1-1-3 3-1Z" />,
+  'wind-turbine': <path d="M11 22V11c-1 0-2-1-2-2 0-1 4-4 4-6-3 0-7 1-7 4-1-1-2-1-3-1 1 2 2 4 3 5-1 0-2 0-3 1 2 0 4 1 5 1V22h3Z" />,
+  recycle: <path d="m8 2 4 7-2 2-3-2v3H4l4 6h2l-2 2H4l-2-3 3-1V8L7 6l1 1V2Zm12 6 1 5-3 1-2-5h-3v3l-4-6 6-4 1 3-2 2 6 1Zm-1 14h-7l-1-3 3-1 2 5h2l3-6h2l-1-2-2 7h-1Z" />,
+  // — Bureau —
+  desk: <path d="M3 5h18v3H3V5Zm0 5h2v10H3V10Zm16 0h2v10h-2V10ZM6 12h12v2H6v-2Z" />,
+  chair: <path d="M6 2h12v7l-1 1H7l-1-1V2Zm0 12h12l-1 8h-2l-1-6h-4l-1 6H7l-1-8Z" />,
+  'office-chair': <path d="M9 2h6c2 0 3 1 3 3v6H6V5c0-2 1-3 3-3ZM6 13h12v3l-1 1h-4v3l3 2v1H8v-1l3-2v-3H7l-1-1v-3Z" />,
+  whiteboard: <path d="M2 4h20v14H2V4Zm2 2v10h16V6H4Zm0 16 3-3 3 3H4Zm14 0 3-3-3-3v6h-3 3Z" />,
+  presentation: <path d="M3 3h18v3H3V3Zm1 4h16v11l-7-3-8 3V7Zm6 12 2 3 2-3h-4Z" />,
+  projector: <path d="M3 10h18v8H3v-8Zm0-2h2V6h2v2h10V6h2v2h2v1H3V8Zm12 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z" />,
+  'pin-board': <path d="M3 3h18v18H3V3Zm2 2v14h14V5H5Zm4 4v6h6V9H9Z" />,
+  // — Éducation —
+  graduation: <path d="M12 3 2 8l4 2v5l6 4 6-4v-5l2-1v6h2v-7l-10-5Zm0 2.3 6 2.7-6 2.7-6-2.7 6-2.7ZM8 11.5l4 2 4-2v3l-4 2.5-4-2.5v-3Z" />,
+  school: <path d="M2 9 12 3l10 6v2h-2v9h-4v-6H8v6H4v-9H2V9Zm10 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" />,
+  library: <path d="M3 3h2v18H3V3Zm3 0h2v18H6V3Zm3 0h4l3 18h-4L9 3Zm5 0 3 3v15h-3V3Zm4 1 4 14-1 1-4-14 1-1Z" />,
+  magazine: <path d="M5 2h14v20H5V2Zm2 2v3h10V4H7Zm0 5v8h10V9H7Zm0 9v2h10v-2H7Z" />,
+  newspaper: <path d="M3 3h13v18H3V3Zm2 2v14h9V5H5Zm2 2h5v3H7V7Zm0 5h5v1H7v-1Zm0 3h5v1H7v-1Zm10-7h4v12c0 1-1 2-2 2v-2c1 0 1-1 1-1V8h-3V7Z" />,
+  // — Sort & view —
+  'sort-asc': <path d="M5 5v14l3-3-1-1-1 1V5H5Zm6 0h10v2H11V5Zm0 4h8v2h-8V9Zm0 4h6v2h-6v-2Zm0 4h4v2h-4v-2Z" />,
+  'sort-desc': <path d="M7 5v14l-3-3 1-1 1 1V5h1Zm4 0h10v2H11V5Zm0 4h8v2h-8V9Zm0 4h6v2h-6v-2Zm0 4h4v2h-4v-2Z" />,
+  'sort-az': <path d="M3 4h2L3 9h2L4 6l1 3h1L4 4H3Zm3 6h12V8H6v2Zm0 4h12v-2H6v2Zm0 4h12v-2H6v2Zm-3 0h4l-2-3 1-1 1 2v-3h1v3l1-2 1 1-2 3Z" />,
+  'sort-za': <path d="M3 18h2l-2-5h2l-1 3 1-3h1l-2 5H3Zm3-12h12v2H6V6Zm0 4h12v2H6v-2Zm0 4h12v2H6v-2Zm-3-8h4l-2 3 1 1 1-2v3h1V7l1 2 1-1-2-3Z" />,
+  'list-bullet': <path d="M4 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm0 4a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm0 4a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm0 4a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm4-12h12v2H8V6Zm0 4h12v2H8v-2Zm0 4h12v2H8v-2Zm0 4h12v2H8v-2Z" />,
+  'list-numbered': <path d="M3 5h2v3H3V5Zm0 4h3v1l-2 2h2v1H3v-1l2-2H3V9Zm0 4h2v1H4v1h1v1H3v-1h1v-1H3v-1Zm0 4h3v1H5v3H3v-4Zm5-12h12v2H8V5Zm0 4h12v2H8V9Zm0 4h12v2H8v-2Zm0 4h12v2H8v-2Z" />,
+  'list-checkbox': <path d="M3 5h3v3H3V5Zm0 4h3v3H3V9Zm0 4h3v3H3v-3Zm0 4h3v3H3v-3Zm5-12h12v2H8V5Zm0 4h12v2H8V9Zm0 4h12v2H8v-2Zm0 4h12v2H8v-2Z" />,
+  'list-tree': <path d="M5 3h2v3H5V3Zm0 5h2v3H5V8Zm0 5h2v3H5v-3Zm0 5h2v3H5v-3Zm4 1h12v2H9v-2Zm0-5h12v2H9v-2Zm0-5h12v2H9V9Zm0-5h12v2H9V4Z" />,
+  'view-grid': <path d="M3 3h8v8H3V3Zm10 0h8v8h-8V3ZM3 13h8v8H3v-8Zm10 0h8v8h-8v-8Z" />,
+  'view-list': <path d="M3 4h18v4H3V4Zm0 6h18v4H3v-4Zm0 6h18v4H3v-4Z" />,
+  'view-board': <path d="M3 4h5v16H3V4Zm6 0h5v8H9V4Zm6 0h6v16h-6V4ZM9 14h5v6H9v-6Z" />,
+  'view-timeline': <path d="M3 6h8v3H3V6Zm0 5h12v3H3v-3Zm0 5h6v3H3v-3Zm10 0h8v3h-8v-3Zm-6-13a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm5 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm5 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z" />,
+  // — Voyage étendu —
+  passport: <path d="M5 2h14v20H5V2Zm2 2v16h10V4H7Zm5 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm-4 11h8v1H8v-1Zm0 2h8v1H8v-1Z" />,
+  luggage: <path d="M8 4V2h8v2h3v18H5V4h3Zm2-2v2h4V2h-4ZM5 6v14h14V6H5Zm3 2h2v10H8V8Zm6 0h2v10h-2V8Z" />,
+  visa: <path d="M5 4h14v3H5V4Zm0 5h14v11H5V9Zm2 2v2h2v-2H7Zm0 3v2h6v-2H7Z" />,
+  'boarding-pass': <path d="M2 8c1 0 1-1 1-2V4h18v2c0 1 0 2 1 2v8c-1 0-1 1-1 2v2H3v-2c0-1 0-2-1-2V8Zm5 1v6h2V9H7Zm4 0v6h6V9h-6Z" />,
+  // — Sports détaillés —
+  football: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-3 5L7 11l4 1 1 4 4-2 1-4-4-1-4-2Z" />,
+  basketball: <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM3 9c2 1 4 3 5 6l-2 4a8 8 0 0 1-3-10Zm14 12-2-4c1-3 3-5 5-6a8 8 0 0 1-3 10Zm-5-9 1 6L8 21A8 8 0 0 1 3 9l4 5 5-2Zm6-9-4 5-5-2-1-6a8 8 0 0 1 10 3Z" />,
+  tennis: <path d="M3 3a14 14 0 0 1 18 18A14 14 0 0 1 3 3Zm12 12a6 6 0 0 0-6-6 8 8 0 0 1 6 6Z" />,
+  golf: <path d="M5 22v-4h2v3h10v-3h2v4H5Zm6-8 5-9-5 2v7Zm0 0v6h-2v-2L4 16l5-2v-1l2 1Z" />,
+  skiing: <path d="M3 17 14 6l1 1 4 4 1 1L9 23l-6-6Zm10-15a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />,
+  swimming: <path d="M2 14a3 3 0 0 1 3 3 3 3 0 0 0 6 0 3 3 0 0 1 6 0 3 3 0 0 0 6 0v3a5 5 0 0 1-9 0 5 5 0 0 1-9 0v-3a5 5 0 0 1 0-3ZM6 7a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm6 5-2-5 9-3 2 5-9 3Z" />,
+  running: <path d="M14 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm-2 6L8 14h3l-1 8h2l1-7 3 3 5-3-1-2-4 2-3-3-2-3 4-1Z" />,
+  cycling: <path d="M5 13a5 5 0 1 0 5 5h-2a3 3 0 1 1-3-3v-2Zm14 0a5 5 0 1 1-5 5h2a3 3 0 1 0 3-3v-2ZM14 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm-2 6L9 13l4 4 1-4 4 3-1-3-4-2-3-3 2 0Z" />,
+  yoga: <path d="M12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm-1 6h2v6h6v2h-3l-2 4h-3l-1-2 2-3v-1H4v-2h7V8Z" />,
+  dumbbell: <path d="M3 9v6h2v2h2V7H5v2H3Zm14-2v10h-2v-2H9v-2h6v-2H9V9h6V7h2Zm2 2v6h2V9h-2Zm-2-2h2v10h-2V7Z" />,
+  // — Web / online —
+  browser: <path d="M3 4h18v16H3V4Zm2 2v3h14V6H5Zm0 5v9h14v-9H5Zm2-3a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm3 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z" />,
+  'window-frame': <path d="M3 3h18v18H3V3Zm2 2v14h14V5H5Z" />,
+  tab: <path d="M3 7h18v14H3V7Zm6-4h6v3H9V3Z" />,
+  incognito: <path d="M5 2h14v6h-2V4H7v4H5V2Zm12 8 4 4-1 1-2 2c-1 0-2 1-3 0L12 14l-3 3c-1 1-2 0-3 0l-2-2-1-1 4-4h10ZM7 16a2 2 0 1 0 4 0 2 2 0 0 0-4 0Zm6 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z" />,
+  'bookmark-tab': <path d="M3 4h18v16H3V4Zm5 2v8l3-2 3 2V6H8Z" />,
+  bookmarked: <path d="M6 2h12v20l-6-4-6 4V2Zm5 4v4H7V8h4v2Z" />,
+  'home-page': <path d="M3 3h18v18H3V3Zm2 2v14h14V5H5Zm5 8L12 11l2 2v3h-4v-3Z" />,
+  // — Misc —
+  megaphone: <path d="M2 9h6l10-5v16L8 15H4l1 5H3l-1-5V9Zm18-2 2 4-2 4-1-2 1-2-1-2 1-2Z" />,
+  'speaker-phone': <path d="M3 4h18v16H3V4Zm2 2v3h14V6H5Zm0 5v3h14v-3H5Zm0 5v3h14v-3H5Z" />,
+  'antenna-broadcast': <path d="M2 12a10 10 0 0 1 20 0l-2 2a8 8 0 0 0-16 0l-2-2Zm4 0a6 6 0 0 1 12 0l-2 2a4 4 0 0 0-8 0l-2-2Zm4 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm-1 5h6l-1 5h-4l-1-5Z" />,
+  'calculator-detailed': <path d="M4 2h16v20H4V2Zm2 2v4h12V4H6Zm0 6v3h3v-3H6Zm5 0v3h3v-3h-3Zm5 0v3h3v-3h-3Zm-10 5v3h3v-3H6Zm5 0v3h3v-3h-3Zm5 0v3h3v-3h-3Z" />,
+  abacus: <path d="M2 3h20v18H2V3Zm2 2v3h6V5H4Zm8 0v3h8V5h-8Zm0 5v3h8v-3h-8ZM4 14v3h8v-3H4Zm10 0v3h6v-3h-6ZM4 18v1h16v-1H4Z" />,
+  binoculars: <path d="M4 3h6l1 4v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8l2-5Zm10 0h6l2 5v8a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2V7l1-4Zm-2 4h-1v6h1V7Z" />,
+  magnifier: <path d="M11 4a7 7 0 1 1-7 7 7 7 0 0 1 7-7Zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM9 10h4v2H9v-2Zm7 8 4 4-2 2-4-4 2-2Z" />,
 }
 
 interface PxIconFontProps {
