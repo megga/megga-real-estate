@@ -3,11 +3,14 @@
 
 import { useState, useRef, useEffect } from 'react'
 import type { CSSProperties, ReactNode, MouseEvent as ReactMouseEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import CRMIcon, { type CrmIconName } from './CRMIcon'
 import type { CrmTheme, SugarPalette } from './tokens'
 import { CRM_AGENT } from './mockData'
 import SugarNotificationsPopover from './notifications/SugarNotificationsPopover'
 import { SUGAR_NOTIFS, type SugarNotif } from './notifications/data'
+import SugarProfileDropdown from './profile/SugarProfileDropdown'
+import { useAuth } from '@/hooks/useAuth'
 
 // ─── Round icon button (44x44, glass) ──────────────────────────────────
 interface SugarRoundIconBtnProps {
@@ -48,20 +51,30 @@ interface SugarTopNavProps {
   dark?: boolean
 }
 export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark = false }: SugarTopNavProps) {
+  const navigate = useNavigate()
+  const { signOut } = useAuth()
   const [notifs, setNotifs] = useState<SugarNotif[]>(SUGAR_NOTIFS)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const notifAnchorRef = useRef<HTMLDivElement>(null)
+  const profileAnchorRef = useRef<HTMLDivElement>(null)
   const unreadCount = notifs.filter(n => !n.read).length
 
   useEffect(() => {
-    if (!notifOpen) return
+    if (!notifOpen && !profileOpen) return
     function handleClick(e: MouseEvent) {
-      if (notifAnchorRef.current && !notifAnchorRef.current.contains(e.target as Node)) {
+      if (notifOpen && notifAnchorRef.current && !notifAnchorRef.current.contains(e.target as Node)) {
         setNotifOpen(false)
+      }
+      if (profileOpen && profileAnchorRef.current && !profileAnchorRef.current.contains(e.target as Node)) {
+        setProfileOpen(false)
       }
     }
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setNotifOpen(false)
+      if (e.key === 'Escape') {
+        setNotifOpen(false)
+        setProfileOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClick)
     document.addEventListener('keydown', handleKey)
@@ -69,7 +82,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
       document.removeEventListener('mousedown', handleClick)
       document.removeEventListener('keydown', handleKey)
     }
-  }, [notifOpen])
+  }, [notifOpen, profileOpen])
   const tabs: { id: SugarScreenId; label: string }[] = [
     { id: 'today',     label: "Aujourd'hui" },
     { id: 'pipeline',  label: 'Pipeline' },
@@ -177,11 +190,37 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
             />
           )}
         </div>
-        <div style={{
-          width: 44, height: 44, borderRadius: 999, background: t.primary,
-          color: '#fff', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 700,
-          boxShadow: sp.shadow,
-        }}>{CRM_AGENT.initials}</div>
+        <div ref={profileAnchorRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => { setProfileOpen(o => !o); setNotifOpen(false) }}
+            aria-haspopup="menu"
+            aria-expanded={profileOpen}
+            title={`${CRM_AGENT.name} · ${CRM_AGENT.role || 'Agent'}`}
+            style={{
+              width: 44, height: 44, borderRadius: 999, border: 0,
+              background: profileOpen ? sp.ink : t.primary,
+              color: '#fff',
+              display: 'grid', placeItems: 'center',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              boxShadow: profileOpen
+                ? '0 6px 20px rgba(11,12,14,0.25)'
+                : sp.shadow,
+              transition: 'background 200ms ease, box-shadow 200ms ease',
+            }}>{CRM_AGENT.initials}</button>
+          {profileOpen && (
+            <SugarProfileDropdown
+              sp={sp}
+              dark={dark}
+              onClose={() => setProfileOpen(false)}
+              onSettings={() => navigate('/dashboard/settings')}
+              onKyc={() => navigate('/dashboard/kyc')}
+              onAgencyPublic={() => window.open('/agences', '_blank', 'noopener,noreferrer')}
+              onHelp={() => navigate('/aide')}
+              onLogout={async () => { await signOut(); navigate('/login') }}
+            />
+          )}
+        </div>
       </div>
     </div>
   )
