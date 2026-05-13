@@ -1,11 +1,12 @@
 // MEGGA Marketplace — Property X logo wrapper.
-// Property X livre 2 variantes "Logo Icon" (icon seul) + "Logo Text" (icon + texte).
-// On utilise le logo MEGGA (GG SVG) qui remplit le même rôle de marque.
+// Logo SVG officiel MEGGA (wordmark complet "MEGGA").
+// Source : /Users/megga/Downloads/Megga_logo-build-02.svg (viewBox 0 0 1920 419)
 //
 // Anatomie :
 // - Variant : dark (encre noire) · light (encre blanche)
-// - Forme : 'icon' (icon seul) · 'text' (icon + texte MEGGA)
-// - Sizes : sm (icon 22 / text 24) · md (icon 36 / text 38) · lg (icon 80 / text 88)
+// - Forme : 'icon' (seulement le M = 1ère lettre) · 'text' (logo complet)
+// - Sizes : sm (height 22) · md (height 32) · lg (height 48)
+//   Width auto calculée à partir de l'aspect ratio 4.58:1
 
 import { Link } from 'react-router-dom'
 import { PX } from './tokens'
@@ -22,12 +23,43 @@ interface PxLogoProps {
   className?: string
 }
 
-function MeggaLogoSvg({ width, height, color }: { width: number; height: number; color: string }) {
+// SVG officiel MEGGA — wordmark complet (M-E-G-G-A)
+function MeggaLogoFull({ height, color }: { height: number; color: string }) {
+  // Aspect ratio 1920/419 = 4.58:1
+  const width = Math.round(height * (1920 / 419))
   return (
-    <svg viewBox="0 0 694.81 419.02" width={width} height={height} aria-label="MEGGA">
-      <path fill={color} d="M212.94,0c46.64,5.38,88.55,22.94,122.21,59.67-22.79,28.12-37.71,60.3-47.08,96.28-7.89-14.68-16.56-27.02-28.35-37.25-40.39-35.04-99.55-30.53-134.81,9.66-40.25,45.89-40.1,117.16.48,162.82,35.48,39.93,94.73,44.05,134.83,8.67,14.5-12.89,25.12-28.95,32.24-48.42l-95.26-.1-.03-83.65,192.78-.02c8.8,28.23,5.09,73.7-2.86,101.4-22.71,79.15-85.98,140.1-169.06,149-2.17.23-4.11.34-5.1.93h-31c-42.03-4.33-81.34-20.79-113.04-49.92C-27.8,280.23-21.84,119.65,81.31,39.5,110.93,16.49,145.39,3.92,181.93,0h31.01Z"/>
-      <path fill={color} d="M511.94,419.01h-29c-47.56,0-91.35-24.53-123.87-60,24.65-30.5,36.53-57.89,47.2-96.18,7.43,14.3,16.5,27.51,28.71,37.93,36.96,31.55,90.34,30.86,126.22-1.89,13.97-12.75,24.27-28.48,31.18-47.43l-94.84-.08-.05-83.65,192.4-.03c2.59,9.14,3.94,17.82,4.5,27.2,4.34,72.2-25.1,142.48-83.13,186.34-29.43,22.24-63.45,34.03-99.32,37.8h0Z"/>
-      <path fill={color} d="M511.94,0c43.2,4.34,82.78,21.02,114.61,50.52,6.43,5.96,12.05,11.43,17.39,19.2l-56.72,84.95c-7.57-14.34-16.16-25.96-27.71-36.03-33.9-29.56-83.44-31.58-119.35-4.39-12.97,9.71-22.64,21.92-30.74,35.77l-101.14-.14c10.87-40.77,32.85-75.32,63.12-102.25C402.99,19.45,441.75,4.18,482.95.02h29-.01Z"/>
+    <svg
+      viewBox="0 0 1920 419"
+      width={width}
+      height={height}
+      aria-label="MEGGA"
+      style={{ display: 'block' }}
+    >
+      <polygon fill={color} points="92 0 237.62 219.08 384 0 475 0 475.31 63.04 363.87 229.77 237.7 418.79 104.93 220.12 104.62 419 0 419 0 0 92 0"/>
+      <polygon fill={color} points="826 0 826.06 94.73 622.1 94.74 621.94 167.65 791.33 167.66 791.33 251.37 622.01 251.37 621.99 324.3 826.05 324.29 825.97 419 517.35 419 517 0 826 0"/>
+      <path fill={color} d="M1052,0c46.64,5.38,88.55,22.94,122.21,59.67-22.79,28.12-37.71,60.3-47.08,96.28-7.89-14.68-16.56-27.02-28.35-37.25-40.39-35.04-99.55-30.53-134.81,9.66-40.25,45.89-40.1,117.16.48,162.82,35.48,39.93,94.73,44.05,134.83,8.67,14.5-12.89,25.12-28.95,32.24-48.42l-95.26-.1-.03-83.65,192.78-.02c8.8,28.23,5.09,73.7-2.86,101.4-22.71,79.15-85.98,140.1-169.06,149-2.17.23-4.11.34-5.1.93h-31c-42.03-4.33-81.34-20.79-113.04-49.92-96.69-88.85-90.73-249.43,12.42-329.58,29.62-23.01,64.08-35.58,100.62-39.5h31Z"/>
+      <path fill={color} d="M1732,0l188,418.23v.77h-104.98l-42.28-94.7h-124.31s-42.38,94.7-42.38,94.7h-104.22c.24-1.34.57-2.95,1.41-4.82L1690,0h42ZM1739.67,250.92l-29.06-64.46-29.15,64.86,58.21-.39Z"/>
+      <path fill={color} d="M1351,419h-29c-47.56,0-91.35-24.53-123.87-60,24.65-30.5,36.53-57.89,47.2-96.18,7.43,14.3,16.5,27.51,28.71,37.93,36.96,31.55,90.34,30.86,126.22-1.89,13.97-12.75,24.27-28.48,31.18-47.43l-94.84-.08-.05-83.65,192.4-.03c2.59,9.14,3.94,17.82,4.5,27.2,4.34,72.2-25.1,142.48-83.13,186.34-29.43,22.24-63.45,34.03-99.32,37.8Z"/>
+      <path fill={color} d="M1351,0c43.2,4.34,82.78,21.02,114.61,50.52,6.43,5.96,12.05,11.43,17.39,19.2l-56.72,84.95c-7.57-14.34-16.16-25.96-27.71-36.03-33.9-29.56-83.44-31.58-119.35-4.39-12.97,9.71-22.64,21.92-30.74,35.77l-101.14-.14c10.87-40.77,32.85-75.32,63.12-102.25,31.59-28.19,70.35-43.46,111.55-47.62h29Z"/>
+      <polygon fill={color} points="475.11 419 370.91 419 370.69 251.26 475.21 95.29 475.11 419"/>
+    </svg>
+  )
+}
+
+// Icon only : juste le "M" de MEGGA (première lettre)
+function MeggaLogoIcon({ height, color }: { height: number; color: string }) {
+  // Le "M" prend ~475 sur les 1920 total → ratio ~1.13:1
+  const width = Math.round(height * (475 / 419))
+  return (
+    <svg
+      viewBox="0 0 475 419"
+      width={width}
+      height={height}
+      aria-label="MEGGA"
+      style={{ display: 'block' }}
+    >
+      <polygon fill={color} points="92 0 237.62 219.08 384 0 475 0 475.31 63.04 363.87 229.77 237.7 418.79 104.93 220.12 104.62 419 0 419 0 0 92 0"/>
+      <polygon fill={color} points="475.11 419 370.91 419 370.69 251.26 475.21 95.29 475.11 419"/>
     </svg>
   )
 }
@@ -41,32 +73,12 @@ export default function PxLogo({
 }: PxLogoProps) {
   const color = variant === 'dark' ? PX.neutral700 : PX.neutral100
 
-  // Dimensions calquées sur le DS Figma : icon 22×22 / 36×22 / 80×48
-  const iconW = size === 'lg' ? 80 : size === 'md' ? 36 : 22
-  const iconH = size === 'lg' ? 48 : size === 'md' ? 22 : 13
-  const textFontSize = size === 'lg' ? 28 : size === 'md' ? 18 : 14
-  const gap = size === 'lg' ? 16 : 8
+  // Hauteur fidèle au DS Figma : sm 22 / md 32 / lg 48
+  const height = size === 'lg' ? 48 : size === 'md' ? 32 : 22
 
-  const content = (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap,
-      textDecoration: 'none',
-    }}>
-      <MeggaLogoSvg width={iconW} height={iconH} color={color} />
-      {form === 'text' && (
-        <span style={{
-          fontFamily: PX.font.display,
-          fontSize: textFontSize,
-          fontWeight: 600,
-          letterSpacing: '-0.6px',
-          color,
-          lineHeight: 1,
-        }}>MEGGA</span>
-      )}
-    </span>
-  )
+  const content = form === 'text'
+    ? <MeggaLogoFull height={height} color={color} />
+    : <MeggaLogoIcon height={height} color={color} />
 
   if (to) {
     return (
@@ -76,5 +88,5 @@ export default function PxLogo({
     )
   }
 
-  return <span className={className}>{content}</span>
+  return <span className={className} style={{ display: 'inline-flex' }}>{content}</span>
 }
