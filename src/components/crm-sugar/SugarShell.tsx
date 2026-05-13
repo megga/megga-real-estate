@@ -262,7 +262,6 @@ export function SugarIconRail({
   const tools: RailItem[] = [
     { id: 'kyc',    icon: 'kyc',   label: 'KYC' },
     { id: 'reseau', icon: 'share', label: "Réseau d'agences" },
-    { id: 'auto',   icon: 'auto',  label: 'Automatisation' },
   ]
 
   const RailBtn = ({ it }: { it: RailItem }) => {

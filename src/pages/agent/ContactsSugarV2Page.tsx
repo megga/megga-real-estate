@@ -140,8 +140,6 @@ export default function ContactsSugarV2Page() {
       case 'ai':
       case 'julien':
         navigate('/dashboard/julien'); break
-      case 'auto':
-        navigate('/dashboard/automation'); break
       case 'chat':
       case 'dashboard':
         navigate('/dashboard/analytics'); break

@@ -6,7 +6,7 @@
 3. **ListingPage** — Fiche bien détaillée (photos, infos, carte, contact agent, estimation)
 4. **LoginPage / RegisterPage** — Auth Supabase (email + Google OAuth)
 
-### Agent Dashboard (14)
+### Agent Dashboard (13)
 5. **ActionBoardPage** — ⭐ PAGE D'ACCUEIL AGENT — "Quoi faire aujourd'hui" (relances, matchs, urgences, suggestions IA)
 6. **DashboardPage** — KPIs, analytics, pipeline mini, dernières activités
 7. **PipelinePage** — Kanban drag & drop des transactions (12 colonnes enrichies)
@@ -19,10 +19,11 @@
 14. **KycDetailPage** — Dossier KYC complet, checklist, documents, validation
 15. **DocumentsPage** — Templates + génération mandat/bon de visite/fiche bien + signature
 16. **CalendarPage** — Agenda visites, RDV (synchro Google Calendar Phase 2)
-17. **AutomationPage** — Configuration des règles de relance automatique
-18. **SettingsPage** — Profil, agence, équipe, notifications
+17. **SettingsPage** — Profil, agence, équipe, notifications
 
 > Note : MessagesPage (messagerie interne agent) retirée du MVP — non utilisée. La communication agent ↔ vendeur passe par le portail vendeur (`MesMessagesPage`).
+>
+> Note : AutomationPage (configuration de règles de relance) retirée du MVP — l'UI agent n'apportait pas de valeur. Le moteur `automation-engine` (Edge Function + pg_cron) reste actif en background pour les relances LAB/KYC. Préférer des toggles simples dans Settings + suggestions IA dans Today.
 
 ### Onboarding Client (4)
 20. **OnboardingBuyerPP** — Formulaire acquéreur personne physique

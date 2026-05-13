@@ -64,7 +64,6 @@ const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
 const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
-const AutomationPage = lazy(() => import('@/pages/agent/AutomationPage'))
 const TemplatesPage = lazy(() => import('@/pages/agent/TemplatesPage'))
 const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
 const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
@@ -324,7 +323,6 @@ export default function App() {
                 <Route path="kyc-legacy" element={<KycListPage />} />
                 <Route path="kyc-legacy/:id" element={<KycDetailPage />} />
                 <Route path="calendar-legacy" element={<CalendarPage />} />
-                <Route path="automation" element={<AutomationPage />} />
                 <Route path="documents-legacy" element={<TemplatesPage />} />
                 <Route path="documents/generate" element={<DocumentGenerator />} />
                 <Route path="documents/templates/new" element={<CustomTemplatePage />} />

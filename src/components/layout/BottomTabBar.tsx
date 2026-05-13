@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
   Home, GitBranch, Users, Shuffle, MoreHorizontal,
-  LayoutDashboard, Building2, ShieldCheck, Calendar, FileText, Zap, Settings, X,
+  LayoutDashboard, Building2, ShieldCheck, Calendar, FileText, Settings, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -26,7 +26,6 @@ const MORE_ITEMS: TabItem[] = [
   { icon: ShieldCheck, label: 'KYC', path: '/dashboard/kyc' },
   { icon: Calendar, label: 'Calendrier', path: '/dashboard/calendar' },
   { icon: FileText, label: 'Documents', path: '/dashboard/documents' },
-  { icon: Zap, label: 'Automatisation', path: '/dashboard/automation' },
   { icon: Settings, label: 'Paramètres', path: '/dashboard/settings' },
 ]
 

@@ -44,7 +44,6 @@ const NAV_SECTIONS: NavSection[] = [
   { labelKey: 'sections.compliance', items: [
     { labelKey: 'nav.kyc', href: '/dashboard/kyc', icon: ShieldCheck },
     { labelKey: 'nav.documents', href: '/dashboard/documents', icon: FileText },
-    { labelKey: 'nav.automation', href: '/dashboard/automation', icon: Zap },
   ]},
 ]
 

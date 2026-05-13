@@ -463,7 +463,6 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                       <div className="space-y-px">
                         {([
                           { label: 'Documents', href: '/dashboard/documents', desc: 'Mandats, bons de visite', count: '12' },
-                          { label: 'Automatisation', href: '/dashboard/automation', desc: 'Relances et règles', count: '8' },
                           { label: 'Calendrier', href: '/dashboard/calendar', desc: 'Visites, rendez-vous', count: '3' },
                           { label: 'Centre d\'aide', href: '/aide', desc: 'Guides et tutoriels', count: null },
                           { label: 'Paramètres', href: '/dashboard/settings', desc: 'Profil, équipe, abonnement', count: null },

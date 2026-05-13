@@ -133,7 +133,6 @@ export default function TodaySugarPage() {
       case 'reseau':    navigate('/dashboard/reseau'); break
       case 'ai':
       case 'julien':    navigate('/dashboard/julien'); break
-      case 'auto':      navigate('/dashboard/automation'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings':  navigate('/dashboard/settings'); break
       case 'parcours':
