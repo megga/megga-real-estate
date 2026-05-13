@@ -11,7 +11,7 @@ export default function PxAboutSection() {
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <PxSectionLabel>À propos de MEGGA</PxSectionLabel>
+          <PxSectionLabel icon="user">À propos de MEGGA</PxSectionLabel>
           <h2 style={{
             margin: '16px auto 0',
             maxWidth: 720,
@@ -316,7 +316,7 @@ export default function PxAboutSection() {
           {/* Colonne droite : stats */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
             <div>
-              <PxSectionLabel>Biens disponibles</PxSectionLabel>
+              <PxSectionLabel icon="home">Biens disponibles</PxSectionLabel>
               <div style={{
                 fontFamily: PX.font.display,
                 fontSize: 80,
@@ -340,7 +340,7 @@ export default function PxAboutSection() {
               </p>
             </div>
             <div>
-              <PxSectionLabel>Cantons couverts</PxSectionLabel>
+              <PxSectionLabel icon="compass">Cantons couverts</PxSectionLabel>
               <div style={{
                 fontFamily: PX.font.display,
                 fontSize: 80,

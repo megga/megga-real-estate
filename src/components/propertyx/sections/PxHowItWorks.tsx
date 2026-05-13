@@ -29,7 +29,7 @@ export default function PxHowItWorks() {
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <PxSectionLabel>Notre processus</PxSectionLabel>
+          <PxSectionLabel icon="check">Notre processus</PxSectionLabel>
           <h2 style={{
             margin: '16px auto 0',
             maxWidth: 720,

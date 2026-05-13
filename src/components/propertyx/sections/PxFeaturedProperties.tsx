@@ -88,7 +88,7 @@ export default function PxFeaturedProperties() {
           marginBottom: 40,
         }}>
           <div>
-            <PxSectionLabel invert>Biens vedettes</PxSectionLabel>
+            <PxSectionLabel icon="star" invert>Biens vedettes</PxSectionLabel>
             <h2 style={{
               margin: '12px 0 8px',
               fontFamily: PX.font.display,

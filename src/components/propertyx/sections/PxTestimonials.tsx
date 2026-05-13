@@ -97,69 +97,58 @@ export default function PxTestimonials() {
       background: PX.neutral100,
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {/* Header : titre + paragraphe gauche, vide à droite (le 1er témoignage occupe la droite) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 24,
-          alignItems: 'start',
-          marginBottom: 32,
-        }}>
-          <div style={{ maxWidth: 480 }}>
-            <PxSectionLabel>Témoignages</PxSectionLabel>
-            <h2 style={{
-              margin: '16px 0 16px',
-              fontFamily: PX.font.display,
-              fontSize: 'clamp(28px, 4vw, 44px)',
-              lineHeight: 1.12,
-              letterSpacing: '-1.3px',
-              fontWeight: 500,
-              color: PX.neutral700,
-            }}>
-              Ce que pensent nos clients
-            </h2>
-            <p style={{
-              margin: 0,
-              fontFamily: PX.font.sans,
-              fontSize: 14,
-              lineHeight: 1.5,
-              letterSpacing: '-0.42px',
-              color: PX.neutral500,
-              maxWidth: 380,
-            }}>
-              5 000 clients accompagnés depuis 2019 en Suisse romande
-              et alémanique. Voici quelques retours d'expérience.
-            </p>
-          </div>
-          {/* 1er témoignage placé directement à droite du header */}
-          <TestimonialCard t={TESTIMONIALS[0]} compact />
-        </div>
-
-        {/* Grid asymétrique 2 colonnes : 2 cards à gauche, 2 cards à droite */}
+        {/* Layout fidèle Figma : 2 colonnes alignées
+            LEFT  : header (label+H2+intro) → card 1 → card 2
+            RIGHT : card 3 → card 4 → bouton "Commencer" */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gap: 20,
+          alignItems: 'start',
         }}>
+          {/* Colonne gauche */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ marginBottom: 12 }}>
+              <PxSectionLabel icon="message">Témoignages</PxSectionLabel>
+              <h2 style={{
+                margin: '16px 0 16px',
+                fontFamily: PX.font.display,
+                fontSize: 'clamp(28px, 4vw, 44px)',
+                lineHeight: 1.12,
+                letterSpacing: '-1.3px',
+                fontWeight: 500,
+                color: PX.neutral700,
+              }}>
+                Ce que pensent nos clients
+              </h2>
+              <p style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontSize: 14,
+                lineHeight: 1.5,
+                letterSpacing: '-0.42px',
+                color: PX.neutral500,
+                maxWidth: 380,
+              }}>
+                5 000 clients accompagnés depuis 2019 en Suisse romande
+                et alémanique. Voici quelques retours d'expérience.
+              </p>
+            </div>
             <TestimonialCard t={TESTIMONIALS[1]} compact />
             <TestimonialCard t={TESTIMONIALS[2]} compact />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <TestimonialCard t={TESTIMONIALS[3]} compact />
-            <TestimonialCard t={TESTIMONIALS[4]} compact />
-          </div>
-        </div>
 
-        {/* Bouton "Start exploring" centré */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginTop: 40,
-        }}>
-          <PxButton to="/acheter" variant="primary" size="lg">
-            Commencer
-          </PxButton>
+          {/* Colonne droite */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <TestimonialCard t={TESTIMONIALS[0]} compact />
+            <TestimonialCard t={TESTIMONIALS[3]} compact />
+            {/* Bouton "Commencer" placé dans la colonne droite, fidèle V3 */}
+            <div>
+              <PxButton to="/acheter" variant="primary" size="lg">
+                Commencer
+              </PxButton>
+            </div>
+          </div>
         </div>
       </div>
     </section>

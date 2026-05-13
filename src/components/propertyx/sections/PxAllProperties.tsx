@@ -137,7 +137,7 @@ export default function PxAllProperties() {
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 64, alignItems: 'start' }}>
           <div style={{ position: 'sticky', top: 100 }}>
-            <PxSectionLabel>Tous les biens</PxSectionLabel>
+            <PxSectionLabel icon="home">Tous les biens</PxSectionLabel>
             <h2 style={{
               margin: '16px 0 16px',
               fontFamily: PX.font.display,

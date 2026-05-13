@@ -54,7 +54,7 @@ export default function PxExploreCTA() {
           </div>
 
           <div>
-            <PxSectionLabel invert>Contactez-nous</PxSectionLabel>
+            <PxSectionLabel icon="message" invert>Contactez-nous</PxSectionLabel>
             <h2 style={{
               margin: '16px 0 16px',
               fontFamily: PX.font.display,

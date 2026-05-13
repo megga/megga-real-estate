@@ -131,7 +131,7 @@ export default function PxBlogTeaser() {
             marginBottom: 48,
           }}
         >
-          <PxSectionLabel>Notre blog</PxSectionLabel>
+          <PxSectionLabel icon="edit">Notre blog</PxSectionLabel>
           <h2
             style={{
               margin: '16px 0 0 0',
