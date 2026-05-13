@@ -21,6 +21,7 @@ import CookieBanner from '@/components/CookieBanner'
 // Lazy-loaded public pages
 const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
 const ListingPage = lazy(() => import('@/pages/public/ListingPage'))
+const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
 const LouerPage = lazy(() => import('@/pages/public/LouerPage'))
 const VendrePage = lazy(() => import('@/pages/public/VendrePage'))
 const EstimationsPage = lazy(() => import('@/pages/public/EstimationsPage'))
@@ -196,6 +197,7 @@ export default function App() {
               <Route path="/register" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/acheter" element={<SearchPage />} />
+              <Route path="/about" element={<AboutPage />} />
               <Route path="/louer" element={<LouerPage />} />
               <Route path="/vendre" element={<VendrePage />} />
               <Route path="/estimations" element={<EstimationsPage />} />
