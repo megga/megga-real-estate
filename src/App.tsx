@@ -289,7 +289,8 @@ export default function App() {
                 <Route index element={<TodaySugarPage />} />
                 <Route path="pipeline" element={<PipelineSugarV2Page />} />
                 <Route path="contacts" element={<ContactsSugarV2Page />} />
-                <Route path="listings" element={<BiensSugarV2Page />} />
+                <Route path="listings" element={<ListingsPage />} />
+                <Route path="listings-sugar" element={<BiensSugarV2Page />} />
                 <Route path="matching" element={<MatchingSugarV2Page />} />
                 <Route path="parcours" element={<ParcoursSugarV2Page />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
@@ -318,7 +319,6 @@ export default function App() {
                 <Route path="pipeline-legacy" element={<PipelinePage />} />
                 <Route path="matching-legacy" element={<MatchingPage />} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
-                <Route path="listings-legacy" element={<ListingsPage />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="kyc-legacy" element={<KycListPage />} />
