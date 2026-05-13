@@ -1,50 +1,41 @@
 // MEGGA Marketplace — Property X "Process Section" / How it works.
-// Source : Figma node 11756:29023 — code Figma exact.
+// Source : Figma node 11756:29023 — contenu EXACT du Figma (texte anglais).
 //
-// Structure fidèle :
-//   <section pt-80 pb-160 flex-col items-center>
-//     <Top Content centered>
-//       <Title Wrapper>
-//         <Badge LIGHT bg-neutral300, pl-6 pr-12 py-6, cercle bg-neutral400 size-26 + texte dark>
-//         <H2 48px w-546 centered>
-//       </Title Wrapper>
-//       <Paragraph pt-16 pb-32, w-562, 16/1.5 neutral500 centered>
-//     </Top Content>
-//     <Bottom Content flex gap-51 items-center>
-//       <Accordion Wrapper flex-col gap-16>
-//         <Accordion OPEN : bg-white h-226 p-39 rounded-24 shadow small w-536>
-//           <Content : title 24 Display/5 + description 16/1.5 neutral500>
-//           <Minus icon 20px>
-//         </Accordion>
-//         <Accordion CLOSED 2 : h-131 px-39 py-36>
-//         <Accordion CLOSED 3 : h-131 px-39 py-36>
-//       </Accordion Wrapper>
-//       <Right Element 611×522>
-//         <Image 514×433>
-//         <Popover (295,172) 316×349 bg-white rounded-24>
-//           <Search "Choose your location" pill bg-neutral200 + dark circle>
-//           <Card 1 (image masked) + badge mini "For rent" + title 12 + address 8>
-//           <Card 2 ...>
-//         </Popover>
-//       </Right Element>
-//     </Bottom Content>
-//   </section>
+// Structure : 3 accordion items, chaque état change l'image + popover à droite.
+// État 1 : couple laptop + popover "Choose your location" + 2 property cards
+// État 2 : homme téléphone + popover Sophie Moore agent
+// État 3 : couple souriant + popover "Congratulations" + bouton "Go back home"
 
 import { useState } from 'react'
 import { PX, PxIcon, PxFigmaIcon } from '..'
 
-const STEPS = [
+type StepVariant = 'search' | 'agent' | 'success'
+
+interface Step {
+  title: string
+  body: string
+  image: string
+  variant: StepVariant
+}
+
+const STEPS: Step[] = [
   {
-    title: '1. Trouvez le bien qui vous correspond',
-    body: 'Filtres avancés et carte interactive pour cibler le quartier, le type, le budget. Notre IA propose 3 suggestions chaque jour selon votre profil.',
+    title: '1. Search for your favorite house in your location',
+    body: 'Lorem ipsum dolor sit amet consectetur vitae purus quis metus sed semper diam iaculis duis vitae purus amet sagittis leo elit vitae dolor.',
+    image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1400&q=85',
+    variant: 'search',
   },
   {
-    title: '2. Planifiez une visite avec un agent',
-    body: "Réservez en 2 clics. L'agent confirme dans la journée. Tous les agents MEGGA sont certifiés KYC — vous savez à qui vous parlez.",
+    title: '2. Make a visit appointment with one of our agents',
+    body: 'Lorem ipsum dolor sit amet consectetur vitae purus quis metus sed semper diam iaculis duis vitae purus amet sagittis leo elit vitae dolor.',
+    image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=1400&q=85',
+    variant: 'agent',
   },
   {
-    title: "3. Emménagez en moins d'un mois",
-    body: 'Une fois votre choix fait, MEGGA orchestre le dossier de location ou la promesse de vente. Documents signés électroniquement, dépôt de garantie sécurisé.',
+    title: '3. Get your dream house in a month, or less',
+    body: 'Lorem ipsum dolor sit amet consectetur vitae purus quis metus sed semper diam iaculis duis vitae purus amet sagittis leo elit vitae dolor.',
+    image: 'https://images.unsplash.com/photo-1573497019418-b400bb3ab074?w=1400&q=85',
+    variant: 'success',
   },
 ]
 
@@ -81,23 +72,72 @@ function ProcessBadge() {
         lineHeight: 1.25,
         letterSpacing: '-0.48px',
         color: PX.neutral700,
-      }}>Notre processus</span>
+      }}>Our process</span>
     </span>
   )
 }
 
-// Popover mini-card "Luxury Loft" — utilisée dans le popover du Right Element
-function PopoverMiniCard({ image, title, address }: { image: string; title: string; address: string }) {
+// Popover Search (état 1) — search bar + 2 property cards
+function SearchPopover() {
   return (
     <div style={{
-      width: '100%',
-      borderRadius: 8,
-      overflow: 'hidden',
+      background: PX.neutral100,
+      borderRadius: PX.radius.large,
+      boxShadow: PX.shadow.large,
+      padding: 24,
       display: 'flex',
       flexDirection: 'column',
-      gap: 8,
+      gap: 16,
     }}>
-      {/* Image avec badge "For rent" mini en haut */}
+      {/* Search bar pill "Choose your location" */}
+      <div style={{
+        background: PX.neutral200,
+        borderRadius: PX.radius.pill,
+        paddingLeft: 14,
+        paddingRight: 5,
+        paddingTop: 5,
+        paddingBottom: 5,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <span style={{
+          fontFamily: PX.font.sans,
+          fontSize: 10,
+          fontWeight: 400,
+          color: PX.neutral500,
+        }}>Choose your location</span>
+        <span style={{
+          width: 26,
+          height: 26,
+          borderRadius: PX.radius.pill,
+          background: PX.neutral700,
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+        }}>
+          <PxFigmaIcon name="search" size={12} color={PX.neutral100} />
+        </span>
+      </div>
+
+      <PopoverPropertyCard
+        image="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=85"
+        title="Luxury Loft in San Francisco"
+        address="2238 Stradella Rd, SF"
+      />
+      <PopoverPropertyCard
+        image="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=85"
+        title="Home in Los Angeles heart"
+        address="2596 El Segundo, Los Angeles"
+      />
+    </div>
+  )
+}
+
+function PopoverPropertyCard({ image, title, address }: { image: string; title: string; address: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {/* Image avec badge "For rent" */}
       <div style={{
         height: 80,
         borderRadius: 8,
@@ -112,7 +152,10 @@ function PopoverMiniCard({ image, title, address }: { image: string; title: stri
           left: 5,
           background: PX.neutral700,
           color: PX.neutral100,
-          padding: '2px 6px',
+          paddingLeft: 4,
+          paddingRight: 6,
+          paddingTop: 2,
+          paddingBottom: 2,
           borderRadius: 18,
           fontSize: 7,
           fontWeight: 500,
@@ -120,13 +163,13 @@ function PopoverMiniCard({ image, title, address }: { image: string; title: stri
           letterSpacing: '-0.21px',
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 3,
+          gap: 2,
         }}>
           <PxFigmaIcon name="key" size={7} color={PX.neutral100} />
-          À louer
+          For rent
         </span>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '0 4px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <div style={{
           fontFamily: PX.font.display,
           fontSize: 12,
@@ -154,8 +197,143 @@ function PopoverMiniCard({ image, title, address }: { image: string; title: stri
   )
 }
 
+// Popover Agent (état 2) — Sophie Moore profile pill
+function AgentPopover() {
+  return (
+    <div style={{
+      background: PX.neutral100,
+      borderRadius: PX.radius.pill,
+      boxShadow: PX.shadow.large,
+      padding: 8,
+      paddingRight: 20,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      maxWidth: 280,
+    }}>
+      <img
+        src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=85"
+        alt="Sophie Moore"
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: PX.radius.pill,
+          objectFit: 'cover',
+          flexShrink: 0,
+        }}
+      />
+      <span style={{
+        fontFamily: PX.font.display,
+        fontSize: 12,
+        fontWeight: 500,
+        lineHeight: 1.4,
+        letterSpacing: '-0.36px',
+        color: PX.neutral700,
+      }}>
+        Hello I'm Sophie Moore! From Casa X, how can I help you?
+      </span>
+    </div>
+  )
+}
+
+// Popover Success (état 3) — Congratulations + Go back home
+function SuccessPopover() {
+  return (
+    <div style={{
+      background: PX.neutral100,
+      borderRadius: PX.radius.large,
+      boxShadow: PX.shadow.large,
+      padding: 24,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 14,
+      width: 240,
+    }}>
+      <span style={{
+        width: 44,
+        height: 44,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral700,
+        display: 'grid',
+        placeItems: 'center',
+      }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M5 12l5 5L20 7" stroke={PX.neutral100} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+        <div style={{
+          fontFamily: PX.font.display,
+          fontSize: 18,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-0.54px',
+          color: PX.neutral700,
+        }}>Congratulations</div>
+        <div style={{
+          fontFamily: PX.font.display,
+          fontSize: 13,
+          fontWeight: 400,
+          lineHeight: 1.4,
+          letterSpacing: '-0.39px',
+          color: PX.neutral500,
+          textAlign: 'center',
+        }}>
+          Your property has been purchased successfully
+        </div>
+      </div>
+      <button type="button" style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        paddingLeft: 16,
+        paddingRight: 6,
+        paddingTop: 6,
+        paddingBottom: 6,
+        background: PX.neutral700,
+        color: PX.neutral100,
+        border: 0,
+        borderRadius: PX.radius.pill,
+        fontFamily: PX.font.display,
+        fontSize: 13,
+        fontWeight: 500,
+        letterSpacing: '-0.39px',
+        cursor: 'pointer',
+      }}>
+        Go back home
+        <span style={{
+          width: 22,
+          height: 22,
+          borderRadius: PX.radius.pill,
+          background: PX.neutral100,
+          display: 'grid',
+          placeItems: 'center',
+        }}>
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+            <path d="M2.5 6h7M6.5 2.5L10 6l-3.5 3.5"
+              stroke={PX.neutral700} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      </button>
+    </div>
+  )
+}
+
+function RightPopover({ variant }: { variant: StepVariant }) {
+  // Position du popover : overlap sur l'image en bas-droite
+  const baseStyle: React.CSSProperties = {
+    position: 'absolute',
+    right: 0,
+  }
+  if (variant === 'search') return <div style={{ ...baseStyle, top: 100, width: 280 }}><SearchPopover /></div>
+  if (variant === 'agent') return <div style={{ ...baseStyle, left: 60, right: 'auto', top: 120 }}><AgentPopover /></div>
+  return <div style={{ ...baseStyle, bottom: 30 }}><SuccessPopover /></div>
+}
+
 export default function PxHowItWorks() {
   const [open, setOpen] = useState(0)
+  const activeStep = STEPS[open] ?? STEPS[0]
 
   return (
     <section style={{
@@ -163,7 +341,7 @@ export default function PxHowItWorks() {
       paddingBottom: 160,
       paddingLeft: 24,
       paddingRight: 24,
-      // Section bg neutral200 (off-white) pour faire ressortir les bentos blancs
+      // Fond gris off-white pour faire ressortir les bentos blancs
       background: PX.neutral200,
       display: 'flex',
       flexDirection: 'column',
@@ -175,14 +353,12 @@ export default function PxHowItWorks() {
         flexDirection: 'column',
         alignItems: 'center',
       }}>
-        {/* Title Wrapper */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
         }}>
           <ProcessBadge />
-          {/* Title : pt-16, 48 Display/8/Medium tracking -1.44, w-546 */}
           <h2 style={{
             margin: 0,
             paddingTop: 16,
@@ -196,10 +372,9 @@ export default function PxHowItWorks() {
             color: PX.neutral700,
             textAlign: 'center',
           }}>
-            Trouvez le bien de vos rêves en 1, 2, 3
+            Find your dream house as easy as 1, 2, 3
           </h2>
         </div>
-        {/* Paragraph : pt-16 pb-32, w-562, 16/1.5 neutral500 centered */}
         <p style={{
           margin: 0,
           paddingTop: 16,
@@ -214,8 +389,8 @@ export default function PxHowItWorks() {
           color: PX.neutral500,
           textAlign: 'center',
         }}>
-          Un parcours simple et transparent en 3 étapes, avec un agent certifié
-          à vos côtés du premier filtre jusqu'aux clés.
+          Lorem ipsum dolor sit amet consectetur. Sit ut gravida aenean potenti.
+          Metus in eu vel morbi dui nunc tellus. Non a massa maecenas massa.
         </p>
       </div>
 
@@ -225,7 +400,7 @@ export default function PxHowItWorks() {
         gap: 51,
         alignItems: 'center',
       }}>
-        {/* Accordion Wrapper : flex-col gap-16 */}
+        {/* Accordion Wrapper */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -240,7 +415,6 @@ export default function PxHowItWorks() {
                 style={{
                   width: 536,
                   minHeight: isOpen ? 226 : 131,
-                  height: 'auto',
                   padding: isOpen ? 39 : '36px 39px',
                   background: PX.neutral100,
                   borderRadius: PX.radius.large,
@@ -262,7 +436,6 @@ export default function PxHowItWorks() {
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                   }}>
-                    {/* Title : 24 Display/5/Medium tracking -0.72, w-356 */}
                     <span style={{
                       width: 356,
                       fontFamily: PX.font.display,
@@ -272,7 +445,6 @@ export default function PxHowItWorks() {
                       letterSpacing: '-0.72px',
                       color: PX.neutral700,
                     }}>{s.title}</span>
-                    {/* Description (only if open) : pt-16, 16/1.5/-0.48 neutral500 */}
                     {isOpen && (
                       <span style={{
                         paddingTop: 16,
@@ -286,7 +458,6 @@ export default function PxHowItWorks() {
                       }}>{s.body}</span>
                     )}
                   </div>
-                  {/* Plus/Minus icon 20px */}
                   <PxIcon name={isOpen ? 'minus' : 'plus'} size={20} color={PX.neutral700} />
                 </div>
               </button>
@@ -294,14 +465,14 @@ export default function PxHowItWorks() {
           })}
         </div>
 
-        {/* Right Element 611×522 — image grande + popover */}
+        {/* Right Element : image + popover, dynamique selon activeStep */}
         <div style={{
           position: 'relative',
           width: 611,
           height: 522,
           flexShrink: 0,
         }}>
-          {/* Image 514×433 en haut */}
+          {/* Image principale 514×433 — change selon step */}
           <div style={{
             position: 'absolute',
             top: 0,
@@ -310,73 +481,14 @@ export default function PxHowItWorks() {
             height: 433,
             borderRadius: PX.radius.large,
             overflow: 'hidden',
-            backgroundImage: `url("https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=85")`,
+            backgroundImage: `url("${activeStep.image}")`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            transition: `background-image ${PX.duration.base} ${PX.ease}`,
           }} />
 
-          {/* Popover (295, 172), 316×349, bg-white rounded-24 */}
-          <div style={{
-            position: 'absolute',
-            left: 295,
-            top: 172,
-            width: 316,
-            height: 349,
-            background: PX.neutral100,
-            borderRadius: PX.radius.large,
-            boxShadow: PX.shadow.large,
-            padding: 24,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}>
-            {/* Search bar pill "Choose your location" : bg-neutral200, rounded-pill */}
-            <div style={{
-              background: PX.neutral200,
-              borderRadius: PX.radius.pill,
-              paddingLeft: 14,
-              paddingRight: 4,
-              paddingTop: 6,
-              paddingBottom: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              height: 36,
-            }}>
-              <span style={{
-                fontFamily: PX.font.display,
-                fontSize: 10,
-                fontWeight: 400,
-                lineHeight: 1.5,
-                color: PX.neutral500,
-              }}>Choisir un lieu</span>
-              <span style={{
-                width: 22,
-                height: 22,
-                borderRadius: PX.radius.pill,
-                background: PX.neutral700,
-                display: 'grid',
-                placeItems: 'center',
-                flexShrink: 0,
-              }}>
-                <PxIcon name="search" size={11} color={PX.neutral100} />
-              </span>
-            </div>
-
-            {/* Card 1 : Luxury Loft */}
-            <PopoverMiniCard
-              image="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=80"
-              title="Loft contemporain · Carouge"
-              address="12 rue de la Filature"
-            />
-
-            {/* Card 2 : Home in Los Angeles heart */}
-            <PopoverMiniCard
-              image="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400&q=80"
-              title="Villa lac · Cologny"
-              address="Route de la Capite"
-            />
-          </div>
+          {/* Popover dynamique selon variant */}
+          <RightPopover variant={activeStep.variant} />
         </div>
       </div>
     </section>
