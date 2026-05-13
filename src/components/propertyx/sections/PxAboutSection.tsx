@@ -3,7 +3,7 @@
 // (image + badge overlay + titre + adresse map pin + stats m²/lits/bains/parking
 // + bouton "Contacter l'agent").
 
-import { PX, PxButton, PxBadge, PxFigmaIcon } from '..'
+import { PX, PxButton, PxFigmaIcon } from '..'
 
 // Badge "About us" — LIGHT bg-neutral300 + cercle bg-neutral400 + icône user Figma
 function AboutBadge() {
@@ -98,114 +98,117 @@ const FLOATING_LISTING: Listing = {
   parking: 2,
 }
 
-// Card listing fidèle Figma — image + badge overlay + content stack en dessous
+// Card listing fidèle Figma — image avec badge + titre + adresse +
+// (stats inline avec "Contact agent" à droite, sur une seule ligne).
 function PhoneListingCard({ listing }: { listing: Listing }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Image avec badge overlay */}
       <div style={{
-        height: 128,
+        height: 158,
         backgroundImage: `url("${listing.image}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        borderRadius: 10,
+        borderRadius: 12,
         position: 'relative',
       }}>
         <span style={{
           position: 'absolute',
-          top: 8,
-          left: 8,
+          top: 10,
+          left: 10,
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 3,
+          gap: 4,
           background: PX.neutral700,
           color: PX.neutral100,
-          paddingLeft: 6,
-          paddingRight: 8,
-          paddingTop: 3,
-          paddingBottom: 3,
+          paddingLeft: 8,
+          paddingRight: 10,
+          paddingTop: 4,
+          paddingBottom: 4,
           borderRadius: PX.radius.pill,
           fontFamily: PX.font.display,
-          fontSize: 9,
+          fontSize: 10,
           fontWeight: 500,
-          letterSpacing: '-0.27px',
+          letterSpacing: '-0.3px',
           lineHeight: 1.25,
         }}>
-          <PxFigmaIcon name="key" size={8} color={PX.neutral100} />
+          <PxFigmaIcon name="key" size={10} color={PX.neutral100} />
           {listing.badge}
         </span>
       </div>
 
-      {/* Content : titre + adresse + stats + bouton */}
+      {/* Titre */}
+      <div style={{
+        marginTop: 10,
+        fontFamily: PX.font.display,
+        fontSize: 14,
+        fontWeight: 500,
+        letterSpacing: '-0.42px',
+        color: PX.neutral700,
+        lineHeight: 1.25,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+      }}>
+        {listing.title}
+      </div>
+
+      {/* Adresse map pin */}
+      <div style={{
+        marginTop: 4,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        fontFamily: PX.font.display,
+        fontSize: 11,
+        fontWeight: 500,
+        letterSpacing: '-0.33px',
+        color: PX.neutral500,
+        lineHeight: 1.25,
+      }}>
+        <PxFigmaIcon name="location" size={10} color={PX.neutral500} />
+        <span style={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>{listing.address}</span>
+      </div>
+
+      {/* Bottom row : stats + "Contact agent" sur une seule ligne */}
       <div style={{
         marginTop: 8,
         display: 'flex',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         justifyContent: 'space-between',
         gap: 8,
       }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontFamily: PX.font.display,
-            fontSize: 12,
-            fontWeight: 500,
-            letterSpacing: '-0.36px',
-            color: PX.neutral700,
-            lineHeight: 1.25,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {listing.title}
-          </div>
-          <div style={{
-            marginTop: 3,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            fontFamily: PX.font.display,
-            fontSize: 9,
-            fontWeight: 500,
-            letterSpacing: '-0.27px',
-            color: PX.neutral500,
-            lineHeight: 1.25,
-          }}>
-            <PxFigmaIcon name="location" size={8} color={PX.neutral500} />
-            <span style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>{listing.address}</span>
-          </div>
-          <div style={{
-            marginTop: 6,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontFamily: PX.font.display,
-            fontSize: 9,
-            fontWeight: 500,
-            letterSpacing: '-0.27px',
-            color: PX.neutral400,
-            lineHeight: 1.25,
-          }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="surface" size={11} color={PX.neutral400} />
-              {listing.surface}
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="bed" size={11} color={PX.neutral400} />
-              {listing.beds}
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="bath" size={11} color={PX.neutral400} />
-              {listing.baths}
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="parking" size={11} color={PX.neutral400} />
-              {listing.parking}
-            </span>
-          </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          fontFamily: PX.font.display,
+          fontSize: 10,
+          fontWeight: 500,
+          letterSpacing: '-0.3px',
+          color: PX.neutral400,
+          lineHeight: 1.25,
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="surface" size={13} color={PX.neutral400} />
+            {listing.surface}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="bed" size={13} color={PX.neutral400} />
+            {listing.beds}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="bath" size={13} color={PX.neutral400} />
+            {listing.baths}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="parking" size={13} color={PX.neutral400} />
+            {listing.parking}
+          </span>
         </div>
         <button type="button" style={{
           display: 'inline-flex',
@@ -216,37 +219,39 @@ function PhoneListingCard({ listing }: { listing: Listing }) {
           border: 0,
           color: PX.neutral700,
           fontFamily: PX.font.display,
-          fontSize: 8,
+          fontSize: 10,
           fontWeight: 500,
-          letterSpacing: '-0.24px',
+          letterSpacing: '-0.3px',
           lineHeight: 1.25,
           cursor: 'pointer',
           whiteSpace: 'nowrap',
           flexShrink: 0,
         }}>
-          Contacter
-          <PxFigmaIcon name="chevron-right" size={8} color={PX.neutral700} />
+          Contact agent
+          <PxFigmaIcon name="chevron-right" size={10} color={PX.neutral700} />
         </button>
       </div>
     </div>
   )
 }
 
-// Floating card hors iPhone — version plus large avec bouton "+" en top-right
+// Floating card hors iPhone — fidèle Figma : white card, padding 16,
+// image avec badge + "+" circle, titre 18px, adresse map pin, divider,
+// stats avec icônes Figma.
 function FloatingListingCard({ listing }: { listing: Listing }) {
   return (
     <div style={{
       position: 'absolute',
-      right: -40,
-      bottom: 64,
-      width: 256,
-      padding: 12,
+      right: -56,
+      bottom: 56,
+      width: 312,
+      padding: 16,
       background: PX.neutral100,
       borderRadius: PX.radius.medium,
       boxShadow: PX.shadow.large,
     }}>
       <div style={{
-        height: 152,
+        height: 184,
         backgroundImage: `url("${listing.image}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -255,17 +260,31 @@ function FloatingListingCard({ listing }: { listing: Listing }) {
       }}>
         <span style={{
           position: 'absolute',
-          top: 8,
-          left: 8,
+          top: 12,
+          left: 12,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          background: PX.neutral700,
+          color: PX.neutral100,
+          paddingLeft: 10,
+          paddingRight: 12,
+          paddingTop: 5,
+          paddingBottom: 5,
+          borderRadius: PX.radius.pill,
+          fontFamily: PX.font.display,
+          fontSize: 12,
+          fontWeight: 500,
+          letterSpacing: '-0.36px',
+          lineHeight: 1.25,
         }}>
-          <PxBadge variant="primary" size="sm" icon={<PxFigmaIcon name="key" size={12} color={PX.neutral100} />}>
-            {listing.badge}
-          </PxBadge>
+          <PxFigmaIcon name="key" size={12} color={PX.neutral100} />
+          {listing.badge}
         </span>
         <button type="button" aria-label="Ajouter aux favoris" style={{
           position: 'absolute',
-          top: 8,
-          right: 8,
+          top: 12,
+          right: 12,
           width: 32,
           height: 32,
           borderRadius: PX.radius.pill,
@@ -280,12 +299,12 @@ function FloatingListingCard({ listing }: { listing: Listing }) {
         </button>
       </div>
 
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 14 }}>
         <div style={{
           fontFamily: PX.font.display,
-          fontSize: 16,
+          fontSize: 18,
           fontWeight: 500,
-          letterSpacing: '-0.48px',
+          letterSpacing: '-0.54px',
           color: PX.neutral700,
           lineHeight: 1.25,
         }}>
@@ -297,43 +316,43 @@ function FloatingListingCard({ listing }: { listing: Listing }) {
           alignItems: 'center',
           gap: 6,
           fontFamily: PX.font.display,
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 500,
-          letterSpacing: '-0.36px',
+          letterSpacing: '-0.39px',
           color: PX.neutral500,
           lineHeight: 1.25,
         }}>
-          <PxFigmaIcon name="location" size={12} color={PX.neutral500} />
+          <PxFigmaIcon name="location" size={13} color={PX.neutral500} />
           {listing.address}
         </div>
         <div style={{
-          marginTop: 10,
-          paddingTop: 10,
+          marginTop: 12,
+          paddingTop: 12,
           borderTop: `1px solid ${PX.neutral300}`,
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          gap: 16,
           fontFamily: PX.font.display,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 500,
-          letterSpacing: '-0.33px',
+          letterSpacing: '-0.36px',
           color: PX.neutral400,
           lineHeight: 1.25,
         }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <PxFigmaIcon name="surface" size={14} color={PX.neutral400} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <PxFigmaIcon name="surface" size={15} color={PX.neutral400} />
             {listing.surface}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <PxFigmaIcon name="bed" size={14} color={PX.neutral400} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <PxFigmaIcon name="bed" size={15} color={PX.neutral400} />
             {listing.beds}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <PxFigmaIcon name="bath" size={14} color={PX.neutral400} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <PxFigmaIcon name="bath" size={15} color={PX.neutral400} />
             {listing.baths}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <PxFigmaIcon name="parking" size={14} color={PX.neutral400} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <PxFigmaIcon name="parking" size={15} color={PX.neutral400} />
             {listing.parking}
           </span>
         </div>
@@ -435,12 +454,12 @@ export default function PxAboutSection() {
             alignItems: 'center',
             position: 'relative',
           }}>
-            {/* Cadre iPhone : titane noir, bord arrondi 48px */}
+            {/* Cadre iPhone : titane noir, bord arrondi 52px — fidèle Figma 349×728 */}
             <div style={{
-              width: 320,
-              height: 660,
+              width: 360,
+              height: 740,
               background: PX.neutral700,
-              borderRadius: 48,
+              borderRadius: 52,
               padding: 10,
               boxShadow: PX.shadow.large,
               position: 'relative',
@@ -450,7 +469,7 @@ export default function PxAboutSection() {
                 width: '100%',
                 height: '100%',
                 background: PX.neutral100,
-                borderRadius: 38,
+                borderRadius: 42,
                 overflow: 'hidden',
                 position: 'relative',
                 display: 'flex',
