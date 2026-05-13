@@ -106,14 +106,14 @@ export default function PxHero() {
           flexDirection: 'column',
           alignItems: 'center',
         }}>
-          {/* H1 : 72px / 1.15 / tracking -2.16 / weight 500 / centré
+          {/* H1 : 72px / 1.10 (Display 10 fidèle Figma) / tracking -2.16 / weight 500
               Figma w-[613] (EN court) — pour FR plus long, on étend à 820 */}
           <h1 style={{
             margin: 0,
             maxWidth: 820,
             fontFamily: PX.font.display,
             fontSize: 72,
-            lineHeight: 1.15,
+            lineHeight: 1.10,
             letterSpacing: '-2.16px',
             fontWeight: 500,
             textAlign: 'center',

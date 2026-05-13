@@ -28,9 +28,10 @@ export const PX = {
   inkInverseMuted: 'rgba(255,255,255,0.48)',
 
   // ─── Typography ──────────────────────────────────────────────────────
-  // Property X utilise "Objectivity" (police payante Pangram).
-  // En attendant que tu fournisses les fichiers Objectivity, on fallback
-  // sur Plus Jakarta Sans (déjà dans le projet, géométrie proche).
+  // Property X utilise "Objectivity" (Pangram Pangram).
+  // Fichiers .woff2 chargés dans /public/fonts/objectivity/ avec @font-face
+  // déclaré dans src/styles/globals.css. 9 weights complets (100→950) +
+  // italiques.
   font: {
     sans: '"Objectivity", "Plus Jakarta Sans", "DM Sans", sans-serif',
     display: '"Objectivity", "Plus Jakarta Sans", "DM Sans", sans-serif',
@@ -42,25 +43,26 @@ export const PX = {
   // Tailles Figma définies : 14, 16, 20, 24. Les heros (40/56/80) sont
   // dérivés par les sections et suivent la même règle ls -3.
   type: {
-    // ─── Échelle Display 1→10 (Figma "🅰 Typography") ───────────────────
-    // line-height 1.25 sauf Display/10 (1.15) — letter-spacing -3 partout.
-    display1: { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Medium
-    display2: { size: 16, lh: 1.25, ls: -3, weight: 500 },  // Display/2/Medium
-    display3: { size: 18, lh: 1.25, ls: -3, weight: 500 },  // Display/3/Medium (inféré)
-    display4: { size: 20, lh: 1.25, ls: -3, weight: 500 },  // Display/4/Medium
-    display5: { size: 24, lh: 1.25, ls: -3, weight: 500 },  // Display/5/Medium
-    display6: { size: 28, lh: 1.25, ls: -3, weight: 500 },  // Display/6/Medium (inféré)
-    display7: { size: 32, lh: 1.25, ls: -3, weight: 500 },  // Display/7/Medium (inféré)
-    display8: { size: 48, lh: 1.25, ls: -3, weight: 500 },  // Display/8/Medium (confirmé)
-    display9: { size: 56, lh: 1.15, ls: -3, weight: 500 },  // Display/9/Medium (inféré)
-    display10:{ size: 72, lh: 1.15, ls: -3, weight: 500 },  // Display/10/Medium (confirmé)
+    // ─── Échelle Display 1→10 (Figma "🖋️ Typography Styles" exacte) ────
+    // Source : node 11703:26347 (Typography page Figma).
+    // letter-spacing -3 partout.
+    display1:  { size: 16, lh: 1.25, ls: -3, weight: 500 },  // Display 1 : 16/125%
+    display2:  { size: 18, lh: 1.25, ls: -3, weight: 500 },  // Display 2 : 18/125%
+    display3:  { size: 20, lh: 1.25, ls: -3, weight: 500 },  // Display 3 : 20/125%
+    display4:  { size: 22, lh: 1.25, ls: -3, weight: 500 },  // Display 4 : 22/125%
+    display5:  { size: 24, lh: 1.25, ls: -3, weight: 500 },  // Display 5 : 24/125%
+    display6:  { size: 30, lh: 1.25, ls: -3, weight: 500 },  // Display 6 : 30/125%
+    display7:  { size: 36, lh: 1.25, ls: -3, weight: 500 },  // Display 7 : 36/125%
+    display8:  { size: 48, lh: 1.25, ls: -3, weight: 500 },  // Display 8 : 48/125%
+    display9:  { size: 60, lh: 1.15, ls: -3, weight: 500 },  // Display 9 : 60/115%
+    display10: { size: 72, lh: 1.10, ls: -3, weight: 500 },  // Display 10 : 72/110% ← lh 1.10 pas 1.15
 
     // ─── Aliases sémantiques HTML (alignés sur l'échelle Display Figma) ─
-    h1:       { size: 72, lh: 1.15, ls: -3, weight: 500 },  // = Display/10
-    h2:       { size: 48, lh: 1.25, ls: -3, weight: 500 },  // = Display/8
-    h3:       { size: 32, lh: 1.25, ls: -3, weight: 500 },  // = Display/7
-    h4:       { size: 24, lh: 1.25, ls: -3, weight: 500 },  // = Display/5
-    h5:       { size: 20, lh: 1.25, ls: -3, weight: 500 },  // = Display/4
+    h1:       { size: 72, lh: 1.10, ls: -3, weight: 500 },  // = Display 10 (lh 1.10!)
+    h2:       { size: 48, lh: 1.25, ls: -3, weight: 500 },  // = Display 8
+    h3:       { size: 36, lh: 1.25, ls: -3, weight: 500 },  // = Display 7 (36 pas 32)
+    h4:       { size: 24, lh: 1.25, ls: -3, weight: 500 },  // = Display 5
+    h5:       { size: 22, lh: 1.25, ls: -3, weight: 500 },  // = Display 4 (22 pas 20)
 
     // ─── Body & utilitaires ────────────────────────────────────────────
     bodyMd:        { size: 16, lh: 1.25, ls: -3, weight: 500 }, // Display/2/Medium

@@ -2,6 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+ * Objectivity — Property X design system font (Pangram Pangram)
+ * Files in /public/fonts/objectivity/ (woff2)
+ * ============================================================ */
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-ThinSlanted.woff2') format('woff2');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-LightSlanted.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-RegularSlanted.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-MediumSlanted.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-BoldSlanted.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-ExtraBoldSlanted.woff2') format('woff2');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-BlackSlanted.woff2') format('woff2');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-Super.woff2') format('woff2');
+  font-weight: 950;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Objectivity';
+  src: url('/fonts/objectivity/Objectivity-SuperSlanted.woff2') format('woff2');
+  font-weight: 950;
+  font-style: italic;
+  font-display: swap;
+}
+
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;
