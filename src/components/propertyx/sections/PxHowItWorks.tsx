@@ -366,7 +366,7 @@ export default function PxHowItWorks() {
             maxWidth: '100%',
             fontFamily: PX.font.display,
             fontSize: 48,
-            fontWeight: 800,
+            fontWeight: 600,
             lineHeight: 1.25,
             letterSpacing: '-1.44px',
             color: PX.neutral700,
@@ -440,7 +440,7 @@ export default function PxHowItWorks() {
                       width: 356,
                       fontFamily: PX.font.display,
                       fontSize: 24,
-                      fontWeight: 800,
+                      fontWeight: 600,
                       lineHeight: 1.25,
                       letterSpacing: '-0.72px',
                       color: PX.neutral700,
@@ -465,19 +465,21 @@ export default function PxHowItWorks() {
           })}
         </div>
 
-        {/* Right Element : image + popover, dynamique selon activeStep */}
+        {/* Right Element : image + popover, dynamique selon activeStep.
+            Width 674 pour agent (514 image + 160 décalage gauche). */}
         <div style={{
           position: 'relative',
-          width: 611,
+          width: activeStep.variant === 'agent' ? 674 : 611,
           height: 522,
           flexShrink: 0,
         }}>
           {/* Image principale 514×433 — change selon step.
-              Pour 'agent' on décale l'image à droite pour laisser place au popover. */}
+              Pour 'agent' on décale l'image fortement à droite pour libérer la
+              place de la bulle Sophie à gauche (comme dans la maquette). */}
           <div style={{
             position: 'absolute',
             top: 0,
-            left: activeStep.variant === 'agent' ? 97 : 0,
+            left: activeStep.variant === 'agent' ? 160 : 0,
             width: 514,
             height: 433,
             borderRadius: PX.radius.large,
