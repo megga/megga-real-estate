@@ -101,9 +101,10 @@ function FeaturedBadge({ label }: { icon?: 'star' | 'key'; label: string }) {
   )
 }
 
-// Badge "For rent" — fidèle Figma 11755:27884 :
-// bg neutral700, px-12 py-6, contient icône clé + texte
+// Badge "For rent" / "For sale" — fidèle Figma 11755:27884 :
+// bg neutral700, px-12 py-6, icône key (rent) / tag (sale) + texte
 function ForRentBadge({ label }: { label: string }) {
+  const isForSale = label === 'À vendre'
   return (
     <span style={{
       display: 'inline-flex',
@@ -116,7 +117,7 @@ function ForRentBadge({ label }: { label: string }) {
       background: PX.neutral700,
       borderRadius: PX.radius.pill,
     }}>
-      <PxFigmaIcon name="key" size={16} color={PX.neutral100} />
+      <PxFigmaIcon name={isForSale ? 'tag' : 'key'} size={16} color={PX.neutral100} />
       <span style={{
         fontFamily: PX.font.display,
         fontSize: 16,

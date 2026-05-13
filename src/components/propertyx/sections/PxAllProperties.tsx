@@ -109,7 +109,7 @@ function AllPropertiesBadge() {
 
 // Badge "For rent" / "For sale" sur card image — bg neutral700, icon Figma + texte
 function CardBadge({ label, icon }: { label: string; icon: 'key' | 'home' }) {
-  const figmaIcon = icon === 'home' ? 'home-poi' : 'key'
+  const figmaIcon = icon === 'home' ? 'tag' : 'key'  // V35 tag pour For sale, V34 key pour For rent
   return (
     <span style={{
       display: 'inline-flex',
