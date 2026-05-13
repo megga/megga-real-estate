@@ -184,7 +184,7 @@ function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) 
           <ForRentBadge label={p.badge} />
           {/* Primary Circle Button — Figma 40×40 (instance 11755:27885) */}
           <PxCircleButton size="lg" variant="light" ariaLabel="Ajouter à la sélection">
-            <PxIcon name="plus" size={16} color={PX.neutral700} />
+            <PxFigmaIcon name="plus" size={16} color={PX.neutral700} />
           </PxCircleButton>
         </div>
 
