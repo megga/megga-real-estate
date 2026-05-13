@@ -3,19 +3,22 @@
 // (https://www.figma.com/design/fZovI4RREX4XHpLazsz8JB/?node-id=9552-21438)
 //
 // Structure fidèle Figma :
-//   <Page bg-neutral200 (#fafafb), flex-col gap-47, isolate>
-//     <Header Wrapper>          ← PxNav (composant déjà migré du Header/V1)
-//     <Hero Section z-3>        ← PxPropertiesHero (dark hero + Browser absolu)
-//     <Articles Section z-2>    ← PxPropertiesGrid (6 cards V2 en 2 colonnes)
-//     <Footer/V1>               ← PxPostProperty (cards "Publier") + PxFooter (dark)
+//   <Page bg-neutral200 (#fafafb), flex-col gap-47, isolate, position relative>
+//     <Header Wrapper absolute top-0 z-4>   ← PxNavPropertyX (EN, overlay hero)
+//     <Hero Section z-3>                    ← PxPropertiesHero (dark hero + Browser absolu)
+//     <Articles Section z-2>                ← PxPropertiesGrid (6 cards V2)
+//     <Footer V1>                            ← PxPostPropertyEN + PxFooterPropertyX
 //   </Page>
+//
+// Variants EN spécifiques /about pour fidélité Figma maximale (la nav, le
+// post-property et le footer du reste du site restent MEGGA-FR).
 
 import { PX } from '@/components/propertyx/tokens'
-import PxNav from '@/components/propertyx/sections/PxNav'
+import PxNavPropertyX from '@/components/propertyx/sections/PxNavPropertyX'
 import PxPropertiesHero from '@/components/propertyx/sections/PxPropertiesHero'
 import PxPropertiesGrid from '@/components/propertyx/sections/PxPropertiesGrid'
-import PxPostProperty from '@/components/propertyx/sections/PxPostProperty'
-import PxFooter from '@/components/propertyx/sections/PxFooter'
+import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
+import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 
 export default function AboutPage() {
   return (
@@ -24,17 +27,19 @@ export default function AboutPage() {
       background: PX.neutral200,
       fontFamily: PX.font.sans,
       color: PX.ink,
+      // Figma : flex-col gap-47 isolate, relative pour ancrer la nav absolute
       display: 'flex',
       flexDirection: 'column',
+      gap: 47,
       alignItems: 'stretch',
-      // Figma : gap-47 (entre Hero et Articles Section). On compense le
-      // -48 du Browser dans Hero par un gap équivalent + pt-64 sur la grille.
+      position: 'relative',
+      isolation: 'isolate',
     }}>
-      <PxNav />
+      <PxNavPropertyX />
       <PxPropertiesHero />
       <PxPropertiesGrid />
-      <PxPostProperty />
-      <PxFooter />
+      <PxPostPropertyEN />
+      <PxFooterPropertyX />
     </div>
   )
 }
