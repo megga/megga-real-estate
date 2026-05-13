@@ -83,7 +83,7 @@ export default function PxAboutSection() {
               </p>
             </div>
             <div style={{ marginTop: 8 }}>
-              <PxButton to="/acheter" variant="primary" size="md">
+              <PxButton to="/acheter" variant="primary" size="lg">
                 Commencer
               </PxButton>
             </div>

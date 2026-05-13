@@ -62,7 +62,6 @@ function buttonStyle(variant: PxButtonVariant, size: PxButtonSize): React.CSSPro
   const isLarge = size === 'lg'
   const isPrimary = variant === 'primary'
   const isInvert = variant === 'invert'
-  const isGhost = variant === 'ghost'
 
   // Padding asymétrique Property X : large gauche, petit droite (pour laisser place à l'icône circulaire)
   const padLeft = 16            // numbers/spacings/large
@@ -194,7 +193,7 @@ export default function PxButton(props: PxButtonProps) {
 }
 
 // ─── Backwards-compat exports (PxArrowRight from old API) ──────────
-export function PxArrowRight({ size = 12, color = 'currentColor' }: { size?: number; color?: string }) {
+export function PxArrowRight({ color = 'currentColor' }: { size?: number; color?: string }) {
   return <DefaultArrow color={color} />
 }
 

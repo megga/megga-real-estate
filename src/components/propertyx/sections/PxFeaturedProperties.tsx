@@ -129,7 +129,7 @@ export default function PxFeaturedProperties() {
         </div>
 
         <div style={{ marginTop: 32, display: 'flex', justifyContent: 'center' }}>
-          <PxButton to="/acheter" variant="invert" size="md">
+          <PxButton to="/acheter" variant="invert" size="lg">
             Voir tous les biens vedettes
           </PxButton>
         </div>

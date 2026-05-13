@@ -35,34 +35,42 @@ export const PX = {
     display: '"Objectivity", "Plus Jakarta Sans", "DM Sans", sans-serif',
   },
 
-  // Échelle Display (Property X : line-height 1.25 et letter-spacing -3 partout)
-  // Tailles inférées (le DS Figma définit 14/16/20/24 mais les pages
-  // utilisent des tailles dérivées plus grandes pour les heros — on ajoute h1/h2).
+  // Échelle Display — source Figma "🅰 Typography" (BS interior)
+  // Convention Figma : letter-spacing -3 partout, line-height 1.25 sauf
+  // Paragraph/* qui sont à 1.5.
+  // Tailles Figma définies : 14, 16, 20, 24. Les heros (40/56/80) sont
+  // dérivés par les sections et suivent la même règle ls -3.
   type: {
+    // Heros (dérivés Property X)
     h1:       { size: 80, lh: 1.05, ls: -3, weight: 500 },  // hero
     h2:       { size: 56, lh: 1.1,  ls: -3, weight: 500 },  // section
     h3:       { size: 40, lh: 1.18, ls: -3, weight: 500 },  // sous-section
+    // ─── Figma Display/* (line-height 1.25) ────────────────────────────
     h4:       { size: 24, lh: 1.25, ls: -3, weight: 500 },  // Display/5/Medium
     h5:       { size: 20, lh: 1.25, ls: -3, weight: 500 },  // Display/4/Medium
-    body:     { size: 16, lh: 1.5,  ls: -3, weight: 400 },  // Display/2/Default
     bodyMd:   { size: 16, lh: 1.25, ls: -3, weight: 500 },  // Display/2/Medium
-    bodySm:   { size: 14, lh: 1.5,  ls: -3, weight: 400 },  // Paragraph/Small/Regular
+    bodyDefault: { size: 16, lh: 1.25, ls: -3, weight: 400 }, // Display/2/Default
     bodySmMd: { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Medium
+    bodySmDefault: { size: 14, lh: 1.25, ls: -3, weight: 400 }, // Display/1/Default
     label:    { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Uppercase/Medium
-    // Aliases legacy
+    // ─── Figma Paragraph/* (line-height 1.5) ───────────────────────────
+    body:     { size: 16, lh: 1.5,  ls: -3, weight: 400 },  // Paragraph/Default/Regular
+    bodySm:   { size: 14, lh: 1.5,  ls: -3, weight: 400 },  // Paragraph/Small/Regular
+    // ─── Aliases legacy ───────────────────────────────────────────────
     caption:  { size: 13, lh: 1.3,  ls: 0,  weight: 500 },
     cta:      { size: 14, lh: 1,    ls: 0,  weight: 500 },
   },
 
-  // ─── Spacing (extrait Figma) ─────────────────────────────────────────
+  // ─── Spacing (Figma "Numbers/Spacings/*") ───────────────────────────
   space: {
-    none: 0,
-    xxSmall: 2,
-    xSmall: 6,
-    small: 8,
-    regular: 10,
-    large: 16,
-    xxxLarge: 48,
+    none: 0,        // Spacings/None
+    xxSmall: 2,     // Spacings/XX Small
+    xSmall: 6,      // Spacings/X Small
+    small: 8,       // Spacings/Small
+    regular: 10,    // Spacings/Regular
+    large: 16,      // Spacings/Large
+    xLarge: 24,     // Spacings/X Large
+    xxxLarge: 48,   // Spacings/XXX Large
     // Aliases legacy (utilisés par les sections actuelles)
     section: 160,      // = sectionDefault
     sectionInner: 80,  // = sectionRegular
@@ -95,16 +103,22 @@ export const PX = {
 
   // ─── Layout ──────────────────────────────────────────────────────────
   containerDesktop: 1440,
-  sectionRegular: 80,   // entre sections petites
-  sectionDefault: 160,  // entre sections principales (vrai Property X)
+  sectionRegular: 80,   // entre sections petites — "Numbers/Sections/Regular"
+  sectionDefault: 160,  // entre sections principales — "Spacings/Sections/Default"
+  // Padding intérieur d'une section (Sections/PD * dans Figma)
+  sectionPadding: {
+    default: 48,        // Sections/PD Default
+    medium: 64,         // Sections/PD Medium
+  },
 
-  // ─── Border Radius ───────────────────────────────────────────────────
+  // ─── Border Radius (Figma "Numbers/Radius/*" & "Border Radius/BR *") ─
   radius: {
-    none: 0,
-    tiny: 8,      // BR Tiny
-    small: 12,    // BR Small
-    large: 24,    // BR Large
-    pill: 200,    // BR Pill (full rounded)
+    none: 0,            // Radius/None
+    tiny: 8,            // BR Tiny / Radius/Small
+    small: 12,          // BR Small
+    medium: 16,         // Radius/Medium
+    large: 24,          // BR Large / BR Default / Radius/Large
+    pill: 200,          // BR Pill / Radius/Pill (full rounded)
   },
 
   // Aliases legacy (pour rétro-compat avec mes anciens composants)

@@ -39,33 +39,78 @@ font: {
 
 - **Police primaire** : **Objectivity** (Pangram Pangram — payante)
 - **Fallback actuel** : Plus Jakarta Sans (géométrie proche)
-- **Échelle** : 14 / 16 / 20 / 24 (base), 40 / 56 / 80 (hero)
-- **Tracking universel** : `letter-spacing: -3` (sur tous les Display)
-- **Line-height** : 1.25 (Medium) ou 1.5 (Regular paragraph)
+- **Tracking universel** : `letter-spacing: -3` (sur tous les Display + Paragraph)
 - **Weights** : 400 (Regular), 500 (Medium). Pas de Bold dans le DS.
+
+**Mapping fidèle des styles Figma "🅰 Typography" :**
+
+| Figma | Token tokens.ts | Size / LH / Weight | Usage |
+|---|---|---|---|
+| Display/1/Default | `type.bodySmDefault` | 14 / 1.25 / 400 | Labels, captions |
+| Display/1/Medium | `type.bodySmMd` | 14 / 1.25 / 500 | Petits boutons, méta |
+| Display/1/Uppercase/Medium | `type.label` | 14 / 1.25 / 500 | Eyebrow uppercase (`PxSectionLabel`) |
+| Display/2/Default | `type.bodyDefault` | 16 / 1.25 / 400 | Body compact |
+| Display/2/Medium | `type.bodyMd` | 16 / 1.25 / 500 | Body emphase |
+| Display/4/Medium | `type.h5` | 20 / 1.25 / 500 | Titres de carte |
+| Display/5/Medium | `type.h4` | 24 / 1.25 / 500 | Sous-sections |
+| Paragraph/Default/Regular | `type.body` | 16 / 1.5 / 400 | Body paragraphes |
+| Paragraph/Small/Regular | `type.bodySm` | 14 / 1.5 / 400 | Body petit, légendes |
+| _(dérivé Property X)_ | `type.h3` | 40 / 1.18 / 500 | Sous-section large |
+| _(dérivé Property X)_ | `type.h2` | 56 / 1.10 / 500 | Section principale |
+| _(dérivé Property X)_ | `type.h1` | 80 / 1.05 / 500 | Hero |
 
 ⚠️ **Police Objectivity à fournir** — déposer les `.woff2` dans `public/fonts/objectivity/` et la déclarer dans `index.html` ou un CSS global.
 
 ### 1.3 Spacings
 
-```
-xxSmall: 2    xSmall: 6     small: 8       regular: 10
-large: 16     xxxLarge: 48
+**Numbers/Spacings (Figma)** — échelle numérique pure :
 
-gap:     xs 8  / sm 12 / md 16 / lg 24 / xl 40
+| Token | Valeur | Figma |
+|---|---|---|
+| `space.none` | `0` | Numbers/Spacings/None |
+| `space.xxSmall` | `2` | Numbers/Spacings/XX Small |
+| `space.xSmall` | `6` | Numbers/Spacings/X Small |
+| `space.small` | `8` | Numbers/Spacings/Small |
+| `space.regular` | `10` | Numbers/Spacings/Regular |
+| `space.large` | `16` | Numbers/Spacings/Large |
+| `space.xLarge` | `24` | Numbers/Spacings/X Large |
+| `space.xxxLarge` | `48` | Numbers/Spacings/XXX Large |
+
+**Spacings/Gaps** — entre éléments (`gap` flex/grid) :
+
+```
+gap: xs 8 / sm 12 / md 16 / lg 24 / xl 40
+```
+
+**Spacings/Paddings** — padding intérieur :
+
+```
 padding: xxs 12 / sm 20 / md 24 / lg 32
-section: regular 80 / default 160 (entre sections principales)
-margin:  md 24 / xxl 80
+```
+
+**Spacings/Margins** :
+
+```
+margin: md 24 / xxl 80
+```
+
+**Spacings/Sections** — espacement vertical entre sections + padding intérieur de section :
+
+```
+sectionRegular: 80    sectionDefault: 160
+sectionPadding.default: 48    sectionPadding.medium: 64
 ```
 
 ### 1.4 Border Radius
 
-| Token | Valeur | Usage |
-|---|---|---|
-| `radius.tiny` | `8px` | Inputs textarea, list items |
-| `radius.small` | `12px` | Cards petites, image cards |
-| `radius.large` | `24px` | Cards sections, upload card |
-| `radius.pill` | `200px` | Buttons, badges, avatars, toggles |
+| Token | Valeur | Figma | Usage |
+|---|---|---|---|
+| `radius.none` | `0` | Radius/None | Désactiver le radius |
+| `radius.tiny` | `8px` | BR Tiny / Radius/Small | Inputs textarea, list items |
+| `radius.small` | `12px` | BR Small | Cards petites, image cards |
+| `radius.medium` | `16px` | Radius/Medium | Cards intermédiaires |
+| `radius.large` | `24px` | BR Large / BR Default | Cards sections, upload card |
+| `radius.pill` | `200px` | BR Pill | Buttons, badges, avatars, toggles |
 
 ### 1.5 Shadows
 
