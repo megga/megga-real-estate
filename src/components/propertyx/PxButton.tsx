@@ -1,21 +1,26 @@
-// MEGGA Marketplace — Property X pill button.
-// Style : ronds (border-radius 999px), 14/16px padding, font 14/600.
-// Variants : "primary" (fond noir, texte blanc) · "secondary" (fond blanc,
-// border subtile, texte noir) · "ghost" (transparent, texte noir, underline
-// au hover).
+// MEGGA Marketplace — Property X primary button.
+// Port fidèle du composant Buttons (page Components Figma — node 11706:23422).
+//
+// Anatomie Property X :
+// - Pill radius 200px
+// - Padding asymétrique : pl-16 (large) + pr-6 (small) ou pr-10 (large)
+// - Texte Objectivity Medium 16px, ls -0.48
+// - Icône arrow dans un cercle inverse (28px) à droite
+// - Variants : primary (bg noir / texte blanc) · invert (bg blanc / texte noir)
+// - Sizes : sm (32px height) · lg (40px height)
 
 import type { ReactNode, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { PX } from './tokens'
 
-export type PxButtonVariant = 'primary' | 'secondary' | 'ghost' | 'invert'
-export type PxButtonSize = 'sm' | 'md' | 'lg'
+export type PxButtonVariant = 'primary' | 'invert' | 'ghost'
+export type PxButtonSize = 'sm' | 'lg'
 
 interface BaseProps {
   variant?: PxButtonVariant
   size?: PxButtonSize
-  trail?: ReactNode    // icon/arrow on the right
-  lead?: ReactNode     // icon on the left
+  showIcon?: boolean
+  icon?: ReactNode  // override default arrow
   className?: string
   children: ReactNode
 }
@@ -43,64 +48,112 @@ interface LinkExternalProps extends BaseProps {
 
 type PxButtonProps = ButtonProps | LinkInternalProps | LinkExternalProps
 
-function styles(variant: PxButtonVariant, size: PxButtonSize): React.CSSProperties {
-  const sizing = size === 'lg'
-    ? { padding: '14px 22px', fontSize: 14, gap: 8 }
-    : size === 'sm'
-      ? { padding: '8px 14px', fontSize: 12.5, gap: 6 }
-      : { padding: '11px 18px', fontSize: 14, gap: 7 }
+// ─── Default arrow icon (rotated chevron from DS) ───────────────────
+function DefaultArrow({ color }: { color: string }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M2.5 6h7M6.5 2.5L10 6l-3.5 3.5"
+        stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
-  const variantStyle: Record<PxButtonVariant, React.CSSProperties> = {
-    primary: {
-      background: PX.ink,
-      color: PX.inkInverse,
-      border: 0,
-      boxShadow: PX.shadow.pillBlack,
-    },
-    secondary: {
-      background: PX.surfaceBg,
-      color: PX.ink,
-      border: `1px solid ${PX.border}`,
-      boxShadow: PX.shadow.soft,
-    },
-    ghost: {
-      background: 'transparent',
-      color: PX.ink,
-      border: 0,
-    },
-    invert: {
-      background: PX.surfaceBg,
-      color: PX.ink,
-      border: 0,
-      boxShadow: PX.shadow.pillWhite,
-    },
+function buttonStyle(variant: PxButtonVariant, size: PxButtonSize): React.CSSProperties {
+  const isLarge = size === 'lg'
+  const isPrimary = variant === 'primary'
+  const isInvert = variant === 'invert'
+  const isGhost = variant === 'ghost'
+
+  // Padding asymétrique Property X : large gauche, petit droite (pour laisser place à l'icône circulaire)
+  const padLeft = 16            // numbers/spacings/large
+  const padRight = isLarge ? 10 : 6  // numbers/spacings/regular ou x-small
+  const padY = isLarge ? 10 : 6
+
+  let bg: string
+  let textColor: string
+  let extraShadow: string | undefined
+
+  if (isPrimary) {
+    bg = PX.neutral700
+    textColor = PX.neutral100
+  } else if (isInvert) {
+    bg = PX.neutral100
+    textColor = PX.neutral700
+    extraShadow = PX.shadow.small
+  } else {
+    // ghost
+    bg = 'transparent'
+    textColor = PX.neutral700
   }
 
   return {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: PX.radiusPill,
+    gap: 6,                             // numbers/spacings/x-small
+    paddingLeft: padLeft,
+    paddingRight: padRight,
+    paddingTop: padY,
+    paddingBottom: padY,
+    borderRadius: PX.radius.pill,
+    background: bg,
+    color: textColor,
+    border: 0,
     fontFamily: PX.font.sans,
-    fontWeight: PX.type.cta.weight,
-    letterSpacing: 0,
+    fontWeight: 500,
+    fontSize: 16,                       // Display/2/Medium
+    lineHeight: 1.25,
+    letterSpacing: '-0.48px',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
-    transition: `transform ${PX.duration.fast} ${PX.ease}, box-shadow ${PX.duration.fast} ${PX.ease}, background ${PX.duration.fast} ${PX.ease}`,
-    ...sizing,
-    ...variantStyle[variant],
+    boxShadow: extraShadow,
+    transition: `transform ${PX.duration.fast} ${PX.ease}, opacity ${PX.duration.fast} ${PX.ease}`,
+    textDecoration: 'none',
   }
 }
 
+function iconCircleStyle(variant: PxButtonVariant): React.CSSProperties {
+  // L'icône est dans un cercle inverse : si bouton noir → cercle blanc, et vice versa.
+  const bg = variant === 'primary' ? PX.neutral100 : PX.neutral700
+  return {
+    width: 28,
+    height: 28,
+    borderRadius: PX.radius.pill,
+    background: bg,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  }
+}
+
+function iconColor(variant: PxButtonVariant): string {
+  return variant === 'primary' ? PX.neutral700 : PX.neutral100
+}
+
 export default function PxButton(props: PxButtonProps) {
-  const { variant = 'primary', size = 'md', trail, lead, className, children } = props
-  const baseStyle = styles(variant, size)
+  const {
+    variant = 'primary',
+    size = 'lg',
+    showIcon = true,
+    icon,
+    className,
+    children,
+  } = props
+
+  const baseStyle = buttonStyle(variant, size)
+  const isGhost = variant === 'ghost'
 
   const content = (
     <>
-      {lead}
-      <span>{children}</span>
-      {trail}
+      {/* Texte avec léger padding-top 2px (proto Figma : pt-xx-small) */}
+      <span style={{ paddingTop: 2, display: 'inline-block' }}>{children}</span>
+      {showIcon && !isGhost && (
+        <span style={iconCircleStyle(variant)}>
+          {icon ?? <DefaultArrow color={iconColor(variant)} />}
+        </span>
+      )}
+      {showIcon && isGhost && icon}
     </>
   )
 
@@ -114,7 +167,12 @@ export default function PxButton(props: PxButtonProps) {
 
   if ('href' in props && props.href) {
     return (
-      <a href={props.href} target={props.target} rel={props.target === '_blank' ? 'noopener noreferrer' : undefined} className={className} style={baseStyle}>
+      <a
+        href={props.href}
+        target={props.target}
+        rel={props.target === '_blank' ? 'noopener noreferrer' : undefined}
+        className={className}
+        style={baseStyle}>
         {content}
       </a>
     )
@@ -135,11 +193,47 @@ export default function PxButton(props: PxButtonProps) {
   )
 }
 
-// ─── Arrow icon (utilisé comme trail dans les CTAs) ──────────────────
-export function PxArrowRight({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
+// ─── Backwards-compat exports (PxArrowRight from old API) ──────────
+export function PxArrowRight({ size = 12, color = 'currentColor' }: { size?: number; color?: string }) {
+  return <DefaultArrow color={color} />
+}
+
+// ─── Circle icon button (variant of the DS PrimaryCircleButton) ─────
+// Rond simple avec icône centrée. Pour nav arrows, fermer, etc.
+interface PxCircleButtonProps {
+  size?: 'sm' | 'lg'
+  variant?: 'dark' | 'light'
+  children: ReactNode
+  onClick?: () => void
+  ariaLabel?: string
+}
+
+export function PxCircleButton({
+  size = 'sm', variant = 'dark', children, onClick, ariaLabel,
+}: PxCircleButtonProps) {
+  const dim = size === 'lg' ? 40 : 32
+  const bg = variant === 'dark' ? PX.neutral700 : PX.neutral100
+  const shadow = variant === 'light' ? PX.shadow.small : undefined
+
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M3 8h10M9 4l4 4-4 4" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      style={{
+        width: dim,
+        height: dim,
+        borderRadius: PX.radius.pill,
+        background: bg,
+        border: 0,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: shadow,
+        transition: `transform ${PX.duration.fast} ${PX.ease}`,
+      }}>
+      {children}
+    </button>
   )
 }
