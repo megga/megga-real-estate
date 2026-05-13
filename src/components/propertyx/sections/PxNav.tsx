@@ -1,51 +1,126 @@
-// MEGGA Marketplace — Property X top navigation.
-// Refactor utilisant les atomes du DS (PxLogo, PxLink, PxButton).
+// MEGGA Marketplace — Property X "Header/V1" navigation.
+// Source : Figma node 11754:23870 — code Figma exact.
+//
+// Structure fidèle :
+//   <section py-24 flex-col items-center>
+//     <Container w-1200 flex justify-between items-center>
+//       <Left Content flex gap-24 items-center>
+//         <Logo Text Light (icon 22 + text image)>
+//         <Nav List flex gap-16 items-center>
+//           <Link "Home" 16/Medium neutral700>
+//           <Link "About">
+//           <Link "Pages" + chevron-down 16>
+//           <Link "Cart (0)">
+//         </Nav List>
+//       </Left Content>
+//       <PrimaryButton DARK "Start exploring">
+//     </Container>
+//   </section>
+//
+// Note : flow normal (PAS absolute) — la nav prend sa place avant le hero.
 
-import { PX, PxLogo, PxLink, PxButton } from '..'
+import { Link } from 'react-router-dom'
+import { PX, PxButton, PxIcon, PxLogo } from '..'
 
 interface PxNavProps {
-  glass?: boolean  // overlay sur fond photo (texte clair)
+  // glass était l'ancien prop "overlay sur hero" — Figma a la nav en flow normal
+  // donc on l'ignore mais on garde pour backward compat avec PropertyXHomePage
+  glass?: boolean
 }
 
 const NAV_LINKS = [
+  { label: 'Accueil', to: '/' },
   { label: 'Acheter', to: '/acheter' },
   { label: 'Louer', to: '/louer' },
   { label: 'Vendre', to: '/vendre' },
-  { label: 'Estimations', to: '/estimations' },
-]
+] as const
 
-export default function PxNav({ glass = false }: PxNavProps) {
-  const variant: 'dark' | 'light' = glass ? 'light' : 'dark'
-
+export default function PxNav(_props: PxNavProps) {
   return (
     <header style={{
-      position: 'absolute',
-      top: 0, left: 0, right: 0,
+      // Section : py-24 px-0, flex-col items-center
+      paddingTop: 24,
+      paddingBottom: 24,
+      paddingLeft: 0,
+      paddingRight: 0,
+      background: PX.neutral100,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      // PAS absolute — flow normal (fidèle Figma)
+      position: 'relative',
       zIndex: 10,
-      padding: '24px 48px',
     }}>
+      {/* Container : w-1200 flex justify-between items-center */}
       <div style={{
-        maxWidth: PX.containerDesktop,
-        margin: '0 auto',
+        width: 1200,
+        maxWidth: '100%',
+        paddingLeft: 24,
+        paddingRight: 24,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 24,
       }}>
-        {/* Logo + nav links groupés à gauche (fidèle Figma) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
-          <PxLogo variant={glass ? 'light' : 'dark'} form="text" size="sm" to="/" />
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+        {/* Left Content : flex gap-24 items-center */}
+        <div style={{
+          display: 'flex',
+          gap: 24,
+          alignItems: 'center',
+        }}>
+          {/* Logo Text Light : icon 22 + text */}
+          <PxLogo variant="dark" form="text" size="sm" to="/" />
+          {/* Nav List : flex gap-16 items-center */}
+          <nav style={{
+            display: 'flex',
+            gap: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
             {NAV_LINKS.map(link => (
-              <PxLink key={link.to} to={link.to} variant={variant}>
+              <Link
+                key={link.to}
+                to={link.to}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  textDecoration: 'none',
+                  fontFamily: PX.font.display,
+                  fontSize: 16,
+                  fontWeight: 500,
+                  lineHeight: 1.25,
+                  letterSpacing: '-0.48px',
+                  color: PX.neutral700,
+                }}
+              >
                 {link.label}
-              </PxLink>
+              </Link>
             ))}
+            {/* Pages dropdown link (fidèle Figma) */}
+            <Link
+              to="/services"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                textDecoration: 'none',
+                fontFamily: PX.font.display,
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: '-0.48px',
+                color: PX.neutral700,
+              }}
+            >
+              Plus
+              <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
+            </Link>
           </nav>
         </div>
 
-        {/* CTA à droite (fidèle Figma) */}
-        <PxButton to="/acheter" variant={glass ? 'invert' : 'primary'} size="sm">
+        {/* PrimaryButton DARK "Start exploring" (= "Commencer" pour MEGGA) */}
+        <PxButton to="/acheter" variant="primary" size="sm">
           Commencer
         </PxButton>
       </div>
