@@ -1,191 +1,305 @@
-// MEGGA Marketplace — Property X "Read our latest articles" section.
-// Source : Figma Home V3 (node 9552:21432) — section "Our Blog".
-// Layout : 2 cards horizontales côte à côte, image en haut, contenu en bas
-// avec badge catégorie + date + bouton circulaire flèche.
+// MEGGA Marketplace — Property X "Articles Section" / Blog teaser.
+// Source : Figma node 9643:28571 — code Figma exact.
+//
+// Structure fidèle :
+//   <section pt-80 pb-160 flex-col items-center>
+//     <Top Content w-1200 pb-24 flex items-end justify-center>
+//       <Badge LIGHT "Our blog">
+//       <H2 48 Display/8 w-576 centered>
+//     </Top Content>
+//     <Cards Row flex gap-40>
+//       <Blog Card (x2) bg-white rounded-24 shadow small w-580>
+//         <Image h-340>
+//         <Content Wrapper pb-44 pt-24 px-32 flex items-center justify-between>
+//           <Content flex-col gap-8>
+//             <Title 24 Display/5/Medium w-382>
+//             <Wrapper gap-12 items-center>
+//               <Badge gray "Resources" / "News" : bg-neutral400 + icon + text>
+//               <Date : icon V49 calendar 22 + text 16/Medium neutral400>
+//             </Wrapper>
+//           </Content>
+//           <Circle Button DARK chevron-right 16>
+//         </Content Wrapper>
+//       </Blog Card>
+//     </Cards Row>
+//     <Button Wrapper pt-48 pb-16>
+//       <Link "Browse all articles" + chevron-right>
+//     </Button Wrapper>
+//   </section>
 
-import { PX, PxBadge, PxCircleButton, PxIcon, PxSectionLabel } from '..'
+import { Link } from 'react-router-dom'
+import { PX, PxIcon } from '..'
 
-const ARTICLES = [
+interface BlogPost {
+  id: string
+  category: 'Ressources' | 'Actualités'
+  categoryIcon: 'edit' | 'bell'
+  title: string
+  date: string
+  image: string
+  href: string
+}
+
+const ARTICLES: BlogPost[] = [
   {
     id: 'a1',
     category: 'Ressources',
-    title: 'Acheter ou louer en Suisse : le guide complet 2026',
-    date: '18 mars 2026',
-    image:
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1600&q=80',
-    href: '/blog/acheter-ou-louer-2026',
+    categoryIcon: 'edit',
+    title: 'Comment décorer votre nouveau chez-vous de A à Z',
+    date: '28 mars 2026',
+    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1600&q=85',
+    href: '/blog/decorer-nouveau-chez-vous',
   },
   {
     id: 'a2',
-    category: 'Blog',
-    title: 'Combien de chambres et de salles de bain choisir pour sa famille ?',
-    date: '12 mars 2026',
-    image:
-      'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1600&q=80',
+    category: 'Actualités',
+    categoryIcon: 'bell',
+    title: 'Premier achat : combien de chambres et salles de bain pour votre famille ?',
+    date: '28 mars 2026',
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1600&q=85',
     href: '/blog/combien-de-chambres',
   },
 ]
 
-function ArticleCard({ a }: { a: (typeof ARTICLES)[0] }) {
+// Badge "Our blog" — LIGHT (bg-neutral300 + cercle bg-neutral400)
+function BlogBadge() {
   return (
-    <a
-      href={a.href}
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      paddingLeft: 6,
+      paddingRight: 12,
+      paddingTop: 6,
+      paddingBottom: 6,
+      background: PX.neutral300,
+      borderRadius: PX.radius.pill,
+    }}>
+      <span style={{
+        width: 26,
+        height: 26,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral400,
+        display: 'grid',
+        placeItems: 'center',
+        flexShrink: 0,
+      }}>
+        <PxIcon name="edit" size={15} color={PX.neutral100} />
+      </span>
+      <span style={{
+        fontFamily: PX.font.display,
+        fontSize: 16,
+        fontWeight: 500,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral700,
+      }}>Notre blog</span>
+    </span>
+  )
+}
+
+// Badge catégorie de l'article — bg-neutral400 (LIGHT GRAY) avec icon + texte
+function CategoryBadge({ icon, label }: { icon: 'edit' | 'bell'; label: string }) {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      paddingLeft: 12,
+      paddingRight: 12,
+      paddingTop: 6,
+      paddingBottom: 6,
+      background: PX.neutral400,
+      borderRadius: PX.radius.pill,
+    }}>
+      <PxIcon name={icon} size={16} color={PX.neutral100} />
+      <span style={{
+        fontFamily: PX.font.display,
+        fontSize: 16,
+        fontWeight: 500,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral100,
+      }}>{label}</span>
+    </span>
+  )
+}
+
+function BlogCard({ post }: { post: BlogPost }) {
+  return (
+    <Link
+      to={post.href}
       style={{
-        display: 'block',
         textDecoration: 'none',
-        color: 'inherit',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        width: 580,
         background: PX.neutral100,
         borderRadius: PX.radius.large,
-        overflow: 'hidden',
         boxShadow: PX.shadow.small,
-        border: `1px solid ${PX.border}`,
+        overflow: 'hidden',
       }}
     >
-      {/* Image */}
-      <div
-        style={{
-          width: '100%',
-          aspectRatio: '16 / 10',
-          backgroundImage: `url("${a.image}")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      />
-      {/* Contenu */}
-      <div
-        style={{
-          padding: 24,
+      {/* Image h-340 */}
+      <div style={{
+        width: '100%',
+        height: 340,
+        backgroundImage: `url("${post.image}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }} />
+
+      {/* Content Wrapper : flex items-center justify-between, pb-44 pt-24 px-32 */}
+      <div style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 24,
+        paddingBottom: 44,
+        paddingLeft: 32,
+        paddingRight: 32,
+      }}>
+        {/* Content : flex-col gap-8 */}
+        <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 16,
-        }}
-      >
-        <h3
-          style={{
+          gap: 8,
+          alignItems: 'flex-start',
+        }}>
+          {/* Title : 24 Display/5/Medium tracking-0.72 w-382 */}
+          <h3 style={{
             margin: 0,
+            width: 382,
             fontFamily: PX.font.display,
-            fontSize: 20,
-            lineHeight: 1.25,
-            letterSpacing: '-0.6px',
+            fontSize: 24,
             fontWeight: 500,
-            color: PX.ink,
-          }}
-        >
-          {a.title}
-        </h3>
-
-        <div
-          style={{
+            lineHeight: 1.25,
+            letterSpacing: '-0.72px',
+            color: PX.neutral700,
+          }}>{post.title}</h3>
+          {/* Wrapper badge + date : flex gap-12 items-center */}
+          <div style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
             gap: 12,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <PxBadge variant="primary" size="sm">
-              {a.category}
-            </PxBadge>
-            <span
-              style={{
+            alignItems: 'center',
+          }}>
+            <CategoryBadge icon={post.categoryIcon} label={post.category} />
+            {/* Date : flex gap-4 + icon V49 calendar 22 + text 16/Medium neutral400 */}
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+              <PxIcon name="calendar" size={22} color={PX.neutral400} />
+              <span style={{
                 fontFamily: PX.font.display,
-                fontSize: 13,
-                letterSpacing: '-0.4px',
-                color: PX.inkMuted,
-              }}
-            >
-              {a.date}
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: '-0.48px',
+                color: PX.neutral400,
+              }}>{post.date}</span>
             </span>
           </div>
-
-          <PxCircleButton size="sm" variant="dark" ariaLabel="Lire l'article">
-            <PxIcon name="arrow-right" size={14} color={PX.inkInverse} />
-          </PxCircleButton>
         </div>
+        {/* Circle Button DARK chevron-right 16 */}
+        <span style={{
+          width: 40,
+          height: 40,
+          borderRadius: PX.radius.pill,
+          background: PX.neutral700,
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+        }}>
+          <PxIcon name="chevron-right" size={16} color={PX.neutral100} />
+        </span>
       </div>
-    </a>
+    </Link>
   )
 }
 
 export default function PxBlogTeaser() {
   return (
-    <section
-      style={{
-        background: PX.pageBg,
-        padding: `${PX.sectionPadding.default}px ${PX.space.pageX}px`,
-      }}
-    >
-      <div
-        style={{
-          maxWidth: PX.containerDesktop,
-          margin: '0 auto',
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+    <section style={{
+      paddingTop: 80,
+      paddingBottom: 160,
+      paddingLeft: 24,
+      paddingRight: 24,
+      background: PX.neutral100,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    }}>
+      {/* Top Content : w-1200, flex items-end justify-center, pb-24 */}
+      <div style={{
+        width: 1200,
+        maxWidth: '100%',
+        paddingBottom: 24,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <BlogBadge />
+          {/* H2 : pt-16, 48 Display/8/Medium tracking-1.44, w-576 centered */}
+          <h2 style={{
+            margin: 0,
+            paddingTop: 16,
+            width: 576,
+            maxWidth: '100%',
+            fontFamily: PX.font.display,
+            fontSize: 48,
+            fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: '-1.44px',
+            color: PX.neutral700,
             textAlign: 'center',
-            marginBottom: 48,
-          }}
-        >
-          <PxSectionLabel icon="edit">Notre blog</PxSectionLabel>
-          <h2
-            style={{
-              margin: '16px 0 0 0',
-              fontFamily: PX.font.display,
-              fontSize: 40,
-              lineHeight: 1.18,
-              letterSpacing: '-1.2px',
-              fontWeight: 500,
-              color: PX.ink,
-            }}
-          >
+          }}>
             Lisez nos derniers articles
           </h2>
         </div>
+      </div>
 
-        {/* 2 cards horizontales */}
-        <div
+      {/* Cards Row : flex gap-40 items-start */}
+      <div style={{
+        display: 'flex',
+        gap: 40,
+        alignItems: 'flex-start',
+      }}>
+        {ARTICLES.map(post => <BlogCard key={post.id} post={post} />)}
+      </div>
+
+      {/* Button Wrapper : pt-48 pb-16, Link "Browse all articles" */}
+      <div style={{
+        paddingTop: 48,
+        paddingBottom: 16,
+      }}>
+        <Link
+          to="/blog"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: PX.gap.lg,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            textDecoration: 'none',
+            fontFamily: PX.font.display,
+            fontSize: 16,
+            fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: '-0.48px',
+            color: PX.neutral700,
           }}
         >
-          {ARTICLES.map((a) => (
-            <ArticleCard key={a.id} a={a} />
-          ))}
-        </div>
-
-        {/* Lien "Voir tous les articles" */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginTop: 32,
-          }}
-        >
-          <a
-            href="/blog"
-            style={{
-              fontFamily: PX.font.display,
-              fontSize: 14,
-              fontWeight: 500,
-              letterSpacing: '-0.42px',
-              color: PX.ink,
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            Voir tous les articles
-            <PxIcon name="arrow-right" size={14} />
-          </a>
-        </div>
+          Voir tous les articles
+          <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+        </Link>
       </div>
     </section>
   )
