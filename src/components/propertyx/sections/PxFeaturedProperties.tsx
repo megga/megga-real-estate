@@ -182,7 +182,8 @@ function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) 
           justifyContent: 'space-between',
         }}>
           <ForRentBadge label={p.badge} />
-          <PxCircleButton size="sm" variant="light" ariaLabel="Ajouter à la sélection">
+          {/* Primary Circle Button — Figma 40×40 (instance 11755:27885) */}
+          <PxCircleButton size="lg" variant="light" ariaLabel="Ajouter à la sélection">
             <PxIcon name="plus" size={16} color={PX.neutral700} />
           </PxCircleButton>
         </div>
@@ -258,9 +259,11 @@ export default function PxFeaturedProperties() {
       flexDirection: 'column',
       alignItems: 'center',
     }}>
-      {/* Container : bg-neutral700 (dark), rounded-24, py-160 (Numbers/Sections/Large) */}
+      {/* Container : bg-neutral700 (dark), rounded-24, py-160 (Numbers/Sections/Large).
+          maxWidth 1392 = container Figma exact (1440 viewport - 24px margin de chaque côté). */}
       <div style={{
         width: '100%',
+        maxWidth: 1392,
         background: PX.neutral700,
         borderRadius: PX.radius.large,
         paddingTop: 160,
