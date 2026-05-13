@@ -22,7 +22,7 @@ export default function PxNav({ glass = false }: PxNavProps) {
       position: 'absolute',
       top: 0, left: 0, right: 0,
       zIndex: 10,
-      padding: '24px 40px',
+      padding: '24px 48px',
     }}>
       <div style={{
         maxWidth: PX.containerDesktop,
@@ -32,22 +32,22 @@ export default function PxNav({ glass = false }: PxNavProps) {
         justifyContent: 'space-between',
         gap: 24,
       }}>
-        <PxLogo variant={glass ? 'light' : 'dark'} form="text" size="sm" to="/" />
-
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-          {NAV_LINKS.map(link => (
-            <PxLink key={link.to} to={link.to} variant={variant}>
-              {link.label}
-            </PxLink>
-          ))}
-        </nav>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <PxLink to="/login" variant={variant}>Connexion</PxLink>
-          <PxButton to="/acheter" variant={glass ? 'invert' : 'primary'} size="sm">
-            Commencer
-          </PxButton>
+        {/* Logo + nav links groupés à gauche (fidèle Figma) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
+          <PxLogo variant={glass ? 'light' : 'dark'} form="text" size="sm" to="/" />
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+            {NAV_LINKS.map(link => (
+              <PxLink key={link.to} to={link.to} variant={variant}>
+                {link.label}
+              </PxLink>
+            ))}
+          </nav>
         </div>
+
+        {/* CTA à droite (fidèle Figma) */}
+        <PxButton to="/acheter" variant={glass ? 'invert' : 'primary'} size="sm">
+          Commencer
+        </PxButton>
       </div>
     </header>
   )

@@ -72,7 +72,8 @@ export default function PxSearchBar() {
       // Section largeur viewport, positionnement absolu sur le hero
       padding: '0 24px',
       background: PX.neutral100,
-      marginTop: -50,  // overlap : moitié de la hauteur du pill (100/2)
+      // Overlap fidèle Figma : searchbar y=868 dans hero h=900 → 32px d'overlap
+      marginTop: -32,
       position: 'relative',
       zIndex: 5,
     }}>

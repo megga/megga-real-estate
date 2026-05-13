@@ -163,7 +163,7 @@ export default function PxAllProperties() {
             </p>
             <div style={{ marginTop: 20 }}>
               <PxLink to="/acheter" variant="dark" weight="medium" arrow>
-                Parcourir toute la marketplace
+                Parcourir tous les biens
               </PxLink>
             </div>
           </div>
