@@ -246,7 +246,7 @@ Catalogue : `search`, `location`, `chevron-{down,up,left,right}`, `arrow-{up,rig
 
 ### 2.9 PxIconFont (filled, atome Figma 📱 Icon font)
 
-> [`PxIconFont.tsx`](../src/components/propertyx/PxIconFont.tsx) — **80 icônes filled** organisées par catégorie
+> [`PxIconFont.tsx`](../src/components/propertyx/PxIconFont.tsx) — **180 icônes filled** organisées en catégories
 
 Le Figma a 648 glyphes au total ; on couvre les 80 les plus utiles pour une marketplace immobilière. Organisation :
 
@@ -268,11 +268,11 @@ Le Figma a 648 glyphes au total ; on couvre les 80 les plus utiles pour une mark
 
 ### 2.13 PxSocialIcon (atome Figma 📱 Icons)
 
-> [`PxSocialIcon.tsx`](../src/components/propertyx/PxSocialIcon.tsx) — 20 plateformes (sur 33 dans le Figma)
+> [`PxSocialIcon.tsx`](../src/components/propertyx/PxSocialIcon.tsx) — **33/33 plateformes complètes** (mode brand color + mono)
 
 ⚠️ **Correction d'importance** : le frame "📱 Icons" du Figma Property X (que j'avais initialement mal interprété) contient en réalité les **icônes social media** (66 variants = 33 plateformes × colored/mono). Pas des icônes UI générales.
 
-Catalogue : `facebook`, `twitter` (X), `instagram`, `linkedin`, `youtube`, `whatsapp`, `tiktok`, `pinterest`, `telegram`, `discord`, `snapchat`, `reddit`, `github`, `google`, `apple`, `spotify`, `messenger`, `wechat`, `tumblr`, `medium`.
+Catalogue complet (33 plateformes) : `facebook`, `twitter` (X), `instagram`, `linkedin`, `youtube`, `whatsapp`, `tiktok`, `pinterest`, `telegram`, `discord`, `snapchat`, `reddit`, `github`, `google`, `apple`, `spotify`, `messenger`, `wechat`, `tumblr`, `medium`, `dribbble`, `behance`, `yelp`, `twitch`, `vk`, `line`, `soundcloud`, `skype`, `apple-music`, `apple-podcast`, `google-podcast`, `google-play`, `product-hunt`.
 
 ```tsx
 <PxSocialIcon name="facebook" size={24} color="brand" />   // bleu Facebook
