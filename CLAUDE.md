@@ -6,7 +6,8 @@
 > - Schéma DB complet : [docs/schema.md](docs/schema.md)
 > - Pages MVP (42 écrans) : [docs/pages.md](docs/pages.md)
 > - Modules IA (specs Gregory) : [docs/ai-modules.md](docs/ai-modules.md)
-> - Design system patterns : [docs/design-system.md](docs/design-system.md)
+> - Design system patterns (Sugar v2 CRM) : [docs/design-system.md](docs/design-system.md)
+> - Design system Property X (Marketplace) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
 > - Roadmap sprints : [docs/roadmap.md](docs/roadmap.md)
 > - Changelog : [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
