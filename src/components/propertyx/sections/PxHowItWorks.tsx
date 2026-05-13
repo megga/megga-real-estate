@@ -31,7 +31,7 @@
 //   </section>
 
 import { useState } from 'react'
-import { PX, PxIcon } from '..'
+import { PX, PxIcon, PxFigmaIcon } from '..'
 
 const STEPS = [
   {
@@ -122,7 +122,7 @@ function PopoverMiniCard({ image, title, address }: { image: string; title: stri
           alignItems: 'center',
           gap: 3,
         }}>
-          <PxIcon name="key" size={7} color={PX.neutral100} />
+          <PxFigmaIcon name="key" size={7} color={PX.neutral100} />
           À louer
         </span>
       </div>
@@ -146,7 +146,7 @@ function PopoverMiniCard({ image, title, address }: { image: string; title: stri
           letterSpacing: '-0.24px',
           color: PX.neutral400,
         }}>
-          <PxIcon name="location" size={8} color={PX.neutral400} />
+          <PxFigmaIcon name="location" size={8} color={PX.neutral400} />
           {address}
         </div>
       </div>

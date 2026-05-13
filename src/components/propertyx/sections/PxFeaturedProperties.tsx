@@ -31,7 +31,7 @@
 //     </Container>
 //   </section>
 
-import { PX, PxButton, PxIcon, PxCircleButton } from '..'
+import { PX, PxButton, PxIcon, PxFigmaIcon, PxCircleButton } from '..'
 
 interface FeaturedItem {
   id: string
@@ -115,7 +115,7 @@ function ForRentBadge({ label }: { label: string }) {
       background: PX.neutral700,
       borderRadius: PX.radius.pill,
     }}>
-      <PxIcon name="key" size={16} color={PX.neutral100} />
+      <PxFigmaIcon name="key" size={16} color={PX.neutral100} />
       <span style={{
         fontFamily: PX.font.display,
         fontSize: 16,
@@ -229,7 +229,7 @@ function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) 
             alignItems: 'center',
             gap: 8,
           }}>
-            <PxIcon name="location" size={20} color={PX.neutral100} />
+            <PxFigmaIcon name="location" size={20} color={PX.neutral100} />
             <span style={{
               fontFamily: PX.font.display,
               fontSize: 16,

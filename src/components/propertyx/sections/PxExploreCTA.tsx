@@ -18,7 +18,7 @@
 //       - Screen avec photos + property details + form>
 //   </CTA/V3>
 
-import { PX, PxButton, PxIcon } from '..'
+import { PX, PxButton, PxIcon, PxFigmaIcon } from '..'
 
 // Badge "Get in touch" — fidèle Figma : bg-neutral600 + cercle bg-neutral500
 function GetInTouchBadge() {
@@ -220,7 +220,7 @@ function IPadScreen() {
             fontWeight: 500,
             color: PX.neutral700,
           }}>
-            <PxIcon name="location" size={11} color={PX.neutral700} />
+            <PxFigmaIcon name="location" size={11} color={PX.neutral700} />
             2238 Stradella Rd, SF
           </div>
           <div style={{
@@ -255,13 +255,13 @@ function IPadScreen() {
             fontWeight: 500,
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PxIcon name="surface" size={11} color={PX.neutral400} /> 230 m²
+              <PxFigmaIcon name="surface" size={11} color={PX.neutral400} /> 230 m²
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PxIcon name="bed" size={11} color={PX.neutral400} /> 3
+              <PxFigmaIcon name="bed" size={11} color={PX.neutral400} /> 3
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PxIcon name="bath" size={11} color={PX.neutral400} /> 2
+              <PxFigmaIcon name="bath" size={11} color={PX.neutral400} /> 2
             </span>
           </div>
 

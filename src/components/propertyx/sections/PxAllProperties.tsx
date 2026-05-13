@@ -27,7 +27,7 @@
 //   </section>
 
 import { Link } from 'react-router-dom'
-import { PX, PxIcon } from '..'
+import { PX, PxIcon, PxFigmaIcon } from '..'
 
 interface PropertyItem {
   id: string
@@ -205,7 +205,7 @@ function PropertyCard({ p }: { p: PropertyItem }) {
             alignItems: 'center',
             gap: 8,
           }}>
-            <PxIcon name="location" size={20} color={PX.neutral700} />
+            <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
             <span style={{
               fontFamily: PX.font.display,
               fontSize: 16,

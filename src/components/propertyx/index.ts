@@ -38,9 +38,14 @@ export type { PxLinkVariant, PxLinkWeight } from './PxLink'
 export { default as PxLogo } from './PxLogo'
 export type { PxLogoVariant, PxLogoForm, PxLogoSize } from './PxLogo'
 
-// Icons (line-style stroke)
+// Icons (line-style stroke) — paths dessinés à la main (LEGACY)
 export { default as PxIcon } from './PxIcon'
 export type { PxIconName } from './PxIcon'
+
+// Icônes VRAIES depuis Figma (téléchargées dans /public/icons/figma/)
+// À privilégier sur PxIcon pour pixel-perfect fidélité maquette.
+export { default as PxFigmaIcon } from './PxFigmaIcon'
+export type { PxFigmaIconName } from './PxFigmaIcon'
 
 // Icon font (filled variant)
 export { default as PxIconFont } from './PxIconFont'
