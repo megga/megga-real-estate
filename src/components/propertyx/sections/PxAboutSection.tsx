@@ -1,5 +1,7 @@
 // MEGGA Marketplace — Property X "About" section.
-// Refactor utilisant les atomes + VRAIE icône Figma user pour le badge eyebrow.
+// Annonces dans le mockup iPhone : design fidèle Figma node 11754:26160
+// (image + badge overlay + titre + adresse map pin + stats m²/lits/bains/parking
+// + bouton "Contacter l'agent").
 
 import { PX, PxButton, PxBadge, PxFigmaIcon } from '..'
 
@@ -37,6 +39,306 @@ function AboutBadge() {
         color: PX.neutral700,
       }}>À propos de MEGGA</span>
     </span>
+  )
+}
+
+// Données des annonces (3 cards in-phone + 1 floating)
+type Listing = {
+  title: string
+  address: string
+  image: string
+  badge: 'À louer' | 'À vendre'
+  surface: string
+  beds: number
+  baths: number
+  parking: number
+}
+
+const PHONE_LISTINGS: Listing[] = [
+  {
+    title: 'Loft contemporain · Carouge',
+    address: '12 rue de la Filature, 1227 Carouge',
+    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=900&q=80',
+    badge: 'À louer',
+    surface: '110 m²',
+    beds: 3,
+    baths: 2,
+    parking: 1,
+  },
+  {
+    title: 'Maison familiale · Cologny',
+    address: 'Route de la Capite, 1223 Cologny',
+    image: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80',
+    badge: 'À vendre',
+    surface: '250 m²',
+    beds: 5,
+    baths: 3,
+    parking: 2,
+  },
+  {
+    title: 'Penthouse · Eaux-Vives',
+    address: 'Quai Gustave-Ador, 1207 Genève',
+    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&q=80',
+    badge: 'À louer',
+    surface: '180 m²',
+    beds: 4,
+    baths: 2,
+    parking: 2,
+  },
+]
+
+const FLOATING_LISTING: Listing = {
+  title: 'Luxury Loft · Genève',
+  address: '3508 Brookside Rd, 1206 Genève',
+  image: 'https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=600&q=80',
+  badge: 'À louer',
+  surface: '130 m²',
+  beds: 3,
+  baths: 2,
+  parking: 2,
+}
+
+// Card listing fidèle Figma — image + badge overlay + content stack en dessous
+function PhoneListingCard({ listing }: { listing: Listing }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Image avec badge overlay */}
+      <div style={{
+        height: 128,
+        backgroundImage: `url("${listing.image}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        borderRadius: 10,
+        position: 'relative',
+      }}>
+        <span style={{
+          position: 'absolute',
+          top: 8,
+          left: 8,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 3,
+          background: PX.neutral700,
+          color: PX.neutral100,
+          paddingLeft: 6,
+          paddingRight: 8,
+          paddingTop: 3,
+          paddingBottom: 3,
+          borderRadius: PX.radius.pill,
+          fontFamily: PX.font.display,
+          fontSize: 9,
+          fontWeight: 500,
+          letterSpacing: '-0.27px',
+          lineHeight: 1.25,
+        }}>
+          <PxFigmaIcon name="key" size={8} color={PX.neutral100} />
+          {listing.badge}
+        </span>
+      </div>
+
+      {/* Content : titre + adresse + stats + bouton */}
+      <div style={{
+        marginTop: 8,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        gap: 8,
+      }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: PX.font.display,
+            fontSize: 12,
+            fontWeight: 500,
+            letterSpacing: '-0.36px',
+            color: PX.neutral700,
+            lineHeight: 1.25,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {listing.title}
+          </div>
+          <div style={{
+            marginTop: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            fontFamily: PX.font.display,
+            fontSize: 9,
+            fontWeight: 500,
+            letterSpacing: '-0.27px',
+            color: PX.neutral500,
+            lineHeight: 1.25,
+          }}>
+            <PxFigmaIcon name="location" size={8} color={PX.neutral500} />
+            <span style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>{listing.address}</span>
+          </div>
+          <div style={{
+            marginTop: 6,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontFamily: PX.font.display,
+            fontSize: 9,
+            fontWeight: 500,
+            letterSpacing: '-0.27px',
+            color: PX.neutral400,
+            lineHeight: 1.25,
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <PxFigmaIcon name="surface" size={11} color={PX.neutral400} />
+              {listing.surface}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <PxFigmaIcon name="bed" size={11} color={PX.neutral400} />
+              {listing.beds}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <PxFigmaIcon name="bath" size={11} color={PX.neutral400} />
+              {listing.baths}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <PxFigmaIcon name="parking" size={11} color={PX.neutral400} />
+              {listing.parking}
+            </span>
+          </div>
+        </div>
+        <button type="button" style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 3,
+          padding: 0,
+          background: 'transparent',
+          border: 0,
+          color: PX.neutral700,
+          fontFamily: PX.font.display,
+          fontSize: 8,
+          fontWeight: 500,
+          letterSpacing: '-0.24px',
+          lineHeight: 1.25,
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+        }}>
+          Contacter
+          <PxFigmaIcon name="chevron-right" size={8} color={PX.neutral700} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Floating card hors iPhone — version plus large avec bouton "+" en top-right
+function FloatingListingCard({ listing }: { listing: Listing }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      right: -40,
+      bottom: 64,
+      width: 256,
+      padding: 12,
+      background: PX.neutral100,
+      borderRadius: PX.radius.medium,
+      boxShadow: PX.shadow.large,
+    }}>
+      <div style={{
+        height: 152,
+        backgroundImage: `url("${listing.image}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        borderRadius: PX.radius.tiny,
+        position: 'relative',
+      }}>
+        <span style={{
+          position: 'absolute',
+          top: 8,
+          left: 8,
+        }}>
+          <PxBadge variant="primary" size="sm" icon={<PxFigmaIcon name="key" size={12} color={PX.neutral100} />}>
+            {listing.badge}
+          </PxBadge>
+        </span>
+        <button type="button" aria-label="Ajouter aux favoris" style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          width: 32,
+          height: 32,
+          borderRadius: PX.radius.pill,
+          border: 0,
+          background: PX.neutral100,
+          display: 'grid',
+          placeItems: 'center',
+          cursor: 'pointer',
+          boxShadow: PX.shadow.small,
+        }}>
+          <PxFigmaIcon name="plus" size={14} color={PX.neutral700} />
+        </button>
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <div style={{
+          fontFamily: PX.font.display,
+          fontSize: 16,
+          fontWeight: 500,
+          letterSpacing: '-0.48px',
+          color: PX.neutral700,
+          lineHeight: 1.25,
+        }}>
+          {listing.title}
+        </div>
+        <div style={{
+          marginTop: 6,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          fontFamily: PX.font.display,
+          fontSize: 12,
+          fontWeight: 500,
+          letterSpacing: '-0.36px',
+          color: PX.neutral500,
+          lineHeight: 1.25,
+        }}>
+          <PxFigmaIcon name="location" size={12} color={PX.neutral500} />
+          {listing.address}
+        </div>
+        <div style={{
+          marginTop: 10,
+          paddingTop: 10,
+          borderTop: `1px solid ${PX.neutral300}`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          fontFamily: PX.font.display,
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: '-0.33px',
+          color: PX.neutral400,
+          lineHeight: 1.25,
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="surface" size={14} color={PX.neutral400} />
+            {listing.surface}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="bed" size={14} color={PX.neutral400} />
+            {listing.beds}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="bath" size={14} color={PX.neutral400} />
+            {listing.baths}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="parking" size={14} color={PX.neutral400} />
+            {listing.parking}
+          </span>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -136,7 +438,7 @@ export default function PxAboutSection() {
             {/* Cadre iPhone : titane noir, bord arrondi 48px */}
             <div style={{
               width: 320,
-              height: 640,
+              height: 660,
               background: PX.neutral700,
               borderRadius: 48,
               padding: 10,
@@ -167,7 +469,7 @@ export default function PxAboutSection() {
                   zIndex: 2,
                 }} />
 
-                {/* Status bar (heure / icônes) */}
+                {/* Status bar */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -175,7 +477,7 @@ export default function PxAboutSection() {
                   padding: '14px 24px 0',
                   fontFamily: PX.font.display,
                   fontSize: 13,
-                  fontWeight: 500,
+                  fontWeight: 600,
                   color: PX.neutral700,
                   zIndex: 3,
                   position: 'relative',
@@ -188,10 +490,10 @@ export default function PxAboutSection() {
                   </span>
                 </div>
 
-                {/* Header app (logo + search) */}
+                {/* Header app (logo + menu) */}
                 <div style={{
-                  marginTop: 32,
-                  padding: '0 16px 12px',
+                  marginTop: 28,
+                  padding: '0 16px 10px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -214,147 +516,66 @@ export default function PxAboutSection() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 12,
+                    color: PX.neutral500,
                   }}>⋯</span>
                 </div>
 
-                {/* Card de propriété (grand visuel) */}
+                {/* Search input "Choose your location" */}
                 <div style={{ padding: '0 16px 12px' }}>
                   <div style={{
-                    borderRadius: PX.radius.small,
-                    overflow: 'hidden',
-                    background: PX.neutral200,
-                  }}>
-                    <div style={{
-                      height: 160,
-                      backgroundImage: `url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=900&q=80")`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      position: 'relative',
-                    }}>
-                      <span style={{ position: 'absolute', top: 8, left: 8 }}>
-                        <PxBadge variant="invert" size="sm">À louer</PxBadge>
-                      </span>
-                    </div>
-                    <div style={{ padding: 10 }}>
-                      <div style={{
-                        fontFamily: PX.font.display,
-                        fontSize: 13,
-                        fontWeight: 500,
-                        letterSpacing: '-0.4px',
-                        color: PX.neutral700,
-                      }}>
-                        Loft contemporain · Carouge
-                      </div>
-                      <div style={{
-                        marginTop: 2,
-                        fontFamily: PX.font.sans,
-                        fontSize: 11,
-                        color: PX.neutral500,
-                      }}>
-                        12 rue de la Filature, 1227 Carouge
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mini card secondaire */}
-                <div style={{ padding: '0 16px' }}>
-                  <div style={{
                     display: 'flex',
-                    gap: 10,
-                    padding: 8,
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                     background: PX.neutral200,
-                    borderRadius: PX.radius.small,
+                    borderRadius: PX.radius.pill,
+                    paddingLeft: 14,
+                    paddingRight: 4,
+                    paddingTop: 4,
+                    paddingBottom: 4,
                   }}>
-                    <div style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 8,
-                      backgroundImage: `url("https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400&q=80")`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
+                    <span style={{
+                      fontFamily: PX.font.sans,
+                      fontSize: 11,
+                      color: PX.neutral500,
+                    }}>
+                      Choisissez votre localité
+                    </span>
+                    <span style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: PX.radius.pill,
+                      background: PX.neutral700,
+                      display: 'grid',
+                      placeItems: 'center',
                       flexShrink: 0,
-                    }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontFamily: PX.font.display,
-                        fontSize: 12,
-                        fontWeight: 500,
-                        letterSpacing: '-0.36px',
-                        color: PX.neutral700,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        Villa, Cologny
-                      </div>
-                      <div style={{
-                        marginTop: 2,
-                        fontFamily: PX.font.sans,
-                        fontSize: 10,
-                        color: PX.neutral500,
-                      }}>
-                        Route de la Capite
-                      </div>
-                      <div style={{
-                        marginTop: 4,
-                        fontFamily: PX.font.display,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: PX.neutral700,
-                      }}>
-                        CHF 2'450'000
-                      </div>
-                    </div>
+                    }}>
+                      <PxFigmaIcon name="search" size={12} color={PX.neutral100} />
+                    </span>
                   </div>
+                </div>
+
+                {/* Liste des cards (3 stacked, dernier peek) */}
+                <div style={{
+                  padding: '0 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  overflow: 'hidden',
+                }}>
+                  {PHONE_LISTINGS.map(listing => (
+                    <PhoneListingCard key={listing.title} listing={listing} />
+                  ))}
                 </div>
               </div>
             </div>
 
-            {/* Mini-card flottante "Luxury Loft" (overlap iPhone à droite, fidèle Figma) */}
-            <div style={{
-              position: 'absolute',
-              right: -32,
-              bottom: 80,
-              width: 200,
-              background: PX.neutral100,
-              borderRadius: PX.radius.small,
-              boxShadow: PX.shadow.large,
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                height: 100,
-                backgroundImage: `url("https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=600&q=80")`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }} />
-              <div style={{ padding: 10 }}>
-                <div style={{
-                  fontFamily: PX.font.display,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  letterSpacing: '-0.36px',
-                  color: PX.neutral700,
-                }}>
-                  Luxury Loft · Genève
-                </div>
-                <div style={{
-                  marginTop: 2,
-                  fontFamily: PX.font.sans,
-                  fontSize: 10,
-                  color: PX.neutral500,
-                }}>
-                  3508 Brookside Rd
-                </div>
-              </div>
-            </div>
+            {/* Floating card "Luxury Loft · Genève" */}
+            <FloatingListingCard listing={FLOATING_LISTING} />
           </div>
 
-          {/* Colonne droite : stats — labels plain text (pas pills),
-              fidèle Figma node 11754:26172 */}
+          {/* Colonne droite : stats */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
             <div>
-              {/* Label plain "Homes purchased" style — Display/2/Medium */}
               <div style={{
                 fontFamily: PX.font.display,
                 fontSize: 16,
