@@ -11,6 +11,8 @@ import PxAllProperties from '@/components/propertyx/sections/PxAllProperties'
 import PxHowItWorks from '@/components/propertyx/sections/PxHowItWorks'
 import PxExploreCTA from '@/components/propertyx/sections/PxExploreCTA'
 import PxTestimonials from '@/components/propertyx/sections/PxTestimonials'
+import PxBlogTeaser from '@/components/propertyx/sections/PxBlogTeaser'
+import PxPostProperty from '@/components/propertyx/sections/PxPostProperty'
 import PxFooter from '@/components/propertyx/sections/PxFooter'
 
 export default function PropertyXHomePage() {
@@ -30,6 +32,8 @@ export default function PropertyXHomePage() {
       <PxHowItWorks />
       <PxExploreCTA />
       <PxTestimonials />
+      <PxBlogTeaser />
+      <PxPostProperty />
       <PxFooter />
     </div>
   )
