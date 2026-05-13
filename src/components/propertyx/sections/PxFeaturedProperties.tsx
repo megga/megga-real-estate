@@ -31,7 +31,8 @@
 //     </Container>
 //   </section>
 
-import { PX, PxButton, PxIcon, PxFigmaIcon, PxCircleButton } from '..'
+import { Link } from 'react-router-dom'
+import { PX, PxIcon, PxFigmaIcon, PxCircleButton } from '..'
 
 interface FeaturedItem {
   id: string
@@ -374,15 +375,27 @@ export default function PxFeaturedProperties() {
           </div>
         </div>
 
-        {/* Buttons Row bottom : pt-24, PrimaryButton WHITE bg "Commencer" */}
+        {/* Buttons Row bottom : pt-24, Link "Parcourir tous les biens" + chevron simple */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
           paddingTop: 24,
         }}>
-          <PxButton to="/acheter" variant="invert" size="lg">
-            Commencer
-          </PxButton>
+          <Link to="/acheter" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            textDecoration: 'none',
+            fontFamily: PX.font.display,
+            fontSize: 16,
+            fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: '-0.48px',
+            color: PX.neutral100,
+          }}>
+            Parcourir tous les biens
+            <PxIcon name="chevron-right" size={16} color={PX.neutral100} />
+          </Link>
         </div>
       </div>
     </section>
