@@ -41,15 +41,16 @@ interface PropertyItem {
   garage: number
 }
 
-// Données fidèles Figma (node 9552:21438 — 6 Properties Card/V2)
-// Images : Unsplash visuels équivalents (le template Figma utilise des assets
-// génériques, on garde la même direction art : intérieurs lumineux modernes).
+// Données fidèles Figma (node 9552:21438 — 6 Properties Card/V2).
+// Images : assets ORIGINAUX Figma téléchargés depuis la maquette puis
+// resizés à 1176×728 (cover crop centre) JPEG q82 (~140-170KB chacun).
+// Stockés dans /public/about-cards/ pour fidélité visuelle maximale.
 const PROPERTIES: PropertyItem[] = [
   {
     id: 'p1',
     badge: 'For rent',
     badgeIcon: 'key',
-    image: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&q=85',
+    image: '/about-cards/card-1-luxury-loft-sf.jpg',
     title: 'Luxury Loft in San Francisco',
     address: '2238 Stradella Rd, SF',
     surface: '2,553 sqtf',
@@ -61,7 +62,7 @@ const PROPERTIES: PropertyItem[] = [
     id: 'p2',
     badge: 'For sale',
     badgeIcon: 'home',
-    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&q=85',
+    image: '/about-cards/card-2-home-la-heart.jpg',
     title: 'Home in Los Angeles Heart',
     address: '2596 El Segundo, Los Angeles',
     surface: '4,821 sqtf',
@@ -73,7 +74,7 @@ const PROPERTIES: PropertyItem[] = [
     id: 'p3',
     badge: 'For rent',
     badgeIcon: 'key',
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&q=85',
+    image: '/about-cards/card-3-modern-loft-sf.jpg',
     title: 'Modern Loft in San Francisco',
     address: '3335 21 St, SF',
     surface: '1,334 sqtf',
@@ -85,7 +86,7 @@ const PROPERTIES: PropertyItem[] = [
     id: 'p4',
     badge: 'For rent',
     badgeIcon: 'key',
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=85',
+    image: '/about-cards/card-4-executive-office-sd.jpg',
     title: 'Executive Office, San Diego',
     address: '90071, South Grand Avenue, San Diego',
     surface: '8,392 sqtf',
@@ -97,7 +98,7 @@ const PROPERTIES: PropertyItem[] = [
     id: 'p5',
     badge: 'For sale',
     badgeIcon: 'home',
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=85',
+    image: '/about-cards/card-5-apartment-downtown-sd.jpg',
     title: 'Apartment in Downtown, San Diego',
     address: '90071, South Grand Avenue, SD',
     surface: '1,334 sqtf',
@@ -109,7 +110,7 @@ const PROPERTIES: PropertyItem[] = [
     id: 'p6',
     badge: 'For rent',
     badgeIcon: 'key',
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=85',
+    image: '/about-cards/card-6-home-downtown-la.jpg',
     title: 'Home in Downtown, Los Angeles',
     address: '2238 Stradella Rd, LA',
     surface: '8,392 sqtf',
