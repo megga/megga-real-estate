@@ -1,29 +1,49 @@
 // MEGGA Marketplace — Property X hero section.
-// Source : Figma node 11754:25560 ("Hero Section") :
-//   - Outer padding 24px (container 1392×900 dans viewport 1440)
-//   - Background image fills container with radius large (24)
-//   - Top fade overlay 480px (top half)
-//   - 6 POI pins (Logo frames 55×55) à positions exactes
-//   - Top Content centered horizontally, H1 à 80px du top
-//   - CTAs : Primary dark pill (172×40) + Link ghost (141×22)
+// Source : Figma node 11754:25560 (HeroSection) — code Figma exact.
+//
+// Structure fidèle :
+//   <section pt-24 px-24>
+//     <Container h-900 rounded-24 mb-[-56]>
+//       <Background image + 6 POI pins + fade overlay>
+//       <Top Content pt-80>
+//         <H1 72/1.15/-3 w-613>
+//         <Buttons Row pt-24 gap-16>
+//           <PrimaryButton "Start exploring" />
+//           <Link "Post properties" with chevron-right />
+//         </Buttons Row>
+//       </Top Content>
+//     </Container>
+//   </section>
+//
+// La SearchBar (Browser) suit dans PxSearchBar mais doit overlap -56.
 
 import { PX, PxButton, PxIcon, PxLink } from '..'
 
-interface MarkerProps { top: string; left: string }
+// POI pins fidèles Figma : 55×55 pill + icon home 29px. Positions exactes.
+const POI_PINS = [
+  { rightOffset: 1302.09, top: 401.39 },
+  { rightOffset:  918.09, top: 479.39 },
+  { rightOffset: 1180.09, top: 663.39 },
+  { rightOffset:  550.09, top: 588.39 },
+  { rightOffset:  127.09, top: 671.39 },
+  { rightOffset:   97.09, top: 475.39 },
+] as const
 
-function HomeMarker({ top, left }: MarkerProps) {
-  // Pin size 55×55 d'après Figma (Logo frame), icône intérieure 29×29 (~52%)
+function HomeMarker({ rightOffset, top }: { rightOffset: number; top: number }) {
   return (
     <div style={{
       position: 'absolute',
-      top, left,
-      width: 55, height: 55,
+      // Figma "right: 1302.09px" relatif au coin droit du container 1392
+      // → calculé en %, on a 1394 width donc rightOffset / 1394
+      right: `${(rightOffset / 1394) * 100}%`,
+      top: `${(top / 900) * 100}%`,
+      width: 55,
+      height: 55,
       borderRadius: PX.radius.pill,
       background: PX.neutral100,
-      boxShadow: PX.shadow.regular,
+      filter: 'drop-shadow(0px 2px 2px rgba(25, 33, 61, 0.08))',
       display: 'grid',
       placeItems: 'center',
-      animation: 'px-pulse 2.6s ease-in-out infinite',
     }}>
       <PxIcon name="home" size={29} color={PX.neutral700} strokeWidth={1.6} />
     </div>
@@ -33,30 +53,37 @@ function HomeMarker({ top, left }: MarkerProps) {
 export default function PxHero() {
   return (
     <section style={{
-      position: 'relative',
-      // 24px padding around (fidèle Figma container 1392 dans 1440)
-      padding: '24px 24px 0',
+      // Figma : pt-24 px-24 pb-0
+      paddingTop: 24,
+      paddingLeft: 24,
+      paddingRight: 24,
+      paddingBottom: 0,
       background: PX.neutral100,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
     }}>
-      <style>{`
-        @keyframes px-pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.06); }
-        }
-      `}</style>
-
+      {/* Container : h-900, rounded-24, mb-[-56] pour overlap SearchBar */}
       <div style={{
         position: 'relative',
+        width: '100%',
         maxWidth: PX.containerDesktop - 48,  // 1392
-        margin: '0 auto',
         height: 900,
+        marginBottom: -56,
         borderRadius: PX.radius.large,
         overflow: 'hidden',
-        backgroundImage: `url("https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=2400&q=85")`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        background: PX.neutral700,
       }}>
-        {/* Fade overlay top — 480px du top, gradient sombre vers transparent en bas */}
+        {/* Background image — full bleed 1394×909 */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `url("https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=2400&q=85")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
+
+        {/* Fade overlay top : 480px tall gradient sombre→transparent */}
         <div style={{
           position: 'absolute',
           top: 0, left: 0, right: 0,
@@ -65,53 +92,60 @@ export default function PxHero() {
           pointerEvents: 'none',
         }} />
 
-        {/* 6 POI pins — positions fidèles Figma (ratios sur 1392×900) */}
-        <HomeMarker top="44.6%" left="2.5%"  />{/* x=34,  y=401 */}
-        <HomeMarker top="53.3%" left="30.1%" />{/* x=419, y=479 */}
-        <HomeMarker top="73.7%" left="11.3%" />{/* x=157, y=663 */}
-        <HomeMarker top="65.4%" left="56.5%" />{/* x=787, y=588 */}
-        <HomeMarker top="74.6%" left="86.9%" />{/* x=1210,y=671 */}
-        <HomeMarker top="52.8%" left="89.1%" />{/* x=1240,y=475 */}
+        {/* 6 POI pins aux positions Figma exactes */}
+        {POI_PINS.map((pin, i) => (
+          <HomeMarker key={i} rightOffset={pin.rightOffset} top={pin.top} />
+        ))}
 
-        {/* Top Content : centré horizontalement, ~80px depuis le top */}
+        {/* Top Content : pt-80, centered horizontally */}
         <div style={{
-          position: 'absolute',
-          top: 80,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          textAlign: 'center',
-          color: PX.neutral100,
-          width: '100%',
-          // Figma 613 (anglais court). FR plus long → 820 pour casser sur 2 lignes.
-          maxWidth: 820,
-          padding: '0 24px',
+          position: 'relative',
+          paddingTop: 80,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}>
+          {/* H1 : 72px / 1.15 / tracking -2.16 / weight 500 / width 613 / centré
+              Figma w-[613] tracking-[-2.16px] = Display/10/Medium */}
           <h1 style={{
             margin: 0,
+            width: 613,
             fontFamily: PX.font.display,
-            // Figma Display/10/Medium : 72/1.15/-3/500
-            fontSize: 'clamp(40px, 5.6vw, 72px)',
+            fontSize: 72,
             lineHeight: 1.15,
-            letterSpacing: '-3px',
+            letterSpacing: '-2.16px',
             fontWeight: 500,
+            textAlign: 'center',
             color: PX.neutral100,
           }}>
             Élevez votre style de vie avec MEGGA
           </h1>
-          {/* Buttons Row : Primary dark pill + Link ghost */}
+
+          {/* Buttons Row : pt-24, gap-16, centered */}
           <div style={{
-            marginTop: 32,
+            paddingTop: 24,
             display: 'flex',
-            justifyContent: 'center',
             alignItems: 'center',
             gap: 16,
-            flexWrap: 'wrap',
           }}>
             <PxButton to="/acheter" variant="primary" size="lg">
               Commencer
             </PxButton>
-            <PxLink to="/publier" variant="light" arrow>
-              Publier des biens
+            <PxLink to="/publier" variant="light">
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                color: PX.neutral300,
+                fontFamily: PX.font.display,
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: '-0.48px',
+              }}>
+                Publier des biens
+                <PxIcon name="chevron-right" size={16} color={PX.neutral300} />
+              </span>
             </PxLink>
           </div>
         </div>
