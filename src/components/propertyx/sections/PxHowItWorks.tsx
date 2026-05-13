@@ -163,7 +163,8 @@ export default function PxHowItWorks() {
       paddingBottom: 160,
       paddingLeft: 24,
       paddingRight: 24,
-      background: PX.neutral100,
+      // Section bg neutral200 (off-white) pour faire ressortir les bentos blancs
+      background: PX.neutral200,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -235,10 +236,11 @@ export default function PxHowItWorks() {
             return (
               <button
                 key={i}
-                onClick={() => setOpen(i)}
+                onClick={() => setOpen(isOpen ? -1 : i)}
                 style={{
                   width: 536,
-                  height: isOpen ? 226 : 131,
+                  minHeight: isOpen ? 226 : 131,
+                  height: 'auto',
                   padding: isOpen ? 39 : '36px 39px',
                   background: PX.neutral100,
                   borderRadius: PX.radius.large,
@@ -246,7 +248,7 @@ export default function PxHowItWorks() {
                   border: 0,
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: `height ${PX.duration.fast} ${PX.ease}`,
+                  transition: `min-height ${PX.duration.fast} ${PX.ease}`,
                 }}
               >
                 <div style={{
