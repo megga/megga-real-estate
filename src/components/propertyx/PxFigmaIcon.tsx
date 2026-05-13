@@ -1,24 +1,20 @@
 // MEGGA Marketplace — Property X icon wrapper FOR REAL FIGMA ICONS.
 //
-// PxIcon utilise des SVG paths que j'ai dessinés à la main (approximations).
-// PxFigmaIcon charge les VRAIS SVG exportés depuis Figma via get_design_context
-// et stockés dans /public/icons/figma/.
+// Charge les vrais SVG exportés depuis Figma via get_design_context et stockés
+// dans /public/icons/figma/. Les SVG utilisent `fill="currentColor"` pour
+// pouvoir être recoloriés avec `color`/`style.color`.
 //
-// Les SVG ont été modifiés pour utiliser `fill="currentColor"` afin de pouvoir
-// les recolorier avec `color` ou `style.color`.
+// IMPORTANT : les viewBox des icônes Figma ne sont pas tous carrés. Certains
+// icônes (key 18×9, chevron 10×6, etc.) ont des aspect ratios non-1:1. Le
+// composant utilise `preserveAspectRatio="xMidYMid meet"` (inscrit dans
+// chaque SVG) pour préserver les proportions et centrer dans le conteneur.
 //
-// Usage :
-//   <PxFigmaIcon name="key" size={16} color={PX.neutral100} />
+// Le `size` représente la dimension MAXIMALE (largeur OU hauteur), pas les
+// deux — comme dans Figma.
 
 import { useEffect, useState } from 'react'
 import { PX } from './tokens'
 
-// Liste des icônes officielles téléchargées depuis Figma.
-// Ajouter une icône :
-//   1. Récupérer son URL via get_design_context Figma
-//   2. curl -o public/icons/figma/<name>.svg <url>
-//   3. sed -i '' 's/var(--fill-0[^)]*)/currentColor/g' public/icons/figma/<name>.svg
-//   4. Ajouter le nom ici dans le type
 export type PxFigmaIconName =
   // Real estate amenities (Figma "Small Icon/Vxx")
   | 'key'         // V34 : For rent badge
@@ -27,7 +23,7 @@ export type PxFigmaIconName =
   | 'bed'         // V23 : chambres
   | 'bath'        // V33 : salles de bain
   | 'parking'     // V27 : garage / parking
-  | 'home-poi'    // Home icon utilisée pour les POI du Hero (Property X logo style)
+  | 'home-poi'    // Home icon utilisée pour les POI du Hero
   // UI controls (Line Rounded)
   | 'chevron-right'
   | 'chevron-left'
@@ -36,13 +32,13 @@ export type PxFigmaIconName =
   | 'plus'
   | 'search'
   | 'sparkle'
-  // Badges des eyebrows (icônes dans les pills LIGHT/DARK des sections)
-  | 'badge-featured-star'        // Featured Properties
-  | 'badge-allprops-home'        // All Properties
-  | 'badge-process-check'        // Our process (HowItWorks)
-  | 'badge-about-user'           // About us
-  | 'badge-testimonials-message' // Testimonials
-  | 'badge-blog-edit'            // Our blog
+  // Badges des eyebrows
+  | 'badge-featured-star'
+  | 'badge-allprops-home'
+  | 'badge-process-check'
+  | 'badge-about-user'
+  | 'badge-testimonials-message'
+  | 'badge-blog-edit'
 
 interface PxFigmaIconProps {
   name: PxFigmaIconName
@@ -51,8 +47,17 @@ interface PxFigmaIconProps {
   className?: string
 }
 
-// Cache SVG content après le premier fetch (les fichiers sont small)
+// Cache SVG content après le premier fetch
 const svgCache = new Map<string, string>()
+
+// Extrait le ratio width/height du viewBox pour calculer les dimensions
+function getAspectRatio(svgContent: string): number {
+  const match = svgContent.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/)
+  if (!match) return 1
+  const w = parseFloat(match[1])
+  const h = parseFloat(match[2])
+  return h > 0 ? w / h : 1
+}
 
 export default function PxFigmaIcon({
   name,
@@ -73,7 +78,7 @@ export default function PxFigmaIcon({
       .catch(() => setSvg(null))
   }, [name, svg])
 
-  // Avant le chargement, on rend un placeholder transparent pour réserver l'espace
+  // Placeholder pendant le fetch
   if (!svg) {
     return (
       <span
@@ -88,18 +93,25 @@ export default function PxFigmaIcon({
     )
   }
 
+  // Calcul des dimensions finales selon l'aspect ratio du SVG
+  // size = dimension MAX (comme Figma : un icône 18×9 dans un container 16 reste 16×8)
+  const aspectRatio = getAspectRatio(svg)
+  const width = aspectRatio >= 1 ? size : size * aspectRatio
+  const height = aspectRatio >= 1 ? size / aspectRatio : size
+
   return (
     <span
       className={className}
       style={{
         display: 'inline-flex',
-        width: size,
-        height: size,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width,
+        height,
         color,
         flexShrink: 0,
       }}
       aria-hidden="true"
-      // SVG injecté inline pour permettre currentColor
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )

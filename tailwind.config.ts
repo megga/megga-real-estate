@@ -17,6 +17,8 @@ export default {
       fontFamily: {
         sans: ['"DM Sans"', 'sans-serif'],
         display: ['"Plus Jakarta Sans"', 'sans-serif'],
+        // Property X — Objectivity (Pangram Pangram) avec fallback graceful
+        objectivity: ['"Objectivity"', '"Plus Jakarta Sans"', '"DM Sans"', 'sans-serif'],
       },
       colors: {
         /* ─── Theme-aware semantic tokens ─── */
@@ -125,9 +127,33 @@ export default {
         'event-purple': { DEFAULT: 'var(--event-purple)', border: 'var(--event-purple-border)', bg: 'var(--event-purple-bg)' },
         'event-gray': { DEFAULT: 'var(--event-gray)', border: 'var(--event-gray-border)', bg: 'var(--event-gray-bg)' },
         'calendar-weekend': 'var(--calendar-weekend)',
+
+        /* ─── Property X — Neutrals (tokens exacts Figma) ─── */
+        'px-100': '#FFFFFF',
+        'px-200': '#FAFAFB',
+        'px-300': '#EEEFF1',
+        'px-400': '#A4A6B0',
+        'px-500': '#464851',
+        'px-600': '#202127',
+        'px-700': '#14161C',
+        'px-overlay-dark-10': '#0013581A',
       },
       fontSize: {
         xxs: ['0.625rem', { lineHeight: '1' }],
+        /* ─── Property X — Display scale 1→10 (tokens exacts Figma) ─── */
+        'px-display-1': ['16px', { lineHeight: '1.25', letterSpacing: '-0.48px' }],
+        'px-display-2': ['18px', { lineHeight: '1.25', letterSpacing: '-0.54px' }],
+        'px-display-3': ['20px', { lineHeight: '1.25', letterSpacing: '-0.6px' }],
+        'px-display-4': ['22px', { lineHeight: '1.25', letterSpacing: '-0.66px' }],
+        'px-display-5': ['24px', { lineHeight: '1.25', letterSpacing: '-0.72px' }],
+        'px-display-6': ['30px', { lineHeight: '1.25', letterSpacing: '-0.9px' }],
+        'px-display-7': ['36px', { lineHeight: '1.25', letterSpacing: '-1.08px' }],
+        'px-display-8': ['48px', { lineHeight: '1.25', letterSpacing: '-1.44px' }],
+        'px-display-9': ['60px', { lineHeight: '1.15', letterSpacing: '-1.8px' }],
+        'px-display-10': ['72px', { lineHeight: '1.10', letterSpacing: '-2.16px' }],
+        'px-paragraph-sm': ['14px', { lineHeight: '1.5', letterSpacing: '-0.42px' }],
+        'px-paragraph-default': ['16px', { lineHeight: '1.5', letterSpacing: '-0.48px' }],
+        'px-paragraph-lg': ['18px', { lineHeight: '1.5', letterSpacing: '-0.54px' }],
       },
       borderRadius: {
         DEFAULT: 'var(--radius-button, 8px)',
@@ -141,6 +167,12 @@ export default {
         md: 'var(--radius-badge, 6px)',
         sm: '4px',
         xs: '3px',
+        /* ─── Property X — Border radius (tokens exacts Figma) ─── */
+        'px-tiny': '8px',
+        'px-small': '12px',
+        'px-medium': '16px',
+        'px-large': '24px',
+        'px-pill': '200px',
       },
       boxShadow: {
         card: 'var(--shadow-card)',
@@ -148,6 +180,11 @@ export default {
         navbar: 'var(--shadow-navbar)',
         dropdown: 'var(--shadow-dropdown)',
         modal: 'var(--shadow-modal)',
+        /* ─── Property X — Shadows (tokens exacts Figma) ─── */
+        'px-small': '0 4px 4px 0 rgba(211, 211, 211, 0.06), 0 1px 1px 0 rgba(14, 14, 14, 0.04)',
+        'px-regular': '0 2px 4px 0 rgba(25, 33, 61, 0.08)',
+        'px-medium': '0 8px 15px 0 rgba(25, 33, 61, 0.10)',
+        'px-large': '0 8px 24px 0 rgba(25, 33, 61, 0.12)',
       },
     },
   },
