@@ -49,7 +49,7 @@ export default function PxHero() {
         height: 640,
         borderRadius: PX.radiusImage,
         overflow: 'hidden',
-        backgroundImage: `url("https://images.unsplash.com/photo-1486325212027-8081e485255e?w=2400&q=80")`,
+        backgroundImage: `url("https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=2400&q=80")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}>
@@ -80,14 +80,25 @@ export default function PxHero() {
           <h1 style={{
             margin: 0,
             fontFamily: PX.font.display,
-            fontSize: PX.type.h1.size,
-            lineHeight: PX.type.h1.lh,
+            fontSize: 'clamp(32px, 5.2vw, 64px)',
+            lineHeight: 1.08,
             letterSpacing: PX.type.h1.ls,
             fontWeight: PX.type.h1.weight,
             color: PX.inkInverse,
           }}>
-            Élevez votre style<br />de vie avec MEGGA
+            Trouvez le bien<br />qui vous ressemble
           </h1>
+          <p style={{
+            margin: '20px auto 0',
+            maxWidth: 480,
+            fontFamily: PX.font.sans,
+            fontSize: 'clamp(13px, 1.4vw, 16px)',
+            lineHeight: 1.55,
+            color: PX.inkInverseSoft,
+          }}>
+            La marketplace immobilière nouvelle génération en Suisse romande.
+            33 000+ biens, 26 cantons, recherche IA.
+          </p>
           <div style={{
             marginTop: 32,
             display: 'flex',
