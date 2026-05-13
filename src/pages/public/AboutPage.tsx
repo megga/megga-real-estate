@@ -38,8 +38,13 @@ export default function AboutPage() {
       <PxNavPropertyX />
       <PxPropertiesHero />
       <PxPropertiesGrid />
-      <PxPostPropertyEN />
-      <PxFooterPropertyX />
+      {/* PostProperty + Footer = un seul "Footer V1" Figma — gap-24 interne
+          (assuré par paddingBottom:24 sur PxPostPropertyEN). On les wrap
+          dans un div pour qu'AboutPage n'applique pas son gap-47 entre eux. */}
+      <div>
+        <PxPostPropertyEN />
+        <PxFooterPropertyX />
+      </div>
     </div>
   )
 }

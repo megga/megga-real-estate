@@ -24,34 +24,52 @@
 //     </Container>
 //   </section>
 
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PX, PxIcon } from '..'
 
-// Logo Property X reconstitué — petit cube avec "n"/"Π" stylisé + wordmark texte.
-// Le wordmark Figma est un asset image; on reconstruit en SVG inline pour
-// éviter la dépendance aux URLs Figma (expirent à 7 jours).
+// Logo Property X officiel — assets SVG téléchargés depuis Figma (vector
+// icon + wordmark Property X) stockés dans /public/icons/figma/propertyx/.
+// Le SVG icon Figma utilise un transform -scale-x-100 (flip horizontal),
+// on reproduit avec transform: scaleX(-1).
+const iconCache = { icon: null as string | null, text: null as string | null }
+
 function PropertyXLogo({ color = PX.neutral700 }: { color?: string }) {
+  const [iconSvg, setIconSvg] = useState<string | null>(iconCache.icon)
+  const [textSvg, setTextSvg] = useState<string | null>(iconCache.text)
+
+  useEffect(() => {
+    if (!iconSvg) {
+      fetch('/icons/figma/propertyx/logo-icon.svg').then(r => r.text()).then(t => { iconCache.icon = t; setIconSvg(t) }).catch(() => {})
+    }
+    if (!textSvg) {
+      fetch('/icons/figma/propertyx/logo-text.svg').then(r => r.text()).then(t => { iconCache.text = t; setTextSvg(t) }).catch(() => {})
+    }
+  }, [iconSvg, textSvg])
+
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 8,
-    }}>
-      {/* Icon 22×22 — cube avec arche intérieure (motif "Π" / Property X) */}
-      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" style={{ display: 'block' }}>
-        <rect x="0.5" y="0.5" width="21" height="21" rx="3" fill="none" stroke={color} strokeWidth="1.6" />
-        <path d="M 6 16 L 6 7 L 11 7 L 11 16 M 11 9.5 L 16 9.5 L 16 16" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="square" />
-      </svg>
-      {/* Wordmark "Property X" — Display/4/Medium 20px ish, tracking serré */}
-      <span style={{
-        fontFamily: PX.font.display,
-        fontWeight: 600,
-        fontSize: 18,
-        lineHeight: 1,
-        letterSpacing: '-0.6px',
+    <span
+      role="img"
+      aria-label="Property X"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
         color,
-        whiteSpace: 'nowrap',
-      }}>Property X</span>
+      }}
+    >
+      {/* Icon 22×22 — vrai SVG Figma "Vector 1110 (Stroke)" avec flip horiz */}
+      <span
+        aria-hidden="true"
+        style={{ display: 'inline-block', width: 22, height: 22, transform: 'scaleX(-1)' }}
+        dangerouslySetInnerHTML={iconSvg ? { __html: iconSvg } : undefined}
+      />
+      {/* Wordmark "Property X" — vrai SVG Figma (101.669×24.76) */}
+      <span
+        aria-hidden="true"
+        style={{ display: 'inline-block', width: 101.669, height: 24.76 }}
+        dangerouslySetInnerHTML={textSvg ? { __html: textSvg } : undefined}
+      />
     </span>
   )
 }

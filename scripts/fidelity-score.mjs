@@ -28,8 +28,8 @@ const SECTIONS = [
   { id: 'grid_r1',   fy1:  587, fy2: 1171,  iy1:  587, iy2: 1171,  label: 'Grid row 1 (cards 1-2)' },
   { id: 'grid_r2',   fy1: 1171, fy2: 1755,  iy1: 1171, iy2: 1755,  label: 'Grid row 2 (cards 3-4)' },
   { id: 'grid_r3',   fy1: 1755, fy2: 2335,  iy1: 1755, iy2: 2335,  label: 'Grid row 3 (cards 5-6)' },
-  { id: 'post_prop', fy1: 2335, fy2: 2570,  iy1: 2375, iy2: 2610,  label: 'Post property cards' },
-  { id: 'footer',    fy1: 2575, fy2: 3510,  iy1: 2615, iy2: 3554,  label: 'Footer dark + logo + cols' },
+  { id: 'post_prop', fy1: 2510, fy2: 2700,  iy1: 2510, iy2: 2700,  label: 'Post property cards (incl gap-24 to footer)' },
+  { id: 'footer',    fy1: 2700, fy2: 3510,  iy1: 2700, iy2: 3507,  label: 'Footer dark + logo + cols' },
 ];
 
 async function loadPng(path) {
@@ -70,8 +70,11 @@ function resizePngTo(png, targetW, targetH) {
 }
 
 async function compareSection(figmaPng, implPng, s, threshold = 0.1, suffix = '') {
-  const figmaCrop = cropPng(figmaPng, 0, s.fy1, figmaPng.width, s.fy2 - s.fy1);
-  const implCrop  = cropPng(implPng,  0, s.iy1, implPng.width,  s.iy2 - s.iy1);
+  // Clamp Y aux dimensions réelles (les hauteurs Figma/impl peuvent diverger)
+  const fy2 = Math.min(s.fy2, figmaPng.height);
+  const iy2 = Math.min(s.iy2, implPng.height);
+  const figmaCrop = cropPng(figmaPng, 0, s.fy1, figmaPng.width, fy2 - s.fy1);
+  const implCrop  = cropPng(implPng,  0, s.iy1, implPng.width,  iy2 - s.iy1);
   const w = Math.min(figmaCrop.width, implCrop.width);
   const h = Math.min(figmaCrop.height, implCrop.height);
   const figmaResized = resizePngTo(figmaCrop, w, h);
