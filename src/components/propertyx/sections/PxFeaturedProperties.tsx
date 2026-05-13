@@ -24,22 +24,31 @@ function FeaturedCard({ p, large }: { p: typeof FEATURED[0]; large: boolean }) {
   return (
     <div style={{
       position: 'relative',
-      flex: large ? 2 : 1,
+      flex: large ? 4 : 1,
       borderRadius: PX.radius.large,
       overflow: 'hidden',
       backgroundImage: `url("${p.image}")`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      minHeight: 520,
+      minHeight: 560,
       cursor: 'pointer',
     }}>
       <div style={{
         position: 'absolute', inset: 0,
         background: 'linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.7) 100%)',
       }} />
+      {/* Badge "À louer" top-left */}
       <span style={{ position: 'absolute', top: 16, left: 16, zIndex: 2 }}>
         <PxBadge variant="invert" size="sm">{p.badge}</PxBadge>
       </span>
+      {/* Cercle action top-right (favori) — fidèle Figma */}
+      {large && (
+        <span style={{ position: 'absolute', top: 16, right: 16, zIndex: 2 }}>
+          <PxCircleButton size="sm" variant="light" ariaLabel="Ajouter aux favoris">
+            <PxIcon name="bookmark" size={14} color={PX.neutral700} />
+          </PxCircleButton>
+        </span>
+      )}
       {large && (
         <div style={{
           position: 'absolute', bottom: 24, left: 24, right: 24,
@@ -48,9 +57,9 @@ function FeaturedCard({ p, large }: { p: typeof FEATURED[0]; large: boolean }) {
           <h3 style={{
             margin: 0,
             fontFamily: PX.font.display,
-            fontSize: 26,
+            fontSize: 28,
             fontWeight: 500,
-            letterSpacing: '-0.78px',
+            letterSpacing: '-0.84px',
             lineHeight: 1.18,
             color: PX.neutral100,
           }}>{p.title}</h3>
