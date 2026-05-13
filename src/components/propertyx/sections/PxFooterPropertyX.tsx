@@ -10,31 +10,49 @@
 //   Utility Pages, Contact us, sales/help sans titre)
 // - Logo Property X (inline SVG) + copyright "Property X | Designed by BRIX"
 
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PX, PxSocialIcon, PxIcon } from '..'
 
-// Logo Property X — version "Light" (couleur blanche) pour le footer dark
+// Logo Property X — vrais assets SVG Figma téléchargés dans
+// /public/icons/figma/propertyx/. Le footer utilise les tailles 23.167×23.167
+// pour l'icon et 107.062×26.074 pour le wordmark (Figma footer specs).
+const logoCache = { icon: null as string | null, text: null as string | null }
+
 function PropertyXLogoLight() {
-  const color = PX.neutral100
+  const [iconSvg, setIconSvg] = useState<string | null>(logoCache.icon)
+  const [textSvg, setTextSvg] = useState<string | null>(logoCache.text)
+
+  useEffect(() => {
+    if (!iconSvg) {
+      fetch('/icons/figma/propertyx/logo-icon.svg').then(r => r.text()).then(t => { logoCache.icon = t; setIconSvg(t) }).catch(() => {})
+    }
+    if (!textSvg) {
+      fetch('/icons/figma/propertyx/logo-text.svg').then(r => r.text()).then(t => { logoCache.text = t; setTextSvg(t) }).catch(() => {})
+    }
+  }, [iconSvg, textSvg])
+
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 8,
-    }}>
-      <svg width="23" height="23" viewBox="0 0 22 22" aria-hidden="true" style={{ display: 'block' }}>
-        <rect x="0.5" y="0.5" width="21" height="21" rx="3" fill="none" stroke={color} strokeWidth="1.6" />
-        <path d="M 6 16 L 6 7 L 11 7 L 11 16 M 11 9.5 L 16 9.5 L 16 16" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="square" />
-      </svg>
-      <span style={{
-        fontFamily: PX.font.display,
-        fontWeight: 600,
-        fontSize: 19,
-        lineHeight: 1,
-        letterSpacing: '-0.6px',
-        color,
-        whiteSpace: 'nowrap',
-      }}>Property X</span>
+    <span
+      role="img"
+      aria-label="Property X"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8.424,
+        color: PX.neutral100,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{ display: 'inline-block', width: 23.167, height: 23.167, transform: 'scaleX(-1)' }}
+        dangerouslySetInnerHTML={iconSvg ? { __html: iconSvg } : undefined}
+      />
+      <span
+        aria-hidden="true"
+        style={{ display: 'inline-block', width: 107.062, height: 26.074 }}
+        dangerouslySetInnerHTML={textSvg ? { __html: textSvg } : undefined}
+      />
     </span>
   )
 }
