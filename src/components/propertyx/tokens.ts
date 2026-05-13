@@ -119,12 +119,17 @@ export const PX = {
     medium: 1.5,
   },
 
-  // ─── Shadows ─────────────────────────────────────────────────────────
+  // ─── Shadows (Neutral/BS Small/Regular/Medium/Large) ────────────────
+  // Source : page Basic Styles > Shadows du Figma Property X.
   shadow: {
-    // Property X Neutral/BS Regular: 0 2 4 0 #19213D14
-    regular: '0 2px 4px 0 rgba(25, 33, 61, 0.08)',
-    // Property X Neutral/BS Small: 0 4 4 0 #D3D3D30F + 0 1 1 0 #0E0E0E0A
+    // BS Small : 0 4 4 0 #D3D3D30F + 0 1 1 0 #0E0E0E0A
     small: '0 4px 4px 0 rgba(211, 211, 211, 0.06), 0 1px 1px 0 rgba(14, 14, 14, 0.04)',
+    // BS Regular : 0 2 4 0 #19213D14
+    regular: '0 2px 4px 0 rgba(25, 33, 61, 0.08)',
+    // BS Medium : 0 8 15 0 #19213D1A
+    medium: '0 8px 15px 0 rgba(25, 33, 61, 0.10)',
+    // BS Large : 0 8 24 0 #19213D1F
+    large: '0 8px 24px 0 rgba(25, 33, 61, 0.12)',
     // Aliases pour mes composants existants
     soft: '0 4px 4px 0 rgba(211, 211, 211, 0.06), 0 1px 1px 0 rgba(14, 14, 14, 0.04)',
     card: '0 2px 4px 0 rgba(25, 33, 61, 0.08)',

@@ -69,9 +69,24 @@ margin:  md 24 / xxl 80
 
 ### 1.5 Shadows
 
+**Page Basic Styles > Shadows du Figma** — 4 niveaux d'élévation neutre.
+
+| Token | Valeur CSS | Usage |
+|---|---|---|
+| `shadow.small` | `0 4 4 0 #D3D3D30F, 0 1 1 0 #0E0E0E0A` | Cards passives, états repos, items de liste |
+| `shadow.regular` | `0 2 4 0 #19213D14` | Cards par défaut, sections (Neutral/BS Regular) |
+| `shadow.medium` | `0 8 15 0 #19213D1A` | Cards hover, dropdowns, popovers |
+| `shadow.large` | `0 8 24 0 #19213D1F` | Modals, drawers, surfaces très élevées |
+
 ```ts
-shadow.regular = '0 2px 4px 0 rgba(25, 33, 61, 0.08)'    // Neutral/BS Regular
-shadow.small   = '0 4px 4px 0 rgba(211,211,211,0.06), 0 1px 1px 0 rgba(14,14,14,0.04)'
+// Pattern Property X : Shadow Card avec border + shadow combinés
+<div style={{
+  background: PX.neutral100,
+  border: `1px solid ${PX.neutral300}`,
+  borderRadius: PX.radius.large,
+  boxShadow: PX.shadow.medium,
+  padding: 24,
+}}>
 ```
 
 ### 1.6 Layout
