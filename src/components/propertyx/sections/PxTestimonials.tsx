@@ -1,91 +1,172 @@
-// MEGGA Marketplace — Property X testimonials section.
-// Source : Figma Home V3 (node 9552:21432) — layout asymétrique 5 cards.
-// Refactor avec PxAvatar + PxSectionLabel + PxButton.
+// MEGGA Marketplace — Property X "Testimonials Section".
+// Source : Figma node 9665:8400 — code Figma exact.
+//
+// Structure fidèle :
+//   <section pt-200 pb-80 flex-col items-center>
+//     <Top Content w-1112 mb-[-170] flex-col items-start>
+//       <Badge "Testimonials" LIGHT bg-neutral300 + cercle bg-neutral400>
+//       <H2 48 Display/8 w-477 tracking-1.44>
+//       <Paragraph pt-16 pb-32, w-562, 16/1.5 neutral500>
+//     </Top Content>
+//     <Cards Wrapper flex gap-32 items-center>
+//       <LEFT col flex-col gap-32 pt-160>
+//         <Card "Andy Smith" w-540 h-240 px-52 py-43>
+//         <Card "Sandy Houston" same>
+//       </LEFT col>
+//       <RIGHT col flex-col pb-160 items-start>
+//         <Cards Wrapper flex-col gap-32>
+//           <Card "Kathie Corl">
+//           <Card "Matt Cannon" px-48>
+//         </Cards Wrapper>
+//         <Button Row pt-48>
+//           <PrimaryButton DARK "Start exploring">
+//         </Button Row>
+//       </RIGHT col>
+//     </Cards Wrapper>
+//   </section>
 
-import { PX, PxAvatar, PxSectionLabel, PxButton } from '..'
+import { PX, PxAvatar, PxButton, PxIcon } from '..'
 
-const TESTIMONIALS = [
+interface Testimonial {
+  id: string
+  quote: string
+  name: string
+  location: string
+  avatar: string
+}
+
+const TESTIMONIALS: Testimonial[] = [
   {
     id: 't1',
-    quote: "MEGGA a transformé ma recherche d'appartement à Genève. L'IA me proposait des biens qui correspondaient vraiment à mes critères — j'ai trouvé en 2 semaines au lieu de 6 mois.",
-    name: 'Sophie Bertrand',
-    location: 'Carouge, GE',
+    quote: '« Service exceptionnel, opportunités immobilières inégalées en Suisse romande. »',
+    name: 'Kathie Corl',
+    location: 'Genève, GE',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80',
   },
   {
     id: 't2',
-    quote: "Service exceptionnel, équipe à l'écoute, transparence totale sur les frais. Je recommande à 100%.",
-    name: 'Marc Dubois',
+    quote: '« Navigation simple, options imbattables — j\'ai trouvé en deux semaines au lieu de six mois. »',
+    name: 'Andy Smith',
     location: 'Lausanne, VD',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
   },
   {
     id: 't3',
-    quote: "Plateforme intuitive, beaucoup de choix, agents pro. Du jamais vu en Suisse romande.",
-    name: 'Léa Marchand',
-    location: 'Sion, VS',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80',
-  },
-  {
-    id: 't4',
-    quote: "Une plateforme imbattable pour la qualité du service et la couverture nationale.",
-    name: 'Matteo Conti',
+    quote: '« Ultime plateforme immobilière, qualité et service inégalés. »',
+    name: 'Matt Cannon',
     location: 'Lugano, TI',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80',
   },
+  {
+    id: 't4',
+    quote: '« Trouvé l\'appartement parfait rapidement, plateforme immobilière imbattable. »',
+    name: 'Sandy Houston',
+    location: 'Sion, VS',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80',
+  },
 ]
 
-function TestimonialCard({ t }: { t: typeof TESTIMONIALS[0]; compact?: boolean }) {
-  // Layout fidèle Figma : Avatar 80×80 LEFT + Content RIGHT (quote + name/location).
-  // Card 540×240, padding 43px top/bottom, 52px left/right.
+// Badge "Testimonials" — fidèle Figma : LIGHT bg-neutral300 + cercle bg-neutral400
+function TestimonialsBadge() {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      paddingLeft: 6,
+      paddingRight: 12,
+      paddingTop: 6,
+      paddingBottom: 6,
+      background: PX.neutral300,
+      borderRadius: PX.radius.pill,
+    }}>
+      <span style={{
+        width: 26,
+        height: 26,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral400,
+        display: 'grid',
+        placeItems: 'center',
+        flexShrink: 0,
+      }}>
+        <PxIcon name="message" size={15} color={PX.neutral100} />
+      </span>
+      <span style={{
+        fontFamily: PX.font.display,
+        fontSize: 16,
+        fontWeight: 500,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral700,
+      }}>Témoignages</span>
+    </span>
+  )
+}
+
+// Carte testimonial — fidèle Figma : w-540 h-240 px-52 py-43, layout horizontal
+function TestimonialCard({ t, narrow = false }: { t: Testimonial; narrow?: boolean }) {
   return (
     <div style={{
+      width: 540,
+      height: 240,
+      paddingLeft: narrow ? 48 : 52,
+      paddingRight: narrow ? 48 : 52,
+      paddingTop: 43,
+      paddingBottom: 43,
       background: PX.neutral100,
       borderRadius: PX.radius.large,
       boxShadow: PX.shadow.small,
-      padding: '43px 52px',
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 24,
-      minHeight: 240,
+      flexShrink: 0,
     }}>
-      <PxAvatar src={t.avatar} alt={t.name} size={80} />
       <div style={{
-        flex: 1,
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        gap: 16,
-        minHeight: 148,
+        gap: 24,
+        alignItems: 'flex-start',
+        height: '100%',
       }}>
-        <p style={{
-          margin: 0,
-          fontFamily: PX.font.display,
-          // Display/4/Medium = 20/1.25/500/-3 (taille citation Figma)
-          fontSize: 18,
-          lineHeight: 1.25,
-          letterSpacing: '-0.54px',
-          fontWeight: 500,
-          color: PX.neutral700,
+        {/* Avatar 80×80 mask circle */}
+        <PxAvatar src={t.avatar} alt={t.name} size={80} />
+        {/* Content : quote top, details bottom (relative positioning) */}
+        <div style={{
+          flex: 1,
+          height: '100%',
+          position: 'relative',
         }}>
-          “{t.quote}”
-        </p>
-        <div>
-          <div style={{
+          {/* Quote : 20px Display/4/Medium tracking-0.6 lh-1.25 */}
+          <p style={{
+            margin: 0,
             fontFamily: PX.font.display,
-            fontSize: 16,
+            fontSize: 20,
             fontWeight: 500,
-            letterSpacing: '-0.48px',
+            lineHeight: 1.25,
+            letterSpacing: '-0.6px',
             color: PX.neutral700,
-          }}>{t.name}</div>
+            maxWidth: 336,
+          }}>{t.quote}</p>
+          {/* Details Wrapper : positionné en bas, name + location */}
           <div style={{
-            fontFamily: PX.font.sans,
-            fontSize: 14,
-            fontWeight: 400,
-            letterSpacing: '-0.42px',
-            color: PX.neutral500,
-            marginTop: 2,
-          }}>{t.location}</div>
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+          }}>
+            <div style={{
+              fontFamily: PX.font.display,
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: 1.25,
+              letterSpacing: '-0.48px',
+              color: PX.neutral700,
+            }}>{t.name}</div>
+            <div style={{
+              marginTop: 8,
+              fontFamily: PX.font.display,
+              fontSize: 16,
+              fontWeight: 400,
+              lineHeight: 1.5,
+              letterSpacing: '-0.48px',
+              color: PX.neutral500,
+            }}>{t.location}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -95,61 +176,98 @@ function TestimonialCard({ t }: { t: typeof TESTIMONIALS[0]; compact?: boolean }
 export default function PxTestimonials() {
   return (
     <section style={{
-      padding: `${PX.sectionDefault}px 24px`,
+      paddingTop: 200,
+      paddingBottom: 80,
+      paddingLeft: 24,
+      paddingRight: 24,
       background: PX.neutral100,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
     }}>
-      <div style={{ maxWidth: 1112, margin: '0 auto' }}>
-        {/* Layout fidèle Figma : 2 colonnes 540 + 32 gap (1112 total)
-            LEFT  : header (label+H2+intro) → card 1 → card 2
-            RIGHT : card 3 → card 4 → bouton "Commencer" */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 32,
-          alignItems: 'start',
+      {/* Top Content : w-1112, mb-[-170] (overlap cards), flex-col items-start */}
+      <div style={{
+        width: 1112,
+        maxWidth: '100%',
+        marginBottom: -170,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+      }}>
+        <TestimonialsBadge />
+        {/* H2 : pt-16, 48 Display/8/Medium tracking-1.44 w-477 */}
+        <h2 style={{
+          margin: 0,
+          paddingTop: 16,
+          width: 477,
+          maxWidth: '100%',
+          fontFamily: PX.font.display,
+          fontSize: 48,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-1.44px',
+          color: PX.neutral700,
         }}>
-          {/* Colonne gauche */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ marginBottom: 12 }}>
-              <PxSectionLabel icon="message">Témoignages</PxSectionLabel>
-              <h2 style={{
-                margin: '16px 0 16px',
-                fontFamily: PX.font.display,
-                fontSize: 'clamp(28px, 4vw, 48px)',
-                lineHeight: 1.12,
-                letterSpacing: '-1.3px',
-                fontWeight: 500,
-                color: PX.neutral700,
-              }}>
-                Ce que pensent nos clients
-              </h2>
-              <p style={{
-                margin: 0,
-                fontFamily: PX.font.sans,
-                fontSize: 14,
-                lineHeight: 1.5,
-                letterSpacing: '-0.42px',
-                color: PX.neutral500,
-                maxWidth: 380,
-              }}>
-                5 000 clients accompagnés depuis 2019 en Suisse romande
-                et alémanique. Voici quelques retours d'expérience.
-              </p>
-            </div>
-            <TestimonialCard t={TESTIMONIALS[1]} />
-            <TestimonialCard t={TESTIMONIALS[2]} />
-          </div>
+          Ce que pensent nos clients
+        </h2>
+        {/* Paragraph : pt-16 pb-32, w-562, 16/1.5 neutral500 */}
+        <p style={{
+          margin: 0,
+          paddingTop: 16,
+          paddingBottom: 32,
+          width: 562,
+          maxWidth: '100%',
+          fontFamily: PX.font.display,
+          fontSize: 16,
+          fontWeight: 400,
+          lineHeight: 1.5,
+          letterSpacing: '-0.48px',
+          color: PX.neutral500,
+        }}>
+          5 000 clients accompagnés depuis 2019 en Suisse romande et alémanique.
+          Voici quelques retours d'expérience.
+        </p>
+      </div>
 
-          {/* Colonne droite */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Cards Wrapper : flex gap-32 items-center (NOTE: items-center pour aligner verticalement les 2 cols) */}
+      <div style={{
+        display: 'flex',
+        gap: 32,
+        alignItems: 'center',
+      }}>
+        {/* LEFT col : flex-col gap-32, pt-160 (offset vers le bas) */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 32,
+          paddingTop: 160,
+        }}>
+          <TestimonialCard t={TESTIMONIALS[1]} />
+          <TestimonialCard t={TESTIMONIALS[3]} />
+        </div>
+
+        {/* RIGHT col : flex-col, pb-160 (offset vers le haut) */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          paddingBottom: 160,
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 32,
+          }}>
             <TestimonialCard t={TESTIMONIALS[0]} />
-            <TestimonialCard t={TESTIMONIALS[3]} />
-            {/* Bouton "Commencer" placé dans la colonne droite, fidèle V3 */}
-            <div>
-              <PxButton to="/acheter" variant="primary" size="lg">
-                Commencer
-              </PxButton>
-            </div>
+            <TestimonialCard t={TESTIMONIALS[2]} narrow />
+          </div>
+          {/* Button Row : pt-48, PrimaryButton DARK */}
+          <div style={{
+            paddingTop: 48,
+          }}>
+            <PxButton to="/acheter" variant="primary" size="lg">
+              Commencer
+            </PxButton>
           </div>
         </div>
       </div>
