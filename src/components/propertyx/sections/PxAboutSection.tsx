@@ -383,16 +383,17 @@ export default function PxAboutSection() {
           </h2>
         </div>
 
-        {/* Grid 3 colonnes — proportions Figma exactes (1200px content):
-            text 386px + gap 39px + iPhone 349px + gap 210px + stats 215px */}
+        {/* Grid : 1fr | auto (phone) | 1fr → phone centré, text à gauche,
+            stats collées tout à droite (justifySelf end).
+            Reproduit exactement les positions Figma : text 0-386, phone 425-774, stats 985-1200. */}
         <div style={{
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 24,
+          gap: 0,
         }}>
-          {/* Colonne gauche : narrative — width Figma 386px */}
-          <div style={{ width: 386, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Colonne gauche : narrative — width Figma 386px, collée à gauche */}
+          <div style={{ width: 386, justifySelf: 'start', display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div>
               <h3 style={{
                 margin: 0,
@@ -620,8 +621,8 @@ export default function PxAboutSection() {
             <FloatingListingCard listing={FLOATING_LISTING} />
           </div>
 
-          {/* Colonne droite : stats — width Figma 215px, alignée tout à droite */}
-          <div style={{ width: 215, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 32 }}>
+          {/* Colonne droite : stats — width Figma 215px, collée à droite */}
+          <div style={{ width: 215, justifySelf: 'end', display: 'flex', flexDirection: 'column', gap: 32 }}>
             <div>
               <div style={{
                 fontFamily: PX.font.display,
