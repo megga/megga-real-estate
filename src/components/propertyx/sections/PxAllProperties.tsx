@@ -107,8 +107,9 @@ function AllPropertiesBadge() {
   )
 }
 
-// Badge "For rent" / "For sale" sur card image — bg neutral700, icon + texte
+// Badge "For rent" / "For sale" sur card image — bg neutral700, icon Figma + texte
 function CardBadge({ label, icon }: { label: string; icon: 'key' | 'home' }) {
+  const figmaIcon = icon === 'home' ? 'home-poi' : 'key'
   return (
     <span style={{
       display: 'inline-flex',
@@ -121,7 +122,7 @@ function CardBadge({ label, icon }: { label: string; icon: 'key' | 'home' }) {
       background: PX.neutral700,
       borderRadius: PX.radius.pill,
     }}>
-      <PxIcon name={icon} size={16} color={PX.neutral100} />
+      <PxFigmaIcon name={figmaIcon} size={16} color={PX.neutral100} />
       <span style={{
         fontFamily: PX.font.display,
         fontSize: 16,
@@ -134,7 +135,7 @@ function CardBadge({ label, icon }: { label: string; icon: 'key' | 'home' }) {
   )
 }
 
-// Amenity item — icon 20px + value 16/Medium neutral400
+// Amenity item — icon 20px Figma + value 16/Medium neutral400
 function Amenity({ icon, value }: { icon: 'surface' | 'bed' | 'bath' | 'parking'; value: string }) {
   return (
     <span style={{
@@ -142,7 +143,7 @@ function Amenity({ icon, value }: { icon: 'surface' | 'bed' | 'bath' | 'parking'
       alignItems: 'center',
       gap: 10,
     }}>
-      <PxIcon name={icon} size={20} color={PX.neutral400} />
+      <PxFigmaIcon name={icon} size={20} color={PX.neutral400} />
       <span style={{
         fontFamily: PX.font.display,
         fontSize: 16,
