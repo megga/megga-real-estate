@@ -235,23 +235,22 @@ function PhoneListingCard({ listing }: { listing: Listing }) {
   )
 }
 
-// Floating card hors iPhone — fidèle Figma : white card, padding 16,
-// image avec badge + "+" circle, titre 18px, adresse map pin, divider,
-// stats avec icônes Figma.
+// Floating card hors iPhone — taille Figma : 404 wide, 334 height.
+// Position : extends right of iPhone par ~179px, top at 432.9px (60% du haut).
 function FloatingListingCard({ listing }: { listing: Listing }) {
   return (
     <div style={{
       position: 'absolute',
-      right: -56,
-      bottom: 56,
-      width: 312,
-      padding: 16,
+      right: -179,
+      top: 432,
+      width: 404,
+      padding: 20,
       background: PX.neutral100,
       borderRadius: PX.radius.medium,
       boxShadow: PX.shadow.large,
     }}>
       <div style={{
-        height: 184,
+        height: 220,
         backgroundImage: `url("${listing.image}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -299,60 +298,60 @@ function FloatingListingCard({ listing }: { listing: Listing }) {
         </button>
       </div>
 
-      <div style={{ marginTop: 14 }}>
+      <div style={{ marginTop: 16 }}>
         <div style={{
           fontFamily: PX.font.display,
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: 500,
-          letterSpacing: '-0.54px',
+          letterSpacing: '-0.6px',
           color: PX.neutral700,
           lineHeight: 1.25,
         }}>
           {listing.title}
         </div>
         <div style={{
-          marginTop: 6,
+          marginTop: 8,
           display: 'flex',
           alignItems: 'center',
           gap: 6,
           fontFamily: PX.font.display,
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 500,
-          letterSpacing: '-0.39px',
+          letterSpacing: '-0.42px',
           color: PX.neutral500,
           lineHeight: 1.25,
         }}>
-          <PxFigmaIcon name="location" size={13} color={PX.neutral500} />
+          <PxFigmaIcon name="location" size={14} color={PX.neutral500} />
           {listing.address}
         </div>
         <div style={{
-          marginTop: 12,
-          paddingTop: 12,
+          marginTop: 14,
+          paddingTop: 14,
           borderTop: `1px solid ${PX.neutral300}`,
           display: 'flex',
           alignItems: 'center',
-          gap: 16,
+          gap: 20,
           fontFamily: PX.font.display,
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: 500,
-          letterSpacing: '-0.36px',
+          letterSpacing: '-0.39px',
           color: PX.neutral400,
           lineHeight: 1.25,
         }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <PxFigmaIcon name="surface" size={15} color={PX.neutral400} />
+            <PxFigmaIcon name="surface" size={16} color={PX.neutral400} />
             {listing.surface}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <PxFigmaIcon name="bed" size={15} color={PX.neutral400} />
+            <PxFigmaIcon name="bed" size={16} color={PX.neutral400} />
             {listing.beds}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <PxFigmaIcon name="bath" size={15} color={PX.neutral400} />
+            <PxFigmaIcon name="bath" size={16} color={PX.neutral400} />
             {listing.baths}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <PxFigmaIcon name="parking" size={15} color={PX.neutral400} />
+            <PxFigmaIcon name="parking" size={16} color={PX.neutral400} />
             {listing.parking}
           </span>
         </div>
@@ -384,14 +383,16 @@ export default function PxAboutSection() {
           </h2>
         </div>
 
+        {/* Grid 3 colonnes — proportions Figma exactes (1200px content):
+            text 386px + gap 39px + iPhone 349px + gap 210px + stats 215px */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1.2fr 1fr',
-          gap: 48,
+          display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 24,
         }}>
-          {/* Colonne gauche : narrative */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Colonne gauche : narrative — width Figma 386px */}
+          <div style={{ width: 386, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div>
               <h3 style={{
                 margin: 0,
@@ -453,11 +454,12 @@ export default function PxAboutSection() {
             justifyContent: 'center',
             alignItems: 'center',
             position: 'relative',
+            flexShrink: 0,
           }}>
-            {/* Cadre iPhone : titane noir, bord arrondi 52px — fidèle Figma 349×728 */}
+            {/* Cadre iPhone : 349×728 exact Figma */}
             <div style={{
-              width: 360,
-              height: 740,
+              width: 349,
+              height: 728,
               background: PX.neutral700,
               borderRadius: 52,
               padding: 10,
@@ -618,8 +620,8 @@ export default function PxAboutSection() {
             <FloatingListingCard listing={FLOATING_LISTING} />
           </div>
 
-          {/* Colonne droite : stats */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+          {/* Colonne droite : stats — width Figma 215px, alignée tout à droite */}
+          <div style={{ width: 215, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 32 }}>
             <div>
               <div style={{
                 fontFamily: PX.font.display,
