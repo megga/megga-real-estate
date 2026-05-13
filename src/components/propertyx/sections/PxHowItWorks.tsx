@@ -1,202 +1,379 @@
-// MEGGA Marketplace — Property X "How it works" section.
-// Refactor avec PxSectionLabel + PxIcon.
+// MEGGA Marketplace — Property X "Process Section" / How it works.
+// Source : Figma node 11756:29023 — code Figma exact.
+//
+// Structure fidèle :
+//   <section pt-80 pb-160 flex-col items-center>
+//     <Top Content centered>
+//       <Title Wrapper>
+//         <Badge LIGHT bg-neutral300, pl-6 pr-12 py-6, cercle bg-neutral400 size-26 + texte dark>
+//         <H2 48px w-546 centered>
+//       </Title Wrapper>
+//       <Paragraph pt-16 pb-32, w-562, 16/1.5 neutral500 centered>
+//     </Top Content>
+//     <Bottom Content flex gap-51 items-center>
+//       <Accordion Wrapper flex-col gap-16>
+//         <Accordion OPEN : bg-white h-226 p-39 rounded-24 shadow small w-536>
+//           <Content : title 24 Display/5 + description 16/1.5 neutral500>
+//           <Minus icon 20px>
+//         </Accordion>
+//         <Accordion CLOSED 2 : h-131 px-39 py-36>
+//         <Accordion CLOSED 3 : h-131 px-39 py-36>
+//       </Accordion Wrapper>
+//       <Right Element 611×522>
+//         <Image 514×433>
+//         <Popover (295,172) 316×349 bg-white rounded-24>
+//           <Search "Choose your location" pill bg-neutral200 + dark circle>
+//           <Card 1 (image masked) + badge mini "For rent" + title 12 + address 8>
+//           <Card 2 ...>
+//         </Popover>
+//       </Right Element>
+//     </Bottom Content>
+//   </section>
 
 import { useState } from 'react'
-import { PX, PxSectionLabel, PxIcon } from '..'
+import { PX, PxIcon } from '..'
 
 const STEPS = [
   {
-    title: 'Trouvez le bien qui vous correspond',
+    title: '1. Trouvez le bien qui vous correspond',
     body: 'Filtres avancés et carte interactive pour cibler le quartier, le type, le budget. Notre IA propose 3 suggestions chaque jour selon votre profil.',
   },
   {
-    title: 'Planifiez une visite avec un agent',
+    title: '2. Planifiez une visite avec un agent',
     body: "Réservez en 2 clics. L'agent confirme dans la journée. Tous les agents MEGGA sont certifiés KYC — vous savez à qui vous parlez.",
   },
   {
-    title: "Emménagez en moins d'un mois",
+    title: "3. Emménagez en moins d'un mois",
     body: 'Une fois votre choix fait, MEGGA orchestre le dossier de location ou la promesse de vente. Documents signés électroniquement, dépôt de garantie sécurisé.',
   },
 ]
+
+// Badge "Our process" — fidèle Figma 11756:29026
+// bg-neutral300 (LIGHT), pl-6 pr-12 py-6, cercle bg-neutral400 size-26
+function ProcessBadge() {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      paddingLeft: 6,
+      paddingRight: 12,
+      paddingTop: 6,
+      paddingBottom: 6,
+      background: PX.neutral300,
+      borderRadius: PX.radius.pill,
+    }}>
+      <span style={{
+        width: 26,
+        height: 26,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral400,
+        display: 'grid',
+        placeItems: 'center',
+        flexShrink: 0,
+      }}>
+        <PxIcon name="check" size={15} color={PX.neutral100} />
+      </span>
+      <span style={{
+        fontFamily: PX.font.display,
+        fontSize: 16,
+        fontWeight: 500,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral700,
+      }}>Notre processus</span>
+    </span>
+  )
+}
+
+// Popover mini-card "Luxury Loft" — utilisée dans le popover du Right Element
+function PopoverMiniCard({ image, title, address }: { image: string; title: string; address: string }) {
+  return (
+    <div style={{
+      width: '100%',
+      borderRadius: 8,
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+    }}>
+      {/* Image avec badge "For rent" mini en haut */}
+      <div style={{
+        height: 80,
+        borderRadius: 8,
+        backgroundImage: `url("${image}")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative',
+      }}>
+        <span style={{
+          position: 'absolute',
+          top: 5,
+          left: 5,
+          background: PX.neutral700,
+          color: PX.neutral100,
+          padding: '2px 6px',
+          borderRadius: 18,
+          fontSize: 7,
+          fontWeight: 500,
+          fontFamily: PX.font.display,
+          letterSpacing: '-0.21px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 3,
+        }}>
+          <PxIcon name="key" size={7} color={PX.neutral100} />
+          À louer
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '0 4px' }}>
+        <div style={{
+          fontFamily: PX.font.display,
+          fontSize: 12,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-0.36px',
+          color: PX.neutral700,
+        }}>{title}</div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          fontFamily: PX.font.display,
+          fontSize: 8,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-0.24px',
+          color: PX.neutral400,
+        }}>
+          <PxIcon name="location" size={8} color={PX.neutral400} />
+          {address}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function PxHowItWorks() {
   const [open, setOpen] = useState(0)
 
   return (
     <section style={{
-      padding: `${PX.sectionDefault}px 40px`,
+      paddingTop: 80,
+      paddingBottom: 160,
+      paddingLeft: 24,
+      paddingRight: 24,
       background: PX.neutral100,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
     }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <PxSectionLabel icon="check">Notre processus</PxSectionLabel>
+      {/* Top Content centered */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}>
+        {/* Title Wrapper */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          <ProcessBadge />
+          {/* Title : pt-16, 48 Display/8/Medium tracking -1.44, w-546 */}
           <h2 style={{
-            margin: '16px auto 0',
-            maxWidth: 720,
+            margin: 0,
+            paddingTop: 16,
+            width: 546,
+            maxWidth: '100%',
             fontFamily: PX.font.display,
-            fontSize: 'clamp(28px, 4vw, 48px)',
-            lineHeight: 1.12,
-            letterSpacing: '-1.4px',
+            fontSize: 48,
             fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: '-1.44px',
             color: PX.neutral700,
+            textAlign: 'center',
           }}>
             Trouvez le bien de vos rêves en 1, 2, 3
           </h2>
-          <p style={{
-            margin: '16px auto 0',
-            maxWidth: 540,
-            fontFamily: PX.font.sans,
-            fontSize: 14,
-            lineHeight: 1.5,
-            letterSpacing: '-0.42px',
-            color: PX.neutral500,
-          }}>
-            Un parcours simple et transparent, sans intermédiaire caché.
-          </p>
         </div>
+        {/* Paragraph : pt-16 pb-32, w-562, 16/1.5 neutral500 centered */}
+        <p style={{
+          margin: 0,
+          paddingTop: 16,
+          paddingBottom: 32,
+          width: 562,
+          maxWidth: '100%',
+          fontFamily: PX.font.display,
+          fontSize: 16,
+          fontWeight: 400,
+          lineHeight: 1.5,
+          letterSpacing: '-0.48px',
+          color: PX.neutral500,
+          textAlign: 'center',
+        }}>
+          Un parcours simple et transparent en 3 étapes, avec un agent certifié
+          à vos côtés du premier filtre jusqu'aux clés.
+        </p>
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'center' }}>
-          {/* Accordion 3 étapes — titre "1." "2." "3." dans le texte */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {STEPS.map((s, i) => {
-              const isOpen = open === i
-              return (
-                <button key={i} onClick={() => setOpen(i)} style={{
-                  textAlign: 'left',
-                  width: '100%',
-                  padding: '24px 28px',
+      {/* Bottom Content : flex gap-51 items-center */}
+      <div style={{
+        display: 'flex',
+        gap: 51,
+        alignItems: 'center',
+      }}>
+        {/* Accordion Wrapper : flex-col gap-16 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}>
+          {STEPS.map((s, i) => {
+            const isOpen = open === i
+            return (
+              <button
+                key={i}
+                onClick={() => setOpen(i)}
+                style={{
+                  width: 536,
+                  height: isOpen ? 226 : 131,
+                  padding: isOpen ? 39 : '36px 39px',
                   background: PX.neutral100,
                   borderRadius: PX.radius.large,
                   boxShadow: PX.shadow.small,
                   border: 0,
                   cursor: 'pointer',
-                  transition: `box-shadow ${PX.duration.fast} ${PX.ease}`,
-                  fontFamily: PX.font.sans,
-                  color: PX.neutral700,
+                  textAlign: 'left',
+                  transition: `height ${PX.duration.fast} ${PX.ease}`,
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 83,
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-                    <h3 style={{
-                      margin: 0,
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                  }}>
+                    {/* Title : 24 Display/5/Medium tracking -0.72, w-356 */}
+                    <span style={{
+                      width: 356,
                       fontFamily: PX.font.display,
-                      fontSize: 18,
+                      fontSize: 24,
                       fontWeight: 500,
-                      color: PX.neutral700,
-                      letterSpacing: '-0.54px',
                       lineHeight: 1.25,
-                    }}>
-                      {i + 1}. {s.title}
-                    </h3>
-                    <span style={{ display: 'inline-flex' }}>
-                      <PxIcon name={isOpen ? 'minus' : 'plus'} size={18} color={PX.neutral500} />
-                    </span>
+                      letterSpacing: '-0.72px',
+                      color: PX.neutral700,
+                    }}>{s.title}</span>
+                    {/* Description (only if open) : pt-16, 16/1.5/-0.48 neutral500 */}
+                    {isOpen && (
+                      <span style={{
+                        paddingTop: 16,
+                        width: 356,
+                        fontFamily: PX.font.display,
+                        fontSize: 16,
+                        fontWeight: 400,
+                        lineHeight: 1.5,
+                        letterSpacing: '-0.48px',
+                        color: PX.neutral500,
+                      }}>{s.body}</span>
+                    )}
                   </div>
-                  {isOpen && (
-                    <p style={{
-                      margin: '12px 0 0',
-                      fontFamily: PX.font.sans,
-                      fontSize: 14,
-                      lineHeight: 1.5,
-                      letterSpacing: '-0.42px',
-                      color: PX.neutral500,
-                    }}>{s.body}</p>
-                  )}
-                </button>
-              )
-            })}
-          </div>
+                  {/* Plus/Minus icon 20px */}
+                  <PxIcon name={isOpen ? 'minus' : 'plus'} size={20} color={PX.neutral700} />
+                </div>
+              </button>
+            )
+          })}
+        </div>
 
-          {/* Image grande + popover de propriétés flottant en bas droite */}
+        {/* Right Element 611×522 — image grande + popover */}
+        <div style={{
+          position: 'relative',
+          width: 611,
+          height: 522,
+          flexShrink: 0,
+        }}>
+          {/* Image 514×433 en haut */}
           <div style={{
-            position: 'relative',
-            height: 480,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 514,
+            height: 433,
             borderRadius: PX.radius.large,
-            overflow: 'visible',
+            overflow: 'hidden',
+            backgroundImage: `url("https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=85")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }} />
+
+          {/* Popover (295, 172), 316×349, bg-white rounded-24 */}
+          <div style={{
+            position: 'absolute',
+            left: 295,
+            top: 172,
+            width: 316,
+            height: 349,
+            background: PX.neutral100,
+            borderRadius: PX.radius.large,
+            boxShadow: PX.shadow.large,
+            padding: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
           }}>
+            {/* Search bar pill "Choose your location" : bg-neutral200, rounded-pill */}
             <div style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: PX.radius.large,
-              overflow: 'hidden',
-              backgroundImage: `url("https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=80")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }} />
-            {/* Popover card "Vos suggestions" — fidèle Figma 316×349 */}
-            <div style={{
-              position: 'absolute',
-              right: -40,
-              bottom: -40,
-              width: 316,
-              background: PX.neutral100,
-              borderRadius: PX.radius.large,
-              boxShadow: PX.shadow.large,
-              padding: 20,
+              background: PX.neutral200,
+              borderRadius: PX.radius.pill,
+              paddingLeft: 14,
+              paddingRight: 4,
+              paddingTop: 6,
+              paddingBottom: 6,
               display: 'flex',
-              flexDirection: 'column',
-              gap: 14,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              height: 36,
             }}>
               <span style={{
                 fontFamily: PX.font.display,
-                fontSize: 14,
-                fontWeight: 500,
-                letterSpacing: '-0.42px',
+                fontSize: 10,
+                fontWeight: 400,
+                lineHeight: 1.5,
                 color: PX.neutral500,
-                marginBottom: 4,
-              }}>Vos suggestions</span>
-              {[
-                {
-                  img: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=80',
-                  name: 'Loft contemporain · Carouge',
-                  meta: 'Match 92% · CHF 1\'250\'000',
-                },
-                {
-                  img: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400&q=80',
-                  name: 'Villa lac · Cologny',
-                  meta: 'Match 87% · CHF 2\'450\'000',
-                },
-                {
-                  img: 'https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=400&q=80',
-                  name: 'Apt Servette · Genève',
-                  meta: 'Match 84% · CHF 920\'000',
-                },
-              ].map((item, idx) => (
-                <div key={idx} style={{
-                  display: 'flex',
-                  gap: 12,
-                  alignItems: 'center',
-                  padding: 8,
-                  borderRadius: 8,
-                  background: idx === 0 ? PX.neutral200 : 'transparent',
-                }}>
-                  <div style={{
-                    width: 56, height: 56,
-                    borderRadius: 8,
-                    backgroundImage: `url("${item.img}")`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    flexShrink: 0,
-                  }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontFamily: PX.font.display,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      letterSpacing: '-0.39px',
-                      color: PX.neutral700,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>{item.name}</div>
-                    <div style={{
-                      marginTop: 2,
-                      fontFamily: PX.font.sans,
-                      fontSize: 11,
-                      color: PX.neutral500,
-                    }}>{item.meta}</div>
-                  </div>
-                </div>
-              ))}
+              }}>Choisir un lieu</span>
+              <span style={{
+                width: 22,
+                height: 22,
+                borderRadius: PX.radius.pill,
+                background: PX.neutral700,
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}>
+                <PxIcon name="search" size={11} color={PX.neutral100} />
+              </span>
             </div>
+
+            {/* Card 1 : Luxury Loft */}
+            <PopoverMiniCard
+              image="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=80"
+              title="Loft contemporain · Carouge"
+              address="12 rue de la Filature"
+            />
+
+            {/* Card 2 : Home in Los Angeles heart */}
+            <PopoverMiniCard
+              image="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400&q=80"
+              title="Villa lac · Cologny"
+              address="Route de la Capite"
+            />
           </div>
         </div>
       </div>
