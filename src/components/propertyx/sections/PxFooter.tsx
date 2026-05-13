@@ -101,17 +101,15 @@ function LinkColumn({ col }: { col: typeof COL_MAIN }) {
 export default function PxFooter() {
   return (
     <footer style={{
-      padding: `${PX.sectionDefault}px 24px ${PX.sectionRegular}px`,
-      background: PX.neutral100,
+      // Footer Figma : fullwidth 1440×996, fond noir, pas de radius
+      background: PX.inkBg,
+      color: PX.neutral100,
+      padding: '80px 24px 32px',
+      marginTop: PX.sectionDefault,
     }}>
-      {/* Container fond noir, comme une grosse card */}
       <div style={{
         maxWidth: 1392,
         margin: '0 auto',
-        background: PX.inkBg,
-        borderRadius: PX.radius.large,
-        color: PX.neutral100,
-        padding: '64px 56px 32px',
       }}>
         {/* Top : LEFT (subscribe) + RIGHT (3 cols liens) */}
         <div style={{

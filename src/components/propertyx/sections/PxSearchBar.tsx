@@ -83,8 +83,9 @@ export default function PxSearchBar() {
         height: 100,
         margin: '0 auto',
         display: 'grid',
-        // 4 zones : search (large) | location | property | type
-        gridTemplateColumns: '2fr 1px 1fr 1px 1fr 1px 1fr',
+        // 4 zones : search (50%) | tx | location | type (~16% chacun)
+        // Fidèle Figma : search wider, selects égaux
+        gridTemplateColumns: '3fr 1px 1fr 1px 1fr 1px 1fr',
         alignItems: 'center',
         background: PX.neutral100,
         borderRadius: PX.radius.pill,
