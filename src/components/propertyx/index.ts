@@ -50,6 +50,10 @@ export type { PxIconFontName } from './PxIconFont'
 export { default as PxImage } from './PxImage'
 export type { PxImageRadius, PxImageRatio } from './PxImage'
 
+// Upload Card (atome des Inputs, distinct du PxInput)
+export { default as PxUploadCard } from './PxUploadCard'
+export type { PxUploadCardVariant } from './PxUploadCard'
+
 // Lists
 export { PxList, PxListItem } from './PxList'
 

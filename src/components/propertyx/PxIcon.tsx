@@ -10,15 +10,19 @@ export type PxIconName =
   | 'search'
   | 'location'
   | 'chevron-down' | 'chevron-up' | 'chevron-left' | 'chevron-right'
-  | 'arrow-right' | 'arrow-down'
-  | 'bed' | 'bath' | 'surface'
-  | 'star' | 'heart' | 'share'
+  | 'arrow-up' | 'arrow-right' | 'arrow-down' | 'arrow-left'
+  | 'bed' | 'bath' | 'surface' | 'sofa' | 'kitchen' | 'parking'
+  | 'star' | 'heart' | 'share' | 'flag' | 'bookmark'
   | 'plus' | 'minus' | 'close' | 'check' | 'menu'
-  | 'mail' | 'phone' | 'calendar' | 'lock'
+  | 'mail' | 'phone' | 'calendar' | 'clock' | 'lock'
   | 'home' | 'building' | 'key' | 'gallery'
-  | 'sparkle' | 'shield' | 'eye'
-  | 'filter' | 'sort' | 'settings'
-  | 'user' | 'users' | 'logout'
+  | 'sparkle' | 'shield' | 'eye' | 'globe' | 'compass'
+  | 'filter' | 'sort' | 'settings' | 'download' | 'upload'
+  | 'user' | 'users' | 'logout' | 'info' | 'help' | 'alert'
+  | 'credit-card' | 'bell' | 'bell-ring'
+  | 'edit' | 'trash' | 'copy' | 'external'
+  | 'play' | 'pause' | 'refresh' | 'expand' | 'collapse'
+  | 'thumb-up' | 'thumb-down' | 'message' | 'send'
 
 const PATHS: Record<PxIconName, ReactNode> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
@@ -57,6 +61,38 @@ const PATHS: Record<PxIconName, ReactNode> = {
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></>,
   users: <><circle cx="9" cy="8" r="3.5" /><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5" /><circle cx="17" cy="9" r="2.5" /><path d="M15 20c.4-2 1.5-3 3-3s2.6 1 3 3" /></>,
   logout: <><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4" /><path d="M10 17l-5-5 5-5" /><path d="M15 12H5" /></>,
+  // Extension catalogue (icônes utilitaires marketplace)
+  'arrow-up': <><path d="M12 20V4" /><path d="m5 11 7-7 7 7" /></>,
+  'arrow-left': <><path d="M20 12H4" /><path d="m11 5-7 7 7 7" /></>,
+  sofa: <><path d="M3 12a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v3" /><path d="M3 15v3h18v-3" /><path d="M5 12V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6" /></>,
+  kitchen: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M4 11h16" /><path d="M8 7h.01M12 7h.01" /><path d="M8 15h.01M12 15h.01M16 15h.01" /></>,
+  parking: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 17V7h5a3 3 0 0 1 0 6H9" /></>,
+  flag: <><path d="M5 21V3" /><path d="M5 3h13l-2 5 2 5H5" /></>,
+  bookmark: <path d="M6 3h12v18l-6-4-6 4V3Z" />,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+  globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
+  compass: <><circle cx="12" cy="12" r="9" /><path d="m15 9-2 6-6 2 2-6 6-2Z" /></>,
+  download: <><path d="M12 3v14" /><path d="m5 12 7 7 7-7" /><path d="M4 21h16" /></>,
+  upload: <><path d="M12 21V7" /><path d="m5 12 7-7 7 7" /><path d="M4 3h16" /></>,
+  info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6" /><circle cx="12" cy="7.5" r="0.6" fill="currentColor" /></>,
+  help: <><circle cx="12" cy="12" r="9" /><path d="M9 9a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 2" /><circle cx="12" cy="17" r="0.6" fill="currentColor" /></>,
+  alert: <><path d="m12 2 11 19H1L12 2Z" /><path d="M12 10v5" /><circle cx="12" cy="18" r="0.6" fill="currentColor" /></>,
+  'credit-card': <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><path d="M6 15h4" /></>,
+  bell: <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10 21a2 2 0 0 0 4 0" /></>,
+  'bell-ring': <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10 21a2 2 0 0 0 4 0" /><path d="M3 4 2 5" /><path d="m21 4 1 1" /></>,
+  edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" /></>,
+  trash: <><path d="M3 6h18" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" /><path d="m5 6 1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14" /><path d="M10 11v6M14 11v6" /></>,
+  copy: <><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>,
+  external: <><path d="M14 4h6v6" /><path d="M20 4 10 14" /><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></>,
+  play: <path d="M5 4v16l14-8L5 4Z" />,
+  pause: <><rect x="5" y="4" width="5" height="16" rx="1" /><rect x="14" y="4" width="5" height="16" rx="1" /></>,
+  refresh: <><path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" /><path d="M3 21v-5h5" /></>,
+  expand: <><path d="M21 3h-6M21 3v6M21 3l-7 7" /><path d="M3 21h6M3 21v-6M3 21l7-7" /></>,
+  collapse: <><path d="M15 9h6M15 9V3M15 9l7-7" /><path d="M9 15H3M9 15v6M9 15l-7 7" /></>,
+  'thumb-up': <><path d="M7 22V11" /><path d="M2 13v8a1 1 0 0 0 1 1h4V11H3a1 1 0 0 0-1 1Z" /><path d="M7 11V6a4 4 0 0 1 4-4l3 8h5a2 2 0 0 1 2 2l-2 8a2 2 0 0 1-2 2H7" /></>,
+  'thumb-down': <><path d="M17 2v11" /><path d="M22 11V3a1 1 0 0 0-1-1h-4v11h4a1 1 0 0 0 1-1Z" /><path d="M17 13v5a4 4 0 0 1-4 4l-3-8H5a2 2 0 0 1-2-2l2-8a2 2 0 0 1 2-2h10" /></>,
+  message: <><path d="M21 12a8 8 0 1 1-3.4-6.6L21 4l-1 4.4A8 8 0 0 1 21 12Z" /></>,
+  send: <><path d="m22 2-7 20-4-9-9-4 20-7Z" /><path d="M22 2 11 13" /></>,
 }
 
 interface PxIconProps {
