@@ -488,97 +488,123 @@ export default function PxAboutSection() {
                   zIndex: 2,
                 }} />
 
-                {/* Status bar */}
+                {/* Status bar : heure + indicateurs SVG (signal/wifi/battery) */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '14px 24px 0',
-                  fontFamily: PX.font.display,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: PX.neutral700,
+                  padding: '16px 28px 0',
                   zIndex: 3,
                   position: 'relative',
-                }}>
-                  <span>9:41</span>
-                  <span style={{ display: 'flex', gap: 4, fontSize: 11 }}>
-                    <span>•••</span>
-                    <span>📶</span>
-                    <span>🔋</span>
-                  </span>
-                </div>
-
-                {/* Header app (logo + menu) */}
-                <div style={{
-                  marginTop: 28,
-                  padding: '0 16px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
                 }}>
                   <span style={{
                     fontFamily: PX.font.display,
                     fontSize: 14,
-                    fontWeight: 500,
+                    fontWeight: 600,
                     letterSpacing: '-0.42px',
                     color: PX.neutral700,
-                  }}>
-                    🏠 Property X
+                  }}>9:41</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    {/* Signal bars */}
+                    <svg width="16" height="11" viewBox="0 0 16 11" fill="none" aria-hidden="true">
+                      <rect x="0" y="7" width="2.5" height="4" rx="0.5" fill={PX.neutral700} />
+                      <rect x="4" y="5" width="2.5" height="6" rx="0.5" fill={PX.neutral700} />
+                      <rect x="8" y="3" width="2.5" height="8" rx="0.5" fill={PX.neutral700} />
+                      <rect x="12" y="0" width="2.5" height="11" rx="0.5" fill={PX.neutral700} />
+                    </svg>
+                    {/* WiFi */}
+                    <svg width="14" height="11" viewBox="0 0 14 11" fill="none" aria-hidden="true">
+                      <path d="M7 2C4.5 2 2.3 2.9 0.8 4.3l1 1.1C3 4.2 4.9 3.5 7 3.5s4 0.7 5.2 1.9l1-1.1C11.7 2.9 9.5 2 7 2z" fill={PX.neutral700} />
+                      <path d="M7 5C5.5 5 4.1 5.6 3.1 6.5l1 1.1C4.8 6.9 5.8 6.5 7 6.5s2.2 0.4 2.9 1.1l1-1.1C9.9 5.6 8.5 5 7 5z" fill={PX.neutral700} />
+                      <circle cx="7" cy="9.5" r="1" fill={PX.neutral700} />
+                    </svg>
+                    {/* Battery */}
+                    <svg width="24" height="11" viewBox="0 0 24 11" fill="none" aria-hidden="true">
+                      <rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke={PX.neutral700} fill="none" opacity="0.4"/>
+                      <rect x="2" y="2" width="17" height="7" rx="1.5" fill={PX.neutral700} />
+                      <rect x="21" y="3.5" width="2" height="4" rx="0.8" fill={PX.neutral700} opacity="0.4"/>
+                    </svg>
                   </span>
-                  <span style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: PX.radius.pill,
-                    background: PX.neutral200,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 12,
-                    color: PX.neutral500,
-                  }}>⋯</span>
                 </div>
 
-                {/* Search input "Choose your location" */}
-                <div style={{ padding: '0 16px 12px' }}>
+                {/* Header app : home icon + Property X + menu 3-dots */}
+                <div style={{
+                  marginTop: 26,
+                  padding: '0 18px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontFamily: PX.font.display,
+                    fontSize: 15,
+                    fontWeight: 500,
+                    letterSpacing: '-0.45px',
+                    color: PX.neutral700,
+                  }}>
+                    <PxFigmaIcon name="home-poi" size={16} color={PX.neutral700} />
+                    Property X
+                  </span>
+                  <span style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: PX.radius.pill,
+                    background: PX.neutral200,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                  }}>
+                    <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
+                    <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
+                    <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
+                  </span>
+                </div>
+
+                {/* Search input "Choisissez votre localité" */}
+                <div style={{ padding: '0 18px 16px' }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     background: PX.neutral200,
                     borderRadius: PX.radius.pill,
-                    paddingLeft: 14,
-                    paddingRight: 4,
-                    paddingTop: 4,
-                    paddingBottom: 4,
+                    paddingLeft: 16,
+                    paddingRight: 5,
+                    paddingTop: 5,
+                    paddingBottom: 5,
                   }}>
                     <span style={{
                       fontFamily: PX.font.sans,
-                      fontSize: 11,
+                      fontSize: 12,
+                      fontWeight: 400,
                       color: PX.neutral500,
                     }}>
                       Choisissez votre localité
                     </span>
                     <span style={{
-                      width: 24,
-                      height: 24,
+                      width: 28,
+                      height: 28,
                       borderRadius: PX.radius.pill,
                       background: PX.neutral700,
                       display: 'grid',
                       placeItems: 'center',
                       flexShrink: 0,
                     }}>
-                      <PxFigmaIcon name="search" size={12} color={PX.neutral100} />
+                      <PxFigmaIcon name="search" size={14} color={PX.neutral100} />
                     </span>
                   </div>
                 </div>
 
                 {/* Liste des cards (3 stacked, dernier peek) */}
                 <div style={{
-                  padding: '0 16px',
+                  padding: '0 18px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 14,
+                  gap: 16,
                   overflow: 'hidden',
                 }}>
                   {PHONE_LISTINGS.map(listing => (
