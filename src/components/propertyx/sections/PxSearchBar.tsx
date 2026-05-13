@@ -96,17 +96,14 @@ export default function PxSearchBar() {
 
   return (
     <section style={{
-      // Overlap exact Figma : SearchBar à y=868 dans Hero h-900 → 32px overlap
-      // visible (32 dans image) + 68 sous l'image. Mon hero section ends at 1012,
-      // donc -32 = SearchBar start à 980, 32 px over image (956→1012).
-      // Les coins arrondis du bas de l'image restent visibles autour de la
-      // SearchBar (pill plus étroite que l'image).
+      // SearchBar pill height = 100 (form padding 24+24 + field 52)
+      // marginTop -50 = chevauchement 50/50 entre image et zone vide
       display: 'flex',
       justifyContent: 'center',
       background: PX.neutral100,
       padding: '0 24px',
       position: 'relative',
-      marginTop: -32,
+      marginTop: -50,
       zIndex: 5,
     }}>
       <form onSubmit={handleSubmit} style={{
