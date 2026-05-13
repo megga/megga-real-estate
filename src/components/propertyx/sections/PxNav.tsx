@@ -120,8 +120,8 @@ export default function PxNav(_props: PxNavProps) {
           </nav>
         </div>
 
-        {/* CTA droite : Connexion (au lieu de "Commencer") */}
-        <PxButton to="/login" variant="primary" size="lg">
+        {/* CTA droite : Connexion — size sm (taille bouton d'origine) */}
+        <PxButton to="/login" variant="primary" size="sm">
           Connexion
         </PxButton>
       </div>
