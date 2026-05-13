@@ -1,227 +1,461 @@
-// MEGGA Marketplace — Property X "Explore CTA" section.
-// Source : Figma CTA/V3 node 11754:25966 (y=5624, h=624).
-// Layout : card noire fullwidth maxWidth 1392, iPad mockup overflowing
-// vers la gauche montrant une page listing property (galerie + détails),
-// contenu droit avec pill + h2 + paragraphe + bouton.
+// MEGGA Marketplace — Property X "Explore CTA" section CTA/V3.
+// Source : Figma node 11754:25966 — code Figma exact.
+//
+// Structure fidèle :
+//   <CTA/V3 relative size-full>
+//     <Container dark : absolute right-24, w-1394, top-50% translateY,
+//                       bg-neutral700, px-120 py-160, rounded-24,
+//                       flex items-start justify-end>
+//       <Content (placé à droite via justify-end)>
+//         <Badge "Get in touch" dark : bg-neutral600 + cercle bg-neutral500>
+//         <H2 48 Display/8 w-447>
+//         <Paragraph 16/1.5 neutral400 w-480>
+//         <Button "Start exploring" WHITE bg + dark circle arrow>
+//       </Content>
+//     </Container>
+//     <iPad absolute right-732, w-851 h-613 :
+//       - Bezel iPad Pro 11
+//       - Screen avec photos + property details + form>
+//   </CTA/V3>
 
-import { PX, PxSectionLabel, PxButton, PxBadge, PxIcon } from '..'
+import { PX, PxButton, PxIcon } from '..'
+
+// Badge "Get in touch" — fidèle Figma : bg-neutral600 + cercle bg-neutral500
+function GetInTouchBadge() {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      paddingLeft: 6,
+      paddingRight: 12,
+      paddingTop: 6,
+      paddingBottom: 6,
+      background: PX.neutral600,
+      borderRadius: PX.radius.pill,
+    }}>
+      <span style={{
+        width: 26,
+        height: 26,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral500,
+        display: 'grid',
+        placeItems: 'center',
+        flexShrink: 0,
+      }}>
+        <PxIcon name="message" size={15} color={PX.neutral100} />
+      </span>
+      <span style={{
+        fontFamily: PX.font.display,
+        fontSize: 16,
+        fontWeight: 500,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral100,
+      }}>Contactez-nous</span>
+    </span>
+  )
+}
+
+// iPad screen content — réplique simplifiée mais fidèle de la maquette
+function IPadScreen() {
+  return (
+    <div style={{
+      position: 'absolute',
+      inset: '5.09% 3.56% 5.02% 3.67%',
+      background: PX.neutral200,
+      borderRadius: 18,
+      overflow: 'hidden',
+      border: `0.5px solid ${PX.neutral700}`,
+    }}>
+      {/* Status bar simplifiée tout en haut */}
+      <div style={{
+        position: 'absolute',
+        top: 12,
+        left: 31,
+        right: 31,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        fontSize: 8,
+        color: PX.neutral700,
+        fontFamily: PX.font.display,
+      }}>
+        <span>9:41</span>
+        <span>100%</span>
+      </div>
+
+      {/* Logo Property X en haut à gauche */}
+      <div style={{
+        position: 'absolute',
+        top: 30,
+        left: 10,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        fontFamily: PX.font.display,
+        fontSize: 9,
+        fontWeight: 500,
+        color: PX.neutral700,
+      }}>
+        <PxIcon name="home" size={13} color={PX.neutral700} />
+        MEGGA
+      </div>
+
+      {/* Bookmark icon top-right circle */}
+      <div style={{
+        position: 'absolute',
+        top: 28,
+        right: 15,
+        width: 35,
+        height: 35,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral100,
+        display: 'grid',
+        placeItems: 'center',
+      }}>
+        <PxIcon name="bookmark" size={15} color={PX.neutral700} />
+      </div>
+
+      {/* Search bar pill "Choose your location" centré en haut */}
+      <div style={{
+        position: 'absolute',
+        top: 20,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 238,
+        background: PX.neutral200,
+        border: `1px solid ${PX.neutral300}`,
+        borderRadius: PX.radius.pill,
+        paddingLeft: 10,
+        paddingRight: 4,
+        paddingTop: 4,
+        paddingBottom: 4,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: 31,
+      }}>
+        <span style={{
+          fontFamily: PX.font.display,
+          fontSize: 9.5,
+          color: PX.neutral500,
+        }}>Choisir un lieu</span>
+        <span style={{
+          width: 23,
+          height: 23,
+          borderRadius: PX.radius.pill,
+          background: PX.neutral700,
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+        }}>
+          <PxIcon name="search" size={11} color={PX.neutral100} />
+        </span>
+      </div>
+
+      {/* Zone photos (1 grande + 4 small grid) */}
+      <div style={{
+        position: 'absolute',
+        top: 80,
+        left: 10,
+        right: 10,
+        display: 'grid',
+        gridTemplateColumns: '1.7fr 1fr 1fr',
+        gridTemplateRows: '1fr 1fr',
+        gap: 4,
+        height: 130,
+      }}>
+        <div style={{
+          gridRow: 'span 2',
+          borderRadius: 6,
+          backgroundImage: `url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=900&q=85")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
+        <div style={{
+          borderRadius: 6,
+          backgroundImage: `url("https://images.unsplash.com/photo-1600210492493-0946911123ea?w=600&q=80")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
+        <div style={{
+          borderRadius: 6,
+          backgroundImage: `url("https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=600&q=80")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
+        <div style={{
+          borderRadius: 6,
+          backgroundImage: `url("https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
+        <div style={{
+          borderRadius: 6,
+          backgroundImage: `url("https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
+      </div>
+
+      {/* Property details left + Contact info right */}
+      <div style={{
+        position: 'absolute',
+        top: 220,
+        left: 10,
+        right: 10,
+        display: 'grid',
+        gridTemplateColumns: '1.4fr 1fr',
+        gap: 16,
+      }}>
+        {/* LEFT : address + title + description + stats + button */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            fontFamily: PX.font.display,
+            fontSize: 10,
+            fontWeight: 500,
+            color: PX.neutral700,
+          }}>
+            <PxIcon name="location" size={11} color={PX.neutral700} />
+            2238 Stradella Rd, SF
+          </div>
+          <div style={{
+            fontFamily: PX.font.display,
+            fontSize: 14,
+            fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: '-0.42px',
+            color: PX.neutral700,
+          }}>
+            Luxury Loft in San Francisco
+          </div>
+          <p style={{
+            margin: 0,
+            fontFamily: PX.font.display,
+            fontSize: 9,
+            fontWeight: 400,
+            lineHeight: 1.5,
+            color: PX.neutral500,
+          }}>
+            Sem egestas elit pretium turpis eu quis tristique phasellus pellentesque elementum pharetra iaculis metus pretium viverra.
+          </p>
+
+          {/* Stats row */}
+          <div style={{
+            marginTop: 4,
+            display: 'flex',
+            gap: 12,
+            fontFamily: PX.font.display,
+            fontSize: 9.5,
+            color: PX.neutral400,
+            fontWeight: 500,
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <PxIcon name="surface" size={11} color={PX.neutral400} /> 230 m²
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <PxIcon name="bed" size={11} color={PX.neutral400} /> 3
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <PxIcon name="bath" size={11} color={PX.neutral400} /> 2
+            </span>
+          </div>
+
+          {/* Bouton "Contact agent" inline */}
+          <div style={{
+            marginTop: 6,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            alignSelf: 'flex-start',
+            fontFamily: PX.font.display,
+            fontSize: 9,
+            fontWeight: 500,
+            color: PX.neutral700,
+          }}>
+            Contacter l'agent
+            <span style={{
+              width: 10,
+              height: 10,
+              borderRadius: PX.radius.pill,
+              background: PX.neutral700,
+              display: 'grid',
+              placeItems: 'center',
+            }}>
+              <PxIcon name="arrow-right" size={6} color={PX.neutral100} />
+            </span>
+          </div>
+        </div>
+
+        {/* RIGHT : Price + form */}
+        <div style={{
+          background: PX.neutral100,
+          borderRadius: 8,
+          padding: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+        }}>
+          <div style={{
+            fontFamily: PX.font.display,
+            fontSize: 14,
+            fontWeight: 500,
+            letterSpacing: '-0.42px',
+            color: PX.neutral700,
+          }}>$ 6'815'000 CHF</div>
+          <div style={{
+            fontFamily: PX.font.display,
+            fontSize: 9,
+            fontWeight: 500,
+            color: PX.neutral500,
+          }}>Propriété à vendre</div>
+          <div style={{
+            height: 1,
+            background: PX.neutral300,
+            marginTop: 2,
+            marginBottom: 2,
+          }} />
+          <div style={{
+            fontFamily: PX.font.display,
+            fontSize: 9,
+            fontWeight: 500,
+            color: PX.neutral700,
+          }}>Recevez plus d'infos</div>
+          {/* 3 input fields pill bg-neutral200 */}
+          {['Nom complet', 'Adresse email', 'Téléphone'].map((ph, i) => (
+            <div key={i} style={{
+              background: PX.neutral200,
+              borderRadius: PX.radius.pill,
+              paddingLeft: 12,
+              paddingRight: 4,
+              paddingTop: 6,
+              paddingBottom: 6,
+              fontFamily: PX.font.display,
+              fontSize: 7,
+              color: PX.neutral500,
+              minHeight: 18,
+              display: 'flex',
+              alignItems: 'center',
+            }}>{ph}</div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function PxExploreCTA() {
   return (
     <section style={{
-      padding: `${PX.sectionDefault}px 24px`,
+      paddingTop: 80,
+      paddingBottom: 80,
+      paddingLeft: 24,
+      paddingRight: 24,
       background: PX.neutral100,
     }}>
       <div style={{
+        position: 'relative',
         maxWidth: 1392,
         margin: '0 auto',
-        background: PX.inkBg,
-        borderRadius: PX.radius.large,
-        padding: '64px 80px 64px 0',
-        display: 'grid',
-        gridTemplateColumns: '1.3fr 1fr',
-        gap: 80,
-        alignItems: 'center',
-        overflow: 'visible',
-        position: 'relative',
+        minHeight: 624,  // Figma section height
       }}>
-        {/* iPad mockup — overflow vers la gauche */}
+        {/* Container DARK : bg-neutral700, padding 120 horizontal, 160 vertical,
+            rounded-24, content aligned RIGHT */}
         <div style={{
+          background: PX.neutral700,
+          paddingLeft: 120,
+          paddingRight: 120,
+          paddingTop: 160,
+          paddingBottom: 160,
+          borderRadius: PX.radius.large,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'flex-start',
           position: 'relative',
-          marginLeft: -120,
+          zIndex: 1,
         }}>
-          {/* Cadre iPad */}
+          {/* Content placé à droite */}
           <div style={{
-            width: '100%',
-            aspectRatio: '4 / 3',
-            background: PX.neutral700,
-            borderRadius: 28,
-            padding: 16,
-            boxShadow: PX.shadow.large,
-            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
           }}>
-            {/* Écran iPad : page listing property layout 2 colonnes */}
+            {/* Title Wrapper */}
             <div style={{
-              width: '100%',
-              height: '100%',
-              background: PX.neutral100,
-              borderRadius: 14,
-              overflow: 'hidden',
-              display: 'grid',
-              gridTemplateColumns: '1.5fr 1fr',
-              gap: 16,
-              padding: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
             }}>
-              {/* GAUCHE : galerie photos */}
-              <div style={{
-                display: 'grid',
-                gridTemplateRows: '1.4fr 1fr',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 8,
+              <GetInTouchBadge />
+              {/* Title : pt-16, 48 Display/8/Medium tracking-1.44, w-447 */}
+              <h2 style={{
+                margin: 0,
+                paddingTop: 16,
+                width: 447,
+                fontFamily: PX.font.display,
+                fontSize: 48,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: '-1.44px',
+                color: PX.neutral100,
               }}>
-                {/* Photo principale en haut, span 2 cols */}
-                <div style={{
-                  gridColumn: '1 / 3',
-                  borderRadius: 8,
-                  backgroundImage: `url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80")`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  position: 'relative',
-                }}>
-                  <span style={{ position: 'absolute', top: 10, left: 10 }}>
-                    <PxBadge variant="invert" size="sm">À vendre</PxBadge>
-                  </span>
-                </div>
-                {/* 2 photos en bas */}
-                <div style={{
-                  borderRadius: 8,
-                  backgroundImage: `url("https://images.unsplash.com/photo-1600210492493-0946911123ea?w=900&q=80")`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }} />
-                <div style={{
-                  borderRadius: 8,
-                  backgroundImage: `url("https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=900&q=80")`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }} />
-              </div>
-
-              {/* DROITE : détails property */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-                padding: '4px 4px 4px 0',
-              }}>
-                {/* Address eyebrow */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  fontFamily: PX.font.sans,
-                  fontSize: 10,
-                  color: PX.neutral500,
-                }}>
-                  <PxIcon name="location" size={10} color={PX.neutral500} />
-                  Cologny, Genève
-                </div>
-
-                {/* Title */}
-                <div style={{
-                  fontFamily: PX.font.display,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  letterSpacing: '-0.42px',
-                  color: PX.neutral700,
-                  lineHeight: 1.18,
-                }}>
-                  Modern Loft, San Francisco
-                </div>
-
-                {/* Description */}
-                <div style={{
-                  fontFamily: PX.font.sans,
-                  fontSize: 10,
-                  lineHeight: 1.5,
-                  color: PX.neutral500,
-                }}>
-                  Lumineux loft contemporain offrant une vue exceptionnelle sur la baie.
-                </div>
-
-                {/* Stats row */}
-                <div style={{
-                  display: 'flex',
-                  gap: 8,
-                  flexWrap: 'wrap',
-                  fontFamily: PX.font.sans,
-                  fontSize: 9,
-                  color: PX.neutral500,
-                  marginTop: 4,
-                }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <PxIcon name="surface" size={9} /> 230 m²
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <PxIcon name="bed" size={9} /> 4
-                  </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <PxIcon name="bath" size={9} /> 3
-                  </span>
-                </div>
-
-                {/* Prix */}
-                <div style={{
-                  marginTop: 'auto',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
-                  paddingTop: 8,
-                  borderTop: `1px solid ${PX.neutral300}`,
-                }}>
-                  <span style={{
-                    fontFamily: PX.font.sans,
-                    fontSize: 9,
-                    color: PX.neutral500,
-                  }}>Prix demandé</span>
-                  <span style={{
-                    fontFamily: PX.font.display,
-                    fontSize: 16,
-                    fontWeight: 500,
-                    letterSpacing: '-0.48px',
-                    color: PX.neutral700,
-                  }}>$ 6'815'000 USD</span>
-                </div>
-
-                {/* Bouton "Contact agent" */}
-                <div style={{
-                  marginTop: 4,
-                  background: PX.neutral700,
-                  color: PX.neutral100,
-                  borderRadius: PX.radius.pill,
-                  padding: '8px 12px',
-                  fontFamily: PX.font.display,
-                  fontSize: 10,
-                  fontWeight: 500,
-                  textAlign: 'center',
-                  letterSpacing: '-0.3px',
-                }}>
-                  Contacter l'agent →
-                </div>
-              </div>
+                Explorez votre futur chez-vous dès aujourd'hui
+              </h2>
+            </div>
+            {/* Paragraph : pt-16, 16/1.5 neutral400 (pas neutral100 sur dark!),
+                w-480 */}
+            <p style={{
+              margin: 0,
+              paddingTop: 16,
+              width: 480,
+              fontFamily: PX.font.display,
+              fontSize: 16,
+              fontWeight: 400,
+              lineHeight: 1.5,
+              letterSpacing: '-0.48px',
+              color: PX.neutral400,
+            }}>
+              Parlez à l'un de nos agents certifiés. Un appel suffit pour cadrer
+              votre recherche et identifier les 3 meilleurs biens pour vous.
+            </p>
+            {/* Button row : pt-24 — WHITE bg "Commencer" */}
+            <div style={{
+              paddingTop: 24,
+            }}>
+              <PxButton to="/acheter" variant="invert" size="lg">
+                Commencer
+              </PxButton>
             </div>
           </div>
         </div>
 
-        {/* Contenu droite */}
-        <div>
-          <PxSectionLabel icon="message" invert>Contactez-nous</PxSectionLabel>
-          <h2 style={{
-            margin: '16px 0 16px',
-            fontFamily: PX.font.display,
-            fontSize: 'clamp(28px, 4vw, 48px)',
-            lineHeight: 1.12,
-            letterSpacing: '-1.3px',
-            fontWeight: 500,
-            color: PX.neutral100,
+        {/* iPad mockup : absolute positioned to overflow LEFT
+            Figma : right-732 of container 1394, w-851 h-613, centré vert */}
+        <div style={{
+          position: 'absolute',
+          left: -60,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: 720,
+          height: 520,
+          zIndex: 2,
+        }}>
+          {/* Cadre iPad : background dark (gris graphite), rounded ~32 */}
+          <div style={{
+            width: '100%',
+            height: '100%',
+            background: '#2A2C32',  // gris graphite type iPad Pro
+            borderRadius: 32,
+            padding: 12,
+            boxShadow: PX.shadow.large,
+            position: 'relative',
           }}>
-            Explorez votre futur chez-vous dès aujourd'hui
-          </h2>
-          <p style={{
-            margin: '0 0 28px',
-            fontFamily: PX.font.sans,
-            fontSize: 14,
-            lineHeight: 1.5,
-            letterSpacing: '-0.42px',
-            color: 'rgba(255,255,255,0.72)',
-            maxWidth: 420,
-          }}>
-            Parlez à un de nos agents certifiés. Un appel suffit pour cadrer votre
-            recherche et identifier les 3 meilleurs biens pour vous.
-          </p>
-          <PxButton to="/acheter" variant="invert" size="lg">
-            Commencer
-          </PxButton>
+            <IPadScreen />
+          </div>
         </div>
       </div>
     </section>
