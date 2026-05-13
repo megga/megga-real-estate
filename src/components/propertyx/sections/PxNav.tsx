@@ -62,18 +62,18 @@ export default function PxNav(_props: PxNavProps) {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        {/* Left Content : flex gap-32 items-center (gap augmenté pour lisibilité) */}
+        {/* Left Content : flex gap-24 items-center (fidèle Figma) */}
         <div style={{
           display: 'flex',
-          gap: 32,
+          gap: 24,
           alignItems: 'center',
         }}>
-          {/* Logo Text Light : icon 22 + text — taille md pour mieux le voir */}
-          <PxLogo variant="dark" form="text" size="md" to="/" />
-          {/* Nav List : flex gap-24 items-center (gap +) */}
+          {/* Logo Text Light : icon 22 + text (taille sm = Figma) */}
+          <PxLogo variant="dark" form="text" size="sm" to="/" />
+          {/* Nav List : flex gap-16 items-center (fidèle Figma) */}
           <nav style={{
             display: 'flex',
-            gap: 24,
+            gap: 16,
             alignItems: 'center',
             justifyContent: 'center',
           }}>
@@ -87,11 +87,11 @@ export default function PxNav(_props: PxNavProps) {
                   gap: 6,
                   textDecoration: 'none',
                   fontFamily: PX.font.display,
-                  // Taille augmentée : 16 → 18 pour meilleure lisibilité
-                  fontSize: 18,
+                  // Fidèle Figma : Display/2/Medium = 16/1.25/-0.48
+                  fontSize: 16,
                   fontWeight: 500,
                   lineHeight: 1.25,
-                  letterSpacing: '-0.54px',
+                  letterSpacing: '-0.48px',
                   color: PX.neutral700,
                 }}
               >
@@ -107,15 +107,15 @@ export default function PxNav(_props: PxNavProps) {
                 gap: 6,
                 textDecoration: 'none',
                 fontFamily: PX.font.display,
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: 500,
                 lineHeight: 1.25,
-                letterSpacing: '-0.54px',
+                letterSpacing: '-0.48px',
                 color: PX.neutral700,
               }}
             >
               Plus
-              <PxIcon name="chevron-down" size={18} color={PX.neutral700} />
+              <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
             </Link>
           </nav>
         </div>
