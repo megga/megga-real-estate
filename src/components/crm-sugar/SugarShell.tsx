@@ -1,10 +1,13 @@
 // MEGGA CRM Sugar v2 — Shell components (TopNav + IconRail + Frame + RoundIconBtn + Orb)
 // 1:1 port from the Claude Design bundle (crm-screen-today-sugar.jsx).
 
+import { useState, useRef, useEffect } from 'react'
 import type { CSSProperties, ReactNode, MouseEvent as ReactMouseEvent } from 'react'
 import CRMIcon, { type CrmIconName } from './CRMIcon'
 import type { CrmTheme, SugarPalette } from './tokens'
 import { CRM_AGENT } from './mockData'
+import SugarNotificationsPopover from './notifications/SugarNotificationsPopover'
+import { SUGAR_NOTIFS, type SugarNotif } from './notifications/data'
 
 // ─── Round icon button (44x44, glass) ──────────────────────────────────
 interface SugarRoundIconBtnProps {
@@ -42,8 +45,31 @@ interface SugarTopNavProps {
   sp: SugarPalette
   onNavigate?: (id: SugarScreenId) => void
   onCmd?: () => void
+  dark?: boolean
 }
-export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd }: SugarTopNavProps) {
+export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark = false }: SugarTopNavProps) {
+  const [notifs, setNotifs] = useState<SugarNotif[]>(SUGAR_NOTIFS)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const notifAnchorRef = useRef<HTMLDivElement>(null)
+  const unreadCount = notifs.filter(n => !n.read).length
+
+  useEffect(() => {
+    if (!notifOpen) return
+    function handleClick(e: MouseEvent) {
+      if (notifAnchorRef.current && !notifAnchorRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setNotifOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [notifOpen])
   const tabs: { id: SugarScreenId; label: string }[] = [
     { id: 'today',     label: "Aujourd'hui" },
     { id: 'pipeline',  label: 'Pipeline' },
@@ -102,7 +128,55 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd }: Suga
             <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
           </svg>
         </button>
-        <SugarRoundIconBtn sp={sp} dot><CRMIcon name="bell" size={18} stroke={sp.soft} /></SugarRoundIconBtn>
+        <div ref={notifAnchorRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setNotifOpen(o => !o)}
+            title="Notifications"
+            style={{
+              width: 44, height: 44, borderRadius: 999, border: 0,
+              background: notifOpen ? sp.ink : sp.iconBtnBg,
+              boxShadow: sp.shadow,
+              display: 'grid', placeItems: 'center', cursor: 'pointer',
+              position: 'relative',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              transition: 'background 160ms ease',
+            }}>
+            <CRMIcon name="bell" size={18} stroke={notifOpen ? sp.pageBg : sp.soft} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute', top: 7, right: 7,
+                minWidth: 16, height: 16, borderRadius: 999,
+                background: '#E53935', color: '#fff',
+                fontSize: 9.5, fontWeight: 800,
+                display: 'grid', placeItems: 'center', padding: '0 4px',
+                border: `2px solid ${notifOpen ? sp.ink : sp.iconBtnBg}`,
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 1,
+              }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+            )}
+          </button>
+          {notifOpen && (
+            <SugarNotificationsPopover
+              sp={sp}
+              dark={dark}
+              items={notifs}
+              onItemClick={(n) => {
+                setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
+                setNotifOpen(false)
+                if (onNavigate && n.ctaTo) {
+                  // Map ctaTo to SugarScreenId when possible
+                  const target = n.ctaTo as SugarScreenId
+                  onNavigate(target)
+                }
+              }}
+              onMarkAll={() => setNotifs(prev => prev.map(n => ({ ...n, read: true })))}
+              onSeeAll={() => setNotifOpen(false)}
+              onMute={() => setNotifOpen(false)}
+            />
+          )}
+        </div>
         <div style={{
           width: 44, height: 44, borderRadius: 999, background: t.primary,
           color: '#fff', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 700,
