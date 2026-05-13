@@ -5,6 +5,7 @@ import { AuthProvider } from '@/hooks/useAuth'
 
 // Static imports — shell + most-visited pages (loaded immediately)
 import HomePage from '@/pages/public/HomePage'
+import PropertyXHomePage from '@/pages/public/PropertyXHomePage'
 import LoginPage from '@/pages/public/LoginPage'
 // RegisterPage removed — registration is now handled by the email-first LoginPage
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
@@ -187,7 +188,8 @@ export default function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Public */}
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<PropertyXHomePage />} />
+              <Route path="/home-legacy" element={<HomePage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
               <Route path="/login" element={<LoginPage />} />
