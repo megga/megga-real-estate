@@ -1,7 +1,7 @@
 // MEGGA Marketplace — Property X footer.
-// Refactor avec PxLogo + PxLink + PxInput + PxButton.
+// Refactor avec PxLogo + PxLink + PxInput + PxButton + PxSocialIcon.
 
-import { PX, PxLogo, PxLink, PxInput, PxButton } from '..'
+import { PX, PxLogo, PxLink, PxInput, PxButton, PxSocialIcon } from '..'
 
 const COLS = [
   {
@@ -75,7 +75,7 @@ export default function PxFooter() {
             }}>
               Recevez chaque semaine une sélection curatée de biens et nos analyses du marché suisse romand.
             </p>
-            <form onSubmit={e => e.preventDefault()} style={{ maxWidth: 380 }}>
+            <form onSubmit={e => e.preventDefault()} style={{ maxWidth: 380, marginBottom: 24 }}>
               <PxInput
                 variant="dark"
                 type="email"
@@ -87,6 +87,37 @@ export default function PxFooter() {
                 }
               />
             </form>
+            {/* Social icons — fidèle Figma V3 footer */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {([
+                ['facebook',  'https://facebook.com/megga'],
+                ['twitter',   'https://twitter.com/megga'],
+                ['instagram', 'https://instagram.com/megga'],
+                ['linkedin',  'https://linkedin.com/company/megga'],
+              ] as const).map(([name, href]) => (
+                <a
+                  key={name}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label={name}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 36,
+                    height: 36,
+                    borderRadius: PX.radius.pill,
+                    background: 'rgba(255,255,255,0.08)',
+                    color: PX.neutral100,
+                    textDecoration: 'none',
+                    transition: `background ${PX.duration.fast} ${PX.ease}`,
+                  }}
+                >
+                  <PxSocialIcon name={name} color="mono" size={16} />
+                </a>
+              ))}
+            </div>
           </div>
 
           {COLS.map(col => (

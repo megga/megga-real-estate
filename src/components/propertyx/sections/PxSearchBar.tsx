@@ -66,9 +66,9 @@ export default function PxSearchBar() {
         alignItems: 'center',
         gap: 8,
         background: PX.neutral100,
-        borderRadius: PX.radius.large,
-        boxShadow: PX.shadow.regular,
-        padding: 8,
+        borderRadius: PX.radius.pill,
+        boxShadow: PX.shadow.large,
+        padding: 10,
       }}>
         <div style={{ flex: 2, minWidth: 0 }}>
           <PxInput

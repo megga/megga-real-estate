@@ -89,64 +89,227 @@ export default function PxAboutSection() {
             </div>
           </div>
 
-          {/* Colonne centre : aperçu app */}
+          {/* Colonne centre : iPhone mockup (frame Figma 11754:26160) */}
           <div style={{
-            position: 'relative',
-            height: 480,
-            background: PX.neutral100,
-            borderRadius: 36,
-            boxShadow: PX.shadow.regular,
-            padding: 16,
             display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-            overflow: 'hidden',
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: 'relative',
           }}>
+            {/* Cadre iPhone : titane noir, bord arrondi 48px */}
             <div style={{
-              height: 200,
-              borderRadius: PX.radius.small,
-              backgroundImage: `url("https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=900&q=80")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
+              width: 320,
+              height: 640,
+              background: PX.neutral700,
+              borderRadius: 48,
+              padding: 10,
+              boxShadow: PX.shadow.large,
               position: 'relative',
             }}>
-              <span style={{ position: 'absolute', top: 12, left: 12 }}>
-                <PxBadge variant="invert" size="sm">À louer</PxBadge>
-              </span>
-            </div>
-            <div style={{ padding: '4px 8px' }}>
+              {/* Écran (intérieur) */}
               <div style={{
-                fontFamily: PX.font.sans,
-                fontSize: 14,
-                fontWeight: 500,
-                letterSpacing: '-0.42px',
-                color: PX.neutral700,
+                width: '100%',
+                height: '100%',
+                background: PX.neutral100,
+                borderRadius: 38,
+                overflow: 'hidden',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
               }}>
-                Appartement 4.5 p. · Genève
-              </div>
-              <div style={{
-                fontFamily: PX.font.sans,
-                fontSize: 14,
-                fontWeight: 400,
-                letterSpacing: '-0.42px',
-                color: PX.neutral500,
-                marginTop: 2,
-              }}>
-                Rue du Mont-Blanc · CHF 3'200/mois
+                {/* Dynamic Island */}
+                <div style={{
+                  position: 'absolute',
+                  top: 10,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 110,
+                  height: 30,
+                  background: PX.neutral700,
+                  borderRadius: 20,
+                  zIndex: 2,
+                }} />
+
+                {/* Status bar (heure / icônes) */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '14px 24px 0',
+                  fontFamily: PX.font.display,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: PX.neutral700,
+                  zIndex: 3,
+                  position: 'relative',
+                }}>
+                  <span>9:41</span>
+                  <span style={{ display: 'flex', gap: 4, fontSize: 11 }}>
+                    <span>•••</span>
+                    <span>📶</span>
+                    <span>🔋</span>
+                  </span>
+                </div>
+
+                {/* Header app (logo + search) */}
+                <div style={{
+                  marginTop: 32,
+                  padding: '0 16px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                  <span style={{
+                    fontFamily: PX.font.display,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    letterSpacing: '-0.42px',
+                    color: PX.neutral700,
+                  }}>
+                    🏠 Property X
+                  </span>
+                  <span style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: PX.radius.pill,
+                    background: PX.neutral200,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 12,
+                  }}>⋯</span>
+                </div>
+
+                {/* Card de propriété (grand visuel) */}
+                <div style={{ padding: '0 16px 12px' }}>
+                  <div style={{
+                    borderRadius: PX.radius.small,
+                    overflow: 'hidden',
+                    background: PX.neutral200,
+                  }}>
+                    <div style={{
+                      height: 160,
+                      backgroundImage: `url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=900&q=80")`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      position: 'relative',
+                    }}>
+                      <span style={{ position: 'absolute', top: 8, left: 8 }}>
+                        <PxBadge variant="invert" size="sm">À louer</PxBadge>
+                      </span>
+                    </div>
+                    <div style={{ padding: 10 }}>
+                      <div style={{
+                        fontFamily: PX.font.display,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        letterSpacing: '-0.4px',
+                        color: PX.neutral700,
+                      }}>
+                        Loft contemporain · Carouge
+                      </div>
+                      <div style={{
+                        marginTop: 2,
+                        fontFamily: PX.font.sans,
+                        fontSize: 11,
+                        color: PX.neutral500,
+                      }}>
+                        12 rue de la Filature, 1227 Carouge
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mini card secondaire */}
+                <div style={{ padding: '0 16px' }}>
+                  <div style={{
+                    display: 'flex',
+                    gap: 10,
+                    padding: 8,
+                    background: PX.neutral200,
+                    borderRadius: PX.radius.small,
+                  }}>
+                    <div style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 8,
+                      backgroundImage: `url("https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400&q=80")`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      flexShrink: 0,
+                    }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: PX.font.display,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        letterSpacing: '-0.36px',
+                        color: PX.neutral700,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        Villa, Cologny
+                      </div>
+                      <div style={{
+                        marginTop: 2,
+                        fontFamily: PX.font.sans,
+                        fontSize: 10,
+                        color: PX.neutral500,
+                      }}>
+                        Route de la Capite
+                      </div>
+                      <div style={{
+                        marginTop: 4,
+                        fontFamily: PX.font.display,
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: PX.neutral700,
+                      }}>
+                        CHF 2'450'000
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Mini-card flottante "Luxury Loft" (overlap iPhone à droite, fidèle Figma) */}
             <div style={{
-              height: 200,
+              position: 'absolute',
+              right: -32,
+              bottom: 80,
+              width: 200,
+              background: PX.neutral100,
               borderRadius: PX.radius.small,
-              backgroundImage: `url("https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=900&q=80")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              marginTop: 4,
-              position: 'relative',
+              boxShadow: PX.shadow.large,
+              overflow: 'hidden',
             }}>
-              <span style={{ position: 'absolute', top: 12, left: 12 }}>
-                <PxBadge variant="invert" size="sm">À vendre</PxBadge>
-              </span>
+              <div style={{
+                height: 100,
+                backgroundImage: `url("https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=600&q=80")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }} />
+              <div style={{ padding: 10 }}>
+                <div style={{
+                  fontFamily: PX.font.display,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  letterSpacing: '-0.36px',
+                  color: PX.neutral700,
+                }}>
+                  Luxury Loft · Genève
+                </div>
+                <div style={{
+                  marginTop: 2,
+                  fontFamily: PX.font.sans,
+                  fontSize: 10,
+                  color: PX.neutral500,
+                }}>
+                  3508 Brookside Rd
+                </div>
+              </div>
             </div>
           </div>
 
