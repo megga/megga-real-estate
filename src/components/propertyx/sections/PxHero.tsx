@@ -71,8 +71,9 @@ export default function PxHero() {
           <h1 style={{
             margin: 0,
             fontFamily: PX.font.display,
-            fontSize: 'clamp(40px, 6.5vw, 88px)',
-            lineHeight: 1.02,
+            // Figma Display/10/Medium : 72/1.15/-3/500
+            fontSize: 'clamp(40px, 5.6vw, 72px)',
+            lineHeight: 1.15,
             letterSpacing: '-3px',
             fontWeight: 500,
             color: PX.neutral100,

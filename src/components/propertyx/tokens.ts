@@ -9,6 +9,7 @@ export const PX = {
   neutral300: '#EEEFF1',  // bordures, dividers
   neutral400: '#A4A6B0',  // texte muted, placeholders
   neutral500: '#464851',  // texte body / soft
+  neutral600: '#202127',  // ink subtle (extrait Figma node 11755:27864)
   neutral700: '#14161C',  // texte primary / "ink"
   overlayDark10: '#0013581A',
 
@@ -41,21 +42,38 @@ export const PX = {
   // Tailles Figma définies : 14, 16, 20, 24. Les heros (40/56/80) sont
   // dérivés par les sections et suivent la même règle ls -3.
   type: {
-    // Heros (dérivés Property X)
-    h1:       { size: 80, lh: 1.05, ls: -3, weight: 500 },  // hero
-    h2:       { size: 56, lh: 1.1,  ls: -3, weight: 500 },  // section
-    h3:       { size: 40, lh: 1.18, ls: -3, weight: 500 },  // sous-section
-    // ─── Figma Display/* (line-height 1.25) ────────────────────────────
-    h4:       { size: 24, lh: 1.25, ls: -3, weight: 500 },  // Display/5/Medium
-    h5:       { size: 20, lh: 1.25, ls: -3, weight: 500 },  // Display/4/Medium
-    bodyMd:   { size: 16, lh: 1.25, ls: -3, weight: 500 },  // Display/2/Medium
-    bodyDefault: { size: 16, lh: 1.25, ls: -3, weight: 400 }, // Display/2/Default
-    bodySmMd: { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Medium
+    // ─── Échelle Display 1→10 (Figma "🅰 Typography") ───────────────────
+    // line-height 1.25 sauf Display/10 (1.15) — letter-spacing -3 partout.
+    display1: { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Medium
+    display2: { size: 16, lh: 1.25, ls: -3, weight: 500 },  // Display/2/Medium
+    display3: { size: 18, lh: 1.25, ls: -3, weight: 500 },  // Display/3/Medium (inféré)
+    display4: { size: 20, lh: 1.25, ls: -3, weight: 500 },  // Display/4/Medium
+    display5: { size: 24, lh: 1.25, ls: -3, weight: 500 },  // Display/5/Medium
+    display6: { size: 28, lh: 1.25, ls: -3, weight: 500 },  // Display/6/Medium (inféré)
+    display7: { size: 32, lh: 1.25, ls: -3, weight: 500 },  // Display/7/Medium (inféré)
+    display8: { size: 48, lh: 1.25, ls: -3, weight: 500 },  // Display/8/Medium (confirmé)
+    display9: { size: 56, lh: 1.15, ls: -3, weight: 500 },  // Display/9/Medium (inféré)
+    display10:{ size: 72, lh: 1.15, ls: -3, weight: 500 },  // Display/10/Medium (confirmé)
+
+    // ─── Aliases sémantiques HTML (alignés sur l'échelle Display Figma) ─
+    h1:       { size: 72, lh: 1.15, ls: -3, weight: 500 },  // = Display/10
+    h2:       { size: 48, lh: 1.25, ls: -3, weight: 500 },  // = Display/8
+    h3:       { size: 32, lh: 1.25, ls: -3, weight: 500 },  // = Display/7
+    h4:       { size: 24, lh: 1.25, ls: -3, weight: 500 },  // = Display/5
+    h5:       { size: 20, lh: 1.25, ls: -3, weight: 500 },  // = Display/4
+
+    // ─── Body & utilitaires ────────────────────────────────────────────
+    bodyMd:        { size: 16, lh: 1.25, ls: -3, weight: 500 }, // Display/2/Medium
+    bodyDefault:   { size: 16, lh: 1.25, ls: -3, weight: 400 }, // Display/2/Default
+    bodySmMd:      { size: 14, lh: 1.25, ls: -3, weight: 500 }, // Display/1/Medium
     bodySmDefault: { size: 14, lh: 1.25, ls: -3, weight: 400 }, // Display/1/Default
-    label:    { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Uppercase/Medium
+    label:         { size: 14, lh: 1.25, ls: -3, weight: 500 }, // Display/1/Uppercase/Medium
+
     // ─── Figma Paragraph/* (line-height 1.5) ───────────────────────────
-    body:     { size: 16, lh: 1.5,  ls: -3, weight: 400 },  // Paragraph/Default/Regular
-    bodySm:   { size: 14, lh: 1.5,  ls: -3, weight: 400 },  // Paragraph/Small/Regular
+    paragraphLg:   { size: 18, lh: 1.5,  ls: -3, weight: 500 }, // Paragraph/Large/Medium
+    body:          { size: 16, lh: 1.5,  ls: -3, weight: 400 }, // Paragraph/Default/Regular
+    bodySm:        { size: 14, lh: 1.5,  ls: -3, weight: 400 }, // Paragraph/Small/Regular
+
     // ─── Aliases legacy ───────────────────────────────────────────────
     caption:  { size: 13, lh: 1.3,  ls: 0,  weight: 500 },
     cta:      { size: 14, lh: 1,    ls: 0,  weight: 500 },
@@ -68,8 +86,10 @@ export const PX = {
     xSmall: 6,      // Spacings/X Small
     small: 8,       // Spacings/Small
     regular: 10,    // Spacings/Regular
+    medium: 12,     // Spacings/Medium
     large: 16,      // Spacings/Large
     xLarge: 24,     // Spacings/X Large
+    xxLarge: 32,    // Spacings/XX Large
     xxxLarge: 48,   // Spacings/XXX Large
     // Aliases legacy (utilisés par les sections actuelles)
     section: 160,      // = sectionDefault
@@ -107,6 +127,8 @@ export const PX = {
   sectionDefault: 160,  // entre sections principales — "Spacings/Sections/Default"
   // Padding intérieur d'une section (Sections/PD * dans Figma)
   sectionPadding: {
+    xs: 16,             // Sections/PD Extra Small
+    small: 24,          // Sections/PD Small
     default: 48,        // Sections/PD Default
     medium: 64,         // Sections/PD Medium
   },

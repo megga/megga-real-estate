@@ -113,7 +113,7 @@ export default function PxTestimonials() {
               <h2 style={{
                 margin: '16px 0 16px',
                 fontFamily: PX.font.display,
-                fontSize: 'clamp(28px, 4vw, 44px)',
+                fontSize: 'clamp(28px, 4vw, 48px)',
                 lineHeight: 1.12,
                 letterSpacing: '-1.3px',
                 fontWeight: 500,
