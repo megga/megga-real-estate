@@ -327,7 +327,7 @@ function RightPopover({ variant }: { variant: StepVariant }) {
     right: 0,
   }
   if (variant === 'search') return <div style={{ ...baseStyle, top: 100, width: 280 }}><SearchPopover /></div>
-  if (variant === 'agent') return <div style={{ ...baseStyle, left: 60, right: 'auto', top: 120 }}><AgentPopover /></div>
+  if (variant === 'agent') return <div style={{ ...baseStyle, left: 0, right: 'auto', top: 80 }}><AgentPopover /></div>
   return <div style={{ ...baseStyle, bottom: 30 }}><SuccessPopover /></div>
 }
 
@@ -366,7 +366,7 @@ export default function PxHowItWorks() {
             maxWidth: '100%',
             fontFamily: PX.font.display,
             fontSize: 48,
-            fontWeight: 700,
+            fontWeight: 800,
             lineHeight: 1.25,
             letterSpacing: '-1.44px',
             color: PX.neutral700,
@@ -440,7 +440,7 @@ export default function PxHowItWorks() {
                       width: 356,
                       fontFamily: PX.font.display,
                       fontSize: 24,
-                      fontWeight: 700,
+                      fontWeight: 800,
                       lineHeight: 1.25,
                       letterSpacing: '-0.72px',
                       color: PX.neutral700,
@@ -472,11 +472,12 @@ export default function PxHowItWorks() {
           height: 522,
           flexShrink: 0,
         }}>
-          {/* Image principale 514×433 — change selon step */}
+          {/* Image principale 514×433 — change selon step.
+              Pour 'agent' on décale l'image à droite pour laisser place au popover. */}
           <div style={{
             position: 'absolute',
             top: 0,
-            left: 0,
+            left: activeStep.variant === 'agent' ? 97 : 0,
             width: 514,
             height: 433,
             borderRadius: PX.radius.large,
@@ -484,7 +485,7 @@ export default function PxHowItWorks() {
             backgroundImage: `url("${activeStep.image}")`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            transition: `background-image ${PX.duration.base} ${PX.ease}`,
+            transition: `background-image ${PX.duration.base} ${PX.ease}, left ${PX.duration.base} ${PX.ease}`,
           }} />
 
           {/* Popover dynamique selon variant */}
