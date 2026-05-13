@@ -16,6 +16,7 @@ export const PX = {
   pageBg: '#FFFFFF',
   surfaceBg: '#FAFAFB',
   inkBg: '#14161C',        // sections noires (Featured, CTA, Footer)
+  inkBgSubtle: '#1F2026',  // sections noires légèrement plus claires (cards)
   border: '#EEEFF1',
   borderInverse: 'rgba(255,255,255,0.10)',
   ink: '#14161C',
@@ -48,6 +49,9 @@ export const PX = {
     bodySm:   { size: 14, lh: 1.5,  ls: -3, weight: 400 },  // Paragraph/Small/Regular
     bodySmMd: { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Medium
     label:    { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Uppercase/Medium
+    // Aliases legacy
+    caption:  { size: 13, lh: 1.3,  ls: 0,  weight: 500 },
+    cta:      { size: 14, lh: 1,    ls: 0,  weight: 500 },
   },
 
   // ─── Spacing (extrait Figma) ─────────────────────────────────────────
@@ -59,6 +63,12 @@ export const PX = {
     regular: 10,
     large: 16,
     xxxLarge: 48,
+    // Aliases legacy (utilisés par les sections actuelles)
+    section: 160,      // = sectionDefault
+    sectionInner: 80,  // = sectionRegular
+    pageX: 40,         // padding horizontal page
+    blockGap: 32,
+    itemGap: 16,
   },
 
   gap: {
