@@ -110,8 +110,8 @@ export default function PxHero() {
             <PxButton to="/acheter" variant="primary" size="lg">
               Commencer
             </PxButton>
-            <PxLink to="/publier" variant="light">
-              Publier un bien
+            <PxLink to="/acheter" variant="light" arrow>
+              Parcourir les biens
             </PxLink>
           </div>
         </div>

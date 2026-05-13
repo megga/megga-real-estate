@@ -313,20 +313,30 @@ export default function PxAboutSection() {
             </div>
           </div>
 
-          {/* Colonne droite : stats */}
+          {/* Colonne droite : stats — labels plain text (pas pills),
+              fidèle Figma node 11754:26172 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
             <div>
-              <PxSectionLabel icon="home">Biens disponibles</PxSectionLabel>
+              {/* Label plain "Homes purchased" style — Display/2/Medium */}
               <div style={{
                 fontFamily: PX.font.display,
-                fontSize: 80,
+                fontSize: 16,
+                fontWeight: 500,
+                letterSpacing: '-0.48px',
+                color: PX.neutral700,
+              }}>Biens disponibles</div>
+              <div style={{
+                fontFamily: PX.font.display,
+                fontSize: 72,
                 fontWeight: 500,
                 lineHeight: 1.05,
                 letterSpacing: '-3px',
                 color: PX.neutral700,
                 fontVariantNumeric: 'tabular-nums',
                 marginTop: 12,
-              }}>33k+</div>
+              }}>
+                33<span style={{ color: PX.neutral400 }}>k+</span>
+              </div>
               <p style={{
                 margin: '12px 0 0',
                 fontFamily: PX.font.sans,
@@ -340,10 +350,16 @@ export default function PxAboutSection() {
               </p>
             </div>
             <div>
-              <PxSectionLabel icon="compass">Cantons couverts</PxSectionLabel>
               <div style={{
                 fontFamily: PX.font.display,
-                fontSize: 80,
+                fontSize: 16,
+                fontWeight: 500,
+                letterSpacing: '-0.48px',
+                color: PX.neutral700,
+              }}>Cantons couverts</div>
+              <div style={{
+                fontFamily: PX.font.display,
+                fontSize: 72,
                 fontWeight: 500,
                 lineHeight: 1.05,
                 letterSpacing: '-3px',

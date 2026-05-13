@@ -33,13 +33,6 @@ const TESTIMONIALS = [
     location: 'Lugano, TI',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80',
   },
-  {
-    id: 't5',
-    quote: "J'ai trouvé mon premier appartement en quelques jours. Une expérience fluide et transparente.",
-    name: 'Sandra Hofer',
-    location: 'Zurich, ZH',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&q=80',
-  },
 ]
 
 function TestimonialCard({ t, compact }: { t: typeof TESTIMONIALS[0]; compact: boolean }) {
