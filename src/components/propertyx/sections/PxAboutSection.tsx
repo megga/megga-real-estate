@@ -3,7 +3,7 @@
 // (image + badge overlay + titre + adresse map pin + stats m²/lits/bains/parking
 // + bouton "Contacter l'agent").
 
-import { PX, PxButton, PxFigmaIcon } from '..'
+import { PX, PxButton, PxFigmaIcon, PxLogo } from '..'
 
 // Badge "About us" — LIGHT bg-neutral300 + cercle bg-neutral400 + icône user Figma
 function AboutBadge() {
@@ -530,7 +530,7 @@ export default function PxAboutSection() {
                   </span>
                 </div>
 
-                {/* Header app : home icon + Property X + menu 3-dots */}
+                {/* Header app : logo MEGGA + menu 3-dots */}
                 <div style={{
                   marginTop: 26,
                   padding: '0 18px 12px',
@@ -538,19 +538,7 @@ export default function PxAboutSection() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                 }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontFamily: PX.font.display,
-                    fontSize: 15,
-                    fontWeight: 500,
-                    letterSpacing: '-0.45px',
-                    color: PX.neutral700,
-                  }}>
-                    <PxFigmaIcon name="home-poi" size={16} color={PX.neutral700} />
-                    Property X
-                  </span>
+                  <PxLogo form="text" size="sm" variant="dark" />
                   <span style={{
                     width: 30,
                     height: 30,
