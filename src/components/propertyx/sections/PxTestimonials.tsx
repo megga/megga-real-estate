@@ -35,38 +35,47 @@ const TESTIMONIALS = [
   },
 ]
 
-function TestimonialCard({ t, compact }: { t: typeof TESTIMONIALS[0]; compact: boolean }) {
+function TestimonialCard({ t }: { t: typeof TESTIMONIALS[0]; compact?: boolean }) {
+  // Layout fidèle Figma : Avatar 80×80 LEFT + Content RIGHT (quote + name/location).
+  // Card 540×240, padding 43px top/bottom, 52px left/right.
   return (
     <div style={{
-      padding: compact ? 24 : 32,
       background: PX.neutral100,
       borderRadius: PX.radius.large,
       boxShadow: PX.shadow.small,
+      padding: '43px 52px',
       display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      gap: 20,
-      height: '100%',
+      alignItems: 'flex-start',
+      gap: 24,
+      minHeight: 240,
     }}>
-      <p style={{
-        margin: 0,
-        fontFamily: PX.font.display,
-        fontSize: compact ? 15 : 19,
-        lineHeight: 1.5,
-        color: PX.neutral700,
-        letterSpacing: '-0.57px',
-        fontWeight: 500,
+      <PxAvatar src={t.avatar} alt={t.name} size={80} />
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: 16,
+        minHeight: 148,
       }}>
-        « {t.quote} »
-      </p>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <PxAvatar src={t.avatar} alt={t.name} size={compact ? 40 : 48} />
+        <p style={{
+          margin: 0,
+          fontFamily: PX.font.display,
+          // Display/4/Medium = 20/1.25/500/-3 (taille citation Figma)
+          fontSize: 18,
+          lineHeight: 1.25,
+          letterSpacing: '-0.54px',
+          fontWeight: 500,
+          color: PX.neutral700,
+        }}>
+          “{t.quote}”
+        </p>
         <div>
           <div style={{
-            fontFamily: PX.font.sans,
-            fontSize: 14,
+            fontFamily: PX.font.display,
+            fontSize: 16,
             fontWeight: 500,
-            letterSpacing: '-0.42px',
+            letterSpacing: '-0.48px',
             color: PX.neutral700,
           }}>{t.name}</div>
           <div style={{
@@ -86,17 +95,17 @@ function TestimonialCard({ t, compact }: { t: typeof TESTIMONIALS[0]; compact: b
 export default function PxTestimonials() {
   return (
     <section style={{
-      padding: `${PX.sectionDefault}px 40px`,
+      padding: `${PX.sectionDefault}px 24px`,
       background: PX.neutral100,
     }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {/* Layout fidèle Figma : 2 colonnes alignées
+      <div style={{ maxWidth: 1112, margin: '0 auto' }}>
+        {/* Layout fidèle Figma : 2 colonnes 540 + 32 gap (1112 total)
             LEFT  : header (label+H2+intro) → card 1 → card 2
             RIGHT : card 3 → card 4 → bouton "Commencer" */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: 20,
+          gap: 32,
           alignItems: 'start',
         }}>
           {/* Colonne gauche */}
@@ -127,14 +136,14 @@ export default function PxTestimonials() {
                 et alémanique. Voici quelques retours d'expérience.
               </p>
             </div>
-            <TestimonialCard t={TESTIMONIALS[1]} compact />
-            <TestimonialCard t={TESTIMONIALS[2]} compact />
+            <TestimonialCard t={TESTIMONIALS[1]} />
+            <TestimonialCard t={TESTIMONIALS[2]} />
           </div>
 
           {/* Colonne droite */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <TestimonialCard t={TESTIMONIALS[0]} compact />
-            <TestimonialCard t={TESTIMONIALS[3]} compact />
+            <TestimonialCard t={TESTIMONIALS[0]} />
+            <TestimonialCard t={TESTIMONIALS[3]} />
             {/* Bouton "Commencer" placé dans la colonne droite, fidèle V3 */}
             <div>
               <PxButton to="/acheter" variant="primary" size="lg">

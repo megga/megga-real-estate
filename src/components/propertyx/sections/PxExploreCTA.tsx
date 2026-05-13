@@ -1,6 +1,8 @@
 // MEGGA Marketplace — Property X "Explore CTA" section.
-// Source : Figma CTA/V3 node 11754:25966 (y=5624, h=624) — iPad mockup gauche
-// (overflow), titre + paragraphe + bouton droite. Fond noir.
+// Source : Figma CTA/V3 node 11754:25966 (y=5624, h=624).
+// Layout : card noire fullwidth maxWidth 1392, iPad mockup overflowing
+// vers la gauche montrant une page listing property (galerie + détails),
+// contenu droit avec pill + h2 + paragraphe + bouton.
 
 import { PX, PxSectionLabel, PxButton, PxBadge, PxIcon } from '..'
 
@@ -17,8 +19,8 @@ export default function PxExploreCTA() {
         borderRadius: PX.radius.large,
         padding: '64px 80px 64px 0',
         display: 'grid',
-        gridTemplateColumns: '1.2fr 1fr',
-        gap: 56,
+        gridTemplateColumns: '1.3fr 1fr',
+        gap: 80,
         alignItems: 'center',
         overflow: 'visible',
         position: 'relative',
@@ -26,19 +28,19 @@ export default function PxExploreCTA() {
         {/* iPad mockup — overflow vers la gauche */}
         <div style={{
           position: 'relative',
-          marginLeft: -64,
+          marginLeft: -120,
         }}>
           {/* Cadre iPad */}
           <div style={{
             width: '100%',
             aspectRatio: '4 / 3',
             background: PX.neutral700,
-            borderRadius: 24,
-            padding: 14,
+            borderRadius: 28,
+            padding: 16,
             boxShadow: PX.shadow.large,
             position: 'relative',
           }}>
-            {/* Écran iPad : page listing property */}
+            {/* Écran iPad : page listing property layout 2 colonnes */}
             <div style={{
               width: '100%',
               height: '100%',
@@ -46,82 +48,145 @@ export default function PxExploreCTA() {
               borderRadius: 14,
               overflow: 'hidden',
               display: 'grid',
-              gridTemplateColumns: '1.4fr 1fr',
-              gap: 12,
+              gridTemplateColumns: '1.5fr 1fr',
+              gap: 16,
               padding: 16,
             }}>
-              {/* Photo principale gauche */}
+              {/* GAUCHE : galerie photos */}
               <div style={{
-                gridRow: 'span 2',
-                borderRadius: 10,
-                backgroundImage: `url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80")`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                position: 'relative',
+                display: 'grid',
+                gridTemplateRows: '1.4fr 1fr',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 8,
               }}>
-                <span style={{ position: 'absolute', top: 12, left: 12 }}>
-                  <PxBadge variant="invert" size="sm">À vendre</PxBadge>
-                </span>
-              </div>
-              {/* Photo droite haut */}
-              <div style={{
-                borderRadius: 10,
-                backgroundImage: `url("https://images.unsplash.com/photo-1600210492493-0946911123ea?w=900&q=80")`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }} />
-              {/* Photo droite bas */}
-              <div style={{
-                borderRadius: 10,
-                backgroundImage: `url("https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=900&q=80")`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }} />
-              {/* Info card en bas, full width des deux colonnes */}
-              <div style={{
-                gridColumn: '1 / 3',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                padding: '4px 4px 0',
-              }}>
-                <div>
-                  <div style={{
-                    fontFamily: PX.font.display,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    letterSpacing: '-0.42px',
-                    color: PX.neutral700,
-                  }}>
-                    Modern Loft · San Francisco
-                  </div>
-                  <div style={{
-                    marginTop: 2,
-                    display: 'flex',
-                    gap: 10,
-                    fontFamily: PX.font.sans,
-                    fontSize: 11,
-                    color: PX.neutral500,
-                  }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <PxIcon name="surface" size={11} /> 230 m²
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <PxIcon name="bed" size={11} /> 4
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <PxIcon name="bath" size={11} /> 3
-                    </span>
-                  </div>
+                {/* Photo principale en haut, span 2 cols */}
+                <div style={{
+                  gridColumn: '1 / 3',
+                  borderRadius: 8,
+                  backgroundImage: `url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  position: 'relative',
+                }}>
+                  <span style={{ position: 'absolute', top: 10, left: 10 }}>
+                    <PxBadge variant="invert" size="sm">À vendre</PxBadge>
+                  </span>
                 </div>
+                {/* 2 photos en bas */}
+                <div style={{
+                  borderRadius: 8,
+                  backgroundImage: `url("https://images.unsplash.com/photo-1600210492493-0946911123ea?w=900&q=80")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }} />
+                <div style={{
+                  borderRadius: 8,
+                  backgroundImage: `url("https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=900&q=80")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }} />
+              </div>
+
+              {/* DROITE : détails property */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                padding: '4px 4px 4px 0',
+              }}>
+                {/* Address eyebrow */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontFamily: PX.font.sans,
+                  fontSize: 10,
+                  color: PX.neutral500,
+                }}>
+                  <PxIcon name="location" size={10} color={PX.neutral500} />
+                  Cologny, Genève
+                </div>
+
+                {/* Title */}
                 <div style={{
                   fontFamily: PX.font.display,
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: 500,
-                  letterSpacing: '-0.48px',
+                  letterSpacing: '-0.42px',
                   color: PX.neutral700,
+                  lineHeight: 1.18,
                 }}>
-                  CHF 6'815'000
+                  Modern Loft, San Francisco
+                </div>
+
+                {/* Description */}
+                <div style={{
+                  fontFamily: PX.font.sans,
+                  fontSize: 10,
+                  lineHeight: 1.5,
+                  color: PX.neutral500,
+                }}>
+                  Lumineux loft contemporain offrant une vue exceptionnelle sur la baie.
+                </div>
+
+                {/* Stats row */}
+                <div style={{
+                  display: 'flex',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                  fontFamily: PX.font.sans,
+                  fontSize: 9,
+                  color: PX.neutral500,
+                  marginTop: 4,
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <PxIcon name="surface" size={9} /> 230 m²
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <PxIcon name="bed" size={9} /> 4
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <PxIcon name="bath" size={9} /> 3
+                  </span>
+                </div>
+
+                {/* Prix */}
+                <div style={{
+                  marginTop: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  paddingTop: 8,
+                  borderTop: `1px solid ${PX.neutral300}`,
+                }}>
+                  <span style={{
+                    fontFamily: PX.font.sans,
+                    fontSize: 9,
+                    color: PX.neutral500,
+                  }}>Prix demandé</span>
+                  <span style={{
+                    fontFamily: PX.font.display,
+                    fontSize: 16,
+                    fontWeight: 500,
+                    letterSpacing: '-0.48px',
+                    color: PX.neutral700,
+                  }}>$ 6'815'000 USD</span>
+                </div>
+
+                {/* Bouton "Contact agent" */}
+                <div style={{
+                  marginTop: 4,
+                  background: PX.neutral700,
+                  color: PX.neutral100,
+                  borderRadius: PX.radius.pill,
+                  padding: '8px 12px',
+                  fontFamily: PX.font.display,
+                  fontSize: 10,
+                  fontWeight: 500,
+                  textAlign: 'center',
+                  letterSpacing: '-0.3px',
+                }}>
+                  Contacter l'agent →
                 </div>
               </div>
             </div>

@@ -121,39 +121,55 @@ export default function PxHowItWorks() {
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }} />
-            {/* Popover card "Vos suggestions" — fidèle Figma */}
+            {/* Popover card "Vos suggestions" — fidèle Figma 316×349 */}
             <div style={{
               position: 'absolute',
-              right: -24,
-              bottom: 32,
-              width: 240,
+              right: -40,
+              bottom: -40,
+              width: 316,
               background: PX.neutral100,
-              borderRadius: PX.radius.small,
+              borderRadius: PX.radius.large,
               boxShadow: PX.shadow.large,
-              padding: 12,
+              padding: 20,
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              gap: 14,
             }}>
               <span style={{
                 fontFamily: PX.font.display,
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: 500,
-                letterSpacing: '-0.36px',
+                letterSpacing: '-0.42px',
                 color: PX.neutral500,
-                marginBottom: 2,
+                marginBottom: 4,
               }}>Vos suggestions</span>
               {[
-                { img: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=80', name: 'Loft contemporain · Carouge' },
-                { img: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400&q=80', name: 'Villa lac · Cologny' },
+                {
+                  img: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=80',
+                  name: 'Loft contemporain · Carouge',
+                  meta: 'Match 92% · CHF 1\'250\'000',
+                },
+                {
+                  img: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=400&q=80',
+                  name: 'Villa lac · Cologny',
+                  meta: 'Match 87% · CHF 2\'450\'000',
+                },
+                {
+                  img: 'https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=400&q=80',
+                  name: 'Apt Servette · Genève',
+                  meta: 'Match 84% · CHF 920\'000',
+                },
               ].map((item, idx) => (
                 <div key={idx} style={{
                   display: 'flex',
-                  gap: 10,
+                  gap: 12,
                   alignItems: 'center',
+                  padding: 8,
+                  borderRadius: 8,
+                  background: idx === 0 ? PX.neutral200 : 'transparent',
                 }}>
                   <div style={{
-                    width: 48, height: 48,
+                    width: 56, height: 56,
                     borderRadius: 8,
                     backgroundImage: `url("${item.img}")`,
                     backgroundSize: 'cover',
@@ -163,9 +179,9 @@ export default function PxHowItWorks() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
                       fontFamily: PX.font.display,
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: 500,
-                      letterSpacing: '-0.36px',
+                      letterSpacing: '-0.39px',
                       color: PX.neutral700,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -174,9 +190,9 @@ export default function PxHowItWorks() {
                     <div style={{
                       marginTop: 2,
                       fontFamily: PX.font.sans,
-                      fontSize: 10,
+                      fontSize: 11,
                       color: PX.neutral500,
-                    }}>Match 92%</div>
+                    }}>{item.meta}</div>
                   </div>
                 </div>
               ))}
