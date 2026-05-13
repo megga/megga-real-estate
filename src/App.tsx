@@ -196,7 +196,11 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              <Route path="/acheter" element={<SearchPage />} />
+              {/* /acheter pointe temporairement sur AboutPage (Property X
+                  Properties template) — SearchPage reste accessible via
+                  /acheter-legacy le temps de l'A/B */}
+              <Route path="/acheter" element={<AboutPage />} />
+              <Route path="/acheter-legacy" element={<SearchPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/louer" element={<LouerPage />} />
               <Route path="/vendre" element={<VendrePage />} />
