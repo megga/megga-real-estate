@@ -120,10 +120,9 @@ export default function PxNav(_props: PxNavProps) {
           </nav>
         </div>
 
-        {/* PrimaryButton DARK "Start exploring" — taille lg pour cohérence
-            avec les liens nav agrandis */}
-        <PxButton to="/acheter" variant="primary" size="lg">
-          Commencer
+        {/* CTA droite : Connexion (au lieu de "Commencer") */}
+        <PxButton to="/login" variant="primary" size="lg">
+          Connexion
         </PxButton>
       </div>
     </header>
