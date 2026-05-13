@@ -63,13 +63,14 @@ export default function PxHero() {
       flexDirection: 'column',
       alignItems: 'center',
     }}>
-      {/* Container : h-900, rounded-24, mb-[-56] pour overlap SearchBar */}
+      {/* Container : h-900, rounded-24
+          Note : Figma a mb-[-56] mais comme la SearchBar est dans une
+          section séparée, on gère l'overlap via marginTop -56 dans PxSearchBar */}
       <div style={{
         position: 'relative',
         width: '100%',
         maxWidth: PX.containerDesktop - 48,  // 1392
         height: 900,
-        marginBottom: -56,
         borderRadius: PX.radius.large,
         overflow: 'hidden',
         background: PX.neutral700,
@@ -105,11 +106,11 @@ export default function PxHero() {
           flexDirection: 'column',
           alignItems: 'center',
         }}>
-          {/* H1 : 72px / 1.15 / tracking -2.16 / weight 500 / width 613 / centré
-              Figma w-[613] tracking-[-2.16px] = Display/10/Medium */}
+          {/* H1 : 72px / 1.15 / tracking -2.16 / weight 500 / centré
+              Figma w-[613] (EN court) — pour FR plus long, on étend à 820 */}
           <h1 style={{
             margin: 0,
-            width: 613,
+            maxWidth: 820,
             fontFamily: PX.font.display,
             fontSize: 72,
             lineHeight: 1.15,

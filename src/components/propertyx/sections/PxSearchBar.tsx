@@ -96,13 +96,14 @@ export default function PxSearchBar() {
 
   return (
     <section style={{
-      // La SearchBar overflowe sur le hero — pas de marginTop ici, c'est
-      // le hero qui a mb-[-56] (Figma)
+      // Overlap fidèle Figma : Hero Container a mb-[-56], mais comme les
+      // sections sont séparées en React, on pull la SearchBar UP -56px
       display: 'flex',
       justifyContent: 'center',
       background: PX.neutral100,
       padding: '0 24px',
       position: 'relative',
+      marginTop: -56,
       zIndex: 5,
     }}>
       <form onSubmit={handleSubmit} style={{
