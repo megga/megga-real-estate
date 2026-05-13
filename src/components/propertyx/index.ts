@@ -46,6 +46,10 @@ export type { PxIconName } from './PxIcon'
 export { default as PxIconFont } from './PxIconFont'
 export type { PxIconFontName } from './PxIconFont'
 
+// Social Media Icons (correspond au frame Figma 📱 Icons)
+export { default as PxSocialIcon, PX_SOCIAL_BRAND_COLORS } from './PxSocialIcon'
+export type { PxSocialIconName } from './PxSocialIcon'
+
 // Images
 export { default as PxImage } from './PxImage'
 export type { PxImageRadius, PxImageRatio } from './PxImage'

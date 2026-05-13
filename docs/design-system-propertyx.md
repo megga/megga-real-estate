@@ -232,9 +232,11 @@ margin:  md 24 / xxl 80
 | `form` | `icon` (seul) · `text` (icon + "MEGGA") |
 | `size` | `sm` (22) · `md` (36) · `lg` (80) |
 
-### 2.8 PxIcon (line)
+### 2.8 PxIcon (utilitaire line-style, hors DS Figma)
 
 > [`PxIcon.tsx`](../src/components/propertyx/PxIcon.tsx) — 60 icônes line-style, stroke 1.7
+
+⚠️ **Note importante** : ce composant n'a pas d'équivalent direct dans le Figma Property X. Le DS Figma a juste "Icons" (social media) et "Icon font" (filled). Mais une UI moderne a besoin d'icônes line-style universelles (search, chevron, arrow, etc.) — donc on les ajoute en compagnon utile.
 
 Catalogue : `search`, `location`, `chevron-{down,up,left,right}`, `arrow-{up,right,down,left}`, `bed`, `bath`, `surface`, `sofa`, `kitchen`, `parking`, `star`, `heart`, `share`, `flag`, `bookmark`, `plus`, `minus`, `close`, `check`, `menu`, `mail`, `phone`, `calendar`, `clock`, `lock`, `home`, `building`, `key`, `gallery`, `sparkle`, `shield`, `eye`, `globe`, `compass`, `filter`, `sort`, `settings`, `download`, `upload`, `user`, `users`, `logout`, `info`, `help`, `alert`, `credit-card`, `bell`, `bell-ring`, `edit`, `trash`, `copy`, `external`, `play`, `pause`, `refresh`, `expand`, `collapse`, `thumb-{up,down}`, `message`, `send`.
 
@@ -242,15 +244,42 @@ Catalogue : `search`, `location`, `chevron-{down,up,left,right}`, `arrow-{up,rig
 <PxIcon name="search" size={18} color={PX.neutral500} />
 ```
 
-### 2.9 PxIconFont (filled)
+### 2.9 PxIconFont (filled, atome Figma 📱 Icon font)
 
-> [`PxIconFont.tsx`](../src/components/propertyx/PxIconFont.tsx) — 35 icônes filled (forme pleine)
+> [`PxIconFont.tsx`](../src/components/propertyx/PxIconFont.tsx) — **80 icônes filled** organisées par catégorie
 
-Catalogue : `home`, `building`, `buildings`, `door`, `key`, `bed`, `bath`, `sofa`, `kitchen`, `dimensions`, `bell`, `bookmark`, `heart`, `star`, `flag`, `calendar`, `clock`, `mail`, `phone`, `location`, `eye`, `camera`, `gallery`, `globe`, `compass`, `check-circle`, `close-circle`, `info`, `help`, `alert`, `shield`, `lock`, `user`, `users`, `credit-card`.
+Le Figma a 648 glyphes au total ; on couvre les 80 les plus utiles pour une marketplace immobilière. Organisation :
+
+- **Habitat & propriété** : `home`, `building`, `buildings`, `door`, `door-open`, `key`, `bed`, `bath`, `sofa`, `kitchen`, `dimensions`, `parking`
+- **Notifications & actions** : `bell`, `bell-ring`, `bookmark`, `heart`, `star`, `flag`, `calendar`, `clock`, `hourglass`, `mail`, `phone`, `message`
+- **Lieux & navigation** : `location`, `globe`, `compass`, `map`, `navigation`
+- **Media** : `eye`, `camera`, `gallery`, `film`, `image`, `play`
+- **Status** : `check-circle`, `close-circle`, `info`, `help`, `alert`, `alarm`
+- **Sécurité** : `shield`, `lock`, `unlock`
+- **Personnes** : `user`, `users`, `contacts`, `avatar`
+- **Argent** : `credit-card`, `dollar`, `euro`, `bank`, `briefcase`
+- **Fichiers & documents** : `file`, `files`, `folder`, `folder-open`, `archive`, `clipboard`, `book`, `inbox`, `copy`, `edit`
+- **Données & graphiques** : `chart`, `dashboard`, `database`, `layers`, `grid`, `leaderboard`
+- **Tech / utilitaire** : `laptop`, `devices`, `cloud`, `code`, `calculator`, `lightbulb`, `lightning`, `droplet`, `health`, `headphones`, `car`, `filter`, `fullscreen`
 
 ```tsx
 <PxIconFont name="heart" size={20} color={PX.neutral700} />
 ```
+
+### 2.13 PxSocialIcon (atome Figma 📱 Icons)
+
+> [`PxSocialIcon.tsx`](../src/components/propertyx/PxSocialIcon.tsx) — 20 plateformes (sur 33 dans le Figma)
+
+⚠️ **Correction d'importance** : le frame "📱 Icons" du Figma Property X (que j'avais initialement mal interprété) contient en réalité les **icônes social media** (66 variants = 33 plateformes × colored/mono). Pas des icônes UI générales.
+
+Catalogue : `facebook`, `twitter` (X), `instagram`, `linkedin`, `youtube`, `whatsapp`, `tiktok`, `pinterest`, `telegram`, `discord`, `snapchat`, `reddit`, `github`, `google`, `apple`, `spotify`, `messenger`, `wechat`, `tumblr`, `medium`.
+
+```tsx
+<PxSocialIcon name="facebook" size={24} color="brand" />   // bleu Facebook
+<PxSocialIcon name="instagram" size={20} color="mono" />   // monochrome currentColor
+```
+
+`PX_SOCIAL_BRAND_COLORS` exporté pour usage dans CTAs colorés.
 
 ### 2.10 PxImage
 
