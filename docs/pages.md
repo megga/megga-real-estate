@@ -6,7 +6,7 @@
 3. **ListingPage** — Fiche bien détaillée (photos, infos, carte, contact agent, estimation)
 4. **LoginPage / RegisterPage** — Auth Supabase (email + Google OAuth)
 
-### Agent Dashboard (15)
+### Agent Dashboard (14)
 5. **ActionBoardPage** — ⭐ PAGE D'ACCUEIL AGENT — "Quoi faire aujourd'hui" (relances, matchs, urgences, suggestions IA)
 6. **DashboardPage** — KPIs, analytics, pipeline mini, dernières activités
 7. **PipelinePage** — Kanban drag & drop des transactions (12 colonnes enrichies)
@@ -17,11 +17,12 @@
 12. **ListingFormPage** — Créer/éditer un listing (wizard multi-étapes) + génération annonce IA multi-versions
 13. **KycListPage** — Liste dossiers KYC, statuts, progression
 14. **KycDetailPage** — Dossier KYC complet, checklist, documents, validation
-15. **MessagesPage** — Inbox unifié (email + WhatsApp + interne) + threads
-16. **DocumentsPage** — Templates + génération mandat/bon de visite/fiche bien + signature
-17. **CalendarPage** — Agenda visites, RDV (synchro Google Calendar Phase 2)
-18. **AutomationPage** — Configuration des règles de relance automatique
-19. **SettingsPage** — Profil, agence, équipe, notifications
+15. **DocumentsPage** — Templates + génération mandat/bon de visite/fiche bien + signature
+16. **CalendarPage** — Agenda visites, RDV (synchro Google Calendar Phase 2)
+17. **AutomationPage** — Configuration des règles de relance automatique
+18. **SettingsPage** — Profil, agence, équipe, notifications
+
+> Note : MessagesPage (messagerie interne agent) retirée du MVP — non utilisée. La communication agent ↔ vendeur passe par le portail vendeur (`MesMessagesPage`).
 
 ### Onboarding Client (4)
 20. **OnboardingBuyerPP** — Formulaire acquéreur personne physique

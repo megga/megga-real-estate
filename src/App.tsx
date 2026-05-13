@@ -63,7 +63,6 @@ const ReseauSugarV2Page = lazy(() => import('@/pages/agent/ReseauSugarV2Page'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
 const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
-const ChatPage = lazy(() => import('@/pages/agent/ChatPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const AutomationPage = lazy(() => import('@/pages/agent/AutomationPage'))
 const TemplatesPage = lazy(() => import('@/pages/agent/TemplatesPage'))
@@ -324,7 +323,6 @@ export default function App() {
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="kyc-legacy" element={<KycListPage />} />
                 <Route path="kyc-legacy/:id" element={<KycDetailPage />} />
-                <Route path="messages" element={<ChatPage />} />
                 <Route path="calendar-legacy" element={<CalendarPage />} />
                 <Route path="automation" element={<AutomationPage />} />
                 <Route path="documents-legacy" element={<TemplatesPage />} />

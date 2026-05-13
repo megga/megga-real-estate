@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
-  Home, GitBranch, Users, MessageSquare, MoreHorizontal,
+  Home, GitBranch, Users, Shuffle, MoreHorizontal,
   LayoutDashboard, Building2, ShieldCheck, Calendar, FileText, Zap, Settings, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -17,7 +17,7 @@ const TABS: TabItem[] = [
   { icon: Home, label: 'Accueil', path: '/dashboard' },
   { icon: GitBranch, label: 'Pipeline', path: '/dashboard/pipeline' },
   { icon: Users, label: 'Contacts', path: '/dashboard/contacts' },
-  { icon: MessageSquare, label: 'Chat', path: '/dashboard/messages' },
+  { icon: Shuffle, label: 'Matching', path: '/dashboard/matching' },
 ]
 
 const MORE_ITEMS: TabItem[] = [

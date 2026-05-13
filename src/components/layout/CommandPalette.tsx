@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Search, Sparkles, LayoutDashboard, Users, GitBranch, Shuffle,
-  Building2, Plus, MessageSquare, Calendar, ShieldCheck, FileText,
+  Building2, Plus, Calendar, ShieldCheck, FileText,
   Zap, Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,7 +25,6 @@ const pageItems: CommandItem[] = [
   { id: 'p-pipeline', label: 'Pipeline', category: 'pages', icon: GitBranch, href: '/dashboard/pipeline' },
   { id: 'p-matching', label: 'Matching', category: 'pages', icon: Shuffle, href: '/dashboard/matching' },
   { id: 'p-listings', label: 'Mes biens', category: 'pages', icon: Building2, href: '/dashboard/listings' },
-  { id: 'p-messages', label: 'Messages', category: 'pages', icon: MessageSquare, href: '/dashboard/messages' },
   { id: 'p-calendar', label: 'Calendrier', category: 'pages', icon: Calendar, href: '/dashboard/calendar' },
   { id: 'p-kyc', label: 'KYC', category: 'pages', icon: ShieldCheck, href: '/dashboard/kyc' },
   { id: 'p-documents', label: 'Documents', category: 'pages', icon: FileText, href: '/dashboard/documents' },

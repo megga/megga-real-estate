@@ -147,7 +147,6 @@ export default function PipelineSugarV2Page() {
       case 'ai':
       case 'julien':    navigate('/dashboard/julien'); break
       case 'auto':      navigate('/dashboard/automation'); break
-      case 'chat':      navigate('/dashboard/messages'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings':  navigate('/dashboard/settings'); break
       default: break

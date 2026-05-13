@@ -137,7 +137,7 @@ export default function HelpSearchBar() {
               <p className="text-sm text-gray-500 mb-3">Aucun résultat pour "{query}"</p>
               <div className="flex items-center justify-center gap-3">
                 <a
-                  href="/dashboard/messages"
+                  href="/dashboard/julien"
                   className="text-xs text-accent hover:underline"
                 >
                   Demander à MEGGA AI

@@ -82,7 +82,7 @@ npm run lint         # ESLint
 - Modals : TOUJOURS `createPortal(document.body)` avec `z-[100]`
 - Steppers : monochrome (numéros + underline), pas de dots colorés
 - Scrollbars : `.scrollbar-hide` sur modals et pipeline
-- Notifications sidebar : dot rouge UNIQUEMENT sur Messages
+- Notifications sidebar : pas de dot rouge par défaut (système Messages retiré du CRM agent)
 
 **Thème CSS Variables :**
 ```
@@ -168,8 +168,7 @@ useEffect(() => {
 - Ombres sur bentos
 - Modals inline → toujours `createPortal`
 - UPPERCASE dans les titres → capitalize
-- WhatsApp comme canal → Messagerie interne
-- Dots rouges sidebar sauf Messages
+- Dots rouges sidebar
 - Next.js / Vercel → React+Vite / Cloudflare Pages
 - `console.log` en production
 - Mentionner "Lovable", "Claude", "ChatGPT" dans l'interface

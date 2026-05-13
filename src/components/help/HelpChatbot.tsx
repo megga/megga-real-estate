@@ -98,13 +98,6 @@ const PAGE_CONTEXT: Record<string, { label: string; sections: typeof HELP_SECTIO
       { title: 'Créer en 3 minutes', slug: 'premier-bien-3min', category: 'agent' },
     ],
   },
-  '/dashboard/messages': {
-    label: 'Messagerie',
-    sections: [
-      { title: 'La messagerie', slug: 'messagerie', category: 'agent' },
-      { title: 'Utiliser MEGGA AI', slug: 'megga-ai-quotidien', category: 'agent' },
-    ],
-  },
   '/dashboard/calendar': {
     label: 'Calendrier',
     sections: [

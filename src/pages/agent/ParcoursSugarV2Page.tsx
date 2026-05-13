@@ -100,7 +100,6 @@ export default function ParcoursSugarV2Page() {
       case 'auto':
         navigate('/dashboard/automation'); break
       case 'chat':
-        navigate('/dashboard/messages'); break
       case 'dashboard':
         navigate('/dashboard/analytics'); break
       case 'settings':

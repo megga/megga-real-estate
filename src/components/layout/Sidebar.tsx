@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
-  MessageSquare, Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
+  Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
   Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy, ChevronDown, Megaphone, Radio,
   CreditCard, Shield, Star,
 } from 'lucide-react'
@@ -12,7 +12,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { useAvatar } from '@/hooks/useAvatar'
 import { usePreferences } from '@/hooks/usePreferences'
-import { useMessaging } from '@/hooks/useMessaging'
 import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
 import { useOpenTicketCount } from '@/hooks/useOpenTicketCount'
@@ -39,7 +38,6 @@ const NAV_SECTIONS: NavSection[] = [
     { labelKey: 'nav.createListing', href: '/dashboard/listings/new', icon: Plus, isCreateAction: true },
   ]},
   { labelKey: 'sections.communication', items: [
-    { labelKey: 'nav.chat', href: '/dashboard/messages', icon: MessageSquare },
     { labelKey: 'nav.calendar', href: '/dashboard/calendar', icon: Calendar },
     { labelKey: 'nav.support', href: '/dashboard/support', icon: HelpCircle },
   ]},
@@ -102,13 +100,11 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const { t } = useTranslation('common')
   const { avatarUrl } = useAvatar()
   const { preferences } = usePreferences()
-  const { threads } = useMessaging(null)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const isAdminRoute = location.pathname.startsWith('/dashboard/admin')
   const [adminMode, setAdminMode] = useState(isAdminRoute)
   const [adminSearchOpen, setAdminSearchOpen] = useState(false)
   const isMinimalSidebar = preferences.sidebarStyle === 'minimal'
-  const unreadCount = (threads || []).reduce((sum, t) => sum + (t.unread_count || 0), 0)
   const openTicketCount = useOpenTicketCount()
 
   function isActive(href: string) {
@@ -361,15 +357,11 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                         >
                           <div className="relative flex-shrink-0">
                             <item.icon className="w-[18px] h-[18px] stroke-[1.8]" />
-                            {item.href === '/dashboard/messages' && unreadCount > 0 && (
-                              <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
-                            )}
                           </div>
                           <span className={fadeLabel(isCol)}>{label}</span>
                         </Link>
                         <CollapsedTooltip show={isCol && hoveredItem === item.href}>
                           {label}
-                          {item.href === '/dashboard/messages' && unreadCount > 0 && <span className="ml-1.5 text-red-500">({unreadCount})</span>}
                         </CollapsedTooltip>
                       </div>
                     )
