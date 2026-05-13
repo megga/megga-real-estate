@@ -1,68 +1,125 @@
-// MEGGA Marketplace — Property X design tokens.
-// Adaptation du template BRIX Templates "Property X" pour MEGGA.
-//
-// Direction artistique : noir/blanc/crème, sans-serif moderne,
-// photos qui dominent, layout asymétrique, beaucoup d'air vertical.
+// MEGGA Marketplace — Property X design tokens (port fidèle).
+// Source : variables Figma extraites du fichier Property X (BRIX Templates).
+// Direction artistique : 100% neutres (noir/blanc/gris), font Objectivity.
 
 export const PX = {
-  // ─── Surfaces ────────────────────────────────────────────────────────
-  pageBg: '#F7F5F0',           // crème chaud (fond principal pages light)
-  surfaceBg: '#FFFFFF',         // cards/sections "elevated"
-  inkBg: '#0A0A0A',             // sections noires (featured, CTA, footer)
-  inkBgSubtle: '#141414',       // ink + 5% lightness pour overlays
+  // ─── Neutrals (la seule palette du DS, pas de couleur d'accent) ──────
+  neutral100: '#FFFFFF',  // page bg principal
+  neutral200: '#FAFAFB',  // surface subtle / hover
+  neutral300: '#EEEFF1',  // bordures, dividers
+  neutral400: '#A4A6B0',  // texte muted, placeholders
+  neutral500: '#464851',  // texte body / soft
+  neutral700: '#14161C',  // texte primary / "ink"
+  overlayDark10: '#0013581A',
 
-  // ─── Encres (texte) ──────────────────────────────────────────────────
-  ink: '#0A0A0A',               // texte principal
-  inkSoft: '#3A3A3A',           // texte body
-  inkMuted: '#737373',          // sous-titres, captions
-  inkInverse: '#FFFFFF',        // texte sur fond noir
+  // ─── Aliases sémantiques (pour rester lisible dans le code) ──────────
+  pageBg: '#FFFFFF',
+  surfaceBg: '#FAFAFB',
+  inkBg: '#14161C',        // sections noires (Featured, CTA, Footer)
+  border: '#EEEFF1',
+  borderInverse: 'rgba(255,255,255,0.10)',
+  ink: '#14161C',
+  inkSoft: '#464851',
+  inkMuted: '#A4A6B0',
+  inkInverse: '#FFFFFF',
   inkInverseSoft: 'rgba(255,255,255,0.72)',
   inkInverseMuted: 'rgba(255,255,255,0.48)',
 
-  // ─── Bordures ────────────────────────────────────────────────────────
-  border: 'rgba(10,10,10,0.08)',
-  borderInverse: 'rgba(255,255,255,0.10)',
-
-  // ─── Radii ───────────────────────────────────────────────────────────
-  radiusPill: 999,
-  radiusCard: 24,
-  radiusImage: 20,
-  radiusInput: 14,
-
-  // ─── Spacing scale (pixels) ──────────────────────────────────────────
-  space: {
-    section: 96,                // entre sections verticales
-    sectionInner: 64,           // padding interne haut/bas d'une section
-    pageX: 40,                  // padding horizontal page
-    blockGap: 32,               // entre blocks dans une section
-    itemGap: 16,
-  },
-
-  // ─── Typographie ─────────────────────────────────────────────────────
+  // ─── Typography ──────────────────────────────────────────────────────
+  // Property X utilise "Objectivity" (police payante Pangram).
+  // En attendant que tu fournisses les fichiers Objectivity, on fallback
+  // sur Plus Jakarta Sans (déjà dans le projet, géométrie proche).
   font: {
-    sans: '"DM Sans", system-ui, sans-serif',
-    display: '"Plus Jakarta Sans", "DM Sans", sans-serif',
+    sans: '"Objectivity", "Plus Jakarta Sans", "DM Sans", sans-serif',
+    display: '"Objectivity", "Plus Jakarta Sans", "DM Sans", sans-serif',
   },
 
-  // Échelle typo (taille / lineHeight / letterSpacing)
+  // Échelle Display (Property X : line-height 1.25 et letter-spacing -3 partout)
+  // Tailles inférées (le DS Figma définit 14/16/20/24 mais les pages
+  // utilisent des tailles dérivées plus grandes pour les heros — on ajoute h1/h2).
   type: {
-    h1: { size: 64, lh: 1.08, ls: -1.4, weight: 600 },     // hero
-    h2: { size: 48, lh: 1.12, ls: -1.0, weight: 600 },     // section
-    h3: { size: 32, lh: 1.18, ls: -0.6, weight: 600 },     // sous-section
-    h4: { size: 22, lh: 1.25, ls: -0.3, weight: 600 },     // card title
-    body: { size: 15, lh: 1.55, ls: 0, weight: 400 },      // body
-    bodySm: { size: 13.5, lh: 1.5, ls: 0, weight: 400 },   // small body
-    label: { size: 12, lh: 1.2, ls: 0.4, weight: 600 },    // pill labels (uppercase)
-    caption: { size: 11.5, lh: 1.3, ls: 0.2, weight: 500 },
-    cta: { size: 14, lh: 1, ls: 0, weight: 600 },          // boutons
+    h1:       { size: 80, lh: 1.05, ls: -3, weight: 500 },  // hero
+    h2:       { size: 56, lh: 1.1,  ls: -3, weight: 500 },  // section
+    h3:       { size: 40, lh: 1.18, ls: -3, weight: 500 },  // sous-section
+    h4:       { size: 24, lh: 1.25, ls: -3, weight: 500 },  // Display/5/Medium
+    h5:       { size: 20, lh: 1.25, ls: -3, weight: 500 },  // Display/4/Medium
+    body:     { size: 16, lh: 1.5,  ls: -3, weight: 400 },  // Display/2/Default
+    bodyMd:   { size: 16, lh: 1.25, ls: -3, weight: 500 },  // Display/2/Medium
+    bodySm:   { size: 14, lh: 1.5,  ls: -3, weight: 400 },  // Paragraph/Small/Regular
+    bodySmMd: { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Medium
+    label:    { size: 14, lh: 1.25, ls: -3, weight: 500 },  // Display/1/Uppercase/Medium
+  },
+
+  // ─── Spacing (extrait Figma) ─────────────────────────────────────────
+  space: {
+    none: 0,
+    xxSmall: 2,
+    xSmall: 6,
+    small: 8,
+    regular: 10,
+    large: 16,
+    xxxLarge: 48,
+  },
+
+  gap: {
+    none: 0,
+    xs: 8,
+    sm: 12,
+    md: 16,    // Regular
+    lg: 24,    // Medium
+    xl: 40,    // Extra Large
+  },
+
+  padding: {
+    none: 0,
+    xxs: 12,
+    sm: 20,
+    md: 24,
+    lg: 32,
+  },
+
+  margin: {
+    md: 24,
+    xxl: 80,
+  },
+
+  // ─── Layout ──────────────────────────────────────────────────────────
+  containerDesktop: 1440,
+  sectionRegular: 80,   // entre sections petites
+  sectionDefault: 160,  // entre sections principales (vrai Property X)
+
+  // ─── Border Radius ───────────────────────────────────────────────────
+  radius: {
+    none: 0,
+    tiny: 8,      // BR Tiny
+    small: 12,    // BR Small
+    large: 24,    // BR Large
+    pill: 200,    // BR Pill (full rounded)
+  },
+
+  // Aliases legacy (pour rétro-compat avec mes anciens composants)
+  radiusPill: 200,
+  radiusCard: 24,
+  radiusImage: 12,
+  radiusInput: 12,
+
+  // ─── Border Width ────────────────────────────────────────────────────
+  borderWidth: {
+    default: 1,
+    medium: 1.5,
   },
 
   // ─── Shadows ─────────────────────────────────────────────────────────
   shadow: {
-    soft: '0 8px 32px rgba(10,10,10,0.06), 0 2px 8px rgba(10,10,10,0.04)',
-    card: '0 12px 40px rgba(10,10,10,0.08), 0 4px 12px rgba(10,10,10,0.05)',
-    pillBlack: '0 4px 14px rgba(10,10,10,0.20)',
-    pillWhite: '0 4px 14px rgba(255,255,255,0.12)',
+    // Property X Neutral/BS Regular: 0 2 4 0 #19213D14
+    regular: '0 2px 4px 0 rgba(25, 33, 61, 0.08)',
+    // Property X Neutral/BS Small: 0 4 4 0 #D3D3D30F + 0 1 1 0 #0E0E0E0A
+    small: '0 4px 4px 0 rgba(211, 211, 211, 0.06), 0 1px 1px 0 rgba(14, 14, 14, 0.04)',
+    // Aliases pour mes composants existants
+    soft: '0 4px 4px 0 rgba(211, 211, 211, 0.06), 0 1px 1px 0 rgba(14, 14, 14, 0.04)',
+    card: '0 2px 4px 0 rgba(25, 33, 61, 0.08)',
+    pillBlack: '0 2px 4px 0 rgba(20, 22, 28, 0.20)',
+    pillWhite: '0 2px 4px 0 rgba(255, 255, 255, 0.10)',
   },
 
   // ─── Transitions ─────────────────────────────────────────────────────
