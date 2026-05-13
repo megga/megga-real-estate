@@ -18,6 +18,7 @@ import { PX } from './tokens'
 export type PxFigmaIconName =
   // Real estate amenities (Figma "Small Icon/Vxx")
   | 'key'         // V34 : For rent badge
+  | 'tag'         // V35 : For sale badge (tag/étiquette)
   | 'location'    // V37 : map pin
   | 'surface'     // V31 : m² / sqft
   | 'bed'         // V23 : chambres

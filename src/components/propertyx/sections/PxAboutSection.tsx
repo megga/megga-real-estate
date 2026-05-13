@@ -132,7 +132,7 @@ function PhoneListingCard({ listing }: { listing: Listing }) {
           letterSpacing: '-0.3px',
           lineHeight: 1.25,
         }}>
-          <PxFigmaIcon name="key" size={10} color={PX.neutral100} />
+          <PxFigmaIcon name={listing.badge === 'À vendre' ? 'tag' : 'key'} size={10} color={PX.neutral100} />
           {listing.badge}
         </span>
       </div>
@@ -277,7 +277,7 @@ function FloatingListingCard({ listing }: { listing: Listing }) {
           letterSpacing: '-0.36px',
           lineHeight: 1.25,
         }}>
-          <PxFigmaIcon name="key" size={12} color={PX.neutral100} />
+          <PxFigmaIcon name={listing.badge === 'À vendre' ? 'tag' : 'key'} size={12} color={PX.neutral100} />
           {listing.badge}
         </span>
         <button type="button" aria-label="Ajouter aux favoris" style={{
