@@ -1,10 +1,7 @@
 // MEGGA Marketplace — Property X "Featured properties" section.
-// Section fond noir, grande card de bien à gauche, preview à droite,
-// CTA en bas centré. Mock pour l'instant — wiring useMarketListings à venir.
+// Refactor avec PxBadge, PxIcon, PxCircleButton, PxButton, PxSectionLabel.
 
-import { PX } from '../tokens'
-import PxButton from '../PxButton'
-import PxSectionLabel from '../PxSectionLabel'
+import { PX, PxBadge, PxIcon, PxCircleButton, PxButton, PxSectionLabel } from '..'
 
 const FEATURED = [
   {
@@ -28,55 +25,46 @@ function FeaturedCard({ p, large }: { p: typeof FEATURED[0]; large: boolean }) {
     <div style={{
       position: 'relative',
       flex: large ? 2 : 1,
-      borderRadius: PX.radiusImage,
+      borderRadius: PX.radius.large,
       overflow: 'hidden',
       backgroundImage: `url("${p.image}")`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      minHeight: large ? 520 : 520,
+      minHeight: 520,
       cursor: 'pointer',
     }}>
       <div style={{
         position: 'absolute', inset: 0,
         background: 'linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.7) 100%)',
       }} />
-      {/* Badge en haut à gauche */}
-      <span style={{
-        position: 'absolute', top: 16, left: 16,
-        padding: '6px 12px',
-        background: PX.surfaceBg,
-        borderRadius: PX.radiusPill,
-        fontSize: 12,
-        fontWeight: 600,
-        color: PX.ink,
-        zIndex: 2,
-      }}>{p.badge}</span>
-      {/* Texte en bas (uniquement sur grande card) */}
+      <span style={{ position: 'absolute', top: 16, left: 16, zIndex: 2 }}>
+        <PxBadge variant="invert" size="sm">{p.badge}</PxBadge>
+      </span>
       {large && (
         <div style={{
           position: 'absolute', bottom: 24, left: 24, right: 24,
-          color: PX.inkInverse,
+          color: PX.neutral100,
         }}>
           <h3 style={{
             margin: 0,
             fontFamily: PX.font.display,
             fontSize: 26,
-            fontWeight: 600,
-            letterSpacing: -0.4,
-            color: PX.inkInverse,
+            fontWeight: 500,
+            letterSpacing: '-0.78px',
+            lineHeight: 1.18,
+            color: PX.neutral100,
           }}>{p.title}</h3>
           <div style={{
             marginTop: 8,
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            fontSize: 13.5,
-            color: PX.inkInverseSoft,
+            fontFamily: PX.font.sans,
+            fontSize: 14,
+            letterSpacing: '-0.42px',
+            color: 'rgba(255,255,255,0.72)',
           }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PX.inkInverseSoft} strokeWidth="1.7">
-              <path d="M12 22s-7-7.5-7-13a7 7 0 0 1 14 0c0 5.5-7 13-7 13Z" />
-              <circle cx="12" cy="9" r="2.5" />
-            </svg>
+            <PxIcon name="location" size={14} color="rgba(255,255,255,0.72)" />
             {p.address}
           </div>
         </div>
@@ -88,7 +76,7 @@ function FeaturedCard({ p, large }: { p: typeof FEATURED[0]; large: boolean }) {
 export default function PxFeaturedProperties() {
   return (
     <section style={{
-      padding: `${PX.space.section}px ${PX.space.pageX}px`,
+      padding: `${PX.sectionDefault}px 40px`,
       background: PX.inkBg,
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -106,34 +94,32 @@ export default function PxFeaturedProperties() {
               fontFamily: PX.font.display,
               fontSize: 'clamp(28px, 4vw, 44px)',
               lineHeight: 1.12,
-              letterSpacing: -0.8,
-              fontWeight: 600,
-              color: PX.inkInverse,
+              letterSpacing: '-1.3px',
+              fontWeight: 500,
+              color: PX.neutral100,
             }}>
               Biens vedettes
             </h2>
             <p style={{
               margin: 0,
-              fontSize: 14.5,
-              color: PX.inkInverseSoft,
+              fontFamily: PX.font.sans,
+              fontSize: 14,
+              lineHeight: 1.5,
+              letterSpacing: '-0.42px',
+              color: 'rgba(255,255,255,0.72)',
               maxWidth: 480,
             }}>
               Une sélection curatée par notre équipe parmi les biens les plus
               remarquables de la semaine.
             </p>
           </div>
-          {/* Boutons nav carousel (placeholders pour l'instant) */}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button aria-label="Précédent" style={navBtn(false)}>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M10 4 6 8l4 4" stroke={PX.inkInverse} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button aria-label="Suivant" style={navBtn(true)}>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M6 4l4 4-4 4" stroke={PX.ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+            <PxCircleButton size="lg" variant="light" ariaLabel="Précédent">
+              <PxIcon name="chevron-left" size={16} color={PX.neutral700} />
+            </PxCircleButton>
+            <PxCircleButton size="lg" variant="light" ariaLabel="Suivant">
+              <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+            </PxCircleButton>
           </div>
         </div>
 
@@ -150,16 +136,4 @@ export default function PxFeaturedProperties() {
       </div>
     </section>
   )
-}
-
-function navBtn(active: boolean): React.CSSProperties {
-  return {
-    width: 40, height: 40,
-    borderRadius: 999,
-    background: active ? PX.inkInverse : 'rgba(255,255,255,0.10)',
-    border: 0,
-    cursor: 'pointer',
-    display: 'grid',
-    placeItems: 'center',
-  }
 }

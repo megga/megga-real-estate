@@ -1,9 +1,7 @@
 // MEGGA Marketplace — Property X testimonials section.
-// 3 cards de témoignages, layout asymétrique (1 grande à gauche, 2 petites
-// à droite empilées).
+// Refactor avec PxAvatar + PxSectionLabel.
 
-import { PX } from '../tokens'
-import PxSectionLabel from '../PxSectionLabel'
+import { PX, PxAvatar, PxSectionLabel } from '..'
 
 const TESTIMONIALS = [
   {
@@ -33,9 +31,9 @@ function TestimonialCard({ t, compact }: { t: typeof TESTIMONIALS[0]; compact: b
   return (
     <div style={{
       padding: compact ? 24 : 32,
-      background: PX.surfaceBg,
-      borderRadius: PX.radiusCard,
-      boxShadow: PX.shadow.soft,
+      background: PX.neutral100,
+      borderRadius: PX.radius.large,
+      boxShadow: PX.shadow.small,
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
@@ -47,22 +45,30 @@ function TestimonialCard({ t, compact }: { t: typeof TESTIMONIALS[0]; compact: b
         fontFamily: PX.font.display,
         fontSize: compact ? 15 : 19,
         lineHeight: 1.5,
-        color: PX.ink,
-        letterSpacing: -0.2,
+        color: PX.neutral700,
+        letterSpacing: '-0.57px',
         fontWeight: 500,
       }}>
         « {t.quote} »
       </p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <img src={t.avatar} alt={t.name} style={{
-          width: compact ? 40 : 48,
-          height: compact ? 40 : 48,
-          borderRadius: 999,
-          objectFit: 'cover',
-        }} />
+        <PxAvatar src={t.avatar} alt={t.name} size={compact ? 40 : 48} />
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: PX.ink }}>{t.name}</div>
-          <div style={{ fontSize: 12.5, color: PX.inkMuted, marginTop: 2 }}>{t.location}</div>
+          <div style={{
+            fontFamily: PX.font.sans,
+            fontSize: 14,
+            fontWeight: 500,
+            letterSpacing: '-0.42px',
+            color: PX.neutral700,
+          }}>{t.name}</div>
+          <div style={{
+            fontFamily: PX.font.sans,
+            fontSize: 14,
+            fontWeight: 400,
+            letterSpacing: '-0.42px',
+            color: PX.neutral500,
+            marginTop: 2,
+          }}>{t.location}</div>
         </div>
       </div>
     </div>
@@ -72,8 +78,8 @@ function TestimonialCard({ t, compact }: { t: typeof TESTIMONIALS[0]; compact: b
 export default function PxTestimonials() {
   return (
     <section style={{
-      padding: `${PX.space.section}px ${PX.space.pageX}px`,
-      background: PX.pageBg,
+      padding: `${PX.sectionDefault}px 40px`,
+      background: PX.neutral100,
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ marginBottom: 48, maxWidth: 540 }}>
@@ -83,9 +89,9 @@ export default function PxTestimonials() {
             fontFamily: PX.font.display,
             fontSize: 'clamp(28px, 4vw, 44px)',
             lineHeight: 1.12,
-            letterSpacing: -0.8,
-            fontWeight: 600,
-            color: PX.ink,
+            letterSpacing: '-1.3px',
+            fontWeight: 500,
+            color: PX.neutral700,
           }}>
             Ce que pensent nos clients
           </h2>

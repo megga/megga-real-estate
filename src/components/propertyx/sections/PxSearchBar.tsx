@@ -1,10 +1,9 @@
 // MEGGA Marketplace — Property X search bar.
-// Barre de recherche horizontale 4 colonnes : Recherche libre · Localisation
-// · Type · Statut transaction. Visuellement "flottante" sous le hero.
+// Refactor utilisant les atomes du DS (PxInput, PxSelect, PxIcon, PxButton).
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PX } from '../tokens'
+import { PX, PxInput, PxSelect, PxIcon, PxButton } from '..'
 
 const TX_TYPES = [
   { value: 'buy', label: 'Acheter' },
@@ -35,15 +34,6 @@ const CANTONS = [
   { value: 'TI', label: 'Tessin' },
 ] as const
 
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PX.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
-    </svg>
-  )
-}
-
 export default function PxSearchBar() {
   const navigate = useNavigate()
   const [q, setQ] = useState('')
@@ -61,29 +51,10 @@ export default function PxSearchBar() {
     navigate(`${route}?${params.toString()}`)
   }
 
-  const cellStyle: React.CSSProperties = {
-    flex: 1,
-    minWidth: 0,
-    padding: '12px 16px',
-    background: 'transparent',
-    border: 0,
-    fontFamily: PX.font.sans,
-    fontSize: 14,
-    color: PX.ink,
-    outline: 'none',
-    cursor: 'pointer',
-  }
-
-  const separatorStyle: React.CSSProperties = {
-    width: 1,
-    alignSelf: 'stretch',
-    background: PX.border,
-  }
-
   return (
     <section style={{
-      padding: `0 ${PX.space.pageX}px`,
-      background: PX.pageBg,
+      padding: `0 40px`,
+      background: PX.neutral100,
       marginTop: -36,
       position: 'relative',
       zIndex: 5,
@@ -93,46 +64,39 @@ export default function PxSearchBar() {
         margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
-        background: PX.surfaceBg,
-        borderRadius: PX.radiusPill,
-        boxShadow: PX.shadow.card,
-        padding: '4px 4px 4px 8px',
+        gap: 8,
+        background: PX.neutral100,
+        borderRadius: PX.radius.large,
+        boxShadow: PX.shadow.regular,
+        padding: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', flex: 2, gap: 8, paddingLeft: 8 }}>
-          <SearchIcon />
-          <input
-            type="text"
-            placeholder="Rechercher un bien, un quartier…"
+        <div style={{ flex: 2, minWidth: 0 }}>
+          <PxInput
+            variant="light"
             value={q}
             onChange={e => setQ(e.target.value)}
-            style={{ ...cellStyle, padding: '12px 0', cursor: 'text' }}
+            placeholder="Rechercher un bien, un quartier…"
+            leftIcon={<PxIcon name="search" size={18} color={PX.neutral500} />}
           />
         </div>
-        <div style={separatorStyle} />
-        <select value={tx} onChange={e => setTx(e.target.value as 'buy' | 'rent')} style={cellStyle}>
-          {TX_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-        <div style={separatorStyle} />
-        <select value={canton} onChange={e => setCanton(e.target.value)} style={cellStyle}>
-          {CANTONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-        </select>
-        <div style={separatorStyle} />
-        <select value={type} onChange={e => setType(e.target.value)} style={cellStyle}>
-          {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-        <button type="submit" style={{
-          background: PX.ink,
-          color: PX.inkInverse,
-          border: 0,
-          borderRadius: PX.radiusPill,
-          padding: '12px 22px',
-          fontSize: 14,
-          fontWeight: 600,
-          fontFamily: PX.font.sans,
-          cursor: 'pointer',
-          marginLeft: 4,
-          boxShadow: PX.shadow.pillBlack,
-        }}>Rechercher</button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <PxSelect value={tx} onChange={e => setTx(e.target.value as 'buy' | 'rent')}>
+            {TX_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </PxSelect>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <PxSelect value={canton} onChange={e => setCanton(e.target.value)}>
+            {CANTONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </PxSelect>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <PxSelect value={type} onChange={e => setType(e.target.value)}>
+            {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </PxSelect>
+        </div>
+        <PxButton type="submit" variant="primary" size="lg">
+          Rechercher
+        </PxButton>
       </form>
     </section>
   )
