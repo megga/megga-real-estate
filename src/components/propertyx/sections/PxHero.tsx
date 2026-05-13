@@ -82,7 +82,8 @@ export default function PxHero() {
           textAlign: 'center',
           color: PX.neutral100,
           width: '100%',
-          maxWidth: 613,  // fidèle Figma
+          // Figma 613 (anglais court). FR plus long → 820 pour casser sur 2 lignes.
+          maxWidth: 820,
           padding: '0 24px',
         }}>
           <h1 style={{
