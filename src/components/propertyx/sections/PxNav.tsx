@@ -62,18 +62,18 @@ export default function PxNav(_props: PxNavProps) {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        {/* Left Content : flex gap-24 items-center */}
+        {/* Left Content : flex gap-32 items-center (gap augmenté pour lisibilité) */}
         <div style={{
           display: 'flex',
-          gap: 24,
+          gap: 32,
           alignItems: 'center',
         }}>
-          {/* Logo Text Light : icon 22 + text */}
-          <PxLogo variant="dark" form="text" size="sm" to="/" />
-          {/* Nav List : flex gap-16 items-center */}
+          {/* Logo Text Light : icon 22 + text — taille md pour mieux le voir */}
+          <PxLogo variant="dark" form="text" size="md" to="/" />
+          {/* Nav List : flex gap-24 items-center (gap +) */}
           <nav style={{
             display: 'flex',
-            gap: 16,
+            gap: 24,
             alignItems: 'center',
             justifyContent: 'center',
           }}>
@@ -87,10 +87,11 @@ export default function PxNav(_props: PxNavProps) {
                   gap: 6,
                   textDecoration: 'none',
                   fontFamily: PX.font.display,
-                  fontSize: 16,
+                  // Taille augmentée : 16 → 18 pour meilleure lisibilité
+                  fontSize: 18,
                   fontWeight: 500,
                   lineHeight: 1.25,
-                  letterSpacing: '-0.48px',
+                  letterSpacing: '-0.54px',
                   color: PX.neutral700,
                 }}
               >
@@ -106,21 +107,22 @@ export default function PxNav(_props: PxNavProps) {
                 gap: 6,
                 textDecoration: 'none',
                 fontFamily: PX.font.display,
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: 500,
                 lineHeight: 1.25,
-                letterSpacing: '-0.48px',
+                letterSpacing: '-0.54px',
                 color: PX.neutral700,
               }}
             >
               Plus
-              <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
+              <PxIcon name="chevron-down" size={18} color={PX.neutral700} />
             </Link>
           </nav>
         </div>
 
-        {/* PrimaryButton DARK "Start exploring" (= "Commencer" pour MEGGA) */}
-        <PxButton to="/acheter" variant="primary" size="sm">
+        {/* PrimaryButton DARK "Start exploring" — taille lg pour cohérence
+            avec les liens nav agrandis */}
+        <PxButton to="/acheter" variant="primary" size="lg">
           Commencer
         </PxButton>
       </div>
