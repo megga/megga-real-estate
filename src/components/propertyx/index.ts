@@ -38,9 +38,13 @@ export type { PxLinkVariant, PxLinkWeight } from './PxLink'
 export { default as PxLogo } from './PxLogo'
 export type { PxLogoVariant, PxLogoForm, PxLogoSize } from './PxLogo'
 
-// Icons
+// Icons (line-style stroke)
 export { default as PxIcon } from './PxIcon'
 export type { PxIconName } from './PxIcon'
+
+// Icon font (filled variant)
+export { default as PxIconFont } from './PxIconFont'
+export type { PxIconFontName } from './PxIconFont'
 
 // Images
 export { default as PxImage } from './PxImage'
