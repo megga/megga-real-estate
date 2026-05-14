@@ -26,6 +26,7 @@ import PxHowItWorks from '@/components/propertyx/sections/PxHowItWorks'
 import PxExploreCTA from '@/components/propertyx/sections/PxExploreCTA'
 import PxTestimonials from '@/components/propertyx/sections/PxTestimonials'
 import PxBlogTeaser from '@/components/propertyx/sections/PxBlogTeaser'
+import PxNewsletter from '@/components/propertyx/sections/PxNewsletter'
 import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 
@@ -46,6 +47,7 @@ export default function PropertyXHomePage() {
       <PxExploreCTA />
       <PxTestimonials />
       <PxBlogTeaser />
+      <PxNewsletter />
       {/* Footer V1 = PostProperty CTA + Footer dark (idem /a-propos) */}
       <div>
         <PxPostPropertyEN />
