@@ -8,6 +8,7 @@ import HomePage from '@/pages/public/HomePage'
 import PropertyXHomePage from '@/pages/public/PropertyXHomePage'
 import PropertyXAboutPage from '@/pages/public/PropertyXAboutPage'
 import PropertyXFAQPage from '@/pages/public/PropertyXFAQPage'
+import PropertyXListingsPage from '@/pages/public/PropertyXListingsPage'
 import PropertyXSinglePropertyPage from '@/pages/public/PropertyXSinglePropertyPage'
 import LoginPage from '@/pages/public/LoginPage'
 // RegisterPage removed — registration is now handled by the email-first LoginPage
@@ -196,6 +197,7 @@ export default function App() {
               <Route path="/home-legacy" element={<HomePage />} />
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
               <Route path="/faq" element={<PropertyXFAQPage />} />
+              <Route path="/properties" element={<PropertyXListingsPage />} />
               <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
