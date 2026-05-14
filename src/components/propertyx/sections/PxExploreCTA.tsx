@@ -18,7 +18,7 @@
 //       - Screen avec photos + property details + form>
 //   </CTA/V3>
 
-import { PX, PxButton, PxIcon, PxFigmaIcon } from '..'
+import { PX, PxButton, PxFigmaIcon } from '..'
 
 // Badge "Get in touch" — fidèle Figma 11754:25966 : bg-neutral600 + cercle bg-neutral500 + STAR icon
 function GetInTouchBadge() {
@@ -54,322 +54,6 @@ function GetInTouchBadge() {
         color: PX.neutral100,
       }}>Get in touch</span>
     </span>
-  )
-}
-
-// iPad screen content — positionné dans les inset Figma exact du bezel iPad
-function IPadScreen() {
-  return (
-    <div style={{
-      position: 'absolute',
-      inset: '5.09% 3.56% 5.02% 3.67%',
-      background: PX.neutral200,
-      borderRadius: 18,
-      overflow: 'hidden',
-      zIndex: 2,
-    }}>
-      {/* Status bar simplifiée tout en haut */}
-      <div style={{
-        position: 'absolute',
-        top: 12,
-        left: 31,
-        right: 31,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontSize: 8,
-        color: PX.neutral700,
-        fontFamily: PX.font.display,
-      }}>
-        <span>9:41</span>
-        <span>100%</span>
-      </div>
-
-      {/* Logo "Property X" en haut à gauche (fidèle maquette) */}
-      <div style={{
-        position: 'absolute',
-        top: 32,
-        left: 14,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        fontFamily: PX.font.display,
-        fontSize: 13,
-        fontWeight: 500,
-        letterSpacing: '-0.39px',
-        color: PX.neutral700,
-      }}>
-        <PxFigmaIcon name="home-poi" size={16} color={PX.neutral700} />
-        Property X
-      </div>
-
-      {/* 3-dot menu top-right circle (Figma exact) */}
-      <div style={{
-        position: 'absolute',
-        top: 28,
-        right: 15,
-        width: 35,
-        height: 35,
-        borderRadius: PX.radius.pill,
-        background: PX.neutral100,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 3,
-      }}>
-        <span style={{ width: 4, height: 4, borderRadius: 99, background: PX.neutral700 }} />
-        <span style={{ width: 4, height: 4, borderRadius: 99, background: PX.neutral700 }} />
-        <span style={{ width: 4, height: 4, borderRadius: 99, background: PX.neutral700 }} />
-      </div>
-
-      {/* Search bar pill "Choose your location" centré en haut */}
-      <div style={{
-        position: 'absolute',
-        top: 20,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 238,
-        background: PX.neutral200,
-        border: `1px solid ${PX.neutral300}`,
-        borderRadius: PX.radius.pill,
-        paddingLeft: 10,
-        paddingRight: 4,
-        paddingTop: 4,
-        paddingBottom: 4,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        height: 31,
-      }}>
-        <span style={{
-          fontFamily: PX.font.display,
-          fontSize: 9.5,
-          color: PX.neutral500,
-        }}>Choose your location</span>
-        <span style={{
-          width: 23,
-          height: 23,
-          borderRadius: PX.radius.pill,
-          background: PX.neutral700,
-          display: 'grid',
-          placeItems: 'center',
-          flexShrink: 0,
-        }}>
-          <PxIcon name="search" size={11} color={PX.neutral100} />
-        </span>
-      </div>
-
-      {/* Zone photos (1 grande + 4 small grid) — proportions Figma exactes */}
-      <div style={{
-        position: 'absolute',
-        top: 75,
-        left: 10,
-        right: 10,
-        display: 'grid',
-        gridTemplateColumns: '1.4fr 1fr 1fr',
-        gridTemplateRows: '1fr 1fr',
-        gap: 5,
-        height: 220,
-      }}>
-        <div style={{
-          gridRow: 'span 2',
-          borderRadius: 6,
-          backgroundImage: `url("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=900&q=85")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }} />
-        <div style={{
-          borderRadius: 6,
-          backgroundImage: `url("https://images.unsplash.com/photo-1600210492493-0946911123ea?w=600&q=80")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }} />
-        <div style={{
-          borderRadius: 6,
-          backgroundImage: `url("https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=600&q=80")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }} />
-        <div style={{
-          borderRadius: 6,
-          backgroundImage: `url("https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }} />
-        <div style={{
-          borderRadius: 6,
-          backgroundImage: `url("https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          position: 'relative',
-        }}>
-          {/* White circle button avec icône grid/menu — fidèle Figma 11805:14015 */}
-          <span style={{
-            position: 'absolute',
-            bottom: 5,
-            right: 5,
-            width: 22,
-            height: 22,
-            borderRadius: PX.radius.pill,
-            background: PX.neutral100,
-            display: 'grid',
-            placeItems: 'center',
-          }}>
-            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-              <rect x="1.5" y="1.5" width="3.5" height="3.5" rx="0.5" fill={PX.neutral700} />
-              <rect x="7" y="1.5" width="3.5" height="3.5" rx="0.5" fill={PX.neutral700} />
-              <rect x="1.5" y="7" width="3.5" height="3.5" rx="0.5" fill={PX.neutral700} />
-              <rect x="7" y="7" width="3.5" height="3.5" rx="0.5" fill={PX.neutral700} />
-            </svg>
-          </span>
-        </div>
-      </div>
-
-      {/* Bottom : Property details left + Contact agent middle + Form panel right
-          Layout 3 zones fidèle Figma 11805:13902 */}
-      <div style={{
-        position: 'absolute',
-        top: 310,
-        left: 10,
-        right: 10,
-        display: 'grid',
-        gridTemplateColumns: '1.4fr auto 1fr',
-        gap: 14,
-        alignItems: 'start',
-      }}>
-        {/* LEFT : address + title + description + stats */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            fontFamily: PX.font.display,
-            fontSize: 11,
-            fontWeight: 500,
-            color: PX.neutral700,
-          }}>
-            <PxFigmaIcon name="location" size={13} color={PX.neutral700} />
-            2238 Stradella Rd, SF
-          </div>
-          <div style={{
-            fontFamily: PX.font.display,
-            fontSize: 17,
-            fontWeight: 500,
-            lineHeight: 1.25,
-            letterSpacing: '-0.51px',
-            color: PX.neutral700,
-          }}>
-            Luxury Loft in San Francisco
-          </div>
-          <p style={{
-            margin: 0,
-            fontFamily: PX.font.display,
-            fontSize: 11,
-            fontWeight: 400,
-            lineHeight: 1.5,
-            letterSpacing: '-0.33px',
-            color: PX.neutral500,
-          }}>
-            Sem egestas elit pretium turpis eu quis tristique phasellus pellentesque elementum pharetra iaculis metus pretium viverra tortor faucibus.
-          </p>
-
-          {/* Stats row */}
-          <div style={{
-            marginTop: 4,
-            display: 'flex',
-            gap: 14,
-            fontFamily: PX.font.display,
-            fontSize: 11,
-            color: PX.neutral400,
-            fontWeight: 500,
-          }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <PxFigmaIcon name="surface" size={14} color={PX.neutral400} /> 2,553 sqtf
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <PxFigmaIcon name="bed" size={14} color={PX.neutral400} /> 3
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <PxFigmaIcon name="bath" size={14} color={PX.neutral400} /> 2
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <PxFigmaIcon name="parking" size={14} color={PX.neutral400} /> 3
-            </span>
-          </div>
-        </div>
-
-        {/* MIDDLE : "Contact agent ›" link (Figma exact 11805:13930) */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          paddingTop: 26,
-          fontFamily: PX.font.display,
-          fontSize: 10,
-          fontWeight: 500,
-          letterSpacing: '-0.3px',
-          color: PX.neutral700,
-          whiteSpace: 'nowrap',
-        }}>
-          Contact agent
-          <PxIcon name="chevron-right" size={9} color={PX.neutral700} />
-        </div>
-
-        {/* RIGHT : Price + form panel (Figma 11805:13904 — white card overlap) */}
-        <div style={{
-          background: PX.neutral100,
-          borderRadius: 10,
-          padding: 14,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-          boxShadow: PX.shadow.small,
-        }}>
-          <div style={{
-            fontFamily: PX.font.display,
-            fontSize: 17,
-            fontWeight: 500,
-            letterSpacing: '-0.51px',
-            color: PX.neutral700,
-          }}>$ 8,495,000 USD</div>
-          <div style={{
-            fontFamily: PX.font.display,
-            fontSize: 11,
-            fontWeight: 500,
-            color: PX.neutral500,
-          }}>Property for sale</div>
-          <div style={{
-            height: 1,
-            background: PX.neutral300,
-            marginTop: 4,
-            marginBottom: 4,
-          }} />
-          <div style={{
-            fontFamily: PX.font.display,
-            fontSize: 11,
-            fontWeight: 500,
-            color: PX.neutral700,
-            marginBottom: 2,
-          }}>Get in touch to receive more info</div>
-          {/* 3 input fields pill bg-neutral200 — Figma exact */}
-          {['Full name', 'Email address', 'Email address'].map((ph, i) => (
-            <div key={i} style={{
-              background: PX.neutral200,
-              borderRadius: PX.radius.pill,
-              paddingLeft: 14,
-              paddingRight: 14,
-              paddingTop: 9,
-              paddingBottom: 9,
-              fontFamily: PX.font.display,
-              fontSize: 10,
-              color: PX.neutral500,
-              display: 'flex',
-              alignItems: 'center',
-            }}>{ph}</div>
-          ))}
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -458,34 +142,28 @@ export default function PxExploreCTA() {
           </div>
         </div>
 
-        {/* iPad mockup : dimensions et position Figma 11754:25966 EXACTES
-            w-851 h-614, left -189 (déborde du bento), centré verticalement */}
+        {/* iPad mockup : rendu Figma node 11748:15191 utilisé tel quel (PNG)
+            → fidélité pixel-perfect garantie sans recréer le contenu en React.
+            Dimensions Figma 1852×1335 → ratio 1.388:1, scalé à w-870 h-627 */}
         <div style={{
           position: 'absolute',
           left: -189,
           top: '50%',
           transform: 'translateY(-50%)',
-          width: 851,
-          height: 614,
+          width: 870,
+          height: 627,
           zIndex: 2,
         }}>
-          {/* Vrai cadre iPad Pro 11 Space Gray (PNG officiel Figma) en background */}
           <img
-            src="/images/devices/ipad-pro-11.png"
-            alt=""
-            aria-hidden="true"
+            src="/images/sections/cta/ipad-property.png"
+            alt="Property X iPad preview"
             style={{
-              position: 'absolute',
-              inset: 0,
               width: '100%',
               height: '100%',
               objectFit: 'contain',
-              pointerEvents: 'none',
-              zIndex: 1,
+              filter: 'drop-shadow(0 8px 24px rgba(25, 33, 61, 0.12))',
             }}
           />
-          {/* Écran iPad par-dessus le bezel — positionné dans les inset Figma */}
-          <IPadScreen />
         </div>
       </div>
     </section>
