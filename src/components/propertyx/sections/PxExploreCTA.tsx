@@ -18,7 +18,7 @@
 //       - Screen avec photos + property details + form>
 //   </CTA/V3>
 
-import { PX, PxButton, PxIcon, PxFigmaIcon, PxLogo } from '..'
+import { PX, PxButton, PxIcon, PxFigmaIcon } from '..'
 
 // Badge "Get in touch" — fidèle Figma 11754:25966 : bg-neutral600 + cercle bg-neutral500 + STAR icon
 function GetInTouchBadge() {
