@@ -33,6 +33,7 @@ const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
 const PublierPage = lazy(() => import('@/pages/public/PublierPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
 const PropertyXPasswordProtectedPage = lazy(() => import('@/pages/public/PropertyXPasswordProtectedPage'))
+const PropertyXCityPropertiesPage = lazy(() => import('@/pages/public/PropertyXCityPropertiesPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
@@ -219,6 +220,7 @@ export default function App() {
               <Route path="/publier" element={<PublierPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/password" element={<PropertyXPasswordProtectedPage />} />
+              <Route path="/properties-by-location" element={<PropertyXCityPropertiesPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/visite/:id/modifier" element={<VisitManagePage />} />
               <Route path="/visite/:id/feedback" element={<VisitFeedbackPage />} />
