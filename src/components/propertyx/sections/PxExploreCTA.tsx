@@ -458,14 +458,15 @@ export default function PxExploreCTA() {
           </div>
         </div>
 
-        {/* iPad mockup : taille réduite + descendu un peu */}
+        {/* iPad mockup : dimensions et position Figma 11754:25966 EXACTES
+            w-851 h-614, left -189 (déborde du bento), centré verticalement */}
         <div style={{
           position: 'absolute',
-          left: -80,
-          top: '55%',
+          left: -189,
+          top: '50%',
           transform: 'translateY(-50%)',
-          width: 700,
-          height: 505,
+          width: 851,
+          height: 614,
           zIndex: 2,
         }}>
           {/* Vrai cadre iPad Pro 11 Space Gray (PNG officiel Figma) en background */}
