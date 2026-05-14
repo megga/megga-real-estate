@@ -43,6 +43,10 @@ export type PxFigmaIconName =
   | 'badge-blog-resources'
   | 'badge-blog-news'
   | 'blog-calendar'
+  // Form icons (Single Property contact form)
+  | 'form-person'
+  | 'form-mail'
+  | 'form-phone'
 
 interface PxFigmaIconProps {
   name: PxFigmaIconName
