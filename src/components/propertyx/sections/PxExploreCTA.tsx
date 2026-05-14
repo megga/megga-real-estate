@@ -61,7 +61,9 @@ export default function PxExploreCTA() {
   return (
     <section style={{
       paddingTop: 80,
-      paddingBottom: 80,
+      // pb agrandi (80 → 240) pour accommoder le débordement de l'iPad
+      // qui dépasse de 160px en bas du bento + 80 espace section.
+      paddingBottom: 240,
       paddingLeft: 24,
       paddingRight: 24,
       background: PX.neutral100,
@@ -147,12 +149,15 @@ export default function PxExploreCTA() {
 
         {/* iPad mockup : rendu Figma node 11748:15191 utilisé tel quel (PNG)
             → fidélité pixel-perfect garantie sans recréer le contenu en React.
-            Dimensions Figma 1852×1335 → ratio 1.388:1, scalé à w-870 h-627 */}
+            Dimensions Figma 1852×1335 → ratio 1.388:1, scalé à w-870 h-627.
+            Position : straddle le bord BAS du bento dark — moitié supérieure
+            DANS le bento, moitié inférieure dessous sur la section bg
+            blanche, ce qui élimine le "carré blanc séparé" à gauche. */}
         <div style={{
           position: 'absolute',
           left: -189,
-          top: '50%',
-          transform: 'translateY(-50%)',
+          top: 'auto',
+          bottom: -160,
           width: 870,
           height: 627,
           zIndex: 2,
