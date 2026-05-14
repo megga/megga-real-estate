@@ -160,10 +160,7 @@ function TestimonialCard({ t }: { t: Testimonial }) {
       paddingBottom: 43,
       background: PX.neutral100,
       borderRadius: PX.radius.large, // 24
-      // Bento visible : ombre douce + fine bordure neutre pour bien marquer
-      // la box sur fond blanc (sinon les cards "disparaissent" sur la page).
-      boxShadow: '0 4px 16px rgba(25, 33, 61, 0.06)',
-      border: `1px solid ${PX.neutral200}`,
+      boxShadow: PX.shadow.small,
       flexShrink: 0,
       display: 'flex',
       flexDirection: 'column',
@@ -185,9 +182,7 @@ function TestimonialCard({ t }: { t: Testimonial }) {
           placeItems: 'start',
           position: 'relative',
         }}>
-          {/* Quote : Display/4 20px ls -0.6 lh 1.25 neutral700 — weight 600
-              pour compenser la fonte fallback (Plus Jakarta Sans plus fine
-              que Objectivity à weight équivalent) */}
+          {/* Quote : Display/4/Medium 20px ls -0.6 lh 1.25 neutral700 */}
           <p style={{
             gridColumn: 1,
             gridRow: 1,
@@ -196,7 +191,7 @@ function TestimonialCard({ t }: { t: Testimonial }) {
             marginTop: 0,
             fontFamily: PX.font.display,
             fontSize: 20,
-            fontWeight: 600,
+            fontWeight: 500,
             lineHeight: 1.25,
             letterSpacing: '-0.6px',
             color: PX.neutral700,
@@ -220,7 +215,7 @@ function TestimonialCard({ t }: { t: Testimonial }) {
               margin: 0,
               fontFamily: PX.font.display,
               fontSize: 16,
-              fontWeight: 600,
+              fontWeight: 500,
               lineHeight: 1.25,
               letterSpacing: '-0.48px',
               color: PX.neutral700,
@@ -283,14 +278,13 @@ export default function PxTestimonials() {
             justifyContent: 'center',
             paddingTop: 16,
           }}>
-            {/* H2 : 48 Display/8 ls -1.44 — width 540 (Figma 477 mais fonte
-                fallback un peu plus large, on évite "us" orphelin ligne 3) */}
+            {/* H2 : 48 Display/8/Medium ls -1.44 w-477.023 */}
             <p style={{
               margin: 0,
-              width: 540,
+              width: 477.023,
               fontFamily: PX.font.display,
               fontSize: 48,
-              fontWeight: 600,
+              fontWeight: 500,
               lineHeight: 1.25,
               letterSpacing: '-1.44px',
               color: PX.neutral700,
