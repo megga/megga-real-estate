@@ -1,0 +1,301 @@
+// MEGGA Marketplace — Property X "Single Property — More properties" section.
+// Source : Figma node 11781:17016 — code Figma EXACT.
+//
+// Anatomie :
+// - py 120, container 1200 centré
+// - Top : H2 "More properties" 48 + Link "Browse all properties" + chevron
+// - Grid 2 cartes 588×520 (image 588×364 rounded-24 avec badges overlay)
+// - Card : image + badge type pill + plus circle button → titre 24 + location →
+//   divider → amenities inline + lien "Contact agent"
+//
+// Icônes : 100% PxFigmaIcon (vrais SVG du fichier Figma) — pas de SVG manuel.
+// V34 = key (For rent) · V35 = tag (For sale) · V37 = location · V31 = surface
+// V23 = bed · V33 = bath · V27 = parking · chevron-right · plus
+
+import type { CSSProperties } from 'react'
+import { PX, PxFigmaIcon, PxIcon } from '..'
+
+// ─── Sub-components ────────────────────────────────────────────────────
+
+const metaLabel: CSSProperties = {
+  fontFamily: PX.font.sans,
+  fontWeight: 500,
+  fontSize: 16,
+  lineHeight: 1.25,
+  letterSpacing: '-0.48px',
+  color: PX.neutral400,
+  whiteSpace: 'nowrap',
+  paddingTop: 2,
+}
+
+function MetaItem({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {icon}
+      </span>
+      <span style={metaLabel}>{label}</span>
+    </div>
+  )
+}
+
+interface PropertyCardData {
+  image: string
+  badge: { kind: 'rent' | 'sale'; label: string }
+  title: string
+  location: string
+  sqft: string
+  beds: number
+  baths: number
+  parking: number
+}
+
+function PropertyCard({ data }: { data: PropertyCardData }) {
+  // Figma : badge For rent utilise "Small Icon/V34" = key, For sale utilise "V35" = tag.
+  const badgeIcon = data.badge.kind === 'rent' ? 'key' : 'tag'
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 24,
+      width: '100%',
+      minWidth: 0,
+    }}>
+      {/* Image */}
+      <div style={{
+        position: 'relative',
+        background: PX.neutral500,
+        height: 364,
+        borderRadius: PX.radius.large,
+        overflow: 'hidden',
+        width: '100%',
+      }}>
+        <img
+          src={data.image}
+          alt={data.title}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+        {/* Overlay : badge + plus circle */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          padding: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{
+            background: PX.neutral700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            paddingLeft: 12,
+            paddingRight: 12,
+            paddingTop: 6,
+            paddingBottom: 6,
+            borderRadius: PX.radius.pill,
+          }}>
+            <PxFigmaIcon name={badgeIcon} size={16} color={PX.neutral100} />
+            <span style={{
+              fontFamily: PX.font.sans,
+              fontWeight: 500,
+              fontSize: 16,
+              lineHeight: 1.25,
+              letterSpacing: '-0.48px',
+              color: PX.neutral100,
+              paddingTop: 2,
+            }}>
+              {data.badge.label}
+            </span>
+          </div>
+          <button
+            type="button"
+            aria-label="Add to favorites"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: PX.radius.pill,
+              background: PX.neutral100,
+              border: 0,
+              boxShadow: PX.shadow.small,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <PxFigmaIcon name="plus" size={16} color={PX.neutral700} />
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom content */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+        <h3 style={{
+          margin: 0,
+          fontFamily: PX.font.sans,
+          fontWeight: 500,
+          fontSize: 24,
+          lineHeight: 1.25,
+          letterSpacing: '-0.72px',
+          color: PX.neutral700,
+        }}>
+          {data.title}
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
+          <span style={{
+            fontFamily: PX.font.sans,
+            fontWeight: 500,
+            fontSize: 16,
+            lineHeight: 1.25,
+            letterSpacing: '-0.48px',
+            color: PX.neutral700,
+            paddingTop: 6,
+          }}>
+            {data.location}
+          </span>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, width: '100%', background: PX.neutral300 }} />
+
+      {/* Footer — amenities + link */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <MetaItem icon={<PxFigmaIcon name="surface" size={20} color={PX.neutral400} />} label={data.sqft} />
+          <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={String(data.beds)} />
+          <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label={String(data.baths)} />
+          <MetaItem icon={<PxFigmaIcon name="parking" size={20} color={PX.neutral400} />} label={String(data.parking)} />
+        </div>
+        <a
+          href="#"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            textDecoration: 'none',
+            flexShrink: 0,
+          }}
+        >
+          <span style={{
+            fontFamily: PX.font.sans,
+            fontWeight: 500,
+            fontSize: 16,
+            lineHeight: 1.25,
+            letterSpacing: '-0.48px',
+            color: PX.neutral700,
+            paddingTop: 2,
+          }}>
+            Contact agent
+          </span>
+          <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+        </a>
+      </div>
+    </div>
+  )
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Main component
+// ───────────────────────────────────────────────────────────────────────
+
+const PROPERTIES: PropertyCardData[] = [
+  {
+    image: '/images/sections/single-property/related-1.jpg',
+    badge: { kind: 'rent', label: 'For rent' },
+    title: 'Luxury Loft in San Francisco',
+    location: '2238 Stradella Rd, SF',
+    sqft: '2,553 sqtf',
+    beds: 3,
+    baths: 2,
+    parking: 3,
+  },
+  {
+    image: '/images/sections/single-property/related-2.jpg',
+    badge: { kind: 'sale', label: 'For sale' },
+    title: 'Home in Los Angeles Heart',
+    location: '2238 Stradella Rd, LA',
+    sqft: '8,392 sqtf',
+    beds: 3,
+    baths: 2,
+    parking: 3,
+  },
+]
+
+export default function PxSinglePropertyRelated() {
+  return (
+    <section style={{
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'center',
+      paddingTop: 120,
+      paddingBottom: 120,
+      background: PX.pageBg,
+    }}>
+      <div style={{
+        width: 'min(1200px, calc(100% - 48px))',
+        boxSizing: 'border-box',
+      }}>
+        {/* Top — title + link */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          paddingBottom: 24,
+          gap: 16,
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontFamily: PX.font.sans,
+            fontWeight: 500,
+            fontSize: 48,
+            lineHeight: 1.25,
+            letterSpacing: '-1.44px',
+            color: PX.neutral700,
+          }}>
+            More properties
+          </h2>
+          <a
+            href="#"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              textDecoration: 'none',
+            }}
+          >
+            <span style={{
+              fontFamily: PX.font.sans,
+              fontWeight: 500,
+              fontSize: 16,
+              lineHeight: 1.25,
+              letterSpacing: '-0.48px',
+              color: PX.neutral700,
+              paddingTop: 2,
+            }}>
+              Browse all properties
+            </span>
+            <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+          </a>
+        </div>
+
+        {/* Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+          gap: 24,
+          paddingTop: 24,
+        }}>
+          {PROPERTIES.map((p) => (
+            <PropertyCard key={p.title} data={p} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}

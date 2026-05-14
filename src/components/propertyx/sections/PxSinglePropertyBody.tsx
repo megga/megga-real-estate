@@ -1,0 +1,643 @@
+// MEGGA Marketplace — Property X "Single Property — Body" section.
+// Source : Figma node 11781:17162 (Rich Text Section) — fidélité maquette stricte.
+//
+// Anatomie :
+// - Container 1200px centered, 2 colonnes : Rich Text (670w) + Sidebar (412w)
+// - Rich Text :
+//   - Block 1 (py-64) : Location + Title H2 48 + Paragraph + Amenities inline
+//   - Divider
+//   - Block 2 (py-64) : H3 "About the property" + paragraph + bullet list + paragraph
+//   - Divider
+//   - Block 3 (pt-64 pb-120) : H3 "Amenities" + paragraph + grid 3×8 badges
+// - Sidebar (pt-64) :
+//   - Card Pricing (p-40, rounded 24, shadow small)
+//   - Card Form (px-40 py-56) : titre + 3 inputs pill + bouton "Request information"
+//   - Card Agent (px-40 py-56) : titre + paragraph + avatar 80 + nom + mail + phone
+
+import type { CSSProperties } from 'react'
+import { PX, PxFigmaIcon } from '..'
+
+// ───────────────────────────────────────────────────────────────────────
+// Sub-components
+// ───────────────────────────────────────────────────────────────────────
+
+const sectionDivider: CSSProperties = {
+  height: 1,
+  width: '100%',
+  background: PX.neutral300,
+  border: 0,
+  margin: 0,
+}
+
+function MetaItem({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: PX.neutral400 }}>
+        {icon}
+      </span>
+      <span style={{
+        fontFamily: PX.font.sans,
+        fontWeight: 500,
+        fontSize: 16,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral400,
+        whiteSpace: 'nowrap',
+        paddingTop: 2,
+      }}>
+        {label}
+      </span>
+    </div>
+  )
+}
+
+function BulletItem({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{
+        width: 5,
+        height: 5,
+        borderRadius: '50%',
+        background: PX.neutral500,
+        display: 'inline-block',
+        flexShrink: 0,
+      }} />
+      <span style={{
+        fontFamily: PX.font.sans,
+        fontWeight: 500,
+        fontSize: 16,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral500,
+      }}>
+        {children}
+      </span>
+    </div>
+  )
+}
+
+function AmenityBadge({ icon, label }: { icon: string; label: string }) {
+  return (
+    <div style={{
+      width: '100%',
+      minWidth: 0,
+      background: PX.neutral100,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: '12px 16px',
+      borderRadius: PX.radius.small,
+      boxShadow: PX.shadow.small,
+      boxSizing: 'border-box',
+    }}>
+      <div style={{
+        width: 28,
+        height: 28,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral700,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <img src={icon} alt="" style={{ width: 16, height: 16, display: 'block' }} />
+      </div>
+      <span style={{
+        fontFamily: PX.font.sans,
+        fontWeight: 500,
+        fontSize: 16,
+        lineHeight: 1.25,
+        letterSpacing: '-0.48px',
+        color: PX.neutral700,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        minWidth: 0,
+      }}>
+        {label}
+      </span>
+    </div>
+  )
+}
+
+const AMENITY_BASE = '/images/sections/single-property/amenities'
+const AMENITIES: Array<{ icon: string; label: string }> = [
+  { icon: `${AMENITY_BASE}/air-conditioner.svg`, label: 'Air contidioner' },
+  { icon: `${AMENITY_BASE}/cable-tv.svg`, label: 'Cable TV' },
+  { icon: `${AMENITY_BASE}/dishwasher.svg`, label: 'Dishwasher' },
+  { icon: `${AMENITY_BASE}/fire-extinguisher.svg`, label: 'Fire extinguisher' },
+  { icon: `${AMENITY_BASE}/elevator.svg`, label: 'Elevator' },
+  { icon: `${AMENITY_BASE}/garden.svg`, label: 'Garden' },
+  { icon: `${AMENITY_BASE}/internet.svg`, label: 'Internet' },
+  { icon: `${AMENITY_BASE}/pool.svg`, label: 'Pool' },
+  { icon: `${AMENITY_BASE}/laundry.svg`, label: 'Laundry' },
+  { icon: `${AMENITY_BASE}/security-cameras.svg`, label: 'Security cameras' },
+  { icon: `${AMENITY_BASE}/iron.svg`, label: 'Iron' },
+  { icon: `${AMENITY_BASE}/gym.svg`, label: 'GYM' },
+  { icon: `${AMENITY_BASE}/kitchen.svg`, label: 'Kitchen' },
+  { icon: `${AMENITY_BASE}/grill.svg`, label: 'Grill' },
+  { icon: `${AMENITY_BASE}/refrigerator.svg`, label: 'Refrigerator' },
+  { icon: `${AMENITY_BASE}/heater.svg`, label: 'Heater' },
+  { icon: `${AMENITY_BASE}/chimney.svg`, label: 'Chimney' },
+  { icon: `${AMENITY_BASE}/sports-fields.svg`, label: 'Sports fields' },
+  { icon: `${AMENITY_BASE}/pet-friendly.svg`, label: 'Pet friendly' },
+  { icon: `${AMENITY_BASE}/smoking-area.svg`, label: 'Smoking area' },
+  { icon: `${AMENITY_BASE}/microwave.svg`, label: 'Microwave' },
+  { icon: `${AMENITY_BASE}/lockpad.svg`, label: 'Lockpad' },
+  { icon: `${AMENITY_BASE}/kids-zone.svg`, label: 'Kids zone' },
+  { icon: `${AMENITY_BASE}/garage.svg`, label: 'Garage' },
+]
+
+// ─── Sidebar sub-components ────────────────────────────────────────────
+
+const sidebarCard: CSSProperties = {
+  background: PX.neutral100,
+  borderRadius: PX.radius.large,
+  boxShadow: PX.shadow.small,
+  width: '100%',
+  boxSizing: 'border-box',
+}
+
+function PricingCard() {
+  // Figma : "$8,500" en H2 48 + "USD" 20 muted positionné en haut à droite du prix.
+  // Le code Figma utilise un inline-grid avec USD à ml-175.48 mt-24.
+  return (
+    <div style={{
+      ...sidebarCard,
+      padding: 40,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+    }}>
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'flex-start',
+        gap: 8,
+      }}>
+        <span style={{
+          fontFamily: PX.font.sans,
+          fontWeight: 500,
+          fontSize: 48,
+          lineHeight: 1.25,
+          letterSpacing: '-1.44px',
+          color: PX.neutral700,
+        }}>
+          $8,500
+        </span>
+        <span style={{
+          fontFamily: PX.font.sans,
+          fontWeight: 500,
+          fontSize: 20,
+          lineHeight: 1.25,
+          letterSpacing: '-0.6px',
+          color: PX.neutral400,
+          marginTop: 24,  // Figma : mt-24 (USD descend dans le block)
+        }}>
+          USD
+        </span>
+      </div>
+      <span style={{
+        fontFamily: PX.font.sans,
+        fontWeight: 500,
+        fontSize: 20,
+        lineHeight: 1.25,
+        letterSpacing: '-0.6px',
+        color: PX.neutral400,
+      }}>
+        Property for rent
+      </span>
+    </div>
+  )
+}
+
+function FormInput({ iconName, placeholder }: { iconName: 'form-person' | 'form-mail' | 'form-phone'; placeholder: string }) {
+  return (
+    <div style={{
+      background: PX.neutral200,
+      borderRadius: PX.radius.pill,
+      minHeight: 48,
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      paddingLeft: 16,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
+      boxSizing: 'border-box',
+    }}>
+      <PxFigmaIcon name={iconName} size={16} color={PX.neutral500} />
+      <input
+        type="text"
+        placeholder={placeholder}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          background: 'transparent',
+          border: 0,
+          outline: 'none',
+          fontFamily: PX.font.sans,
+          fontWeight: 400,
+          fontSize: 16,
+          lineHeight: 1.25,
+          letterSpacing: '-0.48px',
+          color: PX.neutral700,
+          paddingTop: 2,
+        }}
+      />
+    </div>
+  )
+}
+
+function ContactFormCard() {
+  return (
+    <div style={{
+      ...sidebarCard,
+      padding: '56px 40px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start', width: '100%' }}>
+        <p style={{
+          margin: 0,
+          fontFamily: PX.font.sans,
+          fontWeight: 500,
+          fontSize: 20,
+          lineHeight: 1.25,
+          letterSpacing: '-0.6px',
+          color: PX.neutral700,
+          whiteSpace: 'nowrap',
+        }}>
+          Get in touch to receive more info
+        </p>
+        <p style={{
+          margin: 0,
+          fontFamily: PX.font.sans,
+          fontWeight: 400,
+          fontSize: 16,
+          lineHeight: 1.5,
+          letterSpacing: '-0.48px',
+          color: PX.neutral500,
+        }}>
+          Lorem ipsum dolor sit amet consectetur fermentum eget fringilla egestas lorem.
+        </p>
+      </div>
+      <form
+        onSubmit={(e) => e.preventDefault()}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          width: '100%',
+        }}
+      >
+        <FormInput iconName="form-person" placeholder="Full name" />
+        <FormInput iconName="form-mail" placeholder="Email address" />
+        <FormInput iconName="form-phone" placeholder="Phone number" />
+        <button
+          type="submit"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingLeft: 16,
+            paddingRight: 10,
+            paddingTop: 10,
+            paddingBottom: 10,
+            borderRadius: PX.radius.pill,
+            background: PX.neutral700,
+            color: PX.neutral100,
+            border: 0,
+            width: '100%',
+            cursor: 'pointer',
+            fontFamily: PX.font.sans,
+            fontWeight: 500,
+            fontSize: 16,
+            lineHeight: 1.25,
+            letterSpacing: '-0.48px',
+          }}
+        >
+          <span style={{ paddingTop: 2 }}>Request information</span>
+          <span style={{
+            width: 28,
+            height: 28,
+            borderRadius: PX.radius.pill,
+            background: PX.neutral100,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <PxFigmaIcon name="arrow-right" size={12} color={PX.neutral700} />
+          </span>
+        </button>
+      </form>
+    </div>
+  )
+}
+
+function AgentCard() {
+  return (
+    <div style={{
+      ...sidebarCard,
+      padding: '56px 40px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 24,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <p style={{
+          margin: 0,
+          fontFamily: PX.font.sans,
+          fontWeight: 500,
+          fontSize: 20,
+          lineHeight: 1.25,
+          letterSpacing: '-0.6px',
+          color: PX.neutral700,
+          whiteSpace: 'nowrap',
+        }}>
+          Get in touch with the agent
+        </p>
+        <p style={{
+          margin: 0,
+          fontFamily: PX.font.sans,
+          fontWeight: 400,
+          fontSize: 16,
+          lineHeight: 1.5,
+          letterSpacing: '-0.48px',
+          color: PX.neutral500,
+        }}>
+          Lorem ipsum dolor sit amet consectetur fermentum eget fringilla egestas lorem.
+        </p>
+      </div>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        <div style={{
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: PX.neutral300,
+          overflow: 'hidden',
+          flexShrink: 0,
+        }}>
+          <img
+            src="/images/sections/single-property/agent-sophie.jpg"
+            alt="Sophie Moore"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <p style={{
+            margin: 0,
+            fontFamily: PX.font.sans,
+            fontWeight: 500,
+            fontSize: 20,
+            lineHeight: 1.25,
+            letterSpacing: '-0.6px',
+            color: PX.neutral700,
+            whiteSpace: 'nowrap',
+          }}>
+            Sophie Moore
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <PxFigmaIcon name="form-mail" size={16} color={PX.neutral400} />
+              <span style={{
+                fontFamily: PX.font.sans,
+                fontWeight: 400,
+                fontSize: 16,
+                lineHeight: 1.5,
+                letterSpacing: '-0.48px',
+                color: PX.neutral400,
+                whiteSpace: 'nowrap',
+                paddingTop: 2,
+              }}>
+                sophiemoore@casa.com
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <PxFigmaIcon name="form-phone" size={16} color={PX.neutral400} />
+              <span style={{
+                fontFamily: PX.font.sans,
+                fontWeight: 400,
+                fontSize: 16,
+                lineHeight: 1.5,
+                letterSpacing: '-0.48px',
+                color: PX.neutral400,
+                whiteSpace: 'nowrap',
+                paddingTop: 2,
+              }}>
+                (414) 325 - 427
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Main component
+// ───────────────────────────────────────────────────────────────────────
+
+export default function PxSinglePropertyBody() {
+  return (
+    <section style={{
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'center',
+      background: PX.pageBg,
+    }}>
+      <div style={{
+        width: 'min(1200px, calc(100% - 48px))',
+        boxSizing: 'border-box',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 670fr) minmax(0, 412fr)',
+        columnGap: 118,
+        alignItems: 'start',
+      }}>
+        {/* ─── LEFT — Rich Text ──────────────────────────────────── */}
+        <div style={{ width: '100%', minWidth: 0 }}>
+          {/* Block 1 — Title + location + amenities inline */}
+          <div style={{
+            paddingTop: 64,
+            paddingBottom: 64,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}>
+            {/* Location */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
+              <span style={{
+                fontFamily: PX.font.sans,
+                fontWeight: 500,
+                fontSize: 16,
+                lineHeight: 1.25,
+                letterSpacing: '-0.48px',
+                color: PX.neutral700,
+                paddingTop: 6,
+              }}>
+                2596 El Segundo, Los Angeles
+              </span>
+            </div>
+
+            {/* Title */}
+            <div style={{ paddingTop: 16, paddingBottom: 16 }}>
+              <h1 style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 500,
+                fontSize: 48,
+                lineHeight: 1.25,
+                letterSpacing: '-1.44px',
+                color: PX.neutral700,
+              }}>
+                Luxury Loft in San Francisco
+              </h1>
+            </div>
+
+            {/* Paragraph */}
+            <div style={{ paddingBottom: 24 }}>
+              <p style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 400,
+                fontSize: 16,
+                lineHeight: 1.5,
+                letterSpacing: '-0.48px',
+                color: PX.neutral500,
+              }}>
+                Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
+              </p>
+            </div>
+
+            {/* Amenities inline */}
+            <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+              <MetaItem icon={<PxFigmaIcon name="surface" size={20} color={PX.neutral400} />} label="2,553 sqtf" />
+              <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label="3" />
+              <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label="2" />
+              <MetaItem icon={<PxFigmaIcon name="parking" size={20} color={PX.neutral400} />} label="3" />
+            </div>
+          </div>
+
+          <hr style={sectionDivider} />
+
+          {/* Block 2 — About the property */}
+          <div style={{ paddingTop: 64, paddingBottom: 64 }}>
+            <div style={{ paddingTop: 16, paddingBottom: 16 }}>
+              <h2 style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 500,
+                fontSize: 36,
+                lineHeight: 1.25,
+                letterSpacing: '-1.08px',
+                color: PX.neutral700,
+              }}>
+                About the property
+              </h2>
+            </div>
+            <div style={{ paddingBottom: 24 }}>
+              <p style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 400,
+                fontSize: 16,
+                lineHeight: 1.5,
+                letterSpacing: '-0.48px',
+                color: PX.neutral500,
+              }}>
+                Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
+              </p>
+
+              <div style={{
+                paddingTop: 16,
+                paddingBottom: 24,
+                paddingLeft: 32,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}>
+                <BulletItem>Morbi fringilla molestie magna sed dictum. Praesent.</BulletItem>
+                <BulletItem>Cras mi purus, viverra vitae felis sit amet.</BulletItem>
+                <BulletItem>Non mattis urna ex nec sem. Donec varius diam et suscipit venenati.</BulletItem>
+                <BulletItem>Quisque euismod posuere lacus sit amet volutpat.</BulletItem>
+              </div>
+
+              <p style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 400,
+                fontSize: 16,
+                lineHeight: 1.5,
+                letterSpacing: '-0.48px',
+                color: PX.neutral500,
+              }}>
+                Quis faucibus massa sit egestas. Sit fermentum est ac pulvinar et sagittis sed sit ut. Quis faucibus aenean nibh vestibulum enim mi sit. Sollicitudin ultrices ultrices in ipsum urna fringilla massa leo. Sapien ultricies vitae rhoncus molestie purus. Urna urna dolor euismod porttitor et. Magna adipiscing dictum et adipiscing mollis feugiat.
+              </p>
+            </div>
+          </div>
+
+          <hr style={sectionDivider} />
+
+          {/* Block 3 — Amenities grid */}
+          <div style={{ paddingTop: 64, paddingBottom: 120 }}>
+            <div style={{ paddingTop: 16, paddingBottom: 16 }}>
+              <h2 style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 500,
+                fontSize: 36,
+                lineHeight: 1.25,
+                letterSpacing: '-1.08px',
+                color: PX.neutral700,
+              }}>
+                Amenities
+              </h2>
+            </div>
+            <div style={{ paddingBottom: 24 }}>
+              <p style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 400,
+                fontSize: 16,
+                lineHeight: 1.5,
+                letterSpacing: '-0.48px',
+                color: PX.neutral500,
+              }}>
+                Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
+              </p>
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: 12,
+            }}>
+              {AMENITIES.map((a) => (
+                <AmenityBadge key={a.label} icon={a.icon} label={a.label} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ─── RIGHT — Sidebar ────────────────────────────────────── */}
+        <aside style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 24,
+          paddingTop: 64,
+          width: '100%',
+          minWidth: 0,
+        }}>
+          <PricingCard />
+          <ContactFormCard />
+          <AgentCard />
+        </aside>
+      </div>
+    </section>
+  )
+}
