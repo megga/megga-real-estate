@@ -57,7 +57,7 @@ function GetInTouchBadge() {
   )
 }
 
-// iPad screen content — réplique simplifiée mais fidèle de la maquette
+// iPad screen content — positionné dans les inset Figma exact du bezel iPad
 function IPadScreen() {
   return (
     <div style={{
@@ -66,7 +66,7 @@ function IPadScreen() {
       background: PX.neutral200,
       borderRadius: 18,
       overflow: 'hidden',
-      border: `0.5px solid ${PX.neutral700}`,
+      zIndex: 2,
     }}>
       {/* Status bar simplifiée tout en haut */}
       <div style={{
@@ -454,7 +454,7 @@ export default function PxExploreCTA() {
         </div>
 
         {/* iPad mockup : absolute positioned to overflow LEFT
-            Figma : right-732 of container 1394, w-851 h-613, centré vert */}
+            Figma : w-851 h-613 — vrai PNG iPad Pro 11 Space Gray */}
         <div style={{
           position: 'absolute',
           left: -60,
@@ -464,18 +464,23 @@ export default function PxExploreCTA() {
           height: 520,
           zIndex: 2,
         }}>
-          {/* Cadre iPad : background dark (gris graphite), rounded ~32 */}
-          <div style={{
-            width: '100%',
-            height: '100%',
-            background: '#2A2C32',  // gris graphite type iPad Pro
-            borderRadius: 32,
-            padding: 12,
-            boxShadow: PX.shadow.large,
-            position: 'relative',
-          }}>
-            <IPadScreen />
-          </div>
+          {/* Vrai cadre iPad Pro 11 Space Gray (PNG officiel Figma) en background */}
+          <img
+            src="/images/devices/ipad-pro-11.png"
+            alt=""
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+          {/* Écran iPad par-dessus le bezel — positionné dans les inset Figma */}
+          <IPadScreen />
         </div>
       </div>
     </section>
