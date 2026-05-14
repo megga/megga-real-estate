@@ -43,10 +43,13 @@ export type PxFigmaIconName =
   | 'badge-blog-resources'
   | 'badge-blog-news'
   | 'blog-calendar'
-  // Form icons (Single Property contact form)
+  // Form icons (Single Property + Contact contact forms)
   | 'form-person'
   | 'form-mail'
   | 'form-phone'
+  | 'form-edit'   // V30 : pencil/edit (textarea Message)
+  // Contact page badges
+  | 'badge-faq'   // V29 : message bubble (FAQs section)
 
 interface PxFigmaIconProps {
   name: PxFigmaIconName
