@@ -3,7 +3,8 @@
 
 import { PX } from '@/components/propertyx/tokens'
 import PxNav from '@/components/propertyx/sections/PxNav'
-import PxFooter from '@/components/propertyx/sections/PxFooter'
+import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
+import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 import PxButton from '@/components/propertyx/PxButton'
 import PxIcon from '@/components/propertyx/PxIcon'
 
@@ -225,7 +226,7 @@ function HeroSection() {
               flexShrink: 0,
             }}
           >
-            {/* Image 596×442 */}
+            {/* Image 596×442 — groupe pros en bureau lumineux */}
             <div
               style={{
                 width: 596,
@@ -233,7 +234,7 @@ function HeroSection() {
                 borderRadius: PX.radius.large,
                 overflow: 'hidden',
                 backgroundImage:
-                  'url("https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&q=85")',
+                  'url("https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=85")',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}
@@ -335,7 +336,7 @@ function HeroSection() {
             </div>
           </div>
 
-          {/* Grande image à droite (flex-1) */}
+          {/* Grande image à droite (flex-1) — pros en mouvement, espace lumineux */}
           <div
             style={{
               flex: '1 1 0',
@@ -344,7 +345,7 @@ function HeroSection() {
               borderRadius: PX.radius.large,
               overflow: 'hidden',
               backgroundImage:
-                'url("https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1600&q=85")',
+                'url("https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=1600&q=85")',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }}
@@ -551,7 +552,7 @@ function MissionSection() {
           gap: 80,
         }}
       >
-        {/* Image gauche 612.875×600 */}
+        {/* Image gauche 612.875×600 — bâtiment moderne lumineux (jour) */}
         <div
           style={{
             width: 612.875,
@@ -559,7 +560,7 @@ function MissionSection() {
             borderRadius: PX.radius.large,
             overflow: 'hidden',
             backgroundImage:
-              'url("https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1200&q=85")',
+              'url("https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=85")',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             flexShrink: 0,
@@ -641,14 +642,16 @@ const OFFICES: OfficeData[] = [
     description: 'Notre siège historique au cœur de la Rive Gauche, à deux pas de la place du Molard.',
     email: 'geneve@megga.ch',
     phone: '+41 22 555 01 02',
-    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1400&q=85',
+    // Bureau intérieur lumineux moderne (palette claire fidèle Figma)
+    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=85',
   },
   {
     city: 'Zurich',
     description: 'Notre antenne alémanique sur la Bahnhofstrasse, dédiée au marché outre-Sarine.',
     email: 'zurich@megga.ch',
     phone: '+41 44 555 01 02',
-    image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1400&q=85',
+    // Espace de travail lumineux (palette claire fidèle Figma)
+    image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=1400&q=85',
   },
 ]
 
@@ -1020,7 +1023,7 @@ function TeamSection() {
             </h2>
           </div>
         </div>
-        <div style={{ paddingTop: 16, paddingBottom: 32 }}>
+        <div style={{ paddingTop: 16 }}>
           <p
             style={{
               margin: 0,
@@ -1281,7 +1284,7 @@ function FollowSection() {
                 color: PX.neutral700,
               }}
             >
-              Suivez notre actualité sur Instagram
+              Suivez-nous sur Instagram
             </h2>
           </div>
         </div>
@@ -1303,21 +1306,13 @@ function FollowSection() {
         </div>
       </div>
 
-      {/* Row Cards (4 cards × 454 = 1816 + 3×24 = 1888 — full bleed centré) */}
-      <div
-        style={{
-          width: '100%',
-          overflowX: 'auto',
-          paddingLeft: 'max(40px, calc((100vw - 1888px) / 2))',
-          paddingRight: 'max(40px, calc((100vw - 1888px) / 2))',
-          scrollbarWidth: 'none',
-        }}
-      >
-        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-          {IG_POSTS.map((post, i) => (
-            <IgCard key={i} post={post} />
-          ))}
-        </div>
+      {/* Row Cards (Figma : 4 cards × 454 + 3 × 24 = 1888 wide, section -224
+          de chaque côté du viewport 1440). On reproduit ce full-bleed exact :
+          width 1888 avec marginLeft -224 → cards 1 et 4 dépassent à gauche/droite. */}
+      <div style={{ width: 1888, marginLeft: -224, display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+        {IG_POSTS.map((post, i) => (
+          <IgCard key={i} post={post} />
+        ))}
       </div>
     </section>
   )
@@ -1341,7 +1336,12 @@ export default function PropertyXAboutPage() {
       <OfficesSection />
       <TeamSection />
       <FollowSection />
-      <PxFooter />
+      {/* Footer V1 Figma = PostProperty CTA + Footer dark, wrap pour
+          que le gap parent ne s'applique pas entre les deux */}
+      <div>
+        <PxPostPropertyEN />
+        <PxFooterPropertyX />
+      </div>
     </div>
   )
 }
