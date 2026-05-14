@@ -40,6 +40,9 @@ export type PxFigmaIconName =
   | 'badge-about-user'
   | 'badge-testimonials-message'
   | 'badge-blog-edit'
+  | 'badge-blog-resources'
+  | 'badge-blog-news'
+  | 'blog-calendar'
 
 interface PxFigmaIconProps {
   name: PxFigmaIconName
