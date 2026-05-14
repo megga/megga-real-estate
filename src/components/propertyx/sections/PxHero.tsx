@@ -122,15 +122,25 @@ export default function PxHero() {
             Élevez votre style de vie avec MEGGA
           </h1>
 
-          {/* Buttons Row : pt-24, gap-16, centered */}
+          {/* Buttons Row : pt-24, gap-16, centered.
+              4 CTAs MEGGA-spécifiques (acheter / louer / vendre + lien publier) :
+              pattern standard marketplace immobilière (Zillow, Redfin, etc.). */}
           <div style={{
             paddingTop: 24,
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: 16,
+            flexWrap: 'wrap',
           }}>
             <PxButton to="/acheter" variant="primary" size="lg">
-              Commencer
+              Acheter
+            </PxButton>
+            <PxButton to="/louer" variant="primary" size="lg">
+              Louer
+            </PxButton>
+            <PxButton to="/vendre" variant="primary" size="lg">
+              Vendre
             </PxButton>
             <PxLink to="/publier" variant="light">
               <span style={{
@@ -144,10 +154,51 @@ export default function PxHero() {
                 lineHeight: 1.25,
                 letterSpacing: '-0.48px',
               }}>
-                Publier des biens
+                Publier un bien
                 <PxIcon name="chevron-right" size={16} color={PX.neutral300} />
               </span>
             </PxLink>
+          </div>
+
+          {/* Stats strip MEGGA : valeurs prop spécifiques au projet
+              (Suisse, 26 cantons, 33k+ biens Flatfox synchés cf. CLAUDE.md). */}
+          <div style={{
+            marginTop: 64,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 80,
+            flexWrap: 'wrap',
+          }}>
+            {[
+              { value: '33k+', label: 'biens disponibles' },
+              { value: '26', label: 'cantons couverts' },
+              { value: '4', label: 'langues (FR/DE/EN/IT)' },
+            ].map(stat => (
+              <div key={stat.label} style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontFamily: PX.font.display,
+                  fontSize: 48,
+                  fontWeight: 500,
+                  lineHeight: 1.1,
+                  letterSpacing: '-1.44px',
+                  color: PX.neutral100,
+                }}>
+                  {stat.value}
+                </div>
+                <div style={{
+                  marginTop: 4,
+                  fontFamily: PX.font.sans,
+                  fontSize: 14,
+                  fontWeight: 400,
+                  lineHeight: 1.5,
+                  letterSpacing: '-0.42px',
+                  color: PX.neutral300,
+                }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
