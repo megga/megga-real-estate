@@ -191,7 +191,7 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
                   ·{' '}
                   {event.property.price
                     .toLocaleString('fr-CH')
-                    .replace(/[  ,]/g, "'")}{' '}
+                    .replace(/[\u00A0\u202F,]/g, "'")}{' '}
                   CHF
                 </>
               )}

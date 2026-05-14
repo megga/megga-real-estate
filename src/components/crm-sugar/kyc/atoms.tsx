@@ -1,5 +1,6 @@
 // MEGGA CRM Sugar v2 — KYC atoms (Tier 4)
 // 1:1 port from `megga-kyc-variations.jsx` (SP tokens + Pill/BlackBtn/GhostBtn/Avatar/Icon).
+/* eslint-disable react-refresh/only-export-components */
 
 import { useState, type CSSProperties, type ReactNode } from 'react'
 
