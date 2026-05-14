@@ -72,10 +72,12 @@ export default function PxExploreCTA() {
         margin: '0 auto',
         minHeight: 624,  // Figma section height
       }}>
-        {/* Container DARK : bg-neutral700, padding 120 horizontal, 160 vertical,
-            rounded-24, content aligned RIGHT */}
+        {/* Container DARK : bg-neutral700, FULL WIDTH 1392 (parent maxWidth),
+            padding 120 horizontal, 160 vertical, rounded-24, content aligned
+            à droite via justify-end. L'iPad flotte par-dessus (zIndex 2). */}
         <div style={{
           background: PX.neutral700,
+          width: '100%',
           paddingLeft: 120,
           paddingRight: 120,
           paddingTop: 160,
@@ -86,6 +88,7 @@ export default function PxExploreCTA() {
           alignItems: 'flex-start',
           position: 'relative',
           zIndex: 1,
+          boxSizing: 'border-box',
         }}>
           {/* Content placé à droite */}
           <div style={{
