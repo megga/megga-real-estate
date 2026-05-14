@@ -171,7 +171,7 @@ function LinkColumn({ col, placeholderWidth }: { col: typeof COL_MAIN; placehold
             key={l.label}
             to={l.to}
             label={l.label}
-            emphasized={('emphasized' in l && l.emphasized) || false}
+            emphasized={Boolean('emphasized' in l && l.emphasized)}
           />
         ))}
       </div>
