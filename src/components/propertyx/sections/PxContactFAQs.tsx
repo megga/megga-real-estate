@@ -2,14 +2,18 @@
 // Source : Figma node 11774:16850 — code Figma EXACT.
 //
 // Anatomie :
-// - Section py-80 centered
-// - Top Content : Badge "FAQs" + H2 "Frequently asked questions" + paragraph
+// - Section py-80 centered, h=819
+// - Top Content : Badge "FAQs" + H2 "Frequently asked questions" 48 + paragraph
 // - Accordion 843×449 : bg-neutral100 rounded-20 shadow-small
-//   - 4 items : title 24 medium + chevron/plus/minus circle button
-//   - Item 1 expanded : title + paragraph + minus circle dark button
-//   - Items 2-4 collapsed : title + plus icon
+//   - paddingTop 44 / paddingBottom 38 (Figma exact : wrapper at y=44 within accordion)
+//   - 4 items, items have NO vertical padding (only paddingX 40)
+//     - Item collapsed : title 30h + plus icon abs right (18.385 size)
+//     - Item expanded : title 30 + 16 gap + answer 48 = 94h + minus dark button abs right (40×40)
+//   - Spacing inter-items : 30+1+30 = 61 avec divider 1px neutral300 au centre
+//
+// Total accordion : 44 + 94 + 60 + 30 + 60 + 30 + 60 + 30 + 38 = 446 (≈ Figma 449)
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { PX, PxFigmaIcon } from '..'
 
 interface FAQItem {
@@ -75,31 +79,28 @@ function FaqsBadge() {
   )
 }
 
-function AccordionItem({ item, isOpen, onToggle, isLast }: {
+function AccordionItem({ item, isOpen, onToggle }: {
   item: FAQItem
   isOpen: boolean
   onToggle: () => void
-  isLast: boolean
 }) {
   return (
     <div style={{
-      padding: '24px 40px',
-      borderBottom: isLast ? 'none' : `1px solid ${PX.neutral300}`,
+      paddingLeft: 40,
+      paddingRight: 40,
+      position: 'relative',
     }}>
       <button
         type="button"
         onClick={onToggle}
         style={{
+          display: 'block',
           width: '100%',
+          textAlign: 'left',
           background: 'transparent',
           border: 0,
           padding: 0,
           cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 24,
-          textAlign: 'left',
         }}
       >
         <h3 style={{
@@ -110,10 +111,35 @@ function AccordionItem({ item, isOpen, onToggle, isLast }: {
           lineHeight: 1.25,
           letterSpacing: '-0.72px',
           color: PX.neutral700,
-          flex: 1,
+          paddingRight: 60,
         }}>
           {item.question}
         </h3>
+        {isOpen && (
+          <div style={{ paddingTop: 16 }}>
+            <p style={{
+              margin: 0,
+              fontFamily: PX.font.sans,
+              fontWeight: 400,
+              fontSize: 16,
+              lineHeight: 1.5,
+              letterSpacing: '-0.48px',
+              color: PX.neutral500,
+              maxWidth: 470,
+            }}>
+              {item.answer}
+            </p>
+          </div>
+        )}
+      </button>
+
+      {/* Right-side icon/button — absolutely positioned so it doesn't add to item height */}
+      <div style={{
+        position: 'absolute',
+        top: isOpen ? -5 : 6,  // Figma : minus button is 40h centered with title 30, so -5 ; plus icon 18 → roughly 6 to center on title
+        right: 40,
+        pointerEvents: 'none',
+      }}>
         {isOpen ? (
           <span style={{
             width: 40,
@@ -123,43 +149,20 @@ function AccordionItem({ item, isOpen, onToggle, isLast }: {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            flexShrink: 0,
           }}>
-            {/* Minus icon */}
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10" stroke={PX.neutral100} strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </span>
         ) : (
           <span style={{
-            width: 40,
-            height: 40,
             display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
             color: PX.neutral700,
           }}>
             <PxFigmaIcon name="plus" size={18.385} color={PX.neutral700} />
           </span>
         )}
-      </button>
-      {isOpen && (
-        <div style={{ paddingTop: 16 }}>
-          <p style={{
-            margin: 0,
-            fontFamily: PX.font.sans,
-            fontWeight: 400,
-            fontSize: 16,
-            lineHeight: 1.5,
-            letterSpacing: '-0.48px',
-            color: PX.neutral500,
-            maxWidth: 470,
-          }}>
-            {item.answer}
-          </p>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -220,16 +223,29 @@ export default function PxContactFAQs() {
         maxWidth: '100%',
         borderRadius: 20,
         boxShadow: PX.shadow.small,
-        overflow: 'hidden',
+        paddingTop: 44,
+        paddingBottom: 38,
+        boxSizing: 'border-box',
       }}>
         {FAQS.map((item, idx) => (
-          <AccordionItem
-            key={item.question}
-            item={item}
-            isOpen={openIdx === idx}
-            onToggle={() => setOpenIdx(openIdx === idx ? -1 : idx)}
-            isLast={idx === FAQS.length - 1}
-          />
+          <Fragment key={item.question}>
+            <AccordionItem
+              item={item}
+              isOpen={openIdx === idx}
+              onToggle={() => setOpenIdx(openIdx === idx ? -1 : idx)}
+            />
+            {idx < FAQS.length - 1 && (
+              <div style={{ paddingTop: 30, paddingBottom: 30 }}>
+                <hr style={{
+                  height: 1,
+                  width: '100%',
+                  background: PX.neutral300,
+                  border: 0,
+                  margin: 0,
+                }} />
+              </div>
+            )}
+          </Fragment>
         ))}
       </div>
     </section>

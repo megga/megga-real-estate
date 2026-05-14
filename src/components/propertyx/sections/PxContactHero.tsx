@@ -121,6 +121,7 @@ export default function PxContactHero() {
       <div style={{
         background: PX.neutral700,
         borderRadius: PX.radius.large,
+        minHeight: 994,
         paddingTop: 120,
         paddingBottom: 120,
         paddingLeft: 24,
@@ -128,6 +129,7 @@ export default function PxContactHero() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: 'center',
         boxSizing: 'border-box',
       }}>
         {/* Top Content */}
