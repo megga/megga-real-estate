@@ -147,12 +147,10 @@ export default function PxExploreCTA() {
 
         {/* iPad mockup : rendu Figma node 11748:15191 utilisé tel quel (PNG)
             → fidélité pixel-perfect garantie sans recréer le contenu en React.
-            Dimensions Figma 1852×1335 → ratio 1.388:1, scalé à w-870 h-627.
-            Position : fully visible dans le viewport (left:80 met l'iPad à
-            x=104 dans le viewport, fini de couper à gauche). */}
+            Dimensions Figma 1852×1335 → ratio 1.388:1, scalé à w-870 h-627 */}
         <div style={{
           position: 'absolute',
-          left: 80,
+          left: -189,
           top: '50%',
           transform: 'translateY(-50%)',
           width: 870,
