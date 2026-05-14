@@ -9,6 +9,7 @@ import PropertyXHomePage from '@/pages/public/PropertyXHomePage'
 import PropertyXAboutPage from '@/pages/public/PropertyXAboutPage'
 import PropertyXSinglePropertyPage from '@/pages/public/PropertyXSinglePropertyPage'
 import PropertyXContactPage from '@/pages/public/PropertyXContactPage'
+import PropertyXComingSoonPage from '@/pages/public/PropertyXComingSoonPage'
 import LoginPage from '@/pages/public/LoginPage'
 // RegisterPage removed — registration is now handled by the email-first LoginPage
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
@@ -197,6 +198,7 @@ export default function App() {
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
               <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
               <Route path="/contact" element={<PropertyXContactPage />} />
+              <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
               <Route path="/login" element={<LoginPage />} />
