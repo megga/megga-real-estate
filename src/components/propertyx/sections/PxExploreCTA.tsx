@@ -20,7 +20,7 @@
 
 import { PX, PxButton, PxIcon, PxFigmaIcon } from '..'
 
-// Badge "Get in touch" — fidèle Figma : bg-neutral600 + cercle bg-neutral500
+// Badge "Get in touch" — fidèle Figma 11754:25966 : bg-neutral600 + cercle bg-neutral500 + STAR icon
 function GetInTouchBadge() {
   return (
     <span style={{
@@ -43,7 +43,7 @@ function GetInTouchBadge() {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxFigmaIcon name="badge-testimonials-message" size={14.857} color={PX.neutral100} />
+        <PxFigmaIcon name="badge-featured-star" size={14.857} color={PX.neutral100} />
       </span>
       <span style={{
         fontFamily: PX.font.display,
@@ -52,7 +52,7 @@ function GetInTouchBadge() {
         lineHeight: 1.25,
         letterSpacing: '-0.48px',
         color: PX.neutral100,
-      }}>Contactez-nous</span>
+      }}>Get in touch</span>
     </span>
   )
 }
@@ -102,7 +102,7 @@ function IPadScreen() {
         MEGGA
       </div>
 
-      {/* Bookmark icon top-right circle */}
+      {/* 3-dot menu top-right circle (Figma exact) */}
       <div style={{
         position: 'absolute',
         top: 28,
@@ -111,10 +111,14 @@ function IPadScreen() {
         height: 35,
         borderRadius: PX.radius.pill,
         background: PX.neutral100,
-        display: 'grid',
-        placeItems: 'center',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
       }}>
-        <PxIcon name="bookmark" size={15} color={PX.neutral700} />
+        <span style={{ width: 4, height: 4, borderRadius: 99, background: PX.neutral700 }} />
+        <span style={{ width: 4, height: 4, borderRadius: 99, background: PX.neutral700 }} />
+        <span style={{ width: 4, height: 4, borderRadius: 99, background: PX.neutral700 }} />
       </div>
 
       {/* Search bar pill "Choose your location" centré en haut */}
@@ -277,7 +281,7 @@ function IPadScreen() {
             fontWeight: 500,
             color: PX.neutral700,
           }}>
-            Contacter l'agent
+            Contact agent
             <span style={{
               width: 10,
               height: 10,
@@ -306,13 +310,13 @@ function IPadScreen() {
             fontWeight: 500,
             letterSpacing: '-0.42px',
             color: PX.neutral700,
-          }}>$ 6'815'000 CHF</div>
+          }}>$ 8,495,000 USD</div>
           <div style={{
             fontFamily: PX.font.display,
             fontSize: 9,
             fontWeight: 500,
             color: PX.neutral500,
-          }}>Propriété à vendre</div>
+          }}>Property for sale</div>
           <div style={{
             height: 1,
             background: PX.neutral300,
@@ -324,9 +328,9 @@ function IPadScreen() {
             fontSize: 9,
             fontWeight: 500,
             color: PX.neutral700,
-          }}>Recevez plus d'infos</div>
-          {/* 3 input fields pill bg-neutral200 */}
-          {['Nom complet', 'Adresse email', 'Téléphone'].map((ph, i) => (
+          }}>Get in touch to receive more info</div>
+          {/* 3 input fields pill bg-neutral200 — Figma exact */}
+          {['Full name', 'Email address', 'Email address'].map((ph, i) => (
             <div key={i} style={{
               background: PX.neutral200,
               borderRadius: PX.radius.pill,
@@ -403,11 +407,11 @@ export default function PxExploreCTA() {
                 letterSpacing: '-1.44px',
                 color: PX.neutral100,
               }}>
-                Explorez votre futur chez-vous dès aujourd'hui
+                Explore your dream home today
               </h2>
             </div>
             {/* Paragraph : pt-16, 16/1.5 neutral400 (pas neutral100 sur dark!),
-                w-480 */}
+                w-480 — texte EXACT Figma 11754:25966 */}
             <p style={{
               margin: 0,
               paddingTop: 16,
@@ -419,15 +423,15 @@ export default function PxExploreCTA() {
               letterSpacing: '-0.48px',
               color: PX.neutral400,
             }}>
-              Parlez à l'un de nos agents certifiés. Un appel suffit pour cadrer
-              votre recherche et identifier les 3 meilleurs biens pour vous.
+              Lorem ipsum dolor sit amet consectetur. Volutpat et lacinia sit
+              aenean consequat. Id tellus eget libero eget non odio tristique.
             </p>
-            {/* Button row : pt-24 — WHITE bg "Commencer" */}
+            {/* Button row : pt-24 — WHITE bg "Start exploring" */}
             <div style={{
               paddingTop: 24,
             }}>
               <PxButton to="/acheter" variant="invert" size="lg">
-                Commencer
+                Start exploring
               </PxButton>
             </div>
           </div>
