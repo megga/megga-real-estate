@@ -18,7 +18,7 @@
 //       - Screen avec photos + property details + form>
 //   </CTA/V3>
 
-import { PX, PxButton, PxIcon, PxFigmaIcon } from '..'
+import { PX, PxButton, PxIcon, PxFigmaIcon, PxLogo } from '..'
 
 // Badge "Get in touch" — fidèle Figma 11754:25966 : bg-neutral600 + cercle bg-neutral500 + STAR icon
 function GetInTouchBadge() {
@@ -85,21 +85,13 @@ function IPadScreen() {
         <span>100%</span>
       </div>
 
-      {/* Logo Property X en haut à gauche */}
+      {/* Logo MEGGA officiel en haut à gauche */}
       <div style={{
         position: 'absolute',
-        top: 30,
-        left: 10,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 5,
-        fontFamily: PX.font.display,
-        fontSize: 9,
-        fontWeight: 500,
-        color: PX.neutral700,
+        top: 32,
+        left: 12,
       }}>
-        <PxIcon name="home" size={13} color={PX.neutral700} />
-        MEGGA
+        <PxLogo form="text" size="sm" variant="dark" />
       </div>
 
       {/* 3-dot menu top-right circle (Figma exact) */}
@@ -200,7 +192,28 @@ function IPadScreen() {
           backgroundImage: `url("https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80")`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-        }} />
+          position: 'relative',
+        }}>
+          {/* White circle button avec icône grid/menu — fidèle Figma 11805:14015 */}
+          <span style={{
+            position: 'absolute',
+            bottom: 5,
+            right: 5,
+            width: 22,
+            height: 22,
+            borderRadius: PX.radius.pill,
+            background: PX.neutral100,
+            display: 'grid',
+            placeItems: 'center',
+          }}>
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+              <rect x="1.5" y="1.5" width="3.5" height="3.5" rx="0.5" fill={PX.neutral700} />
+              <rect x="7" y="1.5" width="3.5" height="3.5" rx="0.5" fill={PX.neutral700} />
+              <rect x="1.5" y="7" width="3.5" height="3.5" rx="0.5" fill={PX.neutral700} />
+              <rect x="7" y="7" width="3.5" height="3.5" rx="0.5" fill={PX.neutral700} />
+            </svg>
+          </span>
+        </div>
       </div>
 
       {/* Property details left + Contact info right */}
@@ -259,13 +272,16 @@ function IPadScreen() {
             fontWeight: 500,
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="surface" size={11} color={PX.neutral400} /> 230 m²
+              <PxFigmaIcon name="surface" size={11} color={PX.neutral400} /> 2,553 sqtf
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <PxFigmaIcon name="bed" size={11} color={PX.neutral400} /> 3
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <PxFigmaIcon name="bath" size={11} color={PX.neutral400} /> 2
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <PxFigmaIcon name="parking" size={11} color={PX.neutral400} /> 3
             </span>
           </div>
 
