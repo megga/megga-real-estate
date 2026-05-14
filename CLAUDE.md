@@ -10,6 +10,11 @@
 > - Design system Property X (Marketplace) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
 > - Roadmap sprints : [docs/roadmap.md](docs/roadmap.md)
 > - Changelog : [docs/CHANGELOG.md](docs/CHANGELOG.md)
+>
+> **Migration Figma → Code :**
+> - Catalogue de mapping `Figma node ID → composant React` : [src/lib/figma-catalog.ts](src/lib/figma-catalog.ts)
+> - **Avant** de migrer un node Figma : consulter le catalogue. **Après** : l'enrichir.
+> - Remplace Figma Code Connect (qui nécessite un plan Org/Enterprise).
 
 ---
 
