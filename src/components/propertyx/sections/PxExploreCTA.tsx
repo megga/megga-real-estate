@@ -458,11 +458,11 @@ export default function PxExploreCTA() {
           </div>
         </div>
 
-        {/* iPad mockup : absolute positioned to overflow LEFT
-            Figma : w-851 h-613 — vrai PNG iPad Pro 11 Space Gray (taille exacte) */}
+        {/* iPad mockup : Figma exact — w-851 h-614, extends 189px hors bento à gauche
+            (Figma right: 732 from container w-1394 → x=-189 → 851 width) */}
         <div style={{
           position: 'absolute',
-          left: -100,
+          left: -189,
           top: '50%',
           transform: 'translateY(-50%)',
           width: 851,
