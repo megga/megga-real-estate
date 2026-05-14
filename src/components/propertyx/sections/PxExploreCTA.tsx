@@ -85,13 +85,22 @@ function IPadScreen() {
         <span>100%</span>
       </div>
 
-      {/* Logo MEGGA officiel en haut à gauche */}
+      {/* Logo "Property X" en haut à gauche (fidèle maquette) */}
       <div style={{
         position: 'absolute',
         top: 32,
-        left: 12,
+        left: 14,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        fontFamily: PX.font.display,
+        fontSize: 13,
+        fontWeight: 500,
+        letterSpacing: '-0.39px',
+        color: PX.neutral700,
       }}>
-        <PxLogo form="text" size="sm" variant="dark" />
+        <PxFigmaIcon name="home-poi" size={16} color={PX.neutral700} />
+        Property X
       </div>
 
       {/* 3-dot menu top-right circle (Figma exact) */}
@@ -136,7 +145,7 @@ function IPadScreen() {
           fontFamily: PX.font.display,
           fontSize: 9.5,
           color: PX.neutral500,
-        }}>Choisir un lieu</span>
+        }}>Choose your location</span>
         <span style={{
           width: 23,
           height: 23,
@@ -150,17 +159,17 @@ function IPadScreen() {
         </span>
       </div>
 
-      {/* Zone photos (1 grande + 4 small grid) */}
+      {/* Zone photos (1 grande + 4 small grid) — proportions Figma exactes */}
       <div style={{
         position: 'absolute',
-        top: 80,
+        top: 75,
         left: 10,
         right: 10,
         display: 'grid',
-        gridTemplateColumns: '1.7fr 1fr 1fr',
+        gridTemplateColumns: '1.4fr 1fr 1fr',
         gridTemplateRows: '1fr 1fr',
-        gap: 4,
-        height: 130,
+        gap: 5,
+        height: 220,
       }}>
         <div style={{
           gridRow: 'span 2',
@@ -216,36 +225,38 @@ function IPadScreen() {
         </div>
       </div>
 
-      {/* Property details left + Contact info right */}
+      {/* Bottom : Property details left + Contact agent middle + Form panel right
+          Layout 3 zones fidèle Figma 11805:13902 */}
       <div style={{
         position: 'absolute',
-        top: 220,
+        top: 310,
         left: 10,
         right: 10,
         display: 'grid',
-        gridTemplateColumns: '1.4fr 1fr',
-        gap: 16,
+        gridTemplateColumns: '1.4fr auto 1fr',
+        gap: 14,
+        alignItems: 'start',
       }}>
-        {/* LEFT : address + title + description + stats + button */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {/* LEFT : address + title + description + stats */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
+            gap: 5,
             fontFamily: PX.font.display,
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 500,
             color: PX.neutral700,
           }}>
-            <PxFigmaIcon name="location" size={11} color={PX.neutral700} />
+            <PxFigmaIcon name="location" size={13} color={PX.neutral700} />
             2238 Stradella Rd, SF
           </div>
           <div style={{
             fontFamily: PX.font.display,
-            fontSize: 14,
+            fontSize: 17,
             fontWeight: 500,
             lineHeight: 1.25,
-            letterSpacing: '-0.42px',
+            letterSpacing: '-0.51px',
             color: PX.neutral700,
           }}>
             Luxury Loft in San Francisco
@@ -253,111 +264,105 @@ function IPadScreen() {
           <p style={{
             margin: 0,
             fontFamily: PX.font.display,
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: 400,
             lineHeight: 1.5,
+            letterSpacing: '-0.33px',
             color: PX.neutral500,
           }}>
-            Sem egestas elit pretium turpis eu quis tristique phasellus pellentesque elementum pharetra iaculis metus pretium viverra.
+            Sem egestas elit pretium turpis eu quis tristique phasellus pellentesque elementum pharetra iaculis metus pretium viverra tortor faucibus.
           </p>
 
           {/* Stats row */}
           <div style={{
             marginTop: 4,
             display: 'flex',
-            gap: 12,
+            gap: 14,
             fontFamily: PX.font.display,
-            fontSize: 9.5,
+            fontSize: 11,
             color: PX.neutral400,
             fontWeight: 500,
           }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="surface" size={11} color={PX.neutral400} /> 2,553 sqtf
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <PxFigmaIcon name="surface" size={14} color={PX.neutral400} /> 2,553 sqtf
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="bed" size={11} color={PX.neutral400} /> 3
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <PxFigmaIcon name="bed" size={14} color={PX.neutral400} /> 3
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="bath" size={11} color={PX.neutral400} /> 2
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <PxFigmaIcon name="bath" size={14} color={PX.neutral400} /> 2
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <PxFigmaIcon name="parking" size={11} color={PX.neutral400} /> 3
-            </span>
-          </div>
-
-          {/* Bouton "Contact agent" inline */}
-          <div style={{
-            marginTop: 6,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-            alignSelf: 'flex-start',
-            fontFamily: PX.font.display,
-            fontSize: 9,
-            fontWeight: 500,
-            color: PX.neutral700,
-          }}>
-            Contact agent
-            <span style={{
-              width: 10,
-              height: 10,
-              borderRadius: PX.radius.pill,
-              background: PX.neutral700,
-              display: 'grid',
-              placeItems: 'center',
-            }}>
-              <PxIcon name="arrow-right" size={6} color={PX.neutral100} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <PxFigmaIcon name="parking" size={14} color={PX.neutral400} /> 3
             </span>
           </div>
         </div>
 
-        {/* RIGHT : Price + form */}
+        {/* MIDDLE : "Contact agent ›" link (Figma exact 11805:13930) */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          paddingTop: 26,
+          fontFamily: PX.font.display,
+          fontSize: 10,
+          fontWeight: 500,
+          letterSpacing: '-0.3px',
+          color: PX.neutral700,
+          whiteSpace: 'nowrap',
+        }}>
+          Contact agent
+          <PxIcon name="chevron-right" size={9} color={PX.neutral700} />
+        </div>
+
+        {/* RIGHT : Price + form panel (Figma 11805:13904 — white card overlap) */}
         <div style={{
           background: PX.neutral100,
-          borderRadius: 8,
-          padding: 8,
+          borderRadius: 10,
+          padding: 14,
           display: 'flex',
           flexDirection: 'column',
-          gap: 4,
+          gap: 6,
+          boxShadow: PX.shadow.small,
         }}>
           <div style={{
             fontFamily: PX.font.display,
-            fontSize: 14,
+            fontSize: 17,
             fontWeight: 500,
-            letterSpacing: '-0.42px',
+            letterSpacing: '-0.51px',
             color: PX.neutral700,
           }}>$ 8,495,000 USD</div>
           <div style={{
             fontFamily: PX.font.display,
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: 500,
             color: PX.neutral500,
           }}>Property for sale</div>
           <div style={{
             height: 1,
             background: PX.neutral300,
-            marginTop: 2,
-            marginBottom: 2,
+            marginTop: 4,
+            marginBottom: 4,
           }} />
           <div style={{
             fontFamily: PX.font.display,
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: 500,
             color: PX.neutral700,
+            marginBottom: 2,
           }}>Get in touch to receive more info</div>
           {/* 3 input fields pill bg-neutral200 — Figma exact */}
           {['Full name', 'Email address', 'Email address'].map((ph, i) => (
             <div key={i} style={{
               background: PX.neutral200,
               borderRadius: PX.radius.pill,
-              paddingLeft: 12,
-              paddingRight: 4,
-              paddingTop: 6,
-              paddingBottom: 6,
+              paddingLeft: 14,
+              paddingRight: 14,
+              paddingTop: 9,
+              paddingBottom: 9,
               fontFamily: PX.font.display,
-              fontSize: 7,
+              fontSize: 10,
               color: PX.neutral500,
-              minHeight: 18,
               display: 'flex',
               alignItems: 'center',
             }}>{ph}</div>
@@ -454,14 +459,14 @@ export default function PxExploreCTA() {
         </div>
 
         {/* iPad mockup : absolute positioned to overflow LEFT
-            Figma : w-851 h-613 — vrai PNG iPad Pro 11 Space Gray */}
+            Figma : w-851 h-613 — vrai PNG iPad Pro 11 Space Gray (taille exacte) */}
         <div style={{
           position: 'absolute',
-          left: -60,
+          left: -100,
           top: '50%',
           transform: 'translateY(-50%)',
-          width: 720,
-          height: 520,
+          width: 851,
+          height: 614,
           zIndex: 2,
         }}>
           {/* Vrai cadre iPad Pro 11 Space Gray (PNG officiel Figma) en background */}
