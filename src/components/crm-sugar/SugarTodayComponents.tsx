@@ -3,6 +3,7 @@
 // Includes: SugarConnector, SugarTeamChip, SugarTaskCard, SugarMiniRow,
 //   SugarMiniRowCreate, SugarColumn, SugarKnowledgeTable, SugarDonut,
 //   SugarPipelineStat, SugarFocusView/Card, COLUMNS_DEFS
+/* eslint-disable react-refresh/only-export-components */
 
 import {
   useState, useEffect, useRef, type ReactNode, type CSSProperties,
@@ -136,7 +137,7 @@ export function SugarTaskCard({
         <div style={{ display: 'flex', gap: 6 }}>
           {checked && (
             <button
-              onClick={e => { e.stopPropagation(); onCheck && onCheck(e) }}
+              onClick={e => { e.stopPropagation(); onCheck?.(e) }}
               title={isDone ? 'Marquer à refaire' : 'Marquer exécutée'}
               style={{
                 width: 24, height: 24, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
@@ -148,7 +149,7 @@ export function SugarTaskCard({
             </button>
           )}
           <button
-            onClick={e => { e.stopPropagation(); onSchedule && onSchedule(e) }}
+            onClick={e => { e.stopPropagation(); onSchedule?.(e) }}
             title="Replanifier"
             style={{
               width: 24, height: 24, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
@@ -249,7 +250,7 @@ export function SugarMiniRow({
       )}
       {hasMenu ? (
         <button
-          onClick={e => { e.stopPropagation(); onMenu && onMenu(e) }}
+          onClick={e => { e.stopPropagation(); onMenu?.(e) }}
           title="Plus d'actions"
           style={{
             width: 22, height: 22, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
@@ -264,7 +265,7 @@ export function SugarMiniRow({
         >···</button>
       ) : (
         <button
-          onClick={e => { e.stopPropagation(); onSchedule && onSchedule(e) }}
+          onClick={e => { e.stopPropagation(); onSchedule?.(e) }}
           title="Replanifier"
           style={{
             width: 22, height: 22, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
@@ -303,7 +304,7 @@ export function SugarMiniRowCreate({ suggestion, sp, dark = false, onCreate }: S
   const submit = () => {
     const v = (value || suggestion).trim()
     if (!v) { setEditing(false); return }
-    onCreate && onCreate(v)
+    onCreate?.(v)
     setCreated(v)
     setValue('')
     setEditing(false)
@@ -529,7 +530,7 @@ export function SugarKnowledgeTable({ sp, onOpenStatus, onOpenRow, flashToast }:
           <div key={r.id}
             onMouseEnter={() => setHoverId(r.id)}
             onMouseLeave={() => setHoverId(null)}
-            onClick={() => onOpenRow && onOpenRow(r)}
+            onClick={() => onOpenRow?.(r)}
             style={{
               display: 'grid', gridTemplateColumns: '30px 2.5fr 1fr 1.2fr 1.2fr 1.2fr',
               padding: '12px 16px', alignItems: 'center',
@@ -731,7 +732,7 @@ function SugarFocusCard({ sp, index, priority: p, onContactClick }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
         {p.contact && (
           <div
-            onClick={e => { e.stopPropagation(); onContactClick && onContactClick(p.contact) }}
+            onClick={e => { e.stopPropagation(); onContactClick?.(p.contact) }}
             style={{
               width: 44, height: 44, borderRadius: 999,
               background: p.contact.avatarBg || '#0041D9', color: '#fff',
