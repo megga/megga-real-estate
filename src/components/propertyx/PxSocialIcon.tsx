@@ -58,7 +58,11 @@ const BRAND_COLORS: Record<PxSocialIconName, string> = {
 const PATHS: Record<PxSocialIconName, ReactNode> = {
   facebook: <path d="M22 12a10 10 0 1 0-11.6 9.9V14.9h-2.5V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.7-1.6 1.5V12h2.7l-.4 2.9h-2.3V22A10 10 0 0 0 22 12Z" />,
   twitter:  <path d="M14.3 10.3 21 2.7h-1.6l-5.8 6.6L9 2.7H3.4l7.1 10-7.1 8.6H5l6.2-7 5 7h5.4l-7.3-10.9Zm-2.2 2.5-.7-1L5.6 4h2.4l4.6 6.4.7 1L19 19.7h-2.4l-4.5-6.9Z" />,
-  instagram: <><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" strokeWidth="2" /><circle cx="17.5" cy="6.5" r="1.2" fill="#fff" /></>,
+  // Instagram : rect outline + lens circle outline + small filled dot — tout en
+  // currentColor pour fonctionner aussi bien en mono (sur fond dark) qu'en brand
+  // (pink). Bugfix : avant, les éléments internes étaient hardcodés "#fff" donc
+  // invisibles sur footer dark où le rect extérieur était aussi blanc.
+  instagram: <><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" /></>,
   linkedin: <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM8.3 18.3H5.7V10h2.6v8.3ZM7 8.8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm11.3 9.5h-2.6v-4c0-1 0-2.2-1.3-2.2s-1.5 1-1.5 2.2v4H10.3V10h2.5v1.1c.4-.6 1.2-1.3 2.5-1.3 2.6 0 3.1 1.7 3.1 4v4.5Z" />,
   youtube: <path d="M22 8.5a3 3 0 0 0-2-2C18 6 12 6 12 6s-6 0-8 .5a3 3 0 0 0-2 2C2 10.5 2 12 2 12s0 1.5.2 3.5a3 3 0 0 0 2 2C6 18 12 18 12 18s6 0 8-.5a3 3 0 0 0 2-2c.2-2 .2-3.5.2-3.5s0-1.5-.2-3.5ZM10 15V9l5 3-5 3Z" />,
   whatsapp: <path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-1.7-.9-2.8-1.6-4-3.5-.3-.5.3-.5.9-1.7.1-.2.1-.4 0-.5-.1-.1-.7-1.5-.9-2.1-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2 3.1 5 4.4 1.9.8 2.6.9 3.5.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4 0-.1-.3-.2-.5-.4ZM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.3c1.4.8 3.1 1.3 4.8 1.3 5.5 0 10-4.5 10-10S17.5 2 12 2Zm0 18.3c-1.6 0-3.1-.5-4.4-1.3l-.3-.2-3.1.8.8-3-.2-.3a8.3 8.3 0 1 1 7.2 4Z" />,

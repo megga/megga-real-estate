@@ -14,6 +14,7 @@ import PropertyXContactPage from '@/pages/public/PropertyXContactPage'
 import PropertyXComingSoonPage from '@/pages/public/PropertyXComingSoonPage'
 import PropertyXSubmitPropertyPage from '@/pages/public/PropertyXSubmitPropertyPage'
 import PropertyXBlogPostPage from '@/pages/public/PropertyXBlogPostPage'
+import BlogV2Page from '@/pages/public/BlogV2Page'
 import LoginPage from '@/pages/public/LoginPage'
 // RegisterPage removed — registration is now handled by the email-first LoginPage
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
@@ -208,6 +209,7 @@ export default function App() {
               <Route path="/contact" element={<PropertyXContactPage />} />
               <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
               <Route path="/publier-bien" element={<PropertyXSubmitPropertyPage />} />
+              <Route path="/blog" element={<BlogV2Page />} />
               <Route path="/blog/example" element={<PropertyXBlogPostPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
