@@ -22,7 +22,7 @@ export type PxIconName =
   | 'credit-card' | 'bell' | 'bell-ring'
   | 'edit' | 'trash' | 'copy' | 'external'
   | 'play' | 'pause' | 'refresh' | 'expand' | 'collapse'
-  | 'thumb-up' | 'thumb-down' | 'message' | 'send'
+  | 'thumb-up' | 'thumb-down' | 'message' | 'send' | 'briefcase'
 
 const PATHS: Record<PxIconName, ReactNode> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
@@ -91,8 +91,11 @@ const PATHS: Record<PxIconName, ReactNode> = {
   collapse: <><path d="M15 9h6M15 9V3M15 9l7-7" /><path d="M9 15H3M9 15v6M9 15l-7 7" /></>,
   'thumb-up': <><path d="M7 22V11" /><path d="M2 13v8a1 1 0 0 0 1 1h4V11H3a1 1 0 0 0-1 1Z" /><path d="M7 11V6a4 4 0 0 1 4-4l3 8h5a2 2 0 0 1 2 2l-2 8a2 2 0 0 1-2 2H7" /></>,
   'thumb-down': <><path d="M17 2v11" /><path d="M22 11V3a1 1 0 0 0-1-1h-4v11h4a1 1 0 0 0 1-1Z" /><path d="M17 13v5a4 4 0 0 1-4 4l-3-8H5a2 2 0 0 1-2-2l2-8a2 2 0 0 1 2-2h10" /></>,
-  message: <><path d="M21 12a8 8 0 1 1-3.4-6.6L21 4l-1 4.4A8 8 0 0 1 21 12Z" /></>,
+  // Chat bubble — rounded square shape with tail (Figma Small Icon/V29).
+  message: <><path d="M4 5h15a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8.5L6 21v-4H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" /></>,
   send: <><path d="m22 2-7 20-4-9-9-4 20-7Z" /><path d="M22 2 11 13" /></>,
+  // Briefcase — Figma Small Icon/V46 (Sales executives)
+  briefcase: <><rect x="2" y="7" width="20" height="13" rx="2" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><path d="M2 13h20" /></>,
 }
 
 interface PxIconProps {

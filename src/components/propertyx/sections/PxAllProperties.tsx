@@ -95,14 +95,17 @@ function AllPropertiesBadge() {
       }}>
         <PxFigmaIcon name="badge-allprops-home" size={14.857} color={PX.neutral100} />
       </span>
-      <span style={{
-        fontFamily: PX.font.display,
-        fontSize: 16,
-        fontWeight: 500,
-        lineHeight: 1.25,
-        letterSpacing: '-0.48px',
-        color: PX.neutral700,
-      }}>Tous les biens</span>
+      {/* pt-2 baseline alignment Figma exact (Wrapper inside Badge) */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', paddingTop: 2 }}>
+        <span style={{
+          fontFamily: PX.font.display,
+          fontSize: 16,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-0.48px',
+          color: PX.neutral700,
+        }}>Tous les biens</span>
+      </span>
     </span>
   )
 }
@@ -123,14 +126,17 @@ function CardBadge({ label, icon }: { label: string; icon: 'key' | 'home' }) {
       borderRadius: PX.radius.pill,
     }}>
       <PxFigmaIcon name={figmaIcon} size={16} color={PX.neutral100} />
-      <span style={{
-        fontFamily: PX.font.display,
-        fontSize: 16,
-        fontWeight: 500,
-        lineHeight: 1.25,
-        letterSpacing: '-0.48px',
-        color: PX.neutral100,
-      }}>{label}</span>
+      {/* pt-2 baseline alignment */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', paddingTop: 2 }}>
+        <span style={{
+          fontFamily: PX.font.display,
+          fontSize: 16,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-0.48px',
+          color: PX.neutral100,
+        }}>{label}</span>
+      </span>
     </span>
   )
 }
@@ -144,14 +150,17 @@ function Amenity({ icon, value }: { icon: 'surface' | 'bed' | 'bath' | 'parking'
       gap: 10,
     }}>
       <PxFigmaIcon name={icon} size={20} color={PX.neutral400} />
-      <span style={{
-        fontFamily: PX.font.display,
-        fontSize: 16,
-        fontWeight: 500,
-        lineHeight: 1.25,
-        letterSpacing: '-0.48px',
-        color: PX.neutral400,
-      }}>{value}</span>
+      {/* pt-2 baseline alignment Figma */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', paddingTop: 2 }}>
+        <span style={{
+          fontFamily: PX.font.display,
+          fontSize: 16,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-0.48px',
+          color: PX.neutral400,
+        }}>{value}</span>
+      </span>
     </span>
   )
 }
@@ -200,21 +209,23 @@ function PropertyCard({ p }: { p: PropertyItem }) {
           flexDirection: 'column',
           gap: 6,
         }}>
-          {/* Address row : icon location V37 20px + text 16/Medium */}
+          {/* Address row : icon location V37 20px + text 16/Medium (pt-6 Wrapper baseline) */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
           }}>
             <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
-            <span style={{
-              fontFamily: PX.font.display,
-              fontSize: 16,
-              fontWeight: 500,
-              lineHeight: 1.25,
-              letterSpacing: '-0.48px',
-              color: PX.neutral700,
-            }}>{p.address}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', paddingTop: 6 }}>
+              <span style={{
+                fontFamily: PX.font.display,
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: '-0.48px',
+                color: PX.neutral700,
+              }}>{p.address}</span>
+            </span>
           </div>
           {/* Title : 24 Display/5/Medium tracking-0.72 */}
           <h3 style={{
@@ -261,22 +272,18 @@ export default function PxAllProperties() {
     <section style={{
       paddingTop: 160,
       paddingBottom: 80,
-      paddingLeft: 24,
-      paddingRight: 24,
       background: PX.neutral100,
       display: 'flex',
       gap: 40,
       alignItems: 'flex-start',
       justifyContent: 'center',
     }}>
-      {/* Left Content */}
+      {/* Left Content (Figma 11756:28760 — pas de sticky) */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
         flexShrink: 0,
-        position: 'sticky',
-        top: 100,
       }}>
         {/* Title Wrapper */}
         <div style={{
@@ -285,11 +292,11 @@ export default function PxAllProperties() {
           alignItems: 'flex-start',
         }}>
           <AllPropertiesBadge />
-          {/* Title : pt-16, 48 Display/8/Medium tracking-1.44, w-357.5 */}
+          {/* Title : pt-16, 48 Display/8/Medium tracking-1.44, w-357.5 (Figma exact) */}
           <h2 style={{
             margin: 0,
             paddingTop: 16,
-            width: 357,
+            width: 357.5,
             fontFamily: PX.font.display,
             fontSize: 48,
             fontWeight: 500,
@@ -300,11 +307,12 @@ export default function PxAllProperties() {
             Découvrez tous les biens disponibles
           </h2>
         </div>
-        {/* Paragraph : pt-16, w-369, 16/1.5 neutral500 */}
+        {/* Paragraph : pt-16, w-369, h-72, 16/1.5 neutral500 (Figma exact h-72) */}
         <p style={{
           margin: 0,
           paddingTop: 16,
           width: 369,
+          height: 72,
           fontFamily: PX.font.display,
           fontSize: 16,
           fontWeight: 400,
@@ -327,15 +335,20 @@ export default function PxAllProperties() {
               alignItems: 'center',
               gap: 6,
               textDecoration: 'none',
-              fontFamily: PX.font.display,
-              fontSize: 16,
-              fontWeight: 500,
-              lineHeight: 1.25,
-              letterSpacing: '-0.48px',
               color: PX.neutral700,
             }}
           >
-            Parcourir tous les biens
+            {/* Wrapper pt-2 baseline Figma */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', paddingTop: 2 }}>
+              <span style={{
+                fontFamily: PX.font.display,
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: '-0.48px',
+                color: PX.neutral700,
+              }}>Parcourir tous les biens</span>
+            </span>
             <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
           </Link>
         </div>

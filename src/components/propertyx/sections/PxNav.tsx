@@ -20,7 +20,7 @@
 // Note : flow normal (PAS absolute) — la nav prend sa place avant le hero.
 
 import { Link } from 'react-router-dom'
-import { PX, PxButton, PxIcon, PxLogo } from '..'
+import { PX, PxButton, PxLogo } from '..'
 
 interface PxNavProps {
   // glass était l'ancien prop "overlay sur hero" — Figma a la nav en flow normal
@@ -90,7 +90,10 @@ export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: 6,
+                  // Figma : Wrapper texte pt-2 (xx-small) pour centrer optiquement
+                  paddingTop: 2,
                   textDecoration: 'none',
                   fontFamily: PX.font.display,
                   // Fidèle Figma : Display/2/Medium = 16/1.25/-0.48
@@ -104,31 +107,12 @@ export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
                 {link.label}
               </Link>
             ))}
-            {/* Pages dropdown link (fidèle Figma) */}
-            <Link
-              to="/services"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                textDecoration: 'none',
-                fontFamily: PX.font.display,
-                fontSize: 16,
-                fontWeight: 500,
-                lineHeight: 1.25,
-                letterSpacing: '-0.48px',
-                color: PX.neutral700,
-              }}
-            >
-              Plus
-              <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
-            </Link>
           </nav>
         </div>
 
-        {/* CTA droite : Connexion — size sm (taille bouton d'origine) */}
-        <PxButton to="/login" variant="primary" size="sm">
-          Connexion
+        {/* CTA droite "Commencer" (Figma "Start exploring") — Primary Button size sm */}
+        <PxButton to="/acheter" variant="primary" size="sm">
+          Commencer
         </PxButton>
       </div>
     </header>

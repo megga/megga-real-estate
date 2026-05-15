@@ -20,6 +20,7 @@ import { PX } from '@/components/propertyx/tokens'
 import PxTopNotificationBar from '@/components/propertyx/sections/PxTopNotificationBar'
 import PxNav from '@/components/propertyx/sections/PxNav'
 import PxHero from '@/components/propertyx/sections/PxHero'
+import PxSearchBar from '@/components/propertyx/sections/PxSearchBar'
 import PxAboutSection from '@/components/propertyx/sections/PxAboutSection'
 import PxFeaturedProperties from '@/components/propertyx/sections/PxFeaturedProperties'
 import PxAllProperties from '@/components/propertyx/sections/PxAllProperties'
@@ -27,7 +28,6 @@ import PxHowItWorks from '@/components/propertyx/sections/PxHowItWorks'
 import PxExploreCTA from '@/components/propertyx/sections/PxExploreCTA'
 import PxTestimonials from '@/components/propertyx/sections/PxTestimonials'
 import PxBlogTeaser from '@/components/propertyx/sections/PxBlogTeaser'
-import PxNewsletter from '@/components/propertyx/sections/PxNewsletter'
 import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 
@@ -48,6 +48,7 @@ export default function PropertyXHomePage() {
       />
       <PxNav glass />
       <PxHero />
+      <PxSearchBar />
       <PxAboutSection />
       <PxFeaturedProperties />
       <PxAllProperties />
@@ -55,8 +56,7 @@ export default function PropertyXHomePage() {
       <PxExploreCTA />
       <PxTestimonials />
       <PxBlogTeaser />
-      <PxNewsletter />
-      {/* Footer V1 = PostProperty CTA + Footer dark (idem /a-propos) */}
+      {/* Footer V1 Figma = PostProperty CTA + Footer dark */}
       <div>
         <PxPostPropertyEN />
         <PxFooterPropertyX />

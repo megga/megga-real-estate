@@ -96,8 +96,9 @@ export default function PxSearchBar() {
 
   return (
     <section style={{
-      // SearchBar pill height = 100 (form padding 24+24 + field 52)
-      // marginTop -50 = chevauchement 50/50 entre image et zone vide.
+      // Figma : Container hero has mb-[-56] → SearchBar is positioned so its
+      // top sits 56px above the bottom of the hero image (within the
+      // section's px-24 padding).
       // IMPORTANT : section bg transparent — sinon le bg blanc couvrirait
       // la moitié inférieure de l'image dans la zone d'overlap.
       display: 'flex',
@@ -105,18 +106,18 @@ export default function PxSearchBar() {
       background: 'transparent',
       padding: '0 24px',
       position: 'relative',
-      marginTop: -50,
       zIndex: 5,
     }}>
       <form onSubmit={handleSubmit} style={{
-        // Outer Browser pill : white, p-24, rounded-48, BS Small shadow
+        // Outer Browser pill : white, p-24 (Sections/PD Small), rounded-48
+        // (Sections/PD Default), BS Small shadow, gap-2
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 2,
-        padding: 24,
+        padding: PX.sectionPadding.small,
         background: PX.neutral100,
-        borderRadius: 48,
+        borderRadius: PX.sectionPadding.default,
         // BS Small = 0 4 4 0 #D3D3D30F + 0 1 1 0 #0E0E0E0A
         boxShadow: PX.shadow.small,
       }}>
@@ -171,19 +172,7 @@ export default function PxSearchBar() {
           </button>
         </div>
 
-        {/* Zone 2 : Transaction (Acheter / Louer) — 220×52 */}
-        <div style={selectFieldStyle}>
-          <select
-            value={tx}
-            onChange={e => setTx(e.target.value as 'buy' | 'rent')}
-            style={placeholderStyle}
-          >
-            {TX_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-          <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
-        </div>
-
-        {/* Zone 3 : Location (Canton) — 220×52 */}
+        {/* Zone 2 : Location (Canton) — 220×52 (Figma "Location") */}
         <div style={selectFieldStyle}>
           <select
             value={canton}
@@ -198,12 +187,8 @@ export default function PxSearchBar() {
           <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
         </div>
 
-        {/* Zone 4 : Type — 220×52, rounded RIGHT pill */}
-        <div style={{
-          ...selectFieldStyle,
-          borderTopRightRadius: PX.radius.pill,
-          borderBottomRightRadius: PX.radius.pill,
-        }}>
+        {/* Zone 3 : Property type — 220×52 (Figma "Property") */}
+        <div style={selectFieldStyle}>
           <select
             value={type}
             onChange={e => setType(e.target.value)}
@@ -213,6 +198,22 @@ export default function PxSearchBar() {
             }}
           >
             {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
+        </div>
+
+        {/* Zone 4 : Transaction (Acheter / Louer) — 220×52, rounded RIGHT pill (Figma "Type") */}
+        <div style={{
+          ...selectFieldStyle,
+          borderTopRightRadius: PX.radius.pill,
+          borderBottomRightRadius: PX.radius.pill,
+        }}>
+          <select
+            value={tx}
+            onChange={e => setTx(e.target.value as 'buy' | 'rent')}
+            style={placeholderStyle}
+          >
+            {TX_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
         </div>
