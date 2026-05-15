@@ -68,3 +68,6 @@ export { PxList, PxListItem } from './PxList'
 
 // Section label (eyebrow uppercase)
 export { default as PxSectionLabel } from './PxSectionLabel'
+
+// "Bon prix" badge (signal prix/m² < médiane cantonale)
+export { default as PxGoodDealBadge } from './PxGoodDealBadge'

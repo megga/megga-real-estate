@@ -8,8 +8,13 @@
 // price, rooms, surface, sort, q).
 
 import { Link } from 'react-router-dom'
-import { PX, PxFigmaIcon } from '..'
-import { useMarketListings } from '@/hooks/useMarketListings'
+import { PX, PxFigmaIcon, PxGoodDealBadge } from '..'
+import {
+  useMarketListings,
+  useCantonalMedians,
+  isGoodDeal,
+  type CantonalMedianLookup,
+} from '@/hooks/useMarketListings'
 import { useMarketFilters } from '@/hooks/useMarketFilters'
 import { useUserPois, type UserPoi } from '@/hooks/useUserPois'
 import { useTravelTimes, type ListingTravelTimes } from '@/hooks/useTravelTimes'
@@ -150,11 +155,13 @@ function TravelTimeRow({
 function PropertyCardV2({
   listing,
   context,
+  medianLookup,
   travelTimes,
   pois,
 }: {
   listing: ListingCardData
   context: 'buy' | 'rent'
+  medianLookup: CantonalMedianLookup
   travelTimes: ListingTravelTimes | null
   pois: UserPoi[]
 }) {
@@ -164,6 +171,17 @@ function PropertyCardV2({
   const roomsLabel = listing.rooms ? `${listing.rooms} p.` : '—'
   const bedroomsLabel = listing.bedrooms ? String(listing.bedrooms) : '—'
   const bathroomsLabel = listing.bathrooms ? String(listing.bathrooms) : '—'
+
+  // "Bon prix" : prix/m² ≤ 85% médiane (canton × tx_type × type)
+  const median = medianLookup({
+    canton: listing.canton,
+    transaction_type: context,
+    type: listing.type,
+  })
+  const goodDeal = isGoodDeal(listing.price_per_m2, median)
+  const discountPct = goodDeal && median
+    ? Math.round((1 - (listing.price_per_m2 ?? 0) / median.median_price_per_m2) * 100)
+    : undefined
 
   return (
     <article
@@ -208,11 +226,23 @@ function PropertyCardV2({
             right: 0,
             padding: 24,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'space-between',
+            gap: 12,
           }}
         >
-          <PriceBadge context={context} price={listing.price} />
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 8,
+              minWidth: 0,
+            }}
+          >
+            <PriceBadge context={context} price={listing.price} />
+            {goodDeal && <PxGoodDealBadge discountPct={discountPct} />}
+          </div>
           <span
             style={{
               width: 40,
@@ -363,6 +393,12 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
     fetchNextPage,
   } = useMarketListings(filters)
 
+  // Médianes cantonales pour le badge "Bon prix". Cache 24h (matche le
+  // refresh pg_cron côté DB). Fail-soft : si la matview n'existe pas, le
+  // lookup retourne null → pas de badge, le reste de la grid fonctionne.
+  const { data: mediansData } = useCantonalMedians()
+  const medianLookup: CantonalMedianLookup = mediansData?.lookup ?? (() => null)
+
   const listings = data?.pages.flatMap(p => p.listings) ?? []
   const showEmpty = !isLoading && !isError && listings.length === 0
 
@@ -427,6 +463,7 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
             key={l.id}
             listing={l}
             context={context}
+            medianLookup={medianLookup}
             travelTimes={travelTimesMap?.get(l.id) ?? null}
             pois={pois}
           />
