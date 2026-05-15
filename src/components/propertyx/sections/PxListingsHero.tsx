@@ -1,25 +1,40 @@
-// MEGGA Marketplace — Property X "Properties for sale" hero.
+// MEGGA Marketplace — Property X "Properties for sale/rent" hero.
 // Source : Figma node 9552:21447 — sous-frame "Hero Section" (node 11781:16155)
 // + Container dark 9613:28017 + Browser search 9613:28455.
 //
-// Structure :
-//   <section pt-24 px-24>
-//     <Container bg-neutral700 rounded-24 pt-120 pb-80 flex-col items-center>
-//       <TitleWrapper flex-col items-center>
-//         <Badge "For sale" — pill bg-neutral600 + circle 26 bg-neutral500 + star icon>
-//         <Title pt-16 — 72/medium tracking-2.16 white w-854.75 center>
-//       </TitleWrapper>
-//       <Paragraph pt-16 pb-32 — 16/1.5 neutral400 w-562 h-48 center>
-//       <Browser absolute -tx-1/2 left-50% top-383 — bg-white p-24 rounded-48 shadow-small>
-//         <Input pill 400x52 rounded-l-pill — bg-neutral200 + search button right>
-//         <Select 220x52 — bg-neutral200 + chevron-down>×3 (Location / Property / Type)
-//       </Browser>
-//     </Container>
-//   </section>
+// Branché : la barre de recherche est désormais fonctionnelle.
+// - Input texte → filtre `q` (URL search params) — soumission sur Enter ou clic
+// - Dropdown autocomplete villes (ILIKE prefix, debounced 200ms)
+// - Le titre + badge s'adaptent au context (buy/rent)
 
-import { PX, PxFigmaIcon } from '..'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { PX } from '../tokens'
+import PxFigmaIcon from '../PxFigmaIcon'
+import { useCitiesAutocomplete } from '@/hooks/useMarketListings'
 
-function ForSaleBadge() {
+interface PxListingsHeroProps {
+  context: 'buy' | 'rent'
+}
+
+const COPY = {
+  buy: {
+    badge: 'À vendre',
+    title: 'Biens à vendre',
+    paragraph:
+      "Plus de 33'000 biens vérifiés à travers la Suisse. Trouvez votre prochaine maison, appartement ou villa en quelques clics.",
+    placeholder: 'Ville, code postal, quartier…',
+  },
+  rent: {
+    badge: 'À louer',
+    title: 'Biens à louer',
+    paragraph:
+      "Plus de 33'000 biens vérifiés à travers la Suisse. Trouvez votre prochaine location en quelques clics.",
+    placeholder: 'Ville, code postal, quartier…',
+  },
+} as const
+
+function ContextBadge({ label }: { label: string }) {
   return (
     <span
       style={{
@@ -34,7 +49,6 @@ function ForSaleBadge() {
         borderRadius: PX.radius.pill,
       }}
     >
-      {/* Circle icon 26px bg neutral500 + star size-14.857 white */}
       <span
         style={{
           width: 26,
@@ -47,10 +61,8 @@ function ForSaleBadge() {
           flexShrink: 0,
         }}
       >
-        {/* Figma V35 — Small Icon "tag" (For sale badge, filled diamant) */}
         <PxFigmaIcon name="tag" size={14.857} color={PX.neutral100} />
       </span>
-      {/* Text 16/Medium white tracking -0.48 */}
       <span
         style={{
           paddingTop: 2,
@@ -64,50 +76,61 @@ function ForSaleBadge() {
           whiteSpace: 'nowrap',
         }}
       >
-        For sale
+        {label}
       </span>
     </span>
   )
 }
 
-function BrowserSelect({ label }: { label: string }) {
-  return (
-    <div
-      style={{
-        width: 220,
-        height: 52,
-        minHeight: 48,
-        paddingLeft: 16,
-        paddingRight: 16,
-        paddingTop: 6,
-        paddingBottom: 6,
-        background: PX.neutral200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          paddingTop: 2,
-          fontFamily: PX.font.display,
-          fontSize: 16,
-          fontWeight: 400,
-          lineHeight: 1.25,
-          letterSpacing: '-0.48px',
-          color: PX.neutral500,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {label}
-      </span>
-      <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
-    </div>
-  )
+function useDebounced<T>(value: T, ms: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(value), ms)
+    return () => window.clearTimeout(t)
+  }, [value, ms])
+  return debounced
 }
 
-export default function PxListingsHero() {
+export default function PxListingsHero({ context }: PxListingsHeroProps) {
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const copy = COPY[context]
+
+  // Input local : controlled, ne fire pas la requête à chaque keystroke.
+  // La soumission (Enter, click, suggestion) écrit dans l'URL — c'est ce qui
+  // déclenche le refresh de la grid via useMarketFilters.
+  const [draft, setDraft] = useState(params.get('q') ?? '')
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  // Sync si l'URL change (ex: reset depuis la filter bar)
+  useEffect(() => {
+    setDraft(params.get('q') ?? '')
+  }, [params])
+
+  const debounced = useDebounced(draft, 200)
+  const { data: suggestions = [], isFetching } = useCitiesAutocomplete(debounced, context)
+
+  // Fermer le dropdown quand on clique en dehors
+  useEffect(() => {
+    if (!open) return
+    const onDocClick = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+
+  function commit(value: string) {
+    const next = new URLSearchParams(params)
+    const trimmed = value.trim()
+    if (trimmed) next.set('q', trimmed)
+    else next.delete('q')
+    // Stay on the same path, just update the search string.
+    navigate(`?${next.toString()}`, { replace: false })
+    setOpen(false)
+  }
+
   return (
     <section
       style={{
@@ -123,8 +146,6 @@ export default function PxListingsHero() {
         zIndex: 3,
       }}
     >
-      {/* Container dark : bg-neutral700, rounded-24, pt-120 pb-80, flex-col items-center.
-          width 100% pour matcher la maquette w-1440 - 24*2 = 1392. */}
       <div
         style={{
           position: 'relative',
@@ -141,7 +162,6 @@ export default function PxListingsHero() {
           justifyContent: 'center',
         }}
       >
-        {/* Title Wrapper : flex-col items-center justify-center */}
         <div
           style={{
             display: 'flex',
@@ -150,8 +170,7 @@ export default function PxListingsHero() {
             justifyContent: 'center',
           }}
         >
-          <ForSaleBadge />
-          {/* Title wrap : pt-16 (Sections/PD Extra Small) */}
+          <ContextBadge label={copy.badge} />
           <div
             style={{
               paddingTop: 16,
@@ -174,13 +193,11 @@ export default function PxListingsHero() {
                 textAlign: 'center',
               }}
             >
-              Properties for sale
+              {copy.title}
             </h1>
           </div>
         </div>
 
-        {/* Paragraph wrap : pt-16 pb-32 (Sections/PD Extra Small + Sizes/Size 6),
-            paragraphe 16/1.5 neutral400 w-562 h-48 tracking-0.48 center */}
         <div
           style={{
             paddingTop: 16,
@@ -196,7 +213,6 @@ export default function PxListingsHero() {
               margin: 0,
               width: 562.047,
               maxWidth: '100%',
-              height: 48,
               fontFamily: PX.font.display,
               fontSize: 16,
               fontWeight: 400,
@@ -206,74 +222,95 @@ export default function PxListingsHero() {
               textAlign: 'center',
             }}
           >
-            Lorem ipsum dolor sit amet consectetur. Sit ut gravida aenean potenti. Metus in eu vel morbi dui nunc tellus. Non a massa maecenas massa.
+            {copy.paragraph}
           </p>
         </div>
 
-        {/* Browser : absolute -tx-1/2 left-50% top-383, bg-white p-24 rounded-48
-            shadow-small, gap-2, items-center. Contient input pill + 3 selects.
-            Source Figma node 9613:28455. */}
+        {/* Search browser : remplace les 4 chips de la maquette par un input
+            unique avec submit + dropdown d'autocomplete (villes CH). */}
         <div
+          ref={wrapRef}
           style={{
             position: 'absolute',
             top: 383,
             left: '50%',
             transform: 'translateX(-50%)',
+            width: 'min(720px, calc(100% - 64px))',
             background: PX.neutral100,
-            padding: 24,
-            borderRadius: 48,
+            padding: 16,
+            borderRadius: PX.radius.pill,
             boxShadow: PX.shadow.small,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 2,
+            gap: 8,
           }}
         >
-          {/* Input Text : w-400 h-52, bg-neutral200, rounded-l-pill (gauche
-              arrondie), placeholder "Search for properties", search button 40px
-              dark à droite (absolute right-6 top-50% size-40 bg-neutral700). */}
-          <div
+          <form
+            onSubmit={e => {
+              e.preventDefault()
+              commit(draft)
+            }}
             style={{
               position: 'relative',
-              width: 400,
-              minHeight: 52,
-              paddingLeft: 16,
-              paddingRight: 6,
-              paddingTop: 6,
-              paddingBottom: 6,
-              background: PX.neutral200,
-              borderTopLeftRadius: PX.radius.pill,
-              borderBottomLeftRadius: PX.radius.pill,
+              flex: 1,
               display: 'flex',
               alignItems: 'center',
-              flexShrink: 0,
             }}
           >
-            <span
+            <PxFigmaIcon name="search" size={20} color={PX.neutral500} />
+            <input
+              type="text"
+              value={draft}
+              placeholder={copy.placeholder}
+              onChange={e => {
+                setDraft(e.target.value)
+                setOpen(true)
+              }}
+              onFocus={() => setOpen(true)}
+              aria-label="Rechercher un bien"
               style={{
-                flex: '1 0 0',
-                paddingTop: 2,
+                flex: 1,
+                marginLeft: 12,
+                minWidth: 0,
+                background: 'transparent',
+                border: 0,
+                outline: 'none',
+                color: PX.neutral700,
                 fontFamily: PX.font.display,
                 fontSize: 16,
                 fontWeight: 400,
                 lineHeight: 1.25,
                 letterSpacing: '-0.48px',
-                color: PX.neutral500,
-                whiteSpace: 'nowrap',
+                paddingTop: 2,
               }}
-            >
-              Search for properties
-            </span>
-            {/* Search button : absolute right-6 top-50% translate-y-50%, size-40
-                bg-neutral700, rounded-pill, search icon size-22 white */}
+            />
+            {draft && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft('')
+                  commit('')
+                }}
+                aria-label="Effacer la recherche"
+                style={{
+                  width: 28,
+                  height: 28,
+                  display: 'inline-grid',
+                  placeItems: 'center',
+                  background: 'transparent',
+                  border: 0,
+                  cursor: 'pointer',
+                  marginRight: 4,
+                }}
+              >
+                <PxFigmaIcon name="close" size={12} color={PX.neutral500} />
+              </button>
+            )}
             <button
-              type="button"
-              aria-label="Search"
+              type="submit"
+              aria-label="Rechercher"
               style={{
-                position: 'absolute',
-                right: 6,
-                top: '50%',
-                transform: 'translateY(-50%)',
                 width: 40,
                 height: 40,
                 borderRadius: PX.radius.pill,
@@ -282,48 +319,90 @@ export default function PxListingsHero() {
                 cursor: 'pointer',
                 display: 'grid',
                 placeItems: 'center',
+                flexShrink: 0,
               }}
             >
-              <PxFigmaIcon name="search" size={22} color={PX.neutral100} />
+              <PxFigmaIcon name="search" size={18} color={PX.neutral100} />
             </button>
-          </div>
-          <BrowserSelect label="Location" />
-          <BrowserSelect label="Property" />
-          {/* Dernier select : rounded-r-pill */}
-          <div
-            style={{
-              width: 220,
-              height: 52,
-              minHeight: 48,
-              paddingLeft: 16,
-              paddingRight: 16,
-              paddingTop: 6,
-              paddingBottom: 6,
-              background: PX.neutral200,
-              borderTopRightRadius: PX.radius.pill,
-              borderBottomRightRadius: PX.radius.pill,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexShrink: 0,
-            }}
-          >
-            <span
+          </form>
+
+          {open && draft.trim().length >= 2 && (
+            <div
+              role="listbox"
               style={{
-                paddingTop: 2,
-                fontFamily: PX.font.display,
-                fontSize: 16,
-                fontWeight: 400,
-                lineHeight: 1.25,
-                letterSpacing: '-0.48px',
-                color: PX.neutral500,
-                whiteSpace: 'nowrap',
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                left: 0,
+                right: 0,
+                background: PX.neutral100,
+                borderRadius: 16,
+                boxShadow: PX.shadow.medium,
+                border: `1px solid ${PX.neutral300}`,
+                overflow: 'hidden',
+                zIndex: 50,
               }}
             >
-              Type
-            </span>
-            <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
-          </div>
+              {isFetching && suggestions.length === 0 && (
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    fontFamily: PX.font.display,
+                    fontSize: 14,
+                    color: PX.neutral500,
+                  }}
+                >
+                  Recherche…
+                </div>
+              )}
+              {!isFetching && suggestions.length === 0 && (
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    fontFamily: PX.font.display,
+                    fontSize: 14,
+                    color: PX.neutral500,
+                  }}
+                >
+                  Aucune ville trouvée. Appuyez sur Entrée pour rechercher « {draft.trim()} ».
+                </div>
+              )}
+              {suggestions.map(city => (
+                <button
+                  key={city}
+                  type="button"
+                  role="option"
+                  onClick={() => {
+                    setDraft(city)
+                    commit(city)
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: 'transparent',
+                    border: 0,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: PX.font.display,
+                    fontSize: 15,
+                    color: PX.neutral700,
+                    letterSpacing: '-0.45px',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = PX.neutral200
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  <PxFigmaIcon name="location" size={16} color={PX.neutral500} />
+                  <span>{city}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

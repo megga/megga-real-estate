@@ -3,14 +3,17 @@
 // + "Properties Card/V2" (11781:16157 et 11781:16208).
 //
 // Branché sur Supabase via useMarketListings (infinite query, paginé par
-// 24 biens). Le composant accepte un prop `context` ('buy' | 'rent') pour
-// filtrer par transaction_type.
+// 24 biens). Les filtres sont lus depuis l'URL via useMarketFilters — la grid
+// se re-rend automatiquement quand les query params changent (canton, type,
+// price, rooms, surface, sort, q).
 
 import { Link } from 'react-router-dom'
 import { PX, PxFigmaIcon } from '..'
 import { useMarketListings } from '@/hooks/useMarketListings'
+import { useMarketFilters } from '@/hooks/useMarketFilters'
 import { formatCHF, formatRent } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
+import PxListingsSortSelector from './PxListingsSortSelector'
 
 interface PxListingsGridProps {
   context: 'buy' | 'rent'
@@ -276,6 +279,7 @@ function StatusBlock({ message }: { message: string }) {
 }
 
 export default function PxListingsGrid({ context }: PxListingsGridProps) {
+  const { filters } = useMarketFilters(context)
   const {
     data,
     isLoading,
@@ -283,7 +287,7 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useMarketListings({ context, sort: 'newest' })
+  } = useMarketListings(filters)
 
   const listings = data?.pages.flatMap(p => p.listings) ?? []
   const showEmpty = !isLoading && !isError && listings.length === 0
@@ -292,17 +296,33 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
     <section
       style={{
         width: '100%',
-        paddingTop: 120,
+        paddingTop: 24,
         paddingBottom: 160,
         background: PX.neutral200,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 48,
+        gap: 24,
         position: 'relative',
         zIndex: 2,
       }}
     >
+      {/* Top bar : sort selector aligned right. Aligned with the grid's max-width. */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 1392,
+          paddingLeft: 24,
+          paddingRight: 24,
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <PxListingsSortSelector context={context} />
+      </div>
+
       <div
         style={{
           display: 'flex',
@@ -315,7 +335,9 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
       >
         {isLoading && <StatusBlock message="Chargement des biens…" />}
         {isError && <StatusBlock message="Impossible de charger les biens. Réessayez plus tard." />}
-        {showEmpty && <StatusBlock message="Aucun bien trouvé pour le moment." />}
+        {showEmpty && (
+          <StatusBlock message="Aucun bien ne correspond à vos filtres. Essayez d'élargir votre recherche." />
+        )}
         {!isLoading && !isError && listings.map(l => (
           <PropertyCardV2 key={l.id} listing={l} context={context} />
         ))}

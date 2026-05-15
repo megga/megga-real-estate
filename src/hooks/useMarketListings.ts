@@ -350,6 +350,72 @@ export function useMarketListings(filters: MarketFilters = {}) {
   })
 }
 
+// ─── HOOK 1b : Compteur estimé pour les filtres en cours ────────────────────
+//
+// Postgres `count: 'estimated'` retourne l'estimation du planner (instantané)
+// — pas un COUNT(*) qui timeout sur 33K rows. Le résultat est approximatif
+// mais largement suffisant pour afficher "X biens trouvés" dans la filter bar.
+//
+// JAMAIS `count: 'exact'` ici (voir CLAUDE.md section 7).
+
+export function useMarketListingsCount(filters: MarketFilters = {}) {
+  return useQuery({
+    queryKey: ['market-listings-count', filters],
+    queryFn: async (): Promise<number> => {
+      let query = supabase
+        .from('market_listings')
+        .select('id', { count: 'estimated', head: true })
+      query = applyFilters(query, filters)
+      const { count, error } = await query
+      if (error) throw new Error(`market_listings count failed: ${error.message}`)
+      return count ?? 0
+    },
+    staleTime: 60 * 1000, // 1 min
+    placeholderData: keepPreviousData,
+  })
+}
+
+// ─── HOOK 1c : Autocomplete villes pour la search bar du hero ───────────────
+//
+// MVP : ILIKE prefix sur `market_listings.city`, dédupliqué client-side.
+// Le partial index sur transaction_type + status couvre déjà 99% des rows ;
+// l'ILIKE prefix sur city est rapide dans ce sous-ensemble (~33K rows pour
+// rent, ~1K pour buy). Si ça devient lent → migrer vers un RPC dédié.
+
+export function useCitiesAutocomplete(query: string, context: 'buy' | 'rent' = 'buy') {
+  const trimmed = query.trim()
+  return useQuery({
+    queryKey: ['cities-autocomplete', trimmed, context],
+    queryFn: async (): Promise<string[]> => {
+      if (trimmed.length < 2) return []
+      // Sanitize : on échappe `%` et `_` pour éviter l'injection LIKE.
+      // Postgres treat both as wildcards.
+      const safe = trimmed.replace(/[%_]/g, '\\$&')
+      const { data, error } = await supabase
+        .from('market_listings')
+        .select('city')
+        .eq('status', 'active')
+        .eq('transaction_type', context)
+        .ilike('city', `${safe}%`)
+        .limit(80)
+      if (error) return []
+      const seen = new Set<string>()
+      const out: string[] = []
+      for (const row of (data as Array<{ city?: string }>) || []) {
+        const c = row.city?.trim()
+        if (c && !seen.has(c.toLowerCase())) {
+          seen.add(c.toLowerCase())
+          out.push(c)
+          if (out.length >= 8) break
+        }
+      }
+      return out
+    },
+    enabled: trimmed.length >= 2,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 // ─── HOOK 2 : Points carte (léger, tous les biens avec lat/lng) ─────────────
 
 // ─── Session cache ───
