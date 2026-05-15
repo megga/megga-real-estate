@@ -42,12 +42,18 @@ export type PxFigmaIconName =
   | 'badge-blog-edit'
   | 'badge-blog-resources'
   | 'badge-blog-news'
+  | 'badge-blog-all'
+  | 'badge-blog-articles'
   | 'blog-calendar'
   // Form icons (Single Property + Contact contact forms)
   | 'form-person'
   | 'form-mail'
   | 'form-phone'
   | 'form-edit'   // V30 : pencil/edit (textarea Message)
+  | 'currency'    // V55 : dollar sign in a circle (Listing price)
+  | 'link'        // V55 : chain link (Listing images URL)
+  | 'home-simple' // V36 : simple solid house silhouette (form headers, listing title)
+  | 'check'       // Stroke checkmark (Submit Property hero badge, amenity checked)
   // Contact page badges
   | 'badge-faq'   // V29 : message bubble (FAQs section)
   // Blog post category badges
