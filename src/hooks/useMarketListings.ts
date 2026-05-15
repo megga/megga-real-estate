@@ -134,7 +134,7 @@ function normalizeLang(raw: string | undefined): Lang {
   return short === 'de' || short === 'en' || short === 'it' ? short : 'fr'
 }
 
-function transformToCardData(
+export function transformToCardData(
   ml: Record<string, unknown>,
   source: 'market' | 'internal' = 'market',
   lang: Lang = 'fr'

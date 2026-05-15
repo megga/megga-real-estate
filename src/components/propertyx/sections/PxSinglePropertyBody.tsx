@@ -16,6 +16,12 @@
 
 import type { CSSProperties } from 'react'
 import { PX, PxFigmaIcon } from '..'
+import { formatCHF, formatRent } from '@/lib/utils'
+import type { ListingCardData } from '@/components/listings/ListingCard'
+
+interface PxSinglePropertyBodyProps {
+  listing?: ListingCardData
+}
 
 // ───────────────────────────────────────────────────────────────────────
 // Sub-components
@@ -158,9 +164,15 @@ const sidebarCard: CSSProperties = {
   boxSizing: 'border-box',
 }
 
-function PricingCard() {
-  // Figma : "$8,500" en H2 48 + "USD" 20 muted positionné en haut à droite du prix.
-  // Le code Figma utilise un inline-grid avec USD à ml-175.48 mt-24.
+function PricingCard({ listing }: { listing?: ListingCardData }) {
+  // Affiche le prix CHF formaté (apostrophe suisse) + sublabel selon
+  // transaction_type. Fallback démo si pas de listing.
+  const isRent = listing?.context === 'rent'
+  const priceLabel = listing
+    ? (isRent ? formatRent(listing.price) : formatCHF(listing.price))
+    : 'CHF 8’500/mois'
+  const sublabel = isRent ? 'Bien à louer' : 'Bien à vendre'
+
   return (
     <div style={{
       ...sidebarCard,
@@ -169,33 +181,16 @@ function PricingCard() {
       flexDirection: 'column',
       gap: 8,
     }}>
-      <div style={{
-        display: 'inline-flex',
-        alignItems: 'flex-start',
-        gap: 8,
+      <span style={{
+        fontFamily: PX.font.sans,
+        fontWeight: 500,
+        fontSize: 40,
+        lineHeight: 1.25,
+        letterSpacing: '-1.2px',
+        color: PX.neutral700,
       }}>
-        <span style={{
-          fontFamily: PX.font.sans,
-          fontWeight: 500,
-          fontSize: 48,
-          lineHeight: 1.25,
-          letterSpacing: '-1.44px',
-          color: PX.neutral700,
-        }}>
-          $8,500
-        </span>
-        <span style={{
-          fontFamily: PX.font.sans,
-          fontWeight: 500,
-          fontSize: 20,
-          lineHeight: 1.25,
-          letterSpacing: '-0.6px',
-          color: PX.neutral400,
-          marginTop: 24,  // Figma : mt-24 (USD descend dans le block)
-        }}>
-          USD
-        </span>
-      </div>
+        {priceLabel}
+      </span>
       <span style={{
         fontFamily: PX.font.sans,
         fontWeight: 500,
@@ -204,7 +199,7 @@ function PricingCard() {
         letterSpacing: '-0.6px',
         color: PX.neutral400,
       }}>
-        Property for rent
+        {sublabel}
       </span>
     </div>
   )
@@ -443,7 +438,18 @@ function AgentCard() {
 // Main component
 // ───────────────────────────────────────────────────────────────────────
 
-export default function PxSinglePropertyBody() {
+export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyProps) {
+  // Champs dérivés du listing avec fallback démo Figma.
+  const locationLabel = listing
+    ? [listing.address, listing.city].filter(Boolean).join(', ') || 'Suisse'
+    : '2596 El Segundo, Los Angeles'
+  const titleLabel = listing?.title || 'Luxury Loft in San Francisco'
+  const descriptionLabel = listing?.description?.trim()
+    || 'Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.'
+  const surfaceLabel = listing?.surface_m2 ? `${listing.surface_m2} m²` : '2,553 sqtf'
+  const roomsLabel = listing?.rooms ? `${listing.rooms} p.` : '3'
+  const bedroomsLabel = listing?.bedrooms ? String(listing.bedrooms) : '3'
+  const bathroomsLabel = listing?.bathrooms ? String(listing.bathrooms) : '2'
   return (
     <section style={{
       width: '100%',
@@ -481,7 +487,7 @@ export default function PxSinglePropertyBody() {
                 color: PX.neutral700,
                 paddingTop: 6,
               }}>
-                2596 El Segundo, Los Angeles
+                {locationLabel}
               </span>
             </div>
 
@@ -496,7 +502,7 @@ export default function PxSinglePropertyBody() {
                 letterSpacing: '-1.44px',
                 color: PX.neutral700,
               }}>
-                Luxury Loft in San Francisco
+                {titleLabel}
               </h1>
             </div>
 
@@ -510,17 +516,19 @@ export default function PxSinglePropertyBody() {
                 lineHeight: 1.5,
                 letterSpacing: '-0.48px',
                 color: PX.neutral500,
+                whiteSpace: 'pre-wrap',
               }}>
-                Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
+                {descriptionLabel}
               </p>
             </div>
 
             {/* Amenities inline */}
-            <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-              <MetaItem icon={<PxFigmaIcon name="surface" size={20} color={PX.neutral400} />} label="2,553 sqtf" />
-              <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label="3" />
-              <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label="2" />
-              <MetaItem icon={<PxFigmaIcon name="parking" size={20} color={PX.neutral400} />} label="3" />
+            <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+              <MetaItem icon={<PxFigmaIcon name="surface" size={20} color={PX.neutral400} />} label={surfaceLabel} />
+              <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={roomsLabel} />
+              {listing?.bedrooms ? <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={bedroomsLabel} /> : null}
+              {listing?.bathrooms ? <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label={bathroomsLabel} /> : null}
+              {!listing ? <MetaItem icon={<PxFigmaIcon name="parking" size={20} color={PX.neutral400} />} label="3" /> : null}
             </div>
           </div>
 
@@ -633,7 +641,7 @@ export default function PxSinglePropertyBody() {
           width: '100%',
           minWidth: 0,
         }}>
-          <PricingCard />
+          <PricingCard listing={listing} />
           <ContactFormCard />
           <AgentCard />
         </aside>
