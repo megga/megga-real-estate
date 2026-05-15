@@ -28,6 +28,8 @@
 
 import { Link } from 'react-router-dom'
 import { PX, PxIcon, PxFigmaIcon } from '..'
+import { useMarketListings } from '@/hooks/useMarketListings'
+import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface PropertyItem {
   id: string
@@ -43,7 +45,7 @@ interface PropertyItem {
   garage: number
 }
 
-const PROPERTIES: PropertyItem[] = [
+const PROPERTIES_FALLBACK: PropertyItem[] = [
   {
     id: 'p1', badge: 'À louer', badgeIcon: 'key',
     image: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&q=85',
@@ -69,6 +71,24 @@ const PROPERTIES: PropertyItem[] = [
     surface: '130 m²', beds: 2, baths: 2, garage: 1,
   },
 ]
+
+function toPropertyItem(listing: ListingCardData): PropertyItem {
+  const isRent = listing.context === 'rent'
+  return {
+    id: listing.id,
+    badge: isRent ? 'À louer' : 'À vendre',
+    badgeIcon: isRent ? 'key' : 'home',
+    image: listing.photos?.[0] ?? '',
+    address: [listing.address, listing.city].filter(Boolean).join(', ') || listing.canton || '',
+    title: listing.title,
+    description: listing.description?.slice(0, 110)
+      || `${listing.surface_m2 ?? '—'} m² · ${listing.rooms ?? '—'} pièces`,
+    surface: listing.surface_m2 ? `${listing.surface_m2} m²` : '—',
+    beds: listing.rooms ?? 0,
+    baths: listing.bathrooms ?? 0,
+    garage: 0,
+  }
+}
 
 // Badge "All properties" — LIGHT (bg-neutral300 + cercle bg-neutral400)
 function AllPropertiesBadge() {
@@ -268,6 +288,15 @@ function PropertyCard({ p }: { p: PropertyItem }) {
 }
 
 export default function PxAllProperties() {
+  // 3 cards visibles dans le layout. On fetch quelques biens supplémentaires
+  // pour filtrer ceux sans photo, puis on slice à 3.
+  const { data } = useMarketListings({ context: 'buy', sort: 'newest' })
+  const realProperties = (data?.pages[0]?.listings ?? [])
+    .filter(l => l.photos && l.photos.length > 0)
+    .slice(0, 3)
+    .map(toPropertyItem)
+  const properties = realProperties.length === 3 ? realProperties : PROPERTIES_FALLBACK
+
   return (
     <section style={{
       paddingTop: 160,
@@ -360,7 +389,11 @@ export default function PxAllProperties() {
         flexDirection: 'column',
         gap: 40,
       }}>
-        {PROPERTIES.map(p => <PropertyCard key={p.id} p={p} />)}
+        {properties.map(p => (
+          <Link key={p.id} to={`/propriete/${p.id}`} style={{ textDecoration: 'none' }}>
+            <PropertyCard p={p} />
+          </Link>
+        ))}
       </div>
     </section>
   )

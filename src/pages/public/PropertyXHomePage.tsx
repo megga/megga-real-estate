@@ -41,8 +41,8 @@ export default function PropertyXHomePage() {
     }}>
       <PxTopNotificationBar
         variant="button"
-        message="Get a lifetime account for a one-time payment of $99"
-        buttonText="Get started"
+        message="33 000 biens à louer et à vendre dans toute la Suisse."
+        buttonText="Voir les biens"
         buttonHref="/acheter"
         dismissKey="home-promo"
       />

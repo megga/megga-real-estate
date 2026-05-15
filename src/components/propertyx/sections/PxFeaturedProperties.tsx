@@ -31,7 +31,10 @@
 //     </Container>
 //   </section>
 
+import { Link } from 'react-router-dom'
 import { PX, PxIcon, PxFigmaIcon, PxCircleButton, PxButton } from '..'
+import { useMarketListings } from '@/hooks/useMarketListings'
+import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface FeaturedItem {
   id: string
@@ -42,7 +45,7 @@ interface FeaturedItem {
   image: string
 }
 
-const FEATURED: FeaturedItem[] = [
+const FEATURED_FALLBACK: FeaturedItem[] = [
   {
     id: 'feat-1',
     badge: 'À louer',
@@ -260,7 +263,29 @@ function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) 
   )
 }
 
+function toFeaturedItem(listing: ListingCardData): FeaturedItem {
+  const isRent = listing.context === 'rent'
+  return {
+    id: listing.id,
+    badge: isRent ? 'À louer' : 'À vendre',
+    title: listing.title,
+    description: listing.description?.slice(0, 140)
+      || `${listing.surface_m2 ?? '—'} m² · ${listing.rooms ?? '—'} pièces`,
+    address: [listing.address, listing.city].filter(Boolean).join(', ') || listing.canton || '',
+    image: listing.photos?.[0] ?? '',
+  }
+}
+
 export default function PxFeaturedProperties() {
+  // 2 cards visibles dans le layout. On fetch quelques biens supplémentaires
+  // pour pouvoir filtrer ceux qui n'ont pas de photo, puis on slice à 2.
+  const { data } = useMarketListings({ context: 'buy', sort: 'newest' })
+  const realFeatured = (data?.pages[0]?.listings ?? [])
+    .filter(l => l.photos && l.photos.length > 0)
+    .slice(0, 2)
+    .map(toFeaturedItem)
+  const featured = realFeatured.length === 2 ? realFeatured : FEATURED_FALLBACK
+
   return (
     <section style={{
       // Figma : px-24 py-0 — pas de padding vertical sur la section
@@ -383,8 +408,12 @@ export default function PxFeaturedProperties() {
             alignItems: 'center',
             gap: 24,
           }}>
-            <FeaturedCard p={FEATURED[0]} />
-            <FeaturedCard p={FEATURED[1]} peek />
+            <Link to={`/propriete/${featured[0].id}`} style={{ textDecoration: 'none' }}>
+              <FeaturedCard p={featured[0]} />
+            </Link>
+            <Link to={`/propriete/${featured[1].id}`} style={{ textDecoration: 'none' }}>
+              <FeaturedCard p={featured[1]} peek />
+            </Link>
           </div>
         </div>
 
