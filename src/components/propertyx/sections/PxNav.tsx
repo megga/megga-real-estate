@@ -26,6 +26,9 @@ interface PxNavProps {
   // glass était l'ancien prop "overlay sur hero" — Figma a la nav en flow normal
   // donc on l'ignore mais on garde pour backward compat avec PropertyXHomePage
   glass?: boolean
+  // Background optionnel — par défaut blanc (neutral100). Permet aux pages
+  // sur fond gris (ex. /faq) de fondre la nav avec le fond de page.
+  bg?: string
 }
 
 const NAV_LINKS = [
@@ -35,7 +38,7 @@ const NAV_LINKS = [
   { label: 'Vendre', to: '/vendre' },
 ] as const
 
-export default function PxNav(_props: PxNavProps) {
+export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
   return (
     <header style={{
       // Section : py-24 px-0, flex-col items-center
@@ -43,9 +46,10 @@ export default function PxNav(_props: PxNavProps) {
       paddingBottom: 24,
       paddingLeft: 0,
       paddingRight: 0,
-      // Bg transparent : la nav prend la couleur de la page (unifiée avec
-      // le #FAFAFB de Submit Property et le #FFFFFF des autres Property X).
-      background: 'transparent',
+      // Bg paramétrable via le prop `bg` (default neutral100 blanc).
+      // Submit Property + FAQ passent `bg={PX.neutral200}` ou `bg="transparent"`
+      // pour unifier la nav avec le fond de page non-blanc.
+      background: bg,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',

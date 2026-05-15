@@ -54,6 +54,10 @@ export type PxFigmaIconName =
   | 'check'       // Stroke checkmark (Submit Property hero badge, amenity checked)
   // Contact page badges
   | 'badge-faq'   // V29 : message bubble (FAQs section)
+  // Blog post category badges
+  | 'blog-article'   // V50 : article/category icon
+  | 'blog-news'      // V41 : news icon
+  | 'blog-resource'  // V24 : resource icon
 
 interface PxFigmaIconProps {
   name: PxFigmaIconName

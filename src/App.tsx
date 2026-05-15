@@ -7,10 +7,13 @@ import { AuthProvider } from '@/hooks/useAuth'
 import HomePage from '@/pages/public/HomePage'
 import PropertyXHomePage from '@/pages/public/PropertyXHomePage'
 import PropertyXAboutPage from '@/pages/public/PropertyXAboutPage'
+import PropertyXFAQPage from '@/pages/public/PropertyXFAQPage'
+import PropertyXListingsPage from '@/pages/public/PropertyXListingsPage'
 import PropertyXSinglePropertyPage from '@/pages/public/PropertyXSinglePropertyPage'
 import PropertyXContactPage from '@/pages/public/PropertyXContactPage'
 import PropertyXComingSoonPage from '@/pages/public/PropertyXComingSoonPage'
 import PropertyXSubmitPropertyPage from '@/pages/public/PropertyXSubmitPropertyPage'
+import PropertyXBlogPostPage from '@/pages/public/PropertyXBlogPostPage'
 import LoginPage from '@/pages/public/LoginPage'
 // RegisterPage removed — registration is now handled by the email-first LoginPage
 import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
@@ -34,6 +37,7 @@ const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
 const PublierPage = lazy(() => import('@/pages/public/PublierPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
 const PropertyXPasswordProtectedPage = lazy(() => import('@/pages/public/PropertyXPasswordProtectedPage'))
+const PropertyXCityPropertiesPage = lazy(() => import('@/pages/public/PropertyXCityPropertiesPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
@@ -198,10 +202,13 @@ export default function App() {
               <Route path="/" element={<PropertyXHomePage />} />
               <Route path="/home-legacy" element={<HomePage />} />
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
+              <Route path="/faq" element={<PropertyXFAQPage />} />
+              <Route path="/properties" element={<PropertyXListingsPage />} />
               <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
               <Route path="/contact" element={<PropertyXContactPage />} />
               <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
               <Route path="/publier-bien" element={<PropertyXSubmitPropertyPage />} />
+              <Route path="/blog/example" element={<PropertyXBlogPostPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -221,6 +228,7 @@ export default function App() {
               <Route path="/publier" element={<PublierPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/password" element={<PropertyXPasswordProtectedPage />} />
+              <Route path="/properties-by-location" element={<PropertyXCityPropertiesPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/visite/:id/modifier" element={<VisitManagePage />} />
               <Route path="/visite/:id/feedback" element={<VisitFeedbackPage />} />

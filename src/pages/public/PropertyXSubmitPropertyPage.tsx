@@ -26,7 +26,9 @@ export default function PropertyXSubmitPropertyPage() {
       fontFamily: PX.font.sans,
       color: PX.ink,
     }}>
-      <PxNav />
+      {/* bg='transparent' : la nav se fond dans le page bg #FAFAFB.
+          Sinon par défaut PxNav force un fond blanc qui casse l'unification. */}
+      <PxNav bg="transparent" />
       <PxSubmitPropertyHero />
       <PxSubmitPropertyForm />
       <PxPostPropertyEN />
