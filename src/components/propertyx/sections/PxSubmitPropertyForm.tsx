@@ -297,7 +297,6 @@ function FormTextArea({ placeholder }: { placeholder: string }) {
         color: PX.neutral400,
         width: 14,
         height: 14,
-        transform: 'rotate(45deg)',
         pointerEvents: 'none',
       }}>
         <PxFigmaIcon name="form-edit" size={14} color={PX.neutral400} />
@@ -509,7 +508,6 @@ export default function PxSubmitPropertyForm() {
                     justifyContent: 'center',
                     width: 14,
                     height: 14,
-                    transform: 'rotate(45deg)',
                   }}>
                     <PxFigmaIcon name="form-edit" size={14} color={PX.neutral400} />
                   </span>
