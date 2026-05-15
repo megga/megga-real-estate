@@ -15,6 +15,22 @@
 > - Catalogue de mapping `Figma node ID → composant React` : [src/lib/figma-catalog.ts](src/lib/figma-catalog.ts)
 > - **Avant** de migrer un node Figma : consulter le catalogue. **Après** : l'enrichir.
 > - Remplace Figma Code Connect (qui nécessite un plan Org/Enterprise).
+>
+> **🎨 Design System Property X — SOURCE DE VÉRITÉ INTERNE :**
+> Toutes les pages `/design-system/*` (11 pages : Buttons, Links, Badges, Lists, Icons, Icon Fonts,
+> Avatars, Inputs, Colors, Typography, Shadows) sont la source de vérité ABSOLUE pour les
+> composants et tokens du marketplace.
+>
+> **AVANT** de créer une nouvelle page ou un nouveau composant :
+> 1. Consulter `/design-system/<page>` dans le navigateur pour voir les atoms disponibles
+> 2. Vérifier [src/lib/figma-catalog.ts](src/lib/figma-catalog.ts) pour le mapping Figma → React
+> 3. **NE JAMAIS recréer** un atom existant (PxButton, PxBadge, PxCheckbox, PxLink, PxInput, etc.)
+> 4. **TOUJOURS utiliser les tokens** `PX.*` (couleurs, ombres, radii, font, spacing) — pas de valeurs hardcodées
+> 5. Pour ajouter un nouvel atom : valider d'abord qu'il n'existe pas, puis enrichir la DS
+>
+> Routes DS internes :
+> - Basic Styles : `/design-system/colors` · `/design-system/typography` · `/design-system/shadows`
+> - Components : `/design-system/buttons` · `/links` · `/badges` · `/lists` · `/icons` · `/iconfonts` · `/avatars` · `/inputs`
 
 ---
 

@@ -15,6 +15,17 @@ import PropertyXComingSoonPage from '@/pages/public/PropertyXComingSoonPage'
 import PropertyXSubmitPropertyPage from '@/pages/public/PropertyXSubmitPropertyPage'
 import PropertyXBlogPostPage from '@/pages/public/PropertyXBlogPostPage'
 import PropertyXAgentProfilePage from '@/pages/public/PropertyXAgentProfilePage'
+import PropertyXDesignSystemButtonsPage from '@/pages/public/PropertyXDesignSystemButtonsPage'
+import PropertyXDesignSystemLinksPage from '@/pages/public/PropertyXDesignSystemLinksPage'
+import PropertyXDesignSystemBadgesPage from '@/pages/public/PropertyXDesignSystemBadgesPage'
+import PropertyXDesignSystemListsPage from '@/pages/public/PropertyXDesignSystemListsPage'
+import PropertyXDesignSystemIconsPage from '@/pages/public/PropertyXDesignSystemIconsPage'
+import PropertyXDesignSystemIconFontsPage from '@/pages/public/PropertyXDesignSystemIconFontsPage'
+import PropertyXDesignSystemAvatarsPage from '@/pages/public/PropertyXDesignSystemAvatarsPage'
+import PropertyXDesignSystemInputsPage from '@/pages/public/PropertyXDesignSystemInputsPage'
+import PropertyXDesignSystemColorsPage from '@/pages/public/PropertyXDesignSystemColorsPage'
+import PropertyXDesignSystemTypographyPage from '@/pages/public/PropertyXDesignSystemTypographyPage'
+import PropertyXDesignSystemShadowsPage from '@/pages/public/PropertyXDesignSystemShadowsPage'
 import BlogV2Page from '@/pages/public/BlogV2Page'
 import LoginPage from '@/pages/public/LoginPage'
 // RegisterPage removed — registration is now handled by the email-first LoginPage
@@ -213,6 +224,17 @@ export default function App() {
               <Route path="/blog" element={<BlogV2Page />} />
               <Route path="/blog/example" element={<PropertyXBlogPostPage />} />
               <Route path="/agent/example" element={<PropertyXAgentProfilePage />} />
+              <Route path="/design-system/buttons" element={<PropertyXDesignSystemButtonsPage />} />
+              <Route path="/design-system/links" element={<PropertyXDesignSystemLinksPage />} />
+              <Route path="/design-system/badges" element={<PropertyXDesignSystemBadgesPage />} />
+              <Route path="/design-system/lists" element={<PropertyXDesignSystemListsPage />} />
+              <Route path="/design-system/icons" element={<PropertyXDesignSystemIconsPage />} />
+              <Route path="/design-system/iconfonts" element={<PropertyXDesignSystemIconFontsPage />} />
+              <Route path="/design-system/avatars" element={<PropertyXDesignSystemAvatarsPage />} />
+              <Route path="/design-system/inputs" element={<PropertyXDesignSystemInputsPage />} />
+              <Route path="/design-system/colors" element={<PropertyXDesignSystemColorsPage />} />
+              <Route path="/design-system/typography" element={<PropertyXDesignSystemTypographyPage />} />
+              <Route path="/design-system/shadows" element={<PropertyXDesignSystemShadowsPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
               <Route path="/login" element={<LoginPage />} />

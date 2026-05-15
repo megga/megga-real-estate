@@ -11,7 +11,7 @@
 import { useRef, useState, type DragEvent, type ChangeEvent, type ReactNode } from 'react'
 import { PX } from './tokens'
 import PxButton from './PxButton'
-import PxIcon from './PxIcon'
+import PxFigmaIcon from './PxFigmaIcon'
 
 export type PxUploadCardVariant = 'filled' | 'outline'
 
@@ -126,7 +126,7 @@ export default function PxUploadCard({
         placeItems: 'center',
         marginBottom: 4,
       }}>
-        {icon ?? <PxIcon name="gallery" size={20} color={iconColor} strokeWidth={1.7} />}
+        {icon ?? <PxFigmaIcon name="upload-grid" size={20} color={iconColor} />}
       </div>
 
       {/* Titre */}
@@ -152,11 +152,12 @@ export default function PxUploadCard({
         marginBottom: 8,
       }}>{hint}</p>
 
-      {/* CTA */}
+      {/* CTA — arrow-up icon (Figma exact : "Line Rounded/Arrow down" symbol qui dessine en fait un up arrow) */}
       <PxButton
         type="button"
         variant={isFilled ? 'invert' : 'primary'}
         size="sm"
+        icon={<PxFigmaIcon name="arrow-up" size={10} color={isFilled ? PX.neutral100 : PX.neutral700} />}
         onClick={(e) => { e.stopPropagation(); handleClick() }}>
         {buttonLabel}
       </PxButton>

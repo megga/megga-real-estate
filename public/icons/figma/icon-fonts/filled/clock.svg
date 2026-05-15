@@ -1,0 +1,6 @@
+<svg preserveAspectRatio="xMidYMid meet" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Clock">
+<path id="Vector" d="M9 18C13.9706 18 18 13.9706 18 9C18 4.02944 13.9706 0 9 0C4.02944 0 0 4.02944 0 9C0 13.9706 4.02944 18 9 18Z" fill="currentColor"/>
+<path id="Vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M8.99991 3.10344C9.51411 3.10344 9.93095 3.52028 9.93095 4.03448V8.61435L12.141 10.8244C12.5046 11.188 12.5046 11.7775 12.141 12.1411C11.7774 12.5047 11.1879 12.5047 10.8243 12.1411L8.06888 9.38564V4.03448C8.06888 3.52028 8.48571 3.10344 8.99991 3.10344Z" fill="currentColor"/>
+</g>
+</svg>
