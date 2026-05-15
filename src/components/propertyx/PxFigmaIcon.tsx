@@ -54,6 +54,11 @@ export type PxFigmaIconName =
   | 'blog-article'   // V50 : article/category icon
   | 'blog-news'      // V41 : news icon
   | 'blog-resource'  // V24 : resource icon
+  // Agent profile page (👤 Agent Single — Figma node 9552:21460)
+  | 'agent-briefcase' // V46 : briefcase filled (Position info)
+  | 'agent-mail'      // V38 : envelope filled (Email info)
+  | 'agent-phone'     // V39 : phone filled (Phone info)
+  | 'agent-sparkle'   // V30 : sparkle drop (badge "Our blog" eyebrow)
 
 interface PxFigmaIconProps {
   name: PxFigmaIconName
