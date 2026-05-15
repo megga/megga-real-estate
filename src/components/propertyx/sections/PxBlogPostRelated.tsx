@@ -171,11 +171,13 @@ export default function PxBlogPostRelated() {
       paddingBottom: 120,
       paddingLeft: 24,
       paddingRight: 24,
+      minHeight: 897,  // Figma exact (Articles section height)
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       gap: 40,
       background: PX.pageBg,
+      boxSizing: 'border-box',
     }}>
       {/* Top Content */}
       <div style={{

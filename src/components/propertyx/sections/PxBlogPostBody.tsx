@@ -71,13 +71,16 @@ export default function PxBlogPostBody() {
       paddingBottom: 120,
       paddingLeft: 24,
       paddingRight: 24,
+      minHeight: 2677,  // Figma exact (rich text section height)
       display: 'flex',
       justifyContent: 'center',
       background: PX.pageBg,
+      boxSizing: 'border-box',
     }}>
       <article style={{
         width: 689,
         maxWidth: '100%',
+        minHeight: 2437,  // Figma exact (rich text inner content height)
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
