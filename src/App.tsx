@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/hooks/useAuth'
 
 // Static imports — shell + most-visited pages (loaded immediately)
-import HomePage from '@/pages/public/HomePage'
 import PropertyXHomePage from '@/pages/public/PropertyXHomePage'
 import PropertyXAboutPage from '@/pages/public/PropertyXAboutPage'
 import PropertyXFAQPage from '@/pages/public/PropertyXFAQPage'
@@ -61,7 +60,7 @@ const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
 const AgencyProfilePage = lazy(() => import('@/pages/public/AgencyProfilePage'))
 const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
 
-// Lazy-loaded agent pages (except ActionBoardPage which is static)
+// Lazy-loaded agent pages
 const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
 const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
 const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
@@ -214,7 +213,6 @@ export default function App() {
             <Routes>
               {/* Public */}
               <Route path="/" element={<PropertyXHomePage />} />
-              <Route path="/home-legacy" element={<HomePage />} />
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
               <Route path="/faq" element={<PropertyXFAQPage />} />
               <Route path="/properties" element={<PropertyXListingsPage />} />
