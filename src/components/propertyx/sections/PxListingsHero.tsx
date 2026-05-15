@@ -17,7 +17,7 @@
 //     </Container>
 //   </section>
 
-import { PX, PxIcon } from '..'
+import { PX, PxFigmaIcon } from '..'
 
 function ForSaleBadge() {
   return (
@@ -47,7 +47,8 @@ function ForSaleBadge() {
           flexShrink: 0,
         }}
       >
-        <PxIcon name="star" size={14} color={PX.neutral100} strokeWidth={1.6} />
+        {/* Figma V35 — Small Icon "tag" (For sale badge, filled diamant) */}
+        <PxFigmaIcon name="tag" size={14.857} color={PX.neutral100} />
       </span>
       {/* Text 16/Medium white tracking -0.48 */}
       <span
@@ -101,7 +102,7 @@ function BrowserSelect({ label }: { label: string }) {
       >
         {label}
       </span>
-      <PxIcon name="chevron-down" size={16} color={PX.neutral500} />
+      <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
     </div>
   )
 }
@@ -283,7 +284,7 @@ export default function PxListingsHero() {
                 placeItems: 'center',
               }}
             >
-              <PxIcon name="search" size={22} color={PX.neutral100} strokeWidth={2} />
+              <PxFigmaIcon name="search" size={22} color={PX.neutral100} />
             </button>
           </div>
           <BrowserSelect label="Location" />
@@ -321,7 +322,7 @@ export default function PxListingsHero() {
             >
               Type
             </span>
-            <PxIcon name="chevron-down" size={16} color={PX.neutral500} />
+            <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
           </div>
         </div>
       </div>

@@ -10,7 +10,7 @@
 //     </Cards Wrapper>
 //   </section>
 
-import { PX, PxIcon } from '..'
+import { PX, PxFigmaIcon } from '..'
 
 interface Listing {
   id: string
@@ -29,8 +29,9 @@ const LISTINGS: Listing[] = [
     id: 'la',
     title: 'Home in Los Angeles Heart',
     address: '2238 Stradella Rd, LA',
-    // Unsplash : intérieur moderne lumineux LA-ish
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1400&q=85',
+    // Unsplash : intérieur living moderne, palette neutre/bois, lumière chaude
+    // (proche vibe Figma "Home in Los Angeles Heart" — pas de teinte bleue).
+    image: 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1400&q=85',
     sqft: '8,392 sqtf',
     beds: '3',
     baths: '2',
@@ -39,9 +40,9 @@ const LISTINGS: Listing[] = [
   {
     id: 'sf',
     title: 'Modern Loft in San Francisco',
-    address: '1,334 sqtf',
-    // Unsplash : loft moderne avec verrière
-    image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1400&q=85',
+    address: '850 Folsom St, SF',
+    // Unsplash : loft / cuisine ouverte avec verrière industrielle
+    image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1400&q=85',
     sqft: '1,334 sqtf',
     beds: '1',
     baths: '2',
@@ -64,8 +65,9 @@ function ForSaleCardBadge() {
         borderRadius: PX.radius.pill,
       }}
     >
-      {/* Star icon size 16 white (Figma : size-16, pas de circle inner) */}
-      <PxIcon name="star" size={16} color={PX.neutral100} strokeWidth={1.6} />
+      {/* Figma V35 — Small Icon "tag" (For sale badge, filled diamant
+          15.207×15.207 centré dans un conteneur 16×16). */}
+      <PxFigmaIcon name="tag" size={15.207} color={PX.neutral100} />
       <span
         style={{
           paddingTop: 2,
@@ -97,7 +99,7 @@ function AmenityItem({ icon, value }: { icon: 'surface' | 'bed' | 'bath' | 'park
           flexShrink: 0,
         }}
       >
-        <PxIcon name={icon} size={20} color={PX.neutral400} strokeWidth={1.7} />
+        <PxFigmaIcon name={icon} size={20} color={PX.neutral400} />
       </span>
       <span
         style={{
@@ -181,7 +183,7 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
               flexShrink: 0,
             }}
           >
-            <PxIcon name="plus" size={16} color={PX.neutral700} strokeWidth={2} />
+            <PxFigmaIcon name="plus" size={16} color={PX.neutral700} />
           </button>
         </div>
       </div>
@@ -212,7 +214,7 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
         </h3>
         {/* Details : location icon-20 + 16/medium neutral700 */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <PxIcon name="location" size={20} color={PX.neutral700} strokeWidth={1.7} />
+          <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
           <span
             style={{
               paddingTop: 6,
@@ -279,7 +281,7 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
           >
             Contact agent
           </span>
-          <PxIcon name="chevron-right" size={16} color={PX.neutral700} strokeWidth={2} />
+          <PxFigmaIcon name="chevron-right" size={16} color={PX.neutral700} />
         </a>
       </div>
     </article>
