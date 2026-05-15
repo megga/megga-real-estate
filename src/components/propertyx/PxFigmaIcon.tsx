@@ -50,6 +50,7 @@ export type PxFigmaIconName =
   | 'form-edit'   // V30 : pencil/edit (textarea Message)
   | 'currency'    // V55 : dollar sign in a circle (Listing price)
   | 'link'        // V55 : chain link (Listing images URL)
+  | 'home-simple' // V36 : simple solid house silhouette (form headers, listing title)
   // Contact page badges
   | 'badge-faq'   // V29 : message bubble (FAQs section)
 

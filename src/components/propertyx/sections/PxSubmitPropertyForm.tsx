@@ -475,12 +475,12 @@ export default function PxSubmitPropertyForm() {
         {/* ─── Form Wrapper 2 : Property information ────────────────── */}
         <FormCard
           headerTitle="2. Property information"
-          headerIcon={<PxFigmaIcon name="home-poi" size={14} color={PX.neutral100} />}
+          headerIcon={<PxFigmaIcon name="home-simple" size={14} color={PX.neutral100} />}
         >
-          {/* Listing title : 1 col w-580 — Figma : icône house (V36) */}
+          {/* Listing title : 1 col w-580 — Figma : icône house simple (V36) */}
           <FormField label="Listing title" width={580}>
             <FormInput
-              icon={<PxFigmaIcon name="home-poi" size={16} color={PX.neutral400} />}
+              icon={<PxFigmaIcon name="home-simple" size={16} color={PX.neutral400} />}
               placeholder="Full name"
             />
           </FormField>
