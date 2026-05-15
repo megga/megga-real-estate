@@ -46,6 +46,9 @@ export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
       paddingBottom: 24,
       paddingLeft: 0,
       paddingRight: 0,
+      // Bg paramétrable via le prop `bg` (default neutral100 blanc).
+      // Submit Property + FAQ passent `bg={PX.neutral200}` ou `bg="transparent"`
+      // pour unifier la nav avec le fond de page non-blanc.
       background: bg,
       display: 'flex',
       flexDirection: 'column',
