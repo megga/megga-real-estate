@@ -9,6 +9,7 @@
 //   - desktop (>768px) : layout Figma 1 large + 4 tiles
 //   - mobile  (≤768px) : 1 colonne, photo principale puis grille 2×2 réduite
 
+import { useTranslation } from 'react-i18next'
 import { PX } from '..'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 
@@ -33,7 +34,9 @@ const tileStyle: React.CSSProperties = {
   height: '100%',
 }
 
-export default function PxSinglePropertyHero({ photos, title = 'Bien immobilier' }: PxSinglePropertyHeroProps) {
+export default function PxSinglePropertyHero({ photos, title }: PxSinglePropertyHeroProps) {
+  const { t } = useTranslation()
+  const resolvedTitle = title ?? t('marketplaceProperty.defaultTitle')
   const isMobile = useIsMobile()
   const hasPhotos = !!photos && photos.length > 0
   const count = photos?.length ?? 0
@@ -70,7 +73,7 @@ export default function PxSinglePropertyHero({ photos, title = 'Bien immobilier'
           borderRadius: PX.radius.small,
           background: PX.neutral200,
         }}>
-          {main ? <img src={main} alt={title} style={tileStyle} /> : null}
+          {main ? <img src={main} alt={resolvedTitle} style={tileStyle} /> : null}
         </div>
 
         <div style={{
@@ -80,10 +83,10 @@ export default function PxSinglePropertyHero({ photos, title = 'Bien immobilier'
           gap: isMobile ? 8 : 12,
           aspectRatio: isMobile ? '2 / 1' : undefined,
         }}>
-          <Tile src={t1} alt={`${title} — vue 2`} index={1} extraCount={count > 5 ? count - 5 : 0} />
-          <Tile src={t2} alt={`${title} — vue 3`} index={2} />
-          <Tile src={t3} alt={`${title} — vue 4`} index={3} />
-          <Tile src={t4} alt={`${title} — vue 5`} index={4} extraOverlay={count > 5} extraCount={count - 5} />
+          <Tile src={t1} alt={`${resolvedTitle} — 2`} index={1} extraCount={count > 5 ? count - 5 : 0} />
+          <Tile src={t2} alt={`${resolvedTitle} — 3`} index={2} />
+          <Tile src={t3} alt={`${resolvedTitle} — 4`} index={3} />
+          <Tile src={t4} alt={`${resolvedTitle} — 5`} index={4} extraOverlay={count > 5} extraCount={count - 5} />
         </div>
       </div>
     </section>

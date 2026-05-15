@@ -1007,5 +1007,69 @@
     "perMonth": "/Monat",
     "seoTitle": "Mietobjekte in der Schweiz",
     "seoDescription": "Entdecken Sie Wohnungen, Häuser und Villen zur Miete in der Schweiz. Filtern nach Kanton, Miete, Zimmer, möbliert und Verfügbarkeit."
+  },
+  "marketplaceProperty": {
+    "loading": "Inserat wird geladen…",
+    "notFound": "Inserat nicht gefunden.",
+    "defaultTitle": "Immobilie",
+    "favoriteAdd": "Zu Favoriten hinzufügen",
+    "favoriteRemove": "Aus Favoriten entfernen",
+    "contact": {
+      "title": "Weitere Informationen anfragen",
+      "subtitle": "Die Agentur meldet sich innerhalb von 24 Stunden bei Ihnen, um Ihre Fragen zu beantworten oder eine Besichtigung zu organisieren.",
+      "fullName": "Vollständiger Name",
+      "email": "E-Mail-Adresse",
+      "phone": "Telefonnummer (optional)",
+      "submit": "Anfrage senden",
+      "submitting": "Wird gesendet…",
+      "successTitle": "Anfrage gesendet ✓",
+      "successBody": "Die Agentur antwortet innerhalb von 24 Stunden. Bitte prüfen Sie auch Ihren Spam-Ordner.",
+      "consent": "Mit dem Absenden dieses Formulars stimmen Sie zu, dass MEGGA Ihre Kontaktdaten an die für die Immobilie zuständige Agentur weiterleitet.",
+      "errorNameRequired": "Bitte geben Sie Ihren vollständigen Namen an.",
+      "errorEmailInvalid": "Ungültige E-Mail-Adresse.",
+      "errorGeneric": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es in wenigen Augenblicken erneut."
+    },
+    "pricing": {
+      "sublabelRent": "Monatliche Miete inkl. Nebenkosten",
+      "sublabelSale": "Nettoverkaufspreis"
+    },
+    "agency": {
+      "title": "Agentur kontaktieren",
+      "intro": "Kontaktieren Sie die Verwaltung direkt über das obige Formular oder besuchen Sie das ursprüngliche Inserat.",
+      "publishedOn": "Inserat veröffentlicht auf {{portal}}",
+      "viewOriginal": "Ursprüngliches Inserat ansehen →",
+      "fallbackName": "Lokale Verwaltung"
+    },
+    "body": {
+      "aboutTitle": "Über die Immobilie",
+      "amenitiesTitle": "Ausstattung"
+    },
+    "cta": {
+      "badge": "Besichtigung & Kontakt",
+      "title": "Interessieren Sie sich für diese Immobilie?",
+      "subtitle": "Vereinbaren Sie eine Besichtigung oder erhalten Sie das vollständige Dossier – die Agentur meldet sich innerhalb von 24 Stunden.",
+      "button": "Besichtigung anfragen",
+      "imageAlt": "Vorschau des Inserats auf einem Tablet"
+    },
+    "related": {
+      "title": "Ähnliche Immobilien",
+      "viewAll": "Alle Immobilien",
+      "viewAllShort": "Alle ansehen",
+      "viewItem": "Immobilie ansehen",
+      "badgeRent": "Zu vermieten",
+      "badgeSale": "Zu verkaufen"
+    },
+    "amenities": {
+      "balcony": "Balkon",
+      "swimmingPool": "Schwimmbad",
+      "niceView": "Schöne Aussicht",
+      "garage": "Garage",
+      "parking": "Parkplatz",
+      "elevator": "Aufzug",
+      "fireplace": "Kamin",
+      "furnished": "Möbliert",
+      "minergie": "Minergie",
+      "newBuilding": "Neubau"
+    }
   }
 }

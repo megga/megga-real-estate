@@ -14,6 +14,7 @@
 
 import type { CSSProperties, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { PX, PxFigmaIcon, PxIcon } from '..'
 import { useRelatedListings } from '@/hooks/useRelatedListings'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -65,9 +66,13 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
   // Figma : badge For rent utilise "Small Icon/V34" = key, For sale utilise "V35" = tag.
   const badgeIcon = data.badge.kind === 'rent' ? 'key' : 'tag'
   const isMobile = useIsMobile()
+  const { t } = useTranslation()
   const { user } = useAuth()
   const { isFavorite, toggleFavorite } = useFavorites()
   const favorite = data.id ? isFavorite(data.id) : false
+  const badgeLabel = data.badge.kind === 'rent'
+    ? t('marketplaceProperty.related.badgeRent')
+    : t('marketplaceProperty.related.badgeSale')
 
   const handleFavoriteClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
@@ -130,12 +135,12 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
               color: PX.neutral100,
               paddingTop: 2,
             }}>
-              {data.badge.label}
+              {badgeLabel}
             </span>
           </div>
           <button
             type="button"
-            aria-label={favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            aria-label={favorite ? t('marketplaceProperty.favoriteRemove') : t('marketplaceProperty.favoriteAdd')}
             aria-pressed={favorite}
             onClick={handleFavoriteClick}
             style={{
@@ -222,7 +227,7 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
             color: PX.neutral700,
             paddingTop: 2,
           }}>
-            Voir le bien
+            {t('marketplaceProperty.related.viewItem')}
           </span>
           <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
         </Link>
@@ -278,6 +283,7 @@ function listingToCardData(listing: ListingCardData): PropertyCardData {
 
 export default function PxSinglePropertyRelated({ currentListing }: PxSinglePropertyRelatedProps) {
   const isMobile = useIsMobile()
+  const { t } = useTranslation()
   // Strip prefix (market-/internal-) pour la query .neq sur le raw id
   const rawId = currentListing?.id.replace(/^(market-|internal-)/, '')
   const browseHref = currentListing?.context === 'rent' ? '/louer' : '/acheter'
@@ -323,7 +329,7 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
             letterSpacing: isMobile ? '-0.84px' : '-1.44px',
             color: PX.neutral700,
           }}>
-            Biens similaires
+            {t('marketplaceProperty.related.title')}
           </h2>
           <Link
             to={browseHref}
@@ -344,7 +350,7 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
               color: PX.neutral700,
               paddingTop: 2,
             }}>
-              {isMobile ? 'Voir tout' : 'Tous les biens'}
+              {isMobile ? t('marketplaceProperty.related.viewAllShort') : t('marketplaceProperty.related.viewAll')}
             </span>
             <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
           </Link>

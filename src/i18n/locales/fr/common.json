@@ -1012,5 +1012,69 @@
     "perMonth": "/mois",
     "seoTitle": "Biens à louer en Suisse",
     "seoDescription": "Découvrez les appartements, maisons et villas à louer en Suisse. Filtrez par canton, loyer, pièces, meublé et disponibilité."
+  },
+  "marketplaceProperty": {
+    "loading": "Chargement du bien…",
+    "notFound": "Bien introuvable.",
+    "defaultTitle": "Bien immobilier",
+    "favoriteAdd": "Ajouter aux favoris",
+    "favoriteRemove": "Retirer des favoris",
+    "contact": {
+      "title": "Demander plus d'informations",
+      "subtitle": "L'agence vous recontacte sous 24 h pour répondre à vos questions ou organiser une visite.",
+      "fullName": "Nom complet",
+      "email": "Adresse e-mail",
+      "phone": "Numéro de téléphone (optionnel)",
+      "submit": "Envoyer ma demande",
+      "submitting": "Envoi en cours…",
+      "successTitle": "Demande envoyée ✓",
+      "successBody": "L'agence vous répond sous 24 h. Pensez à vérifier vos spams.",
+      "consent": "En envoyant ce formulaire, vous acceptez que MEGGA transmette vos coordonnées à l'agence en charge du bien.",
+      "errorNameRequired": "Merci d'indiquer votre nom complet.",
+      "errorEmailInvalid": "Adresse e-mail invalide.",
+      "errorGeneric": "Une erreur est survenue. Merci de réessayer dans quelques instants."
+    },
+    "pricing": {
+      "sublabelRent": "Loyer mensuel charges comprises",
+      "sublabelSale": "Prix de vente net"
+    },
+    "agency": {
+      "title": "Contactez l'agence",
+      "intro": "Contactez la régie directement via le formulaire ci-dessus ou consultez l'annonce d'origine.",
+      "publishedOn": "Annonce publiée sur {{portal}}",
+      "viewOriginal": "Voir l'annonce d'origine →",
+      "fallbackName": "Régie locale"
+    },
+    "body": {
+      "aboutTitle": "À propos du bien",
+      "amenitiesTitle": "Équipements"
+    },
+    "cta": {
+      "badge": "Visite & contact",
+      "title": "Ce bien vous intéresse ?",
+      "subtitle": "Demandez une visite ou recevez le dossier complet : l'agence vous recontacte sous 24 heures.",
+      "button": "Demander une visite",
+      "imageAlt": "Aperçu de la fiche bien sur tablette"
+    },
+    "related": {
+      "title": "Biens similaires",
+      "viewAll": "Tous les biens",
+      "viewAllShort": "Voir tout",
+      "viewItem": "Voir le bien",
+      "badgeRent": "À louer",
+      "badgeSale": "À vendre"
+    },
+    "amenities": {
+      "balcony": "Balcon",
+      "swimmingPool": "Piscine",
+      "niceView": "Belle vue",
+      "garage": "Garage",
+      "parking": "Parking",
+      "elevator": "Ascenseur",
+      "fireplace": "Cheminée",
+      "furnished": "Meublé",
+      "minergie": "Minergie",
+      "newBuilding": "Construction neuve"
+    }
   }
 }

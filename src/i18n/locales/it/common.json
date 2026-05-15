@@ -1007,5 +1007,69 @@
     "perMonth": "/mese",
     "seoTitle": "Immobili in affitto in Svizzera",
     "seoDescription": "Scopri appartamenti, case e ville in affitto in Svizzera. Filtra per cantone, affitto, stanze, arredato e disponibilità."
+  },
+  "marketplaceProperty": {
+    "loading": "Caricamento dell'annuncio…",
+    "notFound": "Annuncio non trovato.",
+    "defaultTitle": "Immobile",
+    "favoriteAdd": "Aggiungi ai preferiti",
+    "favoriteRemove": "Rimuovi dai preferiti",
+    "contact": {
+      "title": "Richiedere maggiori informazioni",
+      "subtitle": "L'agenzia La ricontatta entro 24 ore per rispondere alle Sue domande o organizzare una visita.",
+      "fullName": "Nome completo",
+      "email": "Indirizzo e-mail",
+      "phone": "Numero di telefono (opzionale)",
+      "submit": "Inviare la richiesta",
+      "submitting": "Invio in corso…",
+      "successTitle": "Richiesta inviata ✓",
+      "successBody": "L'agenzia risponde entro 24 ore. Si ricordi di controllare anche la cartella spam.",
+      "consent": "Inviando questo modulo, accetta che MEGGA trasmetta i Suoi dati di contatto all'agenzia responsabile dell'immobile.",
+      "errorNameRequired": "Indichi il Suo nome completo.",
+      "errorEmailInvalid": "Indirizzo e-mail non valido.",
+      "errorGeneric": "Si è verificato un errore. Riprovi tra qualche istante."
+    },
+    "pricing": {
+      "sublabelRent": "Affitto mensile spese incluse",
+      "sublabelSale": "Prezzo di vendita netto"
+    },
+    "agency": {
+      "title": "Contattare l'agenzia",
+      "intro": "Contatti l'agenzia direttamente tramite il modulo qui sopra o consulti l'annuncio originale.",
+      "publishedOn": "Annuncio pubblicato su {{portal}}",
+      "viewOriginal": "Vedere l'annuncio originale →",
+      "fallbackName": "Agenzia locale"
+    },
+    "body": {
+      "aboutTitle": "Informazioni sull'immobile",
+      "amenitiesTitle": "Dotazioni"
+    },
+    "cta": {
+      "badge": "Visita & contatto",
+      "title": "Interessato a questo immobile?",
+      "subtitle": "Richieda una visita o riceva il dossier completo — l'agenzia risponde entro 24 ore.",
+      "button": "Richiedere una visita",
+      "imageAlt": "Anteprima della scheda immobile su tablet"
+    },
+    "related": {
+      "title": "Immobili simili",
+      "viewAll": "Tutti gli immobili",
+      "viewAllShort": "Vedi tutti",
+      "viewItem": "Vedi immobile",
+      "badgeRent": "In affitto",
+      "badgeSale": "In vendita"
+    },
+    "amenities": {
+      "balcony": "Balcone",
+      "swimmingPool": "Piscina",
+      "niceView": "Bella vista",
+      "garage": "Garage",
+      "parking": "Parcheggio",
+      "elevator": "Ascensore",
+      "fireplace": "Camino",
+      "furnished": "Arredato",
+      "minergie": "Minergie",
+      "newBuilding": "Nuova costruzione"
+    }
   }
 }

@@ -1007,5 +1007,69 @@
     "perMonth": "/month",
     "seoTitle": "Properties for rent in Switzerland",
     "seoDescription": "Browse apartments, houses and villas for rent in Switzerland. Filter by canton, rent, rooms, furnished and availability."
+  },
+  "marketplaceProperty": {
+    "loading": "Loading listing…",
+    "notFound": "Listing not found.",
+    "defaultTitle": "Property",
+    "favoriteAdd": "Add to favourites",
+    "favoriteRemove": "Remove from favourites",
+    "contact": {
+      "title": "Request more information",
+      "subtitle": "The agency will get back to you within 24 hours to answer your questions or arrange a viewing.",
+      "fullName": "Full name",
+      "email": "Email address",
+      "phone": "Phone number (optional)",
+      "submit": "Send my request",
+      "submitting": "Sending…",
+      "successTitle": "Request sent ✓",
+      "successBody": "The agency responds within 24 hours. Please also check your spam folder.",
+      "consent": "By submitting this form, you agree that MEGGA may share your contact details with the agency in charge of this listing.",
+      "errorNameRequired": "Please enter your full name.",
+      "errorEmailInvalid": "Invalid email address.",
+      "errorGeneric": "Something went wrong. Please try again in a few moments."
+    },
+    "pricing": {
+      "sublabelRent": "Monthly rent including charges",
+      "sublabelSale": "Net sale price"
+    },
+    "agency": {
+      "title": "Contact the agency",
+      "intro": "Contact the agency directly via the form above or visit the original listing.",
+      "publishedOn": "Listing published on {{portal}}",
+      "viewOriginal": "View original listing →",
+      "fallbackName": "Local agency"
+    },
+    "body": {
+      "aboutTitle": "About the property",
+      "amenitiesTitle": "Amenities"
+    },
+    "cta": {
+      "badge": "Visit & contact",
+      "title": "Interested in this property?",
+      "subtitle": "Request a viewing or get the full file — the agency will respond within 24 hours.",
+      "button": "Request a viewing",
+      "imageAlt": "Property card preview on a tablet"
+    },
+    "related": {
+      "title": "Similar properties",
+      "viewAll": "Browse all properties",
+      "viewAllShort": "View all",
+      "viewItem": "View property",
+      "badgeRent": "For rent",
+      "badgeSale": "For sale"
+    },
+    "amenities": {
+      "balcony": "Balcony",
+      "swimmingPool": "Swimming pool",
+      "niceView": "Beautiful view",
+      "garage": "Garage",
+      "parking": "Parking",
+      "elevator": "Lift",
+      "fireplace": "Fireplace",
+      "furnished": "Furnished",
+      "minergie": "Minergie",
+      "newBuilding": "New construction"
+    }
   }
 }

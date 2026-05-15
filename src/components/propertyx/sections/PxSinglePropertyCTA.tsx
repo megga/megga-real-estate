@@ -16,10 +16,11 @@
 //   - Paragraph 16/1.5 neutral400
 //   - PxButton INVERT bg-white "Start exploring" + dark circle arrow
 
+import { useTranslation } from 'react-i18next'
 import { PX, PxButton, PxFigmaIcon } from '..'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 
-function GetInTouchBadge() {
+function GetInTouchBadge({ label }: { label: string }) {
   return (
     <span style={{
       display: 'inline-flex',
@@ -52,7 +53,7 @@ function GetInTouchBadge() {
         color: PX.neutral100,
         paddingTop: 2,
       }}>
-        Visite & contact
+        {label}
       </span>
     </span>
   )
@@ -60,6 +61,7 @@ function GetInTouchBadge() {
 
 export default function PxSinglePropertyCTA() {
   const isMobile = useIsMobile()
+  const { t } = useTranslation()
   return (
     <section style={{
       paddingLeft: isMobile ? 16 : 24,
@@ -97,7 +99,7 @@ export default function PxSinglePropertyCTA() {
           }}>
             <img
               src="/images/sections/single-property/cta-ipad-iso.png"
-              alt="Aperçu de la fiche bien sur tablette"
+              alt={t('marketplaceProperty.cta.imageAlt')}
               style={{
                 position: 'absolute',
                 left: '50%',
@@ -122,7 +124,7 @@ export default function PxSinglePropertyCTA() {
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start', width: '100%' }}>
-            <GetInTouchBadge />
+            <GetInTouchBadge label={t('marketplaceProperty.cta.badge')} />
             <h2 style={{
               margin: 0,
               fontFamily: PX.font.sans,
@@ -132,7 +134,7 @@ export default function PxSinglePropertyCTA() {
               letterSpacing: isMobile ? '-0.96px' : '-1.44px',
               color: PX.neutral100,
             }}>
-              {isMobile ? 'Ce bien vous intéresse ?' : <>Ce bien vous<br />intéresse&nbsp;?</>}
+              {t('marketplaceProperty.cta.title')}
             </h2>
             <p style={{
               margin: 0,
@@ -143,12 +145,12 @@ export default function PxSinglePropertyCTA() {
               letterSpacing: '-0.48px',
               color: PX.neutral400,
             }}>
-              Demandez une visite ou recevez le dossier complet&nbsp;: l’agence vous recontacte sous 24&nbsp;heures.
+              {t('marketplaceProperty.cta.subtitle')}
             </p>
           </div>
 
           <PxButton variant="invert" size="sm">
-            Demander une visite
+            {t('marketplaceProperty.cta.button')}
           </PxButton>
         </div>
       </div>

@@ -16,6 +16,7 @@
 
 import type { CSSProperties, FormEvent } from 'react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PX, PxFigmaIcon } from '..'
 import { formatCHF, formatRent } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -168,15 +169,16 @@ const sidebarCard: CSSProperties = {
 }
 
 function PricingCard({ listing, isMobile }: { listing?: ListingCardData; isMobile: boolean }) {
+  const { t } = useTranslation()
   // Affiche le prix CHF formaté (apostrophe suisse) + sublabel selon
   // transaction_type. Fallback démo si pas de listing.
   const isRent = listing?.context === 'rent'
   const priceLabel = listing
     ? (isRent ? formatRent(listing.price) : formatCHF(listing.price))
     : "CHF 3'200/mois"
-  const sublabel = listing
-    ? (isRent ? 'Loyer mensuel charges comprises' : 'Prix de vente net')
-    : 'Loyer mensuel charges comprises'
+  const sublabel = listing && !isRent
+    ? t('marketplaceProperty.pricing.sublabelSale')
+    : t('marketplaceProperty.pricing.sublabelRent')
 
   return (
     <div style={{
@@ -273,6 +275,7 @@ function FormInput({ iconName, placeholder, value, onChange, type = 'text', name
 type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error'
 
 function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: ListingCardData }) {
+  const { t } = useTranslation()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -291,11 +294,11 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
     const trimmedPhone = phone.trim()
 
     if (!trimmedName) {
-      setErrorMessage('Merci d’indiquer votre nom complet.')
+      setErrorMessage(t('marketplaceProperty.contact.errorNameRequired'))
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setErrorMessage('Adresse e-mail invalide.')
+      setErrorMessage(t('marketplaceProperty.contact.errorEmailInvalid'))
       return
     }
 
@@ -329,7 +332,7 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
     if (error) {
       console.error('[marketplace_inquiries] insert failed', error)
       setStatus('error')
-      setErrorMessage('Une erreur est survenue. Merci de réessayer dans quelques instants.')
+      setErrorMessage(t('marketplaceProperty.contact.errorGeneric'))
       return
     }
 
@@ -357,7 +360,7 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
           letterSpacing: '-0.6px',
           color: PX.neutral700,
         }}>
-          Demander plus d’informations
+          {t('marketplaceProperty.contact.title')}
         </p>
         <p style={{
           margin: 0,
@@ -368,7 +371,7 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
           letterSpacing: '-0.48px',
           color: PX.neutral500,
         }}>
-          L’agence vous recontacte sous 24 h pour répondre à vos questions ou organiser une visite.
+          {t('marketplaceProperty.contact.subtitle')}
         </p>
       </div>
       {isSuccess ? (
@@ -394,7 +397,7 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
             letterSpacing: '-0.48px',
             color: PX.neutral700,
           }}>
-            Demande envoyée&nbsp;✓
+            {t('marketplaceProperty.contact.successTitle')}
           </p>
           <p style={{
             margin: 0,
@@ -405,7 +408,7 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
             letterSpacing: '-0.4px',
             color: PX.neutral500,
           }}>
-            L’agence vous répond sous 24 h. Pensez à vérifier vos spams.
+            {t('marketplaceProperty.contact.successBody')}
           </p>
         </div>
       ) : (
@@ -422,36 +425,36 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
           <FormInput
             iconName="form-person"
             name="full_name"
-            placeholder="Nom complet"
+            placeholder={t('marketplaceProperty.contact.fullName')}
             value={fullName}
             onChange={setFullName}
             autoComplete="name"
             required
             disabled={isSubmitting}
-            ariaLabel="Nom complet"
+            ariaLabel={t('marketplaceProperty.contact.fullName')}
           />
           <FormInput
             iconName="form-mail"
             name="email"
             type="email"
-            placeholder="Adresse e-mail"
+            placeholder={t('marketplaceProperty.contact.email')}
             value={email}
             onChange={setEmail}
             autoComplete="email"
             required
             disabled={isSubmitting}
-            ariaLabel="Adresse e-mail"
+            ariaLabel={t('marketplaceProperty.contact.email')}
           />
           <FormInput
             iconName="form-phone"
             name="phone"
             type="tel"
-            placeholder="Numéro de téléphone (optionnel)"
+            placeholder={t('marketplaceProperty.contact.phone')}
             value={phone}
             onChange={setPhone}
             autoComplete="tel"
             disabled={isSubmitting}
-            ariaLabel="Numéro de téléphone"
+            ariaLabel={t('marketplaceProperty.contact.phone')}
           />
           {errorMessage ? (
             <p
@@ -496,7 +499,7 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
             }}
           >
             <span style={{ paddingTop: 2 }}>
-              {isSubmitting ? 'Envoi en cours…' : 'Envoyer ma demande'}
+              {isSubmitting ? t('marketplaceProperty.contact.submitting') : t('marketplaceProperty.contact.submit')}
             </span>
             <span style={{
               width: 28,
@@ -520,7 +523,7 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
             letterSpacing: '-0.3px',
             color: PX.neutral400,
           }}>
-            En envoyant ce formulaire, vous acceptez que MEGGA transmette vos coordonnées à l’agence en charge du bien.
+            {t('marketplaceProperty.contact.consent')}
           </p>
         </form>
       )}
@@ -529,6 +532,7 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
 }
 
 function AgenceCard({ listing, isMobile }: { listing?: ListingCardData; isMobile: boolean }) {
+  const { t } = useTranslation()
   // En CH le concept central c'est l'AGENCE / régie, pas l'agent individuel
   // comme aux USA. On affiche donc :
   //   - agency_name (régie qui a publié)
@@ -537,13 +541,14 @@ function AgenceCard({ listing, isMobile }: { listing?: ListingCardData; isMobile
   // Sans données contact directes (email/phone au niveau agency_profiles),
   // les visiteurs passent par le ContactFormCard juste au-dessus.
   // Sans listing : fallback démo Figma.
-  const agencyName = listing?.agency_name || (listing ? 'Régie locale' : 'Naef Immobilier — Genève')
+  const agencyName = listing?.agency_name
+    || (listing ? t('marketplaceProperty.agency.fallbackName') : 'Naef Immobilier — Genève')
   const agencyLogo = listing?.agency_logo_url || '/images/sections/single-property/agent-sophie.jpg'
   const sourceLabel = listing?.source_portal
-    ? `Annonce publiée sur ${listing.source_portal}`
+    ? t('marketplaceProperty.agency.publishedOn', { portal: listing.source_portal })
     : 'Régie partenaire certifiée'
   const intro = listing
-    ? 'Contactez la régie directement via le formulaire ci-dessus ou consultez l’annonce d’origine.'
+    ? t('marketplaceProperty.agency.intro')
     : 'L’agence en charge de ce bien vous répond sous 24 h, du lundi au samedi.'
   const externalUrl = listing?.source_url
 
@@ -567,7 +572,7 @@ function AgenceCard({ listing, isMobile }: { listing?: ListingCardData; isMobile
           letterSpacing: '-0.6px',
           color: PX.neutral700,
         }}>
-          Contactez l’agence
+          {t('marketplaceProperty.agency.title')}
         </p>
         <p style={{
           margin: 0,
@@ -654,7 +659,7 @@ function AgenceCard({ listing, isMobile }: { listing?: ListingCardData; isMobile
                   paddingTop: 2,
                 }}
               >
-                Voir l’annonce d’origine →
+                {t('marketplaceProperty.agency.viewOriginal')}
               </a>
             )}
           </div>
@@ -670,6 +675,7 @@ function AgenceCard({ listing, isMobile }: { listing?: ListingCardData; isMobile
 
 export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyProps) {
   const isMobile = useIsMobile()
+  const { t } = useTranslation()
   // Champs dérivés du listing avec fallback démo Figma.
   const locationLabel = listing
     ? [listing.address, listing.city].filter(Boolean).join(', ') || 'Suisse'
@@ -688,16 +694,16 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
   const amenitiesToShow = listing
     ? (() => {
         const items: Array<{ icon: string; label: string }> = []
-        if (listing.has_balcony) items.push({ icon: `${AMENITY_BASE}/garden.svg`, label: 'Balcon' })
-        if (listing.has_swimming_pool) items.push({ icon: `${AMENITY_BASE}/pool.svg`, label: 'Piscine' })
-        if (listing.has_nice_view) items.push({ icon: `${AMENITY_BASE}/security-cameras.svg`, label: 'Belle vue' })
-        if (listing.has_garage) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: 'Garage' })
-        if (listing.has_parking) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: 'Parking' })
-        if (listing.has_elevator) items.push({ icon: `${AMENITY_BASE}/elevator.svg`, label: 'Ascenseur' })
-        if (listing.has_fireplace) items.push({ icon: `${AMENITY_BASE}/chimney.svg`, label: 'Cheminée' })
-        if (listing.is_furnished) items.push({ icon: `${AMENITY_BASE}/kitchen.svg`, label: 'Meublé' })
-        if (listing.is_minergie) items.push({ icon: `${AMENITY_BASE}/heater.svg`, label: 'Minergie' })
-        if (listing.is_new_building) items.push({ icon: `${AMENITY_BASE}/lockpad.svg`, label: 'Construction neuve' })
+        if (listing.has_balcony) items.push({ icon: `${AMENITY_BASE}/garden.svg`, label: t('marketplaceProperty.amenities.balcony') })
+        if (listing.has_swimming_pool) items.push({ icon: `${AMENITY_BASE}/pool.svg`, label: t('marketplaceProperty.amenities.swimmingPool') })
+        if (listing.has_nice_view) items.push({ icon: `${AMENITY_BASE}/security-cameras.svg`, label: t('marketplaceProperty.amenities.niceView') })
+        if (listing.has_garage) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: t('marketplaceProperty.amenities.garage') })
+        if (listing.has_parking) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: t('marketplaceProperty.amenities.parking') })
+        if (listing.has_elevator) items.push({ icon: `${AMENITY_BASE}/elevator.svg`, label: t('marketplaceProperty.amenities.elevator') })
+        if (listing.has_fireplace) items.push({ icon: `${AMENITY_BASE}/chimney.svg`, label: t('marketplaceProperty.amenities.fireplace') })
+        if (listing.is_furnished) items.push({ icon: `${AMENITY_BASE}/kitchen.svg`, label: t('marketplaceProperty.amenities.furnished') })
+        if (listing.is_minergie) items.push({ icon: `${AMENITY_BASE}/heater.svg`, label: t('marketplaceProperty.amenities.minergie') })
+        if (listing.is_new_building) items.push({ icon: `${AMENITY_BASE}/lockpad.svg`, label: t('marketplaceProperty.amenities.newBuilding') })
         return items
       })()
     : AMENITIES
@@ -799,7 +805,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: isMobile ? '-0.72px' : '-1.08px',
                 color: PX.neutral700,
               }}>
-                À propos du bien
+                {t('marketplaceProperty.body.aboutTitle')}
               </h2>
             </div>
             <div style={{ paddingBottom: 24 }}>
@@ -859,7 +865,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: isMobile ? '-0.72px' : '-1.08px',
                 color: PX.neutral700,
               }}>
-                Équipements
+                {t('marketplaceProperty.body.amenitiesTitle')}
               </h2>
             </div>
             {!listing && <div style={{ paddingBottom: 24 }}>

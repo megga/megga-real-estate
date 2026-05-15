@@ -14,6 +14,7 @@
 // useListingDetail et on injecte les vraies données dans Hero + Body.
 
 import { useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { PX } from '@/components/propertyx/tokens'
 import PxNav from '@/components/propertyx/sections/PxNav'
 import PxSinglePropertyHero from '@/components/propertyx/sections/PxSinglePropertyHero'
@@ -42,6 +43,7 @@ function StatusScreen({ message }: { message: string }) {
 
 export default function PropertyXSinglePropertyPage() {
   const { id } = useParams<{ id: string }>()
+  const { t } = useTranslation()
   const { data: listing, isLoading, isError } = useListingDetail(id)
 
   return (
@@ -52,8 +54,8 @@ export default function PropertyXSinglePropertyPage() {
       color: PX.ink,
     }}>
       <PxNav glass />
-      {id && isLoading && <StatusScreen message="Chargement du bien…" />}
-      {id && isError && <StatusScreen message="Bien introuvable." />}
+      {id && isLoading && <StatusScreen message={t('marketplaceProperty.loading')} />}
+      {id && isError && <StatusScreen message={t('marketplaceProperty.notFound')} />}
       {(!id || (!isLoading && !isError)) && (
         <>
           <PxSinglePropertyHero
