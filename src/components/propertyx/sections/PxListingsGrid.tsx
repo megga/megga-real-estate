@@ -158,12 +158,19 @@ function PropertyCardV2({
   medianLookup,
   travelTimes,
   pois,
+  priority,
 }: {
   listing: ListingCardData
   context: 'buy' | 'rent'
   medianLookup: CantonalMedianLookup
   travelTimes: ListingTravelTimes | null
   pois: UserPoi[]
+  /**
+   * `true` pour les 1-2 premières cards (au-dessus du fold) → image chargée
+   * en eager + fetchpriority high pour optimiser le LCP. `false` pour les
+   * cards suivantes → lazy loading natif (chargées au scroll).
+   */
+  priority: boolean
 }) {
   const image = listing.photos?.[0] ?? ''
   const cityLabel = [listing.address, listing.city].filter(Boolean).join(', ')
@@ -208,13 +215,27 @@ function PropertyCardV2({
         }}
       >
         {image && (
-          <div
+          <img
+            src={image}
+            alt={listing.title}
+            // Native lazy loading pour les cards sous le fold (cards 2+).
+            // Les 1-2 premières (priority) sont eager pour permettre à
+            // Lighthouse d'identifier le LCP correctement.
+            loading={priority ? 'eager' : 'lazy'}
+            // fetchPriority="high" sur la 1ère card → hint au navigateur
+            // que c'est le LCP candidate, prioritise le download.
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
+            // Skeleton gris natif pendant le chargement via le bg du Link
+            // parent (PX.neutral500). Pas besoin de placeholder JS.
             style={{
               position: 'absolute',
               inset: 0,
-              backgroundImage: `url("${image}")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              display: 'block',
             }}
           />
         )}
@@ -458,7 +479,7 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
         {showEmpty && (
           <StatusBlock message="Aucun bien ne correspond à vos filtres. Essayez d'élargir votre recherche." />
         )}
-        {!isLoading && !isError && listings.map(l => (
+        {!isLoading && !isError && listings.map((l, idx) => (
           <PropertyCardV2
             key={l.id}
             listing={l}
@@ -466,6 +487,9 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
             medianLookup={medianLookup}
             travelTimes={travelTimesMap?.get(l.id) ?? null}
             pois={pois}
+            // 2 premières cards = at-fold → image eager + fetchpriority high
+            // pour optimiser le LCP. Cards 3+ = lazy load au scroll.
+            priority={idx < 2}
           />
         ))}
       </div>
