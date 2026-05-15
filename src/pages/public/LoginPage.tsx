@@ -16,7 +16,7 @@ import { useState, useEffect } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { Loader2, Eye, EyeOff, Mail } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { REMEMBER_KEY } from '@/lib/supabase'
+import { REMEMBER_KEY, supabase } from '@/lib/supabase'
 import { isAgentRole, type UserRole } from '@/types/auth'
 import GoogleOneTap from '@/components/auth/GoogleOneTap'
 import AuthChoice from '@/components/auth/AuthChoice'
@@ -324,19 +324,17 @@ export default function LoginPage() {
     if (!email.trim()) return
     setLoading(true)
     setError(null)
-    const { error: err } = await signInWithPassword(
-      email.trim(),
-      '__check_existence__'
-    )
+    const { data, error: err } = await supabase.rpc('check_email_exists', {
+      p_email: email.trim(),
+    })
     setLoading(false)
     if (err) {
-      if (err.toLowerCase().includes('invalid') || err.toLowerCase().includes('credentials')) {
-        setStep('login')
-        return
-      }
-      setStep('register')
+      // Fallback : on bascule sur login en cas d'erreur RPC. L'utilisateur
+      // pourra cliquer 'Créer un compte' depuis cet écran si besoin.
+      setStep('login')
       return
     }
+    setStep(data === true ? 'login' : 'register')
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -478,6 +476,7 @@ export default function LoginPage() {
             loading={loading}
             oauthLoading={oauthLoading}
             error={error}
+            setError={setError}
             onEmailContinue={handleEmailContinue}
             onLogin={handleLogin}
             onRegister={handleRegister}
@@ -696,6 +695,7 @@ interface FormColumnProps {
   loading: boolean
   oauthLoading: 'google' | 'facebook' | 'microsoft' | null
   error: string | null
+  setError: (s: string | null) => void
   onEmailContinue: (e: React.FormEvent) => void
   onLogin: (e: React.FormEvent) => void
   onRegister: (e: React.FormEvent) => void
@@ -710,7 +710,7 @@ function FormColumn(props: FormColumnProps) {
     isAgent, step, setStep, email, setEmail, password, setPassword,
     firstName, setFirstName, lastName, setLastName, agency, setAgency,
     showPassword, setShowPassword, remember, setRemember, loading,
-    oauthLoading, error, onEmailContinue, onLogin, onRegister, onSso,
+    oauthLoading, error, setError, onEmailContinue, onLogin, onRegister, onSso,
     onMagicLink, onForgotPassword, onBackToEmail,
   } = props
 
@@ -866,6 +866,34 @@ function FormColumn(props: FormColumnProps) {
             </>
           )}
 
+          <div
+            style={{
+              fontFamily: AUTH_FONT,
+              fontSize: 13,
+              color: AUTH_M.soft,
+              textAlign: 'center',
+            }}
+          >
+            Pas encore de compte ?{' '}
+            <button
+              type="button"
+              onClick={() => { setPassword(''); setError(null); setStep('register') }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: AUTH_FONT,
+                fontSize: 13,
+                fontWeight: 600,
+                color: AUTH_M.ink,
+                padding: 0,
+                textDecoration: 'underline',
+              }}
+            >
+              {isAgent ? 'Créer mon agence' : 'Créer un compte'}
+            </button>
+          </div>
+
           {error && <ErrorText>{error}</ErrorText>}
         </>
       ) : step === 'register' ? (
@@ -926,6 +954,34 @@ function FormColumn(props: FormColumnProps) {
               label={isAgent ? 'Créer mon agence' : 'Créer mon compte'}
             />
           </form>
+
+          <div
+            style={{
+              fontFamily: AUTH_FONT,
+              fontSize: 13,
+              color: AUTH_M.soft,
+              textAlign: 'center',
+            }}
+          >
+            Vous avez déjà un compte ?{' '}
+            <button
+              type="button"
+              onClick={() => { setPassword(''); setError(null); setStep('login') }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: AUTH_FONT,
+                fontSize: 13,
+                fontWeight: 600,
+                color: AUTH_M.ink,
+                padding: 0,
+                textDecoration: 'underline',
+              }}
+            >
+              Se connecter
+            </button>
+          </div>
 
           {error && <ErrorText>{error}</ErrorText>}
           <LegalFooter />
