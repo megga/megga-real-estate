@@ -159,115 +159,10 @@ function NotFoundHeader() {
   )
 }
 
-// ─── Cards Section (Figma node 9631:9496 — Footer/V1 dans 404, cards uniquement) ──
-// 2 cartes "Post a free property" / "Post a paid property" — bg blanc, h-160,
-// shadow small, rounded-24, avec bouton circle "+" en haut à droite.
-function CTACard({ title, body, to, plusLabel }: { title: string; body: string; to: string; plusLabel: string }) {
-  return (
-    <Link
-      to={to}
-      style={{
-        position: 'relative',
-        flex: 1,
-        height: 160,
-        padding: 20,
-        background: PX.neutral100,
-        borderRadius: 24,
-        boxShadow: PX.shadow.small,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        textDecoration: 'none',
-      }}
-    >
-      <div style={{
-        width: 360,
-        height: 90,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-      }}>
-        <p style={{
-          margin: 0,
-          width: '100%',
-          fontFamily: PX.font.display,
-          fontSize: 24,
-          fontWeight: 500,
-          lineHeight: 1.25,
-          letterSpacing: '-0.72px',
-          color: PX.neutral700,
-        }}>{title}</p>
-        <p style={{
-          margin: 0,
-          width: '100%',
-          fontFamily: PX.font.display,
-          fontSize: 16,
-          fontWeight: 400,
-          lineHeight: 1.5,
-          letterSpacing: '-0.48px',
-          color: PX.neutral500,
-        }}>{body}</p>
-      </div>
-      {/* Plus circle button : 40×40, bg neutral700, top: 20, right: 20 (extrait des insets % Figma) */}
-      <span
-        aria-label={plusLabel}
-        style={{
-          position: 'absolute',
-          top: 20,
-          right: 20,
-          width: 40,
-          height: 40,
-          borderRadius: PX.radius.pill,
-          background: PX.neutral700,
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        <PxIcon name="plus" size={16} color={PX.neutral100} />
-      </span>
-    </Link>
-  )
-}
-
-function CardsSection() {
-  // On recale les cards sur le container 1200 (= largeur du Grid Footer dans
-  // le bloc dark) au lieu de la pleine largeur 1392, sinon le titre 24px et
-  // le bouton "+" 40px laissent un vide visuel disproportionné dans des cards
-  // de 685px.
-  return (
-    <div style={{
-      width: '100%',
-      paddingLeft: 24,
-      paddingRight: 24,
-      display: 'flex',
-      justifyContent: 'center',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: 1200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 24,
-      }}>
-        <CTACard
-          to="/publier?type=free"
-          title="Post a free property"
-          body="Lorem ipsum dolor sit amet consectetur vitae aenean amet in eros neque nulla mattis sit."
-          plusLabel="Post a free property"
-        />
-        <CTACard
-          to="/publier?type=premium"
-          title="Post a paid property"
-          body="Lorem ipsum dolor sit amet consectetur vitae aenean amet in eros neque nulla mattis sit."
-          plusLabel="Post a paid property"
-        />
-      </div>
-    </div>
-  )
-}
+// Note : la section "Cards Post a property" du Figma node 9631:9496 a été
+// extraite — on réutilise le composant partagé PxPostPropertyEN (cf.
+// PropertyXAboutPage, BlogV2Page) au lieu de dupliquer le markup ici.
+// NotFoundPage compose : <PxNotFound /> + <PxPostPropertyEN /> + <PxFooterPropertyX />
 
 // ─── Hero Section (Figma node 11781:22631) ──────────────────────────────────
 // flex items-center justify-between, pt-24 pb-100 pl-102 pr-24, w-full.
@@ -401,7 +296,6 @@ export default function PxNotFound() {
     }}>
       <NotFoundHeader />
       <HeroSection />
-      <CardsSection />
     </section>
   )
 }
