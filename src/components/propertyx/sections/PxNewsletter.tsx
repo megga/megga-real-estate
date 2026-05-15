@@ -42,10 +42,7 @@ function NewsletterBadge() {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        {/* Figma "Small Icon/V30" rotated 45° (cf. node 11781:24610 > Icon/V25) */}
-        <span style={{ display: 'inline-flex', transform: 'rotate(45deg)' }}>
-          <PxFigmaIcon name="badge-blog-edit" size={14.857} color={PX.neutral100} />
-        </span>
+        <PxFigmaIcon name="badge-blog-edit" size={14.857} color={PX.neutral100} />
       </span>
       <span style={{
         fontFamily: PX.font.display,
