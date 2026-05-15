@@ -332,13 +332,16 @@ function ContactFormCard() {
   )
 }
 
-function AgentCard({ listing }: { listing?: ListingCardData }) {
-  // Avec un listing : utilise agency_name + agency_logo_url + source_portal
-  //   pour identifier la régie. Sans données contact directes (email/phone
-  //   au niveau agency_profiles), on affiche juste le nom + le portail
-  //   source. Les visiteurs passent par le ContactFormCard juste au-dessus.
-  // Sans listing : fallback démo Figma (Sophie Moore).
-  const agencyName = listing?.agency_name || (listing ? 'Régie locale' : 'Sophie Moore')
+function AgenceCard({ listing }: { listing?: ListingCardData }) {
+  // En CH le concept central c'est l'AGENCE / régie, pas l'agent individuel
+  // comme aux USA. On affiche donc :
+  //   - agency_name (régie qui a publié)
+  //   - agency_logo_url
+  //   - source_portal + source_url pour rebondir vers l'annonce d'origine
+  // Sans données contact directes (email/phone au niveau agency_profiles),
+  // les visiteurs passent par le ContactFormCard juste au-dessus.
+  // Sans listing : fallback démo Figma.
+  const agencyName = listing?.agency_name || (listing ? 'Régie locale' : 'Naef Immobilier')
   const agencyLogo = listing?.agency_logo_url || '/images/sections/single-property/agent-sophie.jpg'
   const sourceLabel = listing?.source_portal
     ? `Annonce publiée sur ${listing.source_portal}`
@@ -368,7 +371,7 @@ function AgentCard({ listing }: { listing?: ListingCardData }) {
           letterSpacing: '-0.6px',
           color: PX.neutral700,
         }}>
-          Contactez l’agent
+          Contactez l’agence
         </p>
         <p style={{
           margin: 0,
@@ -699,7 +702,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
         }}>
           <PricingCard listing={listing} />
           <ContactFormCard />
-          <AgentCard listing={listing} />
+          <AgenceCard listing={listing} />
         </aside>
       </div>
     </section>

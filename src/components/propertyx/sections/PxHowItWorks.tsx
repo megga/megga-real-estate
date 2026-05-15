@@ -32,7 +32,7 @@ const STEPS: Step[] = [
     popover: 'search',
   },
   {
-    title: '2. Make a visit appointment with one of our agents',
+    title: '2. Prenez rendez-vous avec l’agence du bien',
     body: 'Lorem ipsum dolor sit amet consectetur vitae purus quis metus sed semper diam iaculis duis vitae purus amet sagittis leo elit vitae dolor.',
     image: 'https://images.unsplash.com/photo-1499996860823-5214fcc65f8f?w=1400&q=85&sat=-100',
     popover: 'chat',

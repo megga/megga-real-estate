@@ -626,7 +626,7 @@ function PropertyCardV2({ title, address, badge, sqtf, beds, baths, parking, ima
           <span style={{
             paddingTop: 2, fontFamily: PX.font.display, fontSize: 16, fontWeight: 500,
             lineHeight: 1.25, letterSpacing: '-0.48px', color: PX.neutral700, whiteSpace: 'nowrap',
-          }}>Contact agent</span>
+          }}>Contacter l’agence</span>
           <ChevronRight color={PX.neutral700} size={16} />
         </Link>
       </div>

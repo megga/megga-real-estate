@@ -76,8 +76,8 @@ const COL_PROPS_LINKS = {
   title: '',
   links: [
     { label: 'Property single', to: '/listing' },
-    { label: 'Agents', to: '/agents' },
-    { label: 'Agent single', to: '/agents' },
+    { label: 'Agences', to: '/agences' },
+    { label: 'Page agence', to: '/agences' },
     { label: 'Post a free property', to: '/publier?type=free' },
     { label: 'Post a paid property', to: '/publier?type=premium' },
     { label: 'Blog V1', to: '/blog' },

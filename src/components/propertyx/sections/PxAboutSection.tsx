@@ -228,7 +228,7 @@ function PhoneListingCard({ listing }: { listing: Listing }) {
           whiteSpace: 'nowrap',
           flexShrink: 0,
         }}>
-          Contact agent
+          Contacter l’agence
           <PxFigmaIcon name="chevron-right" size={10} color={PX.neutral700} />
         </button>
       </div>
@@ -499,7 +499,7 @@ export default function PxAboutSection() {
               pour le marché suisse.
             </p>
             <p style={{ margin: 0, width: 360.945 }}>
-              Tous les agents MEGGA passent par une vérification KYC complète.
+              Toutes les agences MEGGA passent par une vérification KYC complète.
               Vous savez exactement à qui vous parlez, à chaque étape.
             </p>
           </div>
