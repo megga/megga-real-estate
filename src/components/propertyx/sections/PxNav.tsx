@@ -32,20 +32,18 @@ interface PxNavProps {
   bg?: string
 }
 
+// Liens primaires — uniquement des routes au nouveau design PropertyX.
 const PRIMARY_LINKS = [
   { label: 'Acheter', to: '/acheter' },
   { label: 'Louer', to: '/louer' },
-  { label: 'Vendre', to: '/vendre' },
-  { label: 'Estimer', to: '/estimations' },
+  { label: 'Publier un bien', to: '/publier-bien' },
 ] as const
 
+// Dropdown "Plus" — pages secondaires, toutes en design PropertyX.
 const MORE_LINKS = [
-  { label: 'Services', to: '/services', desc: 'CRM, KYC et IA pour pros' },
-  { label: 'Trouver un agent', to: '/agents', desc: 'Annuaire des agents en Suisse' },
-  { label: 'Agences', to: '/agences', desc: 'Annuaire des agences' },
-  { label: 'Blog', to: '/blog', desc: 'Marché, conseils, actualités' },
   { label: 'À propos', to: '/a-propos', desc: 'L’équipe et la mission' },
-  { label: 'Aide', to: '/aide', desc: 'FAQ, guides, contact support' },
+  { label: 'FAQ', to: '/faq', desc: 'Questions fréquentes' },
+  { label: 'Contact', to: '/contact', desc: 'Nous écrire' },
 ] as const
 
 const LINK_STYLE = {
