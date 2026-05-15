@@ -17,6 +17,7 @@
 // dimensions/animations/structure au fur et à mesure.
 
 import { PX } from '@/components/propertyx/tokens'
+import PxTopNotificationBar from '@/components/propertyx/sections/PxTopNotificationBar'
 import PxNav from '@/components/propertyx/sections/PxNav'
 import PxHero from '@/components/propertyx/sections/PxHero'
 import PxAboutSection from '@/components/propertyx/sections/PxAboutSection'
@@ -38,6 +39,13 @@ export default function PropertyXHomePage() {
       fontFamily: PX.font.sans,
       color: PX.ink,
     }}>
+      <PxTopNotificationBar
+        variant="button"
+        message="Get a lifetime account for a one-time payment of $99"
+        buttonText="Get started"
+        buttonHref="/acheter"
+        dismissKey="home-promo"
+      />
       <PxNav glass />
       <PxHero />
       <PxAboutSection />

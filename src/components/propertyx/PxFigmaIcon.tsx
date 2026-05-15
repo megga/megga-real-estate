@@ -33,6 +33,7 @@ export type PxFigmaIconName =
   | 'plus'
   | 'search'
   | 'sparkle'
+  | 'close'       // X close icon (Top Notification Bar dismiss)
   // Badges des eyebrows
   | 'badge-featured-star'
   | 'badge-allprops-home'

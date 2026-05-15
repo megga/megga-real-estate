@@ -17,7 +17,7 @@
 //
 // La SearchBar (Browser) suit dans PxSearchBar mais doit overlap -56.
 
-import { PX, PxButton, PxIcon, PxFigmaIcon, PxLink } from '..'
+import { PX, PxIcon, PxFigmaIcon, PxLink } from '..'
 
 // POI pins fidèles Figma : 55×55 pill + icon home 29px. Positions exactes.
 const POI_PINS = [
@@ -122,26 +122,13 @@ export default function PxHero() {
             Élevez votre style de vie avec MEGGA
           </h1>
 
-          {/* Buttons Row : pt-24, gap-16, centered.
-              4 CTAs MEGGA-spécifiques (acheter / louer / vendre + lien publier) :
-              pattern standard marketplace immobilière (Zillow, Redfin, etc.). */}
+          {/* CTA Row : pt-24, lien "Publier un bien" centré. */}
           <div style={{
             paddingTop: 24,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 16,
-            flexWrap: 'wrap',
           }}>
-            <PxButton to="/acheter" variant="primary" size="lg">
-              Acheter
-            </PxButton>
-            <PxButton to="/louer" variant="primary" size="lg">
-              Louer
-            </PxButton>
-            <PxButton to="/vendre" variant="primary" size="lg">
-              Vendre
-            </PxButton>
             <PxLink to="/publier" variant="light">
               <span style={{
                 display: 'inline-flex',
