@@ -19,6 +19,8 @@ import {
   useMarketFilters,
 } from '@/hooks/useMarketFilters'
 import { useMarketListingsCount } from '@/hooks/useMarketListings'
+import { useUserPois } from '@/hooks/useUserPois'
+import PxPoiManagerModal from './PxPoiManagerModal'
 
 interface PxListingsFilterBarProps {
   context: 'buy' | 'rent'
@@ -191,6 +193,8 @@ export default function PxListingsFilterBar({ context }: PxListingsFilterBarProp
     isError: countError,
     isFetching: countFetching,
   } = useMarketListingsCount(filters)
+  const { pois } = useUserPois()
+  const [poiModalOpen, setPoiModalOpen] = useState(false)
   const labelId = useId()
 
   const cantonOptions = SWISS_CANTONS.map(c => ({
@@ -323,6 +327,39 @@ export default function PxListingsFilterBar({ context }: PxListingsFilterBarProp
           />
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* "Mes lieux" button — opens modal (Phase 3). Affiche le compte
+                de POIs si > 0 pour signaler que l'user a déjà configuré. */}
+            <button
+              type="button"
+              onClick={() => setPoiModalOpen(true)}
+              aria-label="Gérer mes lieux"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                height: 48,
+                paddingLeft: 16,
+                paddingRight: 16,
+                background: pois.length > 0 ? PX.neutral700 : 'transparent',
+                color: pois.length > 0 ? PX.neutral100 : PX.neutral700,
+                border: `1px solid ${PX.neutral700}`,
+                borderRadius: PX.radius.pill,
+                cursor: 'pointer',
+                fontFamily: PX.font.display,
+                fontSize: 14,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: '-0.42px',
+              }}
+            >
+              <PxFigmaIcon
+                name="location"
+                size={14}
+                color={pois.length > 0 ? PX.neutral100 : PX.neutral700}
+              />
+              {pois.length > 0 ? `Mes lieux (${pois.length})` : 'Mes lieux'}
+            </button>
+
             <button
               type="button"
               onClick={reset}
@@ -383,8 +420,63 @@ export default function PxListingsFilterBar({ context }: PxListingsFilterBarProp
           >
             {countLabel}
           </span>
+
+          {pois.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: PX.font.display,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  lineHeight: 1.25,
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase',
+                  color: PX.neutral500,
+                }}
+              >
+                Lieux :
+              </span>
+              {pois.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPoiModalOpen(true)}
+                  title={p.address}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    height: 28,
+                    paddingLeft: 10,
+                    paddingRight: 12,
+                    background: PX.neutral200,
+                    border: `1px solid ${PX.neutral300}`,
+                    borderRadius: PX.radius.pill,
+                    cursor: 'pointer',
+                    fontFamily: PX.font.display,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: PX.neutral700,
+                    letterSpacing: '-0.36px',
+                  }}
+                >
+                  <PxFigmaIcon name="location" size={11} color={PX.neutral500} />
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      <PxPoiManagerModal open={poiModalOpen} onClose={() => setPoiModalOpen(false)} />
     </section>
   )
 }

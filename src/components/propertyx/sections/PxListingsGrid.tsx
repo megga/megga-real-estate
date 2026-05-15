@@ -11,6 +11,9 @@ import { Link } from 'react-router-dom'
 import { PX, PxFigmaIcon } from '..'
 import { useMarketListings } from '@/hooks/useMarketListings'
 import { useMarketFilters } from '@/hooks/useMarketFilters'
+import { useUserPois, type UserPoi } from '@/hooks/useUserPois'
+import { useTravelTimes, type ListingTravelTimes } from '@/hooks/useTravelTimes'
+import { formatTravelDuration } from '@/lib/mapboxClient'
 import { formatCHF, formatRent } from '@/lib/utils'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 import PxListingsSortSelector from './PxListingsSortSelector'
@@ -87,7 +90,74 @@ function AmenityItem({ icon, value }: { icon: 'surface' | 'bed' | 'bath' | 'park
   )
 }
 
-function PropertyCardV2({ listing, context }: { listing: ListingCardData; context: 'buy' | 'rent' }) {
+// ─── Travel time row (Phase 3) ──────────────────────────────────────────────
+//
+// Affiche les durées de trajet en voiture vers les POIs sauvegardés. Si la
+// matrice n'est pas encore calculée (loading / pas de POIs), rien n'est
+// affiché — fail-soft.
+
+function TravelTimeRow({
+  travelTimes,
+  pois,
+}: {
+  travelTimes: ListingTravelTimes | null
+  pois: UserPoi[]
+}) {
+  if (!travelTimes || pois.length === 0) return null
+  const labelByPoi = new Map(pois.map(p => [p.id, p.label]))
+  const validEntries = travelTimes.perPoi
+    .filter(e => typeof e.durationSec === 'number')
+    .slice(0, 3) // max 3 displayed
+  if (validEntries.length === 0) return null
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+        paddingTop: 2,
+      }}
+    >
+      <PxFigmaIcon name="location" size={14} color={PX.neutral500} />
+      {validEntries.map((e, idx) => (
+        <span
+          key={e.poiId}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontFamily: PX.font.display,
+            fontSize: 13,
+            fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: '-0.39px',
+            color: PX.neutral500,
+          }}
+        >
+          <span style={{ color: PX.neutral700 }}>{formatTravelDuration(e.durationSec)}</span>
+          <span>de {labelByPoi.get(e.poiId) ?? '?'}</span>
+          {idx < validEntries.length - 1 && (
+            <span style={{ color: PX.neutral400, marginLeft: 4 }}>·</span>
+          )}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function PropertyCardV2({
+  listing,
+  context,
+  travelTimes,
+  pois,
+}: {
+  listing: ListingCardData
+  context: 'buy' | 'rent'
+  travelTimes: ListingTravelTimes | null
+  pois: UserPoi[]
+}) {
   const image = listing.photos?.[0] ?? ''
   const cityLabel = [listing.address, listing.city].filter(Boolean).join(', ')
   const surfaceLabel = listing.surface_m2 ? `${listing.surface_m2} m²` : '—'
@@ -257,6 +327,10 @@ function PropertyCardV2({ listing, context }: { listing: ListingCardData; contex
           <PxFigmaIcon name="chevron-right" size={16} color={PX.neutral700} />
         </Link>
       </div>
+
+      {/* Phase 3 — Travel time row : affiché uniquement si pois > 0 ET que la
+          matrice est calculée pour ce listing. Fail-soft sinon. */}
+      <TravelTimeRow travelTimes={travelTimes} pois={pois} />
     </article>
   )
 }
@@ -291,6 +365,16 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
 
   const listings = data?.pages.flatMap(p => p.listings) ?? []
   const showEmpty = !isLoading && !isError && listings.length === 0
+
+  // Phase 3 — Mes lieux : calcul des temps de trajet vers les POIs sauvegardés.
+  // useTravelTimes batche 1 seule requête Matrix par page de listings (max
+  // 22 listings × 3 POIs = 66 cellules < limite 625). Fail-soft : si Mapbox
+  // down ou pas de POIs, retourne undefined → TravelTimeRow ne s'affiche pas.
+  const { pois } = useUserPois()
+  const { data: travelTimesMap } = useTravelTimes({
+    pois,
+    listings: listings.map(l => ({ id: l.id, lat: l.lat, lng: l.lng })),
+  })
 
   return (
     <section
@@ -339,7 +423,13 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
           <StatusBlock message="Aucun bien ne correspond à vos filtres. Essayez d'élargir votre recherche." />
         )}
         {!isLoading && !isError && listings.map(l => (
-          <PropertyCardV2 key={l.id} listing={l} context={context} />
+          <PropertyCardV2
+            key={l.id}
+            listing={l}
+            context={context}
+            travelTimes={travelTimesMap?.get(l.id) ?? null}
+            pois={pois}
+          />
         ))}
       </div>
 
