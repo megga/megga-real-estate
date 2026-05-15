@@ -96,7 +96,8 @@ const COL_BLOG_LINKS = {
     { label: 'FAQs', to: '/aide' },
     { label: 'Coming soon', to: '/coming-soon' },
     { label: 'Subscribe page', to: '/subscribe' },
-    { label: 'More Webflow Templates', to: '/templates' },
+    // CTA highlight — Figma rend ce lien en Medium 500 (cf. node 9643:27743 col 1 row 8)
+    { label: 'More Webflow Templates', to: '/templates', weight: 500 as const },
   ],
 }
 
@@ -119,12 +120,13 @@ const CONTACT_PRIMARY = [
 ]
 
 // Sales / Help (no title — fidèle Figma)
+// V46 = briefcase (sales) — pas building. V29 = chat bubble (help) — pas teardrop.
 const CONTACT_SECONDARY = [
-  { icon: 'building' as const, label: 'Sales executives', value: 'sales@home.com' },
+  { icon: 'briefcase' as const, label: 'Sales executives', value: 'sales@home.com' },
   { icon: 'message' as const, label: 'Help & support', value: 'support@home.com' },
 ]
 
-function FooterLink({ to, label }: { to: string; label: string }) {
+function FooterLink({ to, label, weight = 400 }: { to: string; label: string; weight?: 400 | 500 }) {
   return (
     <Link
       to={to}
@@ -135,7 +137,7 @@ function FooterLink({ to, label }: { to: string; label: string }) {
         textDecoration: 'none',
         fontFamily: PX.font.display,
         fontSize: 16,
-        fontWeight: 400,
+        fontWeight: weight,
         lineHeight: 1.25,
         letterSpacing: '-0.48px',
         color: PX.neutral300,
@@ -178,16 +180,21 @@ function LinkColumn({ col }: { col: typeof COL_MAIN }) {
         paddingTop: 24,
       }}>
         {col.links.map(l => (
-          <FooterLink key={l.label + l.to} to={l.to} label={l.label} />
+          <FooterLink
+            key={l.label + l.to}
+            to={l.to}
+            label={l.label}
+            weight={('weight' in l ? l.weight : 400) as 400 | 500}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function ContactInfo({ icon, label, value }: { icon: 'mail' | 'phone' | 'building' | 'message'; label: string; value: string }) {
-  // 'message' fallback car PxIcon n'a pas message — on utilise 'mail' comme proxy ok visuel
-  const iconName = icon === 'message' ? 'mail' : icon
+function ContactInfo({ icon, label, value }: { icon: 'mail' | 'phone' | 'briefcase' | 'message'; label: string; value: string }) {
+  // Figma Small Icon/Vxx — chaque icône Figma a une "Element" interne ~16px dans
+  // un conteneur 24×24. PxIcon use stroke-1.7 et viewBox 24, ce qui matche bien.
   return (
     <div style={{
       display: 'flex',
@@ -201,7 +208,7 @@ function ContactInfo({ icon, label, value }: { icon: 'mail' | 'phone' | 'buildin
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name={iconName} size={24} color={PX.neutral100} />
+        <PxIcon name={icon} size={20} color={PX.neutral100} strokeWidth={1.6} />
       </div>
       <div style={{
         paddingTop: 2,
@@ -257,14 +264,13 @@ export default function PxFooterPropertyX() {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {/* Grid Footer : w-1200 flex items-center justify-between */}
+        {/* Grid Footer : w-1200 flex items-center justify-between (centered in 1392 container) */}
         <div style={{
           width: 1200,
-          maxWidth: '100%',
+          maxWidth: 'calc(100% - 48px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 24px',
         }}>
           {/* Left Content : w-410 flex-col gap-277 items-start */}
           <div style={{

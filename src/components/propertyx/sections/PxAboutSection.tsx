@@ -1,7 +1,8 @@
 // MEGGA Marketplace — Property X "About" section.
-// Annonces dans le mockup iPhone : design fidèle Figma node 11754:26160
-// (image + badge overlay + titre + adresse map pin + stats m²/lits/bains/parking
-// + bouton "Contacter l'agent").
+// Figma node 9641:26996.
+// Layout absolu fidèle au Figma : Content 1200×728 avec iPhone (425.36, 0),
+// floating Image (123.64, 432.9, 404.5×334), Text Wrapper (left 0, vert-center),
+// Stats Wrapper (left 985, vert-center).
 
 import { PX, PxButton, PxFigmaIcon, PxLogo } from '..'
 
@@ -235,22 +236,25 @@ function PhoneListingCard({ listing }: { listing: Listing }) {
   )
 }
 
-// Floating card hors iPhone — taille Figma : 404 wide, 334 height.
-// Position : extends right of iPhone par ~179px, top at 432.9px (60% du haut).
+// Floating card hors iPhone — Figma node 11754:26159 "Image" 404.5×334
+// (rectangle image avec overlay badge & favorite + bandeau bas type "card").
+// Figma : x=123.64 RELATIF À L'IPHONE (qui est à x=425.36 dans le Content).
+// → Position absolue dans le Content : left = 425.36 + 123.64 = 549.0
 function FloatingListingCard({ listing }: { listing: Listing }) {
   return (
     <div style={{
       position: 'absolute',
-      right: -179,
-      top: 432,
-      width: 404,
+      left: 549,
+      top: 432.9,
+      width: 404.5,
+      height: 334,
       padding: 20,
       background: PX.neutral100,
       borderRadius: PX.radius.medium,
       boxShadow: PX.shadow.large,
     }}>
       <div style={{
-        height: 220,
+        height: 200,
         backgroundImage: `url("${listing.image}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -298,60 +302,58 @@ function FloatingListingCard({ listing }: { listing: Listing }) {
         </button>
       </div>
 
-      <div style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 12 }}>
         <div style={{
           fontFamily: PX.font.display,
-          fontSize: 20,
+          fontSize: 16,
           fontWeight: 500,
-          letterSpacing: '-0.6px',
+          letterSpacing: '-0.48px',
           color: PX.neutral700,
           lineHeight: 1.25,
         }}>
           {listing.title}
         </div>
         <div style={{
-          marginTop: 8,
+          marginTop: 4,
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 4,
           fontFamily: PX.font.display,
-          fontSize: 14,
+          fontSize: 12,
           fontWeight: 500,
-          letterSpacing: '-0.42px',
+          letterSpacing: '-0.36px',
           color: PX.neutral500,
           lineHeight: 1.25,
         }}>
-          <PxFigmaIcon name="location" size={14} color={PX.neutral500} />
+          <PxFigmaIcon name="location" size={12} color={PX.neutral500} />
           {listing.address}
         </div>
         <div style={{
-          marginTop: 14,
-          paddingTop: 14,
-          borderTop: `1px solid ${PX.neutral300}`,
+          marginTop: 10,
           display: 'flex',
           alignItems: 'center',
-          gap: 20,
+          gap: 14,
           fontFamily: PX.font.display,
-          fontSize: 13,
+          fontSize: 11,
           fontWeight: 500,
-          letterSpacing: '-0.39px',
+          letterSpacing: '-0.33px',
           color: PX.neutral400,
           lineHeight: 1.25,
         }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <PxFigmaIcon name="surface" size={16} color={PX.neutral400} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="surface" size={13} color={PX.neutral400} />
             {listing.surface}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <PxFigmaIcon name="bed" size={16} color={PX.neutral400} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="bed" size={13} color={PX.neutral400} />
             {listing.beds}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <PxFigmaIcon name="bath" size={16} color={PX.neutral400} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="bath" size={13} color={PX.neutral400} />
             {listing.baths}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <PxFigmaIcon name="parking" size={16} color={PX.neutral400} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PxFigmaIcon name="parking" size={13} color={PX.neutral400} />
             {listing.parking}
           </span>
         </div>
@@ -360,320 +362,339 @@ function FloatingListingCard({ listing }: { listing: Listing }) {
   )
 }
 
+// Stats column item — Figma node 11754:26173/26178
+function StatItem({ label, value, suffix, description }: {
+  label: string
+  value: string
+  suffix?: string
+  description: string
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+      <div style={{
+        fontFamily: PX.font.display,
+        fontSize: 18,
+        fontWeight: 500,
+        lineHeight: 1.5,
+        letterSpacing: '-0.54px',
+        color: PX.neutral700,
+        whiteSpace: 'nowrap',
+      }}>{label}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, alignItems: 'flex-start' }}>
+        <div style={{
+          fontFamily: PX.font.display,
+          fontWeight: 500,
+          letterSpacing: '-2.16px',
+          lineHeight: 1.15,
+          fontVariantNumeric: 'tabular-nums',
+          whiteSpace: 'nowrap',
+        }}>
+          <span style={{ fontSize: 72, color: PX.neutral700 }}>{value}</span>
+          {suffix && (
+            <span style={{ fontSize: 72, color: PX.neutral400, fontWeight: 400 }}>{suffix}</span>
+          )}
+        </div>
+        <p style={{
+          margin: 0,
+          fontFamily: PX.font.sans,
+          fontSize: 16,
+          fontWeight: 400,
+          lineHeight: 1.5,
+          letterSpacing: '-0.48px',
+          color: PX.neutral500,
+          width: 215,
+        }}>{description}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function PxAboutSection() {
   return (
     <section style={{
-      padding: `${PX.sectionDefault}px 40px`,
+      paddingTop: 80,
+      paddingBottom: 160,
+      paddingLeft: 40,
+      paddingRight: 40,
       background: PX.neutral100,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
     }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <AboutBadge />
+      {/* Top Content : Badge + Title (centred) */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <AboutBadge />
+        <div style={{ paddingTop: 16, paddingBottom: 48 }}>
           <h2 style={{
-            margin: '16px auto 0',
-            maxWidth: 720,
+            margin: 0,
+            width: 507,
             fontFamily: PX.font.display,
-            fontSize: 'clamp(28px, 4vw, 48px)',
-            lineHeight: 1.12,
-            letterSpacing: '-1.4px',
+            fontSize: 48,
             fontWeight: 500,
+            lineHeight: 1.25,
+            letterSpacing: '-1.44px',
             color: PX.neutral700,
+            textAlign: 'center',
           }}>
             La meilleure façon de trouver votre prochain bien
           </h2>
         </div>
+      </div>
 
-        {/* Grid : 1fr | auto (phone) | 1fr → phone centré, text à gauche,
-            stats collées tout à droite (justifySelf end).
-            Reproduit exactement les positions Figma : text 0-386, phone 425-774, stats 985-1200. */}
+      {/* Content (Figma 11805:17634) : 1200×728, layout absolu */}
+      <div style={{
+        position: 'relative',
+        width: 1200,
+        height: 728,
+      }}>
+        {/* Text Wrapper (Figma 9640:26906) : left 0, vert-center */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
-          alignItems: 'center',
-          gap: 0,
+          position: 'absolute',
+          left: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
         }}>
-          {/* Colonne gauche : narrative — width Figma 386px, collée à gauche */}
-          <div style={{ width: 386, justifySelf: 'start', display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div>
-              <h3 style={{
-                margin: 0,
-                fontFamily: PX.font.display,
-                fontSize: 20,
-                fontWeight: 500,
-                color: PX.neutral700,
-                letterSpacing: '-0.6px',
-                lineHeight: 1.25,
-              }}>
-                Une recherche transparente
-              </h3>
-              <p style={{
-                margin: '8px 0 0',
-                fontFamily: PX.font.sans,
-                fontSize: 14,
-                lineHeight: 1.5,
-                letterSpacing: '-0.42px',
-                color: PX.neutral500,
-              }}>
-                33 000 biens à louer, 26 cantons, 4 langues. Filtres précis,
-                carte interactive, alertes personnalisées.
-              </p>
-            </div>
-            <div>
-              <h3 style={{
-                margin: 0,
-                fontFamily: PX.font.display,
-                fontSize: 20,
-                fontWeight: 500,
-                color: PX.neutral700,
-                letterSpacing: '-0.6px',
-                lineHeight: 1.25,
-              }}>
-                Des agents certifiés
-              </h3>
-              <p style={{
-                margin: '8px 0 0',
-                fontFamily: PX.font.sans,
-                fontSize: 14,
-                lineHeight: 1.5,
-                letterSpacing: '-0.42px',
-                color: PX.neutral500,
-              }}>
-                Tous les agents MEGGA passent par une vérification KYC complète.
-                Vous savez à qui vous parlez.
-              </p>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <PxButton to="/acheter" variant="primary" size="lg">
-                Commencer
-              </PxButton>
-            </div>
+          {/* Title (Figma 9641:26923) : pb-24, h4 24px */}
+          <div style={{ paddingBottom: 24 }}>
+            <h3 style={{
+              margin: 0,
+              width: 386,
+              fontFamily: PX.font.display,
+              fontSize: 24,
+              fontWeight: 500,
+              lineHeight: 1.25,
+              letterSpacing: '-0.72px',
+              color: PX.neutral700,
+            }}>
+              Transformer des vies grâce à des biens d'exception
+            </h3>
           </div>
 
-          {/* Colonne centre : iPhone mockup (frame Figma 11754:26160) */}
+          {/* Paragraphes (Figma 9641:26921) : gap 24, w 359/360.945 */}
           <div style={{
             display: 'flex',
+            flexDirection: 'column',
+            gap: 24,
+            alignItems: 'flex-start',
             justifyContent: 'center',
-            alignItems: 'center',
-            position: 'relative',
-            flexShrink: 0,
+            fontFamily: PX.font.sans,
+            fontWeight: 400,
+            fontSize: 16,
+            lineHeight: 1.5,
+            letterSpacing: '-0.48px',
+            color: PX.neutral500,
           }}>
-            {/* Cadre iPhone : 349×728 exact Figma */}
+            <p style={{ margin: 0, width: 359 }}>
+              33 000 biens à louer, 26 cantons, 4 langues. Filtres précis,
+              carte interactive, alertes personnalisées — la marketplace pensée
+              pour le marché suisse.
+            </p>
+            <p style={{ margin: 0, width: 360.945 }}>
+              Tous les agents MEGGA passent par une vérification KYC complète.
+              Vous savez exactement à qui vous parlez, à chaque étape.
+            </p>
+          </div>
+
+          {/* Button Row (Figma 9641:26915) : pt-24 */}
+          <div style={{ paddingTop: 24 }}>
+            <PxButton to="/acheter" variant="primary" size="lg">
+              Commencer
+            </PxButton>
+          </div>
+        </div>
+
+        {/* iPhone (Figma 11754:26160) : left 425.36, top 0, 349.29×728 */}
+        <div style={{
+          position: 'absolute',
+          left: 425.36,
+          top: 0,
+          width: 349.29,
+          height: 728,
+        }}>
+          {/* Cadre iPhone */}
+          <div style={{
+            width: '100%',
+            height: '100%',
+            background: PX.neutral700,
+            borderRadius: 52,
+            padding: 10,
+            boxSizing: 'border-box',
+            boxShadow: PX.shadow.large,
+            position: 'relative',
+          }}>
+            {/* Écran (intérieur) */}
             <div style={{
-              width: 349,
-              height: 728,
-              background: PX.neutral700,
-              borderRadius: 52,
-              padding: 10,
-              boxShadow: PX.shadow.large,
+              width: '100%',
+              height: '100%',
+              background: PX.neutral100,
+              borderRadius: 42,
+              overflow: 'hidden',
               position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
             }}>
-              {/* Écran (intérieur) */}
+              {/* Dynamic Island */}
               <div style={{
-                width: '100%',
-                height: '100%',
-                background: PX.neutral100,
-                borderRadius: 42,
-                overflow: 'hidden',
+                position: 'absolute',
+                top: 10,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 110,
+                height: 30,
+                background: PX.neutral700,
+                borderRadius: 20,
+                zIndex: 2,
+              }} />
+
+              {/* Status bar : heure + indicateurs SVG (signal/wifi/battery) */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '16px 28px 0',
+                zIndex: 3,
                 position: 'relative',
+              }}>
+                <span style={{
+                  fontFamily: PX.font.display,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: '-0.42px',
+                  color: PX.neutral700,
+                }}>9:41</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  {/* Signal bars */}
+                  <svg width="16" height="11" viewBox="0 0 16 11" fill="none" aria-hidden="true">
+                    <rect x="0" y="7" width="2.5" height="4" rx="0.5" fill={PX.neutral700} />
+                    <rect x="4" y="5" width="2.5" height="6" rx="0.5" fill={PX.neutral700} />
+                    <rect x="8" y="3" width="2.5" height="8" rx="0.5" fill={PX.neutral700} />
+                    <rect x="12" y="0" width="2.5" height="11" rx="0.5" fill={PX.neutral700} />
+                  </svg>
+                  {/* WiFi */}
+                  <svg width="14" height="11" viewBox="0 0 14 11" fill="none" aria-hidden="true">
+                    <path d="M7 2C4.5 2 2.3 2.9 0.8 4.3l1 1.1C3 4.2 4.9 3.5 7 3.5s4 0.7 5.2 1.9l1-1.1C11.7 2.9 9.5 2 7 2z" fill={PX.neutral700} />
+                    <path d="M7 5C5.5 5 4.1 5.6 3.1 6.5l1 1.1C4.8 6.9 5.8 6.5 7 6.5s2.2 0.4 2.9 1.1l1-1.1C9.9 5.6 8.5 5 7 5z" fill={PX.neutral700} />
+                    <circle cx="7" cy="9.5" r="1" fill={PX.neutral700} />
+                  </svg>
+                  {/* Battery */}
+                  <svg width="24" height="11" viewBox="0 0 24 11" fill="none" aria-hidden="true">
+                    <rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke={PX.neutral700} fill="none" opacity="0.4"/>
+                    <rect x="2" y="2" width="17" height="7" rx="1.5" fill={PX.neutral700} />
+                    <rect x="21" y="3.5" width="2" height="4" rx="0.8" fill={PX.neutral700} opacity="0.4"/>
+                  </svg>
+                </span>
+              </div>
+
+              {/* Header app : logo MEGGA + menu 3-dots */}
+              <div style={{
+                marginTop: 26,
+                padding: '0 18px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <PxLogo form="text" size="sm" variant="dark" />
+                <span style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: PX.radius.pill,
+                  background: PX.neutral200,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 2,
+                }}>
+                  <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
+                  <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
+                  <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
+                </span>
+              </div>
+
+              {/* Search input "Choisissez votre localité" */}
+              <div style={{ padding: '0 18px 16px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: PX.neutral200,
+                  borderRadius: PX.radius.pill,
+                  paddingLeft: 16,
+                  paddingRight: 5,
+                  paddingTop: 5,
+                  paddingBottom: 5,
+                }}>
+                  <span style={{
+                    fontFamily: PX.font.sans,
+                    fontSize: 12,
+                    fontWeight: 400,
+                    color: PX.neutral500,
+                  }}>
+                    Choisissez votre localité
+                  </span>
+                  <span style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: PX.radius.pill,
+                    background: PX.neutral700,
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <PxFigmaIcon name="search" size={14} color={PX.neutral100} />
+                  </span>
+                </div>
+              </div>
+
+              {/* Liste des cards (3 stacked, dernier peek) */}
+              <div style={{
+                padding: '0 18px',
                 display: 'flex',
                 flexDirection: 'column',
+                gap: 16,
+                overflow: 'hidden',
               }}>
-                {/* Dynamic Island */}
-                <div style={{
-                  position: 'absolute',
-                  top: 10,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 110,
-                  height: 30,
-                  background: PX.neutral700,
-                  borderRadius: 20,
-                  zIndex: 2,
-                }} />
-
-                {/* Status bar : heure + indicateurs SVG (signal/wifi/battery) */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '16px 28px 0',
-                  zIndex: 3,
-                  position: 'relative',
-                }}>
-                  <span style={{
-                    fontFamily: PX.font.display,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    letterSpacing: '-0.42px',
-                    color: PX.neutral700,
-                  }}>9:41</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    {/* Signal bars */}
-                    <svg width="16" height="11" viewBox="0 0 16 11" fill="none" aria-hidden="true">
-                      <rect x="0" y="7" width="2.5" height="4" rx="0.5" fill={PX.neutral700} />
-                      <rect x="4" y="5" width="2.5" height="6" rx="0.5" fill={PX.neutral700} />
-                      <rect x="8" y="3" width="2.5" height="8" rx="0.5" fill={PX.neutral700} />
-                      <rect x="12" y="0" width="2.5" height="11" rx="0.5" fill={PX.neutral700} />
-                    </svg>
-                    {/* WiFi */}
-                    <svg width="14" height="11" viewBox="0 0 14 11" fill="none" aria-hidden="true">
-                      <path d="M7 2C4.5 2 2.3 2.9 0.8 4.3l1 1.1C3 4.2 4.9 3.5 7 3.5s4 0.7 5.2 1.9l1-1.1C11.7 2.9 9.5 2 7 2z" fill={PX.neutral700} />
-                      <path d="M7 5C5.5 5 4.1 5.6 3.1 6.5l1 1.1C4.8 6.9 5.8 6.5 7 6.5s2.2 0.4 2.9 1.1l1-1.1C9.9 5.6 8.5 5 7 5z" fill={PX.neutral700} />
-                      <circle cx="7" cy="9.5" r="1" fill={PX.neutral700} />
-                    </svg>
-                    {/* Battery */}
-                    <svg width="24" height="11" viewBox="0 0 24 11" fill="none" aria-hidden="true">
-                      <rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke={PX.neutral700} fill="none" opacity="0.4"/>
-                      <rect x="2" y="2" width="17" height="7" rx="1.5" fill={PX.neutral700} />
-                      <rect x="21" y="3.5" width="2" height="4" rx="0.8" fill={PX.neutral700} opacity="0.4"/>
-                    </svg>
-                  </span>
-                </div>
-
-                {/* Header app : logo MEGGA + menu 3-dots */}
-                <div style={{
-                  marginTop: 26,
-                  padding: '0 18px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                  <PxLogo form="text" size="sm" variant="dark" />
-                  <span style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: PX.radius.pill,
-                    background: PX.neutral200,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 2,
-                  }}>
-                    <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
-                    <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
-                    <span style={{ width: 3, height: 3, borderRadius: 99, background: PX.neutral700 }} />
-                  </span>
-                </div>
-
-                {/* Search input "Choisissez votre localité" */}
-                <div style={{ padding: '0 18px 16px' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: PX.neutral200,
-                    borderRadius: PX.radius.pill,
-                    paddingLeft: 16,
-                    paddingRight: 5,
-                    paddingTop: 5,
-                    paddingBottom: 5,
-                  }}>
-                    <span style={{
-                      fontFamily: PX.font.sans,
-                      fontSize: 12,
-                      fontWeight: 400,
-                      color: PX.neutral500,
-                    }}>
-                      Choisissez votre localité
-                    </span>
-                    <span style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: PX.radius.pill,
-                      background: PX.neutral700,
-                      display: 'grid',
-                      placeItems: 'center',
-                      flexShrink: 0,
-                    }}>
-                      <PxFigmaIcon name="search" size={14} color={PX.neutral100} />
-                    </span>
-                  </div>
-                </div>
-
-                {/* Liste des cards (3 stacked, dernier peek) */}
-                <div style={{
-                  padding: '0 18px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16,
-                  overflow: 'hidden',
-                }}>
-                  {PHONE_LISTINGS.map(listing => (
-                    <PhoneListingCard key={listing.title} listing={listing} />
-                  ))}
-                </div>
+                {PHONE_LISTINGS.map(listing => (
+                  <PhoneListingCard key={listing.title} listing={listing} />
+                ))}
               </div>
             </div>
-
-            {/* Floating card "Luxury Loft · Genève" */}
-            <FloatingListingCard listing={FLOATING_LISTING} />
           </div>
+        </div>
 
-          {/* Colonne droite : stats — width Figma 215px, collée à droite */}
-          <div style={{ width: 215, justifySelf: 'end', display: 'flex', flexDirection: 'column', gap: 32 }}>
-            <div>
-              <div style={{
-                fontFamily: PX.font.display,
-                fontSize: 16,
-                fontWeight: 500,
-                letterSpacing: '-0.48px',
-                color: PX.neutral700,
-              }}>Biens disponibles</div>
-              <div style={{
-                fontFamily: PX.font.display,
-                fontSize: 72,
-                fontWeight: 500,
-                lineHeight: 1.05,
-                letterSpacing: '-3px',
-                color: PX.neutral700,
-                fontVariantNumeric: 'tabular-nums',
-                marginTop: 12,
-              }}>
-                33<span style={{ color: PX.neutral400 }}>k+</span>
-              </div>
-              <p style={{
-                margin: '12px 0 0',
-                fontFamily: PX.font.sans,
-                fontSize: 14,
-                lineHeight: 1.5,
-                letterSpacing: '-0.42px',
-                color: PX.neutral500,
-                maxWidth: 220,
-              }}>
-                Mis à jour quotidiennement depuis l'ensemble de la Suisse.
-              </p>
-            </div>
-            <div>
-              <div style={{
-                fontFamily: PX.font.display,
-                fontSize: 16,
-                fontWeight: 500,
-                letterSpacing: '-0.48px',
-                color: PX.neutral700,
-              }}>Cantons couverts</div>
-              <div style={{
-                fontFamily: PX.font.display,
-                fontSize: 72,
-                fontWeight: 500,
-                lineHeight: 1.05,
-                letterSpacing: '-3px',
-                color: PX.neutral700,
-                fontVariantNumeric: 'tabular-nums',
-                marginTop: 12,
-              }}>26</div>
-              <p style={{
-                margin: '12px 0 0',
-                fontFamily: PX.font.sans,
-                fontSize: 14,
-                lineHeight: 1.5,
-                letterSpacing: '-0.42px',
-                color: PX.neutral500,
-                maxWidth: 220,
-              }}>
-                Toute la Suisse, de Genève à St-Gall, en 4 langues.
-              </p>
-            </div>
-          </div>
+        {/* Floating card "Luxury Loft · Genève" (Figma 11754:26159 : left 123.64, top 432.9, 404.5×334) */}
+        <FloatingListingCard listing={FLOATING_LISTING} />
+
+        {/* Stats Wrapper (Figma 11754:26172) : left 985, vert-center, gap 32 */}
+        <div style={{
+          position: 'absolute',
+          left: 985,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: 32,
+        }}>
+          <StatItem
+            label="Biens publiés"
+            value="33"
+            suffix="k+"
+            description="Mis à jour quotidiennement depuis l'ensemble de la Suisse."
+          />
+          <StatItem
+            label="Cantons couverts"
+            value="26"
+            description="Toute la Suisse, de Genève à St-Gall, en 4 langues."
+          />
         </div>
       </div>
     </section>

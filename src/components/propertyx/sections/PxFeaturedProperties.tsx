@@ -31,8 +31,7 @@
 //     </Container>
 //   </section>
 
-import { Link } from 'react-router-dom'
-import { PX, PxIcon, PxFigmaIcon, PxCircleButton } from '..'
+import { PX, PxIcon, PxFigmaIcon, PxCircleButton, PxButton } from '..'
 
 interface FeaturedItem {
   id: string
@@ -89,14 +88,21 @@ function FeaturedBadge({ label }: { icon?: 'star' | 'key'; label: string }) {
       }}>
         <PxFigmaIcon name="badge-featured-star" size={14.857} color={PX.neutral100} />
       </span>
+      {/* pt-2 sur le texte pour baseline alignment Figma exact */}
       <span style={{
-        fontFamily: PX.font.display,
-        fontSize: 16,
-        fontWeight: 500,
-        lineHeight: 1.25,
-        letterSpacing: '-0.48px',
-        color: PX.neutral100,
-      }}>{label}</span>
+        display: 'inline-flex',
+        alignItems: 'center',
+        paddingTop: 2,
+      }}>
+        <span style={{
+          fontFamily: PX.font.display,
+          fontSize: 16,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-0.48px',
+          color: PX.neutral100,
+        }}>{label}</span>
+      </span>
     </span>
   )
 }
@@ -118,21 +124,24 @@ function ForRentBadge({ label }: { label: string }) {
       borderRadius: PX.radius.pill,
     }}>
       <PxFigmaIcon name={isForSale ? 'tag' : 'key'} size={16} color={PX.neutral100} />
-      <span style={{
-        fontFamily: PX.font.display,
-        fontSize: 16,
-        fontWeight: 500,
-        lineHeight: 1.25,
-        letterSpacing: '-0.48px',
-        color: PX.neutral100,
-      }}>{label}</span>
+      {/* pt-2 baseline alignment Figma exact */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', paddingTop: 2 }}>
+        <span style={{
+          fontFamily: PX.font.display,
+          fontSize: 16,
+          fontWeight: 500,
+          lineHeight: 1.25,
+          letterSpacing: '-0.48px',
+          color: PX.neutral100,
+        }}>{label}</span>
+      </span>
     </span>
   )
 }
 
 function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) {
   if (peek) {
-    // Card 2 : w-221, h-440, simple thumbnail (pas d'opacité, fidèle Figma 11755:27894)
+    // Card 2 : w-221, h-440, simple thumbnail à 30% d'opacité (Figma 11755:27894).
     return (
       <div style={{
         width: 221,
@@ -143,6 +152,7 @@ function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) 
         backgroundImage: `url("${p.image}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
+        opacity: 0.3,
       }} />
     )
   }
@@ -226,21 +236,23 @@ function FeaturedCard({ p, peek = false }: { p: FeaturedItem; peek?: boolean }) 
             }}>{p.description}</p>
           </div>
 
-          {/* Address row : gap-8, icon + text */}
+          {/* Address row : gap-8, icon + text (Wrapper pt-6 pour baseline alignment Figma) */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
           }}>
             <PxFigmaIcon name="location" size={20} color={PX.neutral100} />
-            <span style={{
-              fontFamily: PX.font.display,
-              fontSize: 16,
-              fontWeight: 500,
-              lineHeight: 1.25,
-              letterSpacing: '-0.48px',
-              color: PX.neutral100,
-            }}>{p.address}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', paddingTop: 6 }}>
+              <span style={{
+                fontFamily: PX.font.display,
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: 1.25,
+                letterSpacing: '-0.48px',
+                color: PX.neutral100,
+              }}>{p.address}</span>
+            </span>
           </div>
         </div>
       </div>
@@ -376,27 +388,16 @@ export default function PxFeaturedProperties() {
           </div>
         </div>
 
-        {/* Buttons Row bottom : pt-24, Link "Parcourir tous les biens" + chevron simple */}
+        {/* Buttons Row bottom : pt-24, PrimaryButton "Commencer" (white pill + dark circle arrow)
+            Figma : instance 11755:27899 (PrimaryButton Default White=true) */}
         <div style={{
           display: 'flex',
           justifyContent: 'center',
           paddingTop: 24,
         }}>
-          <Link to="/acheter" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            textDecoration: 'none',
-            fontFamily: PX.font.display,
-            fontSize: 16,
-            fontWeight: 500,
-            lineHeight: 1.25,
-            letterSpacing: '-0.48px',
-            color: PX.neutral100,
-          }}>
-            Parcourir tous les biens
-            <PxIcon name="chevron-right" size={16} color={PX.neutral100} />
-          </Link>
+          <PxButton to="/acheter" variant="invert" size="lg">
+            Commencer
+          </PxButton>
         </div>
       </div>
     </section>

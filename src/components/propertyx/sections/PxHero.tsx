@@ -17,7 +17,7 @@
 //
 // La SearchBar (Browser) suit dans PxSearchBar mais doit overlap -56.
 
-import { PX, PxIcon, PxFigmaIcon, PxLink } from '..'
+import { PX, PxButton, PxFigmaIcon, PxLink } from '..'
 
 // POI pins fidèles Figma : 55×55 pill + icon home 29px. Positions exactes.
 const POI_PINS = [
@@ -63,17 +63,19 @@ export default function PxHero() {
       flexDirection: 'column',
       alignItems: 'center',
     }}>
-      {/* Container : h-900, rounded-24
-          Note : Figma a mb-[-56] mais comme la SearchBar est dans une
-          section séparée, on gère l'overlap via marginTop -56 dans PxSearchBar */}
+      {/* Container : h-900, rounded-24, mb-[-56] (overlap pour SearchBar) */}
       <div style={{
         position: 'relative',
         width: '100%',
         maxWidth: PX.containerDesktop - 48,  // 1392
         height: 900,
+        marginBottom: -56,
         borderRadius: PX.radius.large,
         overflow: 'hidden',
         background: PX.neutral700,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
       }}>
         {/* Background image — full bleed 1394×909 */}
         <div style={{
@@ -84,12 +86,12 @@ export default function PxHero() {
           backgroundPosition: 'center',
         }} />
 
-        {/* Fade overlay top : 480px tall gradient sombre→transparent */}
+        {/* Fade overlay top : 480px tall gradient sombre→transparent (Figma "Fade" asset) */}
         <div style={{
           position: 'absolute',
           top: 0, left: 0, right: 0,
           height: 480,
-          background: 'linear-gradient(180deg, rgba(20,22,28,0.30) 0%, rgba(20,22,28,0) 100%)',
+          background: 'linear-gradient(180deg, rgba(20,22,28,0.55) 0%, rgba(20,22,28,0.18) 50%, rgba(20,22,28,0) 100%)',
           pointerEvents: 'none',
         }} />
 
@@ -106,14 +108,14 @@ export default function PxHero() {
           flexDirection: 'column',
           alignItems: 'center',
         }}>
-          {/* H1 : 72px / 1.10 (Display 10 fidèle Figma) / tracking -2.16 / weight 500
+          {/* H1 : 72px / 1.15 (Display 10/Medium Figma exact) / tracking -2.16 / weight 500
               Figma w-[613] (EN court) — pour FR plus long, on étend à 820 */}
           <h1 style={{
             margin: 0,
             maxWidth: 820,
             fontFamily: PX.font.display,
             fontSize: 72,
-            lineHeight: 1.10,
+            lineHeight: 1.15,
             letterSpacing: '-2.16px',
             fontWeight: 500,
             textAlign: 'center',
@@ -122,14 +124,18 @@ export default function PxHero() {
             Élevez votre style de vie avec MEGGA
           </h1>
 
-          {/* CTA Row : pt-24, lien "Publier un bien" centré. */}
+          {/* Buttons Row : pt-24, gap-16, centered (Figma Home V3 exact)
+              PrimaryButton Figma : pl-16 pr-6 py-6 → size sm (icon 28 + 12 padding = 40 height) */}
           <div style={{
             paddingTop: 24,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            gap: 16,
           }}>
-            <PxLink to="/publier" variant="light">
+            <PxButton to="/acheter" variant="primary" size="sm">
+              Commencer
+            </PxButton>
+            <PxLink to="/publier" variant="light" weight="medium">
               <span style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -141,51 +147,10 @@ export default function PxHero() {
                 lineHeight: 1.25,
                 letterSpacing: '-0.48px',
               }}>
-                Publier un bien
-                <PxIcon name="chevron-right" size={16} color={PX.neutral300} />
+                Publier des biens
+                <PxFigmaIcon name="chevron-right" size={16} color={PX.neutral300} />
               </span>
             </PxLink>
-          </div>
-
-          {/* Stats strip MEGGA : valeurs prop spécifiques au projet
-              (Suisse, 26 cantons, 33k+ biens Flatfox synchés cf. CLAUDE.md). */}
-          <div style={{
-            marginTop: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 80,
-            flexWrap: 'wrap',
-          }}>
-            {[
-              { value: '33k+', label: 'biens disponibles' },
-              { value: '26', label: 'cantons couverts' },
-              { value: '4', label: 'langues (FR/DE/EN/IT)' },
-            ].map(stat => (
-              <div key={stat.label} style={{ textAlign: 'center' }}>
-                <div style={{
-                  fontFamily: PX.font.display,
-                  fontSize: 48,
-                  fontWeight: 500,
-                  lineHeight: 1.1,
-                  letterSpacing: '-1.44px',
-                  color: PX.neutral100,
-                }}>
-                  {stat.value}
-                </div>
-                <div style={{
-                  marginTop: 4,
-                  fontFamily: PX.font.sans,
-                  fontSize: 14,
-                  fontWeight: 400,
-                  lineHeight: 1.5,
-                  letterSpacing: '-0.42px',
-                  color: PX.neutral300,
-                }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
