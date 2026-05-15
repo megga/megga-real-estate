@@ -52,6 +52,20 @@ const PAGE_SIZE = 20
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MarketListingsQuery = PostgrestFilterBuilder<any, any, any, any>
 
+// Échappe les caractères qui ont une signification dans la syntaxe PostgREST
+// `.or()` ou dans les patterns LIKE :
+//   - `%` et `_` → wildcards LIKE → escape avec `\`
+//   - `,` `(` `)` → séparateurs/groupes `.or()` → remplacer par espace
+// Sans ça, un user qui tape `"50%"` matche tout, ou `"a,b)"` casse la requête
+// (erreur 400 PostgREST). Utilisé par `applyFilters` (filters.q) et
+// `useCitiesAutocomplete`.
+export function escapeForOrLike(s: string): string {
+  return s
+    .replace(/[\\%_]/g, '\\$&')
+    .replace(/[(),]/g, ' ')
+    .trim()
+}
+
 function applyFilters<Q extends MarketListingsQuery>(query: Q, filters: MarketFilters): Q {
   // Use eq instead of in — the partial index only covers status='active' and
   // 99.9% of listings are 'active'. The 'price_reduced' status is handled by
@@ -112,7 +126,10 @@ function applyFilters<Q extends MarketListingsQuery>(query: Q, filters: MarketFi
     }
   }
   if (filters.q) {
-    q = q.or(`title.ilike.%${filters.q}%,city.ilike.%${filters.q}%,address.ilike.%${filters.q}%,canton.ilike.%${filters.q}%`)
+    const safe = escapeForOrLike(filters.q)
+    if (safe.length > 0) {
+      q = q.or(`title.ilike.%${safe}%,city.ilike.%${safe}%,address.ilike.%${safe}%,canton.ilike.%${safe}%`)
+    }
   }
   return q
 }
@@ -121,7 +138,10 @@ function applySorting<Q extends MarketListingsQuery>(query: Q, sort: MarketFilte
   switch (sort) {
     case 'price_asc': return query.order('price', { ascending: true, nullsFirst: false })
     case 'price_desc': return query.order('price', { ascending: false, nullsFirst: false })
-    case 'newest': return query.order('first_seen_at', { ascending: false })
+    // 'newest' = `created_at` (pas `first_seen_at`) pour utiliser le partial
+    // index `idx_ml_rent_active_created` (CLAUDE.md §7). `first_seen_at` n'a
+    // pas d'index dédié → sort en mémoire sur 33K rows → timeout.
+    case 'newest': return query.order('created_at', { ascending: false })
     case 'surface_desc': return query.order('surface_m2', { ascending: false, nullsFirst: false })
     case 'best_deals': return query.order('price_per_m2', { ascending: true, nullsFirst: false })
     case 'recommended': return query.order('created_at', { ascending: false }) // client-side re-sort
@@ -347,6 +367,78 @@ export function useMarketListings(filters: MarketFilters = {}) {
     getNextPageParam: (lastPage) => lastPage.nextPage,
     staleTime: 5 * 60 * 1000, // 5 minutes
     placeholderData: keepPreviousData, // keep UI stable during filter changes
+  })
+}
+
+// ─── HOOK 1b : Compteur estimé pour les filtres en cours ────────────────────
+//
+// Postgres `count: 'estimated'` retourne l'estimation du planner (instantané)
+// — pas un COUNT(*) qui timeout sur 33K rows. Le résultat est approximatif
+// mais largement suffisant pour afficher "X biens trouvés" dans la filter bar.
+//
+// JAMAIS `count: 'exact'` ici (voir CLAUDE.md section 7).
+
+export function useMarketListingsCount(filters: MarketFilters = {}) {
+  // Le `filters.q` (free text ILIKE/OR) est exclu du compteur : sur 33K rows
+  // un .or() multi-champs peut friser 3s même avec count: 'estimated'. On
+  // accepte un léger overcount quand l'user tape — le résultat reste une
+  // estimation et le brief autorise cette imprécision (CLAUDE.md §7).
+  const lightFilters = filters.q ? { ...filters, q: undefined } : filters
+  return useQuery({
+    queryKey: ['market-listings-count', lightFilters],
+    queryFn: async (): Promise<number> => {
+      let query = supabase
+        .from('market_listings')
+        .select('id', { count: 'estimated', head: true })
+      query = applyFilters(query, lightFilters)
+      const { count, error } = await query
+      if (error) throw new Error(`market_listings count failed: ${error.message}`)
+      return count ?? 0
+    },
+    staleTime: 60 * 1000, // 1 min
+    placeholderData: keepPreviousData,
+  })
+}
+
+// ─── HOOK 1c : Autocomplete villes pour la search bar du hero ───────────────
+//
+// MVP : ILIKE prefix sur `market_listings.city`, dédupliqué client-side.
+// Le partial index sur transaction_type + status couvre déjà 99% des rows ;
+// l'ILIKE prefix sur city est rapide dans ce sous-ensemble (~33K rows pour
+// rent, ~1K pour buy). Si ça devient lent → migrer vers un RPC dédié.
+
+export function useCitiesAutocomplete(query: string, context: 'buy' | 'rent' = 'buy') {
+  const trimmed = query.trim()
+  return useQuery({
+    queryKey: ['cities-autocomplete', trimmed, context],
+    queryFn: async (): Promise<string[]> => {
+      if (trimmed.length < 2) return []
+      const safe = escapeForOrLike(trimmed)
+      if (safe.length === 0) return []
+      const { data, error } = await supabase
+        .from('market_listings')
+        .select('city')
+        .eq('status', 'active')
+        .eq('transaction_type', context)
+        .ilike('city', `${safe}%`)
+        .limit(80)
+      if (error) return []
+      const seen = new Set<string>()
+      const out: string[] = []
+      for (const row of (data as Array<{ city?: string }>) || []) {
+        // Normalise les espaces multiples avant dedupe pour éviter que
+        // "Genève" et "Genève " (avec espace final) comptent comme 2 entrées.
+        const c = row.city?.replace(/\s+/g, ' ').trim()
+        if (c && !seen.has(c.toLowerCase())) {
+          seen.add(c.toLowerCase())
+          out.push(c)
+          if (out.length >= 8) break
+        }
+      }
+      return out
+    },
+    enabled: trimmed.length >= 2,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
