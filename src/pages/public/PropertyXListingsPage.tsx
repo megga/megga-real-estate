@@ -1,10 +1,9 @@
-// MEGGA Marketplace — Page "Properties for sale" (port fidèle Figma node 9552:21447).
-// Structure : Header overlay light + Hero dark + Browser search + Listings grid +
-// Post Property Cards + Footer dark.
+// MEGGA Marketplace — Page listings (Property X design).
+// Branchée sur Supabase via PxListingsGrid (infinite query, 24 biens/page).
 //
-// Le header est overlay (absolute top-0 z-4 light text) sur le hero dark —
-// PxNavPropertyX matche exactement le Figma (logo Property X EN, nav Home/About/
-// Pages/Cart, CTA white "Start exploring").
+// Le prop `context` filtre par transaction_type :
+//   - 'buy'  → biens à vendre  → route /acheter
+//   - 'rent' → biens à louer    → route /louer
 
 import { PX } from '@/components/propertyx/tokens'
 import PxNavPropertyX from '@/components/propertyx/sections/PxNavPropertyX'
@@ -13,7 +12,11 @@ import PxListingsGrid from '@/components/propertyx/sections/PxListingsGrid'
 import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 
-export default function PropertyXListingsPage() {
+interface PropertyXListingsPageProps {
+  context?: 'buy' | 'rent'
+}
+
+export default function PropertyXListingsPage({ context = 'buy' }: PropertyXListingsPageProps) {
   return (
     <div
       style={{
@@ -25,13 +28,9 @@ export default function PropertyXListingsPage() {
         overflowX: 'hidden',
       }}
     >
-      {/* Header overlay light (absolute top-0 z-4) */}
       <PxNavPropertyX />
-      {/* Hero dark + browser search (z-3) */}
       <PxListingsHero />
-      {/* Articles grid 2 properties (z-2) */}
-      <PxListingsGrid />
-      {/* Cards CTA + Footer dark — wrap pour éviter gap parent */}
+      <PxListingsGrid context={context} />
       <div>
         <PxPostPropertyEN />
         <PxFooterPropertyX />
