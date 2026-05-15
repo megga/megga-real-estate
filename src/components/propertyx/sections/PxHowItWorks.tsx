@@ -3,31 +3,45 @@
 //
 // Structure : Top Content (badge + H2 + paragraphe) + Bottom Content avec
 // Accordion (3 items, body affiché quand ouvert) à gauche + Right Element
-// statique (image + popover search) à droite — fidèle au node Figma qui ne
-// montre qu'un seul état du right element indépendamment de l'accordion.
+// dynamique (image + popover) à droite. L'image et le popover changent selon
+// l'étape active de l'accordion ; le popover garde la même position pour les
+// 3 étapes (left 295.48, top 172.4), seul son contenu varie.
 
 import { useState } from 'react'
 import { PX, PxIcon, PxFigmaIcon } from '..'
 
+type PopoverKind = 'search' | 'chat' | 'congrats'
+
 interface Step {
   title: string
   body: string
+  image: string
+  popover: PopoverKind
 }
 
+// Position commune des 3 popovers — Figma step 1 (11756:29053).
+const POPOVER_LEFT = 295.48
+const POPOVER_TOP = 172.4
+
 // Figma 11756:29033-29047 : 3 accordion items, body affiché uniquement quand ouvert.
-// Le right element reste fixé sur la première étape "search" (Figma 11756:29053).
 const STEPS: Step[] = [
   {
     title: '1. Search for your favorite  house in your location',
     body: 'Lorem ipsum dolor sit amet consectetur vitae purus quis metus sed semper diam iaculis duis vitae purus amet sagittis leo elit vitae dolor.',
+    image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1400&q=85',
+    popover: 'search',
   },
   {
     title: '2. Make a visit appointment with one of our agents',
     body: 'Lorem ipsum dolor sit amet consectetur vitae purus quis metus sed semper diam iaculis duis vitae purus amet sagittis leo elit vitae dolor.',
+    image: 'https://images.unsplash.com/photo-1499996860823-5214fcc65f8f?w=1400&q=85&sat=-100',
+    popover: 'chat',
   },
   {
     title: '3. Get your dream house in a month, or less',
     body: 'Lorem ipsum dolor sit amet consectetur vitae purus quis metus sed semper diam iaculis duis vitae purus amet sagittis leo elit vitae dolor.',
+    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1400&q=85',
+    popover: 'congrats',
   },
 ]
 
@@ -69,15 +83,14 @@ function ProcessBadge() {
   )
 }
 
-// Right element popover — Figma node 11756:29053.
-// Carte blanche unique (316.133×349.748) contenant search bar + 2 property cards.
-// Positionnée à left[295.48] top[172.4] dans le conteneur 611.609×522.151.
-function RightPopover() {
+// Step 1 popover — search bar + 2 property cards (Figma 11756:29053).
+// 316.133 × 349.748.
+function SearchPopover() {
   return (
     <div style={{
       position: 'absolute',
-      left: 295.48,
-      top: 172.4,
+      left: POPOVER_LEFT,
+      top: POPOVER_TOP,
       width: 316.133,
       height: 349.748,
       background: PX.neutral100,
@@ -85,7 +98,6 @@ function RightPopover() {
       boxShadow: PX.shadow.small,
     }}>
       {/* Search bar pill "Choose your location" — Figma 11756:29061 */}
-      {/* w-269, pl-14.487 pr-4.533 py-14.487 */}
       <div style={{
         position: 'absolute',
         left: 23.81,
@@ -123,8 +135,7 @@ function RightPopover() {
         </span>
       </div>
 
-      {/* Property cards : Figma 11756:29069 (top 243.51 → offset 71.11 inside popover)
-          and 11756:29085 (top 377.24 → offset 204.84 inside popover) */}
+      {/* Property cards : Figma 11756:29069 / 11756:29085 */}
       <PopoverPropertyCard
         topOffset={71.11}
         image="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=85"
@@ -154,7 +165,6 @@ function PopoverPropertyCard({
 }) {
   return (
     <>
-      {/* Image w-268.75 × h-80.798 (mask cuts to 80.798 from full 95.944) */}
       <div style={{
         position: 'absolute',
         left: 23.81,
@@ -167,7 +177,6 @@ function PopoverPropertyCard({
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}>
-        {/* Badge "For rent" — Figma 11756:29073 : pl-2.99 pr-4.485 py-2.242 */}
         <span style={{
           position: 'absolute',
           left: 5,
@@ -195,7 +204,6 @@ function PopoverPropertyCard({
           }}>For rent</span>
         </span>
       </div>
-      {/* Title + address block — Figma 11756:29078 */}
       <div style={{
         position: 'absolute',
         left: 23.81,
@@ -234,8 +242,150 @@ function PopoverPropertyCard({
   )
 }
 
+// Step 2 popover — chat bubble Sophie Moore (Figma reference).
+// Pilule blanche avec avatar + message.
+function ChatPopover() {
+  return (
+    <div style={{
+      position: 'absolute',
+      left: POPOVER_LEFT,
+      top: POPOVER_TOP,
+      width: 316.133,
+      background: PX.neutral100,
+      borderRadius: PX.radius.pill,
+      boxShadow: PX.shadow.small,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      paddingLeft: 12,
+      paddingRight: 20,
+      paddingTop: 12,
+      paddingBottom: 12,
+      boxSizing: 'border-box',
+    }}>
+      <div style={{
+        width: 44,
+        height: 44,
+        borderRadius: PX.radius.pill,
+        overflow: 'hidden',
+        backgroundImage: 'url("/images/avatars/sophie-moore.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        flexShrink: 0,
+      }} />
+      <span style={{
+        fontFamily: PX.font.display,
+        fontSize: 14,
+        fontWeight: 500,
+        lineHeight: 1.3,
+        letterSpacing: '-0.42px',
+        color: PX.neutral700,
+      }}>
+        Hello I'm Sophie Moore! From Casa X, how can I help you?
+      </span>
+    </div>
+  )
+}
+
+// Step 3 popover — congrats card (Figma reference).
+// Carte blanche centrée verticalement avec check + titre + sous-titre + bouton.
+function CongratsPopover() {
+  return (
+    <div style={{
+      position: 'absolute',
+      left: POPOVER_LEFT,
+      top: POPOVER_TOP,
+      width: 316.133,
+      background: PX.neutral100,
+      borderRadius: PX.radius.large,
+      boxShadow: PX.shadow.small,
+      padding: 32,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 16,
+      boxSizing: 'border-box',
+    }}>
+      <span style={{
+        width: 56,
+        height: 56,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral700,
+        display: 'grid',
+        placeItems: 'center',
+      }}>
+        <PxFigmaIcon name="check" size={24} color={PX.neutral100} />
+      </span>
+      <div style={{
+        fontFamily: PX.font.display,
+        fontSize: 24,
+        fontWeight: 500,
+        lineHeight: 1.25,
+        letterSpacing: '-0.72px',
+        color: PX.neutral700,
+        textAlign: 'center',
+      }}>Congratulations</div>
+      <p style={{
+        margin: 0,
+        fontFamily: PX.font.display,
+        fontSize: 14,
+        fontWeight: 400,
+        lineHeight: 1.5,
+        letterSpacing: '-0.42px',
+        color: PX.neutral500,
+        textAlign: 'center',
+      }}>
+        Your property has been purchased successfully
+      </p>
+      <button
+        type="button"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          paddingLeft: 20,
+          paddingRight: 6,
+          paddingTop: 6,
+          paddingBottom: 6,
+          background: PX.neutral700,
+          color: PX.neutral100,
+          border: 0,
+          borderRadius: PX.radius.pill,
+          cursor: 'pointer',
+          fontFamily: PX.font.display,
+          fontSize: 14,
+          fontWeight: 500,
+          letterSpacing: '-0.42px',
+          marginTop: 4,
+        }}
+      >
+        Go back home
+        <span style={{
+          width: 28,
+          height: 28,
+          borderRadius: PX.radius.pill,
+          background: PX.neutral100,
+          display: 'grid',
+          placeItems: 'center',
+        }}>
+          <PxFigmaIcon name="arrow-right" size={14} color={PX.neutral700} />
+        </span>
+      </button>
+    </div>
+  )
+}
+
+function StepPopover({ kind }: { kind: PopoverKind }) {
+  if (kind === 'chat') return <ChatPopover />
+  if (kind === 'congrats') return <CongratsPopover />
+  return <SearchPopover />
+}
+
 export default function PxHowItWorks() {
   const [open, setOpen] = useState(0)
+  // Quand l'accordion est fermé (open === -1) on retombe sur l'étape 1.
+  const active = STEPS[open >= 0 ? open : 0]
 
   return (
     <section style={{
@@ -391,16 +541,16 @@ export default function PxHowItWorks() {
           })}
         </div>
 
-        {/* Right Element : Figma 11756:29053 — w-611.609 h-522.151
-            Image principale 514.828×433.495 à top-0 left-0,
-            puis popover blanc 316.133×349.748 à left-295.48 top-172.4. */}
+        {/* Right Element : w-611.609 h-522.151. L'image et le popover
+            changent selon l'étape active (active = STEPS[open >= 0 ? open : 0]).
+            Le popover garde toujours la même position d'ancrage. */}
         <div style={{
           position: 'relative',
           width: 611.609,
           height: 522.151,
           flexShrink: 0,
         }}>
-          {/* Image principale 514.828×433.495 — image step 1 fixe (Figma) */}
+          {/* Image principale 514.828×433.495 */}
           <div style={{
             position: 'absolute',
             top: 0,
@@ -409,13 +559,14 @@ export default function PxHowItWorks() {
             height: 433.495,
             borderRadius: PX.radius.large,
             overflow: 'hidden',
-            backgroundImage: 'url("https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1400&q=85")',
+            backgroundImage: `url("${active.image}")`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            transition: `background-image ${PX.duration.fast} ${PX.ease}`,
           }} />
 
-          {/* Popover search (carte blanche unique) */}
-          <RightPopover />
+          {/* Popover dynamique selon l'étape, position fixe */}
+          <StepPopover kind={active.popover} />
         </div>
       </div>
     </section>
