@@ -50,6 +50,10 @@ export type PxFigmaIconName =
   | 'form-edit'   // V30 : pencil/edit (textarea Message)
   // Contact page badges
   | 'badge-faq'   // V29 : message bubble (FAQs section)
+  // Blog post category badges
+  | 'blog-article'   // V50 : article/category icon
+  | 'blog-news'      // V41 : news icon
+  | 'blog-resource'  // V24 : resource icon
 
 interface PxFigmaIconProps {
   name: PxFigmaIconName
