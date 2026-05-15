@@ -104,7 +104,7 @@ function PropertyCardV2({ listing, context }: { listing: ListingCardData; contex
       }}
     >
       <Link
-        to={`/listing/${listing.id}`}
+        to={`/propriete/${listing.id}`}
         style={{
           position: 'relative',
           width: '100%',
@@ -229,7 +229,7 @@ function PropertyCardV2({ listing, context }: { listing: ListingCardData; contex
           {listing.bathrooms ? <AmenityItem icon="bath" value={bathroomsLabel} /> : null}
         </div>
         <Link
-          to={`/listing/${listing.id}`}
+          to={`/propriete/${listing.id}`}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
