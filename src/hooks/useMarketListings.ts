@@ -144,7 +144,15 @@ function applySorting<Q extends MarketListingsQuery>(query: Q, sort: MarketFilte
     case 'newest': return query.order('created_at', { ascending: false })
     case 'surface_desc': return query.order('surface_m2', { ascending: false, nullsFirst: false })
     case 'best_deals': return query.order('price_per_m2', { ascending: true, nullsFirst: false })
-    case 'recommended': return query.order('created_at', { ascending: false }) // client-side re-sort
+    // 'recommended' = vrai score multi-signal (migration 20260515_001) :
+    // quality + photos + complétude + price valid + description. Couvert par
+    // le partial index `idx_ml_relevance` (transaction_type, relevance_score
+    // DESC, created_at DESC) WHERE status='active' AND quality_score>=50.
+    // Le created_at fait tiebreaker (la fraîcheur intervient en 2e clé).
+    case 'recommended':
+      return query
+        .order('relevance_score', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
     default: return query.order('created_at', { ascending: false })
   }
 }
@@ -440,6 +448,74 @@ export function useCitiesAutocomplete(query: string, context: 'buy' | 'rent' = '
     enabled: trimmed.length >= 2,
     staleTime: 5 * 60 * 1000,
   })
+}
+
+// ─── HOOK 1d : Médianes cantonales pour le badge "Bon prix" ─────────────────
+//
+// Tire le materialized view `cantonal_price_medians` (refresh quotidien via
+// pg_cron 04:30 UTC, voir migration 20260515_001).
+//
+// La vue est petite (26 cantons × 2 tx × 8 types ≤ 416 rows), on tire tout
+// d'un coup et on indexe en mémoire par clé `canton|tx|type`. staleTime 24h
+// = même TTL que le refresh DB.
+//
+// Inspiré du Comparis Rating (seul à exposer un score d'opportunité prix en
+// CH côté UX) — voir audit comparatif PR précédent.
+
+export type CantonalMedian = {
+  canton: string
+  transaction_type: 'buy' | 'rent'
+  type: string
+  median_price_per_m2: number
+  sample_size: number
+}
+
+export type CantonalMedianLookup = (params: {
+  canton: string | null | undefined
+  transaction_type: 'buy' | 'rent'
+  type: string | null | undefined
+}) => CantonalMedian | null
+
+export function useCantonalMedians() {
+  return useQuery<{ rows: CantonalMedian[]; lookup: CantonalMedianLookup }>({
+    queryKey: ['cantonal-price-medians'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cantonal_price_medians')
+        .select('canton, transaction_type, type, median_price_per_m2, sample_size')
+      if (error) {
+        // Non-fatal : si la matview n'existe pas encore (migration pas
+        // appliquée) ou si la lecture échoue, on renvoie un lookup vide —
+        // les cartes affichent juste pas le badge "Bon prix".
+        return { rows: [], lookup: () => null }
+      }
+      const rows = (data as CantonalMedian[]) || []
+      const index = new Map<string, CantonalMedian>()
+      for (const r of rows) {
+        index.set(`${r.canton}|${r.transaction_type}|${r.type}`, r)
+      }
+      const lookup: CantonalMedianLookup = ({ canton, transaction_type, type }) => {
+        if (!canton || !type) return null
+        return index.get(`${canton}|${transaction_type}|${type}`) ?? null
+      }
+      return { rows, lookup }
+    },
+    staleTime: 24 * 60 * 60 * 1000, // 24h — matche le refresh pg_cron
+    gcTime: 24 * 60 * 60 * 1000,
+  })
+}
+
+// Seuil "Bon prix" : prix/m² ≤ 85% de la médiane cantonale = sous le marché.
+// Source : Idealista quality score & Comparis Rating tolérancent ~10-20%.
+export const GOOD_DEAL_THRESHOLD = 0.85
+
+export function isGoodDeal(
+  pricePerM2: number | null | undefined,
+  median: CantonalMedian | null,
+): boolean {
+  if (!pricePerM2 || pricePerM2 <= 0) return false
+  if (!median || median.sample_size < 5) return false
+  return pricePerM2 <= median.median_price_per_m2 * GOOD_DEAL_THRESHOLD
 }
 
 // ─── HOOK 2 : Points carte (léger, tous les biens avec lat/lng) ─────────────
