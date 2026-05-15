@@ -42,6 +42,8 @@ export type PxFigmaIconName =
   | 'badge-blog-edit'
   | 'badge-blog-resources'
   | 'badge-blog-news'
+  | 'badge-blog-all'
+  | 'badge-blog-articles'
   | 'blog-calendar'
   // Form icons (Single Property + Contact contact forms)
   | 'form-person'
