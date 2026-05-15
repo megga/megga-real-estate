@@ -51,6 +51,7 @@ export type PxFigmaIconName =
   | 'currency'    // V55 : dollar sign in a circle (Listing price)
   | 'link'        // V55 : chain link (Listing images URL)
   | 'home-simple' // V36 : simple solid house silhouette (form headers, listing title)
+  | 'check'       // Stroke checkmark (Submit Property hero badge, amenity checked)
   // Contact page badges
   | 'badge-faq'   // V29 : message bubble (FAQs section)
 

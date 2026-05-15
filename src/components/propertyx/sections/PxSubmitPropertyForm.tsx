@@ -296,7 +296,7 @@ function FormTextArea({ placeholder }: { placeholder: string }) {
         color: PX.neutral400,
         width: 14,
         height: 14,
-        transform: 'rotate(-45deg)',
+        transform: 'rotate(45deg)',
         pointerEvents: 'none',
       }}>
         <PxFigmaIcon name="form-edit" size={14} color={PX.neutral400} />
@@ -508,7 +508,7 @@ export default function PxSubmitPropertyForm() {
                     justifyContent: 'center',
                     width: 14,
                     height: 14,
-                    transform: 'rotate(-45deg)',
+                    transform: 'rotate(45deg)',
                   }}>
                     <PxFigmaIcon name="form-edit" size={14} color={PX.neutral400} />
                   </span>
@@ -587,11 +587,11 @@ export default function PxSubmitPropertyForm() {
           </div>
           {/* Listing short description */}
           <FormField label="Listing short description" width={580}>
-            <FormTextArea placeholder="Please ensure up than 240 characters" />
+            <FormTextArea placeholder="Please enter up than 240 characters." />
           </FormField>
           {/* Listing long description */}
           <FormField label="Listing long description" width={580}>
-            <FormTextArea placeholder="Please ensure up than 4000 characters" />
+            <FormTextArea placeholder="Please enter up than 4000 characters." />
           </FormField>
 
           {/* Bottom Content : Property amenities + Listing images + Submit */}
@@ -665,14 +665,14 @@ export default function PxSubmitPropertyForm() {
               }}>
                 Listing images
               </span>
-              {/* Paragraph Default : "Please share..." 14/Regular neutral500 lh-1.25 ls-0.42 */}
+              {/* Paragraph Default : "Please share..." 14/Regular neutral400 lh-1.25 ls-0.42 */}
               <span style={{
                 fontFamily: PX.font.display,
                 fontSize: 14,
                 fontWeight: 400,
                 lineHeight: 1.25,
                 letterSpacing: '-0.42px',
-                color: PX.neutral500,
+                color: PX.neutral400,
               }}>
                 Please share a Google Drive or Imgur link of your listing images
               </span>

@@ -4,7 +4,7 @@
 // free property" (check icon circle) + title 72 white center 600.5 wide +
 // paragraph 16 neutral400 center 562 wide.
 
-import { PX } from '..'
+import { PX, PxFigmaIcon } from '..'
 
 export default function PxSubmitPropertyHero() {
   return (
@@ -53,7 +53,8 @@ export default function PxSubmitPropertyHero() {
             color: PX.neutral100,
             flexShrink: 0,
           }}>
-            {/* Inner circle 26×26 avec check icon blanc */}
+            {/* Inner circle 26×26 avec check icon Figma (asset 533e8afd…
+                viewBox 14.6×12.4, stroke white avec drop-shadow). */}
             <span style={{
               width: 26,
               height: 26,
@@ -64,15 +65,7 @@ export default function PxSubmitPropertyHero() {
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path
-                  d="M2.5 6.2l2.5 2.5L9.5 3.7"
-                  stroke={PX.neutral100}
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <PxFigmaIcon name="check" size={15} color={PX.neutral100} />
             </span>
             {/* Text "Post a free property" : 16/Medium white lh-1.25 ls-0.48 */}
             <span style={{
@@ -114,9 +107,10 @@ export default function PxSubmitPropertyHero() {
           </div>
         </div>
 
-        {/* Paragraph wrapper : w-562 h-96, pt-16 */}
+        {/* Paragraph wrapper : w-562 h-96, pt-16 pb-32 (Figma : sections/pd-medium) */}
         <div style={{
           paddingTop: 16,
+          paddingBottom: 32,
           width: 562.047,
           display: 'flex',
           flexDirection: 'column',

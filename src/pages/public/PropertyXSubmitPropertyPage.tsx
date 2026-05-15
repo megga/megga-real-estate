@@ -21,7 +21,8 @@ export default function PropertyXSubmitPropertyPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: PX.pageBg,
+      // Figma : page bg = neutrals-200 (#FAFAFB), pas neutral100 (#FFFFFF).
+      background: PX.neutral200,
       fontFamily: PX.font.sans,
       color: PX.ink,
     }}>
