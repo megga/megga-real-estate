@@ -121,9 +121,9 @@ const PROPERTIES: PropertyItem[] = [
 ]
 
 // Badge sur card image — bg neutral700, icon + texte (For rent / For sale)
-// On utilise PxIcon (line-drawings) qui contient 'key' ET 'home' — PxFigmaIcon
-// n'a que 'key', donc on aligne avec le pattern de PxAllProperties.
+// Utilise PxFigmaIcon : 'key' (Filled/Key Figma) pour For rent, 'tag' (V35) pour For sale.
 function CardBadge({ label, icon }: { label: string; icon: 'key' | 'home' }) {
+  const figmaIcon = icon === 'home' ? 'tag' : 'key'
   return (
     <span style={{
       display: 'inline-flex',
@@ -136,7 +136,7 @@ function CardBadge({ label, icon }: { label: string; icon: 'key' | 'home' }) {
       background: PX.neutral700,
       borderRadius: PX.radius.pill,
     }}>
-      <PxIcon name={icon} size={16} color={PX.neutral100} />
+      <PxFigmaIcon name={figmaIcon} size={16} color={PX.neutral100} />
       <span style={{
         fontFamily: PX.font.display,
         fontSize: 16,
