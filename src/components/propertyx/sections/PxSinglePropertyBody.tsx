@@ -128,29 +128,29 @@ function AmenityBadge({ icon, label }: { icon: string; label: string }) {
 
 const AMENITY_BASE = '/images/sections/single-property/amenities'
 const AMENITIES: Array<{ icon: string; label: string }> = [
-  { icon: `${AMENITY_BASE}/air-conditioner.svg`, label: 'Air contidioner' },
-  { icon: `${AMENITY_BASE}/cable-tv.svg`, label: 'Cable TV' },
-  { icon: `${AMENITY_BASE}/dishwasher.svg`, label: 'Dishwasher' },
-  { icon: `${AMENITY_BASE}/fire-extinguisher.svg`, label: 'Fire extinguisher' },
-  { icon: `${AMENITY_BASE}/elevator.svg`, label: 'Elevator' },
-  { icon: `${AMENITY_BASE}/garden.svg`, label: 'Garden' },
+  { icon: `${AMENITY_BASE}/air-conditioner.svg`, label: 'Climatisation' },
+  { icon: `${AMENITY_BASE}/cable-tv.svg`, label: 'TV câblée' },
+  { icon: `${AMENITY_BASE}/dishwasher.svg`, label: 'Lave-vaisselle' },
+  { icon: `${AMENITY_BASE}/fire-extinguisher.svg`, label: 'Extincteur' },
+  { icon: `${AMENITY_BASE}/elevator.svg`, label: 'Ascenseur' },
+  { icon: `${AMENITY_BASE}/garden.svg`, label: 'Jardin' },
   { icon: `${AMENITY_BASE}/internet.svg`, label: 'Internet' },
-  { icon: `${AMENITY_BASE}/pool.svg`, label: 'Pool' },
-  { icon: `${AMENITY_BASE}/laundry.svg`, label: 'Laundry' },
-  { icon: `${AMENITY_BASE}/security-cameras.svg`, label: 'Security cameras' },
-  { icon: `${AMENITY_BASE}/iron.svg`, label: 'Iron' },
-  { icon: `${AMENITY_BASE}/gym.svg`, label: 'GYM' },
-  { icon: `${AMENITY_BASE}/kitchen.svg`, label: 'Kitchen' },
+  { icon: `${AMENITY_BASE}/pool.svg`, label: 'Piscine' },
+  { icon: `${AMENITY_BASE}/laundry.svg`, label: 'Buanderie' },
+  { icon: `${AMENITY_BASE}/security-cameras.svg`, label: 'Vidéosurveillance' },
+  { icon: `${AMENITY_BASE}/iron.svg`, label: 'Fer à repasser' },
+  { icon: `${AMENITY_BASE}/gym.svg`, label: 'Salle de sport' },
+  { icon: `${AMENITY_BASE}/kitchen.svg`, label: 'Cuisine équipée' },
   { icon: `${AMENITY_BASE}/grill.svg`, label: 'Grill' },
-  { icon: `${AMENITY_BASE}/refrigerator.svg`, label: 'Refrigerator' },
-  { icon: `${AMENITY_BASE}/heater.svg`, label: 'Heater' },
-  { icon: `${AMENITY_BASE}/chimney.svg`, label: 'Chimney' },
-  { icon: `${AMENITY_BASE}/sports-fields.svg`, label: 'Sports fields' },
-  { icon: `${AMENITY_BASE}/pet-friendly.svg`, label: 'Pet friendly' },
-  { icon: `${AMENITY_BASE}/smoking-area.svg`, label: 'Smoking area' },
-  { icon: `${AMENITY_BASE}/microwave.svg`, label: 'Microwave' },
-  { icon: `${AMENITY_BASE}/lockpad.svg`, label: 'Lockpad' },
-  { icon: `${AMENITY_BASE}/kids-zone.svg`, label: 'Kids zone' },
+  { icon: `${AMENITY_BASE}/refrigerator.svg`, label: 'Réfrigérateur' },
+  { icon: `${AMENITY_BASE}/heater.svg`, label: 'Chauffage' },
+  { icon: `${AMENITY_BASE}/chimney.svg`, label: 'Cheminée' },
+  { icon: `${AMENITY_BASE}/sports-fields.svg`, label: 'Terrains de sport' },
+  { icon: `${AMENITY_BASE}/pet-friendly.svg`, label: 'Animaux acceptés' },
+  { icon: `${AMENITY_BASE}/smoking-area.svg`, label: 'Espace fumeurs' },
+  { icon: `${AMENITY_BASE}/microwave.svg`, label: 'Micro-ondes' },
+  { icon: `${AMENITY_BASE}/lockpad.svg`, label: 'Sécurité renforcée' },
+  { icon: `${AMENITY_BASE}/kids-zone.svg`, label: 'Espace enfants' },
   { icon: `${AMENITY_BASE}/garage.svg`, label: 'Garage' },
 ]
 
@@ -170,8 +170,10 @@ function PricingCard({ listing }: { listing?: ListingCardData }) {
   const isRent = listing?.context === 'rent'
   const priceLabel = listing
     ? (isRent ? formatRent(listing.price) : formatCHF(listing.price))
-    : 'CHF 8’500/mois'
-  const sublabel = isRent ? 'Bien à louer' : 'Bien à vendre'
+    : "CHF 3'200/mois"
+  const sublabel = listing
+    ? (isRent ? 'Loyer mensuel charges comprises' : 'Prix de vente net')
+    : 'Loyer mensuel charges comprises'
 
   return (
     <div style={{
@@ -262,9 +264,8 @@ function ContactFormCard() {
           lineHeight: 1.25,
           letterSpacing: '-0.6px',
           color: PX.neutral700,
-          whiteSpace: 'nowrap',
         }}>
-          Get in touch to receive more info
+          Demander plus d’informations
         </p>
         <p style={{
           margin: 0,
@@ -275,7 +276,7 @@ function ContactFormCard() {
           letterSpacing: '-0.48px',
           color: PX.neutral500,
         }}>
-          Lorem ipsum dolor sit amet consectetur fermentum eget fringilla egestas lorem.
+          L’agence vous recontacte sous 24 h pour répondre à vos questions ou organiser une visite.
         </p>
       </div>
       <form
@@ -287,9 +288,9 @@ function ContactFormCard() {
           width: '100%',
         }}
       >
-        <FormInput iconName="form-person" placeholder="Full name" />
-        <FormInput iconName="form-mail" placeholder="Email address" />
-        <FormInput iconName="form-phone" placeholder="Phone number" />
+        <FormInput iconName="form-person" placeholder="Nom complet" />
+        <FormInput iconName="form-mail" placeholder="Adresse e-mail" />
+        <FormInput iconName="form-phone" placeholder="Numéro de téléphone" />
         <button
           type="submit"
           style={{
@@ -313,7 +314,7 @@ function ContactFormCard() {
             letterSpacing: '-0.48px',
           }}
         >
-          <span style={{ paddingTop: 2 }}>Request information</span>
+          <span style={{ paddingTop: 2 }}>Envoyer ma demande</span>
           <span style={{
             width: 28,
             height: 28,
@@ -341,14 +342,14 @@ function AgenceCard({ listing }: { listing?: ListingCardData }) {
   // Sans données contact directes (email/phone au niveau agency_profiles),
   // les visiteurs passent par le ContactFormCard juste au-dessus.
   // Sans listing : fallback démo Figma.
-  const agencyName = listing?.agency_name || (listing ? 'Régie locale' : 'Naef Immobilier')
+  const agencyName = listing?.agency_name || (listing ? 'Régie locale' : 'Naef Immobilier — Genève')
   const agencyLogo = listing?.agency_logo_url || '/images/sections/single-property/agent-sophie.jpg'
   const sourceLabel = listing?.source_portal
     ? `Annonce publiée sur ${listing.source_portal}`
-    : 'sophiemoore@casa.com'
+    : 'Régie partenaire certifiée'
   const intro = listing
     ? 'Contactez la régie directement via le formulaire ci-dessus ou consultez l’annonce d’origine.'
-    : 'Lorem ipsum dolor sit amet consectetur fermentum eget fringilla egestas lorem.'
+    : 'L’agence en charge de ce bien vous répond sous 24 h, du lundi au samedi.'
   const externalUrl = listing?.source_url
 
   return (
@@ -476,12 +477,12 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
   // Champs dérivés du listing avec fallback démo Figma.
   const locationLabel = listing
     ? [listing.address, listing.city].filter(Boolean).join(', ') || 'Suisse'
-    : '2596 El Segundo, Los Angeles'
-  const titleLabel = listing?.title || 'Luxury Loft in San Francisco'
+    : 'Rue de la Servette, 1202 Genève'
+  const titleLabel = listing?.title || 'Loft lumineux au cœur de Genève'
   const descriptionLabel = listing?.description?.trim()
-    || 'Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.'
-  const surfaceLabel = listing?.surface_m2 ? `${listing.surface_m2} m²` : '2,553 sqtf'
-  const roomsLabel = listing?.rooms ? `${listing.rooms} p.` : '3'
+    || 'Magnifique loft de 120 m² entièrement rénové, situé dans un quartier animé à proximité immédiate des transports publics et des commerces. Belle hauteur sous plafond, parquet d’origine, cuisine ouverte sur séjour et grande baie vitrée donnant sur cour intérieure calme.'
+  const surfaceLabel = listing?.surface_m2 ? `${listing.surface_m2} m²` : '120 m²'
+  const roomsLabel = listing?.rooms ? `${listing.rooms} p.` : '3.5 p.'
   const bedroomsLabel = listing?.bedrooms ? String(listing.bedrooms) : '3'
   const bathroomsLabel = listing?.bathrooms ? String(listing.bathrooms) : '2'
 
@@ -614,7 +615,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: '-0.48px',
                 color: PX.neutral500,
               }}>
-                Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
+                Bien rénové en 2023, ce loft offre des prestations soignées et un cadre de vie agréable. Les volumes sont généreux et la luminosité exceptionnelle grâce à l’orientation sud-ouest. À deux pas des transports publics, des commerces et des espaces verts.
               </p>
 
               <div style={{
@@ -625,10 +626,10 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 flexDirection: 'column',
                 gap: 12,
               }}>
-                <BulletItem>Morbi fringilla molestie magna sed dictum. Praesent.</BulletItem>
-                <BulletItem>Cras mi purus, viverra vitae felis sit amet.</BulletItem>
-                <BulletItem>Non mattis urna ex nec sem. Donec varius diam et suscipit venenati.</BulletItem>
-                <BulletItem>Quisque euismod posuere lacus sit amet volutpat.</BulletItem>
+                <BulletItem>Hauteur sous plafond 3,2 m et parquet chêne d’origine</BulletItem>
+                <BulletItem>Cuisine ouverte entièrement équipée (induction, four pyrolyse, lave-vaisselle)</BulletItem>
+                <BulletItem>Cave privative et accès direct à la cour intérieure arborée</BulletItem>
+                <BulletItem>Immeuble Minergie, ascenseur et local vélos sécurisé</BulletItem>
               </div>
 
               <p style={{
@@ -640,7 +641,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: '-0.48px',
                 color: PX.neutral500,
               }}>
-                Quis faucibus massa sit egestas. Sit fermentum est ac pulvinar et sagittis sed sit ut. Quis faucibus aenean nibh vestibulum enim mi sit. Sollicitudin ultrices ultrices in ipsum urna fringilla massa leo. Sapien ultricies vitae rhoncus molestie purus. Urna urna dolor euismod porttitor et. Magna adipiscing dictum et adipiscing mollis feugiat.
+                À proximité&nbsp;: école primaire des Cropettes (3 min), parc Geisendorf (5 min), gare Cornavin (8 min en tram). Quartier réputé pour sa vie de quartier dynamique, ses bistrots et son marché hebdomadaire.
               </p>
             </div>
           </div>}
@@ -674,7 +675,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: '-0.48px',
                 color: PX.neutral500,
               }}>
-                Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
+                Liste complète des équipements et prestations inclus dans le bien. Tous les éléments sont en parfait état de fonctionnement.
               </p>
             </div>}
             <div style={{ paddingBottom: listing ? 16 : 0 }} />

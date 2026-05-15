@@ -1553,7 +1553,7 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
 
                     {/* Full page link */}
                     <Link
-                      to={`/listing/${listingId}`}
+                      to={`/propriete/${listingId}`}
                       className="block text-center text-sm font-medium text-accent hover:underline"
                     >
                       Voir la fiche complète →

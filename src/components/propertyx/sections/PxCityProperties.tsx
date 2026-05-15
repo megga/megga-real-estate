@@ -332,7 +332,7 @@ function FeaturedProperties() {
 // Figma node 11780:21885
 function FeaturedCard() {
   return (
-    <Link to="/listing" style={{
+    <Link to="/acheter" style={{
       width: 954, height: 440, borderRadius: 24, overflow: 'hidden', position: 'relative',
       background: PX.neutral500, display: 'block', textDecoration: 'none', flexShrink: 0,
     }}>
@@ -541,7 +541,7 @@ function PropertyCardV2({ title, location, price, sqtf, beds, baths, badge, imag
       width: 588, display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start',
     }}>
       {/* Card : h-364 rounded-24 overflow-clip relative bg-neutral500 */}
-      <Link to="/listing" style={{
+      <Link to="/acheter" style={{
         width: '100%', height: 364, borderRadius: 24, overflow: 'hidden', position: 'relative',
         background: PX.neutral500, display: 'block', textDecoration: 'none',
       }}>
@@ -605,7 +605,7 @@ function PropertyCardV2({ title, location, price, sqtf, beds, baths, badge, imag
             <Amenity icon="bed" label={beds} />
             <Amenity icon="bath" label={baths} />
           </div>
-          <Link to="/listing" style={{
+          <Link to="/acheter" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             paddingLeft: 16, paddingRight: 6, paddingTop: 6, paddingBottom: 6,
             background: PX.neutral700, borderRadius: PX.radius.pill, textDecoration: 'none',

@@ -12,10 +12,12 @@
 // V34 = key (For rent) · V35 = tag (For sale) · V37 = location · V31 = surface
 // V23 = bed · V33 = bath · V27 = parking · chevron-right · plus
 
-import type { CSSProperties } from 'react'
+import type { CSSProperties, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { PX, PxFigmaIcon, PxIcon } from '..'
 import { useRelatedListings } from '@/hooks/useRelatedListings'
+import { useFavorites } from '@/hooks/useFavorites'
+import { useAuth } from '@/hooks/useAuth'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface PxSinglePropertyRelatedProps {
@@ -61,6 +63,15 @@ interface PropertyCardData {
 function PropertyCard({ data }: { data: PropertyCardData }) {
   // Figma : badge For rent utilise "Small Icon/V34" = key, For sale utilise "V35" = tag.
   const badgeIcon = data.badge.kind === 'rent' ? 'key' : 'tag'
+  const { user } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
+  const favorite = data.id ? isFavorite(data.id) : false
+
+  const handleFavoriteClick = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (data.id) toggleFavorite(data.id, !!user)
+  }
 
   return (
     <div style={{
@@ -121,21 +132,24 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
           </div>
           <button
             type="button"
-            aria-label="Add to favorites"
+            aria-label={favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            aria-pressed={favorite}
+            onClick={handleFavoriteClick}
             style={{
               width: 40,
               height: 40,
               borderRadius: PX.radius.pill,
-              background: PX.neutral100,
+              background: favorite ? PX.neutral700 : PX.neutral100,
               border: 0,
               boxShadow: PX.shadow.small,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
+              transition: 'background 0.18s ease',
             }}
           >
-            <PxFigmaIcon name="plus" size={16} color={PX.neutral700} />
+            <PxIcon name="heart" size={16} color={favorite ? PX.neutral100 : PX.neutral700} />
           </button>
         </div>
       </div>
@@ -215,23 +229,23 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
 const PROPERTIES: PropertyCardData[] = [
   {
     image: '/images/sections/single-property/related-1.jpg',
-    badge: { kind: 'rent', label: 'For rent' },
-    title: 'Luxury Loft in San Francisco',
-    location: '2238 Stradella Rd, SF',
-    sqft: '2,553 sqtf',
+    badge: { kind: 'rent', label: 'À louer' },
+    title: 'Loft lumineux au cœur de Genève',
+    location: 'Rue de la Servette, Genève',
+    sqft: '120 m²',
     beds: 3,
     baths: 2,
-    parking: 3,
+    parking: 1,
   },
   {
     image: '/images/sections/single-property/related-2.jpg',
-    badge: { kind: 'sale', label: 'For sale' },
-    title: 'Home in Los Angeles Heart',
-    location: '2238 Stradella Rd, LA',
-    sqft: '8,392 sqtf',
-    beds: 3,
-    baths: 2,
-    parking: 3,
+    badge: { kind: 'sale', label: 'À vendre' },
+    title: 'Villa contemporaine à Lausanne',
+    location: 'Avenue de Cour, Lausanne',
+    sqft: '210 m²',
+    beds: 4,
+    baths: 3,
+    parking: 2,
   },
 ]
 

@@ -51,7 +51,7 @@ function GetInTouchBadge() {
         color: PX.neutral100,
         paddingTop: 2,
       }}>
-        Get in touch
+        Visite & contact
       </span>
     </span>
   )
@@ -93,7 +93,7 @@ export default function PxSinglePropertyCTA() {
         }}>
           <img
             src="/images/sections/single-property/cta-ipad-iso.png"
-            alt="Property card preview on iPad"
+            alt="Aperçu de la fiche bien sur tablette"
             style={{
               position: 'absolute',
               left: '50%',
@@ -127,7 +127,7 @@ export default function PxSinglePropertyCTA() {
               letterSpacing: '-1.44px',
               color: PX.neutral100,
             }}>
-              Explore your<br />dream home today
+              Ce bien vous<br />intéresse&nbsp;?
             </h2>
             <p style={{
               margin: 0,
@@ -138,12 +138,12 @@ export default function PxSinglePropertyCTA() {
               letterSpacing: '-0.48px',
               color: PX.neutral400,
             }}>
-              Lorem ipsum dolor sit amet consectetur. Volutpat et lacinia sit aenean consequat. Id tellus eget libero eget non odio tristique.
+              Demandez une visite ou recevez le dossier complet&nbsp;: l’agence vous recontacte sous 24&nbsp;heures.
             </p>
           </div>
 
           <PxButton variant="invert" size="sm">
-            Start exploring
+            Demander une visite
           </PxButton>
         </div>
       </div>

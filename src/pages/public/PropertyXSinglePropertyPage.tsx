@@ -2,13 +2,12 @@
 // Source : Figma node 9552:21451.
 //
 // Composition (top → bottom) :
-//   1. PxNav (glass)
+//   1. PxNav
 //   2. PxSinglePropertyHero — photos du bien
 //   3. PxSinglePropertyBody — titre, location, prix, description, amenities
-//   4. PxSinglePropertyCTA
-//   5. PxSinglePropertyRelated — biens similaires (encore mock)
-//   6. PxPostPropertyEN
-//   7. PxFooterPropertyX
+//   4. PxSinglePropertyCTA — bandeau "Demander une visite"
+//   5. PxSinglePropertyRelated — biens similaires
+//   6. PxFooterPropertyX
 //
 // Sans `:id` (route demo `/propriete`), les composants utilisent leurs
 // données Figma par défaut. Avec un `:id`, on fetch depuis Supabase via
@@ -21,7 +20,6 @@ import PxSinglePropertyHero from '@/components/propertyx/sections/PxSingleProper
 import PxSinglePropertyBody from '@/components/propertyx/sections/PxSinglePropertyBody'
 import PxSinglePropertyRelated from '@/components/propertyx/sections/PxSinglePropertyRelated'
 import PxSinglePropertyCTA from '@/components/propertyx/sections/PxSinglePropertyCTA'
-import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 import { useListingDetail } from '@/hooks/useListingDetail'
 
@@ -67,10 +65,7 @@ export default function PropertyXSinglePropertyPage() {
           <PxSinglePropertyRelated currentListing={listing ?? undefined} />
         </>
       )}
-      <div>
-        <PxPostPropertyEN />
-        <PxFooterPropertyX />
-      </div>
+      <PxFooterPropertyX />
     </div>
   )
 }

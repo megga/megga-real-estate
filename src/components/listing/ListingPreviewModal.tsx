@@ -126,7 +126,7 @@ export default function ListingPreviewModal({
 
   const goToFullListing = () => {
     onClose()
-    navigate(`/listing/${listing.id}`)
+    navigate(`/propriete/${listing.id}`)
   }
 
 

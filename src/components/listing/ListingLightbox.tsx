@@ -135,7 +135,7 @@ export default function ListingLightbox({
 
   const handleSharePhoto = useCallback(async () => {
     const url = listingId
-      ? `${window.location.origin}/listing/${listingId}?photo=${index}`
+      ? `${window.location.origin}/propriete/${listingId}?photo=${index}`
       : window.location.href
     if (navigator.share) {
       await navigator.share({ title: 'Photo du bien', url })
