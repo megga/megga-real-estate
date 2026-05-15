@@ -3,42 +3,63 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/hooks/useAuth'
 
-// Static imports — shell + most-visited pages (loaded immediately)
-import PropertyXHomePage from '@/pages/public/PropertyXHomePage'
-import PropertyXAboutPage from '@/pages/public/PropertyXAboutPage'
-import PropertyXFAQPage from '@/pages/public/PropertyXFAQPage'
-import PropertyXListingsPage from '@/pages/public/PropertyXListingsPage'
-import PropertyXSinglePropertyPage from '@/pages/public/PropertyXSinglePropertyPage'
-import PropertyXContactPage from '@/pages/public/PropertyXContactPage'
-import PropertyXComingSoonPage from '@/pages/public/PropertyXComingSoonPage'
-import PropertyXSubmitPropertyPage from '@/pages/public/PropertyXSubmitPropertyPage'
-import PropertyXBlogPostPage from '@/pages/public/PropertyXBlogPostPage'
-import PropertyXAgentProfilePage from '@/pages/public/PropertyXAgentProfilePage'
-import PropertyXDesignSystemButtonsPage from '@/pages/public/PropertyXDesignSystemButtonsPage'
-import PropertyXDesignSystemLinksPage from '@/pages/public/PropertyXDesignSystemLinksPage'
-import PropertyXDesignSystemBadgesPage from '@/pages/public/PropertyXDesignSystemBadgesPage'
-import PropertyXDesignSystemListsPage from '@/pages/public/PropertyXDesignSystemListsPage'
-import PropertyXDesignSystemIconsPage from '@/pages/public/PropertyXDesignSystemIconsPage'
-import PropertyXDesignSystemIconFontsPage from '@/pages/public/PropertyXDesignSystemIconFontsPage'
-import PropertyXDesignSystemAvatarsPage from '@/pages/public/PropertyXDesignSystemAvatarsPage'
-import PropertyXDesignSystemInputsPage from '@/pages/public/PropertyXDesignSystemInputsPage'
-import PropertyXDesignSystemColorsPage from '@/pages/public/PropertyXDesignSystemColorsPage'
-import PropertyXDesignSystemTypographyPage from '@/pages/public/PropertyXDesignSystemTypographyPage'
-import PropertyXDesignSystemShadowsPage from '@/pages/public/PropertyXDesignSystemShadowsPage'
-import BlogV2Page from '@/pages/public/BlogV2Page'
-import LoginPage from '@/pages/public/LoginPage'
-// RegisterPage removed — registration is now handled by the email-first LoginPage
-import AuthCallbackPage from '@/pages/public/AuthCallbackPage'
-import ProtectedRoute from '@/components/layout/ProtectedRoute'
+// ═══════════════════════════════════════════════════════════════════════════
+// Static imports — STRICT minimum loaded with the main bundle (~boot shell).
+// Tout le reste est lazy() pour réduire le payload initial sur /louer /acheter
+// /home et les routes publiques à fort trafic SEO.
+//
+// Avant cette optimisation : ~30 components publics étaient eager, dont les
+// 11 DesignSystem pages + TodaySugarPage (dashboard agent) — résultat : 153 KB
+// JS inutilisé sur /louer d'après Lighthouse, FCP/LCP à 4.6s. Convertir tout
+// le reste en lazy() ramène le main bundle à ~50 KB.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Shells/guards qui wrappent toutes les routes — doivent être disponibles
+// avant le premier render pour éviter un flash de chargement.
 import PasswordGate from '@/components/layout/PasswordGate'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
-import AgentLayout from '@/components/layout/AgentLayout'
-import AgentSugarLayout from '@/components/layout/AgentSugarLayout'
-import TodaySugarPage from '@/pages/agent/TodaySugarPage'
-import FavoritesLoginPrompt from '@/components/auth/FavoritesLoginPrompt'
+import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import CookieBanner from '@/components/CookieBanner'
 
 // Lazy-loaded public pages
+// PropertyX public pages (anciennement eager — désormais lazy pour le SEO/LCP)
+const PropertyXHomePage = lazy(() => import('@/pages/public/PropertyXHomePage'))
+const PropertyXAboutPage = lazy(() => import('@/pages/public/PropertyXAboutPage'))
+const PropertyXFAQPage = lazy(() => import('@/pages/public/PropertyXFAQPage'))
+const PropertyXListingsPage = lazy(() => import('@/pages/public/PropertyXListingsPage'))
+const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
+const PropertyXContactPage = lazy(() => import('@/pages/public/PropertyXContactPage'))
+const PropertyXComingSoonPage = lazy(() => import('@/pages/public/PropertyXComingSoonPage'))
+const PropertyXSubmitPropertyPage = lazy(() => import('@/pages/public/PropertyXSubmitPropertyPage'))
+const PropertyXBlogPostPage = lazy(() => import('@/pages/public/PropertyXBlogPostPage'))
+const PropertyXAgentProfilePage = lazy(() => import('@/pages/public/PropertyXAgentProfilePage'))
+
+// Design System internes — pas dans le payload public initial
+const PropertyXDesignSystemButtonsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemButtonsPage'))
+const PropertyXDesignSystemLinksPage = lazy(() => import('@/pages/public/PropertyXDesignSystemLinksPage'))
+const PropertyXDesignSystemBadgesPage = lazy(() => import('@/pages/public/PropertyXDesignSystemBadgesPage'))
+const PropertyXDesignSystemListsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemListsPage'))
+const PropertyXDesignSystemIconsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemIconsPage'))
+const PropertyXDesignSystemIconFontsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemIconFontsPage'))
+const PropertyXDesignSystemAvatarsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemAvatarsPage'))
+const PropertyXDesignSystemInputsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemInputsPage'))
+const PropertyXDesignSystemColorsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemColorsPage'))
+const PropertyXDesignSystemTypographyPage = lazy(() => import('@/pages/public/PropertyXDesignSystemTypographyPage'))
+const PropertyXDesignSystemShadowsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemShadowsPage'))
+
+// Auth + blog v2 — lazy car secondary path
+const BlogV2Page = lazy(() => import('@/pages/public/BlogV2Page'))
+const LoginPage = lazy(() => import('@/pages/public/LoginPage'))
+const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
+
+// Layout shells agent — lazy car ils ne wrappent que les routes dashboard
+const AgentLayout = lazy(() => import('@/components/layout/AgentLayout'))
+const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout'))
+
+// Auth widgets — montés tardivement, peuvent être lazy
+const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
+
+// Legacy + secondary public pages
 const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
 const ListingPage = lazy(() => import('@/pages/public/ListingPage'))
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
@@ -59,6 +80,7 @@ const AgentDirectoryPage = lazy(() => import('@/pages/public/AgentDirectoryPage'
 const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
 const AgencyProfilePage = lazy(() => import('@/pages/public/AgencyProfilePage'))
 const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
+const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
 // Lazy-loaded agent pages
 const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
@@ -408,7 +430,10 @@ export default function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
-          <FavoritesLoginPrompt />
+          {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
+          <Suspense fallback={null}>
+            <FavoritesLoginPrompt />
+          </Suspense>
           <CookieBanner />
         </AuthProvider>
       </BrowserRouter>

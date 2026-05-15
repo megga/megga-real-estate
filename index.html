@@ -6,8 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="robots" content="noindex, nofollow" />
+    <!-- Indexable par les moteurs de recherche. Les pages sensibles (dashboard
+         agent, /portail vendeur, /admin) bloquent l'indexation via robots.txt
+         + meta robots conditionnels côté composant. -->
+    <meta name="robots" content="index, follow" />
     <meta name="description" content="Trouvez, louez, estimez votre bien immobilier en Suisse. Recherche intelligente, conformité intégrée, accompagnement humain." />
+    <meta name="theme-color" content="#14161C" />
+    <!-- Open Graph pour partage social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_CH" />
+    <meta property="og:site_name" content="MEGGA Real Estate" />
+    <meta property="og:title" content="MEGGA Real Estate — Le portail immobilier suisse nouvelle génération" />
+    <meta property="og:description" content="Plus de 33'000 biens vérifiés à travers la Suisse. Trouvez votre prochain logement en quelques clics." />
+    <meta property="og:url" content="https://megga.ch" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://flatfox.ch" crossorigin />
