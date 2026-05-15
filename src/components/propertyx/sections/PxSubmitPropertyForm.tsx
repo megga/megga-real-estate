@@ -37,15 +37,22 @@ function FormCard({
       width: 676,
       background: PX.neutral100,
       borderRadius: PX.radius.large,
-      border: `1px solid ${PX.neutral300}`,
+      // Pas de border : le shadow + le contraste suffisent. Figma metadata
+      // donne 352/454/1092 sans border (sinon +2px sur W et H).
       boxShadow: PX.shadow.small,
       overflow: 'hidden',
     }}>
       {hasHeader && (
         <>
-          {/* Header : 676×76, flex items-center, pl-48 gap-10 */}
+          {/* Header : 676×76, flex items-center, pl-48 gap-10.
+              Le divider Figma est un vector line à y=0 du divider frame
+              (height 0.0000591 → 0 px de layout). On le rend via
+              border-bottom 1px du header, box-sizing: border-box, pour ne
+              PAS ajouter 1px à la hauteur totale du card. */}
           <div style={{
             height: 76,
+            boxSizing: 'border-box',
+            borderBottom: `1px solid ${PX.neutral300}`,
             display: 'flex',
             alignItems: 'center',
             gap: 10,
@@ -77,12 +84,6 @@ function FormCard({
               {headerTitle}
             </span>
           </div>
-          {/* Divider : 676×1 bg-neutral300 */}
-          <div style={{
-            height: 1,
-            background: PX.neutral300,
-            width: '100%',
-          }} />
         </>
       )}
       {/* Form content : padding 48 */}
@@ -306,6 +307,8 @@ function FormCheckbox({ label }: { label: string }) {
       gap: 6,
       cursor: 'pointer',
       whiteSpace: 'nowrap',
+      // Figma "Checkbox Wrapper" : 22px de hauteur (3 items + 2 gap-16 = 98)
+      minHeight: 22,
     }}>
       <span style={{
         position: 'relative',
@@ -364,13 +367,18 @@ export default function PxSubmitPropertyForm() {
       position: 'relative',
       zIndex: 2,
     }}>
-      {/* Placeholder color fidèle Figma : neutral500 #464851 */}
+      {/* Placeholder color fidèle Figma : neutral500 #464851
+          + Submit button width 240 (PxButton uses style={} qu'on override via class) */}
       <style>{`
         .px-sp-input::placeholder,
         .px-sp-textarea::placeholder { color: ${PX.neutral500}; opacity: 1; }
+        .px-sp-submit-button { width: 240px !important; justify-content: center; }
       `}</style>
 
-      {/* Forms Wrapper : w-676, centré, margin-top: -205 (overlap hero) */}
+      {/* Forms Wrapper : w-676, centré, margin-top: -205 (overlap hero).
+          padding-bottom: 160 pour matcher l'espace vide entre Forms Wrapper
+          et Footer V1 dans la maquette Figma (Form Section h=1901, Forms
+          Wrapper h=1946 à y=-205 → 1901 - (1946-205) = 160). */}
       <div style={{
         width: 676,
         maxWidth: '100%',
@@ -379,7 +387,7 @@ export default function PxSubmitPropertyForm() {
         display: 'flex',
         flexDirection: 'column',
         gap: 24,
-        paddingBottom: 64,
+        paddingBottom: 160,
       }}>
         {/* ─── Form Wrapper 1 : Client information ──────────────────── */}
         <FormCard
@@ -528,11 +536,15 @@ export default function PxSubmitPropertyForm() {
             gap: 32,
             width: 580,
           }}>
-            {/* Property amenities : Message + 3-cols Checkbox Grid */}
+            {/* Property amenities : Message + 3-cols Checkbox Grid.
+                Figma frame = 150 px ; contenu = 20 (label) + 24 (gap) +
+                98 (grid 3×22 + 2×16) = 142 → 8 px de padding-bottom pour
+                matcher la hauteur du frame Figma. */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
               gap: 24,
+              paddingBottom: 8,
             }}>
               {/* Message : "Property amenities" 16/Medium neutral700 */}
               <span style={{
@@ -599,10 +611,12 @@ export default function PxSubmitPropertyForm() {
               />
             </div>
 
-            {/* Submit button : Primary Button 240×48 dark */}
-            <PxButton variant="primary" size="lg" type="submit">
-              Submit for approval
-            </PxButton>
+            {/* Submit button : Primary Button 240×48 dark, aligné start */}
+            <div style={{ alignSelf: 'flex-start' }}>
+              <PxButton variant="primary" size="lg" type="submit" className="px-sp-submit-button">
+                Submit for approval
+              </PxButton>
+            </div>
           </div>
         </FormCard>
       </div>
