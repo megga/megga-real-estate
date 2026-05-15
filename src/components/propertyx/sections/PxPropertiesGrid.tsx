@@ -317,7 +317,7 @@ function PropertyCardV2({ p }: { p: PropertyItem }) {
             letterSpacing: '-0.48px',
             color: PX.neutral700,
             whiteSpace: 'nowrap',
-          }}>Contact agent</span>
+          }}>Voir le bien</span>
           <PxFigmaIcon name="chevron-right" size={16} color={PX.neutral700} />
         </span>
       </div>

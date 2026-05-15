@@ -13,7 +13,14 @@
 // V23 = bed · V33 = bath · V27 = parking · chevron-right · plus
 
 import type { CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
 import { PX, PxFigmaIcon, PxIcon } from '..'
+import { useRelatedListings } from '@/hooks/useRelatedListings'
+import type { ListingCardData } from '@/components/listings/ListingCard'
+
+interface PxSinglePropertyRelatedProps {
+  currentListing?: ListingCardData
+}
 
 // ─── Sub-components ────────────────────────────────────────────────────
 
@@ -40,6 +47,7 @@ function MetaItem({ icon, label }: { icon: React.ReactNode; label: string }) {
 }
 
 interface PropertyCardData {
+  id?: string // prefixed id (market-... / internal-...) — pour le lien détail
   image: string
   badge: { kind: 'rent' | 'sale'; label: string }
   title: string
@@ -172,8 +180,8 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
           <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label={String(data.baths)} />
           <MetaItem icon={<PxFigmaIcon name="parking" size={20} color={PX.neutral400} />} label={String(data.parking)} />
         </div>
-        <a
-          href="#"
+        <Link
+          to={data.id ? `/propriete/${data.id}` : '#'}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -191,10 +199,10 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
             color: PX.neutral700,
             paddingTop: 2,
           }}>
-            Contact agent
+            Voir le bien
           </span>
           <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
-        </a>
+        </Link>
       </div>
     </div>
   )
@@ -227,7 +235,40 @@ const PROPERTIES: PropertyCardData[] = [
   },
 ]
 
-export default function PxSinglePropertyRelated() {
+function listingToCardData(listing: ListingCardData): PropertyCardData {
+  const isRent = listing.context === 'rent'
+  return {
+    id: listing.id,
+    image: listing.photos?.[0] ?? '/images/sections/single-property/related-1.jpg',
+    badge: {
+      kind: isRent ? 'rent' : 'sale',
+      label: isRent ? 'À louer' : 'À vendre',
+    },
+    title: listing.title,
+    location: [listing.address, listing.city].filter(Boolean).join(', ') || (listing.canton ?? ''),
+    sqft: listing.surface_m2 ? `${listing.surface_m2} m²` : '—',
+    beds: listing.rooms ?? 0,
+    baths: listing.bathrooms ?? 0,
+    parking: 0,
+  }
+}
+
+export default function PxSinglePropertyRelated({ currentListing }: PxSinglePropertyRelatedProps) {
+  // Strip prefix (market-/internal-) pour la query .neq sur le raw id
+  const rawId = currentListing?.id.replace(/^(market-|internal-)/, '')
+  const browseHref = currentListing?.context === 'rent' ? '/louer' : '/acheter'
+
+  const { data: related } = useRelatedListings({
+    canton: currentListing?.canton,
+    context: currentListing?.context,
+    type: currentListing?.type,
+    excludeId: rawId,
+  })
+
+  const cards = currentListing && related && related.length > 0
+    ? related.map(listingToCardData)
+    : PROPERTIES
+
   return (
     <section style={{
       width: '100%',
@@ -258,10 +299,10 @@ export default function PxSinglePropertyRelated() {
             letterSpacing: '-1.44px',
             color: PX.neutral700,
           }}>
-            More properties
+            Biens similaires
           </h2>
-          <a
-            href="#"
+          <Link
+            to={browseHref}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -278,10 +319,10 @@ export default function PxSinglePropertyRelated() {
               color: PX.neutral700,
               paddingTop: 2,
             }}>
-              Browse all properties
+              Tous les biens
             </span>
             <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
-          </a>
+          </Link>
         </div>
 
         {/* Grid */}
@@ -291,8 +332,8 @@ export default function PxSinglePropertyRelated() {
           gap: 24,
           paddingTop: 24,
         }}>
-          {PROPERTIES.map((p) => (
-            <PropertyCard key={p.title} data={p} />
+          {cards.map((p) => (
+            <PropertyCard key={p.id ?? p.title} data={p} />
           ))}
         </div>
       </div>

@@ -613,7 +613,7 @@ function PropertyCardV2({ title, location, price, sqtf, beds, baths, badge, imag
             <span style={{
               paddingTop: 2, fontFamily: PX.font.display, fontSize: 16, fontWeight: 500,
               lineHeight: 1.25, letterSpacing: '-0.48px', color: PX.neutral100, whiteSpace: 'nowrap',
-            }}>Contact agent</span>
+            }}>Contacter l’agence</span>
             <span style={{
               width: 28, height: 28, borderRadius: PX.radius.pill, background: PX.neutral100,
               display: 'grid', placeItems: 'center', flexShrink: 0,

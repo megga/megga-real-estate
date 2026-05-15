@@ -234,7 +234,7 @@ function IpadBottomSection() {
             fontFamily: PX.font.display, fontSize: 9.43, fontWeight: 500,
             color: PX.neutral700, letterSpacing: '-0.2829px', lineHeight: 1.25,
             paddingTop: 1.179,
-          }}>Contact agent</span>
+          }}>Voir le bien</span>
           <PxFigmaIcon name="chevron-right" size={9.428} color={PX.neutral700} />
         </div>
         {/* Price card — Figma 191.503 wide, bg white, rounded 8.326 */}
