@@ -6,7 +6,7 @@
 //   - 'rent' → biens à louer    → route /louer
 
 import { PX } from '@/components/propertyx/tokens'
-import PxNavPropertyX from '@/components/propertyx/sections/PxNavPropertyX'
+import PxNav from '@/components/propertyx/sections/PxNav'
 import PxListingsHero from '@/components/propertyx/sections/PxListingsHero'
 import PxListingsGrid from '@/components/propertyx/sections/PxListingsGrid'
 import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
@@ -28,7 +28,7 @@ export default function PropertyXListingsPage({ context = 'buy' }: PropertyXList
         overflowX: 'hidden',
       }}
     >
-      <PxNavPropertyX />
+      <PxNav />
       <PxListingsHero />
       <PxListingsGrid context={context} />
       <div>
