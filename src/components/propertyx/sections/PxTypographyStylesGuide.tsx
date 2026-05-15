@@ -8,7 +8,7 @@
 //
 // Tous les sizes / line-heights matches PX.type.display* exactement.
 
-import { PX, PxButton, PxFigmaIcon } from '..'
+import { PX, PxButton } from '..'
 import PxStyleguideShell, { PxStyleguideSectionTitle } from './PxStyleguideShell'
 
 // ─── Weight chip (Regular / Medium / Extra Bold) ──────────────────────
