@@ -91,6 +91,11 @@ export const FIGMA_PAGE_MAP: Record<string, { route: string; component: string; 
     component: 'PropertyXAboutPage',
     source: 'src/pages/public/PropertyXAboutPage.tsx',
   },
+  '9552:21441': {
+    route: '/location',
+    component: 'PropertyXLocationCmsPage',
+    source: 'src/pages/public/PropertyXLocationCmsPage.tsx',
+  },
 }
 
 // ─── Badges identifiés sur /about ────────────────────────────────────────────
