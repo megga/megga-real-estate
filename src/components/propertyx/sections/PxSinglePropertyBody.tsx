@@ -17,6 +17,7 @@
 import type { CSSProperties } from 'react'
 import { PX, PxFigmaIcon } from '..'
 import { formatCHF, formatRent } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface PxSinglePropertyBodyProps {
@@ -164,7 +165,7 @@ const sidebarCard: CSSProperties = {
   boxSizing: 'border-box',
 }
 
-function PricingCard({ listing }: { listing?: ListingCardData }) {
+function PricingCard({ listing, isMobile }: { listing?: ListingCardData; isMobile: boolean }) {
   // Affiche le prix CHF formaté (apostrophe suisse) + sublabel selon
   // transaction_type. Fallback démo si pas de listing.
   const isRent = listing?.context === 'rent'
@@ -178,7 +179,7 @@ function PricingCard({ listing }: { listing?: ListingCardData }) {
   return (
     <div style={{
       ...sidebarCard,
-      padding: 40,
+      padding: isMobile ? 24 : 40,
       display: 'flex',
       flexDirection: 'column',
       gap: 8,
@@ -186,7 +187,7 @@ function PricingCard({ listing }: { listing?: ListingCardData }) {
       <span style={{
         fontFamily: PX.font.sans,
         fontWeight: 500,
-        fontSize: 40,
+        fontSize: isMobile ? 32 : 40,
         lineHeight: 1.25,
         letterSpacing: '-1.2px',
         color: PX.neutral700,
@@ -196,7 +197,7 @@ function PricingCard({ listing }: { listing?: ListingCardData }) {
       <span style={{
         fontFamily: PX.font.sans,
         fontWeight: 500,
-        fontSize: 20,
+        fontSize: isMobile ? 16 : 20,
         lineHeight: 1.25,
         letterSpacing: '-0.6px',
         color: PX.neutral400,
@@ -246,11 +247,11 @@ function FormInput({ iconName, placeholder }: { iconName: 'form-person' | 'form-
   )
 }
 
-function ContactFormCard() {
+function ContactFormCard({ isMobile }: { isMobile: boolean }) {
   return (
     <div style={{
       ...sidebarCard,
-      padding: '56px 40px',
+      padding: isMobile ? '32px 24px' : '56px 40px',
       display: 'flex',
       flexDirection: 'column',
       gap: 8,
@@ -333,7 +334,7 @@ function ContactFormCard() {
   )
 }
 
-function AgenceCard({ listing }: { listing?: ListingCardData }) {
+function AgenceCard({ listing, isMobile }: { listing?: ListingCardData; isMobile: boolean }) {
   // En CH le concept central c'est l'AGENCE / régie, pas l'agent individuel
   // comme aux USA. On affiche donc :
   //   - agency_name (régie qui a publié)
@@ -355,7 +356,7 @@ function AgenceCard({ listing }: { listing?: ListingCardData }) {
   return (
     <div style={{
       ...sidebarCard,
-      padding: '56px 40px',
+      padding: isMobile ? '32px 24px' : '56px 40px',
       display: 'flex',
       flexDirection: 'column',
       gap: 24,
@@ -474,6 +475,7 @@ function AgenceCard({ listing }: { listing?: ListingCardData }) {
 // ───────────────────────────────────────────────────────────────────────
 
 export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyProps) {
+  const isMobile = useIsMobile()
   // Champs dérivés du listing avec fallback démo Figma.
   const locationLabel = listing
     ? [listing.address, listing.city].filter(Boolean).join(', ') || 'Suisse'
@@ -513,19 +515,20 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
       background: PX.pageBg,
     }}>
       <div style={{
-        width: 'min(1200px, calc(100% - 48px))',
+        width: isMobile ? 'calc(100% - 32px)' : 'min(1200px, calc(100% - 48px))',
         boxSizing: 'border-box',
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 670fr) minmax(0, 412fr)',
-        columnGap: 118,
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 670fr) minmax(0, 412fr)',
+        columnGap: isMobile ? 0 : 118,
+        rowGap: isMobile ? 32 : 0,
         alignItems: 'start',
       }}>
         {/* ─── LEFT — Rich Text ──────────────────────────────────── */}
         <div style={{ width: '100%', minWidth: 0 }}>
           {/* Block 1 — Title + location + amenities inline */}
           <div style={{
-            paddingTop: 64,
-            paddingBottom: 64,
+            paddingTop: isMobile ? 32 : 64,
+            paddingBottom: isMobile ? 32 : 64,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
@@ -552,9 +555,9 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 margin: 0,
                 fontFamily: PX.font.sans,
                 fontWeight: 500,
-                fontSize: 48,
+                fontSize: isMobile ? 32 : 48,
                 lineHeight: 1.25,
-                letterSpacing: '-1.44px',
+                letterSpacing: isMobile ? '-0.96px' : '-1.44px',
                 color: PX.neutral700,
               }}>
                 {titleLabel}
@@ -591,15 +594,15 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
 
           {/* Block 2 — About the property (hidden when real listing → description
               already shown in block 1 lead paragraph above). */}
-          {!listing && <div style={{ paddingTop: 64, paddingBottom: 64 }}>
+          {!listing && <div style={{ paddingTop: isMobile ? 32 : 64, paddingBottom: isMobile ? 32 : 64 }}>
             <div style={{ paddingTop: 16, paddingBottom: 16 }}>
               <h2 style={{
                 margin: 0,
                 fontFamily: PX.font.sans,
                 fontWeight: 500,
-                fontSize: 36,
+                fontSize: isMobile ? 24 : 36,
                 lineHeight: 1.25,
-                letterSpacing: '-1.08px',
+                letterSpacing: isMobile ? '-0.72px' : '-1.08px',
                 color: PX.neutral700,
               }}>
                 À propos du bien
@@ -651,15 +654,15 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
           {(amenitiesToShow.length > 0 || !listing) && <hr style={sectionDivider} />}
 
           {/* Block 3 — Amenities grid (caché si aucun amenities sur listing) */}
-          {(amenitiesToShow.length > 0 || !listing) && <div style={{ paddingTop: 64, paddingBottom: 120 }}>
+          {(amenitiesToShow.length > 0 || !listing) && <div style={{ paddingTop: isMobile ? 32 : 64, paddingBottom: isMobile ? 64 : 120 }}>
             <div style={{ paddingTop: 16, paddingBottom: 16 }}>
               <h2 style={{
                 margin: 0,
                 fontFamily: PX.font.sans,
                 fontWeight: 500,
-                fontSize: 36,
+                fontSize: isMobile ? 24 : 36,
                 lineHeight: 1.25,
-                letterSpacing: '-1.08px',
+                letterSpacing: isMobile ? '-0.72px' : '-1.08px',
                 color: PX.neutral700,
               }}>
                 Équipements
@@ -682,8 +685,8 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 12,
+              gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
+              gap: isMobile ? 8 : 12,
             }}>
               {amenitiesToShow.map((a) => (
                 <AmenityBadge key={a.label} icon={a.icon} label={a.label} />
@@ -696,14 +699,15 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
         <aside style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 24,
-          paddingTop: 64,
+          gap: isMobile ? 16 : 24,
+          paddingTop: isMobile ? 0 : 64,
+          paddingBottom: isMobile ? 48 : 0,
           width: '100%',
           minWidth: 0,
         }}>
-          <PricingCard listing={listing} />
-          <ContactFormCard />
-          <AgenceCard listing={listing} />
+          <PricingCard listing={listing} isMobile={isMobile} />
+          <ContactFormCard isMobile={isMobile} />
+          <AgenceCard listing={listing} isMobile={isMobile} />
         </aside>
       </div>
     </section>

@@ -18,6 +18,7 @@ import { PX, PxFigmaIcon, PxIcon } from '..'
 import { useRelatedListings } from '@/hooks/useRelatedListings'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface PxSinglePropertyRelatedProps {
@@ -63,6 +64,7 @@ interface PropertyCardData {
 function PropertyCard({ data }: { data: PropertyCardData }) {
   // Figma : badge For rent utilise "Small Icon/V34" = key, For sale utilise "V35" = tag.
   const badgeIcon = data.badge.kind === 'rent' ? 'key' : 'tag'
+  const isMobile = useIsMobile()
   const { user } = useAuth()
   const { isFavorite, toggleFavorite } = useFavorites()
   const favorite = data.id ? isFavorite(data.id) : false
@@ -77,7 +79,7 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      gap: 24,
+      gap: isMobile ? 16 : 24,
       width: '100%',
       minWidth: 0,
     }}>
@@ -85,7 +87,8 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
       <div style={{
         position: 'relative',
         background: PX.neutral500,
-        height: 364,
+        aspectRatio: isMobile ? '4 / 3' : undefined,
+        height: isMobile ? undefined : 364,
         borderRadius: PX.radius.large,
         overflow: 'hidden',
         width: '100%',
@@ -187,8 +190,14 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
       <div style={{ height: 1, width: '100%', background: PX.neutral300 }} />
 
       {/* Footer — amenities + link */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+      <div style={{
+        display: 'flex',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+        flexDirection: isMobile ? 'column' : 'row',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 24, flexWrap: 'wrap' }}>
           <MetaItem icon={<PxFigmaIcon name="surface" size={20} color={PX.neutral400} />} label={data.sqft} />
           <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={String(data.beds)} />
           <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label={String(data.baths)} />
@@ -268,6 +277,7 @@ function listingToCardData(listing: ListingCardData): PropertyCardData {
 }
 
 export default function PxSinglePropertyRelated({ currentListing }: PxSinglePropertyRelatedProps) {
+  const isMobile = useIsMobile()
   // Strip prefix (market-/internal-) pour la query .neq sur le raw id
   const rawId = currentListing?.id.replace(/^(market-|internal-)/, '')
   const browseHref = currentListing?.context === 'rent' ? '/louer' : '/acheter'
@@ -288,12 +298,12 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
       width: '100%',
       display: 'flex',
       justifyContent: 'center',
-      paddingTop: 120,
-      paddingBottom: 120,
+      paddingTop: isMobile ? 64 : 120,
+      paddingBottom: isMobile ? 64 : 120,
       background: PX.pageBg,
     }}>
       <div style={{
-        width: 'min(1200px, calc(100% - 48px))',
+        width: isMobile ? 'calc(100% - 32px)' : 'min(1200px, calc(100% - 48px))',
         boxSizing: 'border-box',
       }}>
         {/* Top — title + link */}
@@ -308,9 +318,9 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
             margin: 0,
             fontFamily: PX.font.sans,
             fontWeight: 500,
-            fontSize: 48,
+            fontSize: isMobile ? 28 : 48,
             lineHeight: 1.25,
-            letterSpacing: '-1.44px',
+            letterSpacing: isMobile ? '-0.84px' : '-1.44px',
             color: PX.neutral700,
           }}>
             Biens similaires
@@ -322,18 +332,19 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
               alignItems: 'center',
               gap: 6,
               textDecoration: 'none',
+              flexShrink: 0,
             }}
           >
             <span style={{
               fontFamily: PX.font.sans,
               fontWeight: 500,
-              fontSize: 16,
+              fontSize: isMobile ? 14 : 16,
               lineHeight: 1.25,
               letterSpacing: '-0.48px',
               color: PX.neutral700,
               paddingTop: 2,
             }}>
-              Tous les biens
+              {isMobile ? 'Voir tout' : 'Tous les biens'}
             </span>
             <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
           </Link>
@@ -342,8 +353,8 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
         {/* Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          gap: 24,
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+          gap: isMobile ? 32 : 24,
           paddingTop: 24,
         }}>
           {cards.map((p) => (

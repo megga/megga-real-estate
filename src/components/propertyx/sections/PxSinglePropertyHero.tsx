@@ -4,8 +4,13 @@
 // Accepte un prop `photos` (string[]) pour afficher les vraies photos du
 // bien. Sans prop, fallback sur les images démo Figma pour la route demo
 // `/propriete` (sans :id).
+//
+// Responsive :
+//   - desktop (>768px) : layout Figma 1 large + 4 tiles
+//   - mobile  (≤768px) : 1 colonne, photo principale puis grille 2×2 réduite
 
 import { PX } from '..'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 
 interface PxSinglePropertyHeroProps {
   photos?: string[]
@@ -29,14 +34,20 @@ const tileStyle: React.CSSProperties = {
 }
 
 export default function PxSinglePropertyHero({ photos, title = 'Bien immobilier' }: PxSinglePropertyHeroProps) {
-  // Si photos est fourni mais incomplet (< 5 photos), on complète avec la
-  // première photo répétée — préserve le layout 1 + 4 sans laisser de
-  // tiles vides.
-  const sourceImages = photos && photos.length > 0
-    ? Array.from({ length: 5 }, (_, i) => photos[i] ?? photos[0])
+  const isMobile = useIsMobile()
+  const hasPhotos = !!photos && photos.length > 0
+  const count = photos?.length ?? 0
+
+  // On déduplique : si moins de 5 photos, on remplit avec des null (placeholders
+  // gris) plutôt que de répéter la même photo. Évite l'effet "même image x5".
+  const sourceImages: (string | null)[] = hasPhotos
+    ? Array.from({ length: 5 }, (_, i) => photos![i] ?? null)
     : DEMO_IMAGES
 
   const [main, t1, t2, t3, t4] = sourceImages
+
+  // Hauteurs Hero
+  const mainAspect = isMobile ? '4 / 3' : '594.7 / 435.4'
 
   return (
     <section style={{
@@ -46,41 +57,73 @@ export default function PxSinglePropertyHero({ photos, title = 'Bien immobilier'
       background: PX.pageBg,
     }}>
       <div style={{
-        width: 'min(1200px, calc(100% - 48px))',
+        width: 'min(1200px, calc(100% - 32px))',
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 594.7fr) minmax(0, 593.2fr)',
-        gap: 12,
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 594.7fr) minmax(0, 593.2fr)',
+        gap: isMobile ? 8 : 12,
         boxSizing: 'border-box',
       }}>
         <div style={{
           width: '100%',
-          aspectRatio: '594.7 / 435.4',
+          aspectRatio: mainAspect,
           overflow: 'hidden',
           borderRadius: PX.radius.small,
+          background: PX.neutral200,
         }}>
-          <img src={main} alt={title} style={tileStyle} />
+          {main ? <img src={main} alt={title} style={tileStyle} /> : null}
         </div>
 
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gridTemplateRows: '1fr 1fr',
-          gap: 12,
+          gap: isMobile ? 8 : 12,
+          aspectRatio: isMobile ? '2 / 1' : undefined,
         }}>
-          <div style={{ overflow: 'hidden', borderRadius: PX.radius.small }}>
-            <img src={t1} alt={`${title} — vue 2`} style={tileStyle} />
-          </div>
-          <div style={{ overflow: 'hidden', borderRadius: PX.radius.small }}>
-            <img src={t2} alt={`${title} — vue 3`} style={tileStyle} />
-          </div>
-          <div style={{ overflow: 'hidden', borderRadius: PX.radius.small }}>
-            <img src={t3} alt={`${title} — vue 4`} style={tileStyle} />
-          </div>
-          <div style={{ overflow: 'hidden', borderRadius: PX.radius.small }}>
-            <img src={t4} alt={`${title} — vue 5`} style={tileStyle} />
-          </div>
+          <Tile src={t1} alt={`${title} — vue 2`} index={1} extraCount={count > 5 ? count - 5 : 0} />
+          <Tile src={t2} alt={`${title} — vue 3`} index={2} />
+          <Tile src={t3} alt={`${title} — vue 4`} index={3} />
+          <Tile src={t4} alt={`${title} — vue 5`} index={4} extraOverlay={count > 5} extraCount={count - 5} />
         </div>
       </div>
     </section>
+  )
+}
+
+interface TileProps {
+  src: string | null
+  alt: string
+  index: number
+  extraOverlay?: boolean
+  extraCount?: number
+}
+
+function Tile({ src, alt, extraOverlay, extraCount }: TileProps) {
+  return (
+    <div style={{
+      overflow: 'hidden',
+      borderRadius: PX.radius.small,
+      position: 'relative',
+      background: PX.neutral200,
+    }}>
+      {src ? <img src={src} alt={alt} style={tileStyle} /> : null}
+      {extraOverlay && extraCount && extraCount > 0 ? (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(20, 22, 28, 0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: PX.font.sans,
+          fontWeight: 500,
+          fontSize: 18,
+          color: PX.neutral100,
+          letterSpacing: '-0.4px',
+        }}>
+          +{extraCount}
+        </div>
+      ) : null}
+    </div>
   )
 }
