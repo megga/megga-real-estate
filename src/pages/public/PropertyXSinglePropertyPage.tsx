@@ -64,7 +64,7 @@ export default function PropertyXSinglePropertyPage() {
           />
           <PxSinglePropertyBody listing={listing ?? undefined} />
           <PxSinglePropertyCTA />
-          <PxSinglePropertyRelated />
+          <PxSinglePropertyRelated currentListing={listing ?? undefined} />
         </>
       )}
       <div>

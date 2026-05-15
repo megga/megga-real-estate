@@ -332,7 +332,22 @@ function ContactFormCard() {
   )
 }
 
-function AgentCard() {
+function AgentCard({ listing }: { listing?: ListingCardData }) {
+  // Avec un listing : utilise agency_name + agency_logo_url + source_portal
+  //   pour identifier la régie. Sans données contact directes (email/phone
+  //   au niveau agency_profiles), on affiche juste le nom + le portail
+  //   source. Les visiteurs passent par le ContactFormCard juste au-dessus.
+  // Sans listing : fallback démo Figma (Sophie Moore).
+  const agencyName = listing?.agency_name || (listing ? 'Régie locale' : 'Sophie Moore')
+  const agencyLogo = listing?.agency_logo_url || '/images/sections/single-property/agent-sophie.jpg'
+  const sourceLabel = listing?.source_portal
+    ? `Annonce publiée sur ${listing.source_portal}`
+    : 'sophiemoore@casa.com'
+  const intro = listing
+    ? 'Contactez la régie directement via le formulaire ci-dessus ou consultez l’annonce d’origine.'
+    : 'Lorem ipsum dolor sit amet consectetur fermentum eget fringilla egestas lorem.'
+  const externalUrl = listing?.source_url
+
   return (
     <div style={{
       ...sidebarCard,
@@ -352,9 +367,8 @@ function AgentCard() {
           lineHeight: 1.25,
           letterSpacing: '-0.6px',
           color: PX.neutral700,
-          whiteSpace: 'nowrap',
         }}>
-          Get in touch with the agent
+          Contactez l’agent
         </p>
         <p style={{
           margin: 0,
@@ -365,7 +379,7 @@ function AgentCard() {
           letterSpacing: '-0.48px',
           color: PX.neutral500,
         }}>
-          Lorem ipsum dolor sit amet consectetur fermentum eget fringilla egestas lorem.
+          {intro}
         </p>
       </div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
@@ -376,14 +390,27 @@ function AgentCard() {
           background: PX.neutral300,
           overflow: 'hidden',
           flexShrink: 0,
+          display: 'grid',
+          placeItems: 'center',
         }}>
-          <img
-            src="/images/sections/single-property/agent-sophie.jpg"
-            alt="Sophie Moore"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
+          {agencyLogo ? (
+            <img
+              src={agencyLogo}
+              alt={agencyName}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <span style={{
+              fontFamily: PX.font.sans,
+              fontWeight: 600,
+              fontSize: 24,
+              color: PX.neutral500,
+            }}>
+              {agencyName.slice(0, 1)}
+            </span>
+          )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
           <p style={{
             margin: 0,
             fontFamily: PX.font.sans,
@@ -392,9 +419,10 @@ function AgentCard() {
             lineHeight: 1.25,
             letterSpacing: '-0.6px',
             color: PX.neutral700,
-            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}>
-            Sophie Moore
+            {agencyName}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -402,31 +430,34 @@ function AgentCard() {
               <span style={{
                 fontFamily: PX.font.sans,
                 fontWeight: 400,
-                fontSize: 16,
+                fontSize: 14,
                 lineHeight: 1.5,
-                letterSpacing: '-0.48px',
+                letterSpacing: '-0.4px',
                 color: PX.neutral400,
-                whiteSpace: 'nowrap',
                 paddingTop: 2,
               }}>
-                sophiemoore@casa.com
+                {sourceLabel}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <PxFigmaIcon name="form-phone" size={16} color={PX.neutral400} />
-              <span style={{
-                fontFamily: PX.font.sans,
-                fontWeight: 400,
-                fontSize: 16,
-                lineHeight: 1.5,
-                letterSpacing: '-0.48px',
-                color: PX.neutral400,
-                whiteSpace: 'nowrap',
-                paddingTop: 2,
-              }}>
-                (414) 325 - 427
-              </span>
-            </div>
+            {externalUrl && (
+              <a
+                href={externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontFamily: PX.font.sans,
+                  fontWeight: 500,
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  letterSpacing: '-0.4px',
+                  color: PX.neutral700,
+                  textDecoration: 'underline',
+                  paddingTop: 2,
+                }}
+              >
+                Voir l’annonce d’origine →
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -450,6 +481,26 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
   const roomsLabel = listing?.rooms ? `${listing.rooms} p.` : '3'
   const bedroomsLabel = listing?.bedrooms ? String(listing.bedrooms) : '3'
   const bathroomsLabel = listing?.bathrooms ? String(listing.bathrooms) : '2'
+
+  // Mapping booléens Supabase → badges amenities. On affiche uniquement
+  // ceux qui sont true sur le listing. Sans listing, on garde la grid
+  // de 24 badges démo Figma (pour la route /propriete sans :id).
+  const amenitiesToShow = listing
+    ? (() => {
+        const items: Array<{ icon: string; label: string }> = []
+        if (listing.has_balcony) items.push({ icon: `${AMENITY_BASE}/garden.svg`, label: 'Balcon' })
+        if (listing.has_swimming_pool) items.push({ icon: `${AMENITY_BASE}/pool.svg`, label: 'Piscine' })
+        if (listing.has_nice_view) items.push({ icon: `${AMENITY_BASE}/security-cameras.svg`, label: 'Belle vue' })
+        if (listing.has_garage) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: 'Garage' })
+        if (listing.has_parking) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: 'Parking' })
+        if (listing.has_elevator) items.push({ icon: `${AMENITY_BASE}/elevator.svg`, label: 'Ascenseur' })
+        if (listing.has_fireplace) items.push({ icon: `${AMENITY_BASE}/chimney.svg`, label: 'Cheminée' })
+        if (listing.is_furnished) items.push({ icon: `${AMENITY_BASE}/kitchen.svg`, label: 'Meublé' })
+        if (listing.is_minergie) items.push({ icon: `${AMENITY_BASE}/heater.svg`, label: 'Minergie' })
+        if (listing.is_new_building) items.push({ icon: `${AMENITY_BASE}/lockpad.svg`, label: 'Construction neuve' })
+        return items
+      })()
+    : AMENITIES
   return (
     <section style={{
       width: '100%',
@@ -532,10 +583,11 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
             </div>
           </div>
 
-          <hr style={sectionDivider} />
+          {!listing && <hr style={sectionDivider} />}
 
-          {/* Block 2 — About the property */}
-          <div style={{ paddingTop: 64, paddingBottom: 64 }}>
+          {/* Block 2 — About the property (hidden when real listing → description
+              already shown in block 1 lead paragraph above). */}
+          {!listing && <div style={{ paddingTop: 64, paddingBottom: 64 }}>
             <div style={{ paddingTop: 16, paddingBottom: 16 }}>
               <h2 style={{
                 margin: 0,
@@ -546,7 +598,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: '-1.08px',
                 color: PX.neutral700,
               }}>
-                About the property
+                À propos du bien
               </h2>
             </div>
             <div style={{ paddingBottom: 24 }}>
@@ -588,12 +640,14 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 Quis faucibus massa sit egestas. Sit fermentum est ac pulvinar et sagittis sed sit ut. Quis faucibus aenean nibh vestibulum enim mi sit. Sollicitudin ultrices ultrices in ipsum urna fringilla massa leo. Sapien ultricies vitae rhoncus molestie purus. Urna urna dolor euismod porttitor et. Magna adipiscing dictum et adipiscing mollis feugiat.
               </p>
             </div>
-          </div>
+          </div>}
 
-          <hr style={sectionDivider} />
+          {/* Divider avant Amenities — affiché uniquement s'il y a des
+              amenities à montrer, sinon la section devient une grid vide. */}
+          {(amenitiesToShow.length > 0 || !listing) && <hr style={sectionDivider} />}
 
-          {/* Block 3 — Amenities grid */}
-          <div style={{ paddingTop: 64, paddingBottom: 120 }}>
+          {/* Block 3 — Amenities grid (caché si aucun amenities sur listing) */}
+          {(amenitiesToShow.length > 0 || !listing) && <div style={{ paddingTop: 64, paddingBottom: 120 }}>
             <div style={{ paddingTop: 16, paddingBottom: 16 }}>
               <h2 style={{
                 margin: 0,
@@ -604,10 +658,10 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: '-1.08px',
                 color: PX.neutral700,
               }}>
-                Amenities
+                Équipements
               </h2>
             </div>
-            <div style={{ paddingBottom: 24 }}>
+            {!listing && <div style={{ paddingBottom: 24 }}>
               <p style={{
                 margin: 0,
                 fontFamily: PX.font.sans,
@@ -619,17 +673,19 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
               }}>
                 Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
               </p>
-            </div>
+            </div>}
+            <div style={{ paddingBottom: listing ? 16 : 0 }} />
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
               gap: 12,
             }}>
-              {AMENITIES.map((a) => (
+              {amenitiesToShow.map((a) => (
                 <AmenityBadge key={a.label} icon={a.icon} label={a.label} />
               ))}
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* ─── RIGHT — Sidebar ────────────────────────────────────── */}
@@ -643,7 +699,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
         }}>
           <PricingCard listing={listing} />
           <ContactFormCard />
-          <AgentCard />
+          <AgentCard listing={listing} />
         </aside>
       </div>
     </section>
