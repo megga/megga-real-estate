@@ -99,26 +99,30 @@ export default function PxListingsHero({ context }: PxListingsHeroProps) {
   // Input local : controlled, ne fire pas la requête à chaque keystroke.
   // La soumission (Enter, click, suggestion) écrit dans l'URL — c'est ce qui
   // déclenche le refresh de la grid via useMarketFilters.
-  const [draft, setDraft] = useState(params.get('q') ?? '')
+  const urlQ = params.get('q') ?? ''
+  const [draft, setDraft] = useState(urlQ)
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
-  // Sync si l'URL change (ex: reset depuis la filter bar)
+  // Sync uniquement quand `q` change dans l'URL (pas quand le `params` objet
+  // se ré-instancie suite à un autre filtre — sinon on efface ce que l'user
+  // est en train de taper).
   useEffect(() => {
-    setDraft(params.get('q') ?? '')
-  }, [params])
+    setDraft(urlQ)
+  }, [urlQ])
 
   const debounced = useDebounced(draft, 200)
   const { data: suggestions = [], isFetching } = useCitiesAutocomplete(debounced, context)
 
-  // Fermer le dropdown quand on clique en dehors
+  // Fermer le dropdown quand on tape en dehors. `pointerdown` couvre mouse +
+  // touch + stylus (vs `mousedown` qui rate les events tactiles sur mobile).
   useEffect(() => {
     if (!open) return
-    const onDocClick = (e: MouseEvent) => {
+    const onDocPointer = (e: PointerEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
     }
-    document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
+    document.addEventListener('pointerdown', onDocPointer)
+    return () => document.removeEventListener('pointerdown', onDocPointer)
   }, [open])
 
   function commit(value: string) {
@@ -335,7 +339,7 @@ export default function PxListingsHero({ context }: PxListingsHeroProps) {
                 left: 0,
                 right: 0,
                 background: PX.neutral100,
-                borderRadius: 16,
+                borderRadius: PX.radius.medium,
                 boxShadow: PX.shadow.medium,
                 border: `1px solid ${PX.neutral300}`,
                 overflow: 'hidden',

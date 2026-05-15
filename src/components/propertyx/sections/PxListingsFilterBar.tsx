@@ -185,7 +185,12 @@ function NumberPill({
 
 export default function PxListingsFilterBar({ context }: PxListingsFilterBarProps) {
   const { filters, selectedType, update, reset, isEmpty } = useMarketFilters(context)
-  const { data: count, isLoading: countLoading } = useMarketListingsCount(filters)
+  const {
+    data: count,
+    isLoading: countLoading,
+    isError: countError,
+    isFetching: countFetching,
+  } = useMarketListingsCount(filters)
   const labelId = useId()
 
   const cantonOptions = SWISS_CANTONS.map(c => ({
@@ -211,11 +216,13 @@ export default function PxListingsFilterBar({ context }: PxListingsFilterBarProp
   // Compteur formaté avec apostrophe suisse (fr-CH n'utilise pas U+2019 nativement
   // mais Gregory utilise l'apostrophe typographique partout — on remplace l'espace
   // que toLocaleString génère par défaut).
-  const countLabel = countLoading
-    ? 'Recherche…'
-    : count === 1
-      ? '1 bien trouvé'
-      : `${(count ?? 0).toLocaleString('fr-CH').replace(/\s/g, '’')} biens trouvés`
+  const countLabel = countError
+    ? 'Compteur indisponible'
+    : countLoading
+      ? 'Recherche…'
+      : count === 1
+        ? '1 bien trouvé'
+        : `${(count ?? 0).toLocaleString('fr-CH').replace(/\s/g, '’')} biens trouvés`
 
   return (
     <section
@@ -359,13 +366,19 @@ export default function PxListingsFilterBar({ context }: PxListingsFilterBarProp
         >
           <span
             data-testid="listings-count"
+            aria-live="polite"
             style={{
               fontFamily: PX.font.display,
               fontSize: 14,
               fontWeight: 500,
               lineHeight: 1.25,
               letterSpacing: '-0.42px',
-              color: PX.neutral500,
+              color: countError ? PX.neutral400 : PX.neutral500,
+              // Indicateur visuel de staleness pendant le keepPreviousData :
+              // évite que l'user voit l'ancien chiffre comme si c'était la
+              // réponse finale.
+              opacity: countFetching && !countLoading ? 0.6 : 1,
+              transition: `opacity ${PX.duration.fast} ${PX.ease}`,
             }}
           >
             {countLabel}
