@@ -217,6 +217,7 @@ export default function App() {
               <Route path="/faq" element={<PropertyXFAQPage />} />
               <Route path="/properties" element={<PropertyXListingsPage />} />
               <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
+              <Route path="/propriete/:id" element={<PropertyXSinglePropertyPage />} />
               <Route path="/contact" element={<PropertyXContactPage />} />
               <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
               <Route path="/publier-bien" element={<PropertyXSubmitPropertyPage />} />
