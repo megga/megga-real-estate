@@ -272,7 +272,8 @@ function FormSelect({
 }
 
 // ─── Sub-component : TextArea (radius 8, bg neutral200, p-16) ──────────
-// Figma : icône pencil (V30) 14px en haut à gauche, puis placeholder à côté.
+// Figma : icône pencil (V30) 14px en haut à gauche rotated -45° (forme de
+// crayon diagonal), puis placeholder à côté.
 function FormTextArea({ placeholder }: { placeholder: string }) {
   return (
     <div style={{
@@ -281,17 +282,21 @@ function FormTextArea({ placeholder }: { placeholder: string }) {
       background: PX.neutral200,
       borderRadius: PX.radius.tiny,
     }}>
-      {/* Icon : pencil 14px, top 18 left 16 */}
+      {/* Icon : pencil 14px rotated -45°, top 18 left 16.
+          Le SVG natif Figma est un "trait fin vertical" — la rotation -45°
+          lui donne l'allure d'un crayon diagonal (tip pointant vers
+          bottom-right, eraser vers top-left). */}
       <span style={{
         position: 'absolute',
         top: 18,
         left: 16,
         display: 'inline-flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'center',
         color: PX.neutral400,
         width: 14,
         height: 14,
+        transform: 'rotate(-45deg)',
         pointerEvents: 'none',
       }}>
         <PxFigmaIcon name="form-edit" size={14} color={PX.neutral400} />
@@ -493,10 +498,21 @@ export default function PxSubmitPropertyForm() {
                 options={['Apartment', 'House', 'Villa', 'Commercial', 'Office', 'Parking', 'Storage', 'Land']}
               />
             </FormField>
-            {/* Listing type : Figma utilise pencil (V30), pas key */}
+            {/* Listing type : Figma utilise pencil (V30) rotated -45° */}
             <FormField label="Listing type" width={278}>
               <FormSelect
-                icon={<PxFigmaIcon name="form-edit" size={14} color={PX.neutral400} />}
+                icon={
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 14,
+                    height: 14,
+                    transform: 'rotate(-45deg)',
+                  }}>
+                    <PxFigmaIcon name="form-edit" size={14} color={PX.neutral400} />
+                  </span>
+                }
                 placeholder="Select"
                 options={['For sale', 'For rent']}
               />
