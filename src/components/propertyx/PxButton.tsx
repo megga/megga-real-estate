@@ -12,6 +12,7 @@
 import type { ReactNode, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { PX } from './tokens'
+import PxFigmaIcon from './PxFigmaIcon'
 
 export type PxButtonVariant = 'primary' | 'invert' | 'ghost'
 export type PxButtonSize = 'sm' | 'lg'
@@ -48,14 +49,9 @@ interface LinkExternalProps extends BaseProps {
 
 type PxButtonProps = ButtonProps | LinkInternalProps | LinkExternalProps
 
-// ─── Default arrow icon (rotated chevron from DS) ───────────────────
+// ─── Default arrow icon (SVG exact Figma — node 11706:23422 imgElement4) ───
 function DefaultArrow({ color }: { color: string }) {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M2.5 6h7M6.5 2.5L10 6l-3.5 3.5"
-        stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  return <PxFigmaIcon name="arrow-right" size={8.4} color={color} />
 }
 
 function buttonStyle(variant: PxButtonVariant, size: PxButtonSize): React.CSSProperties {

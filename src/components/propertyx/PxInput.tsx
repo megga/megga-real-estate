@@ -11,6 +11,7 @@
 import { forwardRef } from 'react'
 import type { InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react'
 import { PX } from './tokens'
+import PxFigmaIcon from './PxFigmaIcon'
 
 // ─── Chevron down icon ────────────────────────────────────────────────
 function ChevronDown({ color = PX.neutral500 }: { color?: string }) {
@@ -229,31 +230,31 @@ interface PxCheckboxProps {
 }
 
 function CheckIcon({ size = 8 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 12 12" fill="none">
-      <path d="M2 6.5l2.5 2.5L10 3" stroke={PX.neutral100} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+  // SVG exact Figma (node 11723:27991 — Inputs page, imgCheck)
+  return <PxFigmaIcon name="checkbox-check" size={size} color={PX.neutral100} />
 }
 
 export function PxCheckbox({ checked, onChange, label, size = 'sm' }: PxCheckboxProps) {
   const dim = size === 'lg' ? 18 : 14
+  // Taille du check : Figma sm 6.83×5.91 dans 14, lg ~8.78×7.6 dans 18 (~49% du container)
+  const checkSize = size === 'lg' ? 10 : 8
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
       <span style={{
+        boxSizing: 'border-box',
         position: 'relative',
         width: dim, height: dim,
         borderRadius: 4,
         background: checked ? PX.neutral700 : PX.neutral100,
-        border: checked ? 0 : `1px solid ${PX.neutral200}`,
-        boxShadow: checked ? 'none' : '0 1px 3px rgba(25,33,61,0.10)',
+        border: checked ? 0 : `1px solid ${PX.neutral300}`,
+        boxShadow: checked ? 'none' : '0 1px 1.5px rgba(25,33,61,0.10)',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
         transition: `background ${PX.duration.fast} ${PX.ease}`,
       }}>
-        {checked && <CheckIcon size={size === 'lg' ? 10 : 8} />}
+        {checked && <CheckIcon size={checkSize} />}
         <input
           type="checkbox"
           checked={checked}

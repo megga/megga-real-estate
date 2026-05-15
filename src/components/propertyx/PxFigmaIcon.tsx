@@ -33,6 +33,12 @@ export type PxFigmaIconName =
   | 'plus'
   | 'search'
   | 'sparkle'
+  | 'close'       // X close icon (Top Notification Bar dismiss)
+  | 'badge-megaphone'  // V41 : megaphone (Badge size sm de la page Badges styleguide)
+  | 'check-circle' // Filled check circle (Lists page — variant type Icon)
+  | 'checkbox-check'  // Checkmark inside PxCheckbox (Inputs styleguide — exact Figma)
+  | 'upload-grid'     // Gallery/Grid icon inside PxUploadCard (Inputs styleguide — exact Figma)
+  | 'arrow-up'        // Arrow pointing up (Upload button — Figma data-name "Line Rounded/Arrow down" mais c'est visuellement un up)
   // Badges des eyebrows
   | 'badge-featured-star'
   | 'badge-allprops-home'
