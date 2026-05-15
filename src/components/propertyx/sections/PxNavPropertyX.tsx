@@ -98,10 +98,13 @@ export default function PxNavPropertyX() {
       zIndex: 4,
       pointerEvents: 'auto',
     }}>
-      {/* Header/V1 inner : py-24 overflow-clip flex-col items-center */}
+      {/* Header/V1 inner : py-24 overflow-clip flex-col items-center.
+          Fidèle Figma : pt-24 + pb-24 (= py-24). Total avec outer pt-24 → header
+          content démarre à y=48 du top de page, dégage les rounded corners du
+          hero dark sous-jacent. */}
       <div style={{
         width: '100%',
-        paddingTop: 0,
+        paddingTop: 24,
         paddingBottom: 24,
         display: 'flex',
         flexDirection: 'column',

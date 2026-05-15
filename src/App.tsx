@@ -7,6 +7,8 @@ import { AuthProvider } from '@/hooks/useAuth'
 import HomePage from '@/pages/public/HomePage'
 import PropertyXHomePage from '@/pages/public/PropertyXHomePage'
 import PropertyXAboutPage from '@/pages/public/PropertyXAboutPage'
+import PropertyXFAQPage from '@/pages/public/PropertyXFAQPage'
+import PropertyXListingsPage from '@/pages/public/PropertyXListingsPage'
 import PropertyXSinglePropertyPage from '@/pages/public/PropertyXSinglePropertyPage'
 import PropertyXContactPage from '@/pages/public/PropertyXContactPage'
 import PropertyXComingSoonPage from '@/pages/public/PropertyXComingSoonPage'
@@ -199,6 +201,8 @@ export default function App() {
               <Route path="/" element={<PropertyXHomePage />} />
               <Route path="/home-legacy" element={<HomePage />} />
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
+              <Route path="/faq" element={<PropertyXFAQPage />} />
+              <Route path="/properties" element={<PropertyXListingsPage />} />
               <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
               <Route path="/contact" element={<PropertyXContactPage />} />
               <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
