@@ -43,7 +43,9 @@ export default function PxNav(_props: PxNavProps) {
       paddingBottom: 24,
       paddingLeft: 0,
       paddingRight: 0,
-      background: PX.neutral100,
+      // Bg transparent : la nav prend la couleur de la page (unifiée avec
+      // le #FAFAFB de Submit Property et le #FFFFFF des autres Property X).
+      background: 'transparent',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
