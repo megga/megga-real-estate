@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/hooks/useAuth'
 
 // Static imports — shell + most-visited pages (loaded immediately)
-import HomePage from '@/pages/public/HomePage'
 import PropertyXHomePage from '@/pages/public/PropertyXHomePage'
 import PropertyXAboutPage from '@/pages/public/PropertyXAboutPage'
 import PropertyXFAQPage from '@/pages/public/PropertyXFAQPage'
@@ -214,7 +213,6 @@ export default function App() {
             <Routes>
               {/* Public */}
               <Route path="/" element={<PropertyXHomePage />} />
-              <Route path="/home-legacy" element={<HomePage />} />
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
               <Route path="/faq" element={<PropertyXFAQPage />} />
               <Route path="/properties" element={<PropertyXListingsPage />} />
