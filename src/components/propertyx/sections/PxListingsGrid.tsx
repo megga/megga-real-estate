@@ -2,55 +2,22 @@
 // Source : Figma node 9552:21447 — sous-frame "Articles Section" (9680:9298)
 // + "Properties Card/V2" (11781:16157 et 11781:16208).
 //
-// Structure :
-//   <section pt-120 pb-160 flex-col items-center>
-//     <Cards Wrapper gap-24 justify-center>
-//       <PropertyCard w-588 — Image 364h + Badge + Plus + Content + Divider + Amenities + Link>
-//       <PropertyCard w-588>
-//     </Cards Wrapper>
-//   </section>
+// Branché sur Supabase via useMarketListings (infinite query, paginé par
+// 24 biens). Le composant accepte un prop `context` ('buy' | 'rent') pour
+// filtrer par transaction_type.
 
+import { Link } from 'react-router-dom'
 import { PX, PxFigmaIcon } from '..'
+import { useMarketListings } from '@/hooks/useMarketListings'
+import { formatCHF, formatRent } from '@/lib/utils'
+import type { ListingCardData } from '@/components/listings/ListingCard'
 
-interface Listing {
-  id: string
-  title: string
-  address: string
-  image: string
-  // Amenities ordre Figma : sqft, beds, baths, parking
-  sqft: string
-  beds: string
-  baths: string
-  parking: string
+interface PxListingsGridProps {
+  context: 'buy' | 'rent'
 }
 
-const LISTINGS: Listing[] = [
-  {
-    id: 'la',
-    title: 'Home in Los Angeles Heart',
-    address: '2238 Stradella Rd, LA',
-    // Unsplash : intérieur living moderne, palette neutre/bois, lumière chaude
-    // (proche vibe Figma "Home in Los Angeles Heart" — pas de teinte bleue).
-    image: 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1400&q=85',
-    sqft: '8,392 sqtf',
-    beds: '3',
-    baths: '2',
-    parking: '3',
-  },
-  {
-    id: 'sf',
-    title: 'Modern Loft in San Francisco',
-    address: '850 Folsom St, SF',
-    // Unsplash : loft / cuisine ouverte avec verrière industrielle
-    image: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1400&q=85',
-    sqft: '1,334 sqtf',
-    beds: '1',
-    baths: '2',
-    parking: '1',
-  },
-]
-
-function ForSaleCardBadge() {
+function PriceBadge({ context, price }: { context: 'buy' | 'rent'; price: number }) {
+  const label = context === 'rent' ? formatRent(price) : formatCHF(price)
   return (
     <span
       style={{
@@ -65,8 +32,6 @@ function ForSaleCardBadge() {
         borderRadius: PX.radius.pill,
       }}
     >
-      {/* Figma V35 — Small Icon "tag" (For sale badge, filled diamant
-          15.207×15.207 centré dans un conteneur 16×16). */}
       <PxFigmaIcon name="tag" size={15.207} color={PX.neutral100} />
       <span
         style={{
@@ -81,7 +46,7 @@ function ForSaleCardBadge() {
           whiteSpace: 'nowrap',
         }}
       >
-        For sale
+        {label}
       </span>
     </span>
   )
@@ -119,7 +84,14 @@ function AmenityItem({ icon, value }: { icon: 'surface' | 'bed' | 'bath' | 'park
   )
 }
 
-function PropertyCardV2({ listing }: { listing: Listing }) {
+function PropertyCardV2({ listing, context }: { listing: ListingCardData; context: 'buy' | 'rent' }) {
+  const image = listing.photos?.[0] ?? ''
+  const cityLabel = [listing.address, listing.city].filter(Boolean).join(', ')
+  const surfaceLabel = listing.surface_m2 ? `${listing.surface_m2} m²` : '—'
+  const roomsLabel = listing.rooms ? `${listing.rooms} p.` : '—'
+  const bedroomsLabel = listing.bedrooms ? String(listing.bedrooms) : '—'
+  const bathroomsLabel = listing.bathrooms ? String(listing.bathrooms) : '—'
+
   return (
     <article
       style={{
@@ -131,8 +103,8 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
         flexShrink: 0,
       }}
     >
-      {/* Image card : 364h rounded-24 bg-neutral500, overlay top flex */}
-      <div
+      <Link
+        to={`/listing/${listing.id}`}
         style={{
           position: 'relative',
           width: '100%',
@@ -140,19 +112,21 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
           background: PX.neutral500,
           borderRadius: PX.radius.large,
           overflow: 'hidden',
+          display: 'block',
+          textDecoration: 'none',
         }}
       >
-        {/* Photo background */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `url("${listing.image}")`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-        {/* Top overlay : p-24 flex justify-between */}
+        {image && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url("${image}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+        )}
         <div
           style={{
             position: 'absolute',
@@ -165,30 +139,25 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
             justifyContent: 'space-between',
           }}
         >
-          <ForSaleCardBadge />
-          {/* Circle button 40px bg-white shadow-small + plus icon noir */}
-          <button
-            type="button"
-            aria-label="Voir le bien"
+          <PriceBadge context={context} price={listing.price} />
+          <span
             style={{
               width: 40,
               height: 40,
               borderRadius: PX.radius.pill,
               background: PX.neutral100,
-              border: 0,
-              cursor: 'pointer',
               boxShadow: PX.shadow.small,
               display: 'grid',
               placeItems: 'center',
               flexShrink: 0,
             }}
+            aria-hidden
           >
             <PxFigmaIcon name="plus" size={16} color={PX.neutral700} />
-          </button>
+          </span>
         </div>
-      </div>
+      </Link>
 
-      {/* Bottom Content : flex-col gap-6 items-start */}
       <div
         style={{
           display: 'flex',
@@ -197,7 +166,6 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
           alignItems: 'flex-start',
         }}
       >
-        {/* Title 24/medium tracking-0.72 neutral700 */}
         <h3
           style={{
             margin: 0,
@@ -208,11 +176,13 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
             letterSpacing: '-0.72px',
             color: PX.neutral700,
             whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '100%',
           }}
         >
           {listing.title}
         </h3>
-        {/* Details : location icon-20 + 16/medium neutral700 */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
           <span
@@ -225,14 +195,16 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
               letterSpacing: '-0.48px',
               color: PX.neutral700,
               whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: 500,
             }}
           >
-            {listing.address}
+            {cityLabel}
           </span>
         </div>
       </div>
 
-      {/* Divider 1px neutral300 */}
       <div
         style={{
           height: 1,
@@ -242,7 +214,6 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
         }}
       />
 
-      {/* Flex Horizontal : Amenities gap-24 + Contact agent link */}
       <div
         style={{
           width: '100%',
@@ -251,15 +222,14 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
           justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-          <AmenityItem icon="surface" value={listing.sqft} />
-          <AmenityItem icon="bed" value={listing.beds} />
-          <AmenityItem icon="bath" value={listing.baths} />
-          <AmenityItem icon="parking" value={listing.parking} />
+        <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+          <AmenityItem icon="surface" value={surfaceLabel} />
+          <AmenityItem icon="bed" value={roomsLabel} />
+          {listing.bedrooms ? <AmenityItem icon="bed" value={bedroomsLabel} /> : null}
+          {listing.bathrooms ? <AmenityItem icon="bath" value={bathroomsLabel} /> : null}
         </div>
-        {/* Link "Contact agent" : 16/medium neutral700 + chevron-right size-16 */}
-        <a
-          href={`/agents`}
+        <Link
+          to={`/listing/${listing.id}`}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -279,16 +249,45 @@ function PropertyCardV2({ listing }: { listing: Listing }) {
               whiteSpace: 'nowrap',
             }}
           >
-            Contact agent
+            Voir le bien
           </span>
           <PxFigmaIcon name="chevron-right" size={16} color={PX.neutral700} />
-        </a>
+        </Link>
       </div>
     </article>
   )
 }
 
-export default function PxListingsGrid() {
+function StatusBlock({ message }: { message: string }) {
+  return (
+    <div
+      style={{
+        width: '100%',
+        padding: '80px 24px',
+        textAlign: 'center',
+        fontFamily: PX.font.display,
+        fontSize: 18,
+        color: PX.neutral400,
+      }}
+    >
+      {message}
+    </div>
+  )
+}
+
+export default function PxListingsGrid({ context }: PxListingsGridProps) {
+  const {
+    data,
+    isLoading,
+    isError,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useMarketListings({ context, sort: 'newest' })
+
+  const listings = data?.pages.flatMap(p => p.listings) ?? []
+  const showEmpty = !isLoading && !isError && listings.length === 0
+
   return (
     <section
       style={{
@@ -299,6 +298,7 @@ export default function PxListingsGrid() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        gap: 48,
         position: 'relative',
         zIndex: 2,
       }}
@@ -313,8 +313,36 @@ export default function PxListingsGrid() {
           flexWrap: 'wrap',
         }}
       >
-        {LISTINGS.map(l => <PropertyCardV2 key={l.id} listing={l} />)}
+        {isLoading && <StatusBlock message="Chargement des biens…" />}
+        {isError && <StatusBlock message="Impossible de charger les biens. Réessayez plus tard." />}
+        {showEmpty && <StatusBlock message="Aucun bien trouvé pour le moment." />}
+        {!isLoading && !isError && listings.map(l => (
+          <PropertyCardV2 key={l.id} listing={l} context={context} />
+        ))}
       </div>
+
+      {hasNextPage && (
+        <button
+          type="button"
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+          style={{
+            padding: '14px 28px',
+            background: PX.neutral700,
+            color: PX.neutral100,
+            border: 0,
+            borderRadius: PX.radius.pill,
+            cursor: isFetchingNextPage ? 'not-allowed' : 'pointer',
+            fontFamily: PX.font.display,
+            fontSize: 16,
+            fontWeight: 500,
+            letterSpacing: '-0.48px',
+            opacity: isFetchingNextPage ? 0.6 : 1,
+          }}
+        >
+          {isFetchingNextPage ? 'Chargement…' : 'Voir plus de biens'}
+        </button>
+      )}
     </section>
   )
 }

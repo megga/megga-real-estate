@@ -241,13 +241,14 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              {/* /acheter pointe temporairement sur AboutPage (Property X
-                  Properties template) — SearchPage reste accessible via
-                  /acheter-legacy le temps de l'A/B */}
-              <Route path="/acheter" element={<AboutPage />} />
+              {/* Marketplace publique — Property X design, branchée Supabase.
+                  SearchPage (ancien design avec carte) reste accessible via
+                  /acheter-legacy en attendant la v1.1 (toggle list/carte). */}
+              <Route path="/acheter" element={<PropertyXListingsPage context="buy" />} />
+              <Route path="/louer" element={<PropertyXListingsPage context="rent" />} />
               <Route path="/acheter-legacy" element={<SearchPage />} />
+              <Route path="/louer-legacy" element={<LouerPage />} />
               <Route path="/about" element={<AboutPage />} />
-              <Route path="/louer" element={<LouerPage />} />
               <Route path="/vendre" element={<VendrePage />} />
               <Route path="/estimations" element={<EstimationsPage />} />
               <Route path="/estimer" element={<EstimationsPage />} />
