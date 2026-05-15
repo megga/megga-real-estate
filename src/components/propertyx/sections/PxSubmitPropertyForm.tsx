@@ -210,7 +210,8 @@ function FormSelect({
       alignItems: 'center',
       gap: 6,
       background: PX.neutral200,
-      borderRadius: PX.radius.pill,
+      // Figma : Select uses sections/pd-medium = 64px (different from input pill 200).
+      borderRadius: 64,
       paddingLeft: 16,
       paddingRight: 14,
       paddingTop: 6,
@@ -421,11 +422,11 @@ export default function PxSubmitPropertyForm() {
       zIndex: 2,
     }}>
       {/* Placeholder color fidèle Figma : neutral500 #464851
-          + Submit button width 240 (PxButton uses style={} qu'on override via class) */}
+          + Submit button width 240 + justify-between (text gauche, cercle droite). */}
       <style>{`
         .px-sp-input::placeholder,
         .px-sp-textarea::placeholder { color: ${PX.neutral500}; opacity: 1; }
-        .px-sp-submit-button { width: 240px !important; justify-content: center; }
+        .px-sp-submit-button { width: 240px !important; justify-content: space-between !important; }
       `}</style>
 
       {/* Forms Wrapper : w-676, centré, margin-top: -205 (overlap hero).
@@ -683,9 +684,17 @@ export default function PxSubmitPropertyForm() {
               />
             </div>
 
-            {/* Submit button : Primary Button 240×48 dark, aligné start */}
+            {/* Submit button : Primary Button 240×48 dark, aligné start.
+                Figma : icône arrow-right (asset 70bdd70f, viewBox 9.9×9.7) dans
+                cercle blanc 28×28 à droite, texte à gauche, justify-between. */}
             <div style={{ alignSelf: 'flex-start' }}>
-              <PxButton variant="primary" size="lg" type="submit" className="px-sp-submit-button">
+              <PxButton
+                variant="primary"
+                size="lg"
+                type="submit"
+                className="px-sp-submit-button"
+                icon={<PxFigmaIcon name="arrow-right" size={10} color={PX.neutral700} />}
+              >
                 Submit for approval
               </PxButton>
             </div>
