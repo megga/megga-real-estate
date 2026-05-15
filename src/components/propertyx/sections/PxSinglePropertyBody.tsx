@@ -14,10 +14,12 @@
 //   - Card Form (px-40 py-56) : titre + 3 inputs pill + bouton "Request information"
 //   - Card Agent (px-40 py-56) : titre + paragraph + avatar 80 + nom + mail + phone
 
-import type { CSSProperties } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
+import { useState } from 'react'
 import { PX, PxFigmaIcon } from '..'
 import { formatCHF, formatRent } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { supabase } from '@/lib/supabase'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface PxSinglePropertyBodyProps {
@@ -208,7 +210,20 @@ function PricingCard({ listing, isMobile }: { listing?: ListingCardData; isMobil
   )
 }
 
-function FormInput({ iconName, placeholder }: { iconName: 'form-person' | 'form-mail' | 'form-phone'; placeholder: string }) {
+interface FormInputProps {
+  iconName: 'form-person' | 'form-mail' | 'form-phone'
+  placeholder: string
+  value: string
+  onChange: (v: string) => void
+  type?: 'text' | 'email' | 'tel'
+  name: string
+  required?: boolean
+  autoComplete?: string
+  disabled?: boolean
+  ariaLabel: string
+}
+
+function FormInput({ iconName, placeholder, value, onChange, type = 'text', name, required, autoComplete, disabled, ariaLabel }: FormInputProps) {
   return (
     <div style={{
       background: PX.neutral200,
@@ -223,11 +238,19 @@ function FormInput({ iconName, placeholder }: { iconName: 'form-person' | 'form-
       paddingTop: 6,
       paddingBottom: 6,
       boxSizing: 'border-box',
+      opacity: disabled ? 0.6 : 1,
     }}>
       <PxFigmaIcon name={iconName} size={16} color={PX.neutral500} />
       <input
-        type="text"
+        type={type}
+        name={name}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        required={required}
+        autoComplete={autoComplete}
+        disabled={disabled}
+        aria-label={ariaLabel}
         style={{
           flex: 1,
           minWidth: 0,
@@ -247,7 +270,75 @@ function FormInput({ iconName, placeholder }: { iconName: 'form-person' | 'form-
   )
 }
 
-function ContactFormCard({ isMobile }: { isMobile: boolean }) {
+type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error'
+
+function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: ListingCardData }) {
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [status, setStatus] = useState<SubmitStatus>('idle')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const isSubmitting = status === 'submitting'
+  const isSuccess = status === 'success'
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setErrorMessage(null)
+
+    const trimmedName = fullName.trim()
+    const trimmedEmail = email.trim()
+    const trimmedPhone = phone.trim()
+
+    if (!trimmedName) {
+      setErrorMessage('Merci d’indiquer votre nom complet.')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setErrorMessage('Adresse e-mail invalide.')
+      return
+    }
+
+    setStatus('submitting')
+
+    const prefixedId = listing?.id ?? null
+    const rawId = prefixedId?.replace(/^(market-|internal-)/, '') ?? null
+    const isMarket = prefixedId?.startsWith('market-') ?? false
+    const isInternal = prefixedId?.startsWith('internal-') ?? false
+
+    const payload = {
+      listing_prefixed_id: prefixedId,
+      market_listing_id: isMarket ? rawId : null,
+      property_id: isInternal ? rawId : null,
+      listing_title: listing?.title ?? null,
+      listing_city: listing?.city ?? null,
+      listing_canton: listing?.canton ?? null,
+      listing_transaction_type: listing?.context ?? null,
+      full_name: trimmedName,
+      email: trimmedEmail,
+      phone: trimmedPhone || null,
+      agency_name: listing?.agency_name ?? null,
+      source_portal: listing?.source_portal ?? null,
+      source_url: listing?.source_url ?? null,
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      referer: typeof document !== 'undefined' ? document.referrer || null : null,
+    }
+
+    const { error } = await supabase.from('marketplace_inquiries').insert(payload)
+
+    if (error) {
+      console.error('[marketplace_inquiries] insert failed', error)
+      setStatus('error')
+      setErrorMessage('Une erreur est survenue. Merci de réessayer dans quelques instants.')
+      return
+    }
+
+    setStatus('success')
+    setFullName('')
+    setEmail('')
+    setPhone('')
+  }
+
   return (
     <div style={{
       ...sidebarCard,
@@ -280,56 +371,159 @@ function ContactFormCard({ isMobile }: { isMobile: boolean }) {
           L’agence vous recontacte sous 24 h pour répondre à vos questions ou organiser une visite.
         </p>
       </div>
-      <form
-        onSubmit={(e) => e.preventDefault()}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-          width: '100%',
-        }}
-      >
-        <FormInput iconName="form-person" placeholder="Nom complet" />
-        <FormInput iconName="form-mail" placeholder="Adresse e-mail" />
-        <FormInput iconName="form-phone" placeholder="Numéro de téléphone" />
-        <button
-          type="submit"
+      {isSuccess ? (
+        <div
+          role="status"
+          aria-live="polite"
           style={{
+            marginTop: 16,
+            padding: '16px 20px',
+            background: PX.neutral200,
+            borderRadius: PX.radius.large,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingLeft: 16,
-            paddingRight: 10,
-            paddingTop: 10,
-            paddingBottom: 10,
-            borderRadius: PX.radius.pill,
-            background: PX.neutral700,
-            color: PX.neutral100,
-            border: 0,
-            width: '100%',
-            cursor: 'pointer',
+            flexDirection: 'column',
+            gap: 6,
+          }}
+        >
+          <p style={{
+            margin: 0,
             fontFamily: PX.font.sans,
             fontWeight: 500,
             fontSize: 16,
-            lineHeight: 1.25,
+            lineHeight: 1.4,
             letterSpacing: '-0.48px',
-          }}
-        >
-          <span style={{ paddingTop: 2 }}>Envoyer ma demande</span>
-          <span style={{
-            width: 28,
-            height: 28,
-            borderRadius: PX.radius.pill,
-            background: PX.neutral100,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
+            color: PX.neutral700,
           }}>
-            <PxFigmaIcon name="arrow-right" size={12} color={PX.neutral700} />
-          </span>
-        </button>
-      </form>
+            Demande envoyée&nbsp;✓
+          </p>
+          <p style={{
+            margin: 0,
+            fontFamily: PX.font.sans,
+            fontWeight: 400,
+            fontSize: 14,
+            lineHeight: 1.5,
+            letterSpacing: '-0.4px',
+            color: PX.neutral500,
+          }}>
+            L’agence vous répond sous 24 h. Pensez à vérifier vos spams.
+          </p>
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            width: '100%',
+          }}
+          noValidate
+        >
+          <FormInput
+            iconName="form-person"
+            name="full_name"
+            placeholder="Nom complet"
+            value={fullName}
+            onChange={setFullName}
+            autoComplete="name"
+            required
+            disabled={isSubmitting}
+            ariaLabel="Nom complet"
+          />
+          <FormInput
+            iconName="form-mail"
+            name="email"
+            type="email"
+            placeholder="Adresse e-mail"
+            value={email}
+            onChange={setEmail}
+            autoComplete="email"
+            required
+            disabled={isSubmitting}
+            ariaLabel="Adresse e-mail"
+          />
+          <FormInput
+            iconName="form-phone"
+            name="phone"
+            type="tel"
+            placeholder="Numéro de téléphone (optionnel)"
+            value={phone}
+            onChange={setPhone}
+            autoComplete="tel"
+            disabled={isSubmitting}
+            ariaLabel="Numéro de téléphone"
+          />
+          {errorMessage ? (
+            <p
+              role="alert"
+              style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 500,
+                fontSize: 14,
+                lineHeight: 1.4,
+                letterSpacing: '-0.4px',
+                color: '#C0392B',
+              }}
+            >
+              {errorMessage}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingLeft: 16,
+              paddingRight: 10,
+              paddingTop: 10,
+              paddingBottom: 10,
+              borderRadius: PX.radius.pill,
+              background: PX.neutral700,
+              color: PX.neutral100,
+              border: 0,
+              width: '100%',
+              cursor: isSubmitting ? 'wait' : 'pointer',
+              opacity: isSubmitting ? 0.7 : 1,
+              fontFamily: PX.font.sans,
+              fontWeight: 500,
+              fontSize: 16,
+              lineHeight: 1.25,
+              letterSpacing: '-0.48px',
+              transition: 'opacity 0.18s ease',
+            }}
+          >
+            <span style={{ paddingTop: 2 }}>
+              {isSubmitting ? 'Envoi en cours…' : 'Envoyer ma demande'}
+            </span>
+            <span style={{
+              width: 28,
+              height: 28,
+              borderRadius: PX.radius.pill,
+              background: PX.neutral100,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <PxFigmaIcon name="arrow-right" size={12} color={PX.neutral700} />
+            </span>
+          </button>
+          <p style={{
+            margin: 0,
+            fontFamily: PX.font.sans,
+            fontWeight: 400,
+            fontSize: 12,
+            lineHeight: 1.4,
+            letterSpacing: '-0.3px',
+            color: PX.neutral400,
+          }}>
+            En envoyant ce formulaire, vous acceptez que MEGGA transmette vos coordonnées à l’agence en charge du bien.
+          </p>
+        </form>
+      )}
     </div>
   )
 }
@@ -706,7 +900,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
           minWidth: 0,
         }}>
           <PricingCard listing={listing} isMobile={isMobile} />
-          <ContactFormCard isMobile={isMobile} />
+          <ContactFormCard isMobile={isMobile} listing={listing} />
           <AgenceCard listing={listing} isMobile={isMobile} />
         </aside>
       </div>
