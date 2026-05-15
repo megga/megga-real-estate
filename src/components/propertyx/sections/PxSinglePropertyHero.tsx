@@ -1,21 +1,24 @@
 // MEGGA Marketplace — Property X "Single Property — Hero gallery" section.
-// Source : Figma node 9613:28969 — code Figma EXACT (5 photos, layout 1 large + 2x2 grid).
+// Source : Figma node 9613:28969 — layout 1 large + 2x2 grid (5 photos).
 //
-// Anatomie :
-// - Container 1200px centered horizontally (page-x 120 sur 1440)
-// - Image principale gauche : 594.7 × 435.4, radius 12
-// - 4 thumbnails droites : 290.6 × 211.7 chacune, en grid 2×2, radius 12
-// - Gap entre toutes les images : 12px
+// Accepte un prop `photos` (string[]) pour afficher les vraies photos du
+// bien. Sans prop, fallback sur les images démo Figma pour la route demo
+// `/propriete` (sans :id).
 
 import { PX } from '..'
 
-const heroImages = {
-  main: '/images/sections/single-property/hero-1-living.jpg',
-  bedroom: '/images/sections/single-property/hero-2-bedroom.jpg',
-  kitchen: '/images/sections/single-property/hero-3-kitchen.jpg',
-  bathroom: '/images/sections/single-property/hero-4-bathroom.jpg',
-  lounge: '/images/sections/single-property/hero-5-lounge.jpg',
+interface PxSinglePropertyHeroProps {
+  photos?: string[]
+  title?: string
 }
+
+const DEMO_IMAGES = [
+  '/images/sections/single-property/hero-1-living.jpg',
+  '/images/sections/single-property/hero-2-bedroom.jpg',
+  '/images/sections/single-property/hero-3-kitchen.jpg',
+  '/images/sections/single-property/hero-4-bathroom.jpg',
+  '/images/sections/single-property/hero-5-lounge.jpg',
+]
 
 const tileStyle: React.CSSProperties = {
   borderRadius: PX.radius.small,
@@ -25,7 +28,16 @@ const tileStyle: React.CSSProperties = {
   height: '100%',
 }
 
-export default function PxSinglePropertyHero() {
+export default function PxSinglePropertyHero({ photos, title = 'Bien immobilier' }: PxSinglePropertyHeroProps) {
+  // Si photos est fourni mais incomplet (< 5 photos), on complète avec la
+  // première photo répétée — préserve le layout 1 + 4 sans laisser de
+  // tiles vides.
+  const sourceImages = photos && photos.length > 0
+    ? Array.from({ length: 5 }, (_, i) => photos[i] ?? photos[0])
+    : DEMO_IMAGES
+
+  const [main, t1, t2, t3, t4] = sourceImages
+
   return (
     <section style={{
       width: '100%',
@@ -40,17 +52,15 @@ export default function PxSinglePropertyHero() {
         gap: 12,
         boxSizing: 'border-box',
       }}>
-        {/* Main image — left */}
         <div style={{
           width: '100%',
           aspectRatio: '594.7 / 435.4',
           overflow: 'hidden',
           borderRadius: PX.radius.small,
         }}>
-          <img src={heroImages.main} alt="Property main view" style={tileStyle} />
+          <img src={main} alt={title} style={tileStyle} />
         </div>
 
-        {/* 2×2 grid — right */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -58,16 +68,16 @@ export default function PxSinglePropertyHero() {
           gap: 12,
         }}>
           <div style={{ overflow: 'hidden', borderRadius: PX.radius.small }}>
-            <img src={heroImages.bedroom} alt="Bedroom" style={tileStyle} />
+            <img src={t1} alt={`${title} — vue 2`} style={tileStyle} />
           </div>
           <div style={{ overflow: 'hidden', borderRadius: PX.radius.small }}>
-            <img src={heroImages.kitchen} alt="Kitchen" style={tileStyle} />
+            <img src={t2} alt={`${title} — vue 3`} style={tileStyle} />
           </div>
           <div style={{ overflow: 'hidden', borderRadius: PX.radius.small }}>
-            <img src={heroImages.bathroom} alt="Bathroom" style={tileStyle} />
+            <img src={t3} alt={`${title} — vue 4`} style={tileStyle} />
           </div>
           <div style={{ overflow: 'hidden', borderRadius: PX.radius.small }}>
-            <img src={heroImages.lounge} alt="Living room" style={tileStyle} />
+            <img src={t4} alt={`${title} — vue 5`} style={tileStyle} />
           </div>
         </div>
       </div>
