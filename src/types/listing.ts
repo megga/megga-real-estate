@@ -19,6 +19,11 @@ export interface Property {
   year_built?: number
   charges_monthly?: number
   mandate_type?: string
+  // Sprint 2 — Fiche Bien (migration 20260517_001)
+  energy_class?: string | null
+  mandate_commission_pct?: number | null
+  mandate_signed_at?: string | null
+  mandate_expires_at?: string | null
   // Rental support (2026-04-15)
   transaction_type?: 'buy' | 'rent'
   deposit_months?: number | null
