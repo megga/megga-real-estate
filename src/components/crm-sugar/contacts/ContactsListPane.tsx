@@ -246,6 +246,8 @@ interface ContactsListPaneProps {
   sp: SugarPalette
   dark: boolean
   onNewContact: () => void
+  /** Sprint 3 — ouvre Import Lead IA pré-rempli avec returnTo /dashboard/contacts. */
+  onImportLead?: () => void
   style?: CSSProperties
 }
 
@@ -262,6 +264,7 @@ export function ContactsListPane({
   sp,
   dark,
   onNewContact,
+  onImportLead,
   style,
 }: ContactsListPaneProps) {
   const segmentCounts = useMemo(() => {
@@ -340,6 +343,28 @@ export function ContactsListPane({
             {contacts.length}
           </span>
           <div style={{ flex: 1 }} />
+          {/* Sprint 3 — Bouton rond ✨ Importer un lead (ghost, à gauche du +) */}
+          {onImportLead && (
+            <button
+              onClick={onImportLead}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 999,
+                border: `1px solid ${sp.cardBorder}`,
+                background: sp.cardBg,
+                color: sp.ink,
+                cursor: 'pointer',
+                display: 'grid',
+                placeItems: 'center',
+                fontFamily: 'inherit',
+                marginRight: 6,
+              }}
+              title="Importer un lead via MEGGA AI"
+            >
+              <CRMIcon name="spark" size={13} stroke={sp.ink} />
+            </button>
+          )}
           <button
             onClick={onNewContact}
             style={{

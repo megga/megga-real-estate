@@ -45,7 +45,8 @@ async function logAiCopilotInteraction(params: {
     const supabase = createClient(supabaseUrl, serviceRoleKey)
     await supabase.from('activity_events').insert({
       agency_id: agencyId ?? null,
-      actor_id: 'ai',
+      actor_id: null,
+      actor_kind: 'ai',
       action: `MEGGA AI — ${params.action}`,
       entity_type: entityType,
       entity_id: entityId,

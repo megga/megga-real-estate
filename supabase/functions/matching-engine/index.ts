@@ -82,7 +82,8 @@ serve(async (req) => {
       if (inserted) {
         await supabase.from('activity_events').insert({
           agency_id,
-          actor_id: 'ai',
+          actor_id: null,
+          actor_kind: 'ai',
           action: 'match_suggested',
           entity_type: 'match',
           entity_id: inserted.id,
@@ -133,7 +134,8 @@ serve(async (req) => {
       if (inserted) {
         await supabase.from('activity_events').insert({
           agency_id,
-          actor_id: 'ai',
+          actor_id: null,
+          actor_kind: 'ai',
           action: 'match_suggested',
           entity_type: 'match',
           entity_id: inserted.id,

@@ -1,5 +1,9 @@
 // MEGGA CRM Sugar v2 — Vignette photo (placeholder déterministe)
 // 1:1 port from `crm-screen-biens-sugar.jsx` (BnPhoto).
+//
+// Sprint 3 : badge ✓ C2PA retiré — la signature tourne en arrière-plan,
+// traçable dans le journal d'audit. La prop `signed` reste pour compat
+// API mais est ignorée. Côté marketplace publique, le badge reste visible.
 
 import type { SugarPalette } from '../tokens'
 
@@ -8,10 +12,11 @@ interface BnPhotoProps {
   sp: SugarPalette
   w?: number | string
   h?: number | string
+  /** @deprecated Sprint 3 — badge retiré du chrome agent. Prop ignorée. */
   signed?: boolean
 }
 
-export function BnPhoto({ id, sp, w = 64, h = 48, signed = true }: BnPhotoProps) {
+export function BnPhoto({ id, sp, w = 64, h = 48 }: BnPhotoProps) {
   let n = 0
   for (let i = 0; i < id.length; i++) n = (n * 31 + id.charCodeAt(i)) % 360
   const h1 = n
@@ -43,27 +48,7 @@ export function BnPhoto({ id, sp, w = 64, h = 48, signed = true }: BnPhotoProps)
         <path fill="rgba(255,255,255,.32)" d="M30 75 V44 L52 26 L72 42 L72 75 Z" />
         <path fill="rgba(0,0,0,.25)" d="M65 75 V48 L82 36 L100 50 L100 75 Z" />
       </svg>
-      {signed && (
-        <span
-          title="C2PA"
-          style={{
-            position: 'absolute',
-            right: 4,
-            bottom: 4,
-            width: 12,
-            height: 12,
-            borderRadius: 999,
-            background: 'rgba(14,159,110,.95)',
-            color: '#fff',
-            display: 'grid',
-            placeItems: 'center',
-            fontSize: 7,
-            fontWeight: 800,
-          }}
-        >
-          ✓
-        </span>
-      )}
+      {/* Sprint 3 : badge ✓ C2PA retiré — signature silencieuse, log audit nLPD. */}
     </div>
   )
 }
