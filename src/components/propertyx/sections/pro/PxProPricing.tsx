@@ -230,9 +230,9 @@ function PricingCard({
       <PxButton
         variant={highlight ? 'invert' : 'primary'}
         size="lg"
-        to="#demo"
+        to="/register"
       >
-        {plan.id === 'starter' ? 'Commencer gratuitement' : `Choisir ${plan.name}`}
+        {plan.id === 'starter' ? 'Commencer gratuitement' : `Démarrer en ${plan.name}`}
       </PxButton>
 
       {/* Divider */}

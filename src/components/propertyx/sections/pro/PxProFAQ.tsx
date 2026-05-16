@@ -14,8 +14,8 @@ interface Question {
 const QUESTIONS: Question[] = [
   {
     id: 'trial',
-    q: 'Y a-t-il un essai gratuit ?',
-    a: "Oui. Le plan Starter est gratuit à vie : jusqu'à 50 contacts, 5 biens, 20 requêtes IA par mois et 5 vérifications KYC. Aucune carte bancaire requise. Quand vous voulez plus, vous passez en Pro en 1 clic.",
+    q: 'Comment je démarre ?',
+    a: "Vous créez votre compte sur /register, vous entrez immédiatement dans le CRM. Pas de démo à programmer, pas d'appel commercial. Le plan Starter est gratuit à vie : 50 contacts, 5 biens, 20 requêtes IA et 5 vérifications KYC par mois — sans carte bancaire. Vous passez en Pro plus tard, en 1 clic, quand vous décidez.",
   },
   {
     id: 'migration',

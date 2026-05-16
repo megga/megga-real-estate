@@ -18,16 +18,15 @@ export function useProFadeIn<T extends HTMLElement>(delayMs = 0): RefObject<T | 
       el.style.transform = 'translateY(0)'
     }
 
-    // Fallback : tout doit être révélé au plus tard après 1.2s,
-    // même si l'IntersectionObserver ne s'est pas déclenché (ex : screenshot
-    // full-page, prefers-reduced-motion, viewport instable).
-    const fallback = window.setTimeout(reveal, 1200)
-
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
-      window.clearTimeout(fallback)
       reveal()
       return
     }
+
+    // Fallback : tout doit être révélé au plus tard après 1.2s, même si
+    // l'IntersectionObserver ne s'est pas déclenché (screenshot full-page,
+    // prefers-reduced-motion, viewport instable).
+    const fallback = window.setTimeout(reveal, 1200)
 
     const obs = new IntersectionObserver(
       entries => {

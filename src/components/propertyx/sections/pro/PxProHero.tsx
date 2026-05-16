@@ -331,12 +331,36 @@ export default function PxProHero() {
                 alignItems: 'center',
               }}
             >
-              <PxButton variant="invert" size="lg" to="#demo">
-                Réserver une démo
+              <PxButton variant="invert" size="lg" to="/register">
+                Créer mon compte gratuit
               </PxButton>
               <PxButton variant="ghost" size="lg" to="#tarifs" showIcon={false}>
                 <span style={{ color: PX.inkInverse }}>Voir les tarifs</span>
               </PxButton>
+            </div>
+
+            {/* Tagline anti-demo gatekeeping */}
+            <div
+              style={{
+                marginTop: 16,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                fontFamily: PX.font.sans,
+                fontSize: 13,
+                fontWeight: 400,
+                letterSpacing: '-0.39px',
+                color: PX.inkInverseMuted,
+              }}
+            >
+              <span style={{
+                width: 6,
+                height: 6,
+                borderRadius: PX.radius.pill,
+                background: PX.inkInverse,
+                display: 'inline-block',
+              }} />
+              Pas de démo à programmer. Pas de carte bancaire. 60 secondes pour démarrer.
             </div>
 
             {/* Trust stats */}

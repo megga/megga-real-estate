@@ -1,65 +1,35 @@
-// MEGGA Pro — CTA final "Réservez votre démo".
-// Pattern bento dark (PxContactHero) simplifié pour B2B.
+// MEGGA Pro — CTA final self-serve.
+// Différenciateur : MEGGA n'a PAS de "demo gatekeeping". Le CRM EST la démo.
+// L'agent crée son compte → entre dans l'app → essaie librement.
 
-import { useState } from 'react'
-import { PX, PxButton, PxSectionLabel, PxAvatar, PxIcon, PxFigmaIcon } from '../..'
+import { PX, PxButton, PxSectionLabel, PxIcon } from '../..'
+import type { PxIconName } from '../..'
 import { useProFadeIn } from './useProFadeIn'
 
-function FormField({
-  label,
-  placeholder,
-  type = 'text',
-}: {
-  label: string
-  placeholder: string
-  type?: string
-}) {
-  const [value, setValue] = useState('')
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <span style={{
-        fontFamily: PX.font.sans,
-        fontSize: 13,
-        fontWeight: 500,
-        letterSpacing: '-0.4px',
-        color: PX.neutral500,
-      }}>
-        {label}
-      </span>
-      <input
-        type={type}
-        value={value}
-        onChange={e => setValue(e.target.value)}
-        placeholder={placeholder}
-        style={{
-          height: 48,
-          padding: '0 18px',
-          background: PX.neutral200,
-          borderRadius: PX.radius.pill,
-          border: 'none',
-          outline: 'none',
-          fontFamily: PX.font.sans,
-          fontSize: 15,
-          fontWeight: 400,
-          letterSpacing: '-0.45px',
-          color: PX.neutral700,
-        }}
-      />
-    </label>
-  )
-}
-
-const BENEFITS: Array<{ icon: 'sparkle' | 'clock' | 'shield'; label: string }> = [
-  { icon: 'sparkle', label: 'Démo personnalisée 25 min' },
-  { icon: 'clock', label: 'Aucun engagement, aucune CB' },
-  { icon: 'shield', label: 'Migration de vos données incluse' },
+const TRUST_SIGNALS: Array<{ icon: PxIconName; label: string; sub: string }> = [
+  {
+    icon: 'sparkle',
+    label: '60 secondes',
+    sub: 'pour créer votre compte',
+  },
+  {
+    icon: 'shield',
+    label: 'Sans carte bancaire',
+    sub: 'aucune information de paiement requise',
+  },
+  {
+    icon: 'eye',
+    label: 'Aucune démo à programmer',
+    sub: "vous explorez le CRM directement, à votre rythme",
+  },
 ]
 
 export default function PxProFinalCTA() {
   const labelRef = useProFadeIn<HTMLDivElement>(0)
   const titleRef = useProFadeIn<HTMLHeadingElement>(100)
   const subRef = useProFadeIn<HTMLParagraphElement>(180)
-  const cardRef = useProFadeIn<HTMLDivElement>(260)
+  const ctaRef = useProFadeIn<HTMLDivElement>(260)
+  const trustRef = useProFadeIn<HTMLDivElement>(360)
 
   return (
     <section
@@ -76,230 +46,170 @@ export default function PxProFinalCTA() {
       <div style={{
         background: PX.inkBg,
         borderRadius: PX.radius.large,
-        paddingTop: 96,
-        paddingBottom: 96,
+        paddingTop: 120,
+        paddingBottom: 120,
         paddingLeft: 64,
         paddingRight: 64,
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Texture */}
+        {/* Dot texture */}
         <div
           aria-hidden
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)`,
             backgroundSize: '32px 32px',
-            opacity: 0.4,
+            opacity: 0.5,
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Radial glow */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '60%',
+            height: '120%',
+            background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.05), transparent 70%)',
             pointerEvents: 'none',
           }}
         />
 
         <div style={{
           position: 'relative',
-          maxWidth: 1100,
+          maxWidth: 920,
           margin: '0 auto',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}>
-          {/* Header */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 20,
-            marginBottom: 64,
-            textAlign: 'center',
-          }}>
-            <div ref={labelRef}>
-              <PxSectionLabel icon="send" invert>Réservez votre démo</PxSectionLabel>
-            </div>
-            <h2
-              ref={titleRef}
-              style={{
-                margin: 0,
-                fontFamily: PX.font.display,
-                fontSize: 56,
-                fontWeight: 500,
-                lineHeight: 1.1,
-                letterSpacing: '-2.5px',
-                color: PX.inkInverse,
-                maxWidth: 720,
-              }}
-            >
-              25 minutes pour voir si MEGGA est fait pour vous.
-            </h2>
-            <p
-              ref={subRef}
-              style={{
-                margin: 0,
-                fontFamily: PX.font.sans,
-                fontSize: 18,
-                fontWeight: 400,
-                lineHeight: 1.5,
-                letterSpacing: '-0.54px',
-                color: PX.inkInverseSoft,
-                maxWidth: 580,
-              }}
-            >
-              Vous nous parlez de votre quotidien, on vous montre comment MEGGA
-              s'intègre — concret, pas commercial.
-            </p>
+          <div ref={labelRef}>
+            <PxSectionLabel icon="sparkle" invert>Notre CRM est la démo</PxSectionLabel>
           </div>
 
-          {/* Bento card */}
-          <div
-            ref={cardRef}
+          <h2
+            ref={titleRef}
             style={{
-              background: PX.inkInverse,
-              borderRadius: PX.radius.large,
-              padding: 48,
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 0.7fr)',
-              gap: 56,
-              alignItems: 'stretch',
-              boxShadow: PX.shadow.large,
+              margin: 0,
+              marginTop: 28,
+              fontFamily: PX.font.display,
+              fontSize: 72,
+              fontWeight: 500,
+              lineHeight: 1.05,
+              letterSpacing: '-3px',
+              color: PX.inkInverse,
+              maxWidth: 880,
             }}
           >
-            {/* LEFT — Form */}
-            <form
-              onSubmit={e => e.preventDefault()}
-              style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
-            >
-              <div style={{
-                fontFamily: PX.font.display,
-                fontSize: 24,
-                fontWeight: 500,
-                letterSpacing: '-0.72px',
-                color: PX.neutral700,
-                marginBottom: 8,
-              }}>
-                Vos coordonnées
-              </div>
+            Créez votre compte. Explorez librement.
+          </h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <FormField label="Prénom" placeholder="Jean" />
-                <FormField label="Nom" placeholder="Lyonnet" />
-              </div>
-              <FormField label="Agence" placeholder="Lyonnet Immobilier" />
-              <FormField label="Email professionnel" placeholder="jean@agence.ch" type="email" />
-              <FormField label="Téléphone" placeholder="+41 22 123 45 67" type="tel" />
+          <p
+            ref={subRef}
+            style={{
+              margin: 0,
+              marginTop: 28,
+              fontFamily: PX.font.sans,
+              fontSize: 20,
+              fontWeight: 400,
+              lineHeight: 1.5,
+              letterSpacing: '-0.6px',
+              color: PX.inkInverseSoft,
+              maxWidth: 640,
+            }}
+          >
+            Pendant que nos concurrents vous demandent de réserver un appel commercial,
+            chez MEGGA vous entrez dans le CRM tout de suite. Sans engagement, sans CB,
+            sans présentation à subir.
+          </p>
 
-              <div style={{ marginTop: 12 }}>
-                <PxButton variant="primary" size="lg" type="submit">
-                  Réserver ma démo
-                </PxButton>
-              </div>
-
-              <p style={{
-                margin: 0,
-                marginTop: 6,
-                fontFamily: PX.font.sans,
-                fontSize: 12,
-                fontWeight: 400,
-                lineHeight: 1.5,
-                letterSpacing: '-0.36px',
-                color: PX.neutral500,
-              }}>
-                Vos données restent en Suisse. RGPD/LPD conforme. Désinscription en 1 clic.
-              </p>
-            </form>
-
-            {/* RIGHT — Agent + benefits */}
-            <div style={{
+          <div
+            ref={ctaRef}
+            style={{
+              marginTop: 44,
               display: 'flex',
-              flexDirection: 'column',
-              gap: 28,
-              padding: 32,
-              background: PX.neutral200,
-              borderRadius: PX.radius.medium,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <PxAvatar size={48} src="https://i.pravatar.cc/120?img=68" alt="Gregory Lyonnet" />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{
+              gap: 12,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <PxButton variant="invert" size="lg" to="/register">
+              Créer mon compte gratuit
+            </PxButton>
+            <PxButton variant="ghost" size="lg" to="/login" showIcon={false}>
+              <span style={{ color: PX.inkInverse }}>J'ai déjà un compte</span>
+            </PxButton>
+          </div>
+
+          {/* Trust signals — 3 colonnes */}
+          <div
+            ref={trustRef}
+            style={{
+              marginTop: 80,
+              width: '100%',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 24,
+              paddingTop: 48,
+              borderTop: `1px solid rgba(255,255,255,0.10)`,
+            }}
+          >
+            {TRUST_SIGNALS.map(t => (
+              <div
+                key={t.label}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: 14,
+                  padding: '0 12px',
+                }}
+              >
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: PX.radius.pill,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: `1px solid rgba(255,255,255,0.12)`,
+                  display: 'grid',
+                  placeItems: 'center',
+                }}>
+                  <PxIcon name={t.icon} size={20} color={PX.inkInverse} />
+                </div>
+                <div>
+                  <div style={{
                     fontFamily: PX.font.display,
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: 500,
-                    letterSpacing: '-0.48px',
-                    color: PX.neutral700,
+                    letterSpacing: '-0.54px',
+                    color: PX.inkInverse,
+                    lineHeight: 1.25,
                   }}>
-                    Gregory Lyonnet
-                  </span>
-                  <span style={{
-                    fontFamily: PX.font.sans,
-                    fontSize: 13,
-                    fontWeight: 400,
-                    letterSpacing: '-0.39px',
-                    color: PX.neutral500,
-                  }}>
-                    Vous accompagnera personnellement
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {BENEFITS.map(b => (
-                  <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: PX.radius.pill,
-                      background: PX.neutral700,
-                      display: 'grid',
-                      placeItems: 'center',
-                      flexShrink: 0,
-                    }}>
-                      <PxIcon name={b.icon} size={14} color={PX.neutral100} />
-                    </span>
-                    <span style={{
-                      fontFamily: PX.font.sans,
-                      fontSize: 14,
-                      fontWeight: 500,
-                      letterSpacing: '-0.42px',
-                      color: PX.neutral700,
-                    }}>
-                      {b.label}
-                    </span>
+                    {t.label}
                   </div>
-                ))}
-              </div>
-
-              <div style={{
-                marginTop: 'auto',
-                paddingTop: 20,
-                borderTop: `1px solid ${PX.neutral300}`,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  fontFamily: PX.font.sans,
-                  fontSize: 13,
-                  fontWeight: 400,
-                  letterSpacing: '-0.39px',
-                  color: PX.neutral500,
-                }}>
-                  <PxFigmaIcon name="form-mail" size={14} color={PX.neutral500} />
-                  contact@megga.ch
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  fontFamily: PX.font.sans,
-                  fontSize: 13,
-                  fontWeight: 400,
-                  letterSpacing: '-0.39px',
-                  color: PX.neutral500,
-                }}>
-                  <PxFigmaIcon name="form-phone" size={14} color={PX.neutral500} />
-                  +41 22 000 00 00
+                  <div style={{
+                    marginTop: 6,
+                    fontFamily: PX.font.sans,
+                    fontSize: 14,
+                    fontWeight: 400,
+                    letterSpacing: '-0.42px',
+                    color: PX.inkInverseMuted,
+                    lineHeight: 1.5,
+                  }}>
+                    {t.sub}
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

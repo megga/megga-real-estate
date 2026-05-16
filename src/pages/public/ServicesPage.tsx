@@ -46,10 +46,10 @@ export default function ServicesPage() {
     }}>
       <PxTopNotificationBar
         variant="button"
-        message="10 agences pilotes déjà à bord — rejoignez la beta Suisse romande."
-        buttonText="Réserver une démo"
-        buttonHref="#demo"
-        dismissKey="pro-beta"
+        message="MEGGA est gratuit. Créez votre compte, le CRM est ouvert."
+        buttonText="Commencer"
+        buttonHref="/register"
+        dismissKey="pro-open"
       />
       <PxNav glass />
       <PxProHero />
