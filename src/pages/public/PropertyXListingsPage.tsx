@@ -10,6 +10,10 @@
 // passée (localStorage), on lui propose en un clic. La sélection (URL ou
 // banner) écrit dans localStorage pour la prochaine visite.
 //
+// Vue Liste / Split / Carte (Phase 4) : toggle dans la FilterBar, état dans
+// l'URL via `?view=`. Le mode 'split' est désactivé sous 1024px (le défaut
+// y est 'list'). La carte est sticky dans le viewport quand visible.
+//
 // Le prop `context` filtre par transaction_type :
 //   - 'buy'  → biens à vendre  → route /acheter
 //   - 'rent' → biens à louer    → route /louer
@@ -20,6 +24,10 @@ import PxNav from '@/components/propertyx/sections/PxNav'
 import PxListingsHero from '@/components/propertyx/sections/PxListingsHero'
 import PxListingsFilterBar from '@/components/propertyx/sections/PxListingsFilterBar'
 import PxListingsGrid from '@/components/propertyx/sections/PxListingsGrid'
+import PxListingsMap from '@/components/propertyx/sections/PxListingsMap'
+import PxListingsViewToggle, {
+  useViewMode,
+} from '@/components/propertyx/sections/PxListingsViewToggle'
 import PxLocationOnboarding from '@/components/propertyx/sections/PxLocationOnboarding'
 import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
@@ -49,6 +57,90 @@ function LocationSyncer({ context }: { context: 'buy' | 'rent' }) {
   return null
 }
 
+/**
+ * Section résultats : toggle vue + grid/map selon le mode.
+ *
+ * Layout :
+ *   - 'list' : grid pleine largeur
+ *   - 'map' : carte plein écran (h = 80vh)
+ *   - 'split' : grid 50% / carte 50% sticky (uniquement >= 1024px)
+ */
+function ResultsSection({ context }: { context: 'buy' | 'rent' }) {
+  const { mode, setMode } = useViewMode()
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        zIndex: 2,
+        background: PX.neutral200,
+        paddingBottom: 160,
+      }}
+    >
+      {/* Toggle bar — aligné avec le max-width de la grid */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 1392,
+          margin: '0 auto',
+          paddingLeft: 24,
+          paddingRight: 24,
+          paddingTop: 24,
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <PxListingsViewToggle mode={mode} onChange={setMode} />
+      </div>
+
+      {mode === 'list' && <PxListingsGrid context={context} layout="full" />}
+
+      {mode === 'map' && (
+        <div
+          style={{
+            width: '100%',
+            maxWidth: 1392,
+            margin: '0 auto',
+            padding: '24px 24px 0',
+            height: 'min(80vh, 880px)',
+          }}
+        >
+          <PxListingsMap context={context} />
+        </div>
+      )}
+
+      {mode === 'split' && (
+        <div
+          style={{
+            width: '100%',
+            maxWidth: 1392,
+            margin: '0 auto',
+            padding: '24px 24px 0',
+            display: 'flex',
+            gap: 24,
+            alignItems: 'flex-start',
+          }}
+        >
+          <div style={{ flex: '1 1 50%', minWidth: 0 }}>
+            <PxListingsGrid context={context} layout="compact" />
+          </div>
+          <div
+            style={{
+              flex: '1 1 50%',
+              position: 'sticky',
+              top: 16,
+              height: 'calc(100vh - 32px)',
+              minWidth: 0,
+            }}
+          >
+            <PxListingsMap context={context} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PropertyXListingsPage({ context = 'buy' }: PropertyXListingsPageProps) {
   return (
     <div
@@ -72,7 +164,7 @@ export default function PropertyXListingsPage({ context = 'buy' }: PropertyXList
       <div style={{ paddingTop: 0, paddingBottom: 16, background: PX.neutral200 }}>
         <PxListingsFilterBar context={context} />
       </div>
-      <PxListingsGrid context={context} />
+      <ResultsSection context={context} />
       <div>
         <PxPostPropertyEN />
         <PxFooterPropertyX />

@@ -25,6 +25,14 @@ import PxListingsSortSelector from './PxListingsSortSelector'
 
 interface PxListingsGridProps {
   context: 'buy' | 'rent'
+  /**
+   * 'full' (défaut) : section pleine largeur avec son propre background +
+   *   padding-bottom 160. Mode standard utilisé pour la vue liste.
+   * 'compact' : section transparente, padding réduit, max-width retiré pour
+   *   que la grid prenne 100% du parent. Utilisé en mode split où le parent
+   *   contraint la largeur.
+   */
+  layout?: 'full' | 'compact'
 }
 
 function PriceBadge({ context, price }: { context: 'buy' | 'rent'; price: number }) {
@@ -193,12 +201,17 @@ function PropertyCardV2({
   return (
     <article
       style={{
-        width: 588,
-        maxWidth: '100%',
+        width: '100%',
+        maxWidth: 588,
+        // flexBasis détermine la largeur cible dans le flex parent. Avec
+        // flex-wrap: wrap, on a 1 colonne en split mode (parent ~50% viewport
+        // → ~600px) et 2 colonnes en list mode (parent ~1200px).
+        flexBasis: 588,
         display: 'flex',
         flexDirection: 'column',
         gap: 24,
-        flexShrink: 0,
+        flexShrink: 1,
+        flexGrow: 0,
       }}
     >
       <Link
@@ -403,7 +416,8 @@ function StatusBlock({ message }: { message: string }) {
   )
 }
 
-export default function PxListingsGrid({ context }: PxListingsGridProps) {
+export default function PxListingsGrid({ context, layout = 'full' }: PxListingsGridProps) {
+  const isCompact = layout === 'compact'
   const { filters } = useMarketFilters(context)
   const {
     data,
@@ -438,8 +452,8 @@ export default function PxListingsGrid({ context }: PxListingsGridProps) {
       style={{
         width: '100%',
         paddingTop: 24,
-        paddingBottom: 160,
-        background: PX.neutral200,
+        paddingBottom: isCompact ? 24 : 160,
+        background: isCompact ? 'transparent' : PX.neutral200,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
