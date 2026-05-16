@@ -78,7 +78,7 @@ const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
 const AgentDirectoryPage = lazy(() => import('@/pages/public/AgentDirectoryPage'))
 const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
-const AgencyProfilePage = lazy(() => import('@/pages/public/AgencyProfilePage'))
+const PropertyXAgencyProfilePage = lazy(() => import('@/pages/public/PropertyXAgencyProfilePage'))
 const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
@@ -285,7 +285,7 @@ export default function App() {
               <Route path="/agents" element={<AgentDirectoryPage />} />
               <Route path="/agents/:slug" element={<AgentProfilePage />} />
               <Route path="/agences" element={<AgenciesPage />} />
-              <Route path="/agences/:slug" element={<AgencyProfilePage />} />
+              <Route path="/agences/:slug" element={<PropertyXAgencyProfilePage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
               {/* Mon compte — public-side dashboard (favoris, recherches, messagerie, profil) */}
