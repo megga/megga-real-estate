@@ -80,7 +80,6 @@ const AgentDirectoryPage = lazy(() => import('@/pages/public/AgentDirectoryPage'
 const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
 const AgencyProfilePage = lazy(() => import('@/pages/public/AgencyProfilePage'))
 const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
-const AgenciesAtlasPage = lazy(() => import('@/pages/public/AgenciesAtlasPage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
 // Lazy-loaded agent pages
@@ -286,7 +285,6 @@ export default function App() {
               <Route path="/agents" element={<AgentDirectoryPage />} />
               <Route path="/agents/:slug" element={<AgentProfilePage />} />
               <Route path="/agences" element={<AgenciesPage />} />
-              <Route path="/agences-atlas" element={<AgenciesAtlasPage />} />
               <Route path="/agences/:slug" element={<AgencyProfilePage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
