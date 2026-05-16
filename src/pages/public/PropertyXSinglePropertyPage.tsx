@@ -234,6 +234,7 @@ export default function PropertyXSinglePropertyPage() {
           <PxSinglePropertyBreadcrumb listing={listing ?? undefined} />
           <PxSinglePropertyHero
             photos={listing?.photos ?? undefined}
+            photosCf={listing?.photos_cf ?? undefined}
             title={listing?.title}
             listingId={listing?.id}
           />

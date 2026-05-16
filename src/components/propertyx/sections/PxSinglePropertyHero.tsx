@@ -1,25 +1,30 @@
 // MEGGA Marketplace — Property X "Single Property — Hero gallery" section.
 // Source : Figma node 9613:28969 — layout 1 large + 2x2 grid (5 photos).
 //
-// Accepte un prop `photos` (string[]) pour afficher les vraies photos du
-// bien. Sans prop, fallback sur les images démo Figma pour la route demo
-// `/propriete` (sans :id).
+// Optimisations :
+//   - Photo principale : variant `hero` (1600w) + srcset + fetchPriority=high
+//     + loading=eager + decoding=async (LCP-friendly)
+//   - Tiles 2-5 : variant `detail` (1200w) + srcset + loading=lazy
+//   - Si photos_cf absent (listings Flatfox non encore backfillés), fallback
+//     sur Flatfox URL avec referrerPolicy=no-referrer (anti-hotlink)
 //
-// Responsive :
-//   - desktop (>768px) : layout Figma 1 large + 4 tiles
-//   - mobile  (≤768px) : 1 colonne, photo principale puis grille 2×2 réduite
+// Layout :
+//   - desktop (>768px) : grid 2 cols. Photo principale (594.7fr) + grille 2x2
+//     (593.2fr), DEUX avec aspectRatio matching pour éliminer le trou visuel
+//     en bas quand les ratios diffèrent.
+//   - mobile  (≤768px) : 1 colonne, photo principale 4/3 + grille 2x2 2/1
 
-import { useTranslation } from 'react-i18next'
 import { lazy, Suspense, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PX } from '..'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { pickPhoto, pickSrcSet, type CFVariant } from '@/lib/listingPhotos'
 
-// Lightbox lazy-loadé : seulement chargé quand l'utilisateur clique sur une
-// photo (économise ~150KB sur le bundle initial de la page propriete).
 const ListingLightbox = lazy(() => import('@/components/listing/ListingLightbox'))
 
 interface PxSinglePropertyHeroProps {
   photos?: string[]
+  photosCf?: CFVariant[] | null
   title?: string
   listingId?: string
 }
@@ -40,14 +45,19 @@ const tileStyle: React.CSSProperties = {
   height: '100%',
 }
 
-export default function PxSinglePropertyHero({ photos, title, listingId }: PxSinglePropertyHeroProps) {
+// Matching aspect ratio between main photo and 2x2 grid block.
+// Figma : photo principale 594.7×435.4 (ratio 1.366). On donne le même ratio
+// au bloc 2x2 pour que les deux blocs aient EXACTEMENT la même hauteur,
+// peu importe l'aspect réel des images chargées dedans.
+const HERO_ASPECT_RATIO = '594.7 / 435.4'
+
+export default function PxSinglePropertyHero({ photos, photosCf, title, listingId }: PxSinglePropertyHeroProps) {
   const { t } = useTranslation()
   const resolvedTitle = title ?? t('marketplaceProperty.defaultTitle')
   const isMobile = useIsMobile()
   const hasPhotos = !!photos && photos.length > 0
   const count = photos?.length ?? 0
 
-  // Lightbox state : ouvert au clic, navigation au clavier + swipe via le composant.
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const openLightbox = (index: number) => {
@@ -56,16 +66,30 @@ export default function PxSinglePropertyHero({ photos, title, listingId }: PxSin
     setLightboxOpen(true)
   }
 
-  // On déduplique : si moins de 5 photos, on remplit avec des null (placeholders
-  // gris) plutôt que de répéter la même photo. Évite l'effet "même image x5".
-  const sourceImages: (string | null)[] = hasPhotos
-    ? Array.from({ length: 5 }, (_, i) => photos![i] ?? null)
-    : DEMO_IMAGES
+  // Photo source + responsive variants. Si pas de photos_cf (Flatfox raw),
+  // pickPhoto retourne photos[index]. Pas de srcset dans ce cas (le browser
+  // utilise juste src).
+  const data = { photos: photos ?? null, photos_cf: photosCf ?? null }
+  const photoForIndex = (i: number, variant: 'hero' | 'detail') => {
+    if (!hasPhotos) return DEMO_IMAGES[i] ?? null
+    return pickPhoto(data, i, variant) ?? null
+  }
+  const srcSetForIndex = (i: number) => {
+    if (!hasPhotos) return undefined
+    return pickSrcSet(data, i)
+  }
 
-  const [main, t1, t2, t3, t4] = sourceImages
+  // 5 photos pour le layout — null si pas dispo (placeholder gris)
+  const slots = Array.from({ length: 5 }, (_, i) => ({
+    src: photoForIndex(i, i === 0 ? 'hero' : 'detail'),
+    srcSet: srcSetForIndex(i),
+  }))
+  const [main, t1, t2, t3, t4] = slots
 
-  // Hauteurs Hero
-  const mainAspect = isMobile ? '4 / 3' : '594.7 / 435.4'
+  const mainAspect = isMobile ? '4 / 3' : HERO_ASPECT_RATIO
+  // En desktop, le bloc 2x2 reçoit le même aspectRatio que la photo principale
+  // → garantit la même hauteur, élimine le trou blanc en bas.
+  const sideAspect = isMobile ? '2 / 1' : HERO_ASPECT_RATIO
 
   return (
     <section style={{
@@ -77,7 +101,7 @@ export default function PxSinglePropertyHero({ photos, title, listingId }: PxSin
       <div style={{
         width: 'min(1200px, calc(100% - 32px))',
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 594.7fr) minmax(0, 593.2fr)',
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)',
         gap: isMobile ? 8 : 12,
         boxSizing: 'border-box',
       }}>
@@ -98,7 +122,19 @@ export default function PxSinglePropertyHero({ photos, title, listingId }: PxSin
             display: 'block',
           }}
         >
-          {main ? <img src={main} alt={resolvedTitle} style={tileStyle} /> : null}
+          {main.src ? (
+            <img
+              src={main.src}
+              srcSet={main.srcSet}
+              sizes="(max-width: 768px) 100vw, 600px"
+              alt={resolvedTitle}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              style={tileStyle}
+            />
+          ) : null}
         </button>
 
         <div style={{
@@ -106,12 +142,25 @@ export default function PxSinglePropertyHero({ photos, title, listingId }: PxSin
           gridTemplateColumns: '1fr 1fr',
           gridTemplateRows: '1fr 1fr',
           gap: isMobile ? 8 : 12,
-          aspectRatio: isMobile ? '2 / 1' : undefined,
+          aspectRatio: sideAspect,
         }}>
-          <Tile src={t1} alt={`${resolvedTitle} — 2`} index={1} onClick={() => openLightbox(1)} clickable={hasPhotos} extraCount={count > 5 ? count - 5 : 0} />
-          <Tile src={t2} alt={`${resolvedTitle} — 3`} index={2} onClick={() => openLightbox(2)} clickable={hasPhotos} />
-          <Tile src={t3} alt={`${resolvedTitle} — 4`} index={3} onClick={() => openLightbox(3)} clickable={hasPhotos} />
-          <Tile src={t4} alt={`${resolvedTitle} — 5`} index={4} onClick={() => openLightbox(4)} clickable={hasPhotos} extraOverlay={count > 5} extraCount={count - 5} />
+          <Tile
+            slot={t1}
+            alt={`${resolvedTitle} — 2`}
+            onClick={() => openLightbox(1)}
+            clickable={hasPhotos}
+            extraCount={count > 5 ? count - 5 : 0}
+          />
+          <Tile slot={t2} alt={`${resolvedTitle} — 3`} onClick={() => openLightbox(2)} clickable={hasPhotos} />
+          <Tile slot={t3} alt={`${resolvedTitle} — 4`} onClick={() => openLightbox(3)} clickable={hasPhotos} />
+          <Tile
+            slot={t4}
+            alt={`${resolvedTitle} — 5`}
+            onClick={() => openLightbox(4)}
+            clickable={hasPhotos}
+            extraOverlay={count > 5}
+            extraCount={count - 5}
+          />
         </div>
       </div>
 
@@ -132,16 +181,15 @@ export default function PxSinglePropertyHero({ photos, title, listingId }: PxSin
 }
 
 interface TileProps {
-  src: string | null
+  slot: { src: string | null; srcSet: string | undefined }
   alt: string
-  index: number
   extraOverlay?: boolean
   extraCount?: number
   onClick?: () => void
   clickable?: boolean
 }
 
-function Tile({ src, alt, extraOverlay, extraCount, onClick, clickable }: TileProps) {
+function Tile({ slot, alt, extraOverlay, extraCount, onClick, clickable }: TileProps) {
   const Wrapper = clickable ? 'button' : 'div'
   return (
     <Wrapper
@@ -161,7 +209,18 @@ function Tile({ src, alt, extraOverlay, extraCount, onClick, clickable }: TilePr
         height: '100%',
       }}
     >
-      {src ? <img src={src} alt={alt} style={tileStyle} /> : null}
+      {slot.src ? (
+        <img
+          src={slot.src}
+          srcSet={slot.srcSet}
+          sizes="(max-width: 768px) 50vw, 300px"
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          style={tileStyle}
+        />
+      ) : null}
       {extraOverlay && extraCount && extraCount > 0 ? (
         <div style={{
           position: 'absolute',
