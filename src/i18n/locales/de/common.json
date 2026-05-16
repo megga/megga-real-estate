@@ -1049,7 +1049,12 @@
     "energy": {
       "eyebrow": "Energieeffizienz",
       "title": "GEAK-Zertifikat",
-      "description": "Klassifizierung {{grade}} auf der GEAK-Skala (A = sehr effizient, G = energieintensiv). Schätzwerte, basierend auf den Angaben der Agentur."
+      "description": "Klassifizierung {{grade}} auf der GEAK-Skala (A = sehr effizient, G = energieintensiv). Schätzwerte, basierend auf den Angaben der Agentur.",
+      "scaleEfficient": "Sehr effizient",
+      "scaleInefficient": "Wenig effizient",
+      "consumption": "Verbrauch",
+      "kwhUnit": "kWh/m²/Jahr",
+      "certificateYear": "GEAK-Zertifikat · {{year}}"
     },
     "mortgage": {
       "eyebrow": "Tragbarkeitsrechner",

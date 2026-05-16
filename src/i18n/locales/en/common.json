@@ -1049,7 +1049,12 @@
     "energy": {
       "eyebrow": "Energy performance",
       "title": "CECB certificate",
-      "description": "Class {{grade}} on the CECB scale (A = highly efficient, G = energy-intensive). Estimated values based on the agency declaration."
+      "description": "Class {{grade}} on the CECB scale (A = highly efficient, G = energy-intensive). Estimated values based on the agency declaration.",
+      "scaleEfficient": "Highly efficient",
+      "scaleInefficient": "Low efficiency",
+      "consumption": "Consumption",
+      "kwhUnit": "kWh/m²/year",
+      "certificateYear": "CECB certificate · {{year}}"
     },
     "mortgage": {
       "eyebrow": "Affordability calculator",

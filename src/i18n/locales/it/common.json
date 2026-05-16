@@ -1049,7 +1049,12 @@
     "energy": {
       "eyebrow": "Prestazione energetica",
       "title": "Certificato CECE",
-      "description": "Classe {{grade}} sulla scala CECE (A = molto efficiente, G = energivoro). Valori stimati, basati sulla dichiarazione dell'agenzia."
+      "description": "Classe {{grade}} sulla scala CECE (A = molto efficiente, G = energivoro). Valori stimati, basati sulla dichiarazione dell'agenzia.",
+      "scaleEfficient": "Molto efficiente",
+      "scaleInefficient": "Poco efficiente",
+      "consumption": "Consumo",
+      "kwhUnit": "kWh/m²/anno",
+      "certificateYear": "Certificato CECE · {{year}}"
     },
     "mortgage": {
       "eyebrow": "Simulatore di sostenibilità",

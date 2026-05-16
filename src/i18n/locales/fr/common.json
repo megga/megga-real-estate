@@ -1054,7 +1054,12 @@
     "energy": {
       "eyebrow": "Performance énergétique",
       "title": "Certificat CECB",
-      "description": "Classement {{grade}} sur l'échelle CECB (A = très efficace, G = énergivore). Valeurs estimatives, basées sur la déclaration de l'agence."
+      "description": "Classement {{grade}} sur l'échelle CECB (A = très efficace, G = énergivore). Valeurs estimatives, basées sur la déclaration de l'agence.",
+      "scaleEfficient": "Très efficace",
+      "scaleInefficient": "Peu efficace",
+      "consumption": "Consommation",
+      "kwhUnit": "kWh/m²/an",
+      "certificateYear": "Certificat CECB · {{year}}"
     },
     "mortgage": {
       "eyebrow": "Simulateur d'accessibilité",
