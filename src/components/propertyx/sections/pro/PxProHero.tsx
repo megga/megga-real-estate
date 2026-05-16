@@ -1,47 +1,83 @@
 // MEGGA Pro — Hero "Pour les pros"
 // Pattern aligné sur PxHero (dark rounded container, margin 24).
-// 100% atoms Property X : eyebrow PxProBadge (badge-megaphone), PxButton,
-// PxFigmaIcon, PxIconFont, PxAvatar.
+// Visuel produit : Action Board CRM dans un iPad Pro 11 Landscape bezel
+// (pattern PxExploreCTA réutilisé) — montre "votre futur CRM dans la main".
 
-import { PX, PxButton, PxAvatar, PxIconFont, PxFigmaIcon } from '../..'
+import { PX, PxButton, PxAvatar, PxIconFont, PxFigmaIcon, PxLogo } from '../..'
+import type { PxIconFontName } from '../..'
 import { useProFadeIn } from './useProFadeIn'
 import PxProBadge from './PxProBadge'
+import IpadFrame from './IpadFrame'
 
-// ─── Action Board Mockup ─────────────────────────────────────────────
-// Mini-CRM stylisé en atomes PX.* — pas de capture mais une représentation
-// fidèle de la DA. Plus on-brand qu'un screenshot Tailwind.
+// ─── Sidebar de l'app CRM (nav left dans l'iPad) ──────────────────────
+function CrmSidebarNav() {
+  const ITEMS: Array<{ icon: PxIconFontName; active?: boolean }> = [
+    { icon: 'dashboard', active: true },
+    { icon: 'contacts' },
+    { icon: 'grid' },
+    { icon: 'calendar' },
+    { icon: 'shield' },
+    { icon: 'message' },
+  ]
+  return (
+    <div style={{
+      width: 64,
+      flexShrink: 0,
+      background: PX.neutral100,
+      borderRight: `1px solid ${PX.neutral300}`,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      paddingTop: 20,
+      paddingBottom: 20,
+      gap: 14,
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: PX.radius.tiny,
+        background: PX.neutral700, display: 'grid', placeItems: 'center',
+        marginBottom: 8,
+      }}>
+        <PxLogo variant="dark" form="icon" size="sm" />
+      </div>
+      {ITEMS.map((item, i) => (
+        <div key={i} style={{
+          width: 40, height: 40, borderRadius: PX.radius.tiny,
+          background: item.active ? PX.neutral200 : 'transparent',
+          display: 'grid', placeItems: 'center',
+        }}>
+          <PxIconFont
+            name={item.icon}
+            size={18}
+            color={item.active ? PX.neutral700 : PX.neutral400}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
 
+// ─── Mini chip + action row, designés pour le contexte iPad landscape ─
 function MockChip({ children }: { children: React.ReactNode }) {
   return (
     <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 4,
-      paddingLeft: 8,
-      paddingRight: 8,
-      paddingTop: 3,
-      paddingBottom: 3,
+      display: 'inline-flex', alignItems: 'center',
+      paddingLeft: 10, paddingRight: 10, paddingTop: 4, paddingBottom: 4,
       borderRadius: PX.radius.pill,
       background: PX.neutral200,
-      color: PX.neutral500,
-      fontFamily: PX.font.sans,
-      fontSize: 11,
-      fontWeight: 500,
-      letterSpacing: '-0.3px',
-      whiteSpace: 'nowrap',
+      color: PX.neutral700,
+      fontFamily: PX.font.sans, fontSize: 11, fontWeight: 500,
+      letterSpacing: '-0.33px', whiteSpace: 'nowrap',
     }}>
       {children}
     </span>
   )
 }
 
-function MockRow({ name, sub, chip, avatar }: { name: string; sub: string; chip: string; avatar: string }) {
+function ActionRow({ name, sub, chip, avatar }: { name: string; sub: string; chip: string; avatar: string }) {
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      padding: 12,
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '10px 14px',
       borderRadius: PX.radius.small,
       background: PX.neutral100,
       border: `1px solid ${PX.neutral300}`,
@@ -49,23 +85,15 @@ function MockRow({ name, sub, chip, avatar }: { name: string; sub: string; chip:
       <PxAvatar size={32} src={avatar} alt={name} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontFamily: PX.font.sans,
-          fontSize: 13,
-          fontWeight: 500,
-          color: PX.neutral700,
-          letterSpacing: '-0.4px',
-          lineHeight: 1.2,
+          fontFamily: PX.font.sans, fontSize: 13, fontWeight: 500,
+          color: PX.neutral700, letterSpacing: '-0.39px', lineHeight: 1.2,
         }}>
           {name}
         </div>
         <div style={{
-          fontFamily: PX.font.sans,
-          fontSize: 11,
-          fontWeight: 400,
-          color: PX.neutral500,
-          letterSpacing: '-0.3px',
-          marginTop: 3,
-          lineHeight: 1.3,
+          fontFamily: PX.font.sans, fontSize: 11, fontWeight: 400,
+          color: PX.neutral500, letterSpacing: '-0.33px',
+          marginTop: 3, lineHeight: 1.3,
         }}>
           {sub}
         </div>
@@ -75,148 +103,204 @@ function MockRow({ name, sub, chip, avatar }: { name: string; sub: string; chip:
   )
 }
 
-function ActionBoardMockup() {
+// ─── Content principal CRM (right inside iPad) ────────────────────────
+function CrmMainContent() {
   return (
     <div style={{
-      width: '100%',
-      maxWidth: 460,
-      background: PX.neutral100,
-      borderRadius: PX.radius.large,
+      flex: 1, minWidth: 0,
       padding: 24,
-      boxShadow: PX.shadow.large,
       display: 'flex',
       flexDirection: 'column',
       gap: 16,
+      overflow: 'hidden',
     }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Top bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
         <div>
           <div style={{
-            fontFamily: PX.font.sans,
-            fontSize: 18,
-            fontWeight: 500,
-            color: PX.neutral700,
-            letterSpacing: '-0.54px',
-            lineHeight: 1.2,
+            fontFamily: PX.font.display, fontSize: 22, fontWeight: 500,
+            color: PX.neutral700, letterSpacing: '-0.66px', lineHeight: 1.2,
           }}>
             Aujourd'hui
           </div>
           <div style={{
-            fontFamily: PX.font.sans,
-            fontSize: 12,
-            fontWeight: 400,
-            color: PX.neutral500,
-            letterSpacing: '-0.36px',
-            marginTop: 4,
+            fontFamily: PX.font.sans, fontSize: 12, fontWeight: 400,
+            color: PX.neutral500, letterSpacing: '-0.36px', marginTop: 4,
           }}>
             Vendredi 16 mai · 5 actions
           </div>
         </div>
         <div style={{
-          width: 32,
-          height: 32,
-          borderRadius: PX.radius.pill,
-          background: PX.neutral700,
-          display: 'grid',
-          placeItems: 'center',
+          display: 'flex', gap: 8,
         }}>
-          <PxIconFont name="lightbulb" size={14} color={PX.neutral100} />
-        </div>
-      </div>
-
-      {/* AI Suggestion banner */}
-      <div style={{
-        background: PX.neutral200,
-        borderRadius: PX.radius.small,
-        padding: 14,
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 10,
-      }}>
-        <div style={{
-          width: 22,
-          height: 22,
-          borderRadius: PX.radius.pill,
-          background: PX.neutral700,
-          display: 'grid',
-          placeItems: 'center',
-          flexShrink: 0,
-          marginTop: 1,
-        }}>
-          <PxFigmaIcon name="sparkle" size={11} color={PX.neutral100} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontFamily: PX.font.sans,
-            fontSize: 12,
-            fontWeight: 500,
-            color: PX.neutral500,
-            letterSpacing: '-0.36px',
-            textTransform: 'uppercase',
-            lineHeight: 1,
+            padding: '6px 12px', borderRadius: PX.radius.pill,
+            background: PX.neutral200,
+            fontFamily: PX.font.sans, fontSize: 12, fontWeight: 500,
+            color: PX.neutral500, letterSpacing: '-0.36px',
           }}>
-            MEGGA AI
+            Filtrer
           </div>
           <div style={{
-            fontFamily: PX.font.sans,
-            fontSize: 13,
-            fontWeight: 400,
-            color: PX.neutral700,
-            letterSpacing: '-0.39px',
-            lineHeight: 1.4,
-            marginTop: 6,
+            width: 32, height: 32, borderRadius: PX.radius.pill,
+            background: PX.neutral700, display: 'grid', placeItems: 'center',
           }}>
-            Relance Marie Dubois (chaude depuis 12 j) — bien 4p Carouge dispo.
+            <PxIconFont name="lightbulb" size={14} color={PX.neutral100} />
           </div>
         </div>
       </div>
 
-      {/* Action rows */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <MockRow
-          name="Lucas Martin"
-          sub="Visite 14h00 — Champel"
-          chip="Visite"
-          avatar="https://i.pravatar.cc/64?img=12"
-        />
-        <MockRow
-          name="Marie Dubois"
-          sub="Rappel feedback visite"
-          chip="Relance"
-          avatar="https://i.pravatar.cc/64?img=45"
-        />
-        <MockRow
-          name="J. Schmid"
-          sub="Document KYC à valider"
-          chip="LAB/KYC"
-          avatar="https://i.pravatar.cc/64?img=33"
-        />
-      </div>
-
-      {/* Footer pipeline mini-stats */}
+      {/* Body : 2 colonnes — actions list / KPIs */}
       <div style={{
-        display: 'flex',
-        gap: 10,
-        paddingTop: 8,
-        borderTop: `1px solid ${PX.neutral300}`,
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
+        gap: 16,
+        flex: 1,
+        minHeight: 0,
       }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: PX.neutral500, fontFamily: PX.font.sans, letterSpacing: '-0.3px' }}>
-            Pipeline
+        {/* LEFT — Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+          {/* AI suggestion */}
+          <div style={{
+            background: PX.neutral100, border: `1px solid ${PX.neutral300}`,
+            borderRadius: PX.radius.small, padding: 14,
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+          }}>
+            <div style={{
+              width: 22, height: 22, borderRadius: PX.radius.pill,
+              background: PX.neutral700, display: 'grid', placeItems: 'center',
+              flexShrink: 0, marginTop: 1,
+            }}>
+              <PxFigmaIcon name="sparkle" size={11} color={PX.neutral100} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: PX.font.sans, fontSize: 10, fontWeight: 500,
+                color: PX.neutral500, letterSpacing: '-0.3px',
+                textTransform: 'uppercase', lineHeight: 1,
+              }}>
+                MEGGA AI
+              </div>
+              <div style={{
+                fontFamily: PX.font.sans, fontSize: 13, fontWeight: 400,
+                color: PX.neutral700, letterSpacing: '-0.39px',
+                lineHeight: 1.4, marginTop: 6,
+              }}>
+                Relance Marie Dubois (chaude depuis 12 j) — bien 4p Carouge dispo.
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 500, color: PX.neutral700, fontFamily: PX.font.sans, letterSpacing: '-0.6px', marginTop: 2 }}>
-            CHF 4.2M
-          </div>
+
+          <ActionRow
+            name="Lucas Martin"
+            sub="Visite 14h00 — Champel"
+            chip="Visite"
+            avatar="https://i.pravatar.cc/64?img=12"
+          />
+          <ActionRow
+            name="Marie Dubois"
+            sub="Rappel feedback visite"
+            chip="Relance"
+            avatar="https://i.pravatar.cc/64?img=45"
+          />
+          <ActionRow
+            name="J. Schmid"
+            sub="Document KYC à valider"
+            chip="LAB/KYC"
+            avatar="https://i.pravatar.cc/64?img=33"
+          />
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: PX.neutral500, fontFamily: PX.font.sans, letterSpacing: '-0.3px' }}>
-            Closes ce mois
+
+        {/* RIGHT — KPIs + Pipeline preview */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+          {/* 2 KPI tiles */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {[
+              { label: 'Pipeline', value: 'CHF 4.2M', icon: 'chart' as PxIconFontName },
+              { label: 'Closes', value: '3', icon: 'trophy' as PxIconFontName },
+            ].map(kpi => (
+              <div key={kpi.label} style={{
+                background: PX.neutral100, border: `1px solid ${PX.neutral300}`,
+                borderRadius: PX.radius.small, padding: 12,
+                display: 'flex', flexDirection: 'column', gap: 8,
+              }}>
+                <PxIconFont name={kpi.icon} size={18} color={PX.neutral500} />
+                <div>
+                  <div style={{
+                    fontFamily: PX.font.display, fontSize: 18, fontWeight: 500,
+                    color: PX.neutral700, letterSpacing: '-0.54px', lineHeight: 1,
+                  }}>
+                    {kpi.value}
+                  </div>
+                  <div style={{
+                    fontFamily: PX.font.sans, fontSize: 11, fontWeight: 400,
+                    color: PX.neutral500, letterSpacing: '-0.33px', marginTop: 4,
+                  }}>
+                    {kpi.label}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 500, color: PX.neutral700, fontFamily: PX.font.sans, letterSpacing: '-0.6px', marginTop: 2 }}>
-            3
+
+          {/* Pipeline mini board */}
+          <div style={{
+            flex: 1, minHeight: 0,
+            background: PX.neutral100, border: `1px solid ${PX.neutral300}`,
+            borderRadius: PX.radius.small, padding: 14,
+            display: 'flex', flexDirection: 'column', gap: 10,
+          }}>
+            <div style={{
+              fontFamily: PX.font.sans, fontSize: 12, fontWeight: 500,
+              color: PX.neutral500, letterSpacing: '-0.36px',
+              textTransform: 'uppercase',
+            }}>
+              Pipeline · 14 étapes
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {[
+                { label: 'À qualifier', count: 5 },
+                { label: 'Visite', count: 3 },
+                { label: 'Offre', count: 2 },
+                { label: 'Notaire', count: 1 },
+              ].map(col => (
+                <div key={col.label} style={{
+                  padding: '6px 10px',
+                  borderRadius: PX.radius.tiny,
+                  background: PX.neutral200,
+                  fontFamily: PX.font.sans, fontSize: 11, fontWeight: 500,
+                  color: PX.neutral700, letterSpacing: '-0.33px',
+                }}>
+                  {col.label} · {col.count}
+                </div>
+              ))}
+            </div>
+            <div style={{
+              marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 6,
+              fontFamily: PX.font.sans, fontSize: 11, fontWeight: 400,
+              color: PX.neutral500, letterSpacing: '-0.33px',
+            }}>
+              <PxFigmaIcon name="arrow-right" size={10} color={PX.neutral500} />
+              Voir le pipeline complet
+            </div>
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function CrmScreen() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      display: 'flex',
+      background: PX.neutral200,
+    }}>
+      <CrmSidebarNav />
+      <CrmMainContent />
     </div>
   )
 }
@@ -227,7 +311,7 @@ export default function PxProHero() {
   const titleRef = useProFadeIn<HTMLHeadingElement>(120)
   const subRef = useProFadeIn<HTMLParagraphElement>(220)
   const ctaRef = useProFadeIn<HTMLDivElement>(340)
-  const mockRef = useProFadeIn<HTMLDivElement>(460)
+  const ipadRef = useProFadeIn<HTMLDivElement>(460)
   const statsRef = useProFadeIn<HTMLDivElement>(580)
 
   return (
@@ -252,8 +336,8 @@ export default function PxProHero() {
           maxWidth: 1280,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 0.85fr)',
-          gap: 64,
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 0.95fr)',
+          gap: 48,
           alignItems: 'center',
         }}>
           {/* LEFT — Content */}
@@ -358,17 +442,18 @@ export default function PxProHero() {
             </div>
           </div>
 
-          {/* RIGHT — Mockup */}
+          {/* RIGHT — iPad CRM */}
           <div
-            ref={mockRef}
+            ref={ipadRef}
             style={{
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: 'center',
               alignItems: 'center',
-              position: 'relative',
             }}
           >
-            <ActionBoardMockup />
+            <IpadFrame scale={0.66}>
+              <CrmScreen />
+            </IpadFrame>
           </div>
         </div>
       </div>

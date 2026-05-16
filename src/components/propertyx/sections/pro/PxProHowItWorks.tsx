@@ -345,9 +345,35 @@ function MockCloseCard() {
 }
 
 function StepMockup({ id }: { id: StepId }) {
-  if (id === 'import') return <MockImportCard />
-  if (id === 'match') return <MockMatchCard />
-  return <MockCloseCard />
+  // Crossfade : les 3 mockups sont stackés via grid (mêmes coordonnées 1/1).
+  // Le grid container prend la hauteur du plus grand des 3. Seul l'actif a
+  // opacity 1. Transition 280ms ease Property X.
+  const slots: Array<{ key: StepId; el: React.ReactNode }> = [
+    { key: 'import', el: <MockImportCard /> },
+    { key: 'match', el: <MockMatchCard /> },
+    { key: 'close', el: <MockCloseCard /> },
+  ]
+  return (
+    <div style={{
+      display: 'grid',
+      width: '100%',
+      maxWidth: 480,
+    }}>
+      {slots.map(slot => (
+        <div
+          key={slot.key}
+          style={{
+            gridArea: '1 / 1',
+            opacity: id === slot.key ? 1 : 0,
+            pointerEvents: id === slot.key ? 'auto' : 'none',
+            transition: `opacity 280ms ${PX.ease}`,
+          }}
+        >
+          {slot.el}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 // ─── Accordion item ───────────────────────────────────────────────────
