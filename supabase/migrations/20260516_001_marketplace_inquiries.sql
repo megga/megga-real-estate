@@ -54,6 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_marketplace_inquiries_property
 ALTER TABLE marketplace_inquiries ENABLE ROW LEVEL SECURITY;
 
 -- Anonymous + authenticated visitors can submit an inquiry
+DROP POLICY IF EXISTS "public_can_insert_marketplace_inquiries" ON marketplace_inquiries;
 CREATE POLICY "public_can_insert_marketplace_inquiries"
   ON marketplace_inquiries FOR INSERT
   TO anon, authenticated
