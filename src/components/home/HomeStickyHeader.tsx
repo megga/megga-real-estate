@@ -12,7 +12,20 @@
 
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { HOME_FONT, HOME_M } from './homeTokens'
+
+type LangCode = 'FR' | 'DE' | 'IT' | 'EN'
+
+function i18nToDisplay(raw: string | undefined): LangCode {
+  const short = (raw ?? 'fr').slice(0, 2).toLowerCase()
+  switch (short) {
+    case 'de': return 'DE'
+    case 'it': return 'IT'
+    case 'en': return 'EN'
+    default: return 'FR'
+  }
+}
 
 const HEADER_HEIGHT = 64
 
@@ -39,9 +52,16 @@ const NAV_ITEMS: NavItem[] = [
 export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { i18n } = useTranslation()
   const [show, setShow] = useState(alwaysShow)
   const [langOpen, setLangOpen] = useState(false)
-  const [lang, setLang] = useState<'FR' | 'DE' | 'IT' | 'EN'>('FR')
+  // La langue affichée se lit depuis i18n (source de vérité), pas un state
+  // local — sinon clic = pill visuellement changée mais contenu inchangé.
+  const lang: LangCode = i18nToDisplay(i18n.language)
+  const handleSelectLang = (code: LangCode) => {
+    void i18n.changeLanguage(code.toLowerCase())
+    setLangOpen(false)
+  }
 
   // Match nav active state against current pathname (proto-fidèle: highlight la
   // section où on est, pas toujours "Acheter")
@@ -210,10 +230,7 @@ export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeade
                 ] as const).map(l => (
                   <button
                     key={l.code}
-                    onClick={() => {
-                      setLang(l.code)
-                      setLangOpen(false)
-                    }}
+                    onClick={() => handleSelectLang(l.code)}
                     style={{
                       width: '100%',
                       display: 'flex',
