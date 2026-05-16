@@ -235,6 +235,67 @@ function PricingCard({ listing, isMobile }: { listing?: ListingCardData; isMobil
   )
 }
 
+// ─── Long description with "Read more / Read less" ────────────────────
+// Les descriptions Flatfox font souvent 1500-3000 caractères et écrasent la
+// mise en page. On tronque à ~400 chars avec un bouton expand/collapse.
+// Si la description fait déjà < 400 chars, pas de bouton.
+
+const DESCRIPTION_TRUNCATE_THRESHOLD = 400
+
+function LongDescription({ text }: { text: string }) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const isLong = text.length > DESCRIPTION_TRUNCATE_THRESHOLD
+
+  const displayed = !isLong || expanded
+    ? text
+    // On coupe sur un espace pour éviter de trancher un mot au milieu
+    : (() => {
+        const slice = text.slice(0, DESCRIPTION_TRUNCATE_THRESHOLD)
+        const lastSpace = slice.lastIndexOf(' ')
+        return slice.slice(0, lastSpace > 200 ? lastSpace : DESCRIPTION_TRUNCATE_THRESHOLD) + '…'
+      })()
+
+  return (
+    <>
+      <p style={{
+        margin: 0,
+        fontFamily: PX.font.sans,
+        fontWeight: 400,
+        fontSize: 16,
+        lineHeight: 1.5,
+        letterSpacing: '-0.48px',
+        color: PX.neutral500,
+        whiteSpace: 'pre-wrap',
+      }}>
+        {displayed}
+      </p>
+      {isLong ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            marginTop: 8,
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            cursor: 'pointer',
+            fontFamily: PX.font.sans,
+            fontWeight: 500,
+            fontSize: 14,
+            lineHeight: 1.4,
+            letterSpacing: '-0.4px',
+            color: PX.neutral700,
+            textDecoration: 'underline',
+          }}
+        >
+          {expanded ? t('marketplaceProperty.description.readLess') : t('marketplaceProperty.description.readMore')}
+        </button>
+      ) : null}
+    </>
+  )
+}
+
 // ─── Freshness badges ──────────────────────────────────────────────────
 // Affiche jusqu'à 3 badges signalétiques sous le titre (Nouveau / Prix
 // baissé / Publié il y a X). Aide l'acheteur à jauger l'opportunité.
@@ -552,13 +613,17 @@ function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: L
   }
 
   return (
-    <div style={{
-      ...sidebarCard,
-      padding: isMobile ? '32px 24px' : '56px 40px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-    }}>
+    <div
+      id="contact-form"
+      style={{
+        ...sidebarCard,
+        padding: isMobile ? '32px 24px' : '56px 40px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        scrollMarginTop: 96,
+      }}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start', width: '100%' }}>
         <p style={{
           margin: 0,
@@ -987,18 +1052,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
 
             {/* Paragraph */}
             <div style={{ paddingBottom: 24 }}>
-              <p style={{
-                margin: 0,
-                fontFamily: PX.font.sans,
-                fontWeight: 400,
-                fontSize: 16,
-                lineHeight: 1.5,
-                letterSpacing: '-0.48px',
-                color: PX.neutral500,
-                whiteSpace: 'pre-wrap',
-              }}>
-                {descriptionLabel}
-              </p>
+              <LongDescription text={descriptionLabel} />
             </div>
 
             {/* Amenities inline */}

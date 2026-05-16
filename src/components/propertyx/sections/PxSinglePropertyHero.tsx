@@ -10,12 +10,18 @@
 //   - mobile  (≤768px) : 1 colonne, photo principale puis grille 2×2 réduite
 
 import { useTranslation } from 'react-i18next'
+import { lazy, Suspense, useState } from 'react'
 import { PX } from '..'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+
+// Lightbox lazy-loadé : seulement chargé quand l'utilisateur clique sur une
+// photo (économise ~150KB sur le bundle initial de la page propriete).
+const ListingLightbox = lazy(() => import('@/components/listing/ListingLightbox'))
 
 interface PxSinglePropertyHeroProps {
   photos?: string[]
   title?: string
+  listingId?: string
 }
 
 const DEMO_IMAGES = [
@@ -34,12 +40,21 @@ const tileStyle: React.CSSProperties = {
   height: '100%',
 }
 
-export default function PxSinglePropertyHero({ photos, title }: PxSinglePropertyHeroProps) {
+export default function PxSinglePropertyHero({ photos, title, listingId }: PxSinglePropertyHeroProps) {
   const { t } = useTranslation()
   const resolvedTitle = title ?? t('marketplaceProperty.defaultTitle')
   const isMobile = useIsMobile()
   const hasPhotos = !!photos && photos.length > 0
   const count = photos?.length ?? 0
+
+  // Lightbox state : ouvert au clic, navigation au clavier + swipe via le composant.
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const openLightbox = (index: number) => {
+    if (!hasPhotos) return
+    setLightboxIndex(Math.min(index, count - 1))
+    setLightboxOpen(true)
+  }
 
   // On déduplique : si moins de 5 photos, on remplit avec des null (placeholders
   // gris) plutôt que de répéter la même photo. Évite l'effet "même image x5".
@@ -66,15 +81,25 @@ export default function PxSinglePropertyHero({ photos, title }: PxSingleProperty
         gap: isMobile ? 8 : 12,
         boxSizing: 'border-box',
       }}>
-        <div style={{
-          width: '100%',
-          aspectRatio: mainAspect,
-          overflow: 'hidden',
-          borderRadius: PX.radius.small,
-          background: PX.neutral200,
-        }}>
+        <button
+          type="button"
+          onClick={() => openLightbox(0)}
+          disabled={!hasPhotos}
+          aria-label={resolvedTitle}
+          style={{
+            width: '100%',
+            aspectRatio: mainAspect,
+            overflow: 'hidden',
+            borderRadius: PX.radius.small,
+            background: PX.neutral200,
+            border: 0,
+            padding: 0,
+            cursor: hasPhotos ? 'zoom-in' : 'default',
+            display: 'block',
+          }}
+        >
           {main ? <img src={main} alt={resolvedTitle} style={tileStyle} /> : null}
-        </div>
+        </button>
 
         <div style={{
           display: 'grid',
@@ -83,12 +108,25 @@ export default function PxSinglePropertyHero({ photos, title }: PxSingleProperty
           gap: isMobile ? 8 : 12,
           aspectRatio: isMobile ? '2 / 1' : undefined,
         }}>
-          <Tile src={t1} alt={`${resolvedTitle} — 2`} index={1} extraCount={count > 5 ? count - 5 : 0} />
-          <Tile src={t2} alt={`${resolvedTitle} — 3`} index={2} />
-          <Tile src={t3} alt={`${resolvedTitle} — 4`} index={3} />
-          <Tile src={t4} alt={`${resolvedTitle} — 5`} index={4} extraOverlay={count > 5} extraCount={count - 5} />
+          <Tile src={t1} alt={`${resolvedTitle} — 2`} index={1} onClick={() => openLightbox(1)} clickable={hasPhotos} extraCount={count > 5 ? count - 5 : 0} />
+          <Tile src={t2} alt={`${resolvedTitle} — 3`} index={2} onClick={() => openLightbox(2)} clickable={hasPhotos} />
+          <Tile src={t3} alt={`${resolvedTitle} — 4`} index={3} onClick={() => openLightbox(3)} clickable={hasPhotos} />
+          <Tile src={t4} alt={`${resolvedTitle} — 5`} index={4} onClick={() => openLightbox(4)} clickable={hasPhotos} extraOverlay={count > 5} extraCount={count - 5} />
         </div>
       </div>
+
+      {lightboxOpen && hasPhotos ? (
+        <Suspense fallback={null}>
+          <ListingLightbox
+            photos={photos!}
+            open={lightboxOpen}
+            index={lightboxIndex}
+            onClose={() => setLightboxOpen(false)}
+            onIndexChange={setLightboxIndex}
+            listingId={listingId}
+          />
+        </Suspense>
+      ) : null}
     </section>
   )
 }
@@ -99,16 +137,30 @@ interface TileProps {
   index: number
   extraOverlay?: boolean
   extraCount?: number
+  onClick?: () => void
+  clickable?: boolean
 }
 
-function Tile({ src, alt, extraOverlay, extraCount }: TileProps) {
+function Tile({ src, alt, extraOverlay, extraCount, onClick, clickable }: TileProps) {
+  const Wrapper = clickable ? 'button' : 'div'
   return (
-    <div style={{
-      overflow: 'hidden',
-      borderRadius: PX.radius.small,
-      position: 'relative',
-      background: PX.neutral200,
-    }}>
+    <Wrapper
+      onClick={clickable ? onClick : undefined}
+      type={clickable ? 'button' : undefined}
+      aria-label={clickable ? alt : undefined}
+      style={{
+        overflow: 'hidden',
+        borderRadius: PX.radius.small,
+        position: 'relative',
+        background: PX.neutral200,
+        border: 0,
+        padding: 0,
+        cursor: clickable ? 'zoom-in' : 'default',
+        display: 'block',
+        width: '100%',
+        height: '100%',
+      }}
+    >
       {src ? <img src={src} alt={alt} style={tileStyle} /> : null}
       {extraOverlay && extraCount && extraCount > 0 ? (
         <div style={{
@@ -127,6 +179,6 @@ function Tile({ src, alt, extraOverlay, extraCount }: TileProps) {
           +{extraCount}
         </div>
       ) : null}
-    </div>
+    </Wrapper>
   )
 }

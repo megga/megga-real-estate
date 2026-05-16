@@ -1037,6 +1037,13 @@
       "publishedAgo_month_other": "Vor {{count}} Monaten veröffentlicht"
     },
     "pricePerSqm": "{{value}} CHF/m²",
+    "mobileBar": {
+      "contact": "Kontakt"
+    },
+    "description": {
+      "readMore": "Mehr lesen",
+      "readLess": "Weniger anzeigen"
+    },
     "contact": {
       "title": "Weitere Informationen anfragen",
       "subtitle": "Die Agentur meldet sich innerhalb von 24 Stunden bei Ihnen, um Ihre Fragen zu beantworten oder eine Besichtigung zu organisieren.",

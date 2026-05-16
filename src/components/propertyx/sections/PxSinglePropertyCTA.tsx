@@ -62,6 +62,10 @@ function GetInTouchBadge({ label }: { label: string }) {
 export default function PxSinglePropertyCTA() {
   const isMobile = useIsMobile()
   const { t } = useTranslation()
+  const handleVisitClick = () => {
+    const el = typeof document !== 'undefined' ? document.getElementById('contact-form') : null
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
   return (
     <section style={{
       paddingLeft: isMobile ? 16 : 24,
@@ -149,7 +153,7 @@ export default function PxSinglePropertyCTA() {
             </p>
           </div>
 
-          <PxButton variant="invert" size="sm">
+          <PxButton variant="invert" size="sm" onClick={handleVisitClick}>
             {t('marketplaceProperty.cta.button')}
           </PxButton>
         </div>

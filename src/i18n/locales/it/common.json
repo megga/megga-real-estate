@@ -1037,6 +1037,13 @@
       "publishedAgo_month_other": "Pubblicato {{count}} mesi fa"
     },
     "pricePerSqm": "{{value}} CHF/m²",
+    "mobileBar": {
+      "contact": "Contatta"
+    },
+    "description": {
+      "readMore": "Leggi di più",
+      "readLess": "Riduci"
+    },
     "contact": {
       "title": "Richiedere maggiori informazioni",
       "subtitle": "L'agenzia La ricontatta entro 24 ore per rispondere alle Sue domande o organizzare una visita.",

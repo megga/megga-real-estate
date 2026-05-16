@@ -22,6 +22,7 @@ import PxSinglePropertyHero from '@/components/propertyx/sections/PxSingleProper
 import PxSinglePropertyBody from '@/components/propertyx/sections/PxSinglePropertyBody'
 import PxSinglePropertyRelated from '@/components/propertyx/sections/PxSinglePropertyRelated'
 import PxSinglePropertyCTA from '@/components/propertyx/sections/PxSinglePropertyCTA'
+import PxSinglePropertyMobileBar from '@/components/propertyx/sections/PxSinglePropertyMobileBar'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 import { useListingDetail } from '@/hooks/useListingDetail'
 
@@ -63,6 +64,7 @@ export default function PropertyXSinglePropertyPage() {
           <PxSinglePropertyHero
             photos={listing?.photos ?? undefined}
             title={listing?.title}
+            listingId={listing?.id}
           />
           <PxSinglePropertyBody listing={listing ?? undefined} />
           <PxSinglePropertyCTA />
@@ -70,6 +72,7 @@ export default function PropertyXSinglePropertyPage() {
         </>
       )}
       <PxFooterPropertyX />
+      <PxSinglePropertyMobileBar listing={listing ?? undefined} />
     </div>
   )
 }
