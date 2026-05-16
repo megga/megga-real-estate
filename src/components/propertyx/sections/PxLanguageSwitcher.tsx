@@ -109,7 +109,6 @@ export default function PxLanguageSwitcher() {
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
-            minWidth: 180,
             padding: 6,
             background: PX.neutral100,
             border: `1px solid ${PX.neutral300}`,
@@ -129,47 +128,40 @@ export default function PxLanguageSwitcher() {
                 type="button"
                 role="menuitemradio"
                 aria-checked={isActive}
+                aria-label={lang.label}
                 onClick={() => handleSelect(lang.code)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  padding: '10px 12px',
+                  justifyContent: 'center',
+                  padding: '10px 16px',
+                  minWidth: 60,
                   borderRadius: 10,
                   background: isActive ? PX.neutral200 : 'transparent',
                   border: 0,
                   cursor: 'pointer',
                   fontFamily: PX.font.display,
                   fontSize: 14,
-                  fontWeight: isActive ? 600 : 500,
-                  letterSpacing: '-0.3px',
-                  color: PX.neutral700,
-                  textAlign: 'left',
-                  transition: 'background 0.15s ease',
+                  fontWeight: isActive ? 700 : 500,
+                  letterSpacing: '0.3px',
+                  color: isActive ? PX.neutral700 : PX.neutral500,
+                  textAlign: 'center',
+                  transition: 'background 0.15s ease, color 0.15s ease',
                 }}
                 onMouseEnter={e => {
-                  if (!isActive) e.currentTarget.style.background = PX.neutral200
+                  if (!isActive) {
+                    e.currentTarget.style.background = PX.neutral200
+                    e.currentTarget.style.color = PX.neutral700
+                  }
                 }}
                 onMouseLeave={e => {
-                  if (!isActive) e.currentTarget.style.background = 'transparent'
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = PX.neutral500
+                  }
                 }}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: PX.neutral400,
-                    letterSpacing: 0.5,
-                    minWidth: 22,
-                  }}>
-                    {lang.short}
-                  </span>
-                  {lang.label}
-                </span>
-                {isActive ? (
-                  <PxIcon name="check" size={14} color={PX.neutral700} />
-                ) : null}
+                {lang.short}
               </button>
             )
           })}
