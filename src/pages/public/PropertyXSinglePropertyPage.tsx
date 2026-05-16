@@ -25,6 +25,7 @@ import PxSinglePropertyEnergy from '@/components/propertyx/sections/PxSingleProp
 import PxSinglePropertyRelated from '@/components/propertyx/sections/PxSinglePropertyRelated'
 import PxSinglePropertyCTA from '@/components/propertyx/sections/PxSinglePropertyCTA'
 import PxSinglePropertyMobileBar from '@/components/propertyx/sections/PxSinglePropertyMobileBar'
+import PxSinglePropertySeo from '@/components/propertyx/sections/PxSinglePropertySeo'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 import { useListingDetail } from '@/hooks/useListingDetail'
 
@@ -61,6 +62,7 @@ export default function PropertyXSinglePropertyPage() {
       fontFamily: PX.font.sans,
       color: PX.ink,
     }}>
+      <PxSinglePropertySeo listing={listing ?? undefined} />
       <PxNav glass />
       {id && isLoading && <StatusScreen message={t('marketplaceProperty.loading')} />}
       {id && isError && <StatusScreen message={t('marketplaceProperty.notFound')} />}
