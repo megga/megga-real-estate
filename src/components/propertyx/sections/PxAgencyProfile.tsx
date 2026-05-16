@@ -796,11 +796,11 @@ function PropertiesSection({
           }}>Les biens de {agencyName}</h2>
         </div>
 
-        {/* Grid 2-col */}
+        {/* Grid 2-col (responsive : 1-col en dessous de 720) */}
         <div style={{
           width: '100%',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(440px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 440px), 1fr))',
           gap: 48,
         }}>
           {listings.slice(0, 6).map(l => <PropertyCardDark key={l.id} listing={l} />)}
@@ -952,7 +952,7 @@ function TeamSection({ agencyName, agents }: { agencyName: string; agents: Agent
         <div style={{
           width: '100%',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
           gap: 24,
         }}>
           {agents.slice(0, 12).map(a => <AgentCardPx key={a.id} agent={a} />)}
@@ -984,12 +984,16 @@ export default function PxAgencyProfile({ agency, agents, listings }: PxAgencyPr
           justify-content: center;
           gap: 57px;
         }
-        @media (max-width: 980px) {
+        @media (max-width: 960px) {
           .px-agency-hero__inner {
             flex-direction: column;
             align-items: center;
             gap: 48px;
           }
+        }
+        @media (max-width: 640px) {
+          .px-agency-hero { padding: 32px 16px 64px !important; }
+          .px-agency-hero__inner { gap: 32px !important; }
         }
       `}</style>
 

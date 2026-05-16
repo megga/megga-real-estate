@@ -160,9 +160,116 @@ function MoreDropdown() {
   )
 }
 
-export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
+function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null
   return (
-    <header style={{
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(20, 22, 28, 0.4)',
+        zIndex: 90,
+        animation: 'pxnav-fade-in 200ms ease',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: 'min(360px, 90vw)',
+          background: PX.neutral100,
+          padding: 24,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+          overflowY: 'auto',
+          boxShadow: PX.shadow.large,
+          animation: 'pxnav-slide-in 240ms cubic-bezier(.22,1,.36,1)',
+        }}
+      >
+        <style>{`
+          @keyframes pxnav-fade-in { from { opacity: 0 } to { opacity: 1 } }
+          @keyframes pxnav-slide-in { from { transform: translateX(100%) } to { transform: translateX(0) } }
+        `}</style>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <PxLogo variant="dark" form="text" size="sm" to="/" />
+          <button
+            type="button"
+            aria-label="Fermer le menu"
+            onClick={onClose}
+            style={{
+              width: 40, height: 40, borderRadius: PX.radius.pill,
+              background: PX.neutral200, border: 0, cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+              fontFamily: PX.font.display, fontSize: 18, fontWeight: 500,
+              color: PX.neutral700,
+            }}
+          >×</button>
+        </div>
+
+        {[...PRIMARY_LINKS, ...MORE_LINKS].map(item => (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={onClose}
+            style={{
+              ...LINK_STYLE,
+              padding: '14px 16px',
+              fontSize: 18,
+              fontWeight: 500,
+              borderRadius: 12,
+              justifyContent: 'flex-start',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = PX.neutral200 }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+          >
+            {item.label}
+          </Link>
+        ))}
+
+        <div style={{
+          marginTop: 16, paddingTop: 16,
+          borderTop: `1px solid ${PX.neutral300}`,
+          display: 'flex', flexDirection: 'column', gap: 16,
+        }}>
+          <PxLanguageSwitcher />
+          <PxButton to="/login" variant="primary" size="sm">Connexion</PxButton>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Hamburger({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Ouvrir le menu"
+      onClick={onClick}
+      style={{
+        width: 44, height: 44,
+        background: 'transparent',
+        border: `1px solid ${PX.neutral300}`,
+        borderRadius: PX.radius.pill,
+        display: 'grid', placeItems: 'center',
+        cursor: 'pointer', padding: 0,
+      }}
+    >
+      <svg width={20} height={14} viewBox="0 0 20 14" fill="none">
+        <path d="M0 1H20M0 7H20M0 13H20" stroke={PX.neutral700} strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    </button>
+  )
+}
+
+export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  return (
+    <header className="px-nav-pxv2" style={{
       paddingTop: 24,
       paddingBottom: 24,
       paddingLeft: 0,
@@ -175,6 +282,16 @@ export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
       position: 'relative',
       zIndex: 10,
     }}>
+      {/* Responsive overrides — desktop UI strictly unchanged */}
+      <style>{`
+        @media (max-width: 760px) {
+          .px-nav-pxv2 .px-nav-desktop { display: none !important; }
+          .px-nav-pxv2 .px-nav-mobile-toggle { display: inline-grid !important; }
+        }
+        @media (min-width: 761px) {
+          .px-nav-pxv2 .px-nav-mobile-toggle { display: none !important; }
+        }
+      `}</style>
       <div style={{
         width: 1200,
         maxWidth: '100%',
@@ -190,7 +307,7 @@ export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
           alignItems: 'center',
         }}>
           <PxLogo variant="dark" form="text" size="sm" to="/" />
-          <nav style={{
+          <nav className="px-nav-desktop" style={{
             display: 'flex',
             gap: 16,
             alignItems: 'center',
@@ -209,13 +326,19 @@ export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
           </nav>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="px-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <PxLanguageSwitcher />
           <PxButton to="/login" variant="primary" size="sm">
             Connexion
           </PxButton>
         </div>
+
+        <div className="px-nav-mobile-toggle" style={{ display: 'none' }}>
+          <Hamburger onClick={() => setMobileOpen(true)} />
+        </div>
       </div>
+
+      <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
     </header>
   )
 }

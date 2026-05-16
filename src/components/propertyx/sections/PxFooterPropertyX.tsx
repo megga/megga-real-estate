@@ -242,7 +242,7 @@ function ContactInfo({ icon, label, value }: { icon: 'mail' | 'phone' | 'briefca
 
 export default function PxFooterPropertyX() {
   return (
-    <footer style={{
+    <footer className="px-footer-pxv2" style={{
       paddingLeft: 24,
       paddingRight: 24,
       paddingBottom: 24,
@@ -252,8 +252,60 @@ export default function PxFooterPropertyX() {
       gap: 24,
       alignItems: 'center',
     }}>
+      {/* Responsive overrides — desktop UI strictly unchanged */}
+      <style>{`
+        @media (max-width: 900px) {
+          .px-footer-pxv2 .px-footer-dark { height: auto !important; padding: 64px 0 !important; }
+          .px-footer-pxv2 .px-footer-grid {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 56px !important;
+            justify-content: flex-start !important;
+            width: 100% !important;
+            max-width: calc(100% - 48px) !important;
+          }
+          .px-footer-pxv2 .px-footer-left {
+            width: 100% !important;
+            gap: 32px !important;
+          }
+          .px-footer-pxv2 .px-footer-right {
+            width: 100% !important;
+            gap: 48px !important;
+          }
+          .px-footer-pxv2 .px-footer-cols {
+            flex-wrap: wrap !important;
+            gap: 40px 32px !important;
+          }
+          /* Fixed-width children inside the left column (h3/p/form/copyright)
+             — make them fluid */
+          .px-footer-pxv2 .px-footer-left * { max-width: 100% !important; }
+          .px-footer-pxv2 .px-footer-left h3,
+          .px-footer-pxv2 .px-footer-left p,
+          .px-footer-pxv2 .px-footer-left form,
+          .px-footer-pxv2 .px-footer-left > div { width: 100% !important; box-sizing: border-box !important; }
+          /* Allow input to shrink below its intrinsic min-content */
+          .px-footer-pxv2 .px-footer-left form input { min-width: 0 !important; }
+        }
+        @media (max-width: 480px) {
+          /* Stack input + Subscribe button on very narrow screens */
+          .px-footer-pxv2 .px-footer-left form {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+            border-radius: 16px !important;
+            padding: 12px !important;
+          }
+          .px-footer-pxv2 .px-footer-left form button { width: 100% !important; justify-content: center !important; }
+        }
+        @media (max-width: 560px) {
+          .px-footer-pxv2 .px-footer-cols {
+            flex-direction: column !important;
+            gap: 32px !important;
+          }
+        }
+      `}</style>
       {/* Container DARK : bg-neutral700, h-788, rounded-24, w-full */}
-      <div style={{
+      <div className="px-footer-dark" style={{
         width: '100%',
         maxWidth: 1392,
         height: 788,
@@ -265,7 +317,7 @@ export default function PxFooterPropertyX() {
         justifyContent: 'center',
       }}>
         {/* Grid Footer : w-1200 flex items-center justify-between (centered in 1392 container) */}
-        <div style={{
+        <div className="px-footer-grid" style={{
           width: 1200,
           maxWidth: 'calc(100% - 48px)',
           display: 'flex',
@@ -273,7 +325,7 @@ export default function PxFooterPropertyX() {
           justifyContent: 'space-between',
         }}>
           {/* Left Content : w-410 flex-col gap-277 items-start */}
-          <div style={{
+          <div className="px-footer-left" style={{
             width: 410,
             display: 'flex',
             flexDirection: 'column',
@@ -441,7 +493,7 @@ export default function PxFooterPropertyX() {
           </div>
 
           {/* Content Link : w-646 flex-col gap-64 items-start */}
-          <div style={{
+          <div className="px-footer-right" style={{
             width: 646,
             display: 'flex',
             flexDirection: 'column',
@@ -449,7 +501,7 @@ export default function PxFooterPropertyX() {
             alignItems: 'flex-start',
           }}>
             {/* Columns 1 : flex gap-52 — Main pages + 2 unnamed */}
-            <div style={{
+            <div className="px-footer-cols" style={{
               width: '100%',
               display: 'flex',
               gap: 52,
@@ -461,7 +513,7 @@ export default function PxFooterPropertyX() {
             </div>
 
             {/* Columns 2 : flex gap-52 — Utility + Contact + Sales/Help */}
-            <div style={{
+            <div className="px-footer-cols" style={{
               width: '100%',
               display: 'flex',
               gap: 52,
