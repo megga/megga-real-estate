@@ -60,20 +60,21 @@ CREATE POLICY "public_can_insert_marketplace_inquiries"
   WITH CHECK (true);
 
 -- Super admins read all inquiries
+-- NB : on appelle la fonction `is_super_admin()` (migration 20260404_001) qui
+-- vérifie `profiles.role = 'super_admin'`. La colonne `profiles.is_super_admin`
+-- n'existe PAS — c'est une fonction SECURITY DEFINER STABLE.
+DROP POLICY IF EXISTS "super_admin_read_marketplace_inquiries" ON marketplace_inquiries;
 CREATE POLICY "super_admin_read_marketplace_inquiries"
   ON marketplace_inquiries FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_super_admin = TRUE)
-  );
+  USING (is_super_admin());
 
 -- Super admins update inquiries (status changes)
+DROP POLICY IF EXISTS "super_admin_update_marketplace_inquiries" ON marketplace_inquiries;
 CREATE POLICY "super_admin_update_marketplace_inquiries"
   ON marketplace_inquiries FOR UPDATE
   TO authenticated
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_super_admin = TRUE)
-  );
+  USING (is_super_admin());
 
 -- updated_at trigger
 CREATE OR REPLACE FUNCTION update_marketplace_inquiries_updated_at()
