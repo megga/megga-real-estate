@@ -1030,8 +1030,6 @@
     "badges": {
       "new": "New",
       "priceDrop": "Price drop · −{{percent}}%",
-      "c2paVerified": "Verified photos – MEGGA Shield",
-      "c2paTooltip": "Photos of this property are certified authentic via the C2PA standard. No undisclosed AI editing.",
       "publishedAgo_day_one": "Published {{count}} day ago",
       "publishedAgo_day_other": "Published {{count}} days ago",
       "publishedToday": "Published today",

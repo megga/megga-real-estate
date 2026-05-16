@@ -1035,8 +1035,6 @@
     "badges": {
       "new": "Nouveau",
       "priceDrop": "Prix baissé · −{{percent}}%",
-      "c2paVerified": "Photos vérifiées MEGGA Shield",
-      "c2paTooltip": "Les photos de ce bien sont certifiées authentiques via la norme C2PA. Aucun retouche IA non déclarée.",
       "publishedAgo_day_one": "Publié il y a {{count}} jour",
       "publishedAgo_day_other": "Publié il y a {{count}} jours",
       "publishedToday": "Publié aujourd'hui",

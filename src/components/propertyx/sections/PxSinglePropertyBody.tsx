@@ -322,18 +322,8 @@ function FreshnessBadges({ listing }: { listing?: ListingCardData }) {
   const isNew = listing.is_new === true || (listing.days_on_market != null && listing.days_on_market <= 3)
   const priceDropPct = listing.price_drop_pct
   const publishedText = publishedLabel(t, listing.published_at, listing.days_on_market)
-  const c2paVerified = listing.c2pa_verified === true
 
-  type BadgeTone = 'neutral' | 'accent' | 'warning' | 'verified'
-  const badges: Array<{ label: string; tone: BadgeTone; tooltip?: string; icon?: string }> = []
-  if (c2paVerified) {
-    badges.push({
-      label: t('marketplaceProperty.badges.c2paVerified'),
-      tone: 'verified',
-      tooltip: t('marketplaceProperty.badges.c2paTooltip'),
-      icon: 'shield',
-    })
-  }
+  const badges: Array<{ label: string; tone: 'neutral' | 'accent' | 'warning' }> = []
   if (isNew) badges.push({ label: t('marketplaceProperty.badges.new'), tone: 'accent' })
   if (priceDropPct && priceDropPct > 0) {
     badges.push({ label: t('marketplaceProperty.badges.priceDrop', { percent: priceDropPct }), tone: 'warning' })
@@ -349,17 +339,13 @@ function FreshnessBadges({ listing }: { listing?: ListingCardData }) {
           ? { bg: PX.neutral700, fg: PX.neutral100 }
           : b.tone === 'warning'
             ? { bg: '#FCE8DE', fg: '#9B3A0B' }
-            : b.tone === 'verified'
-              ? { bg: '#E6F4EA', fg: '#1F7A3F' }
-              : { bg: PX.neutral200, fg: PX.neutral500 }
+            : { bg: PX.neutral200, fg: PX.neutral500 }
         return (
           <span
             key={b.label}
-            title={b.tooltip}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
               paddingLeft: 12,
               paddingRight: 12,
               paddingTop: 6,
@@ -374,9 +360,6 @@ function FreshnessBadges({ listing }: { listing?: ListingCardData }) {
               letterSpacing: '-0.3px',
             }}
           >
-            {b.icon === 'shield' ? (
-              <PxIcon name="shield" size={12} color={palette.fg} />
-            ) : null}
             {b.label}
           </span>
         )
