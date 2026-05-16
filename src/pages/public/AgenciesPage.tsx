@@ -25,24 +25,28 @@ const CANTON_LABELS: Record<string, string> = {
   UR: 'Uri', VD: 'Vaud', VS: 'Valais', ZG: 'Zoug', ZH: 'Zurich',
 }
 
+// Postgrest cap = 1000 rows / requête. On parallélise jusqu'à 10 batches
+// (= 10'000 agences max) — ~2× plus rapide qu'une boucle séquentielle.
+const PAGE = 1000
+const MAX_PAGES = 10
+
 function useAgencies() {
   return useQuery({
     queryKey: ['agencies-directory-px'],
     queryFn: async (): Promise<AgencyDirectoryItem[]> => {
-      const all: AgencyDirectoryItem[] = []
-      let from = 0
-      const pageSize = 1000
-      while (true) {
-        const { data, error } = await supabase
+      const requests = Array.from({ length: MAX_PAGES }, (_, i) =>
+        supabase
           .from('agency_profiles')
           .select('id, name, slug, canton, city, logo_url, website_url, status')
           .order('name')
-          .range(from, from + pageSize - 1)
-        if (error) throw error
-        if (!data || data.length === 0) break
-        all.push(...(data as AgencyDirectoryItem[]))
-        if (data.length < pageSize) break
-        from += pageSize
+          .range(i * PAGE, (i + 1) * PAGE - 1)
+      )
+      const responses = await Promise.all(requests)
+      const all: AgencyDirectoryItem[] = []
+      for (const r of responses) {
+        if (r.error) throw r.error
+        if (r.data?.length) all.push(...(r.data as AgencyDirectoryItem[]))
+        if (!r.data || r.data.length < PAGE) break // stop early if last batch incomplete
       }
       return all
     },

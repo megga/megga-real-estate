@@ -42,6 +42,7 @@ const PRIMARY_LINKS = [
 
 // Dropdown "Plus" — pages secondaires, toutes en design PropertyX.
 const MORE_LINKS = [
+  { label: 'Agences', to: '/agences', desc: 'Annuaire des agences' },
   { label: 'À propos', to: '/a-propos', desc: 'L’équipe et la mission' },
   { label: 'FAQ', to: '/faq', desc: 'Questions fréquentes' },
   { label: 'Contact', to: '/contact', desc: 'Nous écrire' },
