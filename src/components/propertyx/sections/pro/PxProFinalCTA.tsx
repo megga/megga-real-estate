@@ -2,18 +2,19 @@
 // Différenciateur : MEGGA n'a PAS de "demo gatekeeping". Le CRM EST la démo.
 // L'agent crée son compte → entre dans l'app → essaie librement.
 
-import { PX, PxButton, PxSectionLabel, PxIcon } from '../..'
-import type { PxIconName } from '../..'
+import { PX, PxButton, PxIconFont } from '../..'
+import type { PxIconFontName } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import PxProBadge from './PxProBadge'
 
-const TRUST_SIGNALS: Array<{ icon: PxIconName; label: string; sub: string }> = [
+const TRUST_SIGNALS: Array<{ icon: PxIconFontName; label: string; sub: string }> = [
   {
-    icon: 'sparkle',
+    icon: 'clock',
     label: '60 secondes',
     sub: 'pour créer votre compte',
   },
   {
-    icon: 'shield',
+    icon: 'credit-card',
     label: 'Sans carte bancaire',
     sub: 'aucune information de paiement requise',
   },
@@ -53,34 +54,6 @@ export default function PxProFinalCTA() {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Dot texture */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)`,
-            backgroundSize: '32px 32px',
-            opacity: 0.5,
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Radial glow */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '60%',
-            height: '120%',
-            background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.05), transparent 70%)',
-            pointerEvents: 'none',
-          }}
-        />
-
         <div style={{
           position: 'relative',
           maxWidth: 920,
@@ -91,7 +64,7 @@ export default function PxProFinalCTA() {
           alignItems: 'center',
         }}>
           <div ref={labelRef}>
-            <PxSectionLabel icon="sparkle" invert>Notre CRM est la démo</PxSectionLabel>
+            <PxProBadge icon="badge-megaphone" invert>Notre CRM est la démo</PxProBadge>
           </div>
 
           <h2
@@ -183,7 +156,7 @@ export default function PxProFinalCTA() {
                   display: 'grid',
                   placeItems: 'center',
                 }}>
-                  <PxIcon name={t.icon} size={20} color={PX.inkInverse} />
+                  <PxIconFont name={t.icon} size={20} color={PX.inkInverse} />
                 </div>
                 <div>
                   <div style={{

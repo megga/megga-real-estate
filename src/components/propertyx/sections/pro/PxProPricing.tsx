@@ -3,9 +3,10 @@
 // Pro card mise en avant : dark bg + badge "Recommandé" + élévation.
 
 import { useState } from 'react'
-import { PX, PxSectionLabel, PxButton, PxBadge, PxIcon } from '../..'
+import { PX, PxButton, PxBadge, PxFigmaIcon, PxIconFont } from '../..'
 import { PLANS } from '@/lib/plans'
 import { useProFadeIn } from './useProFadeIn'
+import PxProBadge from './PxProBadge'
 
 type Billing = 'monthly' | 'yearly'
 
@@ -117,9 +118,9 @@ function FeatureLine({
         marginTop: 2,
       }}>
         {included ? (
-          <PxIcon name="check" size={11} color={checkColor} />
+          <PxFigmaIcon name="check" size={11} color={checkColor} />
         ) : (
-          <PxIcon name="close" size={9} color={invert ? PX.inkInverseMuted : PX.neutral400} />
+          <PxFigmaIcon name="close" size={9} color={invert ? PX.inkInverseMuted : PX.neutral400} />
         )}
       </span>
       <span style={{
@@ -343,17 +344,17 @@ export default function PxProPricing() {
           textAlign: 'center',
         }}>
           <div ref={labelRef}>
-            <PxSectionLabel icon="credit-card">Tarifs</PxSectionLabel>
+            <PxProBadge icon="currency">Tarifs</PxProBadge>
           </div>
           <h2
             ref={titleRef}
             style={{
               margin: 0,
               fontFamily: PX.font.display,
-              fontSize: 56,
+              fontSize: 48,
               fontWeight: 500,
-              lineHeight: 1.1,
-              letterSpacing: '-2.5px',
+              lineHeight: 1.25,
+              letterSpacing: '-1.44px',
               color: PX.neutral700,
               maxWidth: 720,
             }}
@@ -412,7 +413,7 @@ export default function PxProPricing() {
         >
           {([
             { icon: 'shield' as const, label: 'Conforme LPD suisse' },
-            { icon: 'refresh' as const, label: 'Migration assistée gratuite' },
+            { icon: 'rotate' as const, label: 'Migration assistée gratuite' },
             { icon: 'message' as const, label: 'Support en français' },
           ]).map(item => (
             <div key={item.label} style={{
@@ -425,7 +426,7 @@ export default function PxProPricing() {
               color: PX.neutral500,
               letterSpacing: '-0.42px',
             }}>
-              <PxIcon
+              <PxIconFont
                 name={item.icon}
                 size={16}
                 color={PX.neutral500}

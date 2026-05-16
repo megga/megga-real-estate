@@ -1,8 +1,9 @@
 // MEGGA Pro — Testimonial Gregory (autorité agent) + bandeau agences pilotes.
 // Section DARK full-bleed.
 
-import { PX, PxSectionLabel, PxAvatar } from '../..'
+import { PX, PxAvatar, PxFigmaIcon } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import PxProBadge from './PxProBadge'
 
 const PILOT_AGENCIES = [
   'Lyonnet Immobilier',
@@ -16,17 +17,6 @@ const PILOT_AGENCIES = [
   'Suisse Habitat',
   'Romandie Real',
 ]
-
-function QuoteMark() {
-  return (
-    <svg width="56" height="42" viewBox="0 0 56 42" fill="none" aria-hidden>
-      <path
-        d="M0 42V26.6c0-5.1.9-9.6 2.8-13.5C4.7 9.2 7.3 5.9 10.7 3.4 14 1.1 17.7 0 21.6 0v9.5c-3.4.7-6.2 2.4-8.3 5.1-2 2.6-3 6-3 10v.6h11V42H0Zm31 0V26.6c0-5.1.9-9.6 2.8-13.5C35.7 9.2 38.3 5.9 41.7 3.4 45 1.1 48.7 0 52.6 0v9.5c-3.4.7-6.2 2.4-8.3 5.1-2 2.6-3 6-3 10v.6h11V42H31Z"
-        fill="rgba(255,255,255,0.16)"
-      />
-    </svg>
-  )
-}
 
 export default function PxProTestimonial() {
   const labelRef = useProFadeIn<HTMLDivElement>(0)
@@ -52,19 +42,6 @@ export default function PxProTestimonial() {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Subtle grid texture */}
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)`,
-            backgroundSize: '32px 32px',
-            opacity: 0.4,
-            pointerEvents: 'none',
-          }}
-        />
-
         <div style={{
           position: 'relative',
           maxWidth: 1100,
@@ -98,15 +75,7 @@ export default function PxProTestimonial() {
                 placeItems: 'center',
                 boxShadow: PX.shadow.medium,
               }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path
-                    d="m5 12 5 5L20 7"
-                    stroke={PX.neutral700}
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <PxFigmaIcon name="check" size={20} color={PX.neutral700} />
               </div>
             </div>
           </div>
@@ -114,25 +83,24 @@ export default function PxProTestimonial() {
           {/* RIGHT — Quote + author */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
             <div ref={labelRef}>
-              <PxSectionLabel icon="star" invert>Témoignage</PxSectionLabel>
+              <PxProBadge icon="badge-testimonials-message" invert>Témoignage</PxProBadge>
             </div>
 
-            <div ref={quoteRef} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <QuoteMark />
+            <div ref={quoteRef}>
               <p style={{
                 margin: 0,
                 fontFamily: PX.font.display,
-                fontSize: 32,
+                fontSize: 30,
                 fontWeight: 500,
-                lineHeight: 1.3,
-                letterSpacing: '-1.2px',
+                lineHeight: 1.25,
+                letterSpacing: '-0.9px',
                 color: PX.inkInverse,
                 maxWidth: 720,
               }}>
-                J'ai conçu MEGGA pour mon propre quotidien. Le KYC me prenait des heures,
+                « J'ai conçu MEGGA pour mon propre quotidien. Le KYC me prenait des heures,
                 les relances tombaient en oubli, mon vendeur ne savait jamais où en était
                 son bien. Aujourd'hui, je gagne deux soirées par semaine — et mes vendeurs
-                me trouvent transparent.
+                me trouvent transparent. »
               </p>
             </div>
 

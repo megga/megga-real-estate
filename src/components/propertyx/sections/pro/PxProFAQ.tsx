@@ -2,8 +2,9 @@
 // Pattern inspiré de PxFAQ : card centrée, accordion items.
 
 import { useState } from 'react'
-import { PX, PxSectionLabel, PxIcon } from '../..'
+import { PX, PxFigmaIcon } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import PxProBadge from './PxProBadge'
 
 interface Question {
   id: string
@@ -95,7 +96,7 @@ function AccordionItem({
           transition: `background ${PX.duration.base} ${PX.ease}, transform ${PX.duration.base} ${PX.ease}`,
           transform: open ? 'rotate(45deg)' : 'rotate(0)',
         }}>
-          <PxIcon name="plus" size={14} color={open ? PX.neutral100 : PX.neutral700} />
+          <PxFigmaIcon name="plus" size={14} color={open ? PX.neutral100 : PX.neutral700} />
         </span>
       </button>
       <div style={{
@@ -150,17 +151,17 @@ export default function PxProFAQ() {
           textAlign: 'center',
         }}>
           <div ref={labelRef}>
-            <PxSectionLabel icon="help">Questions fréquentes</PxSectionLabel>
+            <PxProBadge icon="badge-faq">Questions fréquentes</PxProBadge>
           </div>
           <h2
             ref={titleRef}
             style={{
               margin: 0,
               fontFamily: PX.font.display,
-              fontSize: 56,
+              fontSize: 48,
               fontWeight: 500,
-              lineHeight: 1.1,
-              letterSpacing: '-2.5px',
+              lineHeight: 1.25,
+              letterSpacing: '-1.44px',
               color: PX.neutral700,
               maxWidth: 720,
             }}

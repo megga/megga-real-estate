@@ -1,16 +1,17 @@
 // MEGGA Pro — Hero "Pour les pros"
-// Pattern aligné sur PxHero (dark rounded container, margin 24 around).
-// Wow moment : mockup Action Board CRM visible dès le scroll initial.
+// Pattern aligné sur PxHero (dark rounded container, margin 24).
+// 100% atoms Property X : eyebrow PxProBadge (badge-megaphone), PxButton,
+// PxFigmaIcon, PxIconFont, PxAvatar.
 
-import { PX, PxButton, PxSectionLabel, PxAvatar, PxIcon, PxFigmaIcon } from '../..'
+import { PX, PxButton, PxAvatar, PxIconFont, PxFigmaIcon } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import PxProBadge from './PxProBadge'
 
 // ─── Action Board Mockup ─────────────────────────────────────────────
-// Mini-représentation stylisée du CRM. Pas une vraie capture — un assemblage
-// d'atomes PX.* qui RESPECTE la DA. Plus on-brand qu'une vraie capture (qui
-// utiliserait Tailwind/shadcn).
+// Mini-CRM stylisé en atomes PX.* — pas de capture mais une représentation
+// fidèle de la DA. Plus on-brand qu'un screenshot Tailwind.
 
-function MockChip({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
+function MockChip({ children }: { children: React.ReactNode }) {
   return (
     <span style={{
       display: 'inline-flex',
@@ -21,8 +22,8 @@ function MockChip({ children, dark = false }: { children: React.ReactNode; dark?
       paddingTop: 3,
       paddingBottom: 3,
       borderRadius: PX.radius.pill,
-      background: dark ? PX.neutral700 : PX.neutral200,
-      color: dark ? PX.neutral100 : PX.neutral500,
+      background: PX.neutral200,
+      color: PX.neutral500,
       fontFamily: PX.font.sans,
       fontSize: 11,
       fontWeight: 500,
@@ -40,10 +41,7 @@ function MockRow({ name, sub, chip, avatar }: { name: string; sub: string; chip:
       display: 'flex',
       alignItems: 'center',
       gap: 12,
-      paddingTop: 12,
-      paddingBottom: 12,
-      paddingLeft: 12,
-      paddingRight: 12,
+      padding: 12,
       borderRadius: PX.radius.small,
       background: PX.neutral100,
       border: `1px solid ${PX.neutral300}`,
@@ -122,7 +120,7 @@ function ActionBoardMockup() {
           display: 'grid',
           placeItems: 'center',
         }}>
-          <PxIcon name="sparkle" size={14} color={PX.neutral100} />
+          <PxIconFont name="lightbulb" size={14} color={PX.neutral100} />
         </div>
       </div>
 
@@ -145,7 +143,7 @@ function ActionBoardMockup() {
           flexShrink: 0,
           marginTop: 1,
         }}>
-          <PxIcon name="sparkle" size={11} color={PX.neutral100} />
+          <PxFigmaIcon name="sparkle" size={11} color={PX.neutral100} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
@@ -223,24 +221,6 @@ function ActionBoardMockup() {
   )
 }
 
-// ─── Dot grid background (texture subtile) ─────────────────────────────
-function DotGrid() {
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)`,
-        backgroundSize: '32px 32px',
-        backgroundPosition: '0 0',
-        pointerEvents: 'none',
-        opacity: 0.6,
-      }}
-    />
-  )
-}
-
 // ─── Main Hero ───────────────────────────────────────────────────────
 export default function PxProHero() {
   const badgeRef = useProFadeIn<HTMLDivElement>(0)
@@ -267,8 +247,6 @@ export default function PxProHero() {
         paddingLeft: 64,
         paddingRight: 64,
       }}>
-        <DotGrid />
-
         <div style={{
           position: 'relative',
           maxWidth: 1280,
@@ -281,9 +259,9 @@ export default function PxProHero() {
           {/* LEFT — Content */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div ref={badgeRef}>
-              <PxSectionLabel icon="briefcase" invert>
+              <PxProBadge icon="badge-megaphone" invert>
                 Pour les agences immobilières
-              </PxSectionLabel>
+              </PxProBadge>
             </div>
 
             <h1
@@ -339,30 +317,6 @@ export default function PxProHero() {
               </PxButton>
             </div>
 
-            {/* Tagline anti-demo gatekeeping */}
-            <div
-              style={{
-                marginTop: 16,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                fontFamily: PX.font.sans,
-                fontSize: 13,
-                fontWeight: 400,
-                letterSpacing: '-0.39px',
-                color: PX.inkInverseMuted,
-              }}
-            >
-              <span style={{
-                width: 6,
-                height: 6,
-                borderRadius: PX.radius.pill,
-                background: PX.inkInverse,
-                display: 'inline-block',
-              }} />
-              Pas de démo à programmer. Pas de carte bancaire. 60 secondes pour démarrer.
-            </div>
-
             {/* Trust stats */}
             <div
               ref={statsRef}
@@ -414,61 +368,7 @@ export default function PxProHero() {
               position: 'relative',
             }}
           >
-            {/* Halo glow behind mockup */}
-            <div
-              aria-hidden
-              style={{
-                position: 'absolute',
-                top: '-10%',
-                right: '-10%',
-                width: '120%',
-                height: '120%',
-                background: 'radial-gradient(circle at center, rgba(255,255,255,0.08), transparent 60%)',
-                pointerEvents: 'none',
-              }}
-            />
-            <div style={{
-              position: 'relative',
-              transform: 'rotate(-1.5deg)',
-              transformOrigin: 'center',
-            }}>
-              <ActionBoardMockup />
-              {/* Pill floating decoration "AI active" */}
-              <div style={{
-                position: 'absolute',
-                top: -16,
-                left: -24,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '6px 14px 6px 6px',
-                background: PX.neutral100,
-                borderRadius: PX.radius.pill,
-                boxShadow: PX.shadow.large,
-                transform: 'rotate(1.5deg)',
-              }}>
-                <span style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: PX.radius.pill,
-                  background: PX.neutral700,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}>
-                  <PxFigmaIcon name="badge-featured-star" size={12} color={PX.neutral100} />
-                </span>
-                <span style={{
-                  fontFamily: PX.font.sans,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  letterSpacing: '-0.39px',
-                  color: PX.neutral700,
-                  paddingTop: 1,
-                }}>
-                  Beta Suisse romande
-                </span>
-              </div>
-            </div>
+            <ActionBoardMockup />
           </div>
         </div>
       </div>

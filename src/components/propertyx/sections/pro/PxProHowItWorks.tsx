@@ -2,8 +2,9 @@
 // Pattern adapté de PxHowItWorks. Section DARK.
 
 import { useState } from 'react'
-import { PX, PxSectionLabel, PxIcon, PxAvatar, PxFigmaIcon } from '../..'
+import { PX, PxAvatar, PxIconFont, PxFigmaIcon } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import PxProBadge from './PxProBadge'
 
 type StepId = 'import' | 'match' | 'close'
 
@@ -51,7 +52,7 @@ function MockImportCard() {
       boxShadow: PX.shadow.large,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-        <PxIcon name="upload" size={18} color={PX.neutral700} />
+        <PxIconFont name="inbox" size={18} color={PX.neutral700} />
         <span style={{
           fontFamily: PX.font.display,
           fontSize: 18,
@@ -79,7 +80,7 @@ function MockImportCard() {
           placeItems: 'center',
           margin: '0 auto',
         }}>
-          <PxIcon name="upload" size={18} color={PX.neutral100} />
+          <PxFigmaIcon name="arrow-up" size={18} color={PX.neutral100} />
         </div>
         <div style={{
           marginTop: 12,
@@ -127,7 +128,7 @@ function MockImportCard() {
                 width: 16, height: 16, borderRadius: PX.radius.pill, background: PX.neutral700,
                 display: 'grid', placeItems: 'center',
               }}>
-                <PxIcon name="check" size={9} color={PX.neutral100} />
+                <PxFigmaIcon name="check" size={9} color={PX.neutral100} />
               </span>
             </span>
           </div>
@@ -148,7 +149,7 @@ function MockMatchCard() {
       boxShadow: PX.shadow.large,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-        <PxIcon name="users" size={18} color={PX.neutral700} />
+        <PxIconFont name="users" size={18} color={PX.neutral700} />
         <span style={{
           fontFamily: PX.font.display,
           fontSize: 18,
@@ -237,7 +238,7 @@ function MockCloseCard() {
       boxShadow: PX.shadow.large,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-        <PxIcon name="shield" size={18} color={PX.neutral700} />
+        <PxIconFont name="shield" size={18} color={PX.neutral700} />
         <span style={{
           fontFamily: PX.font.display,
           fontSize: 18,
@@ -262,7 +263,7 @@ function MockCloseCard() {
           width: 22, height: 22, borderRadius: PX.radius.pill, background: PX.neutral700,
           display: 'grid', placeItems: 'center',
         }}>
-          <PxIcon name="check" size={12} color={PX.neutral100} />
+          <PxFigmaIcon name="check" size={12} color={PX.neutral100} />
         </span>
         <span style={{
           fontFamily: PX.font.sans,
@@ -296,7 +297,7 @@ function MockCloseCard() {
               border: item.done ? 'none' : `1.5px solid ${PX.neutral400}`,
               display: 'grid', placeItems: 'center',
             }}>
-              {item.done && <PxIcon name="check" size={9} color={PX.neutral100} />}
+              {item.done && <PxFigmaIcon name="check" size={9} color={PX.neutral100} />}
             </span>
             <span style={{
               fontFamily: PX.font.sans,
@@ -486,17 +487,17 @@ export default function PxProHowItWorks() {
             maxWidth: 720,
           }}>
             <div ref={labelRef}>
-              <PxSectionLabel icon="play" invert>Comment ça marche</PxSectionLabel>
+              <PxProBadge icon="badge-process-check" invert>Comment ça marche</PxProBadge>
             </div>
             <h2
               ref={titleRef}
               style={{
                 margin: 0,
                 fontFamily: PX.font.display,
-                fontSize: 56,
+                fontSize: 48,
                 fontWeight: 500,
-                lineHeight: 1.1,
-                letterSpacing: '-2.5px',
+                lineHeight: 1.25,
+                letterSpacing: '-1.44px',
                 color: PX.inkInverse,
               }}
             >
