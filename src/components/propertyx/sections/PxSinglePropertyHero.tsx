@@ -86,6 +86,12 @@ export default function PxSinglePropertyHero({ photos, photosCf, title, listingI
   }))
   const [main, t1, t2, t3, t4] = slots
 
+  // Le grid 2x2 latéral n'est rendu que si on a au moins 2 photos. En-dessous
+  // (1 photo seule, ex. parkings/storages Flatfox), on n'affiche que la photo
+  // principale en pleine largeur — évite 4 emplacements gris vides qui font
+  // "cassé".
+  const showSideGrid = count >= 2
+
   const mainAspect = isMobile ? '4 / 3' : HERO_ASPECT_RATIO
   // En desktop, le bloc 2x2 reçoit le même aspectRatio que la photo principale
   // → garantit la même hauteur, élimine le trou blanc en bas.
@@ -99,9 +105,13 @@ export default function PxSinglePropertyHero({ photos, photosCf, title, listingI
       background: PX.pageBg,
     }}>
       <div style={{
-        width: 'min(1200px, calc(100% - 32px))',
+        // Quand un seul slot (pas de side grid), on cap à 700px pour ne pas
+        // sur-étirer une photo qui sera typiquement 640px natif (Flatfox).
+        width: showSideGrid
+          ? 'min(1200px, calc(100% - 32px))'
+          : 'min(700px, calc(100% - 32px))',
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)',
+        gridTemplateColumns: isMobile || !showSideGrid ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)',
         gap: isMobile ? 8 : 12,
         boxSizing: 'border-box',
       }}>
@@ -137,31 +147,32 @@ export default function PxSinglePropertyHero({ photos, photosCf, title, listingI
           ) : null}
         </button>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: '1fr 1fr',
-          gap: isMobile ? 8 : 12,
-          aspectRatio: sideAspect,
-        }}>
-          <Tile
-            slot={t1}
-            alt={`${resolvedTitle} — 2`}
-            onClick={() => openLightbox(1)}
-            clickable={hasPhotos}
-            extraCount={count > 5 ? count - 5 : 0}
-          />
-          <Tile slot={t2} alt={`${resolvedTitle} — 3`} onClick={() => openLightbox(2)} clickable={hasPhotos} />
-          <Tile slot={t3} alt={`${resolvedTitle} — 4`} onClick={() => openLightbox(3)} clickable={hasPhotos} />
-          <Tile
-            slot={t4}
-            alt={`${resolvedTitle} — 5`}
-            onClick={() => openLightbox(4)}
-            clickable={hasPhotos}
-            extraOverlay={count > 5}
-            extraCount={count - 5}
-          />
-        </div>
+        {showSideGrid && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gridTemplateRows: '1fr 1fr',
+            gap: isMobile ? 8 : 12,
+            aspectRatio: sideAspect,
+          }}>
+            <Tile
+              slot={t1}
+              alt={`${resolvedTitle} — 2`}
+              onClick={() => openLightbox(1)}
+              clickable={hasPhotos && !!t1.src}
+            />
+            <Tile slot={t2} alt={`${resolvedTitle} — 3`} onClick={() => openLightbox(2)} clickable={hasPhotos && !!t2.src} />
+            <Tile slot={t3} alt={`${resolvedTitle} — 4`} onClick={() => openLightbox(3)} clickable={hasPhotos && !!t3.src} />
+            <Tile
+              slot={t4}
+              alt={`${resolvedTitle} — 5`}
+              onClick={() => openLightbox(4)}
+              clickable={hasPhotos && !!t4.src}
+              extraOverlay={count > 5}
+              extraCount={count - 5}
+            />
+          </div>
+        )}
       </div>
 
       {lightboxOpen && hasPhotos ? (
