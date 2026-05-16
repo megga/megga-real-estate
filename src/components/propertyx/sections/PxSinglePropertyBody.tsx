@@ -1052,11 +1052,20 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
               paddingBottom: 24,
             }}>
               <MetaItem icon={<PxFigmaIcon name="surface" size={20} color={PX.neutral400} />} label={surfaceLabel} />
-              <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={roomsLabel} />
+              <MetaItem icon={<PxFigmaIcon name="home-simple" size={20} color={PX.neutral400} />} label={roomsLabel} />
               {listing?.bedrooms ? <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={bedroomsLabel} /> : null}
               {listing?.bathrooms ? <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label={bathroomsLabel} /> : null}
               {!listing ? <MetaItem icon={<PxFigmaIcon name="parking" size={20} color={PX.neutral400} />} label="3" /> : null}
             </div>
+
+            {/* ActionBar mobile-only — pills accessibles près du titre sans
+                avoir à scroller la description + la sidebar. Sur desktop elle
+                est dans la sidebar sous le PricingCard (cf. <aside>). */}
+            {listing && isMobile ? (
+              <div style={{ paddingBottom: 24 }}>
+                <ActionBar listing={listing} layout="stacked" />
+              </div>
+            ) : null}
 
             {/* Paragraph */}
             <div style={{ paddingBottom: 24 }}>
@@ -1183,9 +1192,10 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
           ...(isMobile ? {} : { position: 'sticky', top: 112, alignSelf: 'start' }),
         }}>
           <PricingCard listing={listing} isMobile={isMobile} />
-          {/* Pills d'actions (Partager / Favoris / Signaler) — sous le prix,
-              au-dessus du formulaire de contact. Anciennement à côté du titre. */}
-          {listing ? <ActionBar listing={listing} layout="stacked" /> : null}
+          {/* Pills d'actions (Partager / Favoris / Signaler) — desktop seulement.
+              Sur mobile, elles sont rendues dans la colonne principale, juste
+              après les MetaItems, pour rester accessibles sans long scroll. */}
+          {listing && !isMobile ? <ActionBar listing={listing} layout="stacked" /> : null}
           <ContactFormCard isMobile={isMobile} listing={listing} />
           <AgenceCard listing={listing} isMobile={isMobile} />
         </aside>
