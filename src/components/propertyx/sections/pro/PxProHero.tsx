@@ -11,6 +11,42 @@ import { useBreakpoint, isMobile, isDesktop } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 import IpadFrame from './IpadFrame'
 
+// ─── POI pin pattern PxHero (55×55 white pill + home-poi icon) ───────
+function HomePoiPin({
+  top,
+  left,
+  bottom,
+  right,
+}: {
+  top?: string
+  left?: string
+  bottom?: string
+  right?: string
+}) {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: 'absolute',
+        top,
+        left,
+        bottom,
+        right,
+        width: 55,
+        height: 55,
+        borderRadius: PX.radius.pill,
+        background: PX.neutral100,
+        filter: 'drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.25))',
+        display: 'grid',
+        placeItems: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <PxFigmaIcon name="home-poi" size={29} color={PX.neutral700} />
+    </div>
+  )
+}
+
 // ─── Sidebar de l'app CRM (nav left dans l'iPad) ──────────────────────
 function CrmSidebarNav() {
   const ITEMS: Array<{ icon: PxIconFontName; active?: boolean }> = [
@@ -340,6 +376,57 @@ export default function PxProHero() {
         paddingLeft: innerPaddingX,
         paddingRight: innerPaddingX,
       }}>
+        {/* Background aerial Genève — pattern PxHero (image full-bleed) */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'url("/images/sections/location-cms/hero-aerial.jpg")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.45,
+          }}
+        />
+
+        {/* Gradient overlay — gauche très sombre (texte lisible) → droite plus
+            transparent (image visible derrière l'iPad). Pattern PxHero adapté. */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: desktop
+              ? 'linear-gradient(90deg, rgba(20,22,28,0.92) 0%, rgba(20,22,28,0.80) 35%, rgba(20,22,28,0.50) 100%)'
+              : 'linear-gradient(180deg, rgba(20,22,28,0.78) 0%, rgba(20,22,28,0.88) 100%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Fade top — gradient sombre → transparent comme PxHero ligne 89-96 */}
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0,
+            height: 240,
+            background: 'linear-gradient(180deg, rgba(20,22,28,0.6) 0%, rgba(20,22,28,0) 100%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* POI pins — pattern PxHero (55×55 cercle blanc + PxFigmaIcon home-poi).
+            Affichés uniquement en desktop : sur mobile/tablet le layout stack
+            ne laisse pas d'espace image visible sans chevaucher le contenu. */}
+        {desktop && (
+          <>
+            <HomePoiPin top="20px" left="42%" />
+            <HomePoiPin top="40px" left="68%" />
+            <HomePoiPin top="14px" left="86%" />
+            <HomePoiPin top="auto" bottom="32px" left="55%" />
+          </>
+        )}
+
         <div style={{
           position: 'relative',
           maxWidth: 1280,
