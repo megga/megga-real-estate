@@ -13,7 +13,6 @@
 // données Figma par défaut. Avec un `:id`, on fetch depuis Supabase via
 // useListingDetail et on injecte les vraies données dans Hero + Body.
 
-import { lazy, Suspense } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PX, PxIcon } from '@/components/propertyx'
@@ -29,10 +28,6 @@ import PxSinglePropertyMobileBar from '@/components/propertyx/sections/PxSingleP
 import PxSinglePropertySeo from '@/components/propertyx/sections/PxSinglePropertySeo'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 import { useListingDetail } from '@/hooks/useListingDetail'
-
-// Mapbox embarque ~250KB — lazy-loadé pour ne pas alourdir le bundle initial
-// quand le bien n'a pas de coordonnées (cas fréquent sur les imports Flatfox).
-const PxSinglePropertyMap = lazy(() => import('@/components/propertyx/sections/PxSinglePropertyMap'))
 
 // ─── Loading skeleton ──────────────────────────────────────────────────
 // Squelette qui reproduit l'ossature de la page (hero grid 1+4, title bar,
@@ -248,11 +243,6 @@ export default function PropertyXSinglePropertyPage() {
           ) : null}
           {listing?.context === 'buy' ? (
             <PxSinglePropertyMortgage listing={listing} />
-          ) : null}
-          {listing?.lat && listing?.lng ? (
-            <Suspense fallback={null}>
-              <PxSinglePropertyMap listing={listing} />
-            </Suspense>
           ) : null}
           <PxSinglePropertyCTA />
           <PxSinglePropertyRelated currentListing={listing ?? undefined} />
