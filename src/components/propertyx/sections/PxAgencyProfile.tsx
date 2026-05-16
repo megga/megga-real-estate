@@ -206,10 +206,24 @@ function ShareUrlPill({ url }: { url: string }) {
   )
 }
 
+// Normalise une URL de logo : whitespace/empty/malformée → null
+function normalizeLogoUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  if (!/^(https?:|data:)/i.test(trimmed)) return null
+  return trimmed
+}
+
+function safeInitials(name: string | null | undefined): string {
+  if (!name) return ''
+  return name.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2)
+}
+
 // ─── ProfileCard (left of hero) ─────────────────────────────────────────
 function ProfileCard({ agency }: { agency: AgencyData }) {
-  const initials = agency.name
-    .split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2)
+  const initials = safeInitials(agency.name)
+  const logoUrl = normalizeLogoUrl(agency.logo_url)
   const cantonLabel = agency.canton ? (CANTON_LABELS[agency.canton] || agency.canton) : null
   const handle = [agency.city, cantonLabel ? `(${agency.canton})` : null].filter(Boolean).join(' ')
   const founded = agency.founded_year
@@ -251,10 +265,12 @@ function ProfileCard({ agency }: { agency: AgencyData }) {
         position: 'relative',
         zIndex: 2,
       }}>
-        {agency.logo_url ? (
+        {logoUrl ? (
           <img
-            src={agency.logo_url}
-            alt={agency.name}
+            src={logoUrl}
+            alt={agency.name || ''}
+            decoding="async"
+            referrerPolicy="no-referrer"
             style={{
               maxWidth: 88,
               maxHeight: 88,
@@ -272,7 +288,7 @@ function ProfileCard({ agency }: { agency: AgencyData }) {
           />
         ) : null}
         <span style={{
-          display: agency.logo_url ? 'none' : 'inline-flex',
+          display: logoUrl ? 'none' : 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: PX.font.sans,

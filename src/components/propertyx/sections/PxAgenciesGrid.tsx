@@ -34,11 +34,22 @@ interface PxAgenciesGridProps {
   selectedCantonLabel?: string | null
 }
 
-function initialsOf(name: string): string {
+function initialsOf(name: string | null | undefined): string {
+  if (!name) return ''
   return name
     .split(/\s+/).filter(Boolean)
     .map(w => w[0])
     .join('').toUpperCase().slice(0, 2)
+}
+
+// Normalise une URL de logo : whitespace/empty/malformée → null
+function normalizeLogoUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  // Doit avoir un protocole http(s) ou data:
+  if (!/^(https?:|data:)/i.test(trimmed)) return null
+  return trimmed
 }
 
 // ─── Pill "Vérifiée" LIGHT (bg neutral300, texte neutral700) ────────────
@@ -86,6 +97,7 @@ function VerifiedPill({ label }: { label: string }) {
 function AgencyCardPx({ agency }: { agency: AgencyDirectoryItem }) {
   const { t } = useTranslation('directory')
   const initials = initialsOf(agency.name)
+  const logoUrl = normalizeLogoUrl(agency.logo_url)
   const location = [agency.city, agency.canton ? `(${agency.canton})` : null]
     .filter(Boolean).join(' ')
   const verified = agency.status === 'verified'
@@ -122,11 +134,12 @@ function AgencyCardPx({ agency }: { agency: AgencyDirectoryItem }) {
         flexShrink: 0,
         transition: `background ${PX.duration.base} ${PX.ease}`,
       }}>
-        {agency.logo_url ? (
+        {logoUrl ? (
           <img
-            src={agency.logo_url}
-            alt={agency.name}
+            src={logoUrl}
+            alt={agency.name || ''}
             decoding="async"
+            referrerPolicy="no-referrer"
             style={{
               maxWidth: '70%',
               maxHeight: '60%',
@@ -146,7 +159,7 @@ function AgencyCardPx({ agency }: { agency: AgencyDirectoryItem }) {
           />
         ) : null}
         <span style={{
-          display: agency.logo_url ? 'none' : 'inline-flex',
+          display: logoUrl ? 'none' : 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           width: 88,
