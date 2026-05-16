@@ -2,10 +2,12 @@
 // Pattern aligné sur PxHero (dark rounded container, margin 24).
 // Visuel produit : Action Board CRM dans un iPad Pro 11 Landscape bezel
 // (pattern PxExploreCTA réutilisé) — montre "votre futur CRM dans la main".
+// Responsive : mobile stack vertical / tablet réduit / desktop original.
 
 import { PX, PxButton, PxAvatar, PxIconFont, PxFigmaIcon, PxLogo } from '../..'
 import type { PxIconFontName } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import { useBreakpoint, isMobile, isDesktop } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 import IpadFrame from './IpadFrame'
 
@@ -56,7 +58,6 @@ function CrmSidebarNav() {
   )
 }
 
-// ─── Mini chip + action row, designés pour le contexte iPad landscape ─
 function MockChip({ children }: { children: React.ReactNode }) {
   return (
     <span style={{
@@ -103,7 +104,6 @@ function ActionRow({ name, sub, chip, avatar }: { name: string; sub: string; chi
   )
 }
 
-// ─── Content principal CRM (right inside iPad) ────────────────────────
 function CrmMainContent() {
   return (
     <div style={{
@@ -114,7 +114,6 @@ function CrmMainContent() {
       gap: 16,
       overflow: 'hidden',
     }}>
-      {/* Top bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
@@ -152,7 +151,6 @@ function CrmMainContent() {
         </div>
       </div>
 
-      {/* Body : 2 colonnes — actions list / KPIs */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
@@ -160,9 +158,7 @@ function CrmMainContent() {
         flex: 1,
         minHeight: 0,
       }}>
-        {/* LEFT — Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
-          {/* AI suggestion */}
           <div style={{
             background: PX.neutral100, border: `1px solid ${PX.neutral300}`,
             borderRadius: PX.radius.small, padding: 14,
@@ -213,9 +209,7 @@ function CrmMainContent() {
           />
         </div>
 
-        {/* RIGHT — KPIs + Pipeline preview */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
-          {/* 2 KPI tiles */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
               { label: 'Pipeline', value: 'CHF 4.2M', icon: 'chart' as PxIconFontName },
@@ -245,7 +239,6 @@ function CrmMainContent() {
             ))}
           </div>
 
-          {/* Pipeline mini board */}
           <div style={{
             flex: 1, minHeight: 0,
             background: PX.neutral100, border: `1px solid ${PX.neutral300}`,
@@ -305,8 +298,12 @@ function CrmScreen() {
   )
 }
 
-// ─── Main Hero ───────────────────────────────────────────────────────
+// ─── Main Hero (responsive) ────────────────────────────────────────────
 export default function PxProHero() {
+  const bp = useBreakpoint()
+  const mobile = isMobile(bp)
+  const desktop = isDesktop(bp)
+
   const badgeRef = useProFadeIn<HTMLDivElement>(0)
   const titleRef = useProFadeIn<HTMLHeadingElement>(120)
   const subRef = useProFadeIn<HTMLParagraphElement>(220)
@@ -314,11 +311,23 @@ export default function PxProHero() {
   const ipadRef = useProFadeIn<HTMLDivElement>(460)
   const statsRef = useProFadeIn<HTMLDivElement>(580)
 
+  // Responsive tokens
+  const sectionPaddingX = mobile ? 12 : 24
+  const innerPaddingX = mobile ? 24 : desktop ? 64 : 40
+  const innerPaddingY = mobile ? 48 : desktop ? 64 : 56
+  const innerPaddingBottom = mobile ? 56 : desktop ? 80 : 64
+  const h1Size = mobile ? 40 : desktop ? 72 : 56
+  const h1LetterSpacing = mobile ? '-1.6px' : desktop ? '-3px' : '-2.2px'
+  const subSize = mobile ? 16 : 18
+  const subLetterSpacing = mobile ? '-0.48px' : '-0.54px'
+  const ipadScale = mobile ? 0.42 : desktop ? 0.66 : 0.52
+  const stackVertical = !desktop
+
   return (
     <section style={{
-      paddingTop: 24,
-      paddingLeft: 24,
-      paddingRight: 24,
+      paddingTop: 16,
+      paddingLeft: sectionPaddingX,
+      paddingRight: sectionPaddingX,
       background: PX.pageBg,
     }}>
       <div style={{
@@ -326,22 +335,23 @@ export default function PxProHero() {
         background: PX.inkBg,
         borderRadius: PX.radius.large,
         overflow: 'hidden',
-        paddingTop: 64,
-        paddingBottom: 80,
-        paddingLeft: 64,
-        paddingRight: 64,
+        paddingTop: innerPaddingY,
+        paddingBottom: innerPaddingBottom,
+        paddingLeft: innerPaddingX,
+        paddingRight: innerPaddingX,
       }}>
         <div style={{
           position: 'relative',
           maxWidth: 1280,
           margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 0.95fr)',
-          gap: 48,
-          alignItems: 'center',
+          display: stackVertical ? 'flex' : 'grid',
+          flexDirection: stackVertical ? 'column' : undefined,
+          gridTemplateColumns: stackVertical ? undefined : 'minmax(0, 1fr) minmax(0, 0.95fr)',
+          gap: stackVertical ? 48 : 48,
+          alignItems: stackVertical ? 'flex-start' : 'center',
         }}>
           {/* LEFT — Content */}
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
             <div ref={badgeRef}>
               <PxProBadge icon="badge-megaphone" invert>
                 Pour les agences immobilières
@@ -352,14 +362,14 @@ export default function PxProHero() {
               ref={titleRef}
               style={{
                 margin: 0,
-                marginTop: 28,
+                marginTop: mobile ? 20 : 28,
                 fontFamily: PX.font.display,
-                fontSize: 72,
-                lineHeight: 1.05,
-                letterSpacing: '-3px',
+                fontSize: h1Size,
+                lineHeight: mobile ? 1.1 : 1.05,
+                letterSpacing: h1LetterSpacing,
                 fontWeight: 500,
                 color: PX.inkInverse,
-                maxWidth: 620,
+                maxWidth: desktop ? 620 : '100%',
               }}
             >
               Le CRM immobilier suisse, pensé par un agent.
@@ -369,14 +379,14 @@ export default function PxProHero() {
               ref={subRef}
               style={{
                 margin: 0,
-                marginTop: 28,
+                marginTop: mobile ? 20 : 28,
                 fontFamily: PX.font.sans,
-                fontSize: 18,
+                fontSize: subSize,
                 lineHeight: 1.5,
-                letterSpacing: '-0.54px',
+                letterSpacing: subLetterSpacing,
                 fontWeight: 400,
                 color: PX.inkInverseSoft,
-                maxWidth: 540,
+                maxWidth: desktop ? 540 : '100%',
               }}
             >
               Compliance LAB/KYC intégrée. Pipeline 14 colonnes. Copilote IA Claude Sonnet 4.
@@ -386,7 +396,7 @@ export default function PxProHero() {
             <div
               ref={ctaRef}
               style={{
-                marginTop: 36,
+                marginTop: mobile ? 28 : 36,
                 display: 'flex',
                 gap: 12,
                 flexWrap: 'wrap',
@@ -401,14 +411,16 @@ export default function PxProHero() {
               </PxButton>
             </div>
 
-            {/* Trust stats */}
+            {/* Trust stats — responsive grid */}
             <div
               ref={statsRef}
               style={{
-                marginTop: 56,
-                display: 'flex',
-                gap: 40,
-                flexWrap: 'wrap',
+                marginTop: mobile ? 40 : 56,
+                display: 'grid',
+                gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3, auto)',
+                columnGap: mobile ? 16 : 40,
+                rowGap: mobile ? 20 : 0,
+                justifyContent: mobile ? 'flex-start' : 'flex-start',
               }}
             >
               {[
@@ -419,9 +431,9 @@ export default function PxProHero() {
                 <div key={stat.label} style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{
                     fontFamily: PX.font.display,
-                    fontSize: 30,
+                    fontSize: mobile ? 24 : 30,
                     fontWeight: 500,
-                    letterSpacing: '-0.9px',
+                    letterSpacing: mobile ? '-0.72px' : '-0.9px',
                     color: PX.inkInverse,
                     lineHeight: 1,
                   }}>
@@ -430,7 +442,7 @@ export default function PxProHero() {
                   <span style={{
                     marginTop: 8,
                     fontFamily: PX.font.sans,
-                    fontSize: 13,
+                    fontSize: mobile ? 12 : 13,
                     fontWeight: 400,
                     letterSpacing: '-0.4px',
                     color: PX.inkInverseMuted,
@@ -442,16 +454,17 @@ export default function PxProHero() {
             </div>
           </div>
 
-          {/* RIGHT — iPad CRM */}
+          {/* RIGHT — iPad CRM (scaled) */}
           <div
             ref={ipadRef}
             style={{
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
+              width: '100%',
             }}
           >
-            <IpadFrame scale={0.66}>
+            <IpadFrame scale={ipadScale}>
               <CrmScreen />
             </IpadFrame>
           </div>

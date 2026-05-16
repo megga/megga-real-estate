@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { PX, PxAvatar, PxIconFont, PxFigmaIcon } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import { useBreakpoint, isMobile, isDesktop } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 
 type StepId = 'import' | 'match' | 'close'
@@ -479,37 +480,41 @@ function AccordionItem({
 
 export default function PxProHowItWorks() {
   const [active, setActive] = useState<StepId>('import')
+  const bp = useBreakpoint()
+  const mobile = isMobile(bp)
+  const desktop = isDesktop(bp)
+  const stack = !desktop
+
   const labelRef = useProFadeIn<HTMLDivElement>(0)
   const titleRef = useProFadeIn<HTMLHeadingElement>(100)
   const contentRef = useProFadeIn<HTMLDivElement>(200)
 
   return (
     <section style={{
-      paddingTop: 24,
-      paddingLeft: 24,
-      paddingRight: 24,
-      paddingBottom: 24,
+      paddingTop: mobile ? 16 : 24,
+      paddingLeft: mobile ? 12 : 24,
+      paddingRight: mobile ? 12 : 24,
+      paddingBottom: mobile ? 16 : 24,
       background: PX.pageBg,
     }}>
       <div style={{
         background: PX.inkBg,
         borderRadius: PX.radius.large,
-        paddingTop: 96,
-        paddingBottom: 96,
-        paddingLeft: 64,
-        paddingRight: 64,
+        paddingTop: mobile ? 56 : desktop ? 96 : 72,
+        paddingBottom: mobile ? 56 : desktop ? 96 : 72,
+        paddingLeft: mobile ? 24 : desktop ? 64 : 40,
+        paddingRight: mobile ? 24 : desktop ? 64 : 40,
       }}>
         <div style={{
           maxWidth: 1280,
           margin: '0 auto',
         }}>
-          {/* Header */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-start',
-            gap: 24,
-            marginBottom: 64,
+            gap: mobile ? 16 : 24,
+            marginBottom: mobile ? 32 : 64,
             maxWidth: 720,
           }}>
             <div ref={labelRef}>
@@ -520,10 +525,10 @@ export default function PxProHowItWorks() {
               style={{
                 margin: 0,
                 fontFamily: PX.font.display,
-                fontSize: 48,
+                fontSize: mobile ? 32 : 48,
                 fontWeight: 500,
-                lineHeight: 1.25,
-                letterSpacing: '-1.44px',
+                lineHeight: 1.2,
+                letterSpacing: mobile ? '-1.28px' : '-1.44px',
                 color: PX.inkInverse,
               }}
             >
@@ -531,14 +536,15 @@ export default function PxProHowItWorks() {
             </h2>
           </div>
 
-          {/* Content : accordion left + mockup right */}
+          {/* Content : accordion + mockup (stack vertical sur mobile/tablet) */}
           <div
             ref={contentRef}
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 0.9fr) minmax(0, 1fr)',
-              gap: 64,
-              alignItems: 'center',
+              display: stack ? 'flex' : 'grid',
+              flexDirection: stack ? 'column' : undefined,
+              gridTemplateColumns: stack ? undefined : 'minmax(0, 0.9fr) minmax(0, 1fr)',
+              gap: stack ? 32 : 64,
+              alignItems: stack ? 'stretch' : 'center',
             }}
           >
             {/* Accordion */}

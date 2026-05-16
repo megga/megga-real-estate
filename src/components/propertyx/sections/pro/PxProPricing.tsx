@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { PX, PxButton, PxBadge, PxFigmaIcon, PxIconFont } from '../..'
 import { PLANS } from '@/lib/plans'
 import { useProFadeIn } from './useProFadeIn'
+import { useBreakpoint, isMobile, isDesktop } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 
 type Billing = 'monthly' | 'yearly'
@@ -150,11 +151,15 @@ function PricingCard({
   billing,
   highlight,
   delay,
+  mobile,
+  desktop,
 }: {
   plan: typeof PLANS[number]
   billing: Billing
   highlight: boolean
   delay: number
+  mobile: boolean
+  desktop: boolean
 }) {
   const ref = useProFadeIn<HTMLDivElement>(delay)
   const price = billing === 'monthly' ? plan.price_monthly : plan.price_yearly
@@ -178,12 +183,12 @@ function PricingCard({
         background: bg,
         border,
         borderRadius: PX.radius.large,
-        padding: 40,
+        padding: mobile ? 28 : 40,
         display: 'flex',
         flexDirection: 'column',
-        gap: 32,
+        gap: mobile ? 24 : 32,
         position: 'relative',
-        transform: highlight ? 'translateY(-12px)' : 'translateY(0)',
+        transform: highlight && desktop ? 'translateY(-12px)' : 'translateY(0)',
         boxShadow: highlight ? PX.shadow.large : 'none',
         transition: `transform ${PX.duration.base} ${PX.ease}, box-shadow ${PX.duration.base} ${PX.ease}`,
       }}
@@ -312,6 +317,10 @@ function BillingToggle({
 
 export default function PxProPricing() {
   const [billing, setBilling] = useState<Billing>('monthly')
+  const bp = useBreakpoint()
+  const mobile = isMobile(bp)
+  const desktop = isDesktop(bp)
+
   const labelRef = useProFadeIn<HTMLDivElement>(0)
   const titleRef = useProFadeIn<HTMLHeadingElement>(100)
   const subRef = useProFadeIn<HTMLParagraphElement>(180)
@@ -322,10 +331,10 @@ export default function PxProPricing() {
     <section
       id="tarifs"
       style={{
-        paddingTop: 120,
-        paddingBottom: 120,
-        paddingLeft: 24,
-        paddingRight: 24,
+        paddingTop: mobile ? 80 : 120,
+        paddingBottom: mobile ? 60 : 120,
+        paddingLeft: mobile ? 16 : 24,
+        paddingRight: mobile ? 16 : 24,
         background: PX.pageBg,
         scrollMarginTop: 24,
       }}
@@ -334,13 +343,12 @@ export default function PxProPricing() {
         maxWidth: 1280,
         margin: '0 auto',
       }}>
-        {/* Header */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 20,
-          marginBottom: 56,
+          gap: mobile ? 16 : 20,
+          marginBottom: mobile ? 40 : 56,
           textAlign: 'center',
         }}>
           <div ref={labelRef}>
@@ -351,10 +359,10 @@ export default function PxProPricing() {
             style={{
               margin: 0,
               fontFamily: PX.font.display,
-              fontSize: 48,
+              fontSize: mobile ? 32 : 48,
               fontWeight: 500,
-              lineHeight: 1.25,
-              letterSpacing: '-1.44px',
+              lineHeight: 1.2,
+              letterSpacing: mobile ? '-1.28px' : '-1.44px',
               color: PX.neutral700,
               maxWidth: 720,
             }}
@@ -381,12 +389,14 @@ export default function PxProPricing() {
           </div>
         </div>
 
-        {/* Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 24,
-          alignItems: 'start',
+          gridTemplateColumns: mobile ? '1fr' : desktop ? 'repeat(3, 1fr)' : '1fr',
+          gap: mobile ? 16 : 24,
+          alignItems: mobile ? 'stretch' : 'start',
+          maxWidth: mobile ? 480 : 'none',
+          marginLeft: 'auto',
+          marginRight: 'auto',
         }}>
           {PLANS.map((plan, i) => (
             <PricingCard
@@ -395,15 +405,16 @@ export default function PxProPricing() {
               billing={billing}
               highlight={plan.id === 'pro'}
               delay={i * 100}
+              mobile={mobile}
+              desktop={desktop}
             />
           ))}
         </div>
 
-        {/* Bottom note */}
         <div
           ref={noteRef}
           style={{
-            marginTop: 56,
+            marginTop: mobile ? 40 : 56,
             textAlign: 'center',
             display: 'flex',
             justifyContent: 'center',

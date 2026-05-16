@@ -6,6 +6,7 @@
 import { PX, PxIconFont } from '../..'
 import type { PxIconFontName } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import { useBreakpoint, isMobile, isDesktop } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 
 interface Feature {
@@ -54,7 +55,7 @@ const FEATURES: Feature[] = [
   },
 ]
 
-function FeatureCard({ f, alignment, delay }: { f: Feature; alignment: 'end' | 'start'; delay: number }) {
+function FeatureCard({ f, alignment, delay, stack }: { f: Feature; alignment: 'end' | 'start'; delay: number; stack: boolean }) {
   const ref = useProFadeIn<HTMLDivElement>(delay)
   return (
     <div
@@ -64,8 +65,8 @@ function FeatureCard({ f, alignment, delay }: { f: Feature; alignment: 'end' | '
         flexDirection: 'column',
         gap: 16,
         flex: 1,
-        maxWidth: 480,
-        alignSelf: alignment === 'end' ? 'flex-end' : 'flex-start',
+        maxWidth: stack ? '100%' : 480,
+        alignSelf: stack ? 'stretch' : alignment === 'end' ? 'flex-end' : 'flex-start',
       }}
     >
       {/* Filled icon 28×28 — pattern PropertyXAboutPage exact */}
@@ -119,29 +120,36 @@ function Divider() {
 }
 
 export default function PxProFeatures() {
+  const bp = useBreakpoint()
+  const mobile = isMobile(bp)
+  const desktop = isDesktop(bp)
+  const stack = mobile // mobile : tout en colonne unique
+
   const labelRef = useProFadeIn<HTMLDivElement>(0)
   const titleRef = useProFadeIn<HTMLHeadingElement>(100)
   const subRef = useProFadeIn<HTMLParagraphElement>(180)
 
+  const sectionGap = mobile ? 32 : 48
+  const rowGap = mobile ? 24 : 48
+
   return (
     <section style={{
-      paddingTop: 160,
-      paddingBottom: 120,
-      paddingLeft: 24,
-      paddingRight: 24,
+      paddingTop: mobile ? 80 : 160,
+      paddingBottom: mobile ? 60 : 120,
+      paddingLeft: mobile ? 16 : 24,
+      paddingRight: mobile ? 16 : 24,
       background: PX.pageBg,
     }}>
       <div style={{
         maxWidth: 1280,
         margin: '0 auto',
       }}>
-        {/* Header */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-start',
-          gap: 24,
-          marginBottom: 80,
+          gap: mobile ? 16 : 24,
+          marginBottom: mobile ? 40 : 80,
           maxWidth: 720,
         }}>
           <div ref={labelRef}>
@@ -152,10 +160,10 @@ export default function PxProFeatures() {
             style={{
               margin: 0,
               fontFamily: PX.font.display,
-              fontSize: 48,
+              fontSize: mobile ? 32 : 48,
               fontWeight: 500,
-              lineHeight: 1.25,
-              letterSpacing: '-1.44px',
+              lineHeight: 1.2,
+              letterSpacing: mobile ? '-1.28px' : '-1.44px',
               color: PX.neutral700,
             }}
           >
@@ -166,7 +174,7 @@ export default function PxProFeatures() {
             style={{
               margin: 0,
               fontFamily: PX.font.sans,
-              fontSize: 16,
+              fontSize: mobile ? 15 : 16,
               fontWeight: 400,
               lineHeight: 1.5,
               letterSpacing: '-0.48px',
@@ -179,27 +187,34 @@ export default function PxProFeatures() {
           </p>
         </div>
 
-        {/* Grid — exact PropertyXAboutPage pattern : 3 rows × 2 cards + dividers */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
-          {/* Row 1 — items-end */}
-          <div style={{ display: 'flex', gap: 48, alignItems: 'flex-end' }}>
-            <FeatureCard f={FEATURES[0]} alignment="end" delay={0} />
-            <FeatureCard f={FEATURES[1]} alignment="end" delay={80} />
-          </div>
-          <Divider />
-
-          {/* Row 2 — items-end */}
-          <div style={{ display: 'flex', gap: 48, alignItems: 'flex-end' }}>
-            <FeatureCard f={FEATURES[2]} alignment="end" delay={160} />
-            <FeatureCard f={FEATURES[3]} alignment="end" delay={240} />
-          </div>
-          <Divider />
-
-          {/* Row 3 — items-start */}
-          <div style={{ display: 'flex', gap: 48, alignItems: 'flex-start' }}>
-            <FeatureCard f={FEATURES[4]} alignment="start" delay={320} />
-            <FeatureCard f={FEATURES[5]} alignment="start" delay={400} />
-          </div>
+        {/* Mobile : 6 cards stack vertical avec divider entre chaque
+            Tablet/Desktop : 3 rows × 2 cards avec divider entre rows */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: sectionGap }}>
+          {stack ? (
+            FEATURES.map((f, i) => (
+              <div key={f.title} style={{ display: 'flex', flexDirection: 'column', gap: sectionGap }}>
+                <FeatureCard f={f} alignment="start" delay={i * 60} stack />
+                {i < FEATURES.length - 1 && <Divider />}
+              </div>
+            ))
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: rowGap, alignItems: desktop ? 'flex-end' : 'flex-start' }}>
+                <FeatureCard f={FEATURES[0]} alignment="end" delay={0} stack={false} />
+                <FeatureCard f={FEATURES[1]} alignment="end" delay={80} stack={false} />
+              </div>
+              <Divider />
+              <div style={{ display: 'flex', gap: rowGap, alignItems: desktop ? 'flex-end' : 'flex-start' }}>
+                <FeatureCard f={FEATURES[2]} alignment="end" delay={160} stack={false} />
+                <FeatureCard f={FEATURES[3]} alignment="end" delay={240} stack={false} />
+              </div>
+              <Divider />
+              <div style={{ display: 'flex', gap: rowGap, alignItems: 'flex-start' }}>
+                <FeatureCard f={FEATURES[4]} alignment="start" delay={320} stack={false} />
+                <FeatureCard f={FEATURES[5]} alignment="start" delay={400} stack={false} />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>

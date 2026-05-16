@@ -2,7 +2,9 @@
 // Section DARK full-bleed.
 
 import { PX, PxAvatar, PxFigmaIcon } from '../..'
+import type { PxAvatarSize } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import { useBreakpoint, isMobile, isDesktop } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 
 const PILOT_AGENCIES = [
@@ -19,6 +21,12 @@ const PILOT_AGENCIES = [
 ]
 
 export default function PxProTestimonial() {
+  const bp = useBreakpoint()
+  const mobile = isMobile(bp)
+  const desktop = isDesktop(bp)
+  const stack = !desktop
+  const avatarSize: PxAvatarSize = mobile ? 120 : desktop ? 200 : 160
+
   const labelRef = useProFadeIn<HTMLDivElement>(0)
   const quoteRef = useProFadeIn<HTMLDivElement>(120)
   const authorRef = useProFadeIn<HTMLDivElement>(240)
@@ -26,19 +34,19 @@ export default function PxProTestimonial() {
 
   return (
     <section style={{
-      paddingTop: 24,
-      paddingLeft: 24,
-      paddingRight: 24,
-      paddingBottom: 24,
+      paddingTop: mobile ? 16 : 24,
+      paddingLeft: mobile ? 12 : 24,
+      paddingRight: mobile ? 12 : 24,
+      paddingBottom: mobile ? 16 : 24,
       background: PX.pageBg,
     }}>
       <div style={{
         background: PX.inkBg,
         borderRadius: PX.radius.large,
-        paddingTop: 96,
-        paddingBottom: 96,
-        paddingLeft: 64,
-        paddingRight: 64,
+        paddingTop: mobile ? 56 : desktop ? 96 : 72,
+        paddingBottom: mobile ? 56 : desktop ? 96 : 72,
+        paddingLeft: mobile ? 24 : desktop ? 64 : 40,
+        paddingRight: mobile ? 24 : desktop ? 64 : 40,
         position: 'relative',
         overflow: 'hidden',
       }}>
@@ -46,22 +54,22 @@ export default function PxProTestimonial() {
           position: 'relative',
           maxWidth: 1100,
           margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'auto minmax(0, 1fr)',
-          gap: 56,
-          alignItems: 'center',
+          display: stack ? 'flex' : 'grid',
+          flexDirection: stack ? 'column' : undefined,
+          gridTemplateColumns: stack ? undefined : 'auto minmax(0, 1fr)',
+          gap: stack ? 32 : 56,
+          alignItems: stack ? 'flex-start' : 'center',
         }}>
-          {/* LEFT — Avatar */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
+            alignItems: stack ? 'flex-start' : 'center',
             gap: 16,
           }}>
             <div style={{
               position: 'relative',
             }}>
-              <PxAvatar size={200} src="https://i.pravatar.cc/400?img=68" alt="Gregory Lyonnet" />
+              <PxAvatar size={avatarSize} src="https://i.pravatar.cc/400?img=68" alt="Gregory Lyonnet" />
               {/* Verified badge */}
               <div style={{
                 position: 'absolute',
@@ -80,8 +88,7 @@ export default function PxProTestimonial() {
             </div>
           </div>
 
-          {/* RIGHT — Quote + author */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: mobile ? 20 : 28 }}>
             <div ref={labelRef}>
               <PxProBadge icon="badge-testimonials-message" invert>Témoignage</PxProBadge>
             </div>
@@ -90,10 +97,10 @@ export default function PxProTestimonial() {
               <p style={{
                 margin: 0,
                 fontFamily: PX.font.display,
-                fontSize: 30,
+                fontSize: mobile ? 22 : desktop ? 30 : 26,
                 fontWeight: 500,
-                lineHeight: 1.25,
-                letterSpacing: '-0.9px',
+                lineHeight: 1.3,
+                letterSpacing: mobile ? '-0.66px' : '-0.9px',
                 color: PX.inkInverse,
                 maxWidth: 720,
               }}>

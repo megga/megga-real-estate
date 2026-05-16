@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { PX, PxFigmaIcon } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import { useBreakpoint, isMobile } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 
 interface Question {
@@ -125,29 +126,30 @@ function AccordionItem({
 
 export default function PxProFAQ() {
   const [openId, setOpenId] = useState<string | null>('trial')
+  const bp = useBreakpoint()
+  const mobile = isMobile(bp)
   const labelRef = useProFadeIn<HTMLDivElement>(0)
   const titleRef = useProFadeIn<HTMLHeadingElement>(100)
   const cardRef = useProFadeIn<HTMLDivElement>(200)
 
   return (
     <section style={{
-      paddingTop: 120,
-      paddingBottom: 120,
-      paddingLeft: 24,
-      paddingRight: 24,
+      paddingTop: mobile ? 80 : 120,
+      paddingBottom: mobile ? 60 : 120,
+      paddingLeft: mobile ? 16 : 24,
+      paddingRight: mobile ? 16 : 24,
       background: PX.pageBg,
     }}>
       <div style={{
         maxWidth: 880,
         margin: '0 auto',
       }}>
-        {/* Header */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 20,
-          marginBottom: 56,
+          gap: mobile ? 16 : 20,
+          marginBottom: mobile ? 40 : 56,
           textAlign: 'center',
         }}>
           <div ref={labelRef}>
@@ -158,10 +160,10 @@ export default function PxProFAQ() {
             style={{
               margin: 0,
               fontFamily: PX.font.display,
-              fontSize: 48,
+              fontSize: mobile ? 32 : 48,
               fontWeight: 500,
-              lineHeight: 1.25,
-              letterSpacing: '-1.44px',
+              lineHeight: 1.2,
+              letterSpacing: mobile ? '-1.28px' : '-1.44px',
               color: PX.neutral700,
               maxWidth: 720,
             }}
@@ -170,14 +172,13 @@ export default function PxProFAQ() {
           </h2>
         </div>
 
-        {/* Accordion card */}
         <div
           ref={cardRef}
           style={{
             background: PX.neutral100,
             border: `1px solid ${PX.neutral300}`,
             borderRadius: PX.radius.large,
-            padding: '12px 40px',
+            padding: mobile ? '4px 20px' : '12px 40px',
             boxShadow: PX.shadow.small,
           }}
         >

@@ -5,6 +5,7 @@
 import { PX, PxButton, PxIconFont } from '../..'
 import type { PxIconFontName } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import { useBreakpoint, isMobile, isDesktop } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 
 const TRUST_SIGNALS: Array<{ icon: PxIconFontName; label: string; sub: string }> = [
@@ -26,6 +27,10 @@ const TRUST_SIGNALS: Array<{ icon: PxIconFontName; label: string; sub: string }>
 ]
 
 export default function PxProFinalCTA() {
+  const bp = useBreakpoint()
+  const mobile = isMobile(bp)
+  const desktop = isDesktop(bp)
+
   const labelRef = useProFadeIn<HTMLDivElement>(0)
   const titleRef = useProFadeIn<HTMLHeadingElement>(100)
   const subRef = useProFadeIn<HTMLParagraphElement>(180)
@@ -36,10 +41,10 @@ export default function PxProFinalCTA() {
     <section
       id="demo"
       style={{
-        paddingTop: 24,
-        paddingBottom: 24,
-        paddingLeft: 24,
-        paddingRight: 24,
+        paddingTop: mobile ? 16 : 24,
+        paddingBottom: mobile ? 16 : 24,
+        paddingLeft: mobile ? 12 : 24,
+        paddingRight: mobile ? 12 : 24,
         background: PX.pageBg,
         scrollMarginTop: 24,
       }}
@@ -47,10 +52,10 @@ export default function PxProFinalCTA() {
       <div style={{
         background: PX.inkBg,
         borderRadius: PX.radius.large,
-        paddingTop: 120,
-        paddingBottom: 120,
-        paddingLeft: 64,
-        paddingRight: 64,
+        paddingTop: mobile ? 72 : desktop ? 120 : 96,
+        paddingBottom: mobile ? 72 : desktop ? 120 : 96,
+        paddingLeft: mobile ? 24 : desktop ? 64 : 40,
+        paddingRight: mobile ? 24 : desktop ? 64 : 40,
         position: 'relative',
         overflow: 'hidden',
       }}>
@@ -71,12 +76,12 @@ export default function PxProFinalCTA() {
             ref={titleRef}
             style={{
               margin: 0,
-              marginTop: 28,
+              marginTop: mobile ? 20 : 28,
               fontFamily: PX.font.display,
-              fontSize: 72,
+              fontSize: mobile ? 40 : desktop ? 72 : 56,
               fontWeight: 500,
-              lineHeight: 1.05,
-              letterSpacing: '-3px',
+              lineHeight: mobile ? 1.1 : 1.05,
+              letterSpacing: mobile ? '-1.6px' : '-3px',
               color: PX.inkInverse,
               maxWidth: 880,
             }}
@@ -88,12 +93,12 @@ export default function PxProFinalCTA() {
             ref={subRef}
             style={{
               margin: 0,
-              marginTop: 28,
+              marginTop: mobile ? 20 : 28,
               fontFamily: PX.font.sans,
-              fontSize: 20,
+              fontSize: mobile ? 16 : 20,
               fontWeight: 400,
               lineHeight: 1.5,
-              letterSpacing: '-0.6px',
+              letterSpacing: mobile ? '-0.48px' : '-0.6px',
               color: PX.inkInverseSoft,
               maxWidth: 640,
             }}
@@ -106,7 +111,7 @@ export default function PxProFinalCTA() {
           <div
             ref={ctaRef}
             style={{
-              marginTop: 44,
+              marginTop: mobile ? 32 : 44,
               display: 'flex',
               gap: 12,
               flexWrap: 'wrap',
@@ -126,12 +131,12 @@ export default function PxProFinalCTA() {
           <div
             ref={trustRef}
             style={{
-              marginTop: 80,
+              marginTop: mobile ? 56 : 80,
               width: '100%',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 24,
-              paddingTop: 48,
+              gridTemplateColumns: mobile ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: mobile ? 28 : 24,
+              paddingTop: mobile ? 32 : 48,
               borderTop: `1px solid rgba(255,255,255,0.10)`,
             }}
           >

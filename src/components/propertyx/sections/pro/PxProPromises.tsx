@@ -5,6 +5,7 @@
 import { PX, PxIconFont } from '../..'
 import type { PxIconFontName } from '../..'
 import { useProFadeIn } from './useProFadeIn'
+import { useBreakpoint, isMobile, isDesktop } from './useBreakpoint'
 import PxProBadge from './PxProBadge'
 
 interface Promise {
@@ -42,7 +43,7 @@ const PROMISES: Promise[] = [
   },
 ]
 
-function PromiseCard({ p, delay }: { p: Promise; delay: number }) {
+function PromiseCard({ p, delay, mobile }: { p: Promise; delay: number; mobile: boolean }) {
   const ref = useProFadeIn<HTMLDivElement>(delay)
 
   return (
@@ -54,44 +55,39 @@ function PromiseCard({ p, delay }: { p: Promise; delay: number }) {
         background: PX.neutral100,
         border: `1px solid ${PX.neutral300}`,
         borderRadius: PX.radius.large,
-        padding: 40,
+        padding: mobile ? 28 : 40,
         display: 'flex',
         flexDirection: 'column',
-        gap: 24,
+        gap: mobile ? 18 : 24,
         position: 'relative',
       }}
     >
-      {/* Filled icon — pattern PropertyXAboutPage values card */}
       <div style={{
-        width: 28,
-        height: 28,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        width: 28, height: 28,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <PxIconFont name={p.icon} size={28} color={PX.neutral700} />
       </div>
 
-      {/* Big metric */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
         <span style={{
           fontFamily: PX.font.display,
-          fontSize: 72,
+          fontSize: mobile ? 56 : 72,
           fontWeight: 500,
           lineHeight: 1,
-          letterSpacing: '-3px',
+          letterSpacing: mobile ? '-2.2px' : '-3px',
           color: PX.neutral700,
         }}>
           {p.metric}
         </span>
         <span style={{
           fontFamily: PX.font.display,
-          fontSize: 36,
+          fontSize: mobile ? 28 : 36,
           fontWeight: 500,
           lineHeight: 1,
-          letterSpacing: '-1.5px',
+          letterSpacing: mobile ? '-1.1px' : '-1.5px',
           color: PX.neutral500,
-          paddingBottom: 6,
+          paddingBottom: 4,
           marginLeft: 4,
         }}>
           {p.unit}
@@ -128,29 +124,30 @@ function PromiseCard({ p, delay }: { p: Promise; delay: number }) {
 }
 
 export default function PxProPromises() {
+  const bp = useBreakpoint()
+  const mobile = isMobile(bp)
+  const desktop = isDesktop(bp)
+
   const labelRef = useProFadeIn<HTMLDivElement>(0)
   const titleRef = useProFadeIn<HTMLHeadingElement>(100)
   const subRef = useProFadeIn<HTMLParagraphElement>(180)
 
   return (
     <section style={{
-      paddingTop: 160,
-      paddingBottom: 80,
-      paddingLeft: 24,
-      paddingRight: 24,
+      paddingTop: mobile ? 80 : desktop ? 160 : 120,
+      paddingBottom: mobile ? 48 : 80,
+      paddingLeft: mobile ? 16 : 24,
+      paddingRight: mobile ? 16 : 24,
       background: PX.pageBg,
     }}>
       <div style={{
         maxWidth: 1280,
         margin: '0 auto',
       }}>
-        {/* Section header — pattern PxAboutSection / PxFeaturedProperties */}
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: 24,
-          marginBottom: 64,
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+          gap: mobile ? 16 : 24,
+          marginBottom: mobile ? 40 : 64,
           maxWidth: 720,
         }}>
           <div ref={labelRef}>
@@ -161,10 +158,10 @@ export default function PxProPromises() {
             style={{
               margin: 0,
               fontFamily: PX.font.display,
-              fontSize: 48,
+              fontSize: mobile ? 32 : 48,
               fontWeight: 500,
-              lineHeight: 1.25,
-              letterSpacing: '-1.44px',
+              lineHeight: 1.2,
+              letterSpacing: mobile ? '-1.28px' : '-1.44px',
               color: PX.neutral700,
             }}
           >
@@ -175,7 +172,7 @@ export default function PxProPromises() {
             style={{
               margin: 0,
               fontFamily: PX.font.sans,
-              fontSize: 16,
+              fontSize: mobile ? 15 : 16,
               fontWeight: 400,
               lineHeight: 1.5,
               letterSpacing: '-0.48px',
@@ -188,15 +185,14 @@ export default function PxProPromises() {
           </p>
         </div>
 
-        {/* Cards */}
         <div style={{
-          display: 'flex',
-          gap: 24,
+          display: 'grid',
+          gridTemplateColumns: mobile ? '1fr' : desktop ? 'repeat(3, 1fr)' : '1fr 1fr',
+          gap: mobile ? 16 : 24,
           alignItems: 'stretch',
-          flexWrap: 'wrap',
         }}>
           {PROMISES.map((p, i) => (
-            <PromiseCard key={p.label} p={p} delay={i * 90} />
+            <PromiseCard key={p.label} p={p} delay={i * 90} mobile={mobile} />
           ))}
         </div>
       </div>
