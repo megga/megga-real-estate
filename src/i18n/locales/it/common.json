@@ -1046,11 +1046,6 @@
       "readMore": "Leggi di più",
       "readLess": "Riduci"
     },
-    "map": {
-      "title": "Posizione",
-      "openInMaps": "Apri in Google Maps",
-      "loading": "Caricamento della mappa…"
-    },
     "energy": {
       "eyebrow": "Prestazione energetica",
       "title": "Certificato CECE",

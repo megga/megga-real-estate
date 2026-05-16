@@ -1051,11 +1051,6 @@
       "readMore": "Lire la suite",
       "readLess": "Réduire"
     },
-    "map": {
-      "title": "Localisation",
-      "openInMaps": "Ouvrir dans Google Maps",
-      "loading": "Chargement de la carte…"
-    },
     "energy": {
       "eyebrow": "Performance énergétique",
       "title": "Certificat CECB",

@@ -1046,11 +1046,6 @@
       "readMore": "Mehr lesen",
       "readLess": "Weniger anzeigen"
     },
-    "map": {
-      "title": "Lage",
-      "openInMaps": "In Google Maps öffnen",
-      "loading": "Karte wird geladen…"
-    },
     "energy": {
       "eyebrow": "Energieeffizienz",
       "title": "GEAK-Zertifikat",
