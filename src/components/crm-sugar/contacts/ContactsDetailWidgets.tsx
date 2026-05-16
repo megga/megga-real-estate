@@ -1052,7 +1052,9 @@ export function CtKyc({
           width: '100%',
           height: 32,
           borderRadius: 8,
-          background: status === 'verified' ? 'transparent' : '#0041D9',
+          // Sprint 1 arbitrage #3 README : correction du bug `#0041D9` (ancien token
+          // Property X marketplace) — l'accent CRM Sugar Pure est `#0B0C0E`.
+          background: status === 'verified' ? 'transparent' : '#0B0C0E',
           color: status === 'verified' ? sp.ink : '#fff',
           border: status === 'verified' ? `1px solid ${sp.cardBorder}` : 0,
           fontSize: 12,
