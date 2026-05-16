@@ -1,0 +1,89 @@
+/* MEGGA CRM Sugar v3 — Responsive overrides
+ *
+ * Spec handoff : "Mobile : tous les écrans doivent au minimum scroller
+ * proprement sur 375px (responsive complet en phase 2)".
+ *
+ * Stratégie : les composants Sugar v3 utilisent des styles inline pour la
+ * fidélité pixel-près desktop. Cette feuille CSS ajoute des classes utilitaires
+ * dont les media queries (avec !important) surchargent les inline styles à
+ * partir de < 768px.
+ *
+ * Utilisation : ajouter className="sg-grid-2" à un grid 2-col qui doit
+ * collapse en 1-col sur mobile. Le style inline reste autoritatif desktop.
+ */
+
+@media (max-width: 768px) {
+  /* Grids 2 colonnes → 1 colonne */
+  .sg-grid-2,
+  .sg-grid-3,
+  .sg-grid-4,
+  .sg-grid-5 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Grid wizard 3 portes (1.15fr 1fr 1fr) → stack */
+  .sg-grid-gates {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Flex row avec align flex-end (header KYC list) → stack vertical */
+  .sg-row-stack {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  /* Hero CdHero coordonnées 4-col → 2-col */
+  .sg-grid-coords {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Détails KYC : grid 2x docs+audit → stack */
+  .sg-grid-detail-bottom {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Padding réduit sur main pour 375px */
+  .sg-main-padded {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Hide on mobile (avatars switcher demo, etc.) */
+  .sg-hide-mobile {
+    display: none !important;
+  }
+
+  /* Wizard footer : adapte le padding latéral */
+  .sg-wizard-footer {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Titre 40px → 28px */
+  .sg-h1 {
+    font-size: 28px !important;
+    letter-spacing: -0.4 !important;
+  }
+
+  /* Bento KycStatCard valeur 44px → 32px */
+  .sg-stat-value {
+    font-size: 32px !important;
+  }
+
+  /* Toast / banner pipeline : padding latéral réduit */
+  .sg-banner {
+    padding: 14px 16px !important;
+    border-radius: 18px !important;
+  }
+}
+
+/* Très petit (< 375px) — emergencyfallback */
+@media (max-width: 380px) {
+  .sg-grid-coords {
+    grid-template-columns: 1fr !important;
+  }
+  .sg-h1 {
+    font-size: 24px !important;
+  }
+}

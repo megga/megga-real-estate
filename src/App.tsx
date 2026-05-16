@@ -87,6 +87,7 @@ const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
 const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
 const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
 const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
+const ContactDetailSugarV3Page = lazy(() => import('@/pages/agent/ContactDetailSugarV3Page'))
 const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
 const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
@@ -105,6 +106,8 @@ const KycListPage = lazy(() => import('@/pages/agent/KycListPage'))
 const KycDetailPage = lazy(() => import('@/pages/agent/KycDetailPage'))
 const KycListSugarV2Page = lazy(() => import('@/pages/agent/KycListSugarV2Page'))
 const KycDetailSugarV2Page = lazy(() => import('@/pages/agent/KycDetailSugarV2Page'))
+const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
+const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
 const ReseauSugarV2Page = lazy(() => import('@/pages/agent/ReseauSugarV2Page'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
@@ -373,10 +376,16 @@ export default function App() {
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
                 <Route path="documents" element={<DocumentsSugarV2Page />} />
                 <Route path="settings" element={<SettingsSugarV2Page />} />
-                <Route path="kyc" element={<KycListSugarV2Page />} />
+                {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
+                <Route path="kyc" element={<KycSugarV3Page />} />
+                <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
+                {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
                 <Route path="kyc/showcase" element={<KycShowcasePage />} />
-                <Route path="kyc/:id" element={<KycDetailSugarV2Page />} />
+                <Route path="kyc/v2" element={<KycListSugarV2Page />} />
+                <Route path="kyc/v2/:id" element={<KycDetailSugarV2Page />} />
                 <Route path="reseau" element={<ReseauSugarV2Page />} />
+                {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
+                <Route path="audit" element={<AuditSugarPage />} />
                 <Route path="julien" element={<JulienSugarV2Page />} />
               </Route>
 
@@ -392,7 +401,9 @@ export default function App() {
                 <Route path="analytics" element={<DashboardPage />} />
                 <Route path="contacts-legacy" element={<ContactsPage />} />
                 <Route path="contacts/import" element={<ContactImportPage />} />
-                <Route path="contacts/:id" element={<ContactDetailPage />} />
+                {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) */}
+                <Route path="contacts/:id" element={<ContactDetailSugarV3Page />} />
+                <Route path="contacts/:id/v2" element={<ContactDetailPage />} />
                 <Route path="pipeline-legacy" element={<PipelinePage />} />
                 <Route path="matching-legacy" element={<MatchingPage />} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />

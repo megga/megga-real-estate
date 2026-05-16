@@ -1,0 +1,266 @@
+// MEGGA CRM Sugar v3 — Vue liste KYC (par défaut)
+// Port 1:1 de crm-screen-kyc-sugar.jsx lignes 649-755 (KycListView).
+
+import { SugarV3 } from '../tokens'
+import { KycBlackPill, KycGhostPill, KycStatCard } from '../primitives'
+import { SgIcon } from '../icons'
+import { KycDossierRow } from './KycDossierRow'
+import { useKycDossiers, type KycDossierRow as KycDossierRowData } from '@/hooks/useKycDossier'
+import type { KycDossierStatus } from '@/types/kyc'
+
+type FilterKey = 'all' | 'blocking' | 'pending' | 'none' | 'verified' | 'risk'
+
+interface Props {
+  onOpen: (id: string) => void
+  onNewDossier: () => void
+  filter: FilterKey
+  setFilter: (f: FilterKey) => void
+}
+
+export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) {
+  const { data: dossiers = [], isLoading } = useKycDossiers()
+
+  const stats = {
+    verified: dossiers.filter((d) => d.dossier_status === 'verified').length,
+    pending: dossiers.filter((d) => d.dossier_status === 'pending').length,
+    none: dossiers.filter((d) => d.dossier_status === 'none').length,
+    risk: dossiers.filter(
+      (d) => d.risk_level === 'high' || d.risk_level === 'medium',
+    ).length,
+    stale: dossiers.filter((d) => d.dossier_status === 'stale').length,
+    high: dossiers.filter((d) => d.risk_level === 'high').length,
+  }
+
+  const filtered = dossiers.filter((d: KycDossierRowData) => {
+    if (filter === 'all') return true
+    if (filter === 'blocking') return d.dossier_status !== 'verified'
+    if (filter === 'verified') return d.dossier_status === 'verified'
+    if (filter === 'pending') return d.dossier_status === 'pending'
+    if (filter === 'none')
+      return (d.dossier_status as KycDossierStatus) === 'none'
+    if (filter === 'risk') return d.risk_level === 'high'
+    return true
+  })
+
+  return (
+    <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+      {/* HEADER */}
+      <div
+        className="sg-row-stack"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr auto',
+          gap: 32,
+          alignItems: 'flex-end',
+          marginBottom: 36,
+          animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <div>
+          <h1
+            className="sg-h1"
+            style={{
+              margin: '0 0 12px',
+              fontSize: 40,
+              fontWeight: 700,
+              color: SugarV3.ink,
+              letterSpacing: -0.8,
+              lineHeight: 1.05,
+            }}
+          >
+            Dossiers KYC.
+          </h1>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 15,
+              color: SugarV3.inkSoft,
+              fontWeight: 500,
+              lineHeight: 1.55,
+              maxWidth: 580,
+            }}
+          >
+            Toute transaction immobilière en Suisse exige une vérification documentée
+            de l'identité, du domicile et de l'origine des fonds. Un dossier
+            non-vérifié bloque automatiquement la progression dans le pipeline.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <KycGhostPill
+            icon={<SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />}
+          >
+            Exporter
+          </KycGhostPill>
+          <KycBlackPill
+            size="lg"
+            onClick={onNewDossier}
+            icon={<SgIcon name="plus" size={16} stroke="#fff" sw={2} />}
+          >
+            Nouveau dossier
+          </KycBlackPill>
+        </div>
+      </div>
+
+      {/* STATS BENTO — 4 cards */}
+      <div
+        className="sg-grid-4"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 14,
+          marginBottom: 36,
+          animation: 'sgFadeUp .55s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <KycStatCard
+          label="Vérifiés"
+          value={stats.verified}
+          accent={SugarV3.ok}
+          sub="Transactions autorisées"
+        />
+        <KycStatCard
+          label="En cours"
+          value={stats.pending}
+          accent={SugarV3.warn}
+          sub="Pièces manquantes ou screening en attente"
+        />
+        <KycStatCard
+          label="À démarrer"
+          value={stats.none}
+          accent={SugarV3.muted}
+          sub="Aucun document collecté"
+        />
+        <KycStatCard
+          label="Vigilance"
+          value={stats.risk}
+          accent={SugarV3.err}
+          sub="Risque modéré ou élevé identifié"
+        />
+      </div>
+
+      {/* FILTRES */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 20,
+          flexWrap: 'wrap',
+          animation: 'sgFadeUp .6s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <KycGhostPill
+          active={filter === 'all'}
+          onClick={() => setFilter('all')}
+        >
+          Tous · {dossiers.length}
+        </KycGhostPill>
+        <KycGhostPill
+          active={filter === 'blocking'}
+          onClick={() => setFilter('blocking')}
+          icon={
+            <SgIcon
+              name="lock"
+              size={13}
+              stroke={filter === 'blocking' ? '#fff' : SugarV3.inkSoft}
+            />
+          }
+        >
+          Bloquants pipeline · {dossiers.filter((d) => d.dossier_status !== 'verified').length}
+        </KycGhostPill>
+        <KycGhostPill
+          active={filter === 'pending'}
+          onClick={() => setFilter('pending')}
+        >
+          En cours · {stats.pending}
+        </KycGhostPill>
+        <KycGhostPill
+          active={filter === 'none'}
+          onClick={() => setFilter('none')}
+        >
+          À démarrer · {stats.none}
+        </KycGhostPill>
+        <KycGhostPill
+          active={filter === 'verified'}
+          onClick={() => setFilter('verified')}
+        >
+          Vérifiés · {stats.verified}
+        </KycGhostPill>
+        <KycGhostPill
+          active={filter === 'risk'}
+          onClick={() => setFilter('risk')}
+        >
+          Risque élevé · {stats.high}
+        </KycGhostPill>
+      </div>
+
+      {/* LISTE */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          animation: 'sgFadeUp .65s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        {isLoading && (
+          <div
+            style={{
+              padding: '60px 32px',
+              textAlign: 'center',
+              background: SugarV3.card,
+              borderRadius: 22,
+              boxShadow: SugarV3.shadow,
+              color: SugarV3.muted,
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            Chargement des dossiers…
+          </div>
+        )}
+        {!isLoading &&
+          filtered.map((d) => (
+            <KycDossierRow key={d.id} dossier={d} onOpen={() => onOpen(d.id)} />
+          ))}
+        {!isLoading && filtered.length === 0 && (
+          <div
+            style={{
+              padding: '60px 32px',
+              textAlign: 'center',
+              background: SugarV3.card,
+              borderRadius: 22,
+              boxShadow: SugarV3.shadow,
+              color: SugarV3.muted,
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            Aucun dossier ne correspond à ce filtre.
+          </div>
+        )}
+      </div>
+
+      {/* Compteur stale en bas si présent (cas spec stale) */}
+      {stats.stale > 0 && (
+        <div
+          style={{
+            marginTop: 18,
+            padding: '14px 20px',
+            background: SugarV3.warnSoft,
+            borderRadius: 14,
+            color: SugarV3.warn,
+            fontSize: 12.5,
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <SgIcon name="alert" size={14} stroke={SugarV3.warn} sw={2} />
+          {stats.stale} dossier{stats.stale > 1 ? 's' : ''} à re-screener (échéance dépassée).
+        </div>
+      )}
+    </div>
+  )
+}
