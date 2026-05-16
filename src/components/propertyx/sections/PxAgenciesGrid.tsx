@@ -107,7 +107,10 @@ function AgencyCardPx({ agency }: { agency: AgencyDirectoryItem }) {
         transition: `box-shadow ${PX.duration.base} ${PX.ease}, transform ${PX.duration.base} ${PX.ease}`,
       }}
     >
-      {/* Visual area : h-200, bg neutral200, logo centré max 120 */}
+      {/* Visual area : h-200, bg neutral200, logo centré max 120. Pas de
+          lazy-load — la grille est paginée (30 cards max visibles), donc
+          on charge tout en eager pour éviter le flash gris vide pendant
+          le lazy-load des cards below-the-fold. */}
       <div className="px-agency-card__visual" style={{
         position: 'relative',
         width: '100%',
@@ -123,11 +126,10 @@ function AgencyCardPx({ agency }: { agency: AgencyDirectoryItem }) {
           <img
             src={agency.logo_url}
             alt={agency.name}
-            loading="lazy"
             decoding="async"
             style={{
-              maxWidth: 120,
-              maxHeight: 120,
+              maxWidth: '70%',
+              maxHeight: '60%',
               width: 'auto',
               height: 'auto',
               objectFit: 'contain',
