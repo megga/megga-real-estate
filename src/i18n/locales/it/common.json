@@ -1044,6 +1044,16 @@
       "readMore": "Leggi di più",
       "readLess": "Riduci"
     },
+    "map": {
+      "title": "Posizione",
+      "openInMaps": "Apri in Google Maps",
+      "loading": "Caricamento della mappa…"
+    },
+    "energy": {
+      "eyebrow": "Prestazione energetica",
+      "title": "Certificato CECE",
+      "description": "Classe {{grade}} sulla scala CECE (A = molto efficiente, G = energivoro). Valori stimati, basati sulla dichiarazione dell'agenzia."
+    },
     "contact": {
       "title": "Richiedere maggiori informazioni",
       "subtitle": "L'agenzia La ricontatta entro 24 ore per rispondere alle Sue domande o organizzare una visita.",

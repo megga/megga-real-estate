@@ -17,14 +17,20 @@ import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PX } from '@/components/propertyx/tokens'
 import PxNav from '@/components/propertyx/sections/PxNav'
+import { lazy, Suspense } from 'react'
 import PxSinglePropertyBreadcrumb from '@/components/propertyx/sections/PxSinglePropertyBreadcrumb'
 import PxSinglePropertyHero from '@/components/propertyx/sections/PxSinglePropertyHero'
 import PxSinglePropertyBody from '@/components/propertyx/sections/PxSinglePropertyBody'
+import PxSinglePropertyEnergy from '@/components/propertyx/sections/PxSinglePropertyEnergy'
 import PxSinglePropertyRelated from '@/components/propertyx/sections/PxSinglePropertyRelated'
 import PxSinglePropertyCTA from '@/components/propertyx/sections/PxSinglePropertyCTA'
 import PxSinglePropertyMobileBar from '@/components/propertyx/sections/PxSinglePropertyMobileBar'
 import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
 import { useListingDetail } from '@/hooks/useListingDetail'
+
+// Mapbox embarque ~250KB — lazy-loadé pour ne pas alourdir le bundle initial
+// quand le bien n'a pas de coordonnées (cas fréquent sur les imports Flatfox).
+const PxSinglePropertyMap = lazy(() => import('@/components/propertyx/sections/PxSinglePropertyMap'))
 
 function StatusScreen({ message }: { message: string }) {
   return (
@@ -67,6 +73,14 @@ export default function PropertyXSinglePropertyPage() {
             listingId={listing?.id}
           />
           <PxSinglePropertyBody listing={listing ?? undefined} />
+          {listing?.energy_label ? (
+            <PxSinglePropertyEnergy listing={listing} />
+          ) : null}
+          {listing?.lat && listing?.lng ? (
+            <Suspense fallback={null}>
+              <PxSinglePropertyMap listing={listing} />
+            </Suspense>
+          ) : null}
           <PxSinglePropertyCTA />
           <PxSinglePropertyRelated currentListing={listing ?? undefined} />
         </>

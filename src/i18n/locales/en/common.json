@@ -1044,6 +1044,16 @@
       "readMore": "Read more",
       "readLess": "Read less"
     },
+    "map": {
+      "title": "Location",
+      "openInMaps": "Open in Google Maps",
+      "loading": "Loading map…"
+    },
+    "energy": {
+      "eyebrow": "Energy performance",
+      "title": "CECB certificate",
+      "description": "Class {{grade}} on the CECB scale (A = highly efficient, G = energy-intensive). Estimated values based on the agency declaration."
+    },
     "contact": {
       "title": "Request more information",
       "subtitle": "The agency will get back to you within 24 hours to answer your questions or arrange a viewing.",

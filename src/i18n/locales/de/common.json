@@ -1044,6 +1044,16 @@
       "readMore": "Mehr lesen",
       "readLess": "Weniger anzeigen"
     },
+    "map": {
+      "title": "Lage",
+      "openInMaps": "In Google Maps öffnen",
+      "loading": "Karte wird geladen…"
+    },
+    "energy": {
+      "eyebrow": "Energieeffizienz",
+      "title": "GEAK-Zertifikat",
+      "description": "Klassifizierung {{grade}} auf der GEAK-Skala (A = sehr effizient, G = energieintensiv). Schätzwerte, basierend auf den Angaben der Agentur."
+    },
     "contact": {
       "title": "Weitere Informationen anfragen",
       "subtitle": "Die Agentur meldet sich innerhalb von 24 Stunden bei Ihnen, um Ihre Fragen zu beantworten oder eine Besichtigung zu organisieren.",

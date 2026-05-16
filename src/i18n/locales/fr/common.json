@@ -1049,6 +1049,16 @@
       "readMore": "Lire la suite",
       "readLess": "Réduire"
     },
+    "map": {
+      "title": "Localisation",
+      "openInMaps": "Ouvrir dans Google Maps",
+      "loading": "Chargement de la carte…"
+    },
+    "energy": {
+      "eyebrow": "Performance énergétique",
+      "title": "Certificat CECB",
+      "description": "Classement {{grade}} sur l'échelle CECB (A = très efficace, G = énergivore). Valeurs estimatives, basées sur la déclaration de l'agence."
+    },
     "contact": {
       "title": "Demander plus d'informations",
       "subtitle": "L'agence vous recontacte sous 24 h pour répondre à vos questions ou organiser une visite.",
