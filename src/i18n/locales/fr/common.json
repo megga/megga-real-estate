@@ -1019,6 +1019,29 @@
     "defaultTitle": "Bien immobilier",
     "favoriteAdd": "Ajouter aux favoris",
     "favoriteRemove": "Retirer des favoris",
+    "breadcrumb": {
+      "home": "Accueil",
+      "buy": "Acheter",
+      "rent": "Louer"
+    },
+    "actions": {
+      "share": "Partager",
+      "shareCopied": "Lien copié",
+      "shareTitle": "Partager ce bien",
+      "report": "Signaler une erreur"
+    },
+    "badges": {
+      "new": "Nouveau",
+      "priceDrop": "Prix baissé · −{{percent}}%",
+      "publishedAgo_day_one": "Publié il y a {{count}} jour",
+      "publishedAgo_day_other": "Publié il y a {{count}} jours",
+      "publishedToday": "Publié aujourd'hui",
+      "publishedAgo_week_one": "Publié il y a {{count}} semaine",
+      "publishedAgo_week_other": "Publié il y a {{count}} semaines",
+      "publishedAgo_month_one": "Publié il y a {{count}} mois",
+      "publishedAgo_month_other": "Publié il y a {{count}} mois"
+    },
+    "pricePerSqm": "{{value}} CHF/m²",
     "contact": {
       "title": "Demander plus d'informations",
       "subtitle": "L'agence vous recontacte sous 24 h pour répondre à vos questions ou organiser une visite.",

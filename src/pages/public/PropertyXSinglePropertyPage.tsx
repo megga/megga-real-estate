@@ -17,6 +17,7 @@ import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PX } from '@/components/propertyx/tokens'
 import PxNav from '@/components/propertyx/sections/PxNav'
+import PxSinglePropertyBreadcrumb from '@/components/propertyx/sections/PxSinglePropertyBreadcrumb'
 import PxSinglePropertyHero from '@/components/propertyx/sections/PxSinglePropertyHero'
 import PxSinglePropertyBody from '@/components/propertyx/sections/PxSinglePropertyBody'
 import PxSinglePropertyRelated from '@/components/propertyx/sections/PxSinglePropertyRelated'
@@ -58,6 +59,7 @@ export default function PropertyXSinglePropertyPage() {
       {id && isError && <StatusScreen message={t('marketplaceProperty.notFound')} />}
       {(!id || (!isLoading && !isError)) && (
         <>
+          <PxSinglePropertyBreadcrumb listing={listing ?? undefined} />
           <PxSinglePropertyHero
             photos={listing?.photos ?? undefined}
             title={listing?.title}

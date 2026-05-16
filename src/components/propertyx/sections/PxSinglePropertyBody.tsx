@@ -14,14 +14,19 @@
 //   - Card Form (px-40 py-56) : titre + 3 inputs pill + bouton "Request information"
 //   - Card Agent (px-40 py-56) : titre + paragraph + avatar 80 + nom + mail + phone
 
-import type { CSSProperties, FormEvent } from 'react'
-import { useState } from 'react'
+import type { CSSProperties, FormEvent, MouseEvent } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PX, PxFigmaIcon } from '..'
+import { PX, PxFigmaIcon, PxIcon } from '..'
 import { formatCHF, formatRent } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useFavorites } from '@/hooks/useFavorites'
+import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ListingCardData } from '@/components/listings/ListingCard'
+
+// Lazy-loaded — ReportListingDialog est rarement utilisé et embarque createPortal
+const ReportListingDialog = lazy(() => import('@/components/listing/ReportListingDialog'))
 
 interface PxSinglePropertyBodyProps {
   listing?: ListingCardData
@@ -180,6 +185,11 @@ function PricingCard({ listing, isMobile }: { listing?: ListingCardData; isMobil
     ? t('marketplaceProperty.pricing.sublabelSale')
     : t('marketplaceProperty.pricing.sublabelRent')
 
+  // Prix par m² : seulement si dispo dans le data ET pertinent (vente)
+  // Pour la location, le ratio loyer/m² est moins parlant pour l'acheteur.
+  const pricePerSqm = listing?.price_per_m2
+  const showPricePerSqm = !isRent && pricePerSqm && pricePerSqm > 0
+
   return (
     <div style={{
       ...sidebarCard,
@@ -208,7 +218,206 @@ function PricingCard({ listing, isMobile }: { listing?: ListingCardData; isMobil
       }}>
         {sublabel}
       </span>
+      {showPricePerSqm ? (
+        <span style={{
+          marginTop: 4,
+          fontFamily: PX.font.sans,
+          fontWeight: 500,
+          fontSize: 14,
+          lineHeight: 1.4,
+          letterSpacing: '-0.4px',
+          color: PX.neutral500,
+        }}>
+          {t('marketplaceProperty.pricePerSqm', { value: pricePerSqm.toLocaleString('fr-CH').replace(/\s/g, "'") })}
+        </span>
+      ) : null}
     </div>
+  )
+}
+
+// ─── Freshness badges ──────────────────────────────────────────────────
+// Affiche jusqu'à 3 badges signalétiques sous le titre (Nouveau / Prix
+// baissé / Publié il y a X). Aide l'acheteur à jauger l'opportunité.
+
+function publishedLabel(t: ReturnType<typeof useTranslation>['t'], publishedAt?: string, daysOnMarket?: number): string | null {
+  // days_on_market est calculé côté Supabase quand dispo (market_listings).
+  // Sinon fallback sur le diff avec publishedAt.
+  let days = daysOnMarket
+  if (days == null && publishedAt) {
+    const diff = Date.now() - new Date(publishedAt).getTime()
+    days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
+  }
+  if (days == null) return null
+  if (days === 0) return t('marketplaceProperty.badges.publishedToday')
+  if (days < 14) return t('marketplaceProperty.badges.publishedAgo_day', { count: days })
+  if (days < 60) return t('marketplaceProperty.badges.publishedAgo_week', { count: Math.round(days / 7) })
+  return t('marketplaceProperty.badges.publishedAgo_month', { count: Math.round(days / 30) })
+}
+
+function FreshnessBadges({ listing }: { listing?: ListingCardData }) {
+  const { t } = useTranslation()
+  if (!listing) return null
+
+  const isNew = listing.is_new === true || (listing.days_on_market != null && listing.days_on_market <= 3)
+  const priceDropPct = listing.price_drop_pct
+  const publishedText = publishedLabel(t, listing.published_at, listing.days_on_market)
+
+  const badges: Array<{ label: string; tone: 'neutral' | 'accent' | 'warning' }> = []
+  if (isNew) badges.push({ label: t('marketplaceProperty.badges.new'), tone: 'accent' })
+  if (priceDropPct && priceDropPct > 0) {
+    badges.push({ label: t('marketplaceProperty.badges.priceDrop', { percent: priceDropPct }), tone: 'warning' })
+  }
+  if (publishedText) badges.push({ label: publishedText, tone: 'neutral' })
+
+  if (badges.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingBottom: 16 }}>
+      {badges.map((b) => {
+        const palette = b.tone === 'accent'
+          ? { bg: PX.neutral700, fg: PX.neutral100 }
+          : b.tone === 'warning'
+            ? { bg: '#FCE8DE', fg: '#9B3A0B' }
+            : { bg: PX.neutral200, fg: PX.neutral500 }
+        return (
+          <span
+            key={b.label}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              paddingLeft: 12,
+              paddingRight: 12,
+              paddingTop: 6,
+              paddingBottom: 6,
+              background: palette.bg,
+              color: palette.fg,
+              borderRadius: PX.radius.pill,
+              fontFamily: PX.font.sans,
+              fontWeight: 500,
+              fontSize: 13,
+              lineHeight: 1.3,
+              letterSpacing: '-0.3px',
+            }}
+          >
+            {b.label}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Action bar ────────────────────────────────────────────────────────
+// Boutons utilitaires sous le titre : partager, favoris, signaler.
+// Mobile : row sous le title. Desktop : row right-aligned à côté du title.
+
+function ActionBar({ listing, layout = 'inline' }: { listing?: ListingCardData; layout?: 'inline' | 'stacked' }) {
+  const { t } = useTranslation()
+  const { user } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
+  const [shareCopied, setShareCopied] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+
+  const favoriteOn = listing ? isFavorite(listing.id) : false
+
+  const handleShare = async (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    if (typeof window === 'undefined') return
+    const url = window.location.href
+    const shareTitle = listing?.title ?? t('marketplaceProperty.actions.shareTitle')
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shareTitle, url })
+        return
+      }
+    } catch {
+      // user cancelled — fall through to clipboard
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleFavorite = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    if (listing) toggleFavorite(listing.id, !!user)
+  }
+
+  const buttonStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 14,
+    paddingRight: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
+    background: PX.neutral100,
+    border: `1px solid ${PX.neutral300}`,
+    borderRadius: PX.radius.pill,
+    cursor: 'pointer',
+    fontFamily: PX.font.sans,
+    fontWeight: 500,
+    fontSize: 14,
+    lineHeight: 1.3,
+    letterSpacing: '-0.4px',
+    color: PX.neutral700,
+    transition: 'background 0.18s ease, border-color 0.18s ease',
+  }
+
+  return (
+    <>
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 8,
+        justifyContent: layout === 'inline' ? 'flex-end' : 'flex-start',
+      }}>
+        <button type="button" onClick={handleShare} aria-label={t('marketplaceProperty.actions.share')} style={buttonStyle}>
+          <PxIcon name="share" size={14} color={PX.neutral700} />
+          <span style={{ paddingTop: 1 }}>
+            {shareCopied ? t('marketplaceProperty.actions.shareCopied') : t('marketplaceProperty.actions.share')}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={handleFavorite}
+          aria-label={favoriteOn ? t('marketplaceProperty.favoriteRemove') : t('marketplaceProperty.favoriteAdd')}
+          aria-pressed={favoriteOn}
+          disabled={!listing}
+          style={{
+            ...buttonStyle,
+            background: favoriteOn ? PX.neutral700 : PX.neutral100,
+            borderColor: favoriteOn ? PX.neutral700 : PX.neutral300,
+            color: favoriteOn ? PX.neutral100 : PX.neutral700,
+            opacity: listing ? 1 : 0.4,
+          }}
+        >
+          <PxIcon name="heart" size={14} color={favoriteOn ? PX.neutral100 : PX.neutral700} />
+          <span style={{ paddingTop: 1 }}>
+            {favoriteOn ? t('marketplaceProperty.favoriteRemove') : t('marketplaceProperty.favoriteAdd')}
+          </span>
+        </button>
+        {listing ? (
+          <button type="button" onClick={() => setReportOpen(true)} aria-label={t('marketplaceProperty.actions.report')} style={buttonStyle}>
+            <PxIcon name="flag" size={14} color={PX.neutral700} />
+            <span style={{ paddingTop: 1 }}>{t('marketplaceProperty.actions.report')}</span>
+          </button>
+        ) : null}
+      </div>
+      {reportOpen && listing ? (
+        <Suspense fallback={null}>
+          <ReportListingDialog
+            listingId={listing.id}
+            listingTitle={listing.title}
+            onClose={() => setReportOpen(false)}
+          />
+        </Suspense>
+      ) : null}
+    </>
   )
 }
 
@@ -733,20 +942,29 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
             flexDirection: 'column',
             justifyContent: 'center',
           }}>
-            {/* Location */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
-              <span style={{
-                fontFamily: PX.font.sans,
-                fontWeight: 500,
-                fontSize: 16,
-                lineHeight: 1.25,
-                letterSpacing: '-0.48px',
-                color: PX.neutral700,
-                paddingTop: 6,
-              }}>
-                {locationLabel}
-              </span>
+            {/* Top row : location (left) + actions (right on desktop) */}
+            <div style={{
+              display: 'flex',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexDirection: isMobile ? 'column' : 'row',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
+                <span style={{
+                  fontFamily: PX.font.sans,
+                  fontWeight: 500,
+                  fontSize: 16,
+                  lineHeight: 1.25,
+                  letterSpacing: '-0.48px',
+                  color: PX.neutral700,
+                  paddingTop: 6,
+                }}>
+                  {locationLabel}
+                </span>
+              </div>
+              {listing ? <ActionBar listing={listing} layout={isMobile ? 'stacked' : 'inline'} /> : null}
             </div>
 
             {/* Title */}
@@ -763,6 +981,9 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 {titleLabel}
               </h1>
             </div>
+
+            {/* Freshness badges (Nouveau / Prix baissé / Publié il y a X) */}
+            <FreshnessBadges listing={listing} />
 
             {/* Paragraph */}
             <div style={{ paddingBottom: 24 }}>
@@ -904,6 +1125,9 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
           paddingBottom: isMobile ? 48 : 0,
           width: '100%',
           minWidth: 0,
+          // Sticky desktop : la sidebar reste à l'écran pendant qu'on scrolle
+          // le contenu (description, équipements). top = nav height (~88) + 24.
+          ...(isMobile ? {} : { position: 'sticky', top: 112, alignSelf: 'start' }),
         }}>
           <PricingCard listing={listing} isMobile={isMobile} />
           <ContactFormCard isMobile={isMobile} listing={listing} />

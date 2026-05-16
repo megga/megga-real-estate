@@ -1014,6 +1014,29 @@
     "defaultTitle": "Property",
     "favoriteAdd": "Add to favourites",
     "favoriteRemove": "Remove from favourites",
+    "breadcrumb": {
+      "home": "Home",
+      "buy": "Buy",
+      "rent": "Rent"
+    },
+    "actions": {
+      "share": "Share",
+      "shareCopied": "Link copied",
+      "shareTitle": "Share this property",
+      "report": "Report an issue"
+    },
+    "badges": {
+      "new": "New",
+      "priceDrop": "Price drop · −{{percent}}%",
+      "publishedAgo_day_one": "Published {{count}} day ago",
+      "publishedAgo_day_other": "Published {{count}} days ago",
+      "publishedToday": "Published today",
+      "publishedAgo_week_one": "Published {{count}} week ago",
+      "publishedAgo_week_other": "Published {{count}} weeks ago",
+      "publishedAgo_month_one": "Published {{count}} month ago",
+      "publishedAgo_month_other": "Published {{count}} months ago"
+    },
+    "pricePerSqm": "{{value}} CHF/m²",
     "contact": {
       "title": "Request more information",
       "subtitle": "The agency will get back to you within 24 hours to answer your questions or arrange a viewing.",
