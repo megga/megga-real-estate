@@ -1007,5 +1007,130 @@
     "perMonth": "/month",
     "seoTitle": "Properties for rent in Switzerland",
     "seoDescription": "Browse apartments, houses and villas for rent in Switzerland. Filter by canton, rent, rooms, furnished and availability."
+  },
+  "marketplaceProperty": {
+    "loading": "Loading listing…",
+    "notFound": "Listing not found.",
+    "notFoundHint": "This listing no longer exists or has been removed from the portal.",
+    "backToSearch": "Back to search",
+    "defaultTitle": "Property",
+    "favoriteAdd": "Add to favourites",
+    "favoriteRemove": "Remove from favourites",
+    "breadcrumb": {
+      "home": "Home",
+      "buy": "Buy",
+      "rent": "Rent"
+    },
+    "actions": {
+      "share": "Share",
+      "shareCopied": "Link copied",
+      "shareTitle": "Share this property",
+      "report": "Report an issue"
+    },
+    "badges": {
+      "new": "New",
+      "priceDrop": "Price drop · −{{percent}}%",
+      "publishedAgo_day_one": "Published {{count}} day ago",
+      "publishedAgo_day_other": "Published {{count}} days ago",
+      "publishedToday": "Published today",
+      "publishedAgo_week_one": "Published {{count}} week ago",
+      "publishedAgo_week_other": "Published {{count}} weeks ago",
+      "publishedAgo_month_one": "Published {{count}} month ago",
+      "publishedAgo_month_other": "Published {{count}} months ago"
+    },
+    "pricePerSqm": "{{value}} CHF/m²",
+    "mobileBar": {
+      "contact": "Contact"
+    },
+    "description": {
+      "readMore": "Read more",
+      "readLess": "Read less"
+    },
+    "map": {
+      "title": "Location",
+      "openInMaps": "Open in Google Maps",
+      "loading": "Loading map…"
+    },
+    "energy": {
+      "eyebrow": "Energy performance",
+      "title": "CECB certificate",
+      "description": "Class {{grade}} on the CECB scale (A = highly efficient, G = energy-intensive). Estimated values based on the agency declaration."
+    },
+    "mortgage": {
+      "eyebrow": "Affordability calculator",
+      "title": "Can I afford this property?",
+      "subtitle": "Estimate based on Swiss banking rules: minimum 20 % own funds, annual charges ≤ 33 % of gross income.",
+      "priceLabel": "Property price",
+      "incomeLabel": "Gross annual income",
+      "incomeHint": "Household income before taxes",
+      "fundsLabel": "Available own funds",
+      "fundsHint": "Recommended minimum: {{value}} (20 % of price)",
+      "statusOk": "Affordable",
+      "statusTight": "Stretched",
+      "statusHard": "Out of reach",
+      "monthlyCost": "Estimated monthly cost",
+      "mortgageAmount": "Mortgage",
+      "annualCharges": "Annual charges",
+      "chargeRatio": "Charge ratio",
+      "minFunds": "Required own funds",
+      "disclaimer": "Indicative simulation, non-binding. A full review by your banking advisor remains required before any commitment. MEGGA does not provide financing services."
+    },
+    "contact": {
+      "title": "Request more information",
+      "subtitle": "The agency will get back to you within 24 hours to answer your questions or arrange a viewing.",
+      "fullName": "Full name",
+      "email": "Email address",
+      "phone": "Phone number (optional)",
+      "submit": "Send my request",
+      "submitting": "Sending…",
+      "successTitle": "Request sent ✓",
+      "successBody": "The agency responds within 24 hours. Please also check your spam folder.",
+      "consent": "By submitting this form, you agree that MEGGA may share your contact details with the agency in charge of this listing.",
+      "errorNameRequired": "Please enter your full name.",
+      "errorEmailInvalid": "Invalid email address.",
+      "errorGeneric": "Something went wrong. Please try again in a few moments."
+    },
+    "pricing": {
+      "sublabelRent": "Monthly rent including charges",
+      "sublabelSale": "Net sale price"
+    },
+    "agency": {
+      "title": "Contact the agency",
+      "intro": "Contact the agency directly via the form above or visit the original listing.",
+      "publishedOn": "Listing published on {{portal}}",
+      "viewOriginal": "View original listing →",
+      "fallbackName": "Local agency"
+    },
+    "body": {
+      "aboutTitle": "About the property",
+      "amenitiesTitle": "Amenities"
+    },
+    "cta": {
+      "badge": "Visit & contact",
+      "title": "Interested in this property?",
+      "subtitle": "Request a viewing or get the full file — the agency will respond within 24 hours.",
+      "button": "Request a viewing",
+      "imageAlt": "Property card preview on a tablet"
+    },
+    "related": {
+      "title": "Similar properties",
+      "viewAll": "Browse all properties",
+      "viewAllShort": "View all",
+      "viewItem": "View property",
+      "badgeRent": "For rent",
+      "badgeSale": "For sale"
+    },
+    "amenities": {
+      "balcony": "Balcony",
+      "swimmingPool": "Swimming pool",
+      "niceView": "Beautiful view",
+      "garage": "Garage",
+      "parking": "Parking",
+      "elevator": "Lift",
+      "fireplace": "Fireplace",
+      "furnished": "Furnished",
+      "minergie": "Minergie",
+      "newBuilding": "New construction"
+    }
   }
 }

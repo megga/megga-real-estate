@@ -95,7 +95,7 @@ export default function ListingCard({ listing, className }: ListingCardProps) {
   }, [])
 
   return (
-    <Link to={`/listing/${listing.id}`} className={cn('block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group/card', className)}>
+    <Link to={`/propriete/${listing.id}`} className={cn('block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden group/card', className)}>
       {/* Photo carousel */}
       <div className="relative aspect-[4/3] overflow-hidden group/photo">
         {photos.length > 0 ? (

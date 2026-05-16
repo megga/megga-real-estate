@@ -12,10 +12,14 @@
 // V34 = key (For rent) · V35 = tag (For sale) · V37 = location · V31 = surface
 // V23 = bed · V33 = bath · V27 = parking · chevron-right · plus
 
-import type { CSSProperties } from 'react'
+import type { CSSProperties, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { PX, PxFigmaIcon, PxIcon } from '..'
 import { useRelatedListings } from '@/hooks/useRelatedListings'
+import { useFavorites } from '@/hooks/useFavorites'
+import { useAuth } from '@/hooks/useAuth'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
 interface PxSinglePropertyRelatedProps {
@@ -61,12 +65,26 @@ interface PropertyCardData {
 function PropertyCard({ data }: { data: PropertyCardData }) {
   // Figma : badge For rent utilise "Small Icon/V34" = key, For sale utilise "V35" = tag.
   const badgeIcon = data.badge.kind === 'rent' ? 'key' : 'tag'
+  const isMobile = useIsMobile()
+  const { t } = useTranslation()
+  const { user } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
+  const favorite = data.id ? isFavorite(data.id) : false
+  const badgeLabel = data.badge.kind === 'rent'
+    ? t('marketplaceProperty.related.badgeRent')
+    : t('marketplaceProperty.related.badgeSale')
+
+  const handleFavoriteClick = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (data.id) toggleFavorite(data.id, !!user)
+  }
 
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      gap: 24,
+      gap: isMobile ? 16 : 24,
       width: '100%',
       minWidth: 0,
     }}>
@@ -74,7 +92,8 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
       <div style={{
         position: 'relative',
         background: PX.neutral500,
-        height: 364,
+        aspectRatio: isMobile ? '4 / 3' : undefined,
+        height: isMobile ? undefined : 364,
         borderRadius: PX.radius.large,
         overflow: 'hidden',
         width: '100%',
@@ -116,26 +135,29 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
               color: PX.neutral100,
               paddingTop: 2,
             }}>
-              {data.badge.label}
+              {badgeLabel}
             </span>
           </div>
           <button
             type="button"
-            aria-label="Add to favorites"
+            aria-label={favorite ? t('marketplaceProperty.favoriteRemove') : t('marketplaceProperty.favoriteAdd')}
+            aria-pressed={favorite}
+            onClick={handleFavoriteClick}
             style={{
               width: 40,
               height: 40,
               borderRadius: PX.radius.pill,
-              background: PX.neutral100,
+              background: favorite ? PX.neutral700 : PX.neutral100,
               border: 0,
               boxShadow: PX.shadow.small,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
+              transition: 'background 0.18s ease',
             }}
           >
-            <PxFigmaIcon name="plus" size={16} color={PX.neutral700} />
+            <PxIcon name="heart" size={16} color={favorite ? PX.neutral100 : PX.neutral700} />
           </button>
         </div>
       </div>
@@ -173,8 +195,14 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
       <div style={{ height: 1, width: '100%', background: PX.neutral300 }} />
 
       {/* Footer — amenities + link */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+      <div style={{
+        display: 'flex',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+        flexDirection: isMobile ? 'column' : 'row',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 16 : 24, flexWrap: 'wrap' }}>
           <MetaItem icon={<PxFigmaIcon name="surface" size={20} color={PX.neutral400} />} label={data.sqft} />
           <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={String(data.beds)} />
           <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label={String(data.baths)} />
@@ -199,7 +227,7 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
             color: PX.neutral700,
             paddingTop: 2,
           }}>
-            Voir le bien
+            {t('marketplaceProperty.related.viewItem')}
           </span>
           <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
         </Link>
@@ -215,23 +243,23 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
 const PROPERTIES: PropertyCardData[] = [
   {
     image: '/images/sections/single-property/related-1.jpg',
-    badge: { kind: 'rent', label: 'For rent' },
-    title: 'Luxury Loft in San Francisco',
-    location: '2238 Stradella Rd, SF',
-    sqft: '2,553 sqtf',
+    badge: { kind: 'rent', label: 'À louer' },
+    title: 'Loft lumineux au cœur de Genève',
+    location: 'Rue de la Servette, Genève',
+    sqft: '120 m²',
     beds: 3,
     baths: 2,
-    parking: 3,
+    parking: 1,
   },
   {
     image: '/images/sections/single-property/related-2.jpg',
-    badge: { kind: 'sale', label: 'For sale' },
-    title: 'Home in Los Angeles Heart',
-    location: '2238 Stradella Rd, LA',
-    sqft: '8,392 sqtf',
-    beds: 3,
-    baths: 2,
-    parking: 3,
+    badge: { kind: 'sale', label: 'À vendre' },
+    title: 'Villa contemporaine à Lausanne',
+    location: 'Avenue de Cour, Lausanne',
+    sqft: '210 m²',
+    beds: 4,
+    baths: 3,
+    parking: 2,
   },
 ]
 
@@ -254,6 +282,8 @@ function listingToCardData(listing: ListingCardData): PropertyCardData {
 }
 
 export default function PxSinglePropertyRelated({ currentListing }: PxSinglePropertyRelatedProps) {
+  const isMobile = useIsMobile()
+  const { t } = useTranslation()
   // Strip prefix (market-/internal-) pour la query .neq sur le raw id
   const rawId = currentListing?.id.replace(/^(market-|internal-)/, '')
   const browseHref = currentListing?.context === 'rent' ? '/louer' : '/acheter'
@@ -274,12 +304,12 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
       width: '100%',
       display: 'flex',
       justifyContent: 'center',
-      paddingTop: 120,
-      paddingBottom: 120,
+      paddingTop: isMobile ? 64 : 120,
+      paddingBottom: isMobile ? 64 : 120,
       background: PX.pageBg,
     }}>
       <div style={{
-        width: 'min(1200px, calc(100% - 48px))',
+        width: isMobile ? 'calc(100% - 32px)' : 'min(1200px, calc(100% - 48px))',
         boxSizing: 'border-box',
       }}>
         {/* Top — title + link */}
@@ -294,12 +324,12 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
             margin: 0,
             fontFamily: PX.font.sans,
             fontWeight: 500,
-            fontSize: 48,
+            fontSize: isMobile ? 28 : 48,
             lineHeight: 1.25,
-            letterSpacing: '-1.44px',
+            letterSpacing: isMobile ? '-0.84px' : '-1.44px',
             color: PX.neutral700,
           }}>
-            Biens similaires
+            {t('marketplaceProperty.related.title')}
           </h2>
           <Link
             to={browseHref}
@@ -308,18 +338,19 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
               alignItems: 'center',
               gap: 6,
               textDecoration: 'none',
+              flexShrink: 0,
             }}
           >
             <span style={{
               fontFamily: PX.font.sans,
               fontWeight: 500,
-              fontSize: 16,
+              fontSize: isMobile ? 14 : 16,
               lineHeight: 1.25,
               letterSpacing: '-0.48px',
               color: PX.neutral700,
               paddingTop: 2,
             }}>
-              Tous les biens
+              {isMobile ? t('marketplaceProperty.related.viewAllShort') : t('marketplaceProperty.related.viewAll')}
             </span>
             <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
           </Link>
@@ -328,8 +359,8 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
         {/* Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          gap: 24,
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+          gap: isMobile ? 32 : 24,
           paddingTop: 24,
         }}>
           {cards.map((p) => (

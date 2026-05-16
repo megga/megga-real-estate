@@ -56,7 +56,7 @@ function SimilarCard({ listing, mode }: SimilarCardProps) {
 
   return (
     <Link
-      to={`/listing/${listing.id}`}
+      to={`/propriete/${listing.id}`}
       style={{
         display: 'block',
         textDecoration: 'none',

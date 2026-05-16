@@ -16,9 +16,11 @@
 //   - Paragraph 16/1.5 neutral400
 //   - PxButton INVERT bg-white "Start exploring" + dark circle arrow
 
+import { useTranslation } from 'react-i18next'
 import { PX, PxButton, PxFigmaIcon } from '..'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 
-function GetInTouchBadge() {
+function GetInTouchBadge({ label }: { label: string }) {
   return (
     <span style={{
       display: 'inline-flex',
@@ -51,83 +53,92 @@ function GetInTouchBadge() {
         color: PX.neutral100,
         paddingTop: 2,
       }}>
-        Get in touch
+        {label}
       </span>
     </span>
   )
 }
 
 export default function PxSinglePropertyCTA() {
+  const isMobile = useIsMobile()
+  const { t } = useTranslation()
+  const handleVisitClick = () => {
+    const el = typeof document !== 'undefined' ? document.getElementById('contact-form') : null
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
   return (
     <section style={{
-      paddingLeft: 24,
-      paddingRight: 24,
+      paddingLeft: isMobile ? 16 : 24,
+      paddingRight: isMobile ? 16 : 24,
       paddingTop: 0,
       paddingBottom: 0,
       background: PX.pageBg,
     }}>
       <div style={{
         background: PX.neutral700,
-        height: 544,
+        height: isMobile ? 'auto' : 544,
         maxWidth: 1392,
         margin: '0 auto',
         borderRadius: PX.radius.large,
-        paddingLeft: 48,
-        paddingRight: 48,
+        paddingLeft: isMobile ? 24 : 48,
+        paddingRight: isMobile ? 24 : 48,
+        paddingTop: isMobile ? 40 : 0,
+        paddingBottom: isMobile ? 40 : 0,
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'flex-start' : 'center',
         justifyContent: 'space-between',
         overflow: 'hidden',
-        gap: 24,
+        gap: isMobile ? 32 : 24,
         boxSizing: 'border-box',
         position: 'relative',
       }}>
-        {/* LEFT — iPad rendered as transparent PNG (iPad + bezel + shadow baked).
-            Le PNG est isolé (sans bg) → on le pose sur le dark bento qui donne
-            le fond. Width 821 = bbox de la rotation -10° appliquée sur 740×533. */}
-        <div style={{
-          width: 700,
-          height: 524,
-          position: 'relative',
-          flexShrink: 0,
-        }}>
-          <img
-            src="/images/sections/single-property/cta-ipad-iso.png"
-            alt="Property card preview on iPad"
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 821,
-              height: 'auto',
-              maxWidth: 'none',
-              display: 'block',
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
+        {/* LEFT — iPad PNG. Caché sur mobile pour économiser de l'espace. */}
+        {!isMobile && (
+          <div style={{
+            width: 700,
+            height: 524,
+            position: 'relative',
+            flexShrink: 0,
+          }}>
+            <img
+              src="/images/sections/single-property/cta-ipad-iso.png"
+              alt={t('marketplaceProperty.cta.imageAlt')}
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 821,
+                height: 'auto',
+                maxWidth: 'none',
+                display: 'block',
+                pointerEvents: 'none',
+              }}
+            />
+          </div>
+        )}
 
         {/* RIGHT — Content */}
         <div style={{
-          width: 480,
+          width: isMobile ? '100%' : 480,
           display: 'flex',
           flexDirection: 'column',
-          gap: 32,
+          gap: isMobile ? 24 : 32,
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start', width: '100%' }}>
-            <GetInTouchBadge />
+            <GetInTouchBadge label={t('marketplaceProperty.cta.badge')} />
             <h2 style={{
               margin: 0,
               fontFamily: PX.font.sans,
               fontWeight: 500,
-              fontSize: 48,
+              fontSize: isMobile ? 32 : 48,
               lineHeight: 1.25,
-              letterSpacing: '-1.44px',
+              letterSpacing: isMobile ? '-0.96px' : '-1.44px',
               color: PX.neutral100,
             }}>
-              Explore your<br />dream home today
+              {t('marketplaceProperty.cta.title')}
             </h2>
             <p style={{
               margin: 0,
@@ -138,12 +149,12 @@ export default function PxSinglePropertyCTA() {
               letterSpacing: '-0.48px',
               color: PX.neutral400,
             }}>
-              Lorem ipsum dolor sit amet consectetur. Volutpat et lacinia sit aenean consequat. Id tellus eget libero eget non odio tristique.
+              {t('marketplaceProperty.cta.subtitle')}
             </p>
           </div>
 
-          <PxButton variant="invert" size="sm">
-            Start exploring
+          <PxButton variant="invert" size="sm" onClick={handleVisitClick}>
+            {t('marketplaceProperty.cta.button')}
           </PxButton>
         </div>
       </div>

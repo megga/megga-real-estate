@@ -1012,5 +1012,130 @@
     "perMonth": "/mois",
     "seoTitle": "Biens à louer en Suisse",
     "seoDescription": "Découvrez les appartements, maisons et villas à louer en Suisse. Filtrez par canton, loyer, pièces, meublé et disponibilité."
+  },
+  "marketplaceProperty": {
+    "loading": "Chargement du bien…",
+    "notFound": "Bien introuvable.",
+    "notFoundHint": "Ce bien n'existe plus ou a été retiré du portail.",
+    "backToSearch": "Retour à la recherche",
+    "defaultTitle": "Bien immobilier",
+    "favoriteAdd": "Ajouter aux favoris",
+    "favoriteRemove": "Retirer des favoris",
+    "breadcrumb": {
+      "home": "Accueil",
+      "buy": "Acheter",
+      "rent": "Louer"
+    },
+    "actions": {
+      "share": "Partager",
+      "shareCopied": "Lien copié",
+      "shareTitle": "Partager ce bien",
+      "report": "Signaler une erreur"
+    },
+    "badges": {
+      "new": "Nouveau",
+      "priceDrop": "Prix baissé · −{{percent}}%",
+      "publishedAgo_day_one": "Publié il y a {{count}} jour",
+      "publishedAgo_day_other": "Publié il y a {{count}} jours",
+      "publishedToday": "Publié aujourd'hui",
+      "publishedAgo_week_one": "Publié il y a {{count}} semaine",
+      "publishedAgo_week_other": "Publié il y a {{count}} semaines",
+      "publishedAgo_month_one": "Publié il y a {{count}} mois",
+      "publishedAgo_month_other": "Publié il y a {{count}} mois"
+    },
+    "pricePerSqm": "{{value}} CHF/m²",
+    "mobileBar": {
+      "contact": "Contacter"
+    },
+    "description": {
+      "readMore": "Lire la suite",
+      "readLess": "Réduire"
+    },
+    "map": {
+      "title": "Localisation",
+      "openInMaps": "Ouvrir dans Google Maps",
+      "loading": "Chargement de la carte…"
+    },
+    "energy": {
+      "eyebrow": "Performance énergétique",
+      "title": "Certificat CECB",
+      "description": "Classement {{grade}} sur l'échelle CECB (A = très efficace, G = énergivore). Valeurs estimatives, basées sur la déclaration de l'agence."
+    },
+    "mortgage": {
+      "eyebrow": "Simulateur d'accessibilité",
+      "title": "Puis-je acheter ce bien ?",
+      "subtitle": "Estimation basée sur les règles bancaires suisses : 20 % de fonds propres minimum, charges annuelles ≤ 33 % du revenu brut.",
+      "priceLabel": "Prix du bien",
+      "incomeLabel": "Revenu brut annuel",
+      "incomeHint": "Revenu du ménage avant impôts",
+      "fundsLabel": "Fonds propres disponibles",
+      "fundsHint": "Minimum recommandé : {{value}} (20 % du prix)",
+      "statusOk": "Accessible",
+      "statusTight": "Limite",
+      "statusHard": "Difficile",
+      "monthlyCost": "Coût mensuel estimé",
+      "mortgageAmount": "Hypothèque",
+      "annualCharges": "Charges annuelles",
+      "chargeRatio": "Taux de charges",
+      "minFunds": "Fonds propres requis",
+      "disclaimer": "Simulation indicative non-engageante. Une analyse complète par votre conseiller bancaire reste nécessaire avant tout engagement. MEGGA ne propose pas de service de financement."
+    },
+    "contact": {
+      "title": "Demander plus d'informations",
+      "subtitle": "L'agence vous recontacte sous 24 h pour répondre à vos questions ou organiser une visite.",
+      "fullName": "Nom complet",
+      "email": "Adresse e-mail",
+      "phone": "Numéro de téléphone (optionnel)",
+      "submit": "Envoyer ma demande",
+      "submitting": "Envoi en cours…",
+      "successTitle": "Demande envoyée ✓",
+      "successBody": "L'agence vous répond sous 24 h. Pensez à vérifier vos spams.",
+      "consent": "En envoyant ce formulaire, vous acceptez que MEGGA transmette vos coordonnées à l'agence en charge du bien.",
+      "errorNameRequired": "Merci d'indiquer votre nom complet.",
+      "errorEmailInvalid": "Adresse e-mail invalide.",
+      "errorGeneric": "Une erreur est survenue. Merci de réessayer dans quelques instants."
+    },
+    "pricing": {
+      "sublabelRent": "Loyer mensuel charges comprises",
+      "sublabelSale": "Prix de vente net"
+    },
+    "agency": {
+      "title": "Contactez l'agence",
+      "intro": "Contactez la régie directement via le formulaire ci-dessus ou consultez l'annonce d'origine.",
+      "publishedOn": "Annonce publiée sur {{portal}}",
+      "viewOriginal": "Voir l'annonce d'origine →",
+      "fallbackName": "Régie locale"
+    },
+    "body": {
+      "aboutTitle": "À propos du bien",
+      "amenitiesTitle": "Équipements"
+    },
+    "cta": {
+      "badge": "Visite & contact",
+      "title": "Ce bien vous intéresse ?",
+      "subtitle": "Demandez une visite ou recevez le dossier complet : l'agence vous recontacte sous 24 heures.",
+      "button": "Demander une visite",
+      "imageAlt": "Aperçu de la fiche bien sur tablette"
+    },
+    "related": {
+      "title": "Biens similaires",
+      "viewAll": "Tous les biens",
+      "viewAllShort": "Voir tout",
+      "viewItem": "Voir le bien",
+      "badgeRent": "À louer",
+      "badgeSale": "À vendre"
+    },
+    "amenities": {
+      "balcony": "Balcon",
+      "swimmingPool": "Piscine",
+      "niceView": "Belle vue",
+      "garage": "Garage",
+      "parking": "Parking",
+      "elevator": "Ascenseur",
+      "fireplace": "Cheminée",
+      "furnished": "Meublé",
+      "minergie": "Minergie",
+      "newBuilding": "Construction neuve"
+    }
   }
 }

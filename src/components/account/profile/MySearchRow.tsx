@@ -107,7 +107,7 @@ function FavThumb({ l }: { l: FavListing }) {
   const price = l.price ?? l.rent
   return (
     <a
-      href={`/listing/${l.id}`}
+      href={`/propriete/${l.id}`}
       style={{
         flexShrink: 0,
         width: 220,

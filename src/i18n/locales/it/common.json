@@ -1007,5 +1007,130 @@
     "perMonth": "/mese",
     "seoTitle": "Immobili in affitto in Svizzera",
     "seoDescription": "Scopri appartamenti, case e ville in affitto in Svizzera. Filtra per cantone, affitto, stanze, arredato e disponibilità."
+  },
+  "marketplaceProperty": {
+    "loading": "Caricamento dell'annuncio…",
+    "notFound": "Annuncio non trovato.",
+    "notFoundHint": "Questo annuncio non esiste più o è stato rimosso dal portale.",
+    "backToSearch": "Torna alla ricerca",
+    "defaultTitle": "Immobile",
+    "favoriteAdd": "Aggiungi ai preferiti",
+    "favoriteRemove": "Rimuovi dai preferiti",
+    "breadcrumb": {
+      "home": "Home",
+      "buy": "Acquistare",
+      "rent": "Affittare"
+    },
+    "actions": {
+      "share": "Condividi",
+      "shareCopied": "Link copiato",
+      "shareTitle": "Condividi questo immobile",
+      "report": "Segnala un errore"
+    },
+    "badges": {
+      "new": "Nuovo",
+      "priceDrop": "Prezzo ridotto · −{{percent}}%",
+      "publishedAgo_day_one": "Pubblicato {{count}} giorno fa",
+      "publishedAgo_day_other": "Pubblicato {{count}} giorni fa",
+      "publishedToday": "Pubblicato oggi",
+      "publishedAgo_week_one": "Pubblicato {{count}} settimana fa",
+      "publishedAgo_week_other": "Pubblicato {{count}} settimane fa",
+      "publishedAgo_month_one": "Pubblicato {{count}} mese fa",
+      "publishedAgo_month_other": "Pubblicato {{count}} mesi fa"
+    },
+    "pricePerSqm": "{{value}} CHF/m²",
+    "mobileBar": {
+      "contact": "Contatta"
+    },
+    "description": {
+      "readMore": "Leggi di più",
+      "readLess": "Riduci"
+    },
+    "map": {
+      "title": "Posizione",
+      "openInMaps": "Apri in Google Maps",
+      "loading": "Caricamento della mappa…"
+    },
+    "energy": {
+      "eyebrow": "Prestazione energetica",
+      "title": "Certificato CECE",
+      "description": "Classe {{grade}} sulla scala CECE (A = molto efficiente, G = energivoro). Valori stimati, basati sulla dichiarazione dell'agenzia."
+    },
+    "mortgage": {
+      "eyebrow": "Simulatore di sostenibilità",
+      "title": "Posso permettermi questo immobile?",
+      "subtitle": "Stima basata sulle regole bancarie svizzere: almeno 20 % di mezzi propri, oneri annuali ≤ 33 % del reddito lordo.",
+      "priceLabel": "Prezzo dell'immobile",
+      "incomeLabel": "Reddito lordo annuo",
+      "incomeHint": "Reddito del nucleo familiare al lordo delle imposte",
+      "fundsLabel": "Mezzi propri disponibili",
+      "fundsHint": "Minimo consigliato: {{value}} (20 % del prezzo)",
+      "statusOk": "Sostenibile",
+      "statusTight": "Limite",
+      "statusHard": "Difficile",
+      "monthlyCost": "Costo mensile stimato",
+      "mortgageAmount": "Ipoteca",
+      "annualCharges": "Oneri annuali",
+      "chargeRatio": "Tasso di oneri",
+      "minFunds": "Mezzi propri richiesti",
+      "disclaimer": "Simulazione indicativa non vincolante. Un'analisi completa da parte del Suo consulente bancario resta necessaria prima di qualsiasi impegno. MEGGA non offre servizi di finanziamento."
+    },
+    "contact": {
+      "title": "Richiedere maggiori informazioni",
+      "subtitle": "L'agenzia La ricontatta entro 24 ore per rispondere alle Sue domande o organizzare una visita.",
+      "fullName": "Nome completo",
+      "email": "Indirizzo e-mail",
+      "phone": "Numero di telefono (opzionale)",
+      "submit": "Inviare la richiesta",
+      "submitting": "Invio in corso…",
+      "successTitle": "Richiesta inviata ✓",
+      "successBody": "L'agenzia risponde entro 24 ore. Si ricordi di controllare anche la cartella spam.",
+      "consent": "Inviando questo modulo, accetta che MEGGA trasmetta i Suoi dati di contatto all'agenzia responsabile dell'immobile.",
+      "errorNameRequired": "Indichi il Suo nome completo.",
+      "errorEmailInvalid": "Indirizzo e-mail non valido.",
+      "errorGeneric": "Si è verificato un errore. Riprovi tra qualche istante."
+    },
+    "pricing": {
+      "sublabelRent": "Affitto mensile spese incluse",
+      "sublabelSale": "Prezzo di vendita netto"
+    },
+    "agency": {
+      "title": "Contattare l'agenzia",
+      "intro": "Contatti l'agenzia direttamente tramite il modulo qui sopra o consulti l'annuncio originale.",
+      "publishedOn": "Annuncio pubblicato su {{portal}}",
+      "viewOriginal": "Vedere l'annuncio originale →",
+      "fallbackName": "Agenzia locale"
+    },
+    "body": {
+      "aboutTitle": "Informazioni sull'immobile",
+      "amenitiesTitle": "Dotazioni"
+    },
+    "cta": {
+      "badge": "Visita & contatto",
+      "title": "Interessato a questo immobile?",
+      "subtitle": "Richieda una visita o riceva il dossier completo — l'agenzia risponde entro 24 ore.",
+      "button": "Richiedere una visita",
+      "imageAlt": "Anteprima della scheda immobile su tablet"
+    },
+    "related": {
+      "title": "Immobili simili",
+      "viewAll": "Tutti gli immobili",
+      "viewAllShort": "Vedi tutti",
+      "viewItem": "Vedi immobile",
+      "badgeRent": "In affitto",
+      "badgeSale": "In vendita"
+    },
+    "amenities": {
+      "balcony": "Balcone",
+      "swimmingPool": "Piscina",
+      "niceView": "Bella vista",
+      "garage": "Garage",
+      "parking": "Parcheggio",
+      "elevator": "Ascensore",
+      "fireplace": "Camino",
+      "furnished": "Arredato",
+      "minergie": "Minergie",
+      "newBuilding": "Nuova costruzione"
+    }
   }
 }

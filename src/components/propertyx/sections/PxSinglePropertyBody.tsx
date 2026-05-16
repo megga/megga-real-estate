@@ -14,10 +14,19 @@
 //   - Card Form (px-40 py-56) : titre + 3 inputs pill + bouton "Request information"
 //   - Card Agent (px-40 py-56) : titre + paragraph + avatar 80 + nom + mail + phone
 
-import type { CSSProperties } from 'react'
-import { PX, PxFigmaIcon } from '..'
+import type { CSSProperties, FormEvent, MouseEvent } from 'react'
+import { useState, lazy, Suspense } from 'react'
+import { useTranslation } from 'react-i18next'
+import { PX, PxFigmaIcon, PxIcon } from '..'
 import { formatCHF, formatRent } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useFavorites } from '@/hooks/useFavorites'
+import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 import type { ListingCardData } from '@/components/listings/ListingCard'
+
+// Lazy-loaded — ReportListingDialog est rarement utilisé et embarque createPortal
+const ReportListingDialog = lazy(() => import('@/components/listing/ReportListingDialog'))
 
 interface PxSinglePropertyBodyProps {
   listing?: ListingCardData
@@ -128,29 +137,29 @@ function AmenityBadge({ icon, label }: { icon: string; label: string }) {
 
 const AMENITY_BASE = '/images/sections/single-property/amenities'
 const AMENITIES: Array<{ icon: string; label: string }> = [
-  { icon: `${AMENITY_BASE}/air-conditioner.svg`, label: 'Air contidioner' },
-  { icon: `${AMENITY_BASE}/cable-tv.svg`, label: 'Cable TV' },
-  { icon: `${AMENITY_BASE}/dishwasher.svg`, label: 'Dishwasher' },
-  { icon: `${AMENITY_BASE}/fire-extinguisher.svg`, label: 'Fire extinguisher' },
-  { icon: `${AMENITY_BASE}/elevator.svg`, label: 'Elevator' },
-  { icon: `${AMENITY_BASE}/garden.svg`, label: 'Garden' },
+  { icon: `${AMENITY_BASE}/air-conditioner.svg`, label: 'Climatisation' },
+  { icon: `${AMENITY_BASE}/cable-tv.svg`, label: 'TV câblée' },
+  { icon: `${AMENITY_BASE}/dishwasher.svg`, label: 'Lave-vaisselle' },
+  { icon: `${AMENITY_BASE}/fire-extinguisher.svg`, label: 'Extincteur' },
+  { icon: `${AMENITY_BASE}/elevator.svg`, label: 'Ascenseur' },
+  { icon: `${AMENITY_BASE}/garden.svg`, label: 'Jardin' },
   { icon: `${AMENITY_BASE}/internet.svg`, label: 'Internet' },
-  { icon: `${AMENITY_BASE}/pool.svg`, label: 'Pool' },
-  { icon: `${AMENITY_BASE}/laundry.svg`, label: 'Laundry' },
-  { icon: `${AMENITY_BASE}/security-cameras.svg`, label: 'Security cameras' },
-  { icon: `${AMENITY_BASE}/iron.svg`, label: 'Iron' },
-  { icon: `${AMENITY_BASE}/gym.svg`, label: 'GYM' },
-  { icon: `${AMENITY_BASE}/kitchen.svg`, label: 'Kitchen' },
+  { icon: `${AMENITY_BASE}/pool.svg`, label: 'Piscine' },
+  { icon: `${AMENITY_BASE}/laundry.svg`, label: 'Buanderie' },
+  { icon: `${AMENITY_BASE}/security-cameras.svg`, label: 'Vidéosurveillance' },
+  { icon: `${AMENITY_BASE}/iron.svg`, label: 'Fer à repasser' },
+  { icon: `${AMENITY_BASE}/gym.svg`, label: 'Salle de sport' },
+  { icon: `${AMENITY_BASE}/kitchen.svg`, label: 'Cuisine équipée' },
   { icon: `${AMENITY_BASE}/grill.svg`, label: 'Grill' },
-  { icon: `${AMENITY_BASE}/refrigerator.svg`, label: 'Refrigerator' },
-  { icon: `${AMENITY_BASE}/heater.svg`, label: 'Heater' },
-  { icon: `${AMENITY_BASE}/chimney.svg`, label: 'Chimney' },
-  { icon: `${AMENITY_BASE}/sports-fields.svg`, label: 'Sports fields' },
-  { icon: `${AMENITY_BASE}/pet-friendly.svg`, label: 'Pet friendly' },
-  { icon: `${AMENITY_BASE}/smoking-area.svg`, label: 'Smoking area' },
-  { icon: `${AMENITY_BASE}/microwave.svg`, label: 'Microwave' },
-  { icon: `${AMENITY_BASE}/lockpad.svg`, label: 'Lockpad' },
-  { icon: `${AMENITY_BASE}/kids-zone.svg`, label: 'Kids zone' },
+  { icon: `${AMENITY_BASE}/refrigerator.svg`, label: 'Réfrigérateur' },
+  { icon: `${AMENITY_BASE}/heater.svg`, label: 'Chauffage' },
+  { icon: `${AMENITY_BASE}/chimney.svg`, label: 'Cheminée' },
+  { icon: `${AMENITY_BASE}/sports-fields.svg`, label: 'Terrains de sport' },
+  { icon: `${AMENITY_BASE}/pet-friendly.svg`, label: 'Animaux acceptés' },
+  { icon: `${AMENITY_BASE}/smoking-area.svg`, label: 'Espace fumeurs' },
+  { icon: `${AMENITY_BASE}/microwave.svg`, label: 'Micro-ondes' },
+  { icon: `${AMENITY_BASE}/lockpad.svg`, label: 'Sécurité renforcée' },
+  { icon: `${AMENITY_BASE}/kids-zone.svg`, label: 'Espace enfants' },
   { icon: `${AMENITY_BASE}/garage.svg`, label: 'Garage' },
 ]
 
@@ -164,19 +173,27 @@ const sidebarCard: CSSProperties = {
   boxSizing: 'border-box',
 }
 
-function PricingCard({ listing }: { listing?: ListingCardData }) {
+function PricingCard({ listing, isMobile }: { listing?: ListingCardData; isMobile: boolean }) {
+  const { t } = useTranslation()
   // Affiche le prix CHF formaté (apostrophe suisse) + sublabel selon
   // transaction_type. Fallback démo si pas de listing.
   const isRent = listing?.context === 'rent'
   const priceLabel = listing
     ? (isRent ? formatRent(listing.price) : formatCHF(listing.price))
-    : 'CHF 8’500/mois'
-  const sublabel = isRent ? 'Bien à louer' : 'Bien à vendre'
+    : "CHF 3'200/mois"
+  const sublabel = listing && !isRent
+    ? t('marketplaceProperty.pricing.sublabelSale')
+    : t('marketplaceProperty.pricing.sublabelRent')
+
+  // Prix par m² : seulement si dispo dans le data ET pertinent (vente)
+  // Pour la location, le ratio loyer/m² est moins parlant pour l'acheteur.
+  const pricePerSqm = listing?.price_per_m2
+  const showPricePerSqm = !isRent && pricePerSqm && pricePerSqm > 0
 
   return (
     <div style={{
       ...sidebarCard,
-      padding: 40,
+      padding: isMobile ? 24 : 40,
       display: 'flex',
       flexDirection: 'column',
       gap: 8,
@@ -184,7 +201,7 @@ function PricingCard({ listing }: { listing?: ListingCardData }) {
       <span style={{
         fontFamily: PX.font.sans,
         fontWeight: 500,
-        fontSize: 40,
+        fontSize: isMobile ? 32 : 40,
         lineHeight: 1.25,
         letterSpacing: '-1.2px',
         color: PX.neutral700,
@@ -194,18 +211,291 @@ function PricingCard({ listing }: { listing?: ListingCardData }) {
       <span style={{
         fontFamily: PX.font.sans,
         fontWeight: 500,
-        fontSize: 20,
+        fontSize: isMobile ? 16 : 20,
         lineHeight: 1.25,
         letterSpacing: '-0.6px',
         color: PX.neutral400,
       }}>
         {sublabel}
       </span>
+      {showPricePerSqm ? (
+        <span style={{
+          marginTop: 4,
+          fontFamily: PX.font.sans,
+          fontWeight: 500,
+          fontSize: 14,
+          lineHeight: 1.4,
+          letterSpacing: '-0.4px',
+          color: PX.neutral500,
+        }}>
+          {t('marketplaceProperty.pricePerSqm', { value: pricePerSqm.toLocaleString('fr-CH').replace(/\s/g, "'") })}
+        </span>
+      ) : null}
     </div>
   )
 }
 
-function FormInput({ iconName, placeholder }: { iconName: 'form-person' | 'form-mail' | 'form-phone'; placeholder: string }) {
+// ─── Long description with "Read more / Read less" ────────────────────
+// Les descriptions Flatfox font souvent 1500-3000 caractères et écrasent la
+// mise en page. On tronque à ~400 chars avec un bouton expand/collapse.
+// Si la description fait déjà < 400 chars, pas de bouton.
+
+const DESCRIPTION_TRUNCATE_THRESHOLD = 400
+
+function LongDescription({ text }: { text: string }) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const isLong = text.length > DESCRIPTION_TRUNCATE_THRESHOLD
+
+  const displayed = !isLong || expanded
+    ? text
+    // On coupe sur un espace pour éviter de trancher un mot au milieu
+    : (() => {
+        const slice = text.slice(0, DESCRIPTION_TRUNCATE_THRESHOLD)
+        const lastSpace = slice.lastIndexOf(' ')
+        return slice.slice(0, lastSpace > 200 ? lastSpace : DESCRIPTION_TRUNCATE_THRESHOLD) + '…'
+      })()
+
+  return (
+    <>
+      <p style={{
+        margin: 0,
+        fontFamily: PX.font.sans,
+        fontWeight: 400,
+        fontSize: 16,
+        lineHeight: 1.5,
+        letterSpacing: '-0.48px',
+        color: PX.neutral500,
+        whiteSpace: 'pre-wrap',
+      }}>
+        {displayed}
+      </p>
+      {isLong ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            marginTop: 8,
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            cursor: 'pointer',
+            fontFamily: PX.font.sans,
+            fontWeight: 500,
+            fontSize: 14,
+            lineHeight: 1.4,
+            letterSpacing: '-0.4px',
+            color: PX.neutral700,
+            textDecoration: 'underline',
+          }}
+        >
+          {expanded ? t('marketplaceProperty.description.readLess') : t('marketplaceProperty.description.readMore')}
+        </button>
+      ) : null}
+    </>
+  )
+}
+
+// ─── Freshness badges ──────────────────────────────────────────────────
+// Affiche jusqu'à 3 badges signalétiques sous le titre (Nouveau / Prix
+// baissé / Publié il y a X). Aide l'acheteur à jauger l'opportunité.
+
+function publishedLabel(t: ReturnType<typeof useTranslation>['t'], publishedAt?: string, daysOnMarket?: number): string | null {
+  // days_on_market est calculé côté Supabase quand dispo (market_listings).
+  // Sinon fallback sur le diff avec publishedAt.
+  let days = daysOnMarket
+  if (days == null && publishedAt) {
+    const diff = Date.now() - new Date(publishedAt).getTime()
+    days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)))
+  }
+  if (days == null) return null
+  if (days === 0) return t('marketplaceProperty.badges.publishedToday')
+  if (days < 14) return t('marketplaceProperty.badges.publishedAgo_day', { count: days })
+  if (days < 60) return t('marketplaceProperty.badges.publishedAgo_week', { count: Math.round(days / 7) })
+  return t('marketplaceProperty.badges.publishedAgo_month', { count: Math.round(days / 30) })
+}
+
+function FreshnessBadges({ listing }: { listing?: ListingCardData }) {
+  const { t } = useTranslation()
+  if (!listing) return null
+
+  const isNew = listing.is_new === true || (listing.days_on_market != null && listing.days_on_market <= 3)
+  const priceDropPct = listing.price_drop_pct
+  const publishedText = publishedLabel(t, listing.published_at, listing.days_on_market)
+
+  const badges: Array<{ label: string; tone: 'neutral' | 'accent' | 'warning' }> = []
+  if (isNew) badges.push({ label: t('marketplaceProperty.badges.new'), tone: 'accent' })
+  if (priceDropPct && priceDropPct > 0) {
+    badges.push({ label: t('marketplaceProperty.badges.priceDrop', { percent: priceDropPct }), tone: 'warning' })
+  }
+  if (publishedText) badges.push({ label: publishedText, tone: 'neutral' })
+
+  if (badges.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingBottom: 16 }}>
+      {badges.map((b) => {
+        const palette = b.tone === 'accent'
+          ? { bg: PX.neutral700, fg: PX.neutral100 }
+          : b.tone === 'warning'
+            ? { bg: '#FCE8DE', fg: '#9B3A0B' }
+            : { bg: PX.neutral200, fg: PX.neutral500 }
+        return (
+          <span
+            key={b.label}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              paddingLeft: 12,
+              paddingRight: 12,
+              paddingTop: 6,
+              paddingBottom: 6,
+              background: palette.bg,
+              color: palette.fg,
+              borderRadius: PX.radius.pill,
+              fontFamily: PX.font.sans,
+              fontWeight: 500,
+              fontSize: 13,
+              lineHeight: 1.3,
+              letterSpacing: '-0.3px',
+            }}
+          >
+            {b.label}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Action bar ────────────────────────────────────────────────────────
+// Boutons utilitaires sous le titre : partager, favoris, signaler.
+// Mobile : row sous le title. Desktop : row right-aligned à côté du title.
+
+function ActionBar({ listing, layout = 'inline' }: { listing?: ListingCardData; layout?: 'inline' | 'stacked' }) {
+  const { t } = useTranslation()
+  const { user } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
+  const [shareCopied, setShareCopied] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+
+  const favoriteOn = listing ? isFavorite(listing.id) : false
+
+  const handleShare = async (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    if (typeof window === 'undefined') return
+    const url = window.location.href
+    const shareTitle = listing?.title ?? t('marketplaceProperty.actions.shareTitle')
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shareTitle, url })
+        return
+      }
+    } catch {
+      // user cancelled — fall through to clipboard
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleFavorite = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    if (listing) toggleFavorite(listing.id, !!user)
+  }
+
+  const buttonStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 14,
+    paddingRight: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
+    background: PX.neutral100,
+    border: `1px solid ${PX.neutral300}`,
+    borderRadius: PX.radius.pill,
+    cursor: 'pointer',
+    fontFamily: PX.font.sans,
+    fontWeight: 500,
+    fontSize: 14,
+    lineHeight: 1.3,
+    letterSpacing: '-0.4px',
+    color: PX.neutral700,
+    transition: 'background 0.18s ease, border-color 0.18s ease',
+  }
+
+  return (
+    <>
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 8,
+        justifyContent: layout === 'inline' ? 'flex-end' : 'flex-start',
+      }}>
+        <button type="button" onClick={handleShare} aria-label={t('marketplaceProperty.actions.share')} style={buttonStyle}>
+          <PxIcon name="share" size={14} color={PX.neutral700} />
+          <span style={{ paddingTop: 1 }}>
+            {shareCopied ? t('marketplaceProperty.actions.shareCopied') : t('marketplaceProperty.actions.share')}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={handleFavorite}
+          aria-label={favoriteOn ? t('marketplaceProperty.favoriteRemove') : t('marketplaceProperty.favoriteAdd')}
+          aria-pressed={favoriteOn}
+          disabled={!listing}
+          style={{
+            ...buttonStyle,
+            background: favoriteOn ? PX.neutral700 : PX.neutral100,
+            borderColor: favoriteOn ? PX.neutral700 : PX.neutral300,
+            color: favoriteOn ? PX.neutral100 : PX.neutral700,
+            opacity: listing ? 1 : 0.4,
+          }}
+        >
+          <PxIcon name="heart" size={14} color={favoriteOn ? PX.neutral100 : PX.neutral700} />
+          <span style={{ paddingTop: 1 }}>
+            {favoriteOn ? t('marketplaceProperty.favoriteRemove') : t('marketplaceProperty.favoriteAdd')}
+          </span>
+        </button>
+        {listing ? (
+          <button type="button" onClick={() => setReportOpen(true)} aria-label={t('marketplaceProperty.actions.report')} style={buttonStyle}>
+            <PxIcon name="flag" size={14} color={PX.neutral700} />
+            <span style={{ paddingTop: 1 }}>{t('marketplaceProperty.actions.report')}</span>
+          </button>
+        ) : null}
+      </div>
+      {reportOpen && listing ? (
+        <Suspense fallback={null}>
+          <ReportListingDialog
+            listingId={listing.id}
+            listingTitle={listing.title}
+            onClose={() => setReportOpen(false)}
+          />
+        </Suspense>
+      ) : null}
+    </>
+  )
+}
+
+interface FormInputProps {
+  iconName: 'form-person' | 'form-mail' | 'form-phone'
+  placeholder: string
+  value: string
+  onChange: (v: string) => void
+  type?: 'text' | 'email' | 'tel'
+  name: string
+  required?: boolean
+  autoComplete?: string
+  disabled?: boolean
+  ariaLabel: string
+}
+
+function FormInput({ iconName, placeholder, value, onChange, type = 'text', name, required, autoComplete, disabled, ariaLabel }: FormInputProps) {
   return (
     <div style={{
       background: PX.neutral200,
@@ -220,11 +510,19 @@ function FormInput({ iconName, placeholder }: { iconName: 'form-person' | 'form-
       paddingTop: 6,
       paddingBottom: 6,
       boxSizing: 'border-box',
+      opacity: disabled ? 0.6 : 1,
     }}>
       <PxFigmaIcon name={iconName} size={16} color={PX.neutral500} />
       <input
-        type="text"
+        type={type}
+        name={name}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        required={required}
+        autoComplete={autoComplete}
+        disabled={disabled}
+        aria-label={ariaLabel}
         style={{
           flex: 1,
           minWidth: 0,
@@ -244,15 +542,88 @@ function FormInput({ iconName, placeholder }: { iconName: 'form-person' | 'form-
   )
 }
 
-function ContactFormCard() {
+type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error'
+
+function ContactFormCard({ isMobile, listing }: { isMobile: boolean; listing?: ListingCardData }) {
+  const { t } = useTranslation()
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [status, setStatus] = useState<SubmitStatus>('idle')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const isSubmitting = status === 'submitting'
+  const isSuccess = status === 'success'
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setErrorMessage(null)
+
+    const trimmedName = fullName.trim()
+    const trimmedEmail = email.trim()
+    const trimmedPhone = phone.trim()
+
+    if (!trimmedName) {
+      setErrorMessage(t('marketplaceProperty.contact.errorNameRequired'))
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setErrorMessage(t('marketplaceProperty.contact.errorEmailInvalid'))
+      return
+    }
+
+    setStatus('submitting')
+
+    const prefixedId = listing?.id ?? null
+    const rawId = prefixedId?.replace(/^(market-|internal-)/, '') ?? null
+    const isMarket = prefixedId?.startsWith('market-') ?? false
+    const isInternal = prefixedId?.startsWith('internal-') ?? false
+
+    const payload = {
+      listing_prefixed_id: prefixedId,
+      market_listing_id: isMarket ? rawId : null,
+      property_id: isInternal ? rawId : null,
+      listing_title: listing?.title ?? null,
+      listing_city: listing?.city ?? null,
+      listing_canton: listing?.canton ?? null,
+      listing_transaction_type: listing?.context ?? null,
+      full_name: trimmedName,
+      email: trimmedEmail,
+      phone: trimmedPhone || null,
+      agency_name: listing?.agency_name ?? null,
+      source_portal: listing?.source_portal ?? null,
+      source_url: listing?.source_url ?? null,
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      referer: typeof document !== 'undefined' ? document.referrer || null : null,
+    }
+
+    const { error } = await supabase.from('marketplace_inquiries').insert(payload)
+
+    if (error) {
+      console.error('[marketplace_inquiries] insert failed', error)
+      setStatus('error')
+      setErrorMessage(t('marketplaceProperty.contact.errorGeneric'))
+      return
+    }
+
+    setStatus('success')
+    setFullName('')
+    setEmail('')
+    setPhone('')
+  }
+
   return (
-    <div style={{
-      ...sidebarCard,
-      padding: '56px 40px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-    }}>
+    <div
+      id="contact-form"
+      style={{
+        ...sidebarCard,
+        padding: isMobile ? '32px 24px' : '56px 40px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        scrollMarginTop: 96,
+      }}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start', width: '100%' }}>
         <p style={{
           margin: 0,
@@ -262,9 +633,8 @@ function ContactFormCard() {
           lineHeight: 1.25,
           letterSpacing: '-0.6px',
           color: PX.neutral700,
-          whiteSpace: 'nowrap',
         }}>
-          Get in touch to receive more info
+          {t('marketplaceProperty.contact.title')}
         </p>
         <p style={{
           margin: 0,
@@ -275,64 +645,168 @@ function ContactFormCard() {
           letterSpacing: '-0.48px',
           color: PX.neutral500,
         }}>
-          Lorem ipsum dolor sit amet consectetur fermentum eget fringilla egestas lorem.
+          {t('marketplaceProperty.contact.subtitle')}
         </p>
       </div>
-      <form
-        onSubmit={(e) => e.preventDefault()}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-          width: '100%',
-        }}
-      >
-        <FormInput iconName="form-person" placeholder="Full name" />
-        <FormInput iconName="form-mail" placeholder="Email address" />
-        <FormInput iconName="form-phone" placeholder="Phone number" />
-        <button
-          type="submit"
+      {isSuccess ? (
+        <div
+          role="status"
+          aria-live="polite"
           style={{
+            marginTop: 16,
+            padding: '16px 20px',
+            background: PX.neutral200,
+            borderRadius: PX.radius.large,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingLeft: 16,
-            paddingRight: 10,
-            paddingTop: 10,
-            paddingBottom: 10,
-            borderRadius: PX.radius.pill,
-            background: PX.neutral700,
-            color: PX.neutral100,
-            border: 0,
-            width: '100%',
-            cursor: 'pointer',
+            flexDirection: 'column',
+            gap: 6,
+          }}
+        >
+          <p style={{
+            margin: 0,
             fontFamily: PX.font.sans,
             fontWeight: 500,
             fontSize: 16,
-            lineHeight: 1.25,
+            lineHeight: 1.4,
             letterSpacing: '-0.48px',
-          }}
-        >
-          <span style={{ paddingTop: 2 }}>Request information</span>
-          <span style={{
-            width: 28,
-            height: 28,
-            borderRadius: PX.radius.pill,
-            background: PX.neutral100,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
+            color: PX.neutral700,
           }}>
-            <PxFigmaIcon name="arrow-right" size={12} color={PX.neutral700} />
-          </span>
-        </button>
-      </form>
+            {t('marketplaceProperty.contact.successTitle')}
+          </p>
+          <p style={{
+            margin: 0,
+            fontFamily: PX.font.sans,
+            fontWeight: 400,
+            fontSize: 14,
+            lineHeight: 1.5,
+            letterSpacing: '-0.4px',
+            color: PX.neutral500,
+          }}>
+            {t('marketplaceProperty.contact.successBody')}
+          </p>
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            width: '100%',
+          }}
+          noValidate
+        >
+          <FormInput
+            iconName="form-person"
+            name="full_name"
+            placeholder={t('marketplaceProperty.contact.fullName')}
+            value={fullName}
+            onChange={setFullName}
+            autoComplete="name"
+            required
+            disabled={isSubmitting}
+            ariaLabel={t('marketplaceProperty.contact.fullName')}
+          />
+          <FormInput
+            iconName="form-mail"
+            name="email"
+            type="email"
+            placeholder={t('marketplaceProperty.contact.email')}
+            value={email}
+            onChange={setEmail}
+            autoComplete="email"
+            required
+            disabled={isSubmitting}
+            ariaLabel={t('marketplaceProperty.contact.email')}
+          />
+          <FormInput
+            iconName="form-phone"
+            name="phone"
+            type="tel"
+            placeholder={t('marketplaceProperty.contact.phone')}
+            value={phone}
+            onChange={setPhone}
+            autoComplete="tel"
+            disabled={isSubmitting}
+            ariaLabel={t('marketplaceProperty.contact.phone')}
+          />
+          {errorMessage ? (
+            <p
+              role="alert"
+              style={{
+                margin: 0,
+                fontFamily: PX.font.sans,
+                fontWeight: 500,
+                fontSize: 14,
+                lineHeight: 1.4,
+                letterSpacing: '-0.4px',
+                color: '#C0392B',
+              }}
+            >
+              {errorMessage}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingLeft: 16,
+              paddingRight: 10,
+              paddingTop: 10,
+              paddingBottom: 10,
+              borderRadius: PX.radius.pill,
+              background: PX.neutral700,
+              color: PX.neutral100,
+              border: 0,
+              width: '100%',
+              cursor: isSubmitting ? 'wait' : 'pointer',
+              opacity: isSubmitting ? 0.7 : 1,
+              fontFamily: PX.font.sans,
+              fontWeight: 500,
+              fontSize: 16,
+              lineHeight: 1.25,
+              letterSpacing: '-0.48px',
+              transition: 'opacity 0.18s ease',
+            }}
+          >
+            <span style={{ paddingTop: 2 }}>
+              {isSubmitting ? t('marketplaceProperty.contact.submitting') : t('marketplaceProperty.contact.submit')}
+            </span>
+            <span style={{
+              width: 28,
+              height: 28,
+              borderRadius: PX.radius.pill,
+              background: PX.neutral100,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <PxFigmaIcon name="arrow-right" size={12} color={PX.neutral700} />
+            </span>
+          </button>
+          <p style={{
+            margin: 0,
+            fontFamily: PX.font.sans,
+            fontWeight: 400,
+            fontSize: 12,
+            lineHeight: 1.4,
+            letterSpacing: '-0.3px',
+            color: PX.neutral400,
+          }}>
+            {t('marketplaceProperty.contact.consent')}
+          </p>
+        </form>
+      )}
     </div>
   )
 }
 
-function AgenceCard({ listing }: { listing?: ListingCardData }) {
+function AgenceCard({ listing, isMobile }: { listing?: ListingCardData; isMobile: boolean }) {
+  const { t } = useTranslation()
   // En CH le concept central c'est l'AGENCE / régie, pas l'agent individuel
   // comme aux USA. On affiche donc :
   //   - agency_name (régie qui a publié)
@@ -341,20 +815,21 @@ function AgenceCard({ listing }: { listing?: ListingCardData }) {
   // Sans données contact directes (email/phone au niveau agency_profiles),
   // les visiteurs passent par le ContactFormCard juste au-dessus.
   // Sans listing : fallback démo Figma.
-  const agencyName = listing?.agency_name || (listing ? 'Régie locale' : 'Naef Immobilier')
+  const agencyName = listing?.agency_name
+    || (listing ? t('marketplaceProperty.agency.fallbackName') : 'Naef Immobilier — Genève')
   const agencyLogo = listing?.agency_logo_url || '/images/sections/single-property/agent-sophie.jpg'
   const sourceLabel = listing?.source_portal
-    ? `Annonce publiée sur ${listing.source_portal}`
-    : 'sophiemoore@casa.com'
+    ? t('marketplaceProperty.agency.publishedOn', { portal: listing.source_portal })
+    : 'Régie partenaire certifiée'
   const intro = listing
-    ? 'Contactez la régie directement via le formulaire ci-dessus ou consultez l’annonce d’origine.'
-    : 'Lorem ipsum dolor sit amet consectetur fermentum eget fringilla egestas lorem.'
+    ? t('marketplaceProperty.agency.intro')
+    : 'L’agence en charge de ce bien vous répond sous 24 h, du lundi au samedi.'
   const externalUrl = listing?.source_url
 
   return (
     <div style={{
       ...sidebarCard,
-      padding: '56px 40px',
+      padding: isMobile ? '32px 24px' : '56px 40px',
       display: 'flex',
       flexDirection: 'column',
       gap: 24,
@@ -371,7 +846,7 @@ function AgenceCard({ listing }: { listing?: ListingCardData }) {
           letterSpacing: '-0.6px',
           color: PX.neutral700,
         }}>
-          Contactez l’agence
+          {t('marketplaceProperty.agency.title')}
         </p>
         <p style={{
           margin: 0,
@@ -458,7 +933,7 @@ function AgenceCard({ listing }: { listing?: ListingCardData }) {
                   paddingTop: 2,
                 }}
               >
-                Voir l’annonce d’origine →
+                {t('marketplaceProperty.agency.viewOriginal')}
               </a>
             )}
           </div>
@@ -473,15 +948,17 @@ function AgenceCard({ listing }: { listing?: ListingCardData }) {
 // ───────────────────────────────────────────────────────────────────────
 
 export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyProps) {
+  const isMobile = useIsMobile()
+  const { t } = useTranslation()
   // Champs dérivés du listing avec fallback démo Figma.
   const locationLabel = listing
     ? [listing.address, listing.city].filter(Boolean).join(', ') || 'Suisse'
-    : '2596 El Segundo, Los Angeles'
-  const titleLabel = listing?.title || 'Luxury Loft in San Francisco'
+    : 'Rue de la Servette, 1202 Genève'
+  const titleLabel = listing?.title || 'Loft lumineux au cœur de Genève'
   const descriptionLabel = listing?.description?.trim()
-    || 'Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.'
-  const surfaceLabel = listing?.surface_m2 ? `${listing.surface_m2} m²` : '2,553 sqtf'
-  const roomsLabel = listing?.rooms ? `${listing.rooms} p.` : '3'
+    || 'Magnifique loft de 120 m² entièrement rénové, situé dans un quartier animé à proximité immédiate des transports publics et des commerces. Belle hauteur sous plafond, parquet d’origine, cuisine ouverte sur séjour et grande baie vitrée donnant sur cour intérieure calme.'
+  const surfaceLabel = listing?.surface_m2 ? `${listing.surface_m2} m²` : '120 m²'
+  const roomsLabel = listing?.rooms ? `${listing.rooms} p.` : '3.5 p.'
   const bedroomsLabel = listing?.bedrooms ? String(listing.bedrooms) : '3'
   const bathroomsLabel = listing?.bathrooms ? String(listing.bathrooms) : '2'
 
@@ -491,16 +968,16 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
   const amenitiesToShow = listing
     ? (() => {
         const items: Array<{ icon: string; label: string }> = []
-        if (listing.has_balcony) items.push({ icon: `${AMENITY_BASE}/garden.svg`, label: 'Balcon' })
-        if (listing.has_swimming_pool) items.push({ icon: `${AMENITY_BASE}/pool.svg`, label: 'Piscine' })
-        if (listing.has_nice_view) items.push({ icon: `${AMENITY_BASE}/security-cameras.svg`, label: 'Belle vue' })
-        if (listing.has_garage) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: 'Garage' })
-        if (listing.has_parking) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: 'Parking' })
-        if (listing.has_elevator) items.push({ icon: `${AMENITY_BASE}/elevator.svg`, label: 'Ascenseur' })
-        if (listing.has_fireplace) items.push({ icon: `${AMENITY_BASE}/chimney.svg`, label: 'Cheminée' })
-        if (listing.is_furnished) items.push({ icon: `${AMENITY_BASE}/kitchen.svg`, label: 'Meublé' })
-        if (listing.is_minergie) items.push({ icon: `${AMENITY_BASE}/heater.svg`, label: 'Minergie' })
-        if (listing.is_new_building) items.push({ icon: `${AMENITY_BASE}/lockpad.svg`, label: 'Construction neuve' })
+        if (listing.has_balcony) items.push({ icon: `${AMENITY_BASE}/garden.svg`, label: t('marketplaceProperty.amenities.balcony') })
+        if (listing.has_swimming_pool) items.push({ icon: `${AMENITY_BASE}/pool.svg`, label: t('marketplaceProperty.amenities.swimmingPool') })
+        if (listing.has_nice_view) items.push({ icon: `${AMENITY_BASE}/security-cameras.svg`, label: t('marketplaceProperty.amenities.niceView') })
+        if (listing.has_garage) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: t('marketplaceProperty.amenities.garage') })
+        if (listing.has_parking) items.push({ icon: `${AMENITY_BASE}/garage.svg`, label: t('marketplaceProperty.amenities.parking') })
+        if (listing.has_elevator) items.push({ icon: `${AMENITY_BASE}/elevator.svg`, label: t('marketplaceProperty.amenities.elevator') })
+        if (listing.has_fireplace) items.push({ icon: `${AMENITY_BASE}/chimney.svg`, label: t('marketplaceProperty.amenities.fireplace') })
+        if (listing.is_furnished) items.push({ icon: `${AMENITY_BASE}/kitchen.svg`, label: t('marketplaceProperty.amenities.furnished') })
+        if (listing.is_minergie) items.push({ icon: `${AMENITY_BASE}/heater.svg`, label: t('marketplaceProperty.amenities.minergie') })
+        if (listing.is_new_building) items.push({ icon: `${AMENITY_BASE}/lockpad.svg`, label: t('marketplaceProperty.amenities.newBuilding') })
         return items
       })()
     : AMENITIES
@@ -512,37 +989,47 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
       background: PX.pageBg,
     }}>
       <div style={{
-        width: 'min(1200px, calc(100% - 48px))',
+        width: isMobile ? 'calc(100% - 32px)' : 'min(1200px, calc(100% - 48px))',
         boxSizing: 'border-box',
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 670fr) minmax(0, 412fr)',
-        columnGap: 118,
+        gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 670fr) minmax(0, 412fr)',
+        columnGap: isMobile ? 0 : 118,
+        rowGap: isMobile ? 32 : 0,
         alignItems: 'start',
       }}>
         {/* ─── LEFT — Rich Text ──────────────────────────────────── */}
         <div style={{ width: '100%', minWidth: 0 }}>
           {/* Block 1 — Title + location + amenities inline */}
           <div style={{
-            paddingTop: 64,
-            paddingBottom: 64,
+            paddingTop: isMobile ? 32 : 64,
+            paddingBottom: isMobile ? 32 : 64,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
           }}>
-            {/* Location */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
-              <span style={{
-                fontFamily: PX.font.sans,
-                fontWeight: 500,
-                fontSize: 16,
-                lineHeight: 1.25,
-                letterSpacing: '-0.48px',
-                color: PX.neutral700,
-                paddingTop: 6,
-              }}>
-                {locationLabel}
-              </span>
+            {/* Top row : location (left) + actions (right on desktop) */}
+            <div style={{
+              display: 'flex',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexDirection: isMobile ? 'column' : 'row',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
+                <span style={{
+                  fontFamily: PX.font.sans,
+                  fontWeight: 500,
+                  fontSize: 16,
+                  lineHeight: 1.25,
+                  letterSpacing: '-0.48px',
+                  color: PX.neutral700,
+                  paddingTop: 6,
+                }}>
+                  {locationLabel}
+                </span>
+              </div>
+              {listing ? <ActionBar listing={listing} layout={isMobile ? 'stacked' : 'inline'} /> : null}
             </div>
 
             {/* Title */}
@@ -551,29 +1038,21 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 margin: 0,
                 fontFamily: PX.font.sans,
                 fontWeight: 500,
-                fontSize: 48,
+                fontSize: isMobile ? 32 : 48,
                 lineHeight: 1.25,
-                letterSpacing: '-1.44px',
+                letterSpacing: isMobile ? '-0.96px' : '-1.44px',
                 color: PX.neutral700,
               }}>
                 {titleLabel}
               </h1>
             </div>
 
+            {/* Freshness badges (Nouveau / Prix baissé / Publié il y a X) */}
+            <FreshnessBadges listing={listing} />
+
             {/* Paragraph */}
             <div style={{ paddingBottom: 24 }}>
-              <p style={{
-                margin: 0,
-                fontFamily: PX.font.sans,
-                fontWeight: 400,
-                fontSize: 16,
-                lineHeight: 1.5,
-                letterSpacing: '-0.48px',
-                color: PX.neutral500,
-                whiteSpace: 'pre-wrap',
-              }}>
-                {descriptionLabel}
-              </p>
+              <LongDescription text={descriptionLabel} />
             </div>
 
             {/* Amenities inline */}
@@ -590,18 +1069,18 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
 
           {/* Block 2 — About the property (hidden when real listing → description
               already shown in block 1 lead paragraph above). */}
-          {!listing && <div style={{ paddingTop: 64, paddingBottom: 64 }}>
+          {!listing && <div style={{ paddingTop: isMobile ? 32 : 64, paddingBottom: isMobile ? 32 : 64 }}>
             <div style={{ paddingTop: 16, paddingBottom: 16 }}>
               <h2 style={{
                 margin: 0,
                 fontFamily: PX.font.sans,
                 fontWeight: 500,
-                fontSize: 36,
+                fontSize: isMobile ? 24 : 36,
                 lineHeight: 1.25,
-                letterSpacing: '-1.08px',
+                letterSpacing: isMobile ? '-0.72px' : '-1.08px',
                 color: PX.neutral700,
               }}>
-                À propos du bien
+                {t('marketplaceProperty.body.aboutTitle')}
               </h2>
             </div>
             <div style={{ paddingBottom: 24 }}>
@@ -614,7 +1093,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: '-0.48px',
                 color: PX.neutral500,
               }}>
-                Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
+                Bien rénové en 2023, ce loft offre des prestations soignées et un cadre de vie agréable. Les volumes sont généreux et la luminosité exceptionnelle grâce à l’orientation sud-ouest. À deux pas des transports publics, des commerces et des espaces verts.
               </p>
 
               <div style={{
@@ -625,10 +1104,10 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 flexDirection: 'column',
                 gap: 12,
               }}>
-                <BulletItem>Morbi fringilla molestie magna sed dictum. Praesent.</BulletItem>
-                <BulletItem>Cras mi purus, viverra vitae felis sit amet.</BulletItem>
-                <BulletItem>Non mattis urna ex nec sem. Donec varius diam et suscipit venenati.</BulletItem>
-                <BulletItem>Quisque euismod posuere lacus sit amet volutpat.</BulletItem>
+                <BulletItem>Hauteur sous plafond 3,2 m et parquet chêne d’origine</BulletItem>
+                <BulletItem>Cuisine ouverte entièrement équipée (induction, four pyrolyse, lave-vaisselle)</BulletItem>
+                <BulletItem>Cave privative et accès direct à la cour intérieure arborée</BulletItem>
+                <BulletItem>Immeuble Minergie, ascenseur et local vélos sécurisé</BulletItem>
               </div>
 
               <p style={{
@@ -640,7 +1119,7 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: '-0.48px',
                 color: PX.neutral500,
               }}>
-                Quis faucibus massa sit egestas. Sit fermentum est ac pulvinar et sagittis sed sit ut. Quis faucibus aenean nibh vestibulum enim mi sit. Sollicitudin ultrices ultrices in ipsum urna fringilla massa leo. Sapien ultricies vitae rhoncus molestie purus. Urna urna dolor euismod porttitor et. Magna adipiscing dictum et adipiscing mollis feugiat.
+                À proximité&nbsp;: école primaire des Cropettes (3 min), parc Geisendorf (5 min), gare Cornavin (8 min en tram). Quartier réputé pour sa vie de quartier dynamique, ses bistrots et son marché hebdomadaire.
               </p>
             </div>
           </div>}
@@ -650,18 +1129,18 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
           {(amenitiesToShow.length > 0 || !listing) && <hr style={sectionDivider} />}
 
           {/* Block 3 — Amenities grid (caché si aucun amenities sur listing) */}
-          {(amenitiesToShow.length > 0 || !listing) && <div style={{ paddingTop: 64, paddingBottom: 120 }}>
+          {(amenitiesToShow.length > 0 || !listing) && <div style={{ paddingTop: isMobile ? 32 : 64, paddingBottom: isMobile ? 64 : 120 }}>
             <div style={{ paddingTop: 16, paddingBottom: 16 }}>
               <h2 style={{
                 margin: 0,
                 fontFamily: PX.font.sans,
                 fontWeight: 500,
-                fontSize: 36,
+                fontSize: isMobile ? 24 : 36,
                 lineHeight: 1.25,
-                letterSpacing: '-1.08px',
+                letterSpacing: isMobile ? '-0.72px' : '-1.08px',
                 color: PX.neutral700,
               }}>
-                Équipements
+                {t('marketplaceProperty.body.amenitiesTitle')}
               </h2>
             </div>
             {!listing && <div style={{ paddingBottom: 24 }}>
@@ -674,15 +1153,15 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
                 letterSpacing: '-0.48px',
                 color: PX.neutral500,
               }}>
-                Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum id convallis tristique. Malesuada.
+                Liste complète des équipements et prestations inclus dans le bien. Tous les éléments sont en parfait état de fonctionnement.
               </p>
             </div>}
             <div style={{ paddingBottom: listing ? 16 : 0 }} />
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 12,
+              gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
+              gap: isMobile ? 8 : 12,
             }}>
               {amenitiesToShow.map((a) => (
                 <AmenityBadge key={a.label} icon={a.icon} label={a.label} />
@@ -695,14 +1174,18 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
         <aside style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 24,
-          paddingTop: 64,
+          gap: isMobile ? 16 : 24,
+          paddingTop: isMobile ? 0 : 64,
+          paddingBottom: isMobile ? 48 : 0,
           width: '100%',
           minWidth: 0,
+          // Sticky desktop : la sidebar reste à l'écran pendant qu'on scrolle
+          // le contenu (description, équipements). top = nav height (~88) + 24.
+          ...(isMobile ? {} : { position: 'sticky', top: 112, alignSelf: 'start' }),
         }}>
-          <PricingCard listing={listing} />
-          <ContactFormCard />
-          <AgenceCard listing={listing} />
+          <PricingCard listing={listing} isMobile={isMobile} />
+          <ContactFormCard isMobile={isMobile} listing={listing} />
+          <AgenceCard listing={listing} isMobile={isMobile} />
         </aside>
       </div>
     </section>

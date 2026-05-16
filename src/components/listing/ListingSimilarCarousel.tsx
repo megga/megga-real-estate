@@ -37,7 +37,7 @@ export default function ListingSimilarCarousel({ listings }: ListingSimilarCarou
             return (
               <Link
                 key={sl.id}
-                to={`/listing/${sl.id}`}
+                to={`/propriete/${sl.id}`}
                 className="min-w-[280px] md:min-w-[320px] snap-start bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow group flex-shrink-0"
               >
                 <div className="aspect-[4/3] overflow-hidden bg-gray-100">

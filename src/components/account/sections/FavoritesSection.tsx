@@ -225,7 +225,7 @@ export default function FavoritesSection() {
           key={l.id}
           listing={l}
           onRemove={() => toggleFavorite(l.id, !!user)}
-          onClick={() => navigate(`/listing/${l.id}`)}
+          onClick={() => navigate(`/propriete/${l.id}`)}
         />
       ))}
     </div>
