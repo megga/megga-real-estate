@@ -47,6 +47,8 @@ export interface ListingCardData {
   bathrooms?: number
   year_built?: number
   energy_label?: string
+  energy_kwh?: number
+  energy_year?: number
   has_balcony?: boolean
   has_swimming_pool?: boolean
   has_nice_view?: boolean

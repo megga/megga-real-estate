@@ -20,6 +20,7 @@ import PxNav from '@/components/propertyx/sections/PxNav'
 import PxSinglePropertyBreadcrumb from '@/components/propertyx/sections/PxSinglePropertyBreadcrumb'
 import PxSinglePropertyHero from '@/components/propertyx/sections/PxSinglePropertyHero'
 import PxSinglePropertyBody from '@/components/propertyx/sections/PxSinglePropertyBody'
+import PxSinglePropertyMap from '@/components/propertyx/sections/PxSinglePropertyMap'
 import PxSinglePropertyEnergy from '@/components/propertyx/sections/PxSinglePropertyEnergy'
 import PxSinglePropertyMortgage from '@/components/propertyx/sections/PxSinglePropertyMortgage'
 import PxSinglePropertyRelated from '@/components/propertyx/sections/PxSinglePropertyRelated'
@@ -239,6 +240,7 @@ export default function PropertyXSinglePropertyPage() {
             listingId={listing?.id}
           />
           <PxSinglePropertyBody listing={listing ?? undefined} />
+          <PxSinglePropertyMap listing={listing ?? undefined} />
           {listing?.energy_label ? (
             <PxSinglePropertyEnergy listing={listing} />
           ) : null}
