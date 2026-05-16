@@ -249,6 +249,21 @@ export default function PipelineSugarV2Page() {
             </span>
             <div style={{ flex: 1 }} />
             <SugarSegmentedView sp={sp} value={view} onChange={setView} />
+            {/* Sprint 3 — Bouton ✨ Importer un lead (Sugar Pure : ghost à gauche du CTA noir) */}
+            <button
+              onClick={() => navigate('/dashboard/import-lead?returnTo=/dashboard/pipeline')}
+              title="Importer un lead via MEGGA AI"
+              style={{
+                height: 44, padding: '0 18px', borderRadius: 999, border: 0,
+                background: sp.cardBg, color: sp.ink, fontWeight: 600, fontSize: 13,
+                fontFamily: 'inherit', cursor: 'pointer',
+                boxShadow: sp.shadowSm,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              <CRMIcon name="spark" size={14} stroke={sp.ink} />
+              Importer un lead
+            </button>
             <button onClick={() => setNewDealOpen(true)} style={{
               height: 44, padding: '0 22px', borderRadius: 999, border: 0,
               background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 14,

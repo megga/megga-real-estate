@@ -140,7 +140,8 @@ serve(async (req) => {
       if (inserted) {
         await supabase.from('activity_events').insert({
           agency_id,
-          actor_id: 'ai',
+          actor_id: null,
+          actor_kind: 'ai',
           action: 'reminder_created',
           entity_type: 'reminder',
           entity_id: inserted.id,

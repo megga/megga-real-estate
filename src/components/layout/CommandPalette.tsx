@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Search, Sparkles, LayoutDashboard, Users, GitBranch, Shuffle,
   Building2, Plus, Calendar, ShieldCheck, FileText,
-  Settings,
+  Settings, Wand2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useContacts } from '@/hooks/useContacts'
@@ -32,6 +32,7 @@ const pageItems: CommandItem[] = [
 ]
 
 const actionItems: CommandItem[] = [
+  { id: 'a-import-lead', label: 'Importer un lead', category: 'actions', icon: Wand2, href: '/dashboard/import-lead?returnTo=/dashboard/pipeline', subtitle: 'MEGGA AI extrait le contact depuis un message libre' },
   { id: 'a-contact', label: 'Créer un contact', category: 'actions', icon: Plus, href: '/dashboard/contacts', shortcut: '⌘⇧C' },
   { id: 'a-listing', label: 'Nouveau bien', category: 'actions', icon: Plus, href: '/dashboard/listings/new' },
   { id: 'a-deal', label: 'Nouvelle transaction', category: 'actions', icon: Plus, href: '/dashboard/pipeline' },

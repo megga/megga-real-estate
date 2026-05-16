@@ -469,7 +469,8 @@ async function processMarketChanges(agencyId?: string) {
         // Log audit event
         await supabase.from('activity_events').insert({
           agency_id: search.agency_id,
-          actor_id: 'ai',
+          actor_id: null,
+          actor_kind: 'ai',
           action: isNew ? 'market_new_match' : 'market_price_drop_match',
           entity_type: 'match',
           entity_id: listing.id,

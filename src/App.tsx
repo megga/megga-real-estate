@@ -99,6 +99,8 @@ const OfferModalSugarV3Page = lazy(() => import('@/pages/agent/OfferModalSugarV3
 const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
 const VisiteDetailSugarV3Page = lazy(() => import('@/pages/agent/VisiteDetailSugarV3Page'))
 const VisitCompanionPage = lazy(() => import('@/pages/agent/VisitCompanionPage'))
+// Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
+const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
 const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
 const ParcoursSugarV2Page = lazy(() => import('@/pages/agent/ParcoursSugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
@@ -390,6 +392,8 @@ export default function App() {
                 <Route path="visites/:id" element={<VisiteDetailSugarV3Page />} />
                 {/* Sprint 2 — Vue mobile compagnon /visites/:id/companion (responsive 375px) */}
                 <Route path="visites/:id/companion" element={<VisitCompanionPage />} />
+                {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
+                <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
                 <Route path="matching" element={<MatchingSugarV2Page />} />
                 <Route path="parcours" element={<ParcoursSugarV2Page />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />

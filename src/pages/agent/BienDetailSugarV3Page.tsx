@@ -26,6 +26,7 @@ import {
   BdEditInput,
   BdStatusChip,
   BdPhoto,
+  BdC2paAlert,
   bdFormatPrice,
   bdPricePerM2,
   bdFmtCHF,
@@ -378,6 +379,12 @@ export default function BienDetailSugarV3Page() {
                 : 'Mettre à jour'}
           </SgBlackPill>
         </header>
+
+        {/* Sprint 3 — Alerte unique où C2PA redevient visible : photos non certifiées. */}
+        <BdC2paAlert
+          hasPhotos={!!(bien.photos && bien.photos.length > 0)}
+          isVerified={!!bien.c2pa_verified}
+        />
 
         {/* HERO */}
         <BdCard padding={0} style={{ marginBottom: 24, overflow: 'hidden' }}>

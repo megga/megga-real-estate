@@ -206,6 +206,7 @@ export default function ContactsSugarV2Page() {
             sp={sp}
             dark={dark}
             onNewContact={() => setNewContactOpen(true)}
+            onImportLead={() => navigate('/dashboard/import-lead?returnTo=/dashboard/contacts')}
           />
           <ContactsDetailPane
             contact={selected}

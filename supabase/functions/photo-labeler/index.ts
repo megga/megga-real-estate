@@ -150,7 +150,8 @@ serve(async (req) => {
         action: 'photo_auto_label',
         entity_type: 'property',
         entity_id: property_id,
-        actor_id: 'ai',
+        actor_id: null,
+        actor_kind: 'ai',
         metadata: { photo_count: photo_urls.length, results_count: results.length },
       })
     }

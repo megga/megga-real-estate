@@ -22,6 +22,82 @@ export function BdEyebrow({ children }: { children: ReactNode }) {
   )
 }
 
+// ─── Alerte C2PA Sprint 3 ───────────────────────────────────────────────
+// Le seul endroit du chrome agent où la signature C2PA redevient visible :
+// quand des photos sont publiées sans certification d'authenticité.
+// Phrasing volontairement non-technique (red-team C1) : on ne dit pas
+// « C2PA », on parle de « certification d'authenticité » côté agent.
+export function BdC2paAlert({
+  hasPhotos,
+  isVerified,
+  onAction,
+}: {
+  hasPhotos: boolean
+  isVerified: boolean
+  onAction?: () => void
+}) {
+  if (!hasPhotos || isVerified) return null
+  return (
+    <div
+      style={{
+        background: SugarV3.warnSoft,
+        borderRadius: 16,
+        padding: '14px 18px',
+        marginBottom: 16,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both',
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: SugarV3.card,
+          display: 'grid',
+          placeItems: 'center',
+          flexShrink: 0,
+          boxShadow: SugarV3.shadowSm,
+        }}
+      >
+        <SgIcon name="alert" size={16} stroke={SugarV3.warn} sw={2} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: SugarV3.ink, marginBottom: 2 }}>
+          Photos sans certification d'authenticité
+        </div>
+        <div style={{ fontSize: 12.5, color: SugarV3.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
+          Re-uploader les photos pour fiabiliser la diffusion. La publication MEGGA Marketplace
+          attendra la certification ; les portails partenaires acceptent malgré tout.
+        </div>
+      </div>
+      {onAction && (
+        <button
+          onClick={onAction}
+          style={{
+            height: 36,
+            padding: '0 14px',
+            borderRadius: 999,
+            border: 0,
+            background: SugarV3.ink,
+            color: '#fff',
+            fontFamily: 'inherit',
+            fontSize: 12.5,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          Re-uploader
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ─── Card blanche radius 24px + sgFadeUp ────────────────────────────────
 export function BdCard({
   children,
@@ -164,21 +240,26 @@ export function BdStatusChip({ status }: { status: string }) {
 }
 
 // ─── Photo : vraie URL si dispo, sinon gradient hash stable ─────────────
+// Sprint 3 : le badge C2PA a été RETIRÉ du chrome agent. Les props
+// c2paVerified / photoCount / showBadge sont conservées pour la compat
+// API mais ignorées — la signature C2PA tourne en arrière-plan, sa trace
+// vit dans le journal d'audit nLPD (Sprint 1).
+// Côté marketplace publique, le badge reste sur C2PaBadge / ListingCard.
 export function BdPhoto({
   photos,
   fallbackId,
-  c2paVerified,
-  photoCount,
   w = '100%',
   h = '100%',
-  showBadge = true,
 }: {
   photos?: string[] | null
   fallbackId: string
+  /** @deprecated Sprint 3 — badge retiré du chrome agent. Prop ignorée. */
   c2paVerified?: boolean
+  /** @deprecated Sprint 3 — badge retiré du chrome agent. Prop ignorée. */
   photoCount?: number
   w?: string | number
   h?: string | number
+  /** @deprecated Sprint 3 — badge retiré du chrome agent. Prop ignorée. */
   showBadge?: boolean
 }) {
   const url = photos && photos.length > 0 ? photos[0] : null
@@ -220,29 +301,7 @@ export function BdPhoto({
           <rect x="65" y="35" width="25" height="45" fill="#fff" />
         </svg>
       )}
-      {showBadge && c2paVerified && (
-        <span
-          style={{
-            position: 'absolute',
-            top: 16,
-            left: 16,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '6px 10px',
-            borderRadius: 999,
-            background: 'rgba(11,12,14,0.7)',
-            color: '#fff',
-            fontSize: 11,
-            fontWeight: 600,
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-          }}
-        >
-          <SgIcon name="shield" size={11} stroke="#fff" sw={2} />
-          C2PA{photoCount ? ` · ${photoCount} photos` : ''}
-        </span>
-      )}
+      {/* Sprint 3 : badge C2PA retiré — signature en arrière-plan, log audit nLPD. */}
     </div>
   )
 }

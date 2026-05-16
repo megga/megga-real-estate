@@ -217,7 +217,8 @@ serve(async (req) => {
     if (kycCase) {
       await supabaseClient.from('activity_events').insert({
         agency_id: kycCase.agency_id,
-        actor_id: 'ai',
+        actor_id: null,
+        actor_kind: 'ai',
         action: 'kyc_screening',
         entity_type: 'kyc',
         entity_id: kyc_case_id,

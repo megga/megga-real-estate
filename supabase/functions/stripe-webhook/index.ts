@@ -105,7 +105,8 @@ serve(async (req) => {
         // Log activity event
         await supabaseAdmin.from('activity_events').insert({
           agency_id: agencyId,
-          actor_id: 'system',
+          actor_id: null,
+          actor_kind: 'system',
           action: 'subscription_activated',
           entity_type: 'agency',
           entity_id: agencyId,
@@ -171,7 +172,8 @@ serve(async (req) => {
         // Log activity
         await supabaseAdmin.from('activity_events').insert({
           agency_id: agencyId,
-          actor_id: 'system',
+          actor_id: null,
+          actor_kind: 'system',
           action: 'subscription_changed',
           entity_type: 'agency',
           entity_id: agencyId,
@@ -215,7 +217,8 @@ serve(async (req) => {
 
           await supabaseAdmin.from('activity_events').insert({
             agency_id: agencyId,
-            actor_id: 'system',
+            actor_id: null,
+            actor_kind: 'system',
             action: 'subscription_cancelled',
             entity_type: 'agency',
             entity_id: agencyId,
@@ -250,7 +253,8 @@ serve(async (req) => {
 
           await supabaseAdmin.from('activity_events').insert({
             agency_id: agencyId,
-            actor_id: 'system',
+            actor_id: null,
+            actor_kind: 'system',
             action: 'payment_failed',
             entity_type: 'agency',
             entity_id: agencyId,

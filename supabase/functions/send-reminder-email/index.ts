@@ -286,7 +286,8 @@ serve(async (req) => {
     // ── 7. Audit trail ──
     await supabase.from('activity_events').insert({
       agency_id,
-      actor_id: 'ai',
+      actor_id: null,
+      actor_kind: 'ai',
       action: 'auto_email_sent',
       entity_type: 'reminder',
       entity_id: reminder_id,

@@ -192,7 +192,8 @@ serve(async (req: Request) => {
       // Audit trail
       await supabase.from('activity_events').insert({
         agency_id: property.agency_id,
-        actor_id: 'system',
+        actor_id: null,
+        actor_kind: 'system',
         action: 'Photos certifiées C2PA',
         entity_type: 'property',
         entity_id: propertyId,
