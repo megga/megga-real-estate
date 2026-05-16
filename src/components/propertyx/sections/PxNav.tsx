@@ -22,6 +22,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PX, PxButton, PxIcon, PxLogo } from '..'
+import PxLanguageSwitcher from './PxLanguageSwitcher'
 
 interface PxNavProps {
   // glass était l'ancien prop "overlay sur hero" — Figma a la nav en flow normal
@@ -207,9 +208,12 @@ export default function PxNav({ bg = PX.neutral100 }: PxNavProps) {
           </nav>
         </div>
 
-        <PxButton to="/login" variant="primary" size="sm">
-          Connexion
-        </PxButton>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <PxLanguageSwitcher />
+          <PxButton to="/login" variant="primary" size="sm">
+            Connexion
+          </PxButton>
+        </div>
       </div>
     </header>
   )
