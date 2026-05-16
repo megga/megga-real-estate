@@ -1011,6 +1011,8 @@
   "marketplaceProperty": {
     "loading": "Inserat wird geladen…",
     "notFound": "Inserat nicht gefunden.",
+    "notFoundHint": "Dieses Inserat existiert nicht mehr oder wurde vom Portal entfernt.",
+    "backToSearch": "Zur Suche zurückkehren",
     "defaultTitle": "Immobilie",
     "favoriteAdd": "Zu Favoriten hinzufügen",
     "favoriteRemove": "Aus Favoriten entfernen",
@@ -1028,6 +1030,8 @@
     "badges": {
       "new": "Neu",
       "priceDrop": "Preis gesenkt · −{{percent}}%",
+      "c2paVerified": "Verifizierte Fotos – MEGGA Shield",
+      "c2paTooltip": "Die Fotos dieser Immobilie sind nach dem C2PA-Standard zertifiziert echt. Keine undeklarierte KI-Bearbeitung.",
       "publishedAgo_day_one": "Vor {{count}} Tag veröffentlicht",
       "publishedAgo_day_other": "Vor {{count}} Tagen veröffentlicht",
       "publishedToday": "Heute veröffentlicht",
