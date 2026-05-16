@@ -44,7 +44,6 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { key: 'buy', label: 'Acheter', to: '/acheter' },
   { key: 'rent', label: 'Louer', to: '/louer' },
-  { key: 'estimate', label: 'Estimer', to: '/estimations' },
   { key: 'services', label: 'Services', to: '/services' },
   { key: 'pro', label: 'Pour les pros', to: '/agences' },
 ]

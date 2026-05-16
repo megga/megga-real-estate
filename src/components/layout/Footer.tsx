@@ -28,7 +28,6 @@ export default function Footer() {
   const LINKS_RECHERCHER = [
     { label: t('footer.buy'), href: '/acheter' },
     { label: t('footer.rent'), href: '/louer' },
-    { label: t('footer.estimate'), href: '/estimations' },
   ]
 
   const LINKS_PRO = [

@@ -126,7 +126,6 @@
     "search": "Suchen",
     "buy": "Kaufen",
     "rent": "Mieten",
-    "estimate": "Schätzen",
     "interactiveMap": "Interaktive Karte",
     "professionals": "Profis",
     "realEstateCRM": "Immobilien-CRM",
@@ -511,81 +510,6 @@
   },
   "invite": {
     "swissRealEstate": "Schweizer Immobilien"
-  },
-  "estimations": {
-    "hero": {
-      "badge": "KI-gestützt",
-      "title": "Wie viel ist Ihre Immobilie wert?",
-      "subtitle": "Erhalten Sie eine präzise Schätzung in 2 Minuten, basierend auf der KI-Analyse von Tausenden Schweizer Immobilientransaktionen.",
-      "transactions": "47'000+ analysierte Transaktionen",
-      "free": "Kostenlos und unverbindlich",
-      "result": "Ergebnis in 2 Minuten"
-    },
-    "howItWorks": {
-      "0": {
-        "title": "Marktdaten",
-        "description": "Analyse der tatsächlichen Verkaufspreise in Ihrer Gemeinde und Ihrem Quartier."
-      },
-      "1": {
-        "title": "47'000+ Transaktionen",
-        "description": "Datenbank gespeist aus dem Swiss Real Estate Datapool und den Grundbuchämtern."
-      },
-      "2": {
-        "title": "Prädiktive KI",
-        "description": "Algorithmus trainiert auf die Besonderheiten des Schweizer Immobilienmarktes — Kanton für Kanton."
-      },
-      "3": {
-        "title": "Vierteljährliche Aktualisierung",
-        "description": "Daten werden vierteljährlich neu kalibriert, um aktuelle Markttrends widerzuspiegeln."
-      },
-      "title": "Wie funktioniert unsere Schätzung?"
-    },
-    "priceTable": {
-      "title": "Durchschnittliche Preise pro m² in der Schweiz",
-      "updated": "Aktualisierte Daten — März 2026",
-      "canton": "Kanton",
-      "apartment": "Wohnung (CHF/m²)",
-      "house": "Haus (CHF/m²)",
-      "trend": "12-Monats-Trend",
-      "seeAll": "Alle Kantone anzeigen"
-    },
-    "faq": {
-      "0": {
-        "q": "Wie wird die Schätzung berechnet?",
-        "a": "Unser Algorithmus analysiert die jüngsten Transaktionen in Ihrer Gemeinde (bis zu 47'000 Verkäufe), die Wohnfläche, die Anzahl Zimmer, das Baujahr, den Zustand und 50 standortbezogene Kriterien (Verkehr, Schulen, Geschäfte, Luftqualität), um eine Preisspanne zu erstellen."
-      },
-      "1": {
-        "q": "Wie zuverlässig ist die Schätzung?",
-        "a": "Die Online-Schätzung liefert eine zuverlässige indikative Spanne für Standardobjekte. Für atypische Objekte (Luxus, historisch, Bauland) empfehlen wir eine Vor-Ort-Bewertung durch einen zertifizierten Makler."
-      },
-      "2": {
-        "q": "Ist die Schätzung wirklich kostenlos?",
-        "a": "Ja, 100% kostenlos und unverbindlich. Sie sind nicht verpflichtet, zu verkaufen oder einen Makler zu kontaktieren."
-      },
-      "3": {
-        "q": "Welche Immobilientypen kann ich schätzen?",
-        "a": "Wohnungen, Häuser, Villen, Bauland und Gewerberäume in der ganzen Schweiz (26 Kantone)."
-      },
-      "4": {
-        "q": "Wie erhalte ich eine genauere Schätzung?",
-        "a": "Nach der Online-Schätzung können Sie eine kostenlose Vor-Ort-Bewertung durch einen zertifizierten MEGGA-Makler anfordern."
-      },
-      "5": {
-        "q": "Wie oft werden die Daten aktualisiert?",
-        "a": "Unsere Modelle werden vierteljährlich anhand der neuesten registrierten Transaktionen und aktuellen Inserate neu kalibriert."
-      },
-      "6": {
-        "q": "Kann ich eine Immobilie für einen Kauf schätzen?",
-        "a": "Absolut. Das Tool wird sowohl von Verkäufern als auch von Käufern genutzt, die prüfen möchten, ob der verlangte Preis der Marktrealität entspricht."
-      },
-      "title": "Häufig gestellte Fragen"
-    },
-    "cta": {
-      "title": "Bereit, den Wert Ihrer Immobilie zu erfahren?",
-      "subtitle": "Kostenlose Schätzung, sofortiges Ergebnis, aktuelle Schweizer Daten.",
-      "button": "Jetzt schätzen",
-      "footer": "Kostenlos · Unverbindlich · 2 Minuten"
-    }
   },
   "services": {
     "hero": {

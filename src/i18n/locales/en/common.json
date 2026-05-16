@@ -126,7 +126,6 @@
     "search": "Search",
     "buy": "Buy",
     "rent": "Rent",
-    "estimate": "Estimate",
     "interactiveMap": "Interactive map",
     "professionals": "Professionals",
     "realEstateCRM": "Real estate CRM",
@@ -511,81 +510,6 @@
   },
   "invite": {
     "swissRealEstate": "Swiss Real Estate"
-  },
-  "estimations": {
-    "hero": {
-      "badge": "Powered by AI",
-      "title": "How much is your property worth?",
-      "subtitle": "Get an accurate estimate in 2 minutes, based on AI analysis of thousands of Swiss real estate transactions.",
-      "transactions": "47,000+ transactions analyzed",
-      "free": "Free and no obligation",
-      "result": "Result in 2 minutes"
-    },
-    "howItWorks": {
-      "0": {
-        "title": "Market data",
-        "description": "Analysis of actual sale prices in your municipality and neighborhood."
-      },
-      "1": {
-        "title": "47,000+ transactions",
-        "description": "Database powered by the Swiss Real Estate Datapool and land registries."
-      },
-      "2": {
-        "title": "Predictive AI",
-        "description": "Algorithm trained on the specifics of the Swiss real estate market — canton by canton."
-      },
-      "3": {
-        "title": "Quarterly updates",
-        "description": "Data recalibrated each quarter to reflect current market trends."
-      },
-      "title": "How does our estimation work?"
-    },
-    "priceTable": {
-      "title": "Average prices per m² in Switzerland",
-      "updated": "Data updated — March 2026",
-      "canton": "Canton",
-      "apartment": "Apartment (CHF/m²)",
-      "house": "House (CHF/m²)",
-      "trend": "12-month trend",
-      "seeAll": "See all cantons"
-    },
-    "faq": {
-      "0": {
-        "q": "How is the estimate calculated?",
-        "a": "Our algorithm analyzes recent transactions in your municipality (up to 47,000 sales), living area, number of rooms, year of construction, property condition, and 50 location-related criteria (transport, schools, shops, air quality) to generate a price range."
-      },
-      "1": {
-        "q": "How reliable is the estimate?",
-        "a": "The online estimate provides a reliable indicative range for standard properties. For atypical properties (luxury, historic, building land), we recommend an on-site evaluation by a certified agent to refine the result."
-      },
-      "2": {
-        "q": "Is the estimate really free?",
-        "a": "Yes, 100% free with no obligation. You are under no obligation to sell or contact an agent after receiving your estimate."
-      },
-      "3": {
-        "q": "What types of properties can I estimate?",
-        "a": "Apartments, houses, villas, building land, and commercial premises throughout Switzerland (26 cantons)."
-      },
-      "4": {
-        "q": "How can I get a more accurate estimate?",
-        "a": "After the online estimate, you can request a free on-site evaluation by a certified MEGGA agent. The agent will inspect the property, analyze local comparables, and prepare a complete market analysis report."
-      },
-      "5": {
-        "q": "How often is the data updated?",
-        "a": "Our models are recalibrated each quarter based on the latest recorded transactions and current listings on the Swiss market."
-      },
-      "6": {
-        "q": "Can I estimate a property for a purchase?",
-        "a": "Absolutely. The tool is used both by sellers who want to know their property value and by buyers who want to check if the asking price matches market reality."
-      },
-      "title": "Frequently asked questions"
-    },
-    "cta": {
-      "title": "Ready to know the value of your property?",
-      "subtitle": "Free estimate, instant result, up-to-date Swiss data.",
-      "button": "Estimate now",
-      "footer": "Free · No obligation · 2 minutes"
-    }
   },
   "services": {
     "hero": {

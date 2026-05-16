@@ -82,7 +82,6 @@ function PrimaryButtonDark({ to, label }: { to: string; label: string }) {
 const NAV_LINKS = [
   { label: 'Acheter', to: '/acheter' },
   { label: 'Louer', to: '/louer' },
-  { label: 'Estimer', to: '/estimations' },
   { label: 'Services', to: '/services' },
   { label: 'Pour les pros', to: '/agences' },
 ] as const

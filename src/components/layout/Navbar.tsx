@@ -38,7 +38,6 @@ const mobileLinks = [
   { label: 'Trouver un agent', href: '/agents' },
   { label: 'Trouver une agence', href: '/agences' },
   { label: 'Créer un profil', href: '/devenir-agent' },
-  { label: 'Estimations', href: '/estimations' },
   { label: 'Services', href: '/services' },
 ]
 

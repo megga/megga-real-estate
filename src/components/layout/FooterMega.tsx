@@ -344,7 +344,6 @@ export default function FooterMega() {
         <FooterColumn title="Produit">
           <FooterLink to="/acheter">Acheter</FooterLink>
           <FooterLink to="/louer">Louer</FooterLink>
-          <FooterLink to="/estimations">Estimer</FooterLink>
           <FooterLink to="/louer">Carte</FooterLink>
           <FooterLink to="/compte">Alertes</FooterLink>
         </FooterColumn>

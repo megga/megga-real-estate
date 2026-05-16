@@ -126,7 +126,6 @@
     "search": "Cercare",
     "buy": "Comprare",
     "rent": "Affittare",
-    "estimate": "Stimare",
     "interactiveMap": "Mappa interattiva",
     "professionals": "Professionisti",
     "realEstateCRM": "CRM immobiliare",
@@ -511,81 +510,6 @@
   },
   "invite": {
     "swissRealEstate": "Immobiliare svizzero"
-  },
-  "estimations": {
-    "hero": {
-      "badge": "Alimentato dall'IA",
-      "title": "Quanto vale il vostro immobile?",
-      "subtitle": "Ottenete una stima precisa in 2 minuti, basata sull'analisi IA di migliaia di transazioni immobiliari svizzere.",
-      "transactions": "47'000+ transazioni analizzate",
-      "free": "Gratuito e senza impegno",
-      "result": "Risultato in 2 minuti"
-    },
-    "howItWorks": {
-      "0": {
-        "title": "Dati di mercato",
-        "description": "Analisi dei prezzi di vendita reali nel vostro comune e quartiere."
-      },
-      "1": {
-        "title": "47'000+ transazioni",
-        "description": "Database alimentato dal Swiss Real Estate Datapool e dai registri fondiari."
-      },
-      "2": {
-        "title": "IA predittiva",
-        "description": "Algoritmo addestrato sulle specificità del mercato immobiliare svizzero — cantone per cantone."
-      },
-      "3": {
-        "title": "Aggiornamento trimestrale",
-        "description": "Dati ricalibrati ogni trimestre per riflettere le tendenze attuali del mercato."
-      },
-      "title": "Come funziona la nostra stima?"
-    },
-    "priceTable": {
-      "title": "Prezzi medi al m² in Svizzera",
-      "updated": "Dati aggiornati — Marzo 2026",
-      "canton": "Cantone",
-      "apartment": "Appartamento (CHF/m²)",
-      "house": "Casa (CHF/m²)",
-      "trend": "Tendenza 12 mesi",
-      "seeAll": "Vedi tutti i cantoni"
-    },
-    "faq": {
-      "0": {
-        "q": "Come viene calcolata la stima?",
-        "a": "Il nostro algoritmo analizza le transazioni recenti nel vostro comune (fino a 47'000 vendite), la superficie abitabile, il numero di locali, l'anno di costruzione, lo stato dell'immobile e 50 criteri legati alla posizione per generare una fascia di prezzo."
-      },
-      "1": {
-        "q": "Quanto è affidabile la stima?",
-        "a": "La stima online fornisce una fascia indicativa affidabile per gli immobili standard. Per immobili atipici (lusso, storici, terreni edificabili), raccomandiamo una valutazione in loco da parte di un agente certificato."
-      },
-      "2": {
-        "q": "La stima è davvero gratuita?",
-        "a": "Sì, 100% gratuita e senza impegno. Non avete alcun obbligo di vendere o contattare un agente dopo aver ricevuto la vostra stima."
-      },
-      "3": {
-        "q": "Quali tipi di immobili posso stimare?",
-        "a": "Appartamenti, case, ville, terreni edificabili e locali commerciali in tutta la Svizzera (26 cantoni)."
-      },
-      "4": {
-        "q": "Come ottenere una stima più precisa?",
-        "a": "Dopo la stima online, potete richiedere una valutazione gratuita in loco da parte di un agente MEGGA certificato."
-      },
-      "5": {
-        "q": "Con quale frequenza vengono aggiornati i dati?",
-        "a": "I nostri modelli vengono ricalibrati ogni trimestre sulla base delle ultime transazioni registrate e degli annunci in corso sul mercato svizzero."
-      },
-      "6": {
-        "q": "Posso stimare un immobile per un acquisto?",
-        "a": "Assolutamente. Lo strumento è utilizzato sia dai venditori che dagli acquirenti che vogliono verificare se il prezzo richiesto corrisponde alla realtà del mercato."
-      },
-      "title": "Domande frequenti"
-    },
-    "cta": {
-      "title": "Pronti a conoscere il valore del vostro immobile?",
-      "subtitle": "Stima gratuita, risultato istantaneo, dati svizzeri aggiornati.",
-      "button": "Stima adesso",
-      "footer": "Gratuito · Senza impegno · 2 minuti"
-    }
   },
   "services": {
     "hero": {

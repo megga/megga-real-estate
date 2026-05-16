@@ -23,7 +23,6 @@ interface Props {
 const NAV_LINKS: Array<[string, string]> = [
   ['/acheter', 'Acheter'],
   ['/louer', 'Louer'],
-  ['/estimations', 'Estimer'],
   ['/services', 'Services'],
   ['/services', 'Pro'],
 ]

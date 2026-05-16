@@ -65,7 +65,6 @@ const ListingPage = lazy(() => import('@/pages/public/ListingPage'))
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
 const LouerPage = lazy(() => import('@/pages/public/LouerPage'))
 const VendrePage = lazy(() => import('@/pages/public/VendrePage'))
-const EstimationsPage = lazy(() => import('@/pages/public/EstimationsPage'))
 const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
 const PublierPage = lazy(() => import('@/pages/public/PublierPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
@@ -271,8 +270,6 @@ export default function App() {
               <Route path="/louer-legacy" element={<LouerPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/vendre" element={<VendrePage />} />
-              <Route path="/estimations" element={<EstimationsPage />} />
-              <Route path="/estimer" element={<EstimationsPage />} />
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/publier" element={<PublierPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />

@@ -131,7 +131,6 @@
     "search": "Rechercher",
     "buy": "Acheter",
     "rent": "Louer",
-    "estimate": "Estimer",
     "interactiveMap": "Carte interactive",
     "professionals": "Professionnels",
     "realEstateCRM": "CRM immobilier",
@@ -516,81 +515,6 @@
   },
   "invite": {
     "swissRealEstate": "Immobilier Suisse"
-  },
-  "estimations": {
-    "hero": {
-      "badge": "Propulsé par l'IA",
-      "title": "Combien vaut votre bien immobilier ?",
-      "subtitle": "Obtenez une estimation précise en 2 minutes, basée sur l'analyse IA de milliers de transactions immobilières suisses.",
-      "transactions": "47'000+ transactions analysées",
-      "free": "Gratuit et sans engagement",
-      "result": "Résultat en 2 minutes"
-    },
-    "howItWorks": {
-      "0": {
-        "title": "Données du marché",
-        "description": "Analyse des prix de vente réels dans votre commune et votre quartier."
-      },
-      "1": {
-        "title": "47'000+ transactions",
-        "description": "Base de données alimentée par le Swiss Real Estate Datapool et les registres fonciers."
-      },
-      "2": {
-        "title": "IA prédictive",
-        "description": "Algorithme entraîné sur les spécificités du marché immobilier suisse — canton par canton."
-      },
-      "3": {
-        "title": "Mise à jour trimestrielle",
-        "description": "Données recalibrées chaque trimestre pour refléter les tendances actuelles du marché."
-      },
-      "title": "Comment fonctionne notre estimation ?"
-    },
-    "priceTable": {
-      "title": "Prix moyens au m² en Suisse",
-      "updated": "Données actualisées — Mars 2026",
-      "canton": "Canton",
-      "apartment": "Appartement (CHF/m²)",
-      "house": "Maison (CHF/m²)",
-      "trend": "Tendance 12 mois",
-      "seeAll": "Voir tous les cantons"
-    },
-    "faq": {
-      "0": {
-        "q": "Comment est calculée l'estimation ?",
-        "a": "Notre algorithme analyse les transactions récentes dans votre commune (jusqu'à 47'000 ventes), la surface habitable, le nombre de pièces, l'année de construction, l'état du bien et 50 critères liés à l'emplacement (transports, écoles, commerces, qualité de l'air) pour générer une fourchette de prix."
-      },
-      "1": {
-        "q": "Quelle est la fiabilité de l'estimation ?",
-        "a": "L'estimation en ligne fournit une fourchette indicative fiable pour les biens standards. Pour les biens atypiques (propriété de luxe, bien historique, terrain constructible), nous recommandons une évaluation sur place par un agent certifié pour affiner le résultat."
-      },
-      "2": {
-        "q": "L'estimation est-elle vraiment gratuite ?",
-        "a": "Oui, 100% gratuite et sans engagement. Vous n'avez aucune obligation de vendre ou de contacter un agent après avoir reçu votre estimation."
-      },
-      "3": {
-        "q": "Quels types de biens puis-je estimer ?",
-        "a": "Appartements, maisons, villas, terrains constructibles et locaux commerciaux dans toute la Suisse (26 cantons)."
-      },
-      "4": {
-        "q": "Comment obtenir une estimation plus précise ?",
-        "a": "Après l'estimation en ligne, vous pouvez demander une évaluation gratuite sur place par un agent MEGGA certifié. L'agent inspectera le bien, analysera les comparables du quartier et établira un dossier complet d'analyse de marché."
-      },
-      "5": {
-        "q": "À quelle fréquence les données sont-elles mises à jour ?",
-        "a": "Nos modèles sont recalibrés chaque trimestre à partir des dernières transactions enregistrées et des annonces en cours sur le marché suisse."
-      },
-      "6": {
-        "q": "Puis-je estimer un bien pour un achat ?",
-        "a": "Absolument. L'outil est utilisé aussi bien par les vendeurs qui souhaitent connaître la valeur de leur bien que par les acheteurs qui veulent vérifier si le prix demandé correspond à la réalité du marché."
-      },
-      "title": "Questions fréquentes"
-    },
-    "cta": {
-      "title": "Prêt à connaître la valeur de votre bien ?",
-      "subtitle": "Estimation gratuite, résultat instantané, données suisses actualisées.",
-      "button": "Estimer maintenant",
-      "footer": "Gratuit · Sans engagement · 2 minutes"
-    }
   },
   "services": {
     "hero": {

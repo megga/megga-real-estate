@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import {
   Layers,
   Search,
-  Brain,
   Rocket,
   Check,
   X,
@@ -388,21 +387,6 @@ const particulierCards = [
     ],
     cta: 'Commencer',
     href: '/search',
-  },
-  {
-    icon: Brain,
-    iconBg: 'bg-emerald-50',
-    iconColor: 'text-emerald-600',
-    title: 'Estimation gratuite en 2 minutes',
-    description:
-      "Obtenez une fourchette de prix basée sur 47'000+ transactions suisses et 70 critères d'analyse.",
-    features: [
-      'Fourchette de prix temps réel',
-      'Biens comparables dans votre quartier',
-      'Prix au m² actualisé par canton',
-    ],
-    cta: 'Estimer mon bien',
-    href: '/estimations',
   },
   {
     icon: Rocket,
