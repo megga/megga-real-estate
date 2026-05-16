@@ -1105,6 +1105,9 @@
       "aboutTitle": "À propos du bien",
       "amenitiesTitle": "Équipements"
     },
+    "map": {
+      "title": "Emplacement"
+    },
     "cta": {
       "badge": "Visite & contact",
       "title": "Ce bien vous intéresse ?",

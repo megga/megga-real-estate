@@ -1100,6 +1100,9 @@
       "aboutTitle": "About the property",
       "amenitiesTitle": "Amenities"
     },
+    "map": {
+      "title": "Location"
+    },
     "cta": {
       "badge": "Visit & contact",
       "title": "Interested in this property?",

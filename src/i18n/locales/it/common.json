@@ -1100,6 +1100,9 @@
       "aboutTitle": "Informazioni sull'immobile",
       "amenitiesTitle": "Dotazioni"
     },
+    "map": {
+      "title": "Posizione"
+    },
     "cta": {
       "badge": "Visita & contatto",
       "title": "Interessato a questo immobile?",

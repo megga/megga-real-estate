@@ -1100,6 +1100,9 @@
       "aboutTitle": "Über die Immobilie",
       "amenitiesTitle": "Ausstattung"
     },
+    "map": {
+      "title": "Lage"
+    },
     "cta": {
       "badge": "Besichtigung & Kontakt",
       "title": "Interessieren Sie sich für diese Immobilie?",
