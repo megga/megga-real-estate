@@ -42,7 +42,7 @@ export function useAgencyProperties() {
 
 // ── Create property ──
 
-interface CreatePropertyInput {
+export interface CreatePropertyInput {
   title: string
   description?: string
   type: string
@@ -57,6 +57,11 @@ interface CreatePropertyInput {
   year_built?: number
   charges_monthly?: number
   mandate_type?: string
+  // Sprint 2 — migration 20260517_001
+  energy_class?: string | null
+  mandate_commission_pct?: number | null
+  mandate_signed_at?: string | null
+  mandate_expires_at?: string | null
   address: string
   city: string
   canton: string

@@ -92,6 +92,13 @@ const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
 const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
 const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
+// Sprint 2 — Sugar v3 (port pixel-près handoff Bien + Deal + Visite)
+const BienDetailSugarV3Page = lazy(() => import('@/pages/agent/BienDetailSugarV3Page'))
+const DealDetailSugarV3Page = lazy(() => import('@/pages/agent/DealDetailSugarV3Page'))
+const OfferModalSugarV3Page = lazy(() => import('@/pages/agent/OfferModalSugarV3Page'))
+const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
+const VisiteDetailSugarV3Page = lazy(() => import('@/pages/agent/VisiteDetailSugarV3Page'))
+const VisitCompanionPage = lazy(() => import('@/pages/agent/VisitCompanionPage'))
 const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
 const ParcoursSugarV2Page = lazy(() => import('@/pages/agent/ParcoursSugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
@@ -371,6 +378,18 @@ export default function App() {
                 <Route path="contacts" element={<ContactsSugarV2Page />} />
                 <Route path="listings" element={<BiensSugarV2Page />} />
                 <Route path="listings-legacy" element={<ListingsPage />} />
+                {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}
+                <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
+                {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
+                <Route path="transactions/:id" element={<DealDetailSugarV3Page />} />
+                {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
+                <Route path="transactions/:id/offre/:kind" element={<OfferModalSugarV3Page />} />
+                {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}
+                <Route path="visites/nouveau" element={<VisitModalSugarV3Page />} />
+                {/* Sprint 2 — Fiche Visite (bon + rapport + mobile compagnon) */}
+                <Route path="visites/:id" element={<VisiteDetailSugarV3Page />} />
+                {/* Sprint 2 — Vue mobile compagnon /visites/:id/companion (responsive 375px) */}
+                <Route path="visites/:id/companion" element={<VisitCompanionPage />} />
                 <Route path="matching" element={<MatchingSugarV2Page />} />
                 <Route path="parcours" element={<ParcoursSugarV2Page />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />

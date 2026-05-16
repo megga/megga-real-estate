@@ -21,6 +21,9 @@ export type SgIconName =
   | 'map' | 'target' | 'star' | 'bed' | 'bath' | 'flame' | 'swap'
   | 'deal' | 'computer' | 'cloud' | 'moon' | 'bell' | 'inbox'
   | 'kyc'
+  // Sprint 2 — Bien, Deal, Visite
+  | 'arrowUp' | 'globe' | 'ruler' | 'heart' | 'photos' | 'pen' | 'mic'
+  | 'pin' | 'smile' | 'play' | 'pause'
 
 const PATHS: Record<SgIconName, ReactNode> = {
   // Navigation / actions
@@ -90,6 +93,19 @@ const PATHS: Record<SgIconName, ReactNode> = {
   moon: <><path d="M20 14a8 8 0 0 1-10-10 8 8 0 1 0 10 10Z" /></>,
   bell: <><path d="M6 8a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9Z" /><path d="M10 21a2 2 0 0 0 4 0" /></>,
   inbox: <><path d="M3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5" /><path d="M3 13l3-7a2 2 0 0 1 2-1h8a2 2 0 0 1 2 1l3 7" /><path d="M3 13h5l1 2h6l1-2h5" /></>,
+
+  // Sprint 2 additions
+  arrowUp: <><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></>,
+  globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
+  ruler: <><path d="M21 3 3 21" /><path d="M9 3l3 3M13 7l3 3M17 11l3 3M3 9l3 3M7 13l3 3M11 17l3 3" /></>,
+  heart: <><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" /></>,
+  photos: <><rect x="3" y="6" width="14" height="14" rx="2" /><path d="M7 2h14v14" /></>,
+  pen: <><path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /></>,
+  mic: <><rect x="9" y="2" width="6" height="13" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" /></>,
+  pin: <><circle cx="12" cy="10" r="3" /><path d="M12 22s-7-7-7-12a7 7 0 0 1 14 0c0 5-7 12-7 12Z" /></>,
+  smile: <><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" /></>,
+  play: <><path d="m6 4 14 8-14 8V4Z" /></>,
+  pause: <><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></>,
 }
 
 interface SgIconProps {

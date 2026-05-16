@@ -1,6 +1,10 @@
 // MEGGA CRM Sugar v3 — Primitives Sugar Pure
 // Port pixel-près de crm-screen-kyc-sugar.jsx + crm-kyc-wizard.jsx (handoff).
 // Surfaces blanches, accent unique #0B0C0E, AUCUNE bordure décorative.
+//
+// Sprint 2 — Les composants ci-dessous portent le préfixe Kyc* historique.
+// Pour les nouvelles pages (Bien, Deal, Visite, modals Offre/Visite) on les
+// exporte également sous le préfixe Sg* générique : voir le bas de ce fichier.
 
 import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
@@ -605,3 +609,20 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
     </div>
   )
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// Aliases Sg* — Sprint 2 onwards (Bien, Deal, Visite, modals).
+// Les primitives sont communes à toutes les pages Sugar Pure ; seul leur
+// nom évolue pour ne plus laisser entendre qu'elles sont KYC-only.
+// ═══════════════════════════════════════════════════════════════════════
+export const SgBlackPill = KycBlackPill
+export const SgGhostPill = KycGhostPill
+export const SgCircleBtn = KycCircleBtn
+export const SgRing = KycRing
+export const SgStatusPill = KycStatusPill
+export const SgRiskPill = KycRiskPill
+export const SgNeutralPill = KycNeutralPill
+export const SgStatCard = KycStatCard
+export const SgSection = KycSection
+export const SgAvatar = KycAvatar
+export const SgStepper = KycStepper

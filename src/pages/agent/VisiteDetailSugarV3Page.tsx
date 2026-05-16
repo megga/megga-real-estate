@@ -1,0 +1,286 @@
+// MEGGA CRM Sprint 2 — Fiche Visite Sugar Pure (desktop)
+// Port pixel-près de crm-screen-visite-sugar.jsx (handoff Sprint 2).
+//
+// Layout :
+//   - Header (retour calendrier + ref + actions)
+//   - Hero (titre + visiteur + adresse + date)
+//   - Grid : panneau bon + rapport (gauche) | iPhone compagnon (droite)
+//
+// Sync Realtime : tout update push du mobile arrive ici via useVisitRealtime.
+// Route : /dashboard/visites/:id
+
+import { useNavigate, useParams } from 'react-router-dom'
+import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
+import { SgIcon } from '@/components/crm-sugar-v3/icons'
+import {
+  SgBlackPill,
+  SgGhostPill,
+  SgCircleBtn,
+} from '@/components/crm-sugar-v3/primitives'
+import {
+  VdEyebrow,
+  VdCard,
+  VdBonPanel,
+  VdRapportPanel,
+  VdMobileCompanion,
+} from '@/components/crm-sugar-v3/visite-detail/VdShared'
+import {
+  useVisitDetail,
+  useVisitRealtime,
+  useSignVisitBon,
+} from '@/hooks/useVisitDetail'
+
+function vdDateLong(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-CH', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+export default function VisiteDetailSugarV3Page() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { data: visit, isLoading, isError, error } = useVisitDetail(id)
+  const { mutate: signBon } = useSignVisitBon()
+  useVisitRealtime(id)
+
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: SugarV3.bgGradient,
+          display: 'grid',
+          placeItems: 'center',
+          color: SugarV3.muted,
+          fontFamily: SugarV3.font,
+        }}
+      >
+        Chargement de la visite…
+      </div>
+    )
+  }
+  if (isError) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: SugarV3.bgGradient,
+          display: 'grid',
+          placeItems: 'center',
+          color: SugarV3.err,
+          fontFamily: SugarV3.font,
+          padding: 40,
+          textAlign: 'center',
+        }}
+      >
+        Erreur de chargement de la visite : {error?.message ?? 'inconnue'}
+      </div>
+    )
+  }
+  if (!visit) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: SugarV3.bgGradient,
+          display: 'grid',
+          placeItems: 'center',
+          color: SugarV3.muted,
+          fontFamily: SugarV3.font,
+        }}
+      >
+        Visite introuvable.
+      </div>
+    )
+  }
+
+  const isDone = visit.kind === 'done'
+
+  return (
+    <div
+      data-screen-label="Fiche Visite (Sugar v3)"
+      style={{
+        width: '100%',
+        minHeight: '100vh',
+        background: SugarV3.bgGradient,
+        color: SugarV3.ink,
+        fontFamily: SugarV3.font,
+      }}
+    >
+      <style>{SUGAR_V3_KEYFRAMES}</style>
+      <style>{`
+        @keyframes vdPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+      `}</style>
+
+      <main style={{ padding: '28px 40px 80px', minWidth: 0 }}>
+        {/* Header */}
+        <header
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            marginBottom: 32,
+            flexWrap: 'wrap',
+          }}
+        >
+          <SgGhostPill
+            icon={<SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />}
+            onClick={() => navigate('/dashboard/calendar')}
+          >
+            Calendrier
+          </SgGhostPill>
+          <span
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              whiteSpace: 'nowrap',
+              fontSize: 12,
+              color: SugarV3.muted,
+              letterSpacing: 0.3,
+            }}
+          >
+            {visit.id.slice(0, 8).toUpperCase()}
+          </span>
+          <div style={{ flex: 1 }} />
+          <SgCircleBtn
+            icon={<SgIcon name="pencil" size={17} stroke={SugarV3.inkSoft} />}
+            title="Modifier"
+          />
+          <SgBlackPill
+            icon={
+              <SgIcon
+                name={isDone ? 'check' : 'pen'}
+                size={14}
+                stroke="#fff"
+                sw={2}
+              />
+            }
+          >
+            {isDone ? 'Rapport publié' : 'Démarrer la visite'}
+          </SgBlackPill>
+        </header>
+
+        {/* Hero */}
+        <VdCard padding={32} style={{ marginBottom: 24 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 24,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <VdEyebrow>
+                Visite · {isDone ? 'Effectuée' : 'Planifiée'}
+              </VdEyebrow>
+              <h1
+                style={{
+                  margin: '12px 0 10px',
+                  fontSize: 36,
+                  fontWeight: 700,
+                  color: SugarV3.ink,
+                  letterSpacing: -0.8,
+                  lineHeight: 1.15,
+                }}
+              >
+                {visit.property?.title ?? 'Bien'}
+                <span style={{ color: SugarV3.muted, fontWeight: 500 }}>
+                  {' '}
+                  avec{' '}
+                  {visit.contact
+                    ? `${visit.contact.first_name} ${visit.contact.last_name}`
+                    : '—'}
+                </span>
+              </h1>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  flexWrap: 'wrap',
+                  color: SugarV3.muted,
+                  fontSize: 14,
+                  fontWeight: 500,
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                  }}
+                >
+                  <SgIcon name="cal" size={14} stroke={SugarV3.muted} />
+                  {vdDateLong(visit.scheduled_at)}
+                </span>
+                <span>·</span>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                  }}
+                >
+                  <SgIcon name="clock" size={14} stroke={SugarV3.muted} />
+                  {new Date(visit.scheduled_at).toLocaleTimeString('fr-CH', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}{' '}
+                  ({visit.duration_minutes} min)
+                </span>
+                {visit.property?.address && (
+                  <>
+                    <span>·</span>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 7,
+                      }}
+                    >
+                      <SgIcon name="pin" size={14} stroke={SugarV3.muted} />
+                      {visit.property.address}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </VdCard>
+
+        {/* Grid panels + mobile */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 360px',
+            gap: 28,
+            alignItems: 'flex-start',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 24,
+              minWidth: 0,
+            }}
+          >
+            <VdBonPanel
+              visit={visit}
+              onSign={() => {
+                if (!visit.bon) return
+                signBon({ visitId: visit.id, bon: visit.bon })
+              }}
+            />
+            <VdRapportPanel visit={visit} />
+          </div>
+          <VdMobileCompanion visit={visit} framed={true} />
+        </div>
+      </main>
+    </div>
+  )
+}
