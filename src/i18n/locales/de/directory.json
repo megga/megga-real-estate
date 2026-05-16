@@ -101,6 +101,7 @@
   "cta.needHelpDesc": "Wir verbinden Sie mit einem zertifizierten Makler in Ihrer Region, der zu Ihrem Projekt passt.",
   "cta.contactLocal": "Lokalen Makler kontaktieren",
   "faq.title": "Häufig gestellte Fragen",
+  "agencies.eyebrow": "Verzeichnis",
   "agencies.title": "Immobilienagenturen in der Schweiz",
   "agencies.subtitle": "{{count}} Agenturen in der ganzen Schweiz gelistet.",
   "agencies.searchPlaceholder": "Agentur suchen...",
@@ -110,5 +111,6 @@
   "agencies.inCanton": "in {{canton}}",
   "agencies.withLogo": "{{count}} mit Logo",
   "agencies.noResult": "Keine Agentur gefunden",
-  "agencies.clearSearch": "Suche löschen"
+  "agencies.clearSearch": "Suche löschen",
+  "agencies.loadMore": "Mehr anzeigen ({{shown}} / {{total}})"
 }

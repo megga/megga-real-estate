@@ -101,6 +101,7 @@
   "cta.needHelpDesc": "Nous vous mettons en relation avec un agent certifié dans votre région, adapté à votre projet.",
   "cta.contactLocal": "Contacter un agent local",
   "faq.title": "Questions fréquentes",
+  "agencies.eyebrow": "Annuaire",
   "agencies.title": "Agences immobilières en Suisse",
   "agencies.subtitle": "{{count}} agences référencées dans toute la Suisse.",
   "agencies.searchPlaceholder": "Rechercher une agence...",
@@ -110,5 +111,6 @@
   "agencies.inCanton": "en {{canton}}",
   "agencies.withLogo": "{{count}} avec logo",
   "agencies.noResult": "Aucune agence trouvée",
-  "agencies.clearSearch": "Effacer la recherche"
+  "agencies.clearSearch": "Effacer la recherche",
+  "agencies.loadMore": "Voir plus ({{shown}} / {{total}})"
 }

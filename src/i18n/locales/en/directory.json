@@ -101,6 +101,7 @@
   "cta.needHelpDesc": "We connect you with a certified agent in your area, suited to your project.",
   "cta.contactLocal": "Contact a local agent",
   "faq.title": "Frequently asked questions",
+  "agencies.eyebrow": "Directory",
   "agencies.title": "Real estate agencies in Switzerland",
   "agencies.subtitle": "{{count}} agencies listed across Switzerland.",
   "agencies.searchPlaceholder": "Search an agency...",
@@ -110,5 +111,6 @@
   "agencies.inCanton": "in {{canton}}",
   "agencies.withLogo": "{{count}} with logo",
   "agencies.noResult": "No agency found",
-  "agencies.clearSearch": "Clear search"
+  "agencies.clearSearch": "Clear search",
+  "agencies.loadMore": "Show more ({{shown}} / {{total}})"
 }
