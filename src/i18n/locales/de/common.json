@@ -1054,6 +1054,25 @@
       "title": "GEAK-Zertifikat",
       "description": "Klassifizierung {{grade}} auf der GEAK-Skala (A = sehr effizient, G = energieintensiv). Schätzwerte, basierend auf den Angaben der Agentur."
     },
+    "mortgage": {
+      "eyebrow": "Tragbarkeitsrechner",
+      "title": "Kann ich mir diese Immobilie leisten?",
+      "subtitle": "Schätzung basierend auf den Schweizer Bankregeln: mindestens 20 % Eigenmittel, jährliche Kosten ≤ 33 % des Bruttoeinkommens.",
+      "priceLabel": "Kaufpreis",
+      "incomeLabel": "Bruttojahreseinkommen",
+      "incomeHint": "Haushaltseinkommen vor Steuern",
+      "fundsLabel": "Verfügbare Eigenmittel",
+      "fundsHint": "Empfohlenes Minimum: {{value}} (20 % des Preises)",
+      "statusOk": "Tragbar",
+      "statusTight": "Grenzwertig",
+      "statusHard": "Schwierig",
+      "monthlyCost": "Geschätzte monatliche Kosten",
+      "mortgageAmount": "Hypothek",
+      "annualCharges": "Jährliche Kosten",
+      "chargeRatio": "Kostenquote",
+      "minFunds": "Erforderliche Eigenmittel",
+      "disclaimer": "Unverbindliche Schätzung. Eine vollständige Analyse durch Ihren Bankberater ist vor jedem Engagement erforderlich. MEGGA bietet keine Finanzierungsleistungen an."
+    },
     "contact": {
       "title": "Weitere Informationen anfragen",
       "subtitle": "Die Agentur meldet sich innerhalb von 24 Stunden bei Ihnen, um Ihre Fragen zu beantworten oder eine Besichtigung zu organisieren.",

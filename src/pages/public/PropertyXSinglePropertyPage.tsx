@@ -22,6 +22,7 @@ import PxSinglePropertyBreadcrumb from '@/components/propertyx/sections/PxSingle
 import PxSinglePropertyHero from '@/components/propertyx/sections/PxSinglePropertyHero'
 import PxSinglePropertyBody from '@/components/propertyx/sections/PxSinglePropertyBody'
 import PxSinglePropertyEnergy from '@/components/propertyx/sections/PxSinglePropertyEnergy'
+import PxSinglePropertyMortgage from '@/components/propertyx/sections/PxSinglePropertyMortgage'
 import PxSinglePropertyRelated from '@/components/propertyx/sections/PxSinglePropertyRelated'
 import PxSinglePropertyCTA from '@/components/propertyx/sections/PxSinglePropertyCTA'
 import PxSinglePropertyMobileBar from '@/components/propertyx/sections/PxSinglePropertyMobileBar'
@@ -77,6 +78,9 @@ export default function PropertyXSinglePropertyPage() {
           <PxSinglePropertyBody listing={listing ?? undefined} />
           {listing?.energy_label ? (
             <PxSinglePropertyEnergy listing={listing} />
+          ) : null}
+          {listing?.context === 'buy' ? (
+            <PxSinglePropertyMortgage listing={listing} />
           ) : null}
           {listing?.lat && listing?.lng ? (
             <Suspense fallback={null}>

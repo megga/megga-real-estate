@@ -1054,6 +1054,25 @@
       "title": "CECB certificate",
       "description": "Class {{grade}} on the CECB scale (A = highly efficient, G = energy-intensive). Estimated values based on the agency declaration."
     },
+    "mortgage": {
+      "eyebrow": "Affordability calculator",
+      "title": "Can I afford this property?",
+      "subtitle": "Estimate based on Swiss banking rules: minimum 20 % own funds, annual charges ≤ 33 % of gross income.",
+      "priceLabel": "Property price",
+      "incomeLabel": "Gross annual income",
+      "incomeHint": "Household income before taxes",
+      "fundsLabel": "Available own funds",
+      "fundsHint": "Recommended minimum: {{value}} (20 % of price)",
+      "statusOk": "Affordable",
+      "statusTight": "Stretched",
+      "statusHard": "Out of reach",
+      "monthlyCost": "Estimated monthly cost",
+      "mortgageAmount": "Mortgage",
+      "annualCharges": "Annual charges",
+      "chargeRatio": "Charge ratio",
+      "minFunds": "Required own funds",
+      "disclaimer": "Indicative simulation, non-binding. A full review by your banking advisor remains required before any commitment. MEGGA does not provide financing services."
+    },
     "contact": {
       "title": "Request more information",
       "subtitle": "The agency will get back to you within 24 hours to answer your questions or arrange a viewing.",

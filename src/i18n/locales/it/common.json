@@ -1054,6 +1054,25 @@
       "title": "Certificato CECE",
       "description": "Classe {{grade}} sulla scala CECE (A = molto efficiente, G = energivoro). Valori stimati, basati sulla dichiarazione dell'agenzia."
     },
+    "mortgage": {
+      "eyebrow": "Simulatore di sostenibilità",
+      "title": "Posso permettermi questo immobile?",
+      "subtitle": "Stima basata sulle regole bancarie svizzere: almeno 20 % di mezzi propri, oneri annuali ≤ 33 % del reddito lordo.",
+      "priceLabel": "Prezzo dell'immobile",
+      "incomeLabel": "Reddito lordo annuo",
+      "incomeHint": "Reddito del nucleo familiare al lordo delle imposte",
+      "fundsLabel": "Mezzi propri disponibili",
+      "fundsHint": "Minimo consigliato: {{value}} (20 % del prezzo)",
+      "statusOk": "Sostenibile",
+      "statusTight": "Limite",
+      "statusHard": "Difficile",
+      "monthlyCost": "Costo mensile stimato",
+      "mortgageAmount": "Ipoteca",
+      "annualCharges": "Oneri annuali",
+      "chargeRatio": "Tasso di oneri",
+      "minFunds": "Mezzi propri richiesti",
+      "disclaimer": "Simulazione indicativa non vincolante. Un'analisi completa da parte del Suo consulente bancario resta necessaria prima di qualsiasi impegno. MEGGA non offre servizi di finanziamento."
+    },
     "contact": {
       "title": "Richiedere maggiori informazioni",
       "subtitle": "L'agenzia La ricontatta entro 24 ore per rispondere alle Sue domande o organizzare una visita.",

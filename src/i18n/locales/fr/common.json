@@ -1059,6 +1059,25 @@
       "title": "Certificat CECB",
       "description": "Classement {{grade}} sur l'échelle CECB (A = très efficace, G = énergivore). Valeurs estimatives, basées sur la déclaration de l'agence."
     },
+    "mortgage": {
+      "eyebrow": "Simulateur d'accessibilité",
+      "title": "Puis-je acheter ce bien ?",
+      "subtitle": "Estimation basée sur les règles bancaires suisses : 20 % de fonds propres minimum, charges annuelles ≤ 33 % du revenu brut.",
+      "priceLabel": "Prix du bien",
+      "incomeLabel": "Revenu brut annuel",
+      "incomeHint": "Revenu du ménage avant impôts",
+      "fundsLabel": "Fonds propres disponibles",
+      "fundsHint": "Minimum recommandé : {{value}} (20 % du prix)",
+      "statusOk": "Accessible",
+      "statusTight": "Limite",
+      "statusHard": "Difficile",
+      "monthlyCost": "Coût mensuel estimé",
+      "mortgageAmount": "Hypothèque",
+      "annualCharges": "Charges annuelles",
+      "chargeRatio": "Taux de charges",
+      "minFunds": "Fonds propres requis",
+      "disclaimer": "Simulation indicative non-engageante. Une analyse complète par votre conseiller bancaire reste nécessaire avant tout engagement. MEGGA ne propose pas de service de financement."
+    },
     "contact": {
       "title": "Demander plus d'informations",
       "subtitle": "L'agence vous recontacte sous 24 h pour répondre à vos questions ou organiser une visite.",
