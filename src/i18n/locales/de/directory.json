@@ -111,5 +111,6 @@
   "agencies.inCanton": "in {{canton}}",
   "agencies.withLogo": "{{count}} mit Logo",
   "agencies.noResult": "Keine Agentur gefunden",
-  "agencies.clearSearch": "Suche löschen"
+  "agencies.clearSearch": "Suche löschen",
+  "agencies.loadMore": "Mehr anzeigen ({{shown}} / {{total}})"
 }

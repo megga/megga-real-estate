@@ -69,6 +69,7 @@ function DirectoryBadgeDark({ label }: { label: string }) {
 const selectFieldStyle: React.CSSProperties = {
   background: PX.neutral200,
   width: 280,
+  maxWidth: '100%',
   height: 52,
   minHeight: 48,
   display: 'flex',
@@ -81,6 +82,7 @@ const selectFieldStyle: React.CSSProperties = {
   position: 'relative',
   borderTopRightRadius: PX.radius.pill,
   borderBottomRightRadius: PX.radius.pill,
+  flex: '1 1 200px',
 }
 
 const placeholderStyle: React.CSSProperties = {
@@ -156,7 +158,7 @@ export default function PxAgenciesHero({
             <h1 style={{
               margin: 0,
               fontFamily: PX.font.display,
-              fontSize: 72,
+              fontSize: 'clamp(36px, 7vw, 72px)',
               fontWeight: 500,
               lineHeight: 1.10,
               letterSpacing: '-2.16px',
@@ -194,25 +196,43 @@ export default function PxAgenciesHero({
         </div>
 
         {/* Browser : absolute bottom -48, white pill rounded-48 */}
-        <div style={{
+        <div className="px-agencies-browser" style={{
           position: 'absolute',
           bottom: -48,
           left: '50%',
           transform: 'translateX(-50%)',
           background: PX.neutral100,
-          borderRadius: 48,
-          padding: 24,
+          borderRadius: 32,
+          padding: 16,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 2,
+          flexWrap: 'wrap',
+          gap: 8,
           boxShadow: PX.shadow.small,
-          maxWidth: 'calc(100% - 48px)',
+          maxWidth: 'calc(100% - 32px)',
+          width: 720,
+          boxSizing: 'border-box',
         }}>
-          {/* Search input : 400×52 left pill */}
+          <style>{`
+            @media (max-width: 720px) {
+              .px-agencies-browser { border-radius: 24px !important; padding: 12px !important; }
+              .px-agencies-browser > div { width: 100% !important; flex: 1 1 100% !important; }
+              .px-agencies-browser > div:first-child {
+                border-top-right-radius: ${PX.radius.pill}px !important;
+                border-bottom-right-radius: ${PX.radius.pill}px !important;
+              }
+              .px-agencies-browser > div:last-child {
+                border-top-left-radius: ${PX.radius.pill}px !important;
+                border-bottom-left-radius: ${PX.radius.pill}px !important;
+              }
+            }
+          `}</style>
+          {/* Search input : flex 1, left pill */}
           <div style={{
             background: PX.neutral200,
-            width: 400,
+            flex: '1 1 280px',
+            minWidth: 200,
             height: 52,
             minHeight: 52,
             display: 'flex',

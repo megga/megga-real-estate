@@ -8,9 +8,12 @@
 //     + Primary Circle Button DARK (40, neutral700) à droite
 //   - 3 colonnes w-382 sur container w-1200
 
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PX, PxFigmaIcon } from '..'
+
+const PAGE_SIZE = 30
 
 export interface AgencyDirectoryItem {
   id: string
@@ -283,6 +286,17 @@ export default function PxAgenciesGrid({
   selectedCantonLabel,
 }: PxAgenciesGridProps) {
   const { t } = useTranslation('directory')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  // Reset pagination when filter/search changes — React-idiomatic
+  // pattern : compare prev props during render (cheaper than useEffect).
+  const [prevAgencies, setPrevAgencies] = useState(agencies)
+  if (agencies !== prevAgencies) {
+    setPrevAgencies(agencies)
+    setVisibleCount(PAGE_SIZE)
+  }
+
+  const visibleAgencies = agencies.slice(0, visibleCount)
+  const hasMore = agencies.length > visibleCount
 
   return (
     <section style={{
@@ -426,11 +440,40 @@ export default function PxAgenciesGrid({
           )}
         </div>
       ) : (
-        <div className="px-agencies-grid">
-          {agencies.map(agency => (
-            <AgencyCardPx key={agency.id} agency={agency} />
-          ))}
-        </div>
+        <>
+          <div className="px-agencies-grid">
+            {visibleAgencies.map(agency => (
+              <AgencyCardPx key={agency.id} agency={agency} />
+            ))}
+          </div>
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+              style={{
+                marginTop: 48,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                background: PX.neutral700,
+                color: PX.neutral100,
+                border: 0,
+                cursor: 'pointer',
+                paddingLeft: 24,
+                paddingRight: 24,
+                paddingTop: 14,
+                paddingBottom: 14,
+                borderRadius: PX.radius.pill,
+                fontFamily: PX.font.display,
+                fontSize: 14,
+                fontWeight: 500,
+                letterSpacing: '-0.42px',
+              }}
+            >
+              {t('agencies.loadMore', { defaultValue: 'Voir plus ({{shown}} / {{total}})', shown: visibleAgencies.length, total: agencies.length })}
+            </button>
+          )}
+        </>
       )}
     </section>
   )

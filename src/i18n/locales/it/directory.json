@@ -111,5 +111,6 @@
   "agencies.inCanton": "in {{canton}}",
   "agencies.withLogo": "{{count}} con logo",
   "agencies.noResult": "Nessuna agenzia trovata",
-  "agencies.clearSearch": "Cancella ricerca"
+  "agencies.clearSearch": "Cancella ricerca",
+  "agencies.loadMore": "Mostra di più ({{shown}} / {{total}})"
 }

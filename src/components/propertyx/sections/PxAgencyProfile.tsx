@@ -218,12 +218,14 @@ function ProfileCard({ agency }: { agency: AgencyData }) {
   return (
     <div style={{
       position: 'relative',
-      width: 486,
+      width: '100%',
+      maxWidth: 486,
       background: PX.neutral100,
       borderRadius: PX.radius.large,
       boxShadow: PX.shadow.small,
       flexShrink: 0,
       overflow: 'hidden',
+      boxSizing: 'border-box',
     }}>
       {/* Decoration dark band — solid neutral700 (pas d'image, plus neutre pour une agence) */}
       <div style={{
@@ -286,8 +288,8 @@ function ProfileCard({ agency }: { agency: AgencyData }) {
         href={contactHref}
         style={{
           position: 'absolute',
-          top: 161,
-          right: 32,
+          top: 86,
+          right: 24,
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
