@@ -1007,33 +1007,9 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
             flexDirection: 'column',
             justifyContent: 'center',
           }}>
-            {/* Top row : location (left) + actions (right on desktop) */}
-            <div style={{
-              display: 'flex',
-              alignItems: isMobile ? 'flex-start' : 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-              flexDirection: isMobile ? 'column' : 'row',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
-                <span style={{
-                  fontFamily: PX.font.sans,
-                  fontWeight: 500,
-                  fontSize: 16,
-                  lineHeight: 1.25,
-                  letterSpacing: '-0.48px',
-                  color: PX.neutral700,
-                  paddingTop: 6,
-                }}>
-                  {locationLabel}
-                </span>
-              </div>
-              {listing ? <ActionBar listing={listing} layout={isMobile ? 'stacked' : 'inline'} /> : null}
-            </div>
-
-            {/* Title */}
-            <div style={{ paddingTop: 16, paddingBottom: 16 }}>
+            {/* Title — placé en premier pour s'aligner visuellement avec la
+                PricingCard à droite (les deux démarrent au paddingTop du grid). */}
+            <div style={{ paddingBottom: 12 }}>
               <h1 style={{
                 margin: 0,
                 fontFamily: PX.font.sans,
@@ -1047,21 +1023,44 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
               </h1>
             </div>
 
+            {/* Location — sous le titre, pin + adresse */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 16 }}>
+              <PxFigmaIcon name="location" size={20} color={PX.neutral700} />
+              <span style={{
+                fontFamily: PX.font.sans,
+                fontWeight: 500,
+                fontSize: 16,
+                lineHeight: 1.25,
+                letterSpacing: '-0.48px',
+                color: PX.neutral700,
+                paddingTop: 6,
+              }}>
+                {locationLabel}
+              </span>
+            </div>
+
             {/* Freshness badges (Nouveau / Prix baissé / Publié il y a X) */}
             <FreshnessBadges listing={listing} />
 
-            {/* Paragraph */}
-            <div style={{ paddingBottom: 24 }}>
-              <LongDescription text={descriptionLabel} />
-            </div>
-
-            {/* Amenities inline */}
-            <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Amenities inline — remontées sous les badges de fraîcheur car
+                la description peut être très longue (Flatfox 1500-3000 chars). */}
+            <div style={{
+              display: 'flex',
+              gap: 24,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              paddingBottom: 24,
+            }}>
               <MetaItem icon={<PxFigmaIcon name="surface" size={20} color={PX.neutral400} />} label={surfaceLabel} />
               <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={roomsLabel} />
               {listing?.bedrooms ? <MetaItem icon={<PxFigmaIcon name="bed" size={20} color={PX.neutral400} />} label={bedroomsLabel} /> : null}
               {listing?.bathrooms ? <MetaItem icon={<PxFigmaIcon name="bath" size={20} color={PX.neutral400} />} label={bathroomsLabel} /> : null}
               {!listing ? <MetaItem icon={<PxFigmaIcon name="parking" size={20} color={PX.neutral400} />} label="3" /> : null}
+            </div>
+
+            {/* Paragraph */}
+            <div style={{ paddingBottom: 24 }}>
+              <LongDescription text={descriptionLabel} />
             </div>
           </div>
 
@@ -1184,6 +1183,9 @@ export default function PxSinglePropertyBody({ listing }: PxSinglePropertyBodyPr
           ...(isMobile ? {} : { position: 'sticky', top: 112, alignSelf: 'start' }),
         }}>
           <PricingCard listing={listing} isMobile={isMobile} />
+          {/* Pills d'actions (Partager / Favoris / Signaler) — sous le prix,
+              au-dessus du formulaire de contact. Anciennement à côté du titre. */}
+          {listing ? <ActionBar listing={listing} layout="stacked" /> : null}
           <ContactFormCard isMobile={isMobile} listing={listing} />
           <AgenceCard listing={listing} isMobile={isMobile} />
         </aside>
