@@ -23,6 +23,7 @@ import { usePageMeta } from '@/hooks/usePageMeta'
 
 import PxProHero from '@/components/propertyx/sections/pro/PxProHero'
 import PxProPromises from '@/components/propertyx/sections/pro/PxProPromises'
+import PxProTrustLogos from '@/components/propertyx/sections/pro/PxProTrustLogos'
 import PxProFeatures from '@/components/propertyx/sections/pro/PxProFeatures'
 import PxProHowItWorks from '@/components/propertyx/sections/pro/PxProHowItWorks'
 import PxProPricing from '@/components/propertyx/sections/pro/PxProPricing'
@@ -54,6 +55,7 @@ export default function ServicesPage() {
       <PxNav glass />
       <PxProHero />
       <PxProPromises />
+      <PxProTrustLogos />
       <PxProFeatures />
       <PxProHowItWorks />
       <PxProPricing />
