@@ -210,10 +210,43 @@ export async function seedDemoData(agencyId: string, userId: string): Promise<{ 
 
     if (contactsErr) throw contactsErr
 
+    // Refetch avec search_criteria pour pouvoir alimenter client_searches.
+    // `.select('id, first_name, last_name')` ci-dessus ne renvoie pas search_criteria.
+    const contactIds = (contacts ?? []).map(c => c.id)
+    const { data: contactsFull } = contactIds.length > 0
+      ? await supabase
+          .from('contacts')
+          .select('id, last_name, type, search_criteria')
+          .in('id', contactIds)
+      : { data: [] }
+
     const marcId   = contacts?.find(c => c.last_name === 'Dupont')?.id
     const sophieId = contacts?.find(c => c.last_name === 'Müller')?.id
     const jpId     = contacts?.find(c => c.last_name === 'Favre')?.id
     const thomasId = contacts?.find(c => c.last_name === 'Weber')?.id
+
+    // ── 1b. Client searches ──
+    // Le moteur de matching (Edge Function `matching-engine`) lit
+    // `client_searches.criteria`, pas `contacts.search_criteria`. Sans cette
+    // étape, "Relancer le matching" sur la page /dashboard/matching ne
+    // trouvera rien après le seed (cf. handoff useMatchingSugar). On crée
+    // un client_search actif par buyer ayant des critères.
+    const buyerContacts = (contactsFull ?? []).filter(
+      c =>
+        (c.type === 'buyer' || c.type === 'both' || c.type === 'tenant' || c.type === 'investor') &&
+        c.search_criteria != null,
+    )
+    if (buyerContacts.length > 0) {
+      await supabase.from('client_searches').insert(
+        buyerContacts.map(c => ({
+          agency_id: agencyId,
+          contact_id: c.id,
+          label: 'Recherche initiale (démo)',
+          criteria: c.search_criteria,
+          is_active: true,
+        })),
+      )
+    }
 
     // ── 2. Properties ──
     const { data: properties, error: propsErr } = await supabase
