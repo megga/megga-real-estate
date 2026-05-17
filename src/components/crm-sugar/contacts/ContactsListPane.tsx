@@ -3,7 +3,7 @@
 
 import { useMemo, useState, type CSSProperties } from 'react'
 import CRMIcon from '../CRMIcon'
-import { CRM_CONTACTS, CRM_DEALS, type CrmContact, type CrmDeal } from '../mockData'
+import { CRM_DEALS, type CrmContact, type CrmDeal } from '../mockData'
 import { CRM_STAGES } from '../tokens'
 import { crmInitials } from '../tokens'
 import type { SugarPalette } from '../tokens'
@@ -235,6 +235,10 @@ function CtRow({ contact, deal, selected, onSelect, sp, dark }: CtRowProps) {
 // ─── Liste pane ────────────────────────────────────────────────────────
 interface ContactsListPaneProps {
   contacts: CrmContact[]
+  /** Total des contacts AVANT filtrage (pour les compteurs de segments). */
+  allContacts?: CrmContact[]
+  /** True pendant le premier fetch Supabase — affiche un état "Chargement…". */
+  isLoading?: boolean
   selectedId: string | null
   onSelect: (id: string) => void
   segment: SegmentId
@@ -253,6 +257,8 @@ interface ContactsListPaneProps {
 
 export function ContactsListPane({
   contacts,
+  allContacts,
+  isLoading,
   selectedId,
   onSelect,
   segment,
@@ -267,25 +273,29 @@ export function ContactsListPane({
   onImportLead,
   style,
 }: ContactsListPaneProps) {
+  // Source pour les compteurs : `allContacts` (avant filtrage) si fournie,
+  // sinon fallback sur `contacts` (suffit quand le composant n'a pas de filtres
+  // externes au-dessus, ex: cas isolé en démo).
+  const countsSource = allContacts ?? contacts
   const segmentCounts = useMemo(() => {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 14)
     return {
-      all: CRM_CONTACTS.length,
-      buyer: CRM_CONTACTS.filter(c => c.type === 'buyer').length,
-      seller: CRM_CONTACTS.filter(c => c.type === 'seller').length,
-      tenant: CRM_CONTACTS.filter(
+      all: countsSource.length,
+      buyer: countsSource.filter(c => c.type === 'buyer').length,
+      seller: countsSource.filter(c => c.type === 'seller').length,
+      tenant: countsSource.filter(
         c => c.type === 'tenant' || c.criteria?.transaction === 'location',
       ).length,
-      hot: CRM_CONTACTS.filter(c => (c.score || 0) >= 75).length,
-      kyc: CRM_CONTACTS.filter(
+      hot: countsSource.filter(c => (c.score || 0) >= 75).length,
+      kyc: countsSource.filter(
         c => !c.kyc || c.kyc.status === 'none' || c.kyc.status === 'stale',
       ).length,
-      stale: CRM_CONTACTS.filter(
+      stale: countsSource.filter(
         c => c.lastActivityAt && new Date(c.lastActivityAt) < cutoff,
       ).length,
     } as const
-  }, [])
+  }, [countsSource])
 
   const nextSort = (current: SortMode): SortMode =>
     current === 'activity' ? 'score' : current === 'score' ? 'name' : 'activity'
@@ -511,7 +521,9 @@ export function ContactsListPane({
               fontSize: 12.5,
             }}
           >
-            Aucun contact ne correspond aux filtres.
+            {isLoading
+              ? 'Chargement des contacts…'
+              : 'Aucun contact ne correspond aux filtres.'}
           </div>
         ) : (
           contacts.map(c => {
