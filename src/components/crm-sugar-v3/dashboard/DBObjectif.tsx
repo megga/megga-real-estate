@@ -1047,14 +1047,7 @@ export function DBObjectif({ period: shellPeriod }: { period: PeriodKey }) {
       </div>
 
       {/* 3 cartes secondaires */}
-      <div
-        className="db-objectif-cards-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr)',
-          gap: 16,
-        }}
-      >
+      <div className="db-objectif-cards-grid">
         <ObjectifLeviersCard />
         <ObjectifJalonsCard period={period} />
         <ObjectifNudgesCard period={period} />

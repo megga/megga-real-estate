@@ -808,10 +808,7 @@ export function DBCockpit({
     >
       <CockpitHero data={data} tone={tone} />
 
-      <div
-        className="db-cockpit-decomp-grid"
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}
-      >
+      <div className="db-cockpit-decomp-grid">
         {stages.map((s, i) => (
           <CockpitDecompCard
             key={s.id}

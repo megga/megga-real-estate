@@ -47,7 +47,6 @@ export function useDashboardAudit() {
             // Log info-level (pas error) : un audit raté ne doit pas alarmer
             // l'agent. La perte d'événement est tracée pour debug futur.
             if (import.meta.env.DEV) {
-              // eslint-disable-next-line no-console
               console.info('[dashboard-audit] event dropped:', action, err)
             }
           },

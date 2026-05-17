@@ -8,6 +8,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DB_SP, DB_KEYFRAMES } from './tokens'
+import './responsive.css'
 import {
   CK_DATA,
   ckMapPeriod,
@@ -84,7 +85,7 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
   }
 
   // Drilldown source de leads → Contacts filtrés (handoff §"Polish Entonnoir").
-  const handleSourceClick = (slug: string, _source: { n: string; v: number }) => {
+  const handleSourceClick = (slug: string) => {
     navigate(`/dashboard/contacts?source=${encodeURIComponent(slug)}`)
   }
 

@@ -13,8 +13,11 @@
 import { useEffect, useState } from 'react'
 import { DB_SP } from './tokens'
 import { DbIcon } from './icons'
-
-const STORAGE_KEY = 'megga.onboarding.dashboard.v1'
+import {
+  loadOnboardingState,
+  saveOnboardingState,
+  type OnboardingState,
+} from './onboardingStorage'
 
 export interface OnboardingStep {
   id: string
@@ -62,33 +65,6 @@ const DEFAULT_STEPS: OnboardingStep[] = [
   },
 ]
 
-interface OnboardingState {
-  version: 1
-  completed: Record<string, boolean>
-  dismissed: boolean
-}
-
-function loadState(): OnboardingState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as OnboardingState
-      if (parsed.version === 1) return parsed
-    }
-  } catch {
-    // ignore — localStorage might be blocked
-  }
-  return { version: 1, completed: {}, dismissed: false }
-}
-
-function saveState(state: OnboardingState) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    // ignore
-  }
-}
-
 interface OnboardingChecklistProps {
   steps?: OnboardingStep[]
   onStepCta?: (step: OnboardingStep) => void
@@ -98,12 +74,12 @@ export function OnboardingChecklist({
   steps = DEFAULT_STEPS,
   onStepCta,
 }: OnboardingChecklistProps) {
-  const [state, setState] = useState<OnboardingState>(() => loadState())
+  const [state, setState] = useState<OnboardingState>(() => loadOnboardingState())
   const [expanded, setExpanded] = useState(true)
 
   // Persist whenever state changes
   useEffect(() => {
-    saveState(state)
+    saveOnboardingState(state)
   }, [state])
 
   const completedCount = steps.filter((s) => state.completed[s.id]).length
@@ -417,17 +393,5 @@ function StepCard({ index, step, done, onToggle, onCta }: StepCardProps) {
   )
 }
 
-// Helper exporté — permet à un autre composant de marquer une étape complétée
-// programmatiquement (ex : à la fin de la session de relance).
-export function markOnboardingStepDone(stepId: string) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const state: OnboardingState = raw
-      ? (JSON.parse(raw) as OnboardingState)
-      : { version: 1, completed: {}, dismissed: false }
-    state.completed[stepId] = true
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    // ignore
-  }
-}
+// Helper `markOnboardingStepDone` exporté depuis ./onboardingStorage.ts —
+// extrait pour satisfaire react-refresh/only-export-components.
