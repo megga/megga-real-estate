@@ -3,7 +3,7 @@
 
 import { useMemo, useState, type CSSProperties } from 'react'
 import CRMIcon from '../CRMIcon'
-import { CRM_DEALS, type CrmContact, type CrmDeal } from '../mockData'
+import { type CrmContact, type CrmDeal } from '../mockData'
 import { CRM_STAGES } from '../tokens'
 import { crmInitials } from '../tokens'
 import type { SugarPalette } from '../tokens'
@@ -239,6 +239,8 @@ interface ContactsListPaneProps {
   allContacts?: CrmContact[]
   /** True pendant le premier fetch Supabase — affiche un état "Chargement…". */
   isLoading?: boolean
+  /** Mapping contactId → premier deal (pour le badge sur chaque ligne). */
+  dealsByContactId?: Record<string, CrmDeal | undefined>
   selectedId: string | null
   onSelect: (id: string) => void
   segment: SegmentId
@@ -259,6 +261,7 @@ export function ContactsListPane({
   contacts,
   allContacts,
   isLoading,
+  dealsByContactId,
   selectedId,
   onSelect,
   segment,
@@ -527,7 +530,7 @@ export function ContactsListPane({
           </div>
         ) : (
           contacts.map(c => {
-            const deal = CRM_DEALS.find(d => d.contactId === c.id)
+            const deal = dealsByContactId?.[c.id]
             return (
               <CtRow
                 key={c.id}

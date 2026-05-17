@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from 'react'
 import CRMIcon from '../CRMIcon'
-import { CRM_AI_SUGGESTIONS, CRM_DEALS, CRM_MATCHES, type CrmContact } from '../mockData'
+import { CRM_AI_SUGGESTIONS, type CrmContact } from '../mockData'
+import { useContactSugarRelations } from '@/hooks/useContactSugarRelations'
 import { crmInitials, type SugarPalette } from '../tokens'
 import { CtAiBubble, CtBento, CtChip, CtKv } from './ContactsBentos'
 import {
@@ -83,6 +84,10 @@ export function ContactsDetailPane({
     setRdvOpen(false)
   }, [contact?.id])
 
+  // Relations Supabase : matches / deals / activity / biensOwned du contact
+  // courant (hooks call inconditionnel — `undefined` désactive les queries).
+  const { matches, deals, activity, biensOwned } = useContactSugarRelations(contact?.id)
+
   if (!contact) return <CtEmptyDetail sp={sp} />
 
   const fullName = contact.firstName + ' ' + contact.lastName
@@ -92,9 +97,11 @@ export function ContactsDetailPane({
   const isBuyer = contact.type === 'buyer' || contact.type === 'tenant'
   const isSeller = contact.type === 'seller' || contact.type === 'landlord'
 
+  // Suggestion IA : pas encore en DB, on conserve la lookup mock (sera vide
+  // pour les contacts réels — c'est OK, le widget est masqué quand absent).
   const aiSugForContact = CRM_AI_SUGGESTIONS.find(s => s.contactId === contact.id)
-  const matchCount = CRM_MATCHES.filter(m => m.contactId === contact.id).length
-  const dealCount = CRM_DEALS.filter(d => d.contactId === contact.id).length
+  const matchCount = matches.length
+  const dealCount = deals.length
 
   const handleSaveRdv = (data: RdvPayload) => {
     const labels: Record<RdvPayload['type'], string> = {
@@ -341,7 +348,7 @@ export function ContactsDetailPane({
             </button>
           }
         >
-          <CtActivity contact={contact} sp={sp} fill />
+          <CtActivity contact={contact} activity={activity} sp={sp} fill />
         </CtBento>
 
         <CtBento sp={sp} title="Saisie rapide">
@@ -385,7 +392,7 @@ export function ContactsDetailPane({
         )}
         {isSeller && (
           <CtBento sp={sp} title="Mandats & diffusion" style={{ height: '100%' }}>
-            <CtSellerStats contact={contact} sp={sp} />
+            <CtSellerStats contact={contact} biensOwned={biensOwned} sp={sp} />
           </CtBento>
         )}
 
@@ -450,7 +457,7 @@ export function ContactsDetailPane({
             </button>
           }
         >
-          <CtDeals contact={contact} sp={sp} fill />
+          <CtDeals contact={contact} deals={deals} sp={sp} fill />
         </CtBento>
 
         <CtBento sp={sp} title="Préférences" padding="14px 20px">
@@ -482,7 +489,7 @@ export function ContactsDetailPane({
               </button>
             }
           >
-            <CtMatches contact={contact} sp={sp} />
+            <CtMatches contact={contact} matches={matches} sp={sp} />
           </CtBento>
         )}
       </div>
