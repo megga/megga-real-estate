@@ -84,6 +84,7 @@ const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
 // Lazy-loaded agent pages
 const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
+const DashboardSugarV4Page = lazy(() => import('@/pages/agent/DashboardSugarV4Page'))
 const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
 const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
 const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
@@ -410,6 +411,8 @@ export default function App() {
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
                 <Route path="audit" element={<AuditSugarPage />} />
                 <Route path="julien" element={<JulienSugarV2Page />} />
+                {/* Sprint 4 — Dashboard Analytics Sugar v4 (Cockpit / Entonnoir / Objectif) */}
+                <Route path="analytics" element={<DashboardSugarV4Page />} />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
@@ -421,7 +424,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route path="analytics" element={<DashboardPage />} />
+                <Route path="analytics-legacy" element={<DashboardPage />} />
                 <Route path="contacts-legacy" element={<ContactsPage />} />
                 <Route path="contacts/import" element={<ContactImportPage />} />
                 {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) */}

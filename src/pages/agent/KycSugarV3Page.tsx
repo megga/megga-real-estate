@@ -55,6 +55,15 @@ export default function KycSugarV3Page() {
   const openContactId = searchParams.get('openContactId')
   const { data: deepLinkDossier } = useKycDossierByContact(openContactId ?? undefined)
 
+  // Snapshot des deep-link params au premier render — ainsi les deux flows
+  // (openContactId pour le wizard, risk pour le filtre) ne se court-circuitent
+  // PAS via les setSearchParams concurrents. On nettoie l'URL en une seule passe
+  // dans l'effect de consommation, après les avoir tous lus.
+  const [initialDeepLink] = useState(() => ({
+    openContactId: searchParams.get('openContactId'),
+    risk: searchParams.get('risk'),
+  }))
+
   useEffect(() => {
     if (!openContactId) return
     // Si un dossier existe pour ce contact, naviguer vers son détail
@@ -78,6 +87,22 @@ export default function KycSugarV3Page() {
       })
     }
   }, [openContactId, deepLinkDossier, navigate, setSearchParams])
+
+  // Deep-link depuis le Dashboard Analytics : `?risk=high` ouvre la liste
+  // filtrée sur les dossiers à risque élevé. On consomme le snapshot initial,
+  // pas `searchParams.get('risk')` qui aurait pu être effacé entre-temps par
+  // l'effet `openContactId` (race condition documentée — red-team audit).
+  useEffect(() => {
+    if (initialDeepLink.risk === 'high' || initialDeepLink.risk === 'risk') {
+      setFilter('risk')
+      setSearchParams((p) => {
+        const next = new URLSearchParams(p)
+        next.delete('risk')
+        return next
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
