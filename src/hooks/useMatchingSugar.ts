@@ -221,8 +221,10 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
   const queryClient = useQueryClient()
   const agencyId = profile?.agency_id
 
-  // 1. Matches via le hook existant
-  const { matches, isLoading: matchesLoading, sendMatch, runMatching, isRunning } = useMatching()
+  // 1. Matches via le hook existant.
+  // On ne réexporte pas `runMatching` (mode 'match-contact', requiert un contactId) :
+  // notre `runMatching()` ci-dessous fait un scan agency-wide via invoke direct.
+  const { matches, isLoading: matchesLoading, sendMatch, isRunning } = useMatching()
 
   // 2. Contacts impliqués (acheteurs des matches)
   const buyerIds = useMemo(
