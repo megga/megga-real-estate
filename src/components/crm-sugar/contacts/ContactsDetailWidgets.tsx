@@ -4,12 +4,12 @@
 import { Fragment, useState } from 'react'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
 import {
-  CRM_ACTIVITY,
-  CRM_BIENS,
-  CRM_DEALS,
-  CRM_MATCHES,
   crmBienById,
+  type CrmActivity,
+  type CrmBien,
   type CrmContact,
+  type CrmDeal,
+  type CrmMatch,
 } from '../mockData'
 import { CRM_STAGES, type SugarPalette } from '../tokens'
 import { CtCard, CtChip, CtKv } from './ContactsBentos'
@@ -107,10 +107,16 @@ export function CtCriteria({
 }
 
 // ─── Matchs liste ──────────────────────────────────────────────────────
-export function CtMatches({ contact, sp }: { contact: CrmContact; sp: SugarPalette }) {
-  const matches = CRM_MATCHES.filter(m => m.contactId === contact.id).sort(
-    (a, b) => b.score - a.score,
-  )
+export function CtMatches({
+  contact: _contact,
+  matches: matchesProp,
+  sp,
+}: {
+  contact: CrmContact
+  matches?: CrmMatch[]
+  sp: SugarPalette
+}) {
+  const matches = (matchesProp ?? []).slice().sort((a, b) => b.score - a.score)
 
   if (matches.length === 0) {
     return (
@@ -224,15 +230,18 @@ export function CtMatches({ contact, sp }: { contact: CrmContact; sp: SugarPalet
 // ─── Activity timeline ────────────────────────────────────────────────
 export function CtActivity({
   contact,
+  activity: activityProp,
   sp,
   fill,
 }: {
   contact: CrmContact
+  activity?: CrmActivity[]
   sp: SugarPalette
   fill?: boolean
 }) {
-  const items = CRM_ACTIVITY.filter(a => a.contactId === contact.id)
-  // Mock fallback si peu d'activité
+  const items = activityProp ?? []
+  // Mock fallback si pas encore d'activité réelle (la timeline réelle est vide
+  // tant que personne n'a généré d'activity_event pour ce contact).
   const all =
     items.length > 0
       ? items
@@ -458,15 +467,17 @@ export function CtComposer({ sp, fill }: { sp: SugarPalette; dark: boolean; fill
 
 // ─── Deals liés ────────────────────────────────────────────────────────
 export function CtDeals({
-  contact,
+  contact: _contact,
+  deals: dealsProp,
   sp,
   fill,
 }: {
   contact: CrmContact
+  deals?: CrmDeal[]
   sp: SugarPalette
   fill?: boolean
 }) {
-  const deals = CRM_DEALS.filter(d => d.contactId === contact.id)
+  const deals = dealsProp ?? []
   if (deals.length === 0) {
     return (
       <CtCard sp={sp} padding="20px 16px">
@@ -635,13 +646,15 @@ export function CtDeals({
 
 // ─── Stats vendeur (au lieu de critères) ─────────────────────────────
 export function CtSellerStats({
-  contact,
+  contact: _contact,
+  biensOwned,
   sp,
 }: {
   contact: CrmContact
+  biensOwned?: CrmBien[]
   sp: SugarPalette
 }) {
-  const biens = CRM_BIENS.filter(b => b.ownerContactId === contact.id)
+  const biens = biensOwned ?? []
   if (biens.length === 0) {
     return (
       <CtCard sp={sp} padding="20px 16px">

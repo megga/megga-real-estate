@@ -6,8 +6,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
-import type { CrmContact } from '@/components/crm-sugar/mockData'
+import type { CrmContact, CrmDeal } from '@/components/crm-sugar/mockData'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
+import { useTransactions } from '@/hooks/useTransactions'
+import { transactionToCrmDeal } from '@/lib/sugarAdapters'
+import type { TransactionStage } from '@/lib/constants'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
@@ -76,6 +79,35 @@ export default function ContactsSugarV2Page() {
 
   // ── Data source: Supabase via adapter ───────────────────────────────
   const { contacts, isLoading } = useContactsSugar()
+  const { data: rawTransactions = [] } = useTransactions()
+
+  // Index : un deal (le plus récent) par contactId — pour les badges de
+  // ContactsListPane. useTransactions renvoie un Transaction enrichi
+  // (`property` joint), mais le type Transaction de base ne l'expose pas.
+  type TransactionWithJoin = (typeof rawTransactions)[number] & {
+    property?: { title: string; address: string; city: string; price: number; photos: string[] } | null
+  }
+  const dealsByContactId = useMemo<Record<string, CrmDeal | undefined>>(() => {
+    const map: Record<string, CrmDeal | undefined> = {}
+    for (const t of rawTransactions as TransactionWithJoin[]) {
+      const cId = t.contact_buyer_id ?? t.contact_seller_id
+      if (!cId || map[cId]) continue
+      map[cId] = transactionToCrmDeal(
+        {
+          id: t.id,
+          stage: t.stage as TransactionStage,
+          status: t.status,
+          price_offered: t.price_offered ?? null,
+          price_final: t.price_final ?? null,
+          updated_at: t.updated_at,
+          property: t.property ?? null,
+        },
+        cId,
+        t.property_id ?? null,
+      )
+    }
+    return map
+  }, [rawTransactions])
 
   // ── Page state ──────────────────────────────────────────────────────
   // selectedId vide au démarrage → l'useEffect ci-dessous picke le premier
@@ -287,6 +319,7 @@ export default function ContactsSugarV2Page() {
             contacts={filtered}
             allContacts={contacts}
             isLoading={isLoading}
+            dealsByContactId={dealsByContactId}
             selectedId={selectedId}
             onSelect={setSelectedId}
             segment={segment}

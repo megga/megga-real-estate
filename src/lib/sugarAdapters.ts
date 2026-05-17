@@ -5,7 +5,14 @@
 
 import type { Contact, SearchCriteria } from '@/types/contact'
 import type { KycCase, KycDossierStatus } from '@/types/kyc'
-import type { CrmContact, CrmBien } from '@/components/crm-sugar/mockData'
+import type { Property } from '@/types/listing'
+import type { ContactTransaction } from '@/hooks/useTransactions'
+import type { TimelineEvent } from '@/hooks/useContactTimeline'
+import type { TransactionStage } from '@/lib/constants'
+import type {
+  CrmContact, CrmBien, CrmDeal, CrmActivity,
+} from '@/components/crm-sugar/mockData'
+import type { StageId } from '@/components/crm-sugar/tokens'
 
 // ─── Mapping KycDossierStatus → CrmContact.kyc.status ──────────────────
 // `dossier_status` (Sprint 1 LBA, migration 20260516_002) est la source de vérité,
@@ -150,5 +157,149 @@ export function listingToBien(m: MatchResult): CrmBien {
     photoCount: l.photos?.length ?? 0,
     signedPhotoCount: l.photos?.length ?? 0,
     accent: pickAvatarBg(bienId),
+  }
+}
+
+// ─── TransactionStage DB → StageId mock ────────────────────────────────
+// Mock utilise des dashes ('new-lead'), DB utilise des underscores ('new_lead').
+// Plusieurs stages DB collapsent sur un seul StageId mock (negotiation/financing/
+// notary/reserved → 'offer' faute d'équivalent UI granulaire).
+function mapStage(s: TransactionStage): StageId {
+  switch (s) {
+    case 'new_lead':           return 'new-lead'
+    case 'to_qualify':         return 'to-qualify'
+    case 'active_search':      return 'searching'
+    case 'visit_planned':      return 'visit-scheduled'
+    case 'visit_done':         return 'visit-done'
+    case 'interest_confirmed': return 'interest-confirmed'
+    case 'offer':              return 'offer'
+    case 'negotiation':        return 'offer'
+    case 'reserved':           return 'offer'
+    case 'financing':          return 'offer'
+    case 'notary':             return 'offer'
+    case 'signed':             return 'signed'
+    case 'lost':               return 'lost'
+    case 'to_recontact':       return 'to-qualify'
+    default:                   return 'new-lead'
+  }
+}
+
+// ─── ContactTransaction (Supabase) → CrmDeal (mock UI shape) ───────────
+// Le hook `useContactTransactions(contactId)` renvoie un shape allégé
+// (id, stage, status, prix, updated_at, property). Le mock CrmDeal porte
+// aussi `probability`, `nextAction`, `risk`, `bienId`, `value`. Mapping :
+//   - value : price_final ?? price_offered ?? property.price ?? 0
+//   - probability : dérivée du stage (heuristique simple)
+//   - risk : 'healthy' par défaut (pas de champ risk en DB)
+//   - nextAction : placeholder (à brancher quand `tasks` table existe)
+//   - bienId : transaction.property?.id (peut être null)
+const STAGE_PROBABILITY: Record<StageId, number> = {
+  'new-lead': 5, 'to-qualify': 15, 'searching': 30,
+  'visit-scheduled': 45, 'visit-done': 60, 'interest-confirmed': 75,
+  'offer': 85, 'signed': 100, 'lost': 0,
+}
+
+export function transactionToCrmDeal(
+  t: ContactTransaction,
+  contactId: string,
+  propertyId: string | null = null,
+): CrmDeal {
+  const stage = mapStage(t.stage as TransactionStage)
+  const value = t.price_final ?? t.price_offered ?? t.property?.price ?? 0
+  return {
+    id: t.id,
+    contactId,
+    bienId: propertyId,
+    stage,
+    value,
+    probability: STAGE_PROBABILITY[stage] ?? 0,
+    ownerAgentId: '',
+    nextAction: { kind: 'note', dueAt: t.updated_at, note: 'Prochaine étape à définir' },
+    risk: t.status === 'paused' ? 'at-risk' :
+          t.status === 'cancelled' ? 'stalled' : 'healthy',
+    updatedAt: t.updated_at,
+  }
+}
+
+// ─── TimelineEvent (Supabase activity_events) → CrmActivity ────────────
+// Le mock CrmActivity attend `text` (string narratif). On dérive le texte
+// depuis action + metadata (best-effort, fallback action brut). bienId/
+// contactId sont laissés undefined (les widgets s'en sortent sans).
+const ACTION_LABELS: Record<string, string> = {
+  stage_change:         'Étape changée',
+  match_sent:           'Dossier matching envoyé',
+  visit_planned:        'Visite planifiée',
+  visit_done:           'Visite effectuée',
+  kyc_created:          'Dossier KYC ouvert',
+  kyc_validated:        'KYC validé',
+  property_sent:        'Bien envoyé au client',
+  email_sent:           'Email envoyé',
+  call_logged:          'Appel enregistré',
+  note_added:           'Note ajoutée',
+  seller_lead_created:  'Lead vendeur reçu',
+}
+
+export function timelineToActivity(e: TimelineEvent, contactId?: string): CrmActivity {
+  const baseLabel = ACTION_LABELS[e.action] ?? e.action
+  const meta = e.metadata ?? {}
+  let text = baseLabel
+  // Enrichir si metadata pertinent (best-effort, ne crash pas si shape diffère)
+  if (e.action === 'stage_change' && typeof meta.new_stage === 'string') {
+    text = `Étape passée à « ${meta.new_stage} »`
+  } else if (e.action === 'match_sent' && typeof meta.count === 'number') {
+    text = `${meta.count} bien${meta.count > 1 ? 's' : ''} envoyé${meta.count > 1 ? 's' : ''} au client`
+  } else if (e.action === 'property_sent' && typeof meta.property_title === 'string') {
+    text = `« ${meta.property_title} » envoyé au client`
+  } else if (e.action === 'email_sent' && typeof meta.subject === 'string') {
+    text = `Email envoyé — « ${meta.subject} »`
+  } else if (e.action === 'visit_done' && typeof meta.property_title === 'string') {
+    text = `Visite effectuée — ${meta.property_title}`
+  }
+  return {
+    id: e.id,
+    at: e.created_at,
+    kind: e.action,
+    contactId,
+    text,
+  }
+}
+
+// ─── Property (Supabase) → CrmBien (mock) — pour CtSellerStats ─────────
+// Utilisé pour afficher les biens dont un contact vendeur est propriétaire.
+// Le mock CrmBien est très riche (mandat, stats, photoCount/signedPhotoCount,
+// energy, accent). On remplit ce qu'on peut depuis Property + listing joints.
+export function propertyToCrmBien(p: Property, ownerContactId: string | null): CrmBien {
+  const typeMap: Record<string, CrmBien['type']> = {
+    apartment: 'appartement', appartement: 'appartement',
+    house: 'maison', maison: 'maison', villa: 'villa',
+    commercial: 'commercial', office: 'office',
+    parking: 'parking', storage: 'storage', land: 'land',
+  }
+  const isRental = !!p.price && p.price < 20000   // heuristique idem listingToBien
+  return {
+    id: p.id,
+    ref: p.id.slice(0, 12).toUpperCase(),
+    status: (p.status as CrmBien['status']) || 'active',
+    type: typeMap[p.type?.toLowerCase()] ?? 'appartement',
+    transaction: isRental ? 'location' : 'vente',
+    title: p.title || `${typeMap[p.type] ?? 'Bien'} ${p.city ?? ''}`.trim(),
+    addr: [p.address, p.city].filter(Boolean).join(', '),
+    canton: p.canton ?? '',
+    price: isRental ? null : (p.price || null),
+    rent: isRental ? p.price : null,
+    charges: p.charges_monthly ?? null,
+    area: p.surface_m2 ?? 0,
+    rooms: p.rooms ?? 0,
+    beds: p.bedrooms ?? 0,
+    baths: p.bathrooms ?? 0,
+    year: p.year_built ?? 0,
+    energy: '',
+    ownerContactId,
+    mandat: { type: 'simple' },
+    visibility: 'agency',
+    stats: { views: 0, favorites: 0, visitRequests: 0 },
+    photoCount: p.photos?.length ?? 0,
+    signedPhotoCount: p.photos?.length ?? 0,
+    accent: pickAvatarBg(p.id),
   }
 }
