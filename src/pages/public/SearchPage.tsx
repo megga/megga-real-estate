@@ -23,8 +23,12 @@ import SavedSearchesPanel from '@/components/search/SavedSearchesPanel'
 import AlertsPanel from '@/components/search/AlertsPanel'
 import AccessibilityPanel from '@/components/search/AccessibilityPanel'
 import ContactPanel from '@/components/search/ContactPanel'
-// Lazy-load MapView — Mapbox GL is ~470KB gzip, don't block initial list render
-const MapView = lazy(() => import('@/components/map/MapView'))
+// Lazy-load MapView — Mapbox GL is ~470KB gzip, don't block initial list render.
+// `mapViewImport` est exposé pour permettre le **prefetch parallèle** dès le mount
+// de SearchPage (avant que Suspense ne voit <MapView /> se monter — gain ~300ms
+// sur l'apparition de la carte, audit perf Sprint 4 polish).
+const mapViewImport = () => import('@/components/map/MapView')
+const MapView = lazy(mapViewImport)
 import type { MapViewHandle } from '@/components/map/MapView'
 import CompareDrawer from '@/components/listings/CompareDrawer'
 import SaveSearchDialog from '@/components/search/SaveSearchDialog'
@@ -92,6 +96,15 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
       ? t('rental.seoDescription', 'Découvrez les appartements, maisons et villas à louer en Suisse. Filtrez par canton, loyer, pièces, meublé et disponibilité.')
       : t('search.seoDescription', 'Parcourez les biens à vendre en Suisse. Filtrez par canton, prix, pièces, surface et caractéristiques.'),
   })
+
+  // Prefetch parallèle du chunk MapView dès le mount, en parallèle du fetch
+  // initial des listings. Avec le `lazy()` classique, le chunk ne démarre qu'à
+  // l'apparition de <MapView /> dans le DOM → ~470 KB téléchargés en série
+  // après la liste. Ici on lance le téléchargement EN MÊME TEMPS que la liste
+  // pour gagner ~300 ms sur l'apparition de la carte (audit perf Sprint 4).
+  useEffect(() => {
+    void mapViewImport()
+  }, [])
   const [hoveredListing, setHoveredListing] = useState<string>()
   const [showMobileMap, setShowMobileMap] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)

@@ -4,12 +4,67 @@
 // Funnel 5 paliers + bottleneck IA + sources de leads + forecast 60/90j.
 // Le bottleneck déclenche le modal `DBRelanceSession`.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DB_SP, dbFmtCHF } from './tokens'
 import { DbIcon } from './icons'
-import type { DashboardData } from './data'
+import type { DashboardData, ScenarioKey, SourceItem, ForecastHorizon } from './data'
+import { OV_SCENARIOS_FACTORS } from './data'
 import { DBRelanceSession, type RelanceSessionResult } from './DBRelanceSession'
 import { hasActiveRelanceSession } from './relanceData'
+
+// ─── Mini delta pill (réutilisée funnel + sources) ─────────────────────
+// Pilule premium fond solide foncé (vert/bordeaux selon le signe).
+function DeltaPill({
+  value,
+  suffix = '%',
+  invert = false,
+  size = 'sm',
+}: {
+  value: number
+  suffix?: string
+  invert?: boolean
+  size?: 'sm' | 'xs'
+}) {
+  const up = value > 0
+  const positive = invert ? !up : up
+  const pill = positive ? DB_SP.pill.ok : DB_SP.pill.danger
+  const fs = size === 'xs' ? 9.5 : 10.5
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 3,
+        padding: size === 'xs' ? '1px 6px' : '2px 7px',
+        borderRadius: 999,
+        background: pill.bg,
+        color: pill.fg,
+        boxShadow: pill.shadow,
+        fontSize: fs,
+        fontWeight: 800,
+        letterSpacing: -0.1,
+        whiteSpace: 'nowrap',
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      <svg
+        width={size === 'xs' ? 7 : 8}
+        height={size === 'xs' ? 7 : 8}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={pill.fg}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d={up ? 'M5 15l7-7 7 7' : 'M5 9l7 7 7-7'} />
+      </svg>
+      {up ? '+' : ''}
+      {value}
+      {suffix}
+    </span>
+  )
+}
 
 // ─── Funnel principal ──────────────────────────────────────────────────
 function EntonnoirFunnel({ data }: { data: DashboardData }) {
@@ -106,7 +161,7 @@ function EntonnoirFunnel({ data }: { data: DashboardData }) {
           return (
             <div key={i} style={{ position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ minWidth: 124 }}>
+                <div style={{ minWidth: 140 }}>
                   <div
                     style={{
                       fontSize: 13,
@@ -116,9 +171,11 @@ function EntonnoirFunnel({ data }: { data: DashboardData }) {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 7,
+                      flexWrap: 'wrap',
                     }}
                   >
                     {s.n}
+                    {typeof s.delta === 'number' && <DeltaPill value={s.delta} size="xs" />}
                     {isBottleneck && (
                       <span
                         style={{
@@ -219,6 +276,9 @@ function EntonnoirFunnel({ data }: { data: DashboardData }) {
                       >
                         de perte
                       </span>
+                      {typeof s.convDelta === 'number' && (
+                        <DeltaPill value={s.convDelta} suffix=" pts" size="xs" />
+                      )}
                     </div>
                   )}
                 </div>
@@ -498,7 +558,22 @@ function EntonnoirBottleneck() {
 }
 
 // ─── Sources de leads ──────────────────────────────────────────────────
-function EntonnoirSources({ data }: { data: DashboardData }) {
+// Slug stable utilisé pour l'URL `/dashboard/contacts?source=<slug>`.
+const SOURCE_SLUGS: Record<string, string> = {
+  'Marketplace MEGGA': 'marketplace',
+  'Site agence': 'agency-site',
+  'Recommandations': 'referral',
+  'Réseaux sociaux': 'social',
+  'Importé manuel': 'manual',
+}
+
+function EntonnoirSources({
+  data,
+  onSourceClick,
+}: {
+  data: DashboardData
+  onSourceClick?: (slug: string, source: SourceItem) => void
+}) {
   const sources = data.sources
   const total = sources.reduce((a, s) => a + s.v, 0)
   return (
@@ -526,7 +601,7 @@ function EntonnoirSources({ data }: { data: DashboardData }) {
             marginBottom: 6,
           }}
         >
-          Sources de leads · décomposition
+          Sources de leads · tendance {data.compareLabel}
         </div>
         <h3
           style={{
@@ -564,57 +639,90 @@ function EntonnoirSources({ data }: { data: DashboardData }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {sources.map((s, i) => (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 0',
-              borderBottom: i < sources.length - 1 ? `1px solid ${DB_SP.hairline}` : 'none',
-            }}
-          >
-            <span
+        {sources.map((s, i) => {
+          const slug = SOURCE_SLUGS[s.n] ?? 'unknown'
+          return (
+            <button
+              key={i}
+              onClick={() => onSourceClick?.(slug, s)}
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: 999,
-                background: s.c,
-                flexShrink: 0,
+                border: 0,
+                background: 'transparent',
+                fontFamily: 'inherit',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 0',
+                borderBottom: i < sources.length - 1 ? `1px solid ${DB_SP.hairline}` : 'none',
+                cursor: onSourceClick ? 'pointer' : 'default',
+                width: '100%',
+                transition: 'background-color .15s ease',
               }}
-            />
-            <span style={{ fontSize: 13, fontWeight: 600, color: DB_SP.ink, flex: 1, minWidth: 0 }}>{s.n}</span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: DB_SP.muted,
-                fontVariantNumeric: 'tabular-nums',
-                minWidth: 36,
-                textAlign: 'right',
+              onMouseEnter={(e) => {
+                if (onSourceClick)
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = DB_SP.cardSubtle
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'
               }}
             >
-              {s.v}
-            </span>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: s.hot ? DB_SP.pill.ok.fg : DB_SP.inkSoft,
-                padding: '3px 9px',
-                borderRadius: 999,
-                background: s.hot ? DB_SP.pill.ok.bg : DB_SP.cardSubtle,
-                boxShadow: s.hot ? DB_SP.pill.ok.shadow : 'none',
-                fontVariantNumeric: 'tabular-nums',
-                minWidth: 60,
-                textAlign: 'center',
-              }}
-            >
-              {s.conv}% conv.
-            </span>
-          </div>
-        ))}
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: s.c,
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: DB_SP.ink,
+                  flex: 1,
+                  minWidth: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                }}
+              >
+                {s.n}
+                {typeof s.delta === 'number' && <DeltaPill value={s.delta} size="xs" />}
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: DB_SP.muted,
+                  fontVariantNumeric: 'tabular-nums',
+                  minWidth: 36,
+                  textAlign: 'right',
+                }}
+              >
+                {s.v}
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: s.hot ? DB_SP.pill.ok.fg : DB_SP.inkSoft,
+                  padding: '3px 9px',
+                  borderRadius: 999,
+                  background: s.hot ? DB_SP.pill.ok.bg : DB_SP.cardSubtle,
+                  boxShadow: s.hot ? DB_SP.pill.ok.shadow : 'none',
+                  fontVariantNumeric: 'tabular-nums',
+                  minWidth: 60,
+                  textAlign: 'center',
+                }}
+              >
+                {s.conv}% conv.
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <div
@@ -638,8 +746,35 @@ function EntonnoirSources({ data }: { data: DashboardData }) {
 }
 
 // ─── Forecast 30/60/90j ────────────────────────────────────────────────
-function EntonnoirForecast({ data }: { data: DashboardData }) {
-  const horizons = data.forecast
+// Slug horizon → days range pour le drilldown Pipeline (close date ≤ N j).
+const HORIZON_DAYS: Record<string, number> = {
+  '30 jours': 30,
+  '60 jours': 60,
+  '90 jours': 90,
+}
+
+function EntonnoirForecast({
+  data,
+  onHorizonClick,
+}: {
+  data: DashboardData
+  onHorizonClick?: (days: number, horizon: ForecastHorizon) => void
+}) {
+  const [scenario, setScenario] = useState<ScenarioKey>('median')
+  const factor = OV_SCENARIOS_FACTORS.find((s) => s.v === scenario) ?? OV_SCENARIOS_FACTORS[1]
+
+  // Le scénario affecte la valeur "mid" affichée :
+  //   - prudent  : mid = low (limite basse)
+  //   - médian   : mid = mid  (estimation centrale)
+  //   - agressif : mid = high (limite haute)
+  const horizons = useMemo<ForecastHorizon[]>(() => {
+    return data.forecast.map((h) => {
+      const adjusted =
+        factor.curve === 'lowCurve' ? h.low : factor.curve === 'highCurve' ? h.high : h.mid
+      return { ...h, mid: adjusted }
+    })
+  }, [data.forecast, factor.curve])
+
   return (
     <div
       style={{
@@ -654,45 +789,115 @@ function EntonnoirForecast({ data }: { data: DashboardData }) {
         animation: 'sgFadeUp .55s cubic-bezier(.2,.8,.2,1) .2s both',
       }}
     >
-      <div>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: DB_SP.muted,
-            letterSpacing: 1,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-          }}
-        >
-          Forecast pondéré par probabilité
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: DB_SP.muted,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              marginBottom: 6,
+            }}
+          >
+            Forecast pondéré · scénario {factor.l.toLowerCase()}
+          </div>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: 18,
+              fontWeight: 700,
+              color: DB_SP.ink,
+              letterSpacing: -0.4,
+            }}
+          >
+            Ce que ton pipeline va te rapporter.
+          </h3>
         </div>
-        <h3
+
+        {/* Scenario toggle — local au forecast (cf. handoff §"Polish") */}
+        <div
+          role="tablist"
+          aria-label="Scénario du forecast"
           style={{
-            margin: 0,
-            fontSize: 18,
-            fontWeight: 700,
-            color: DB_SP.ink,
-            letterSpacing: -0.4,
+            display: 'inline-flex',
+            padding: 3,
+            borderRadius: 999,
+            background: DB_SP.cardSubtle,
+            boxShadow: `inset 0 0 0 1px ${DB_SP.hairline}`,
           }}
         >
-          Ce que ton pipeline va te rapporter.
-        </h3>
+          {OV_SCENARIOS_FACTORS.map((o) => {
+            const active = scenario === o.v
+            return (
+              <button
+                key={o.v}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setScenario(o.v)}
+                style={{
+                  height: 28,
+                  padding: '0 11px',
+                  borderRadius: 999,
+                  border: 0,
+                  background: active ? DB_SP.black : 'transparent',
+                  color: active ? '#fff' : DB_SP.inkSoft,
+                  fontFamily: 'inherit',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  letterSpacing: -0.1,
+                  boxShadow: active ? '0 4px 10px rgba(11,12,14,0.18)' : 'none',
+                  transition: 'all .18s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {o.l}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {horizons.map((h, i) => {
           const range = h.high - h.low
+          const days = HORIZON_DAYS[h.h] ?? 90
           return (
-            <div
+            <button
               key={i}
+              onClick={() => onHorizonClick?.(days, h)}
               style={{
+                border: 0,
+                fontFamily: 'inherit',
+                textAlign: 'left',
                 background: DB_SP.cardSubtle,
                 borderRadius: 16,
                 padding: '16px 18px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 10,
+                cursor: onHorizonClick ? 'pointer' : 'default',
+                transition: 'all .15s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (onHorizonClick) {
+                  ;(e.currentTarget as HTMLButtonElement).style.boxShadow = DB_SP.shadowSm
+                  ;(e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.boxShadow = 'none'
+                ;(e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'
               }}
             >
               <div
@@ -790,7 +995,7 @@ function EntonnoirForecast({ data }: { data: DashboardData }) {
                   }}
                 />
               </div>
-            </div>
+            </button>
           )
         })}
       </div>
@@ -799,7 +1004,15 @@ function EntonnoirForecast({ data }: { data: DashboardData }) {
 }
 
 // ─── DBEntonnoir (étage 2 complet) ─────────────────────────────────────
-export function DBEntonnoir({ data }: { data: DashboardData }) {
+interface DBEntonnoirProps {
+  data: DashboardData
+  /** Drilldown source → Contacts filtrés (handoff §"Polish Entonnoir"). */
+  onSourceClick?: (slug: string, source: SourceItem) => void
+  /** Drilldown horizon → Pipeline trié par close date. */
+  onHorizonClick?: (days: number, horizon: ForecastHorizon) => void
+}
+
+export function DBEntonnoir({ data, onSourceClick, onHorizonClick }: DBEntonnoirProps) {
   return (
     <section
       style={{
@@ -828,8 +1041,8 @@ export function DBEntonnoir({ data }: { data: DashboardData }) {
           gap: 16,
         }}
       >
-        <EntonnoirSources data={data} />
-        <EntonnoirForecast data={data} />
+        <EntonnoirSources data={data} onSourceClick={onSourceClick} />
+        <EntonnoirForecast data={data} onHorizonClick={onHorizonClick} />
       </div>
     </section>
   )

@@ -494,6 +494,10 @@ export interface FunnelStage {
   c?: string
   desc?: string
   bottleneck?: boolean
+  /** Delta en % vs période précédente — handoff §"Polish Entonnoir". */
+  delta?: number
+  /** Delta du taux de conversion entre ce palier et le précédent, en points. */
+  convDelta?: number
 }
 
 export interface SourceItem {
@@ -502,6 +506,8 @@ export interface SourceItem {
   conv: number
   c: string
   hot?: boolean
+  /** Delta du volume en % vs période précédente — handoff §"Polish Entonnoir". */
+  delta?: number
 }
 
 export interface ForecastHorizon {
@@ -521,6 +527,8 @@ export interface DashboardData {
   sources: SourceItem[]
   forecast: ForecastHorizon[]
   funnelMult: number
+  /** Libellé humain de la comparaison ("vs avril", "vs T1", "vs 2025"). */
+  compareLabel: string
 }
 
 export function getDashboardData(
@@ -545,12 +553,17 @@ export function getDashboardData(
           ? 4.2
           : 1.6
 
+  // Deltas vs période précédente (mockés — handoff §"Polish Entonnoir") :
+  // les bons paliers (Leads, Qualifiés) progressent, le bottleneck Visites
+  // régresse, les paliers aval (Offres, Compromis) progressent grâce au pipeline.
+  // `convDelta` (en points) compare le taux de conversion stade N / N-1 vs la
+  // période précédente — un -8 pts sur Visites→Offres signale une dégradation.
   const funnel: FunnelStage[] = [
-    { n: 'Leads', v: Math.round(baseFunnelHead * S.mult * funnelMult), w: 100, c: 'rgba(11,12,14,0.92)', desc: 'Prospects entrés' },
-    { n: 'Qualifiés', v: Math.round(baseFunnelHead * S.mult * funnelMult * 0.63), w: 80, c: 'rgba(11,12,14,0.78)', desc: 'Critères de matching validés' },
-    { n: 'Visites', v: Math.round(baseFunnelHead * S.mult * funnelMult * 0.26), w: 50, c: 'rgba(11,12,14,0.62)', desc: '1ère visite effectuée', bottleneck: true },
-    { n: 'Offres', v: Math.round(baseFunnelHead * S.mult * funnelMult * 0.11), w: 32, c: 'rgba(11,12,14,0.48)', desc: 'Offre reçue, KYC en cours' },
-    { n: 'Compromis', v: Math.round(baseFunnelHead * S.mult * funnelMult * 0.048), w: 20, c: 'rgba(11,12,14,0.34)', desc: 'Acte signé sous 60 j' },
+    { n: 'Leads',     v: Math.round(baseFunnelHead * S.mult * funnelMult),         w: 100, c: 'rgba(11,12,14,0.92)', desc: 'Prospects entrés',           delta: 12 },
+    { n: 'Qualifiés', v: Math.round(baseFunnelHead * S.mult * funnelMult * 0.63),  w: 80,  c: 'rgba(11,12,14,0.78)', desc: 'Critères de matching validés', delta: 8,   convDelta: -3 },
+    { n: 'Visites',   v: Math.round(baseFunnelHead * S.mult * funnelMult * 0.26),  w: 50,  c: 'rgba(11,12,14,0.62)', desc: '1ère visite effectuée',       delta: -14, convDelta: -8, bottleneck: true },
+    { n: 'Offres',    v: Math.round(baseFunnelHead * S.mult * funnelMult * 0.11),  w: 32,  c: 'rgba(11,12,14,0.48)', desc: 'Offre reçue, KYC en cours',   delta: 6,   convDelta: 4 },
+    { n: 'Compromis', v: Math.round(baseFunnelHead * S.mult * funnelMult * 0.048), w: 20,  c: 'rgba(11,12,14,0.34)', desc: 'Acte signé sous 60 j',        delta: 18,  convDelta: 7 },
   ]
 
   const forecast: ForecastHorizon[] = [
@@ -580,15 +593,25 @@ export function getDashboardData(
     },
   ]
 
+  // Tendances par canal vs période précédente (handoff §"Polish Entonnoir") :
+  // Marketplace en accélération, Réseaux sociaux en déclin → l'agent voit
+  // d'un coup d'œil quel canal mérite plus d'investissement.
   const sources: SourceItem[] = [
-    { n: 'Marketplace MEGGA', v: Math.round(112 * S.mult * funnelMult), conv: 38, c: '#0B0C0E', hot: true },
-    { n: 'Site agence', v: Math.round(64 * S.mult * funnelMult), conv: 28, c: '#1E5BC6' },
-    { n: 'Recommandations', v: Math.round(38 * S.mult * funnelMult), conv: 52, c: '#059669', hot: true },
-    { n: 'Réseaux sociaux', v: Math.round(24 * S.mult * funnelMult), conv: 12, c: '#C45A00' },
-    { n: 'Importé manuel', v: Math.round(10 * S.mult * funnelMult), conv: 22, c: '#7A8088' },
+    { n: 'Marketplace MEGGA', v: Math.round(112 * S.mult * funnelMult), conv: 38, c: '#0B0C0E', hot: true,  delta: 18 },
+    { n: 'Site agence',       v: Math.round(64  * S.mult * funnelMult), conv: 28, c: '#1E5BC6',             delta: 4  },
+    { n: 'Recommandations',   v: Math.round(38  * S.mult * funnelMult), conv: 52, c: '#059669', hot: true,  delta: 24 },
+    { n: 'Réseaux sociaux',   v: Math.round(24  * S.mult * funnelMult), conv: 12, c: '#C45A00',             delta: -22 },
+    { n: 'Importé manuel',    v: Math.round(10  * S.mult * funnelMult), conv: 22, c: '#7A8088',             delta: -8 },
   ]
 
-  return { period: P, scope: S, M, funnel, sources, forecast, funnelMult }
+  // Libellé humain de comparaison — cohérent avec CK_DATA.compareLabel
+  const compareLabel =
+    period === 'month'   ? 'vs avril'
+    : period === 'quarter' ? 'vs T1'
+    : period === 'year'    ? 'vs 2025'
+    : 'vs période précédente'
+
+  return { period: P, scope: S, M, funnel, sources, forecast, funnelMult, compareLabel }
 }
 
 // ─── Helpers de mapping shell → données ────────────────────────────────

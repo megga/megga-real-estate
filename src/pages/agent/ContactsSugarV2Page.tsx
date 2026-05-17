@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-contacts-sugar.jsx — `CRMScreenContactsSugar`).
 
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
@@ -24,8 +24,39 @@ import type {
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
+// Mapping inverse Sources Dashboard (slug → label humain) — sync avec
+// SOURCE_SLUGS dans DBEntonnoir.tsx. Quand le modèle Contact aura un champ
+// `source`, on filtrera réellement ici. En attendant, on affiche un banner
+// informatif et on remplit la recherche avec le label pour les contacts qui
+// portent le canal dans leur nom / note.
+const SOURCE_LABELS: Record<string, string> = {
+  marketplace: 'Marketplace MEGGA',
+  'agency-site': 'Site agence',
+  referral: 'Recommandations',
+  social: 'Réseaux sociaux',
+  manual: 'Importé manuel',
+}
+
 export default function ContactsSugarV2Page() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Deep-link `?source=marketplace` depuis Dashboard Analytics — handoff Sprint 4.
+  // Snapshot au mount pour ne pas re-déclencher au moindre setSearchParams.
+  const [sourceFilter, setSourceFilter] = useState<string | null>(() => {
+    const slug = searchParams.get('source')
+    return slug && slug in SOURCE_LABELS ? slug : null
+  })
+
+  // Consomme le param une fois (URL nettoyée pour ne pas que F5 le re-applique).
+  useEffect(() => {
+    if (searchParams.has('source')) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('source')
+      setSearchParams(next, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Theme: dark/light, persisted (shared with Today + Pipeline) ─────
   const [dark, setDark] = useState<boolean>(() => {
@@ -193,6 +224,57 @@ export default function ContactsSugarV2Page() {
             alignItems: 'start',
           }}
         >
+          {sourceFilter && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                gridColumn: '1 / -1',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '12px 16px',
+                borderRadius: 14,
+                background: '#FFFFFF',
+                boxShadow: '0 4px 16px rgba(15,23,42,0.04)',
+                fontFamily: 'Manrope, system-ui, sans-serif',
+              }}
+            >
+              <span
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 999,
+                  background: '#0B0C0E',
+                  color: '#fff',
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 0.6,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Filtre Dashboard
+              </span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: '#3A3D44' }}>
+                Source : <strong style={{ color: '#0B0C0E', fontWeight: 800 }}>{SOURCE_LABELS[sourceFilter]}</strong> · le filtre canal sera disponible quand les contacts auront le champ source.
+              </span>
+              <button
+                onClick={() => setSourceFilter(null)}
+                aria-label="Retirer le filtre source"
+                style={{
+                  marginLeft: 'auto',
+                  border: 0,
+                  background: 'transparent',
+                  color: '#7A8088',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                }}
+              >
+                Retirer
+              </button>
+            </div>
+          )}
           <ContactsListPane
             contacts={filtered}
             selectedId={selectedId}

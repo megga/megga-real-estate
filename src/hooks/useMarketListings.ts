@@ -44,7 +44,10 @@ export interface MapPoint {
   context: 'buy' | 'rent'
 }
 
-const PAGE_SIZE = 20
+// Bumped from 20 → 50 : x2.5 réduction des round-trips réseau sur scroll
+// infinite (audit perf /louer Sprint 4 polish). 50 items = ~3.5 pages
+// virtuelles à 14 rows visibles dans la viewport — confortable.
+const PAGE_SIZE = 50
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
@@ -279,13 +282,14 @@ export function useMarketListings(filters: MarketFilters = {}) {
       const to = from + PAGE_SIZE - 1
 
       // ── Market listings ──
-      // Light SELECT: exclude `description` (heavy text, loaded on detail page
-      // only) to avoid statement timeout on 33K+ rows. Photos kept as needed
-      // for cards, but limited server-side isn't possible so we handle in transform.
+      // Light SELECT: exclude `description` (CLAUDE.md §7 — colonne lourde
+      // ~2 KB/row × 33K = 66 MB potentiel, jamais affiché dans la card, chargé
+      // uniquement sur la page détail via useMarketListingDetail). Photos
+      // gardées car nécessaires pour le hero card + carousel.
       let marketQuery = supabase
         .from('market_listings')
         .select(
-          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, bathrooms, surface_m2, photos, photos_cf, type, lat, lng, description, source_portal, source_url, agency_name, agency_logo_url, price_per_m2, days_on_market, status, first_seen_at, created_at, transaction_type, is_furnished, deposit_months, charges_monthly, external_regie, year_built, energy_label, has_balcony, has_swimming_pool, has_nice_view, has_garage, has_parking, has_elevator, has_fireplace, is_new_building, is_minergie'
+          'id, title, price, current_price, price_at_first_seen, address, city, canton, postal_code, rooms, bedrooms, bathrooms, surface_m2, photos, photos_cf, type, lat, lng, source_portal, source_url, agency_name, agency_logo_url, price_per_m2, days_on_market, status, first_seen_at, created_at, transaction_type, is_furnished, deposit_months, charges_monthly, external_regie, year_built, energy_label, has_balcony, has_swimming_pool, has_nice_view, has_garage, has_parking, has_elevator, has_fireplace, is_new_building, is_minergie'
         )
 
       marketQuery = applyFilters(marketQuery, filters)
