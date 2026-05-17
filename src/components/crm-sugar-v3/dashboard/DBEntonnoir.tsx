@@ -4,7 +4,7 @@
 // Funnel 5 paliers + bottleneck IA + sources de leads + forecast 60/90j.
 // Le bottleneck déclenche le modal `DBRelanceSession`.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { DB_SP, dbFmtCHF } from './tokens'
 import { DbIcon } from './icons'
 import type { DashboardData, ScenarioKey, SourceItem, ForecastHorizon } from './data'
@@ -314,11 +314,10 @@ function EntonnoirFunnel({ data }: { data: DashboardData }) {
 function EntonnoirBottleneck() {
   const [sessionOpen, setSessionOpen] = useState(false)
   const [sessionDone, setSessionDone] = useState<RelanceSessionResult | null>(null)
-  const [hasPaused, setHasPaused] = useState(false)
-
-  useEffect(() => {
-    setHasPaused(hasActiveRelanceSession())
-  }, [sessionOpen])
+  // Initial state via lazy initializer (lit localStorage 1x au mount). Le
+  // status est re-calculé explicitement à la fermeture du modal — pas via
+  // useEffect sur sessionOpen (anti-pattern React 19 setState-in-effect).
+  const [hasPaused, setHasPaused] = useState(() => hasActiveRelanceSession())
 
   return (
     <>
@@ -547,7 +546,12 @@ function EntonnoirBottleneck() {
 
       <DBRelanceSession
         open={sessionOpen}
-        onClose={() => setSessionOpen(false)}
+        onClose={() => {
+          setSessionOpen(false)
+          // Re-lit localStorage à la fermeture (pause) : si l'agent a traité
+          // au moins 1 lead et fermé, hasActiveRelanceSession() retourne true.
+          setHasPaused(hasActiveRelanceSession())
+        }}
         onComplete={(result) => {
           setSessionDone(result)
           setHasPaused(false)
@@ -1024,23 +1028,11 @@ export function DBEntonnoir({ data, onSourceClick, onHorizonClick }: DBEntonnoir
         gap: 16,
       }}
     >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)',
-          gap: 16,
-        }}
-      >
+      <div className="db-entonnoir-row1">
         <EntonnoirFunnel data={data} />
         <EntonnoirBottleneck />
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-          gap: 16,
-        }}
-      >
+      <div className="db-entonnoir-row2">
         <EntonnoirSources data={data} onSourceClick={onSourceClick} />
         <EntonnoirForecast data={data} onHorizonClick={onHorizonClick} />
       </div>

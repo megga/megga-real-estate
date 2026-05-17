@@ -166,7 +166,11 @@ function SessionRecap({
   const called = counts.called || 0
   const postponed = counts.postponed || 0
   const total = leads.length
-  const duration = Math.max(1, Math.round((Date.now() - state.startedAt) / 60000))
+  // useState lazy initializer : Date.now() est appelé une seule fois au mount
+  // du SessionRecap (pas à chaque render). Pure du point de vue de React.
+  const [duration] = useState(() =>
+    Math.max(1, Math.round((Date.now() - state.startedAt) / 60000)),
+  )
 
   return (
     <div
@@ -1067,11 +1071,52 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
     // d'écran annoncent le dialog.
     window.setTimeout(() => dialogRef.current?.focus(), 0)
 
+    // Helper : retourne les éléments focusables actuellement présents dans
+    // le dialog. Recomputed à chaque Tab pour gérer le DOM dynamique (changement
+    // de lead → nouveaux boutons, isDone → SessionRecap, etc.).
+    const getFocusable = (): HTMLElement[] => {
+      const root = dialogRef.current
+      if (!root) return []
+      const selector =
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
+        (el) => !el.hasAttribute('hidden') && el.offsetParent !== null,
+      )
+    }
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
         // Pause au lieu de fermer brutalement (cohérent avec le bouton pause)
         handleClose()
+        return
+      }
+      // Focus trap WCAG 2.4.3 : Tab cycle entre les éléments focusables du
+      // dialog. Sans ce trap, Tab échappe vers le DOM derrière la modale.
+      if (e.key === 'Tab') {
+        const focusables = getFocusable()
+        if (focusables.length === 0) {
+          // Aucun élément focusable → garder le focus sur le dialog
+          e.preventDefault()
+          dialogRef.current?.focus()
+          return
+        }
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        const active = document.activeElement as HTMLElement | null
+        if (e.shiftKey) {
+          // Shift+Tab depuis le premier (ou hors dialog) → boucle au dernier
+          if (active === first || !dialogRef.current?.contains(active)) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          // Tab depuis le dernier (ou hors dialog) → boucle au premier
+          if (active === last || !dialogRef.current?.contains(active)) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
       }
     }
     window.addEventListener('keydown', onKey)
@@ -1340,16 +1385,13 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
             </div>
           </header>
 
-          {/* BODY 3 COLONNES */}
+          {/* BODY 3 COLONNES — voir responsive.css db-relance-body */}
           <div
             key={lead.id}
+            className="db-relance-body"
             style={{
               flex: 1,
               minHeight: 0,
-              display: 'grid',
-              gridTemplateColumns: '320px 1fr 380px',
-              gap: 20,
-              padding: '24px 28px',
               animation: 'rlnSlide .4s cubic-bezier(.2,.8,.2,1) both',
             }}
           >
