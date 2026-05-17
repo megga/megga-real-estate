@@ -1,35 +1,277 @@
-// MEGGA CRM Sugar v2 — Matching IA (Tier 3 part 2.3)
-// 1:1 port from the Claude Design bundle (`crm-screen-matching-sugar.jsx`).
+// MEGGA CRM Sugar v2 — Matching · Inbox split + édition inline des critères
+// 1:1 port from the Claude Design bundle (`refonte/crm-screen-matching-sugar.jsx`).
+// Cf. handoff-matching-refonte/HANDOFF_MATCHING_REFONTE_CLAUDE_CODE.md.
+//
+// Pattern mail-client : queue compacte 340 px à gauche + panneau focus
+// persistant à droite (plus de drawer). Sous-nav segmentée à 5 onglets
+// (Tous · À envoyer · Engagé · Sans retour · Archivés). Raccourci clavier E
+// pour envoyer le dossier. Dark mode "Contacts-flat" : surfaces solides
+// #1A1C22 / #14171E, plus de glass.
 
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLogAudit } from '@/hooks/useAuditLog'
+import { crmBienById } from '@/components/crm-sugar/mockData'
 import {
-  CRM_TOKENS, crmSugarPalette, type DarkTone,
+  CRM_TOKENS,
+  crmInitials,
+  crmSugarPalette,
+  type DarkTone,
+  type SugarPalette,
 } from '@/components/crm-sugar/tokens'
-import { CRM_MATCHES } from '@/components/crm-sugar/mockData'
 import {
-  SugarTopNav, SugarIconRail, SugarFrame, SUGAR_KEYFRAMES, type SugarScreenId,
+  SugarTopNav,
+  SugarIconRail,
+  SUGAR_KEYFRAMES,
+  type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { SugarKpiTile } from '@/components/crm-sugar/pipeline/PipelineFilters'
-import { MBuyerCard, type ScheduledVisit } from '@/components/crm-sugar/matching/MBuyerCard'
-import { MTopOppRow } from '@/components/crm-sugar/matching/MTopOppRow'
 import {
-  MMatchingDrawer, type MatchingAction,
-} from '@/components/crm-sugar/matching/MMatchingDrawer'
-import {
-  MSendDossierModal, type SendChannel,
+  MSendDossierModal,
+  type SendChannel,
 } from '@/components/crm-sugar/matching/MSendDossierModal'
 import {
-  MScheduleVisitModal, type ScheduleConfirmPayload,
+  MScheduleVisitModal,
+  type ScheduleConfirmPayload,
 } from '@/components/crm-sugar/matching/MScheduleVisitModal'
 import {
-  buildMatchGroups, getBuyerType, getCities, type MatchGroup,
+  buildMatchGroups,
+  getBuyerType,
+  getCities,
+  mColor,
+  matchingDarkSp,
+  tabOfGroup,
+  type MatchGroup,
+  type MatchingTab,
 } from '@/components/crm-sugar/matching/helpers'
+import { FocusPanel } from '@/components/crm-sugar/matching/MatchingFocusPanel'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
+interface ScheduledVisit {
+  buyerId: string
+  bienId: string
+  dayIso: string
+  slot: string
+  duration: number
+  notes: string
+}
+
+// ─── Sous-nav segmentée — pilule 5 onglets ───────────────────────────────
+interface TabOption {
+  id: MatchingTab
+  label: string
+  count: number
+}
+
+interface MTabsProps {
+  value: MatchingTab
+  onChange: (v: MatchingTab) => void
+  options: TabOption[]
+  sp: SugarPalette
+}
+
+function MTabs({ value, onChange, options, sp }: MTabsProps) {
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        padding: 4,
+        borderRadius: 999,
+        background: sp.cardSubBg,
+        boxShadow: `inset 0 0 0 1px ${sp.cardBorder}`,
+      }}
+    >
+      {options.map(o => {
+        const active = o.id === value
+        return (
+          <button
+            key={o.id}
+            onClick={() => onChange(o.id)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              height: 36,
+              padding: '0 16px',
+              borderRadius: 999,
+              border: 0,
+              background: active ? sp.ink : 'transparent',
+              color: active ? sp.pageBg : sp.soft,
+              fontFamily: 'inherit',
+              fontSize: 13,
+              fontWeight: active ? 700 : 600,
+              cursor: 'pointer',
+              letterSpacing: -0.1,
+              boxShadow: active ? '0 4px 12px rgba(11,12,14,0.20)' : 'none',
+              transition: 'all .18s ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {o.label}
+            {o.count != null && (
+              <span
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  padding: '1.5px 7px',
+                  borderRadius: 999,
+                  lineHeight: 1.2,
+                  background: active
+                    ? 'rgba(255,255,255,0.18)'
+                    : 'rgba(11,12,14,0.06)',
+                  color: active ? sp.pageBg : sp.soft,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {o.count}
+              </span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Mini-row gauche (1 acheteur par ligne, très compact) ────────────────
+interface MMiniRowProps {
+  group: MatchGroup
+  active: boolean
+  onClick: () => void
+  sp: SugarPalette
+}
+
+function MMiniRow({ group, active, onClick, sp }: MMiniRowProps) {
+  const { buyer, topScore } = group
+  const col = mColor(topScore)
+  const tab = tabOfGroup(group)
+  const dotColor =
+    tab === 'engaged'
+      ? '#10B981'
+      : tab === 'no-reply'
+      ? '#F59E0B'
+      : tab === 'archived'
+      ? sp.sub
+      : sp.ink
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        padding: '12px 14px',
+        borderRadius: 14,
+        background: active ? sp.cardBg : 'transparent',
+        border: 0,
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        textAlign: 'left',
+        boxShadow: active
+          ? `0 0 0 2px ${sp.ink} inset, 0 4px 12px rgba(15,23,42,0.04)`
+          : 'none',
+        transition: 'all .15s ease',
+      }}
+      onMouseEnter={e => {
+        if (!active) e.currentTarget.style.background = sp.cardSubBg
+      }}
+      onMouseLeave={e => {
+        if (!active) e.currentTarget.style.background = 'transparent'
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 999,
+          background: buyer.avatarBg || '#0041D9',
+          color: '#fff',
+          display: 'grid',
+          placeItems: 'center',
+          fontSize: 12,
+          fontWeight: 700,
+          flexShrink: 0,
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+        }}
+      >
+        {crmInitials(`${buyer.firstName} ${buyer.lastName}`)}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            marginBottom: 2,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 13.5,
+              fontWeight: 700,
+              color: sp.ink,
+              letterSpacing: -0.1,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              flex: 1,
+            }}
+          >
+            {buyer.firstName} {buyer.lastName}
+          </span>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 800,
+              color: col,
+              fontVariantNumeric: 'tabular-nums',
+              flexShrink: 0,
+              letterSpacing: -0.4,
+            }}
+          >
+            {topScore || '—'}
+          </span>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 11.5,
+            color: sp.sub,
+            fontWeight: 500,
+          }}
+        >
+          <span
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: 999,
+              flexShrink: 0,
+              background: dotColor,
+            }}
+          />
+          <span
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {getBuyerType(buyer)}
+            {getCities(buyer) ? ` · ${getCities(buyer)}` : ''}
+          </span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+// ─── Écran principal — Matching Inbox split + critères inline ────────────
 export default function MatchingSugarV2Page() {
   const navigate = useNavigate()
+  const logAudit = useLogAudit()
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -45,12 +287,23 @@ export default function MatchingSugarV2Page() {
   }, [dark])
 
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
-  const groups = useMemo(() => buildMatchGroups(), [])
+  const spBase = crmSugarPalette(t, dark, DARK_TONE)
+  const sp = dark ? matchingDarkSp(spBase) : spBase
+  const allGroups = useMemo(() => buildMatchGroups(), [])
 
-  const [openId, setOpenId] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  // ── State ────────────────────────────────────────────────────────────
+  const [tab, setTab] = useState<MatchingTab>('all')
+  const [selectedId, setSelectedId] = useState<string | null>(
+    allGroups[0]?.buyer.id || null,
+  )
   const [search, setSearch] = useState('')
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [drafts, setDrafts] = useState<
+    Record<string, Record<string, string>>
+  >({})
+
+  // Modals + flux
+  const [toast, setToast] = useState<string | null>(null)
   const [relancing, setRelancing] = useState(false)
   const [lastSync, setLastSync] = useState('il y a 2h')
   const [sendingFor, setSendingFor] = useState<MatchGroup | null>(null)
@@ -58,38 +311,77 @@ export default function MatchingSugarV2Page() {
   const [schedulingFor, setSchedulingFor] = useState<MatchGroup | null>(null)
   const [scheduledVisits, setScheduledVisits] = useState<ScheduledVisit[]>([])
 
-  const handleScheduled = ({
-    buyer, bien, day, slot, duration, notes,
-  }: ScheduleConfirmPayload) => {
-    setScheduledVisits(prev => [
-      ...prev,
-      { buyerId: buyer.id, bienId: bien.id, dayIso: day.iso, slot, duration, notes },
-    ])
-    setSchedulingFor(null)
-    setOpenId(null)
-    const dayLabel = `${day.label} ${day.day} ${day.month}`
-    setToast(`Visite planifiée — ${dayLabel} à ${slot} · ${bien.title}`)
-    setTimeout(() => setToast(null), 3500)
-  }
-
-  const handleSent = (matchIds: string[], channel: SendChannel) => {
-    setSentMatchIds(prev => {
-      const next = new Set(prev)
-      matchIds.forEach(id => next.add(id))
-      return next
+  // ── Filtrage par onglet + recherche ──────────────────────────────────
+  const counts = useMemo(() => {
+    const c: Record<MatchingTab, number> = {
+      all: 0,
+      'to-send': 0,
+      engaged: 0,
+      'no-reply': 0,
+      archived: 0,
+    }
+    allGroups.forEach(g => {
+      const tg = tabOfGroup(g)
+      if (tg !== 'archived') c.all += 1
+      c[tg] = (c[tg] || 0) + 1
     })
-    setSendingFor(null)
-    setOpenId(null)
-    const channelLabel =
-      channel === 'whatsapp' ? 'WhatsApp' : channel === 'sms' ? 'SMS' : 'email'
-    setToast(
-      `Dossier envoyé par ${channelLabel} — ${matchIds.length} bien${
-        matchIds.length > 1 ? 's' : ''
-      }`,
-    )
-    setTimeout(() => setToast(null), 3000)
+    return c
+  }, [allGroups])
+
+  const filteredGroups = useMemo(() => {
+    let list = allGroups
+    if (tab === 'all') list = list.filter(g => tabOfGroup(g) !== 'archived')
+    else list = list.filter(g => tabOfGroup(g) === tab)
+    const q = search.trim().toLowerCase()
+    if (q) {
+      list = list.filter(
+        g =>
+          `${g.buyer.firstName} ${g.buyer.lastName}`.toLowerCase().includes(q) ||
+          getBuyerType(g.buyer).toLowerCase().includes(q) ||
+          getCities(g.buyer).toLowerCase().includes(q),
+      )
+    }
+    return list
+  }, [allGroups, tab, search])
+
+  // Si l'acheteur sélectionné disparaît du filtre, repli sur le premier visible
+  useEffect(() => {
+    if (filteredGroups.length === 0) return
+    if (!filteredGroups.find(g => g.buyer.id === selectedId)) {
+      setSelectedId(filteredGroups[0].buyer.id)
+      setEditingField(null)
+    }
+  }, [filteredGroups, selectedId])
+
+  const selected =
+    filteredGroups.find(g => g.buyer.id === selectedId) || filteredGroups[0]
+
+  // ── Helpers critères éditables ───────────────────────────────────────
+  const bDraft = selected ? drafts[selected.buyer.id] || {} : {}
+  const critVal = (key: string, fallback: string) =>
+    bDraft[key] !== undefined ? bDraft[key] : fallback
+  const setCrit = (key: string, v: string) => {
+    if (!selected) return
+    const prev = bDraft[key]
+    setDrafts(d => ({
+      ...d,
+      [selected.buyer.id]: { ...(d[selected.buyer.id] || {}), [key]: v },
+    }))
+    // AuditEvent nLPD : modification d'un critère acheteur
+    if (prev !== v) {
+      logAudit.mutate({
+        category: 'contact',
+        severity: 'info',
+        action: 'Critère matching modifié',
+        entityType: 'contact',
+        entityId: selected.buyer.id,
+        objectLabel: `${selected.buyer.firstName} ${selected.buyer.lastName}`,
+        metadata: { field: key, from: prev ?? null, to: v },
+      })
+    }
   }
 
+  // ── Actions ──────────────────────────────────────────────────────────
   const handleRelance = () => {
     if (relancing) return
     setRelancing(true)
@@ -99,67 +391,160 @@ export default function MatchingSugarV2Page() {
       setLastSync("à l'instant")
       setToast('Matching relancé — 7 matchs mis à jour')
       setTimeout(() => setToast(null), 3000)
-    }, 2400)
+    }, 2200)
+    // AuditEvent : relance manuelle du matching IA
+    logAudit.mutate({
+      category: 'ai',
+      severity: 'info',
+      action: 'Relance matching IA',
+      entityType: 'matching',
+      entityId: null,
+      objectLabel: null,
+      metadata: { trigger: 'manual' },
+    })
   }
 
-  const openGroup = openId ? groups.find(g => g.buyer.id === openId) : null
-
-  const filteredGroups = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return groups
-    return groups.filter(
-      g =>
-        `${g.buyer.firstName} ${g.buyer.lastName}`.toLowerCase().includes(q) ||
-        getBuyerType(g.buyer).toLowerCase().includes(q) ||
-        getCities(g.buyer).toLowerCase().includes(q),
+  const handleSent = (matchIds: string[], channel: SendChannel) => {
+    setSentMatchIds(prev => {
+      const next = new Set(prev)
+      matchIds.forEach(id => next.add(id))
+      return next
+    })
+    const buyer = sendingFor?.buyer
+    setSendingFor(null)
+    const channelLabel =
+      channel === 'whatsapp' ? 'WhatsApp' : channel === 'sms' ? 'SMS' : 'email'
+    setToast(
+      `Dossier envoyé par ${channelLabel} — ${matchIds.length} bien${
+        matchIds.length > 1 ? 's' : ''
+      }`,
     )
-  }, [groups, search])
-
-  const handleAction = (action: MatchingAction, group: MatchGroup) => {
-    if (action === 'send') setSendingFor(group)
-    if (action === 'schedule') setSchedulingFor(group)
+    setTimeout(() => setToast(null), 3000)
+    // AuditEvent : envoi de dossier matching à un acheteur
+    if (buyer) {
+      logAudit.mutate({
+        category: 'ai',
+        severity: 'info',
+        action: 'Dossier matching envoyé',
+        entityType: 'contact',
+        entityId: buyer.id,
+        objectLabel: `${buyer.firstName} ${buyer.lastName}`,
+        metadata: { channel, matchIds, count: matchIds.length },
+      })
+    }
   }
 
-  const total = CRM_MATCHES.length
-  const toSend = CRM_MATCHES.filter(m => m.status === 'to-send').length
-  const hot = CRM_MATCHES.filter(m => m.score >= 90).length
-  const engaged = CRM_MATCHES.filter(m => ['viewed', 'liked'].includes(m.status)).length
+  const handleScheduled = ({
+    buyer,
+    bien,
+    day,
+    slot,
+    duration,
+    notes,
+  }: ScheduleConfirmPayload) => {
+    setScheduledVisits(prev => [
+      ...prev,
+      {
+        buyerId: buyer.id,
+        bienId: bien.id,
+        dayIso: day.iso,
+        slot,
+        duration,
+        notes,
+      },
+    ])
+    setSchedulingFor(null)
+    const dayLabel = `${day.label} ${day.day} ${day.month}`
+    const bienLabel = bien.title || `${bien.type} ${bien.canton || ''}`
+    setToast(`Visite planifiée — ${dayLabel} à ${slot} · ${bienLabel}`)
+    setTimeout(() => setToast(null), 3500)
+    // AuditEvent : planification d'une visite depuis le matching
+    logAudit.mutate({
+      category: 'deal',
+      severity: 'info',
+      action: 'Visite planifiée',
+      entityType: 'bien',
+      entityId: bien.id,
+      objectLabel: bienLabel,
+      metadata: {
+        contactId: buyer.id,
+        contactName: `${buyer.firstName} ${buyer.lastName}`,
+        dayIso: day.iso,
+        slot,
+        duration,
+        hasNotes: notes.length > 0,
+      },
+    })
+  }
 
-  const topOpps = [...CRM_MATCHES].sort((a, b) => b.score - a.score).slice(0, 5)
+  // ── Raccourci clavier E (envoyer) ────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
+      )
+        return
+      if (e.key === 'e' && selected && !sendingFor && !schedulingFor) {
+        e.preventDefault()
+        setSendingFor(selected)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selected, sendingFor, schedulingFor])
 
+  // ── Navigation ───────────────────────────────────────────────────────
   const onCmd = () => {
     /* placeholder */
   }
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
       case 'today':
-        navigate('/dashboard'); break
+        navigate('/dashboard')
+        break
       case 'pipeline':
-        navigate('/dashboard/pipeline'); break
+        navigate('/dashboard/pipeline')
+        break
       case 'matching':
         break
       case 'contacts':
-        navigate('/dashboard/contacts'); break
+        navigate('/dashboard/contacts')
+        break
       case 'biens':
-        navigate('/dashboard/listings'); break
+        navigate('/dashboard/listings')
+        break
       case 'biens-new':
-        navigate('/dashboard/listings/new'); break
+        navigate('/dashboard/listings/new')
+        break
       case 'calendar':
-        navigate('/dashboard/calendar'); break
+        navigate('/dashboard/calendar')
+        break
       case 'docs':
-        navigate('/dashboard/documents'); break
+        navigate('/dashboard/documents')
+        break
       case 'kyc':
-        navigate('/dashboard/kyc'); break
+        navigate('/dashboard/kyc')
+        break
       case 'reseau':
-        navigate('/dashboard/reseau'); break
+        navigate('/dashboard/reseau')
+        break
       case 'ai':
       case 'julien':
-        navigate('/dashboard/julien'); break
+        navigate('/dashboard/julien')
+        break
       case 'chat':
       case 'dashboard':
-        navigate('/dashboard/analytics'); break
+        navigate('/dashboard/analytics')
+        break
       case 'settings':
-        navigate('/dashboard/settings'); break
+        navigate('/dashboard/settings')
+        break
+      case 'bien-detail':
+        // wiring deep-link "bien-detail" via state global (cf. mockup)
+        // ici on route directement /dashboard/listings/:id
+        break
       default:
     }
   }
@@ -175,11 +560,15 @@ export default function MatchingSugarV2Page() {
     >
       <style>{SUGAR_KEYFRAMES}</style>
       <style>{`
-        @keyframes sugar-spin {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
+        @keyframes sugar-overlay-fade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes sugar-bento-in {
+          from { opacity: 0; transform: translateY(10px) scale(.985); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
+        @keyframes sugar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes sugar-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
+
       <SugarTopNav
         active="matching"
         t={t}
@@ -197,161 +586,158 @@ export default function MatchingSugarV2Page() {
           setDark={setDark}
           sp={sp}
         />
+
         <main
-          style={{ flex: 1, padding: '32px 40px 80px 0', minWidth: 0 }}
+          style={{
+            flex: 1,
+            padding: '28px 40px 32px 0',
+            minWidth: 0,
+            height: 'calc(100vh - 64px)',
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box',
+          }}
         >
           {/* Header */}
           <div
             style={{
               display: 'flex',
               alignItems: 'flex-end',
-              gap: 16,
-              marginBottom: 24,
+              gap: 24,
+              marginBottom: 18,
+              flexShrink: 0,
             }}
           >
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 38,
-                fontWeight: 800,
-                letterSpacing: -1.2,
-                color: sp.ink,
-                lineHeight: 1,
-              }}
-            >
-              Matching
-            </h1>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                marginBottom: 5,
-              }}
-            >
-              <span
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1
                 style={{
-                  fontSize: 13,
-                  color: sp.sub,
-                  fontWeight: 500,
+                  margin: 0,
+                  fontSize: 32,
+                  fontWeight: 700,
+                  color: sp.ink,
+                  letterSpacing: -0.7,
+                  lineHeight: 1,
                 }}
               >
-                Croisement automatique acheteurs × biens
-              </span>
+                {counts.all} acheteur{counts.all > 1 ? 's' : ''} à suivre
+              </h1>
             </div>
-            <div style={{ flex: 1 }} />
-            <button
-              onClick={handleRelance}
-              disabled={relancing}
-              style={{
-                height: 44,
-                padding: '0 22px',
-                borderRadius: 999,
-                border: 0,
-                background: relancing ? sp.sub : sp.ink,
-                color: sp.pageBg,
-                fontWeight: 700,
-                fontSize: 14,
-                fontFamily: 'inherit',
-                cursor: relancing ? 'not-allowed' : 'pointer',
-                boxShadow: relancing ? 'none' : sp.focusShadow,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                opacity: relancing ? 0.7 : 1,
-                transition: 'opacity .2s, background .2s',
-              }}
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: 12 }}
             >
-              {relancing ? (
-                <svg
-                  width={13}
-                  height={13}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke={sp.pageBg}
-                  strokeWidth={2.5}
-                  strokeLinecap="round"
-                  style={{ animation: 'sugar-spin 800ms linear infinite' }}
-                >
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                </svg>
-              ) : (
-                <svg width={13} height={13} viewBox="0 0 24 24" fill={sp.pageBg}>
-                  <path d="m12 4 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
-                </svg>
-              )}
-              {relancing ? 'Analyse en cours…' : 'Relancer le matching'}
-            </button>
+              <span
+                style={{ fontSize: 12, color: sp.sub, fontWeight: 500 }}
+              >
+                Mis à jour {lastSync}
+              </span>
+              <button
+                onClick={handleRelance}
+                disabled={relancing}
+                style={{
+                  height: 42,
+                  padding: '0 20px',
+                  borderRadius: 999,
+                  border: 0,
+                  background: relancing ? sp.sub : sp.ink,
+                  color: sp.pageBg,
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  fontFamily: 'inherit',
+                  cursor: relancing ? 'not-allowed' : 'pointer',
+                  boxShadow: relancing
+                    ? 'none'
+                    : '0 6px 16px rgba(11,12,14,0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  opacity: relancing ? 0.7 : 1,
+                  transition: 'opacity .2s, background .2s',
+                }}
+              >
+                {relancing ? (
+                  <svg
+                    width={13}
+                    height={13}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={sp.pageBg}
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                    style={{ animation: 'sugar-spin 800ms linear infinite' }}
+                  >
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                ) : (
+                  <svg width={13} height={13} viewBox="0 0 24 24" fill={sp.pageBg}>
+                    <path d="m12 4 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
+                  </svg>
+                )}
+                {relancing ? 'Analyse en cours…' : 'Relancer le matching'}
+              </button>
+            </div>
           </div>
 
-          {/* KPIs */}
-          <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>
-            <SugarKpiTile
-              sp={sp}
-              dark={dark}
-              label="Matchs actifs"
-              value={total}
-              sub={`${groups.length} acheteurs couverts`}
-            />
-            <SugarKpiTile
-              sp={sp}
-              dark={dark}
-              label="À envoyer"
-              value={toSend}
-              sub="Actions prioritaires"
-              accent="#0041D9"
-            />
-            <SugarKpiTile
-              sp={sp}
-              dark={dark}
-              label="Score ≥ 90%"
-              value={hot}
-              sub="Excellent fit"
-              accent="#0041D9"
-            />
-            <SugarKpiTile
-              sp={sp}
-              dark={dark}
-              label="Vus / Aimés"
-              value={engaged}
-              sub="Engagement acheteur"
-              accent="#0041D9"
-            />
-          </div>
-
-          {/* Layout 2 colonnes */}
+          {/* Sous-nav segmentée */}
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1.6fr 1fr',
-              gap: 18,
-              alignItems: 'flex-start',
+              display: 'flex',
+              marginBottom: 18,
+              flexShrink: 0,
             }}
           >
-            <SugarFrame
+            <MTabs
+              value={tab}
+              onChange={v => {
+                setTab(v)
+                setEditingField(null)
+              }}
               sp={sp}
-              index={0}
-              title="Acheteurs à activer"
-              badge={
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: sp.sub,
-                    background: sp.cardSubBg,
-                    padding: '3px 9px',
-                    borderRadius: 99,
-                    border: `1px solid ${sp.cardBorder}`,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  {groups.length}
-                </span>
-              }
+              options={[
+                { id: 'all', label: 'Tous', count: counts.all },
+                { id: 'to-send', label: 'À envoyer', count: counts['to-send'] },
+                { id: 'engaged', label: 'Engagé', count: counts.engaged },
+                { id: 'no-reply', label: 'Sans retour', count: counts['no-reply'] },
+                { id: 'archived', label: 'Archivés', count: counts.archived },
+              ]}
+            />
+          </div>
+
+          {/* Layout 2 panneaux */}
+          <div
+            style={{
+              flex: 1,
+              display: 'grid',
+              gridTemplateColumns: '340px 1fr',
+              gap: 18,
+              minHeight: 0,
+            }}
+          >
+            {/* ── GAUCHE — Queue ── */}
+            <div
+              style={{
+                background: sp.frameBg,
+                borderRadius: 24,
+                border: `1px solid ${sp.frameBorder}`,
+                boxShadow: sp.shadow,
+                padding: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
             >
-              {/* Search live */}
-              <div style={{ marginBottom: 14, position: 'relative' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  height: 40,
+                  padding: '0 14px',
+                  borderRadius: 999,
+                  background: sp.cardSubBg,
+                  marginBottom: 10,
+                  flexShrink: 0,
+                }}
+              >
                 <svg
                   width={14}
                   height={14}
@@ -361,180 +747,134 @@ export default function MatchingSugarV2Page() {
                   strokeWidth={2}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{
-                    position: 'absolute',
-                    left: 12,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none',
-                  }}
                 >
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.35-4.35" />
                 </svg>
                 <input
-                  type="text"
-                  placeholder="Rechercher un acheteur…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
+                  placeholder="Rechercher…"
                   style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    height: 36,
-                    paddingLeft: 34,
-                    paddingRight: 12,
-                    borderRadius: 10,
-                    border: `1px solid ${sp.cardBorder}`,
-                    background: sp.cardSubBg,
-                    color: sp.ink,
-                    fontSize: 13,
-                    fontFamily: 'inherit',
+                    flex: 1,
+                    border: 0,
+                    background: 'transparent',
                     outline: 'none',
+                    fontFamily: 'inherit',
+                    fontSize: 13,
+                    color: sp.ink,
                   }}
                 />
               </div>
+
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: 12,
+                  flex: 1,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
                 }}
               >
                 {filteredGroups.length > 0 ? (
                   filteredGroups.map(g => (
-                    <MBuyerCard
+                    <MMiniRow
                       key={g.buyer.id}
                       group={g}
+                      active={g.buyer.id === selectedId}
+                      onClick={() => {
+                        setSelectedId(g.buyer.id)
+                        setEditingField(null)
+                      }}
                       sp={sp}
-                      dark={dark}
-                      sentMatchIds={sentMatchIds}
-                      scheduledVisits={scheduledVisits}
-                      onClick={() => setOpenId(g.buyer.id)}
                     />
                   ))
                 ) : (
                   <div
                     style={{
-                      gridColumn: '1/-1',
                       padding: 32,
                       textAlign: 'center',
+                      fontSize: 12.5,
                       color: sp.sub,
-                      fontSize: 13,
                       fontStyle: 'italic',
                     }}
                   >
-                    Aucun acheteur trouvé
+                    Aucun acheteur dans cette catégorie.
                   </div>
                 )}
               </div>
-            </SugarFrame>
+            </div>
 
-            <SugarFrame
-              sp={sp}
-              index={1}
-              title="Top opportunités"
-              actions={
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    color: sp.sub,
-                    fontWeight: 500,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  Mise à jour {lastSync}
-                </span>
-              }
-            >
+            {/* ── DROITE — Focus ── */}
+            {selected ? (
+              <FocusPanel
+                key={selected.buyer.id}
+                group={selected}
+                sp={sp}
+                dark={dark}
+                editingField={editingField}
+                setEditingField={setEditingField}
+                critVal={critVal}
+                setCrit={setCrit}
+                sentMatchIds={sentMatchIds}
+                scheduledVisits={scheduledVisits}
+                onSend={() => setSendingFor(selected)}
+                onSchedule={() => setSchedulingFor(selected)}
+                onStartKyc={buyer => {
+                  // AuditEvent : ouverture du wizard KYC depuis le Matching
+                  logAudit.mutate({
+                    category: 'kyc',
+                    severity: 'info',
+                    action: 'KYC démarré depuis Matching',
+                    entityType: 'contact',
+                    entityId: buyer.id,
+                    objectLabel: `${buyer.firstName} ${buyer.lastName}`,
+                    metadata: {
+                      kycStatus: buyer.kyc?.status ?? 'none',
+                      origin: 'matching-banner',
+                    },
+                  })
+                  navigate('/dashboard/kyc')
+                }}
+                onOpenBien={bienId => {
+                  const b = crmBienById(bienId)
+                  logAudit.mutate({
+                    category: 'bien',
+                    severity: 'info',
+                    action: 'Fiche bien ouverte depuis Matching',
+                    entityType: 'bien',
+                    entityId: bienId,
+                    objectLabel: b?.title ?? null,
+                    metadata: {
+                      contactId: selected?.buyer.id ?? null,
+                      origin: 'matching-focus',
+                    },
+                  })
+                  navigate(`/dashboard/listings/${bienId}`)
+                }}
+              />
+            ) : (
               <div
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
+                  background: sp.frameBg,
+                  borderRadius: 24,
+                  border: `1px solid ${sp.frameBorder}`,
+                  boxShadow: sp.shadow,
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: sp.sub,
+                  fontSize: 13,
+                  fontStyle: 'italic',
                 }}
               >
-                {topOpps.map((m, i) => (
-                  <MTopOppRow
-                    key={i}
-                    match={m}
-                    sp={sp}
-                    dark={dark}
-                    onClick={() => setOpenId(m.contactId)}
-                  />
-                ))}
+                Sélectionnez un acheteur à gauche pour voir ses biens.
               </div>
-
-              {/* AI footer note */}
-              <div
-                style={{
-                  marginTop: 14,
-                  paddingTop: 14,
-                  borderTop: `1px solid ${sp.cardBorder}`,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 10,
-                }}
-              >
-                <div
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 7,
-                    background: 'linear-gradient(135deg, #0041D9, #6366F1)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                    marginTop: 1,
-                  }}
-                >
-                  <svg width={10} height={10} viewBox="0 0 24 24" fill="#fff">
-                    <path d="m12 4 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />
-                  </svg>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: '#0041D9',
-                      letterSpacing: 0.4,
-                      textTransform: 'uppercase',
-                      marginBottom: 3,
-                    }}
-                  >
-                    MEGGA AI
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: sp.soft,
-                      lineHeight: 1.55,
-                    }}
-                  >
-                    {hot} match{hot > 1 ? 's' : ''} excellent
-                    {hot > 1 ? 's' : ''} en attente. Marie Bertrand n'a pas
-                    encore reçu son dossier — relance prioritaire.
-                  </div>
-                </div>
-              </div>
-            </SugarFrame>
+            )}
           </div>
         </main>
       </div>
 
-      {openGroup && (
-        <MMatchingDrawer
-          group={openGroup}
-          sp={sp}
-          dark={dark}
-          sentMatchIds={sentMatchIds}
-          scheduledVisits={scheduledVisits}
-          onClose={() => setOpenId(null)}
-          onAction={handleAction}
-        />
-      )}
-
+      {/* Modals */}
       {sendingFor && (
         <MSendDossierModal
           group={sendingFor}
@@ -544,7 +884,6 @@ export default function MatchingSugarV2Page() {
           onSend={handleSent}
         />
       )}
-
       {schedulingFor && (
         <MScheduleVisitModal
           group={schedulingFor}
@@ -555,6 +894,7 @@ export default function MatchingSugarV2Page() {
         />
       )}
 
+      {/* Toast */}
       {toast && (
         <div
           style={{
@@ -562,8 +902,8 @@ export default function MatchingSugarV2Page() {
             bottom: 28,
             left: '50%',
             transform: 'translateX(-50%)',
-            background: dark ? sp.frameBg : '#0E1410',
-            color: dark ? sp.ink : '#fff',
+            background: sp.ink,
+            color: sp.pageBg,
             padding: '12px 22px',
             borderRadius: 16,
             fontSize: 13.5,
@@ -572,12 +912,10 @@ export default function MatchingSugarV2Page() {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            zIndex: 300,
-            border: `1px solid ${sp.cardBorder}`,
-            backdropFilter: 'blur(16px)',
+            zIndex: 1500,
           }}
         >
-          <span style={{ color: '#0E9F6E', fontSize: 16 }}>✓</span> {toast}
+          {toast}
         </div>
       )}
     </div>
