@@ -92,6 +92,7 @@ const ContactDetailSugarV3Page = lazy(() => import('@/pages/agent/ContactDetailS
 const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
 const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
+const ContactsSugarV3Page = lazy(() => import('@/pages/agent/ContactsSugarV3Page'))
 const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
 // Sprint 2 — Sugar v3 (port pixel-près handoff Bien + Deal + Visite)
 const BienDetailSugarV3Page = lazy(() => import('@/pages/agent/BienDetailSugarV3Page'))
@@ -378,7 +379,9 @@ export default function App() {
               >
                 <Route index element={<TodaySugarPage />} />
                 <Route path="pipeline" element={<PipelineSugarV2Page />} />
-                <Route path="contacts" element={<ContactsSugarV2Page />} />
+                {/* Refonte Contacts — Stratégie A (Par audience) — handoff mai 2026 */}
+                <Route path="contacts" element={<ContactsSugarV3Page />} />
+                <Route path="contacts-v2" element={<ContactsSugarV2Page />} />
                 <Route path="listings" element={<BiensSugarV2Page />} />
                 <Route path="listings-legacy" element={<ListingsPage />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}
