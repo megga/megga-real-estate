@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx — `CRMScreenPipelineSugar`).
 
 import { useState, useEffect, useMemo, type MouseEvent as ReactMouseEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CRM_TOKENS, CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette,
   type DarkTone, type StageId,
@@ -32,6 +32,18 @@ const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function PipelineSugarV2Page() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Drilldown depuis le Dashboard Analytics : `?stage=signed,visit-scheduled`.
+  // On parse une fois au mount et on nettoie l'URL pour ne pas que la même
+  // ouverture re-applique le filtre au re-render.
+  const initialFilterStages = useMemo<StageId[]>(() => {
+    const raw = searchParams.get('stage')
+    if (!raw) return []
+    const valid = new Set(Object.keys(CRM_STAGES) as StageId[])
+    return raw.split(',').filter((s): s is StageId => valid.has(s as StageId))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Theme: dark/light, persisted (shared with the Today page) ───────
   const [dark, setDark] = useState<boolean>(() => {
@@ -140,9 +152,20 @@ export default function PipelineSugarV2Page() {
 
   // ── Filter state ─────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
-  const [filterStages, setFilterStages] = useState<StageId[]>([])
+  const [filterStages, setFilterStages] = useState<StageId[]>(initialFilterStages)
   const [filterRisk, setFilterRisk] = useState<RiskFilterValue>('all')
   const [filterPeriod, setFilterPeriod] = useState(30)
+
+  // Consume the `?stage=` query param : on l'a injecté dans filterStages,
+  // on retire le param de l'URL pour que F5 ne re-applique pas.
+  useEffect(() => {
+    if (searchParams.has('stage')) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('stage')
+      setSearchParams(next, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filteredDeals = useMemo(() => {
     return localDeals.filter(d => {
