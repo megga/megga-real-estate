@@ -24,13 +24,13 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import type { Contact, SearchCriteria } from '@/types/contact'
-import type { KycCase, KycDossierStatus } from '@/types/kyc'
+import type { KycCase } from '@/types/kyc'
+import { contactToCrm, listingToBien } from '@/lib/sugarAdapters'
 import {
   registerLiveBien,
   registerLiveContact,
   resetLiveOverrides,
   type CrmBien,
-  type CrmContact,
   type CrmMatch,
 } from '@/components/crm-sugar/mockData'
 import type { MatchGroup } from '@/components/crm-sugar/matching/helpers'
@@ -64,135 +64,9 @@ function flattenReasons(r: MatchResult['reasons']): string[] {
     .map(([k, v]) => `${REASON_LABELS[k] ?? k} +${v.score}`)
 }
 
-// ─── Mapping KycDossierStatus (Sprint 1 LBA) → CrmContact.kyc.status ──────
-// Le champ `dossier_status` de Sprint 1 (migration 20260516_002_sprint1_kyc_lba.sql)
-// est la source de vérité — il est calculé par triggers SQL à partir de la
-// checklist + screening + expires_at, et passe automatiquement à 'stale' après
-// 12 mois. On le mappe 1:1 sur les valeurs UI mock.
-function mapKycStatus(
-  dbDossierStatus: KycDossierStatus | undefined,
-): CrmContact['kyc']['status'] {
-  if (!dbDossierStatus) return 'none'
-  if (dbDossierStatus === 'failed') return 'none'   // pas d'état UI dédié
-  return dbDossierStatus  // 'none' | 'pending' | 'verified' | 'stale' — match exact
-}
-
-// ─── Mapping Contact.type DB → CrmContact.type ────────────────────────────
-function mapContactType(t: Contact['type']): CrmContact['type'] {
-  switch (t) {
-    case 'buyer':     return 'buyer'
-    case 'seller':    return 'seller'
-    case 'tenant':    return 'tenant'
-    case 'landlord':  return 'landlord'
-    case 'both':      return 'mixed'
-    case 'investor':  return 'buyer'   // investor = acheteur côté matching
-    case 'lead':      return 'buyer'   // lead pas encore qualifié, traité buyer
-    default:          return 'buyer'
-  }
-}
-
-// ─── SearchCriteria DB → CrmContact.criteria ──────────────────────────────
-function mapCriteria(c: SearchCriteria | null): CrmContact['criteria'] {
-  if (!c) return undefined
-  return {
-    transaction: 'vente',  // pas de discriminant côté DB pour l'instant
-    types: c.type ? [c.type] : [],
-    cantons: [],
-    cities: c.zones ?? [],
-    budgetMin: c.budget_min,
-    budgetMax: c.budget_max ?? 0,
-    areaMin: c.surface_min,
-    areaMax: c.surface_max,
-    roomsMin: c.rooms_min,
-    mustHave: c.features ?? [],
-  }
-}
-
-// ─── Couleur avatar déterministe par contact.id ──────────────────────────
-const AVATAR_PALETTE = [
-  '#0041D9', '#8B5CF6', '#10B981', '#F59E0B',
-  '#06B6D4', '#E53935', '#6366F1', '#EC4899',
-]
-function pickAvatarBg(contactId: string): string {
-  let h = 0
-  for (const ch of contactId) h = (h * 31 + ch.charCodeAt(0)) | 0
-  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
-}
-
-// ─── MatchResult.listing → CrmBien ───────────────────────────────────────
-function listingToBien(m: MatchResult): CrmBien {
-  const l = m.listing
-  const bienId = m.propertyId ?? m.marketListingId ?? m.id
-  // type DB (apartment / house / villa) → type mock (appartement / maison / villa)
-  const typeMap: Record<string, CrmBien['type']> = {
-    apartment:  'appartement',
-    appartement:'appartement',
-    house:      'maison',
-    maison:     'maison',
-    villa:      'villa',
-    commercial: 'commercial',
-    office:     'office',
-    parking:    'parking',
-    storage:    'storage',
-    land:       'land',
-  }
-  const isRental = l.days_on_market !== undefined && l.price > 0 && l.price < 20000
-  return {
-    id: bienId,
-    ref: bienId.slice(0, 12).toUpperCase(),
-    status: 'active',
-    type: typeMap[l.type?.toLowerCase()] ?? 'appartement',
-    transaction: isRental ? 'location' : 'vente',
-    title: l.title || `${typeMap[l.type] ?? 'Bien'} ${l.city ?? ''}`.trim(),
-    addr: [l.address, l.city].filter(Boolean).join(', '),
-    canton: l.canton ?? '',
-    price: isRental ? null : (l.price || null),
-    rent: isRental ? l.price : null,
-    charges: l.charges_monthly || null,
-    area: l.surface_m2 || 0,
-    rooms: l.rooms || 0,
-    beds: l.bedrooms || 0,
-    baths: 0,
-    year: l.year_built || 0,
-    energy: '',
-    ownerContactId: null,
-    mandat: { type: 'simple' },
-    visibility: m.source === 'market' ? 'public' : 'agency',
-    stats: { views: 0, favorites: 0, visitRequests: 0 },
-    photoCount: l.photos?.length ?? 0,
-    signedPhotoCount: l.photos?.length ?? 0,
-    accent: pickAvatarBg(bienId),
-  }
-}
-
-// ─── Contact + KycCase → CrmContact ──────────────────────────────────────
-function contactToCrm(c: Contact, kyc: KycCase | undefined): CrmContact {
-  return {
-    id: c.id,
-    type: mapContactType(c.type),
-    firstName: c.first_name,
-    lastName: c.last_name,
-    email: c.email ?? '',
-    phone: c.phone ?? '',
-    lang: (c.language as CrmContact['lang']) || 'fr',
-    status: 'active',
-    score: c.score === 'hot' ? 90 : c.score === 'warm' ? 60 : c.score === 'cold' ? 30 : 0,
-    source: 'website',
-    assignedTo: '',
-    createdAt: c.created_at,
-    lastActivityAt: c.last_interaction_at ?? c.created_at,
-    kyc: {
-      status: mapKycStatus(kyc?.dossier_status),
-      riskLevel: kyc?.risk_level === 'high' ? 'high' :
-                 kyc?.risk_level === 'medium' ? 'medium' : 'low',
-      expiresAt: kyc?.expires_at ?? undefined,
-    },
-    criteria: mapCriteria(c.search_criteria),
-    tags: c.tags ?? [],
-    notes: c.notes ?? undefined,
-    avatarBg: pickAvatarBg(c.id),
-  }
-}
+// mapContactType / mapKycStatus / mapCriteria / pickAvatarBg / contactToCrm /
+// listingToBien sont désormais centralisés dans `@/lib/sugarAdapters` (réutilisés
+// par useContactsSugar, useDealsSugar, etc).
 
 // ─── Hook principal ──────────────────────────────────────────────────────
 export interface UseMatchingSugarReturn {

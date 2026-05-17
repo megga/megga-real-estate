@@ -6,9 +6,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
-import {
-  CRM_CONTACTS, crmContactById, type CrmContact,
-} from '@/components/crm-sugar/mockData'
+import type { CrmContact } from '@/components/crm-sugar/mockData'
+import { useContactsSugar } from '@/hooks/useContactsSugar'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
@@ -75,8 +74,13 @@ export default function ContactsSugarV2Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
+  // ── Data source: Supabase via adapter ───────────────────────────────
+  const { contacts, isLoading } = useContactsSugar()
+
   // ── Page state ──────────────────────────────────────────────────────
-  const [selectedId, setSelectedId] = useState<string>('c-001')
+  // selectedId vide au démarrage → l'useEffect ci-dessous picke le premier
+  // contact filtré dès que la liste est chargée.
+  const [selectedId, setSelectedId] = useState<string>('')
   const [segment, setSegment] = useState<SegmentId>('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortMode>('activity')
@@ -93,7 +97,7 @@ export default function ContactsSugarV2Page() {
   const filtered = useMemo<CrmContact[]>(() => {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 14)
-    let list = CRM_CONTACTS.slice()
+    let list = contacts.slice()
 
     if (segment === 'buyer') list = list.filter(c => c.type === 'buyer')
     if (segment === 'seller') list = list.filter(c => c.type === 'seller')
@@ -131,16 +135,20 @@ export default function ContactsSugarV2Page() {
       list.sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''))
 
     return list
-  }, [segment, search, sort])
+  }, [segment, search, sort, contacts])
 
-  // Auto-select first if current isn't in filtered
+  // Auto-select first if current isn't in filtered (gère aussi le premier
+  // load : selectedId='' au mount → dès que filtered non vide, on prend [0]).
   useEffect(() => {
     if (filtered.length > 0 && !filtered.find(c => c.id === selectedId)) {
       setSelectedId(filtered[0].id)
     }
   }, [filtered, selectedId])
 
-  const selected = crmContactById(selectedId)
+  const selected = useMemo(
+    () => contacts.find(c => c.id === selectedId),
+    [contacts, selectedId],
+  )
 
   // ── Cmd palette / navigation ────────────────────────────────────────
   const flashToast = (msg: string) => setToast(msg)
@@ -277,6 +285,8 @@ export default function ContactsSugarV2Page() {
           )}
           <ContactsListPane
             contacts={filtered}
+            allContacts={contacts}
+            isLoading={isLoading}
             selectedId={selectedId}
             onSelect={setSelectedId}
             segment={segment}
