@@ -57,9 +57,14 @@ CREATE INDEX IF NOT EXISTS idx_activity_events_actor_kind
 
 -- 4. CHECK de cohérence : actor_id renseigné implique actor_kind='user'
 --    (un humain ne peut pas être noté comme 'ai').
---    On le pose en NOT VALID pour ne pas bloquer sur les rows historiques
---    pourries, et on VALIDATE après backfill — qui devrait passer puisque
---    le backfill a respecté l'invariant.
+--    Pattern idempotent (DROP IF EXISTS + ADD) car PG ≤ 15 ne supporte pas
+--    ADD CONSTRAINT IF NOT EXISTS — sinon un re-run du workflow CI (qui
+--    re-applique toutes les migrations du jour) échoue avec 42710.
+--    On pose NOT VALID pour ne pas bloquer sur les rows historiques
+--    pourries, et on VALIDATE après — qui passe puisque le backfill au-
+--    dessus a respecté l'invariant.
+ALTER TABLE activity_events DROP CONSTRAINT IF EXISTS activity_events_actor_kind_coherence;
+
 ALTER TABLE activity_events
   ADD CONSTRAINT activity_events_actor_kind_coherence
   CHECK (actor_id IS NULL OR actor_kind = 'user')
