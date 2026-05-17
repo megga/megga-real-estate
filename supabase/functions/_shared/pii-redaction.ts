@@ -52,11 +52,13 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
     pattern: /\b756[.\s-]?\d{4}[.\s-]?\d{4}[.\s-]?\d{2}\b/g,
   },
 
-  // IBAN — préfixe pays (CH/FR/DE/IT/LU/LI…) suivi de 13-32 caractères
-  // alphanumériques, avec espaces tolérés tous les 4 chars.
+  // IBAN — préfixe pays (CH/FR/DE/IT/LU/LI…) suivi de 11-30 caractères
+  // alphanumériques, séparateurs optionnels entre les chars (CH IBAN = 21
+  // chars total, ne se divise pas proprement en groupes de 4 → on ne peut
+  // PAS exiger des quad-groupes stricts).
   {
     kind: 'IBAN',
-    pattern: /\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]{4}){3,7}\b/g,
+    pattern: /\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]){11,30}\b/g,
   },
 
   // Passeport / carte d'identité CH — 1 lettre majuscule + 7 chiffres
@@ -88,11 +90,12 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
     pattern: /\b(?:\d{4}[\s-]?){3,4}\d{1,4}\b/g,
   },
 
-  // Date de naissance explicite — "Né(e) le 12.03.1985" / "DDN: 12/03/1985".
+  // Date de naissance explicite — "Né le 12.03.1985", "Née le ...",
+  // "Né(e) le ...", "DDN: 12/03/1985". Le `(e)` féminin entier est optionnel.
   // On évite de scrubber TOUTES les dates (sinon on perd les deadlines etc.).
   {
     kind: 'DOB',
-    pattern: /\b(?:n[ée]\(?e\)?\s+le|date\s+de\s+naissance|ddn|d\.n\.)\s*:?\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}/gi,
+    pattern: /\b(?:n[ée](?:\(?e\)?)?\s+le|date\s+de\s+naissance|ddn|d\.n\.)\s*:?\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}/gi,
   },
 ]
 
