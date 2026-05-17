@@ -44,7 +44,10 @@ export interface MapPoint {
   context: 'buy' | 'rent'
 }
 
-const PAGE_SIZE = 20
+// Bumped from 20 → 50 : x2.5 réduction des round-trips réseau sur scroll
+// infinite (audit perf /louer Sprint 4 polish). 50 items = ~3.5 pages
+// virtuelles à 14 rows visibles dans la viewport — confortable.
+const PAGE_SIZE = 50
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 

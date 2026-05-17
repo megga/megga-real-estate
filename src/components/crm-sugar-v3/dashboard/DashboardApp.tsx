@@ -20,6 +20,7 @@ import { DBContextBar, type DashboardTab } from './Shell'
 import { DBCockpit } from './DBCockpit'
 import { DBEntonnoir } from './DBEntonnoir'
 import { DBObjectif } from './DBObjectif'
+import { OnboardingChecklist } from './OnboardingChecklist'
 import { useDashboardAudit } from './useDashboardAudit'
 
 interface DashboardAppProps {
@@ -82,6 +83,16 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
     navigate('/dashboard/visites/nouveau')
   }
 
+  // Drilldown source de leads → Contacts filtrés (handoff §"Polish Entonnoir").
+  const handleSourceClick = (slug: string, _source: { n: string; v: number }) => {
+    navigate(`/dashboard/contacts?source=${encodeURIComponent(slug)}`)
+  }
+
+  // Drilldown horizon forecast → Pipeline trié par close date (≤ N jours).
+  const handleHorizonClick = (days: number) => {
+    navigate(`/dashboard/pipeline?sort=closeDate&closeWithin=${days}`)
+  }
+
   return (
     <div style={{ minHeight: embedded ? 'auto' : '100vh', paddingBottom: 24 }}>
       <style>{DB_KEYFRAMES}</style>
@@ -110,6 +121,26 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
         }}
       >
         {tab === 'cockpit' && (
+          <section
+            style={{
+              maxWidth: 1320,
+              margin: '0 auto 16px',
+              padding: '0 32px',
+            }}
+          >
+            <OnboardingChecklist
+              onStepCta={(step) => {
+                // AuditEvent — l'agent a cliqué une étape d'onboarding.
+                audit('nudge-cta-clicked', `Onboarding · ${step.title}`, {
+                  stepId: step.id,
+                  ctaPath: step.ctaPath,
+                })
+                navigate(step.ctaPath)
+              }}
+            />
+          </section>
+        )}
+        {tab === 'cockpit' && (
           <DBCockpit
             period={period}
             onDrilldownStage={handleDrilldownStage}
@@ -117,7 +148,13 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
             onCoachCta={handleCoachCta}
           />
         )}
-        {tab === 'entonnoir' && <DBEntonnoir data={data} />}
+        {tab === 'entonnoir' && (
+          <DBEntonnoir
+            data={data}
+            onSourceClick={handleSourceClick}
+            onHorizonClick={handleHorizonClick}
+          />
+        )}
         {tab === 'objectif' && <DBObjectif period={period} />}
       </div>
 
