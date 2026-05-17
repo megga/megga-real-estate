@@ -104,6 +104,8 @@ export interface CrmActivity {
 }
 
 export interface CrmMatch {
+  /** Real Supabase match.id when sourced from `useMatchingSugar`. Absent for mock. */
+  id?: string
   contactId: string
   bienId: string
   score: number
@@ -359,11 +361,29 @@ export const CRM_AI_SUGGESTIONS: CrmAISuggestion[] = [
 ]
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
+// Le Matching Sugar v2 peut être branché sur Supabase via `useMatchingSugar()`.
+// Dans ce mode, l'adapter pousse les Contact/Bien Supabase dans ce registry
+// runtime — les composants UI continuent d'appeler `crmContactById`/`crmBienById`
+// sans changer de signature. Fallback transparent sur les arrays mock si absent.
+const _liveContacts = new Map<string, CrmContact>()
+const _liveBiens = new Map<string, CrmBien>()
+
+export function registerLiveContact(c: CrmContact): void {
+  _liveContacts.set(c.id, c)
+}
+export function registerLiveBien(b: CrmBien): void {
+  _liveBiens.set(b.id, b)
+}
+export function resetLiveOverrides(): void {
+  _liveContacts.clear()
+  _liveBiens.clear()
+}
+
 export function crmContactById(id: string): CrmContact | undefined {
-  return CRM_CONTACTS.find(c => c.id === id)
+  return _liveContacts.get(id) ?? CRM_CONTACTS.find(c => c.id === id)
 }
 export function crmBienById(id: string): CrmBien | undefined {
-  return CRM_BIENS.find(b => b.id === id)
+  return _liveBiens.get(id) ?? CRM_BIENS.find(b => b.id === id)
 }
 export function crmDealsByStage(stage: StageId): CrmDeal[] {
   return CRM_DEALS.filter(d => d.stage === stage)
