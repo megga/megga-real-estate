@@ -24,7 +24,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import type { Contact, SearchCriteria } from '@/types/contact'
-import type { KycCase, KycStatus } from '@/types/kyc'
+import type { KycCase, KycDossierStatus } from '@/types/kyc'
 import {
   registerLiveBien,
   registerLiveContact,
@@ -64,20 +64,17 @@ function flattenReasons(r: MatchResult['reasons']): string[] {
     .map(([k, v]) => `${REASON_LABELS[k] ?? k} +${v.score}`)
 }
 
-// ─── Mapping KycStatus DB → CrmContact.kyc.status ─────────────────────────
+// ─── Mapping KycDossierStatus (Sprint 1 LBA) → CrmContact.kyc.status ──────
+// Le champ `dossier_status` de Sprint 1 (migration 20260516_002_sprint1_kyc_lba.sql)
+// est la source de vérité — il est calculé par triggers SQL à partir de la
+// checklist + screening + expires_at, et passe automatiquement à 'stale' après
+// 12 mois. On le mappe 1:1 sur les valeurs UI mock.
 function mapKycStatus(
-  dbStatus: KycStatus | undefined,
-  expiresAt: string | null | undefined,
+  dbDossierStatus: KycDossierStatus | undefined,
 ): CrmContact['kyc']['status'] {
-  if (!dbStatus) return 'none'
-  if (dbStatus === 'validated') {
-    if (expiresAt && new Date(expiresAt).getTime() < Date.now()) return 'stale'
-    return 'verified'
-  }
-  if (dbStatus === 'pending' || dbStatus === 'in_progress' || dbStatus === 'review') {
-    return 'pending'
-  }
-  return 'none'
+  if (!dbDossierStatus) return 'none'
+  if (dbDossierStatus === 'failed') return 'none'   // pas d'état UI dédié
+  return dbDossierStatus  // 'none' | 'pending' | 'verified' | 'stale' — match exact
 }
 
 // ─── Mapping Contact.type DB → CrmContact.type ────────────────────────────
@@ -179,13 +176,13 @@ function contactToCrm(c: Contact, kyc: KycCase | undefined): CrmContact {
     phone: c.phone ?? '',
     lang: (c.language as CrmContact['lang']) || 'fr',
     status: 'active',
-    score: c.score ? 50 : 0,
+    score: c.score === 'hot' ? 90 : c.score === 'warm' ? 60 : c.score === 'cold' ? 30 : 0,
     source: 'website',
     assignedTo: '',
     createdAt: c.created_at,
     lastActivityAt: c.last_interaction_at ?? c.created_at,
     kyc: {
-      status: mapKycStatus(kyc?.status, kyc?.expires_at),
+      status: mapKycStatus(kyc?.dossier_status),
       riskLevel: kyc?.risk_level === 'high' ? 'high' :
                  kyc?.risk_level === 'medium' ? 'medium' : 'low',
       expiresAt: kyc?.expires_at ?? undefined,
@@ -251,10 +248,14 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
     queryKey: ['matching-sugar-kyc', agencyId, buyerIds],
     queryFn: async (): Promise<KycCase[]> => {
       if (!agencyId || buyerIds.length === 0) return []
+      // Filtre par type acheteur uniquement : un contact peut avoir plusieurs
+      // dossiers (achat + vente), on ne veut que le dossier acheteur (pp/pm).
+      // ORDER BY created_at DESC → le premier match = le plus récent.
       const { data, error } = await supabase
         .from('kyc_cases')
-        .select('id, contact_id, status, risk_level, expires_at, created_at')
+        .select('id, contact_id, type, status, dossier_status, risk_level, expires_at, created_at')
         .in('contact_id', buyerIds)
+        .in('type', ['buyer_pp', 'buyer_pm'])
         .order('created_at', { ascending: false })
       if (error) throw error
       return (data ?? []) as KycCase[]
@@ -271,22 +272,21 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
     return map
   }, [kycCases])
 
-  // 5. Adapter Supabase → Crm shapes + push dans registry runtime
+  // 5. Adapter Supabase → Crm shapes — PURE (pas de side effects, safe pour
+  // React 18+ Concurrent Rendering). Le registry runtime est rempli ensuite
+  // par un useEffect dédié, après que groups soit committed.
   const groups = useMemo<MatchGroup[]>(() => {
     if (matches.length === 0) return []
-
-    resetLiveOverrides()
 
     // a. Indexer contacts
     const contactsById = new Map(contacts.map(c => [c.id, c]))
 
-    // b. Transformer matches en CrmMatch + enregistrer biens dérivés
-    const crmMatchesByBuyer = new Map<string, CrmMatch[]>()
+    // b. Transformer matches en (CrmMatch + CrmBien) par buyer
+    type Acc = { matches: CrmMatch[]; biens: CrmBien[] }
+    const acc = new Map<string, Acc>()
 
     for (const m of matches) {
       const bien = listingToBien(m)
-      registerLiveBien(bien)
-
       const crmMatch: CrmMatch = {
         id: m.id,
         contactId: m.contactId,
@@ -295,19 +295,18 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
         reasons: flattenReasons(m.reasons),
         status: mapMatchStatus(m.status),
       }
-
-      const arr = crmMatchesByBuyer.get(m.contactId) ?? []
-      arr.push(crmMatch)
-      crmMatchesByBuyer.set(m.contactId, arr)
+      const entry = acc.get(m.contactId) ?? { matches: [], biens: [] }
+      entry.matches.push(crmMatch)
+      entry.biens.push(bien)
+      acc.set(m.contactId, entry)
     }
 
-    // c. Construire groups + enregistrer buyers
+    // c. Construire groups (CrmContact dérivé du contact + KYC du contact_id)
     const out: MatchGroup[] = []
-    for (const [buyerId, ms] of crmMatchesByBuyer) {
+    for (const [buyerId, { matches: ms, biens: _bs }] of acc) {
       const contact = contactsById.get(buyerId)
-      if (!contact) continue   // contact non chargé / cross-agency → ignore
+      if (!contact) continue
       const buyer = contactToCrm(contact, kycByContact.get(buyerId))
-      registerLiveContact(buyer)
       const sorted = ms.sort((a, b) => b.score - a.score)
       out.push({ buyer, matches: sorted, topScore: sorted[0]?.score ?? 0 })
     }
@@ -315,7 +314,25 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
     return out.sort((a, b) => b.topScore - a.topScore)
   }, [matches, contacts, kycByContact])
 
-  // 6. Cleanup au démontage (évite que d'autres pages Sugar v2 héritent du registry)
+  // 6. Side effect séparé : remplir le registry runtime après commit.
+  // Garantit que crmBienById/crmContactById renvoient les versions Supabase
+  // pour les composants UI qui appellent ces helpers.
+  useEffect(() => {
+    if (groups.length === 0) {
+      resetLiveOverrides()
+      return
+    }
+    resetLiveOverrides()
+    for (const g of groups) {
+      registerLiveContact(g.buyer)
+      for (const m of g.matches) {
+        const sourceMatch = matches.find(sm => sm.id === m.id)
+        if (sourceMatch) registerLiveBien(listingToBien(sourceMatch))
+      }
+    }
+  }, [groups, matches])
+
+  // 7. Cleanup au démontage (évite que d'autres pages Sugar v2 héritent du registry)
   useEffect(() => {
     return () => { resetLiveOverrides() }
   }, [])
@@ -329,7 +346,7 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
         contact_id: input.contactId,
         property_id: input.propertyId,
         scheduled_at: input.scheduledAt,
-        duration_min: input.durationMin,
+        duration_minutes: input.durationMin,
         status: 'planned',
         notes: input.notes ?? null,
       })
@@ -341,17 +358,56 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
     },
   })
 
-  // 8. Mutation : update search_criteria du buyer
+  // 8. Mutation : update search_criteria du buyer.
+  // IMPORTANT : le moteur de matching (Edge Function `matching-engine`) lit
+  // `client_searches.criteria`, PAS `contacts.search_criteria`. Pour que
+  // l'édit inline impacte le re-matching, on doit propager les deux :
+  //   - `contacts.search_criteria` (affiche immédiatement la nouvelle valeur)
+  //   - `client_searches.criteria` du dossier actif (pris en compte par l'IA)
+  // Si aucun client_search actif n'existe pour ce buyer, on en crée un.
   const updateCriteriaMutation = useMutation({
     mutationFn: async ({ contactId, patch }: { contactId: string; patch: Partial<SearchCriteria> }) => {
-      // Merge avec l'existant
+      if (!agencyId) throw new Error('No agency')
+      // 1. Merge avec l'existant côté contacts.search_criteria
       const existing = contacts.find(c => c.id === contactId)?.search_criteria ?? null
       const merged: SearchCriteria = { ...(existing ?? {}), ...patch }
-      const { error } = await supabase
+
+      // 2. Update contacts.search_criteria (vue dénormalisée)
+      const { error: contactErr } = await supabase
         .from('contacts')
         .update({ search_criteria: merged })
         .eq('id', contactId)
-      if (error) throw error
+      if (contactErr) throw contactErr
+
+      // 3. Propager au client_search actif (consommé par le matching engine)
+      const { data: existingSearches } = await supabase
+        .from('client_searches')
+        .select('id, criteria')
+        .eq('contact_id', contactId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (existingSearches && existingSearches.length > 0) {
+        const search = existingSearches[0] as { id: string; criteria: SearchCriteria }
+        const mergedSearch: SearchCriteria = { ...(search.criteria ?? {}), ...patch }
+        const { error: updErr } = await supabase
+          .from('client_searches')
+          .update({ criteria: mergedSearch, updated_at: new Date().toISOString() })
+          .eq('id', search.id)
+        if (updErr) throw updErr
+      } else {
+        // Pas de client_search actif : en créer un
+        const { error: insErr } = await supabase
+          .from('client_searches')
+          .insert({
+            agency_id: agencyId,
+            contact_id: contactId,
+            criteria: merged,
+            is_active: true,
+          })
+        if (insErr) throw insErr
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['matching-sugar-contacts'] })
