@@ -104,3 +104,43 @@ export function getStatusMap(sp: SugarPalette): Record<
 export function matchKey(m: CrmMatch): string {
   return `${m.contactId}-${m.bienId}`
 }
+
+// ─── Onglet d'un groupe (acheteur + matches) ───────────────────────────
+// Voir handoff Matching § « Sous-nav segmentée — 5 onglets ».
+export type MatchingTab = 'all' | 'to-send' | 'engaged' | 'no-reply' | 'archived'
+
+export function tabOfGroup(g: MatchGroup): MatchingTab {
+  if (g.buyer.status === 'archived') return 'archived'
+  const ms = g.matches
+  if (ms.some(m => m.status === 'liked' || m.status === 'viewed')) return 'engaged'
+  if (ms.some(m => m.status === 'to-send')) return 'to-send'
+  if (ms.length > 0 && ms.every(m => m.status === 'sent')) return 'no-reply'
+  return 'to-send'
+}
+
+// ─── Override dark mode « Contacts-flat » pour le Matching ──────────────
+// Au lieu des surfaces glass translucides (rgba/blur) de crmSugarPalette,
+// on passe sur des surfaces SOLIDES façon page Contacts : pageBg #0E1014 plat,
+// frame/card #1A1C22 surélevés, sub #14171E recessed. Plus posé, moins bruité.
+export function matchingDarkSp(sp: SugarPalette): SugarPalette {
+  return {
+    ...sp,
+    pageBg:       '#0E1014',
+    frameBg:      '#1A1C22',
+    frameBorder:  'rgba(255,255,255,0.06)',
+    cardBg:       '#1A1C22',
+    cardBorder:   'rgba(255,255,255,0.06)',
+    cardSubBg:    '#14171E',
+    ink:          '#FFFFFF',
+    sub:          '#7E828A',
+    soft:         '#C8CCD2',
+    avatarBorder: '#1A1C22',
+    iconBtnBg:    '#1A1C22',
+    iconRailBg:   '#14171E',
+    kbdBg:        '#14171E',
+    tableHeadBg:  '#14171E',
+    shadowSm:     '0 4px 16px rgba(0,0,0,0.22)',
+    shadow:       '0 12px 36px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18)',
+    focusShadow:  '0 8px 24px -6px rgba(0,0,0,0.55)',
+  }
+}
