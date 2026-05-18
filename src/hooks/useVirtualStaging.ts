@@ -4,7 +4,17 @@ import { supabase } from '@/lib/supabase'
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export type StagingStyle = 'modern' | 'classic' | 'luxury' | 'scandinavian' | 'minimal'
-export type RoomType = 'salon' | 'chambre' | 'cuisine' | 'salle_a_manger' | 'bureau' | 'autre'
+export type RoomType =
+  | 'salon' | 'chambre' | 'cuisine' | 'salle_a_manger' | 'bureau' | 'autre'
+  | 'terrasse' | 'jardin' | 'balcon' // outdoor variants (Nano Banana 2)
+
+/** Analyse Claude Vision retournée par l'EF dans la réponse staging. */
+export interface PhotoAnalysis {
+  detected_room: string
+  confidence: number
+  quality: { sharpness: number; lighting: number; composition: number; overall: number }
+  flags: string[]
+}
 
 export interface StagingResult {
   staged_url: string
@@ -15,6 +25,8 @@ export interface StagingResult {
     quota: number
     remaining: number
   }
+  /** Présente depuis le gate Vision (v2). Permet à l'UI d'afficher un badge "qualité photo" si on veut. */
+  analysis?: PhotoAnalysis
 }
 
 export interface StagingError {
@@ -23,6 +35,16 @@ export interface StagingError {
   quota_exceeded?: boolean
   current_usage?: number
   quota?: number
+  // Nouveaux signaux du gate Vision (v2)
+  mismatch?: boolean
+  detected_room?: string
+  requested_room?: string
+  confidence?: number
+  suggested_room_type?: RoomType
+  quality_issue?: boolean
+  lpd_block?: boolean
+  already_furnished?: boolean
+  analysis?: { quality: PhotoAnalysis['quality']; flags: string[] }
 }
 
 export interface StagedPhoto {
@@ -50,6 +72,10 @@ export const ROOM_TYPES: { value: RoomType; label: string }[] = [
   { value: 'salle_a_manger', label: 'Salle à manger' },
   { value: 'bureau', label: 'Bureau' },
   { value: 'autre', label: 'Autre' },
+  // Outdoor — Nano Banana 2 supporte le staging extérieur
+  { value: 'terrasse', label: 'Terrasse' },
+  { value: 'jardin', label: 'Jardin' },
+  { value: 'balcon', label: 'Balcon' },
 ]
 
 // ─── Plan quotas (mirrored from Edge Function) ──────────────────────────
