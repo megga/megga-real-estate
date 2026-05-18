@@ -245,13 +245,34 @@ RÈGLES STRICTES :
       .from('property-photos')
       .getPublicUrl(stagedFileName)
 
+    // Track the staged URL so the marketplace can render an "AI-staged" badge
+    // on it. Read-modify-write on properties.ai_generated_photos: same property
+    // can have multiple staged variants over time.
+    {
+      const { data: row } = await supabase
+        .from('properties')
+        .select('ai_generated_photos')
+        .eq('id', propertyId)
+        .single()
+      const current = (row?.ai_generated_photos as string[] | undefined) ?? []
+      if (!current.includes(publicUrl.publicUrl)) {
+        await supabase
+          .from('properties')
+          .update({ ai_generated_photos: [...current, publicUrl.publicUrl] })
+          .eq('id', propertyId)
+      }
+    }
+
     // Log usage in activity_events
     await supabase.from('activity_events').insert({
       agency_id: profile.agency_id,
       actor_id: user.id,
+      actor_kind: 'ai',
       action: 'virtual_staging',
       entity_type: 'property',
       entity_id: propertyId,
+      severity: 'info',
+      category: 'ai',
       metadata: {
         style,
         room_type: roomType || 'autre',

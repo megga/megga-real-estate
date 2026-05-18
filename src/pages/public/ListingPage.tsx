@@ -323,6 +323,7 @@ export default function ListingPage() {
           variant={
             ((listingAny?.gallery_layout as 'hero' | 'mosaic' | 'carousel' | undefined) ?? 'hero')
           }
+          aiGeneratedPhotos={(internalData?.ai_generated_photos as string[] | undefined) ?? undefined}
         />
       </div>
 
