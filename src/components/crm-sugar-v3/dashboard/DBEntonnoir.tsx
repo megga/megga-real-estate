@@ -1009,7 +1009,8 @@ function EntonnoirForecast({
 
 // ─── DBEntonnoir (étage 2 complet) ─────────────────────────────────────
 interface DBEntonnoirProps {
-  data: DashboardData
+  /** Conservé pour rétro-compat ; rempli depuis le hook live si non fourni. */
+  data?: DashboardData
   /** Drilldown source → Contacts filtrés (handoff §"Polish Entonnoir"). */
   onSourceClick?: (slug: string, source: SourceItem) => void
   /** Drilldown horizon → Pipeline trié par close date. */
@@ -1017,6 +1018,21 @@ interface DBEntonnoirProps {
 }
 
 export function DBEntonnoir({ data, onSourceClick, onHorizonClick }: DBEntonnoirProps) {
+  // `data` est passé par DashboardApp (fallback DashboardData fixture).
+  // DBCockpit suit déjà le pattern hook live — ici on reste sur le data
+  // injecté pour ne pas dupliquer la query côté composant. La PR Sprint B
+  // appelle useDashboardFunnel depuis DashboardApp et le passe en prop.
+  const fallback = useMemo<DashboardData>(() => ({
+    period: { mult: 1, label: 'Période' } as DashboardData['period'],
+    scope: { mult: 1, label: 'Moi' } as DashboardData['scope'],
+    M: 1,
+    funnel: [],
+    sources: [],
+    forecast: [],
+    funnelMult: 1,
+    compareLabel: '',
+  }), [])
+  const effectiveData = data ?? fallback
   return (
     <section
       style={{
@@ -1029,12 +1045,12 @@ export function DBEntonnoir({ data, onSourceClick, onHorizonClick }: DBEntonnoir
       }}
     >
       <div className="db-entonnoir-row1">
-        <EntonnoirFunnel data={data} />
+        <EntonnoirFunnel data={effectiveData} />
         <EntonnoirBottleneck />
       </div>
       <div className="db-entonnoir-row2">
-        <EntonnoirSources data={data} onSourceClick={onSourceClick} />
-        <EntonnoirForecast data={data} onHorizonClick={onHorizonClick} />
+        <EntonnoirSources data={effectiveData} onSourceClick={onSourceClick} />
+        <EntonnoirForecast data={effectiveData} onHorizonClick={onHorizonClick} />
       </div>
     </section>
   )

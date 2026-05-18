@@ -55,6 +55,25 @@ function stageLabelFor(decomp: 'signed' | 'compromis' | 'offres' | 'pipeline'): 
   }
 }
 
+// Bornes de la période précédente (pour delta vs N-1)
+function previousPeriodBounds(period: PeriodKey): { from: Date; to: Date } {
+  const now = new Date()
+  if (period === 'month') {
+    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const to = new Date(now.getFullYear(), now.getMonth(), 0)
+    return { from, to }
+  }
+  if (period === 'quarter') {
+    const q = Math.floor(now.getMonth() / 3)
+    const from = new Date(now.getFullYear(), (q - 1) * 3, 1)
+    const to = new Date(now.getFullYear(), q * 3, 0)
+    return { from, to }
+  }
+  const from = new Date(now.getFullYear() - 1, 0, 1)
+  const to = new Date(now.getFullYear() - 1, 11, 31)
+  return { from, to }
+}
+
 // Bornes temporelles selon period UI
 function periodBounds(period: PeriodKey): { from: Date; to: Date; daysLeft: number; label: string; short: string; periodWord: string; compareLabel: string } {
   const now = new Date()
@@ -131,6 +150,7 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
   const userId = profile?.id
 
   const bounds = useMemo(() => periodBounds(period), [period])
+  const prevBounds = useMemo(() => previousPeriodBounds(period), [period])
 
   // 1. Transactions actives (≠ lost) updated dans la fenêtre, scope-filtered.
   // On charge tout ce qui contribue à la projection (toutes stages sauf lost).
@@ -173,11 +193,52 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
     staleTime: 60_000,
   })
 
-  // 3. KYC risk_level high (= kycRisk) + dont expired soon (= kycUrgent)
+  // 2b. Période précédente (mêmes 2 queries) pour les delta*
+  const { data: prevTransactions = [] } = useQuery({
+    queryKey: ['dashboard-cockpit-tx-prev', agencyId, userId, period, scope],
+    queryFn: async (): Promise<TransactionAggRow[]> => {
+      if (!agencyId) return []
+      let q = supabase
+        .from('transactions')
+        .select('id, stage, status, price_offered, price_final, updated_at, assigned_to, property:properties(price, mandate_commission_pct), buyer:contacts!contact_buyer_id(first_name, last_name)')
+        .eq('agency_id', agencyId)
+        .neq('stage', 'lost')
+        .gte('updated_at', prevBounds.from.toISOString())
+        .lte('updated_at', prevBounds.to.toISOString())
+      if (scope === 'me' && userId) q = q.eq('assigned_to', userId)
+      const { data, error } = await q
+      if (error) throw error
+      return (data ?? []) as TransactionAggRow[]
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
+
+  const { data: prevClosed = [] } = useQuery({
+    queryKey: ['dashboard-cockpit-closed-prev', agencyId, userId, period, scope],
+    queryFn: async () => {
+      if (!agencyId) return [] as Array<{ stage: 'signed' | 'lost' }>
+      let q = supabase
+        .from('transactions')
+        .select('stage')
+        .eq('agency_id', agencyId)
+        .in('stage', ['signed', 'lost'])
+        .gte('updated_at', prevBounds.from.toISOString())
+        .lte('updated_at', prevBounds.to.toISOString())
+      if (scope === 'me' && userId) q = q.eq('assigned_to', userId)
+      const { data, error } = await q
+      if (error) throw error
+      return (data ?? []) as Array<{ stage: 'signed' | 'lost' }>
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
+
+  // 3. KYC risk_level high (= kycRisk) + dont expired soon (= kycUrgent) + delta vs N-1
   const { data: kycCounts, isLoading: kycLoading } = useQuery({
-    queryKey: ['dashboard-cockpit-kyc', agencyId],
-    queryFn: async (): Promise<{ risk: number; urgent: number }> => {
-      if (!agencyId) return { risk: 0, urgent: 0 }
+    queryKey: ['dashboard-cockpit-kyc', agencyId, period],
+    queryFn: async (): Promise<{ risk: number; urgent: number; riskPrev: number }> => {
+      if (!agencyId) return { risk: 0, urgent: 0, riskPrev: 0 }
       const { count: riskCount } = await supabase
         .from('kyc_cases')
         .select('id', { count: 'exact', head: true })
@@ -190,10 +251,66 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
         .eq('agency_id', agencyId)
         .eq('risk_level', 'high')
         .lte('expires_at', in7days.toISOString())
-      return { risk: riskCount ?? 0, urgent: urgentCount ?? 0 }
+      // Période précédente : count des kyc_cases risk='high' créés dans la fenêtre N-1
+      const { count: riskPrevCount } = await supabase
+        .from('kyc_cases')
+        .select('id', { count: 'exact', head: true })
+        .eq('agency_id', agencyId)
+        .eq('risk_level', 'high')
+        .gte('created_at', prevBounds.from.toISOString())
+        .lte('created_at', prevBounds.to.toISOString())
+      return { risk: riskCount ?? 0, urgent: urgentCount ?? 0, riskPrev: riskPrevCount ?? 0 }
     },
     enabled: !!agencyId,
     staleTime: 60_000,
+  })
+
+  // 4. Velocity : moyenne jours entre created_at et updated_at sur transactions signed
+  // dans la fenêtre. C'est une approximation de "vélocité globale du pipeline".
+  // Un vrai calcul par stage_change nécessiterait une requête sur activity_events.
+  const { data: velocity = 0 } = useQuery({
+    queryKey: ['dashboard-cockpit-velocity', agencyId, userId, period, scope],
+    queryFn: async (): Promise<number> => {
+      if (!agencyId) return 0
+      let q = supabase
+        .from('transactions')
+        .select('created_at, updated_at')
+        .eq('agency_id', agencyId)
+        .eq('stage', 'signed')
+        .gte('updated_at', bounds.from.toISOString())
+      if (scope === 'me' && userId) q = q.eq('assigned_to', userId)
+      const { data, error } = await q
+      if (error) throw error
+      const rows = (data ?? []) as Array<{ created_at: string; updated_at: string }>
+      if (rows.length === 0) return 0
+      const totalDays = rows.reduce((sum, r) => {
+        const diff = (new Date(r.updated_at).getTime() - new Date(r.created_at).getTime()) / (24 * 60 * 60 * 1000)
+        return sum + Math.max(0, diff)
+      }, 0)
+      return Math.round(totalDays / rows.length)
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
+
+  // 5. Target depuis agencies (monthly/quarterly/yearly selon period)
+  const { data: target = 0 } = useQuery({
+    queryKey: ['dashboard-cockpit-target', agencyId, period],
+    queryFn: async (): Promise<number> => {
+      if (!agencyId) return 0
+      const { data, error } = await supabase
+        .from('agencies')
+        .select('monthly_target, quarterly_target, yearly_target')
+        .eq('id', agencyId)
+        .maybeSingle<{ monthly_target: number | null; quarterly_target: number | null; yearly_target: number | null }>()
+      if (error) throw error
+      if (!data) return 0
+      if (period === 'month') return Number(data.monthly_target ?? 0)
+      if (period === 'quarter') return Number(data.quarterly_target ?? 0)
+      return Number(data.yearly_target ?? 0)
+    },
+    enabled: !!agencyId,
+    staleTime: 5 * 60_000,
   })
 
   const data = useMemo<CockpitDataset | null>(() => {
@@ -229,9 +346,11 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
       + decomp.pipeline * DECOMP_PROBABILITY.pipeline,
     )
 
-    // Target : pour cette PR, heuristique = projected * 1.15 (objectif stretch)
-    // TODO : colonne agencies.monthly_target ou profiles.preferences.target
-    const target = Math.max(projected, Math.round(projected * 1.15)) || 100000
+    // Target depuis agencies (Sprint B). Fallback heuristique si l'agence n'a
+    // pas saisi de cible (target=0).
+    const effectiveTarget = target > 0
+      ? target
+      : Math.max(projected, Math.round(projected * 1.15)) || 100000
 
     // Conversion : signed / (signed + lost) sur la fenêtre
     const signedCount = closed.filter(c => c.stage === 'signed').length
@@ -240,19 +359,30 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
       ? Math.round((signedCount / (signedCount + lostCount)) * 100)
       : 0
 
-    // Velocity : nombre moyen de jours par deal actif depuis création — non disponible
-    // sans une vraie query par stage_change. Placeholder à 0 pour cette PR.
-    const velocity = 0
+    // Mêmes calculs pour la période précédente (delta*)
+    const prevSignedCount = prevClosed.filter(c => c.stage === 'signed').length
+    const prevLostCount = prevClosed.filter(c => c.stage === 'lost').length
+    const prevConversionPct = (prevSignedCount + prevLostCount) > 0
+      ? Math.round((prevSignedCount / (prevSignedCount + prevLostCount)) * 100)
+      : 0
+    const deltaDeals = prevTransactions.length > 0
+      ? Math.round(((transactions.length - prevTransactions.length) / prevTransactions.length) * 100)
+      : 0
+    const deltaConv = conversionPct - prevConversionPct        // points (signed)
+    const deltaVel = 0                                          // Sprint C : nécessite velocity sur fenêtre N-1
+    const deltaKyc = (kycCounts?.risk ?? 0) - (kycCounts?.riskPrev ?? 0)
 
     // deltaPct : projeté vs target — info "% à parcourir/dépassé"
-    const deltaPct = target > 0 ? Math.round(((projected - target) / target) * 100) : 0
+    const deltaPct = effectiveTarget > 0
+      ? Math.round(((projected - effectiveTarget) / effectiveTarget) * 100)
+      : 0
 
     return {
       label: bounds.label,
       short: bounds.short,
       periodWord: bounds.periodWord,
       projected,
-      target,
+      target: effectiveTarget,
       daysLeft: bounds.daysLeft,
       deltaPct,
       compareLabel: bounds.compareLabel,
@@ -264,11 +394,10 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
         velocity,
         kycRisk: kycCounts?.risk ?? 0,
         kycUrgent: kycCounts?.urgent ?? 0,
-        // Deltas vs période précédente : non calculés cette PR (TODO Sprint B)
-        deltaDeals: 0,
-        deltaConv: 0,
-        deltaVel: 0,
-        deltaKyc: 0,
+        deltaDeals,
+        deltaConv,
+        deltaVel,
+        deltaKyc,
       },
       // aiHint statique pour cette PR — chantier IA dédié
       aiHint: {
@@ -280,7 +409,7 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
         cta: 'Voir le pipeline',
       },
     }
-  }, [transactions, closed, kycCounts, bounds, txLoading, closedLoading, kycLoading])
+  }, [transactions, prevTransactions, closed, prevClosed, kycCounts, target, velocity, bounds, txLoading, closedLoading, kycLoading])
 
   return {
     data,
