@@ -22,7 +22,15 @@ import type { PropertyType } from '@/lib/constants'
 import ListingGenerator from '@/components/ai-copilot/ListingGenerator'
 import SwissAddressAutocomplete from '@/components/listings/SwissAddressAutocomplete'
 import type { SwissAddressSuggestion } from '@/hooks/useSwissAddress'
-import { useProperty, useAgencyProperties, useCreateProperty, useUpdateProperty, useUploadPropertyPhotos, useUploadFloorPlan } from '@/hooks/useProperties'
+import {
+  useProperty,
+  useAgencyProperties,
+  useCreateProperty,
+  useUpdateProperty,
+  useUploadPropertyPhotos,
+  useUploadFloorPlan,
+  PropertyUpdateConflictError,
+} from '@/hooks/useProperties'
 import { useExtractPropertyPdf, type ExtractedPropertyData } from '@/hooks/useExtractPropertyPdf'
 import { useExtractPropertyUrl } from '@/hooks/useExtractPropertyUrl'
 import { useCreateListing } from '@/hooks/useListings'
@@ -53,8 +61,85 @@ const optionalNumberRange = (min: number, max: number) => z.preprocess(
   z.number().min(min).max(max).optional()
 )
 
+// Swiss real-world bounds. `lat` and `lng` outside these mean the property
+// isn't in Switzerland — coords from neighbouring countries get rejected here
+// instead of producing a Mulhouse listing tagged canton=GE.
+const optionalCHLat = z.preprocess(
+  (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+  z.number().min(45.8, 'Latitude hors Suisse').max(47.85, 'Latitude hors Suisse').optional(),
+)
+const optionalCHLng = z.preprocess(
+  (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+  z.number().min(5.95, 'Longitude hors Suisse').max(10.5, 'Longitude hors Suisse').optional(),
+)
+
+// Block `javascript:`, `data:`, `file:`, etc. on contact links — `external_regie.website`
+// is rendered as `<a href>` on the listing page, so anything other than http(s) is
+// either dangerous or useless.
+const optionalSafeUrl = z
+  .string()
+  .optional()
+  .refine(
+    (v) => {
+      if (!v || v.trim() === '') return true
+      try {
+        const u = new URL(v.trim())
+        return u.protocol === 'http:' || u.protocol === 'https:'
+      } catch {
+        return false
+      }
+    },
+    { message: 'URL invalide (http(s) uniquement)' },
+  )
+
+const optionalEmail = z
+  .string()
+  .optional()
+  .refine(
+    (v) => !v || v.trim() === '' || z.string().email().safeParse(v.trim()).success,
+    { message: 'Email invalide' },
+  )
+
+const CURRENT_YEAR = new Date().getFullYear()
+const PRICE_MAX_BUY = 200_000_000 // CHF 200M — guards against scientific-notation or fat-finger inputs
+const PRICE_MIN_BUY = 50_000
+const PRICE_MIN_RENT = 100
+const PRICE_MAX_RENT = 50_000
+
+// Shared cross-field validator for step 3 — applied on both the per-step
+// schema AND the merged fullSchema, so the publish path can't sneak past
+// the rent/buy bounds.
+function refineStep3(
+  d: { transaction_type?: 'buy' | 'rent'; price?: number; availability_date?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (d.transaction_type === 'rent') {
+    if (!d.price || d.price < PRICE_MIN_RENT || d.price > PRICE_MAX_RENT) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['price'],
+        message: `Loyer entre CHF ${PRICE_MIN_RENT} et CHF ${PRICE_MAX_RENT.toLocaleString('fr-CH')}/mois`,
+      })
+    }
+    if (!d.availability_date) {
+      ctx.addIssue({ code: 'custom', path: ['availability_date'], message: 'Date requise pour une location' })
+    }
+  } else {
+    if (!d.price || d.price < PRICE_MIN_BUY || d.price > PRICE_MAX_BUY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['price'],
+        message: `Prix entre CHF ${PRICE_MIN_BUY.toLocaleString('fr-CH')} et CHF ${PRICE_MAX_BUY.toLocaleString('fr-CH')}`,
+      })
+    }
+  }
+}
+
 const step1Schema = z.object({
-  title: z.string().min(5, 'Le titre doit contenir au moins 5 caractères'),
+  title: z
+    .string()
+    .min(5, 'Le titre doit contenir au moins 5 caractères')
+    .max(200, 'Maximum 200 caractères'),
   transaction_type: z.enum(['buy', 'rent']).default('buy'),
   type: z.enum(['apartment', 'house', 'villa', 'commercial', 'land'], {
     message: 'Sélectionnez un type de bien',
@@ -65,58 +150,51 @@ const step1Schema = z.object({
   surface_m2: z.coerce.number().min(5, 'Minimum 5 m²').max(10000, 'Maximum 10000 m²'),
   floor: optionalNumber,
   total_floors: optionalNumber,
-  year_built: optionalNumberRange(1800, 2030),
+  year_built: optionalNumberRange(1800, CURRENT_YEAR + 5),
   condition: z.enum(['new', 'renovated', 'good', 'to_renovate']).optional(),
 })
 
 const step2Schema = z.object({
-  address: z.string().min(3, "L'adresse est requise"),
-  city: z.string().min(2, 'La ville est requise'),
-  canton: z.string().min(2, 'Le canton est requis'),
-  postal_code: z.string().min(4, 'Code postal requis').max(4, '4 chiffres'),
-  lat: optionalNumber,
-  lng: optionalNumber,
+  address: z.string().min(3, "L'adresse est requise").max(200, 'Maximum 200 caractères'),
+  city: z.string().min(2, 'La ville est requise').max(100, 'Maximum 100 caractères'),
+  canton: z.enum(CANTONS as unknown as [string, ...string[]], {
+    message: 'Sélectionnez un canton suisse valide',
+  }),
+  postal_code: z
+    .string()
+    .regex(/^[1-9]\d{3}$/, 'NPA suisse invalide (4 chiffres, ne commence pas par 0)'),
+  lat: optionalCHLat,
+  lng: optionalCHLng,
 })
 
 const step3SchemaBase = z.object({
   transaction_type: z.enum(['buy', 'rent']).default('buy'),
-  price: z.coerce.number(),
+  price: z.coerce.number().min(0, 'Prix négatif refusé'),
   charges_monthly: z.preprocess(
     (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-    z.number().min(0).optional()
+    z.number().min(0).max(10_000).optional(),
   ),
   mandate_type: z.enum(['exclusive', 'simple', 'search'], {
     message: 'Sélectionnez un type de mandat',
   }),
-  features: z.array(z.string()).optional(),
+  features: z.array(z.string().max(60)).max(50, 'Maximum 50 caractéristiques').optional(),
   availability_date: z.string().optional(),
   deposit_months: z.coerce.number().int().min(1).max(3).optional(),
   is_furnished: z.boolean().optional(),
-  external_regie: z.object({
-    name: z.string().optional(),
-    phone: z.string().optional(),
-    email: z.string().optional(),
-    website: z.string().optional(),
-  }).optional(),
+  external_regie: z
+    .object({
+      name: z.string().max(120).optional(),
+      phone: z.string().max(40).optional(),
+      email: optionalEmail,
+      website: optionalSafeUrl,
+    })
+    .optional(),
 })
 
-const step3Schema = step3SchemaBase.superRefine((d, ctx) => {
-  if (d.transaction_type === 'rent') {
-    if (!d.price || d.price < 100 || d.price > 50000) {
-      ctx.addIssue({ code: 'custom', path: ['price'], message: 'Loyer entre CHF 100 et 50\'000/mois' })
-    }
-    if (!d.availability_date) {
-      ctx.addIssue({ code: 'custom', path: ['availability_date'], message: 'Date requise pour une location' })
-    }
-  } else {
-    if (!d.price || d.price < 50000) {
-      ctx.addIssue({ code: 'custom', path: ['price'], message: 'Minimum CHF 50\'000' })
-    }
-  }
-})
+const step3Schema = step3SchemaBase.superRefine(refineStep3)
 
 const step4Schema = z.object({
-  photos: z.array(z.string()).optional(),
+  photos: z.array(z.string().url('URL de photo invalide')).max(50, 'Maximum 50 photos').optional(),
   gallery_layout: z.enum(['hero', 'mosaic', 'carousel']).optional(),
   contact_layout: z.enum(['right', 'banner', 'floating']).optional(),
   neighborhood_variant: z.enum(['scores', 'map']).optional(),
@@ -124,11 +202,21 @@ const step4Schema = z.object({
 })
 
 const step5Schema = z.object({
-  description: z.string().min(20, 'La description doit contenir au moins 20 caractères'),
-  tags: z.array(z.string()).optional(),
+  description: z
+    .string()
+    .min(20, 'La description doit contenir au moins 20 caractères')
+    .max(10_000, 'Description trop longue (max 10 000 caractères)'),
+  tags: z.array(z.string().max(40)).max(20, 'Maximum 20 tags').optional(),
 })
 
-const fullSchema = step1Schema.merge(step2Schema).merge(step3SchemaBase).merge(step4Schema).merge(step5Schema)
+// `fullSchema` re-applies `refineStep3` so the publish path can't bypass
+// rent/buy bounds (publish calls fullSchema.safeParse, not step3Schema).
+const fullSchema = step1Schema
+  .merge(step2Schema)
+  .merge(step3SchemaBase)
+  .merge(step4Schema)
+  .merge(step5Schema)
+  .superRefine(refineStep3)
 
 type ListingFormData = z.infer<typeof fullSchema>
 
@@ -1989,6 +2077,16 @@ export default function ListingFormPage() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const autoSavePropertyId = useRef<string | null>(id || null)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Synchronous mutex against the double-click race: `setIsSaving(true)` only
+  // takes effect after the next React render, so a second click landing in
+  // the same micro-task can call handlePublish twice and create duplicate
+  // properties + listings. The ref flips synchronously.
+  const publishingRef = useRef(false)
+  // Optimistic-locking token: tracks the `updated_at` we last observed on the
+  // property row. Passed as `expected_updated_at` to useUpdateProperty so that
+  // a concurrent write from another tab raises PropertyUpdateConflictError
+  // instead of silently last-write-wins.
+  const lastKnownUpdatedAt = useRef<string | null>(null)
 
   // Map existing property or PDF data to form data
   const existingData = useMemo<ListingFormData | undefined>(() => {
@@ -2110,8 +2208,13 @@ export default function ListingFormPage() {
       setFloorPlanUrl(existingProperty.floor_plan_url ?? null)
       setFloorPlanHotspots(existingProperty.floor_plan_hotspots ?? [])
       setPhotoTags(existingProperty.photo_tags ?? [])
+      // Seed the optimistic-locking token in edit mode (skip duplicate mode —
+      // the duplicate becomes a fresh property with no shared updated_at).
+      if (isEditMode && existingProperty.updated_at) {
+        lastKnownUpdatedAt.current = existingProperty.updated_at
+      }
     }
-  }, [existingProperty])
+  }, [existingProperty, isEditMode])
 
   // Redirect if edit mode but property not found (after loading)
   useEffect(() => {
@@ -2121,27 +2224,60 @@ export default function ListingFormPage() {
   }, [isEditMode, propertyLoading, existingProperty, navigate])
 
   // ─── Auto-save (every 30s) ───
+  // Sanity-check what we're about to persist as a draft: previously this only
+  // gated on `title.length >= 3`, so a price of -1 or a canton of "XX" would
+  // happily land in `properties` and stay there until cleanup. The values that
+  // are dangerous to persist (negative price, foreign canton, oversized text)
+  // skip the save entirely; the agent keeps typing and the next 30s tick
+  // re-evaluates.
+  const isDraftSane = useCallback((values: Partial<ListingFormData>): boolean => {
+    if (!values.title || values.title.length < 3) return false
+    if (values.title.length > 200) return false
+    if (values.description && values.description.length > 10_000) return false
+    if (typeof values.price === 'number') {
+      if (!Number.isFinite(values.price)) return false
+      if (values.price < 0 || values.price > PRICE_MAX_BUY) return false
+    }
+    if (values.canton && !(CANTONS as readonly string[]).includes(values.canton)) return false
+    if (values.postal_code && !/^[1-9]\d{3}$/.test(values.postal_code)) return false
+    if (typeof values.lat === 'number' && (values.lat < 45.8 || values.lat > 47.85)) return false
+    if (typeof values.lng === 'number' && (values.lng < 5.95 || values.lng > 10.5)) return false
+    return true
+  }, [])
+
   const doAutoSave = useCallback(async () => {
     const values = form.getValues()
-    if (!values.title || values.title.length < 3) return // Don't auto-save empty forms
+    if (!isDraftSane(values)) return
 
     setAutoSaveStatus('saving')
     try {
       const data = buildPropertyData(values, 'draft')
 
       if (autoSavePropertyId.current) {
-        await updateProperty.mutateAsync({ id: autoSavePropertyId.current, ...data })
+        const updated = await updateProperty.mutateAsync({
+          id: autoSavePropertyId.current,
+          expected_updated_at: lastKnownUpdatedAt.current ?? undefined,
+          ...data,
+        })
+        lastKnownUpdatedAt.current = updated.updated_at
       } else {
         const property = await createProperty.mutateAsync(data)
         autoSavePropertyId.current = property.id
+        lastKnownUpdatedAt.current = property.updated_at
       }
       setAutoSaveStatus('saved')
       setTimeout(() => setAutoSaveStatus('idle'), 3000)
-    } catch {
+    } catch (err) {
+      // Surface conflicts so the agent knows another tab won. Generic failures
+      // stay silent (auto-save is best-effort) — they'll be retried on the
+      // next watch tick.
+      if (err instanceof PropertyUpdateConflictError) {
+        setSaveError(err.message)
+      }
       setAutoSaveStatus('idle')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, updateProperty, createProperty])
+  }, [form, updateProperty, createProperty, isDraftSane])
 
   // Watch form changes for auto-save
   useEffect(() => {
@@ -2226,24 +2362,37 @@ export default function ListingFormPage() {
   }
 
   async function handleSaveDraft() {
+    const values = form.getValues()
+    if (!isDraftSane(values)) {
+      setSaveError('Corrigez les champs invalides avant de sauvegarder (prix, canton, NPA, coordonnées Suisse).')
+      return
+    }
     setIsSaving(true)
     setSaveError(null)
     try {
-      const values = form.getValues()
       const targetId = isEditMode ? id : autoSavePropertyId.current
 
       if (targetId) {
         const allPhotos = await uploadPendingPhotos(targetId)
-        await updateProperty.mutateAsync({
+        const updated = await updateProperty.mutateAsync({
           id: targetId,
+          expected_updated_at: lastKnownUpdatedAt.current ?? undefined,
           ...buildPropertyData(values, existingProperty?.status === 'active' ? 'active' : 'draft'),
           photos: allPhotos,
         })
+        lastKnownUpdatedAt.current = updated.updated_at
       } else {
         const property = await createProperty.mutateAsync(buildPropertyData(values, 'draft'))
+        autoSavePropertyId.current = property.id
+        lastKnownUpdatedAt.current = property.updated_at
         if (pendingFiles.length > 0) {
           const photoUrls = await uploadPendingPhotos(property.id)
-          await updateProperty.mutateAsync({ id: property.id, photos: photoUrls })
+          const updated = await updateProperty.mutateAsync({
+            id: property.id,
+            expected_updated_at: lastKnownUpdatedAt.current,
+            photos: photoUrls,
+          })
+          lastKnownUpdatedAt.current = updated.updated_at
         }
       }
       navigate('/dashboard/listings')
@@ -2255,28 +2404,50 @@ export default function ListingFormPage() {
   }
 
   async function handlePublish() {
-    const valid = await validateCurrentStep()
-    if (!valid) return
+    // Synchronous mutex: flipping a ref is instant, unlike setIsSaving which
+    // only takes effect after the next render. Closes the double-click race.
+    if (publishingRef.current) return
+    publishingRef.current = true
 
-    const result = fullSchema.safeParse(form.getValues())
-    if (!result.success) {
-      for (const issue of result.error.issues) {
-        const path = issue.path[0] as string
-        for (let i = 0; i < stepSchemas.length; i++) {
-          if (path in stepSchemas[i].shape) {
-            setCurrentStep(i + 1)
-            form.setError(path as keyof ListingFormData, { message: issue.message })
-            return
+    try {
+      const valid = await validateCurrentStep()
+      if (!valid) return
+
+      const result = fullSchema.safeParse(form.getValues())
+      if (!result.success) {
+        for (const issue of result.error.issues) {
+          const path = issue.path[0] as string
+          for (let i = 0; i < stepSchemas.length; i++) {
+            if (path in stepSchemas[i].shape) {
+              setCurrentStep(i + 1)
+              form.setError(path as keyof ListingFormData, { message: issue.message })
+              return
+            }
           }
         }
+        return
       }
-      return
-    }
 
-    setIsSaving(true)
-    setSaveError(null)
-    try {
       const values = form.getValues()
+
+      // ── LBA verrou (Loi sur le Blanchiment d'Argent) ─────────────────
+      // Art. 6 LBA : pour toute relation d'affaires immobilière ≥ CHF 100'000,
+      // l'agent doit avoir un mandat signé du vendeur AVANT la publication.
+      // Le mandat est la trace contractuelle qui ancre la chaîne KYC.
+      // Pas de bypass automatique — l'agent doit aller signer le mandat, puis
+      // revenir publier. (Brouillon possible sans mandat → cf. handleSaveDraft.)
+      const LBA_THRESHOLD = 100_000
+      const isHighValueBuy = values.transaction_type !== 'rent' && (values.price ?? 0) >= LBA_THRESHOLD
+      if (isHighValueBuy && !existingProperty?.mandate_signed_at) {
+        setSaveError(
+          `LBA art. 6 : ce bien à CHF ${(values.price ?? 0).toLocaleString('fr-CH')} ne peut être publié sans mandat signé. Enregistrez le mandat depuis la fiche du bien (brouillon) avant de publier.`,
+        )
+        return
+      }
+
+      setIsSaving(true)
+      setSaveError(null)
+
       const targetId = isEditMode ? id : autoSavePropertyId.current
 
       // Track the final (property_id, photo_urls) pair so we can sign C2PA
@@ -2286,19 +2457,28 @@ export default function ListingFormPage() {
 
       if (targetId) {
         const allPhotos = await uploadPendingPhotos(targetId)
-        await updateProperty.mutateAsync({
+        const updated = await updateProperty.mutateAsync({
           id: targetId,
+          expected_updated_at: lastKnownUpdatedAt.current ?? undefined,
           ...buildPropertyData(values, 'active'),
           photos: allPhotos,
         })
+        lastKnownUpdatedAt.current = updated.updated_at
         publishedPropertyId = targetId
         publishedPhotos = allPhotos
       } else {
         const property = await createProperty.mutateAsync(buildPropertyData(values, 'active'))
+        autoSavePropertyId.current = property.id
+        lastKnownUpdatedAt.current = property.updated_at
         publishedPropertyId = property.id
         if (pendingFiles.length > 0) {
           const photoUrls = await uploadPendingPhotos(property.id)
-          await updateProperty.mutateAsync({ id: property.id, photos: photoUrls })
+          const updated = await updateProperty.mutateAsync({
+            id: property.id,
+            expected_updated_at: lastKnownUpdatedAt.current,
+            photos: photoUrls,
+          })
+          lastKnownUpdatedAt.current = updated.updated_at
           publishedPhotos = photoUrls
         } else {
           publishedPhotos = (values.photos ?? []) as string[]
@@ -2337,6 +2517,7 @@ export default function ListingFormPage() {
       setSaveError((err as Error).message)
     } finally {
       setIsSaving(false)
+      publishingRef.current = false
     }
   }
 

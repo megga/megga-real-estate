@@ -1,12 +1,18 @@
 // supabase/functions/extract-property-pdf/index.ts
-// Extracts structured property data from a PDF using Claude API
+// Extracts structured property data from a PDF using Claude API.
+// Authenticated agents only — uses Anthropic credits, so anon access is blocked.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// 10 MB cap on base64 payload (Claude PDF support tops out around there too,
+// and prevents a single agent from running up the Anthropic bill on one call).
+const MAX_PDF_BASE64_BYTES = 10 * 1024 * 1024
 
 const EXTRACTION_PROMPT = `Tu es un expert immobilier suisse. Analyse ce document PDF et extrais TOUTES les informations du bien immobilier.
 
@@ -51,6 +57,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAgentAuth(req, corsHeaders)
+    if (auth instanceof Response) return auth
+
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
       return new Response(
@@ -61,10 +70,17 @@ serve(async (req) => {
 
     const { pdf_base64, filename } = await req.json()
 
-    if (!pdf_base64) {
+    if (!pdf_base64 || typeof pdf_base64 !== 'string') {
       return new Response(
         JSON.stringify({ error: 'pdf_base64 is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (pdf_base64.length > MAX_PDF_BASE64_BYTES) {
+      return new Response(
+        JSON.stringify({ error: 'PDF trop volumineux (max 10 Mo)' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

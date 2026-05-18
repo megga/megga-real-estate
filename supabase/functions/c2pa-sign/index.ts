@@ -1,9 +1,9 @@
 // supabase/functions/c2pa-sign/index.ts
-// Signe les photos d'un bien immobilier avec un Content Credential C2PA
-// Auth JWT obligatoire — seuls les agents authentifiés peuvent signer
+// Signe les photos d'un bien immobilier avec un Content Credential C2PA.
+// Auth JWT + ownership check — seul un agent de l'agence propriétaire peut signer.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,14 +21,9 @@ serve(async (req: Request) => {
   }
 
   try {
-    // ── Auth check ──────────────────────────────────────────────────────
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const auth = await requireAgentAuth(req, corsHeaders)
+    if (auth instanceof Response) return auth
+    const { profile, supabase } = auth
 
     const { propertyId, photoUrls }: SignRequest = await req.json()
 
@@ -39,11 +34,7 @@ serve(async (req: Request) => {
       )
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
-
-    // Vérifier que le bien existe
+    // Vérifier que le bien existe ET appartient à l'agence du caller.
     const { data: property, error: propError } = await supabase
       .from('properties')
       .select('id, agency_id, title, photos')
@@ -54,6 +45,13 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: 'Property not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (property.agency_id !== profile.agency_id) {
+      return new Response(
+        JSON.stringify({ error: 'Bien hors agence — signature refusée' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -179,6 +177,19 @@ serve(async (req: Request) => {
     const allSigned = results.every(r => r.signed)
     const signingMethod = results[0]?.method || 'none'
 
+    // Normalize the persisted method so the UI can render an honest badge.
+    // - capture/trufo → real C2PA certificate (the badge says "Certifié C2PA")
+    // - megga_shield  → SHA-256 + EXIF only, no external trust authority
+    //                   (the badge says "Vérifié MEGGA — hash interne")
+    // - wasm_pending  → not really signed; should not have allSigned=true,
+    //                   but defensive: marks as megga_shield-style only.
+    const persistedMethod = (() => {
+      if (signingMethod.startsWith('capture:')) return 'capture'
+      if (signingMethod === 'trufo') return 'trufo'
+      if (signingMethod.startsWith('megga_shield:')) return 'megga_shield'
+      return signingMethod
+    })()
+
     // Mettre à jour le bien en DB
     if (allSigned) {
       await supabase
@@ -186,6 +197,7 @@ serve(async (req: Request) => {
         .update({
           c2pa_verified: true,
           c2pa_verified_at: new Date().toISOString(),
+          c2pa_verification_method: persistedMethod,
         })
         .eq('id', propertyId)
 
@@ -200,6 +212,7 @@ serve(async (req: Request) => {
         metadata: {
           photos_count: photoUrls.length,
           method: signingMethod,
+          persisted_method: persistedMethod,
           provider,
         },
       })

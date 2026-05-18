@@ -26,6 +26,44 @@ interface ListingHeroGalleryProps {
   variant?: GalleryVariant
   /** Statut du bien — affiche un ribbon diagonal "VENDU"/"SOUS COMPROMIS" */
   status?: ListingStatus
+  /** URLs des photos générées par IA (virtual-staging Gemini). On affiche
+   *  un badge "IA" en surimpression — exigence transparence consommateur
+   *  (LPD art. 28 CO, objectif #4 du Document Maître). */
+  aiGeneratedPhotos?: string[]
+}
+
+// Discreet badge stamped on AI-staged tiles. Glass background, sparkle glyph.
+function AiBadge() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        zIndex: 2,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '4px 8px',
+        borderRadius: 999,
+        background: 'rgba(14, 20, 16, 0.72)',
+        backdropFilter: 'blur(6px)',
+        color: '#fff',
+        fontFamily: FONT,
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
+        pointerEvents: 'none',
+      }}
+      title="Photo générée par IA (virtual staging) — meubles non inclus dans la vente"
+    >
+      <svg width="9" height="9" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M6 1l1.2 2.8L10 5l-2.8 1.2L6 9 4.8 6.2 2 5l2.8-1.2L6 1z" fill="currentColor" />
+      </svg>
+      Photo IA
+    </div>
+  )
 }
 
 // ─── PhotoTile primitive (port 1:1 proto) ────────────────────────────────
@@ -37,9 +75,10 @@ interface PhotoTileProps {
   alt?: string
   label?: string
   preset?: 'full' | 'preview'
+  isAiGenerated?: boolean
 }
 
-function PhotoTile({ src, onClick, style, alt = '', label, preset = 'preview' }: PhotoTileProps) {
+function PhotoTile({ src, onClick, style, alt = '', label, preset = 'preview', isAiGenerated }: PhotoTileProps) {
   const optimizedSrc = src ? optimizeImageUrl(src, preset === 'full' ? IMAGE_PRESETS.full : IMAGE_PRESETS.preview) : null
   return (
     <button
@@ -58,6 +97,7 @@ function PhotoTile({ src, onClick, style, alt = '', label, preset = 'preview' }:
         ...style,
       }}
     >
+      {isAiGenerated && <AiBadge />}
       {!optimizedSrc && (
         <div
           style={{
@@ -85,9 +125,14 @@ interface GalleryLayoutProps {
   photos: string[]
   onOpen: (i: number) => void
   statusOverlay?: React.ReactNode
+  aiSet?: Set<string>
 }
 
-function GalleryHero({ photos, onOpen, statusOverlay }: GalleryLayoutProps) {
+function isAi(aiSet: Set<string> | undefined, url: string | undefined): boolean {
+  return !!url && !!aiSet && aiSet.has(url)
+}
+
+function GalleryHero({ photos, onOpen, statusOverlay, aiSet }: GalleryLayoutProps) {
   const [a, b, c, d, e] = photos
   return (
     <div
@@ -102,11 +147,11 @@ function GalleryHero({ photos, onOpen, statusOverlay }: GalleryLayoutProps) {
         overflow: 'hidden',
       }}
     >
-      <PhotoTile src={a} onClick={() => onOpen(0)} style={{ gridRow: '1 / 3', gridColumn: '1 / 2' }} preset="full" />
-      <PhotoTile src={b} onClick={() => onOpen(1)} />
-      <PhotoTile src={c} onClick={() => onOpen(2)} />
-      <PhotoTile src={d} onClick={() => onOpen(3)} />
-      <PhotoTile src={e} onClick={() => onOpen(4)} />
+      <PhotoTile src={a} onClick={() => onOpen(0)} style={{ gridRow: '1 / 3', gridColumn: '1 / 2' }} preset="full" isAiGenerated={isAi(aiSet, a)} />
+      <PhotoTile src={b} onClick={() => onOpen(1)} isAiGenerated={isAi(aiSet, b)} />
+      <PhotoTile src={c} onClick={() => onOpen(2)} isAiGenerated={isAi(aiSet, c)} />
+      <PhotoTile src={d} onClick={() => onOpen(3)} isAiGenerated={isAi(aiSet, d)} />
+      <PhotoTile src={e} onClick={() => onOpen(4)} isAiGenerated={isAi(aiSet, e)} />
       {statusOverlay}
     </div>
   )
@@ -114,7 +159,7 @@ function GalleryHero({ photos, onOpen, statusOverlay }: GalleryLayoutProps) {
 
 // ─── Layout 2: Mosaic (6 photos asymétriques) ────────────────────────────
 
-function GalleryMosaic({ photos, onOpen, statusOverlay }: GalleryLayoutProps) {
+function GalleryMosaic({ photos, onOpen, statusOverlay, aiSet }: GalleryLayoutProps) {
   const [a, b, c, d, e] = photos
   return (
     <div
@@ -129,12 +174,12 @@ function GalleryMosaic({ photos, onOpen, statusOverlay }: GalleryLayoutProps) {
         overflow: 'hidden',
       }}
     >
-      <PhotoTile src={a} onClick={() => onOpen(0)} style={{ gridRow: '1 / 3', gridColumn: '1 / 2' }} preset="full" />
-      <PhotoTile src={b} onClick={() => onOpen(1)} style={{ gridRow: '1 / 2', gridColumn: '2 / 4' }} />
-      <PhotoTile src={c} onClick={() => onOpen(2)} style={{ gridRow: '2 / 3', gridColumn: '2 / 3' }} />
-      <PhotoTile src={d} onClick={() => onOpen(3)} style={{ gridRow: '2 / 3', gridColumn: '3 / 4' }} />
-      <PhotoTile src={e} onClick={() => onOpen(4)} style={{ gridRow: '1 / 3', gridColumn: '4 / 5' }} />
-      <PhotoTile src={photos[5]} onClick={() => onOpen(5)} style={{ gridRow: '3 / 4', gridColumn: '1 / 5' }} />
+      <PhotoTile src={a} onClick={() => onOpen(0)} style={{ gridRow: '1 / 3', gridColumn: '1 / 2' }} preset="full" isAiGenerated={isAi(aiSet, a)} />
+      <PhotoTile src={b} onClick={() => onOpen(1)} style={{ gridRow: '1 / 2', gridColumn: '2 / 4' }} isAiGenerated={isAi(aiSet, b)} />
+      <PhotoTile src={c} onClick={() => onOpen(2)} style={{ gridRow: '2 / 3', gridColumn: '2 / 3' }} isAiGenerated={isAi(aiSet, c)} />
+      <PhotoTile src={d} onClick={() => onOpen(3)} style={{ gridRow: '2 / 3', gridColumn: '3 / 4' }} isAiGenerated={isAi(aiSet, d)} />
+      <PhotoTile src={e} onClick={() => onOpen(4)} style={{ gridRow: '1 / 3', gridColumn: '4 / 5' }} isAiGenerated={isAi(aiSet, e)} />
+      <PhotoTile src={photos[5]} onClick={() => onOpen(5)} style={{ gridRow: '3 / 4', gridColumn: '1 / 5' }} isAiGenerated={isAi(aiSet, photos[5])} />
       {statusOverlay}
     </div>
   )
@@ -142,10 +187,11 @@ function GalleryMosaic({ photos, onOpen, statusOverlay }: GalleryLayoutProps) {
 
 // ─── Layout 3: Carousel (full-width single + arrows + thumbs) ───────────
 
-function GalleryCarousel({ photos, onOpen, statusOverlay }: GalleryLayoutProps) {
+function GalleryCarousel({ photos, onOpen, statusOverlay, aiSet }: GalleryLayoutProps) {
   const [idx, setIdx] = useState(0)
   const main = photos[idx]
   const optimizedMain = main ? optimizeImageUrl(main, IMAGE_PRESETS.full) : null
+  const mainIsAi = isAi(aiSet, main)
   return (
     <div>
       <div
@@ -157,6 +203,7 @@ function GalleryCarousel({ photos, onOpen, statusOverlay }: GalleryLayoutProps) 
           background: optimizedMain ? `url(${optimizedMain}) center/cover no-repeat` : '#0041D9',
         }}
       >
+        {mainIsAi && <AiBadge />}
         <button
           onClick={() => setIdx(p => (p - 1 + photos.length) % photos.length)}
           aria-label="Photo précédente"
@@ -323,9 +370,11 @@ export default function ListingHeroGallery({
   photoTags,
   variant = 'hero',
   status = 'available',
+  aiGeneratedPhotos,
 }: ListingHeroGalleryProps) {
   void _videoUrl
   void _title
+  const aiSet = aiGeneratedPhotos && aiGeneratedPhotos.length > 0 ? new Set(aiGeneratedPhotos) : undefined
 
   // Filter photos by active floor-plan room if set
   const filtered = (() => {
@@ -355,17 +404,17 @@ export default function ListingHeroGallery({
     <>
       <section className="hidden md:block">
         {variant === 'mosaic' && filtered.length >= 6 ? (
-          <GalleryMosaic photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} />
+          <GalleryMosaic photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} aiSet={aiSet} />
         ) : variant === 'carousel' ? (
-          <GalleryCarousel photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} />
+          <GalleryCarousel photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} aiSet={aiSet} />
         ) : (
-          <GalleryHero photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} />
+          <GalleryHero photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} aiSet={aiSet} />
         )}
       </section>
 
       {/* Mobile: same proto carousel layout (height 540 → adjusted for mobile) */}
       <section className="md:hidden">
-        <GalleryCarousel photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} />
+        <GalleryCarousel photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} aiSet={aiSet} />
       </section>
     </>
   )

@@ -1,12 +1,17 @@
 // supabase/functions/extract-property-url/index.ts
-// Fetches a property listing URL and extracts structured data using Claude API
+// Fetches a property listing URL and extracts structured data using Claude API.
+// Authenticated agents only — burns Anthropic credits per call.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// 8s ceiling on the upstream portal fetch so a slowloris URL can't pin a worker.
+const PORTAL_FETCH_TIMEOUT_MS = 8000
 
 const EXTRACTION_PROMPT = `Tu es un expert immobilier suisse. Analyse cette page web d'annonce immobilière et extrais TOUTES les informations du bien.
 
@@ -79,8 +84,13 @@ const ALLOWED_DOMAINS = [
 
 function isAllowedUrl(url: string): boolean {
   try {
-    const hostname = new URL(url).hostname.replace('www.', '')
-    return ALLOWED_DOMAINS.some(domain => hostname.endsWith(domain))
+    const parsed = new URL(url)
+    // Only http(s); blocks file://, javascript:, data:, gopher:, etc.
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '')
+    // Strict match: hostname === domain  OR  hostname ends with ".domain".
+    // Closes the `attacker-flatfox.ch` suffix-match SSRF.
+    return ALLOWED_DOMAINS.some(domain => hostname === domain || hostname.endsWith('.' + domain))
   } catch {
     return false
   }
@@ -92,6 +102,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAgentAuth(req, corsHeaders)
+    if (auth instanceof Response) return auth
+
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
       return new Response(
@@ -130,14 +143,47 @@ serve(async (req) => {
       )
     }
 
-    // Fetch the page HTML
-    const pageResponse = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8',
-      },
-    })
+    // Fetch the page HTML — with timeout + manual redirect handling so that a
+    // 302 to an internal-network URL can't bypass the allowlist.
+    const fetchController = new AbortController()
+    const fetchTimer = setTimeout(() => fetchController.abort(), PORTAL_FETCH_TIMEOUT_MS)
+    let pageResponse: Response
+    try {
+      pageResponse = await fetch(url, {
+        redirect: 'manual',
+        signal: fetchController.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8',
+        },
+      })
+    } finally {
+      clearTimeout(fetchTimer)
+    }
+
+    // If the portal redirects, re-validate the target against the allowlist.
+    if (pageResponse.status >= 300 && pageResponse.status < 400) {
+      const location = pageResponse.headers.get('location') || ''
+      const target = (() => {
+        try { return new URL(location, url).toString() } catch { return '' }
+      })()
+      if (!target || !isAllowedUrl(target)) {
+        return new Response(
+          JSON.stringify({ error: 'Redirection hors allowlist refusée' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      // One-hop follow only; same headers.
+      pageResponse = await fetch(target, {
+        redirect: 'manual',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8',
+        },
+      })
+    }
 
     if (!pageResponse.ok) {
       return new Response(

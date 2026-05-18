@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,7 +24,6 @@ interface RequestBody {
   mode: 'match-property' | 'match-contact' | 'scan-all'
   property_id?: string
   contact_id?: string
-  agency_id: string
   include_market?: boolean // Also match against market_listings
 }
 
@@ -33,15 +33,41 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    // ── Auth check — service_role bypass for pg_cron, else require agent JWT ──
+    // pg_cron and other trusted callers send the service_role JWT directly.
+    // For those callers we accept an `agency_id` in the body. For end-user
+    // callers we derive agency_id from the JWT to prevent cross-tenant writes.
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
+    const token = authHeader.toLowerCase().startsWith('bearer ')
+      ? authHeader.slice('bearer '.length).trim()
+      : ''
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    const isServiceRole = token !== '' && token === serviceRoleKey
 
-    const { mode, property_id, contact_id, agency_id, include_market = true } = (await req.json()) as RequestBody
+    const body = (await req.json()) as RequestBody & { agency_id?: string }
+    const { mode, property_id, contact_id, include_market = true } = body
 
-    if (!agency_id) {
-      throw new Error('agency_id is required')
+    let supabase: ReturnType<typeof createClient>
+    let agency_id: string
+
+    if (isServiceRole) {
+      supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        serviceRoleKey,
+      )
+      if (!body.agency_id) {
+        return new Response(
+          JSON.stringify({ error: 'agency_id required for service-role calls' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+      agency_id = body.agency_id
+    } else {
+      const auth = await requireAgentAuth(req, corsHeaders)
+      if (auth instanceof Response) return auth
+      supabase = auth.supabase
+      // Trust the JWT-derived agency_id; ignore any `agency_id` in the body.
+      agency_id = auth.profile.agency_id
     }
 
     let newMatches = 0
