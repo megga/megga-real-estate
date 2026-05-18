@@ -112,6 +112,8 @@ const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
 const KycListSugarV2Page = lazy(() => import('@/pages/agent/KycListSugarV2Page'))
 const KycDetailSugarV2Page = lazy(() => import('@/pages/agent/KycDetailSugarV2Page'))
 const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
+// Sprint 4.4 — Export PDF dossier KYC (route print-friendly, hors layout agent)
+const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
 const ReseauSugarV2Page = lazy(() => import('@/pages/agent/ReseauSugarV2Page'))
@@ -373,6 +375,16 @@ function AnimatedRoutes() {
                 element={
                   <ProtectedRoute skipOnboardingCheck>
                     <OnboardingWizardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Sprint 4.4 — Export PDF dossier KYC (protected, no layout — print-friendly) */}
+              <Route
+                path="/dashboard/kyc/:dossierId/export"
+                element={
+                  <ProtectedRoute>
+                    <KycExportPage />
                   </ProtectedRoute>
                 }
               />
