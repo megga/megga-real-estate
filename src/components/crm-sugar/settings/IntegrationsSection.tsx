@@ -3,10 +3,22 @@
 // Note : DocuSignAuthFlow + SkribbleAuthFlow du proto (~750l combinés) sont remplacés
 // par un loading modal générique — l'auth flow custom de chaque provider sera porté dans
 // une PR future si nécessaire (le UX est équivalent pour le démo : connexion → toast).
+//
+// Branchement Supabase (Sprint 4) :
+// - Google Calendar + Outlook Calendar sont câblés sur useGoogleCalendar / useOutlookCalendar
+//   (vraies tables google_calendar_tokens / outlook_calendar_tokens + OAuth Supabase).
+// - Gmail / Outlook Mail : services affichés dans le panneau détails avec badge "Bientôt"
+//   car les Edge Functions / tables email n'existent pas encore (chantier séparé).
+// - Autres providers (DocuSign, Skribble, IAZI, etc.) restent en mock local.
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { SectionHeader, SetGhostBtn, SetIcon, Toast } from './atoms'
 import { SET_PALETTE } from './data'
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
+import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
+import { useGmail } from '@/hooks/useGmail'
+import { useOutlookMail } from '@/hooks/useOutlookMail'
 
 const SET = SET_PALETTE
 
@@ -1174,11 +1186,89 @@ function ProviderLoadingStub({ item, onCancel, onComplete }: OAuthFlowProps) {
   )
 }
 
+// ── Helpers branchement Supabase ─────────────────────────────────────────
+function formatConnectedSince(iso: string | null | undefined): string {
+  if (!iso) return "À l'instant"
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return "À l'instant"
+  const months = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+  ]
+  return `${months[date.getMonth()]} ${date.getFullYear()}`
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 //  SECTION — INTÉGRATIONS
 // ═══════════════════════════════════════════════════════════════════════
 export function IntegrationsSection() {
-  const [items, setItems] = useState<Integration[]>(INITIAL_INTEGRATIONS)
+  const google = useGoogleCalendar()
+  const outlook = useOutlookCalendar()
+  const gmail = useGmail()
+  const outlookMail = useOutlookMail()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Autres providers : state local (mock — DocuSign, Skribble, IAZI, etc.)
+  // Google + Microsoft : sourcés depuis hooks Supabase (vraies tables tokens).
+  const [otherItems, setOtherItems] = useState<Integration[]>(() =>
+    INITIAL_INTEGRATIONS.filter(i => i.id !== 'google' && i.id !== 'microsoft'),
+  )
+
+  const items = useMemo<Integration[]>(() => {
+    const googleTemplate = INITIAL_INTEGRATIONS.find(i => i.id === 'google')!
+    const microsoftTemplate = INITIAL_INTEGRATIONS.find(i => i.id === 'microsoft')!
+
+    // Le provider est "connecté" dès qu'AU MOINS un de ses services l'est.
+    // L'email affiché = celui du premier service actif (priorité calendar > mail).
+    const googleConnected = google.isConnected || gmail.isConnected
+    const googleAccount = google.googleEmail ?? gmail.gmailEmail ?? 'Compte Google connecté'
+    const googleSince = google.lastSyncAt ?? gmail.lastSyncAt
+
+    const googleItem: Integration = {
+      ...googleTemplate,
+      connected: googleConnected,
+      account: googleConnected ? googleAccount : undefined,
+      connectedSince: googleConnected ? formatConnectedSince(googleSince) : undefined,
+      services: {
+        calendar: google.isConnected,
+        gmail: gmail.isConnected,
+        contacts: false,
+      },
+    }
+
+    const msConnected = outlook.isConnected || outlookMail.isConnected
+    const msAccount = outlook.outlookEmail ?? outlookMail.outlookEmail ?? 'Compte Microsoft connecté'
+    const msSince = outlook.lastSyncAt ?? outlookMail.lastSyncAt
+
+    const microsoftItem: Integration = {
+      ...microsoftTemplate,
+      connected: msConnected,
+      account: msConnected ? msAccount : undefined,
+      connectedSince: msConnected ? formatConnectedSince(msSince) : undefined,
+      services: {
+        calendar: outlook.isConnected,
+        mail: outlookMail.isConnected,
+        contacts: false,
+      },
+    }
+
+    return [googleItem, microsoftItem, ...otherItems]
+  }, [
+    google.isConnected,
+    google.googleEmail,
+    google.lastSyncAt,
+    gmail.isConnected,
+    gmail.gmailEmail,
+    gmail.lastSyncAt,
+    outlook.isConnected,
+    outlook.outlookEmail,
+    outlook.lastSyncAt,
+    outlookMail.isConnected,
+    outlookMail.outlookEmail,
+    outlookMail.lastSyncAt,
+    otherItems,
+  ])
+
   const [filter, setFilter] = useState<string>('all')
   const [details, setDetails] = useState<Integration | null>(null)
   const [confirmDisc, setConfirmDisc] = useState<Integration | null>(null)
@@ -1186,25 +1276,70 @@ export function IntegrationsSection() {
   const [connecting, setConnecting] = useState<string | null>(null)
   const [oauthFor, setOauthFor] = useState<Integration | null>(null)
 
+  // Re-sync le panneau "détails" quand l'état des hooks change (post-OAuth callback)
+  useEffect(() => {
+    if (!details) return
+    if (details.id === 'google' || details.id === 'microsoft') {
+      const fresh = items.find(i => i.id === details.id)
+      if (fresh && (fresh.connected !== details.connected || fresh.account !== details.account)) {
+        setDetails(fresh)
+      }
+    }
+  }, [items, details])
+
+  // Toast post-OAuth callback
+  useEffect(() => {
+    const result = searchParams.get('integrations')
+    if (!result) return
+    const labels: Record<string, string> = {
+      gcal_success: 'Google Calendar connecté avec succès',
+      outlook_success: 'Outlook Calendar connecté avec succès',
+      gmail_success: 'Gmail connecté avec succès',
+      outlookmail_success: 'Outlook Mail connecté avec succès',
+    }
+    if (labels[result]) {
+      setToast(labels[result])
+    }
+    // Nettoie le param de l'URL pour ne pas re-trigger au refresh
+    const next = new URLSearchParams(searchParams)
+    next.delete('integrations')
+    setSearchParams(next, { replace: true })
+    const timeout = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(timeout)
+  }, [searchParams, setSearchParams])
+
   const categories = ['all', ...Array.from(new Set(items.map(i => i.category)))]
   const visible = filter === 'all' ? items : items.filter(i => i.category === filter)
   const connected = items.filter(i => i.connected)
 
   const fakeConnect = (id: string) => {
     const item = items.find(i => i.id === id)
-    if (
-      item &&
-      (item.provider === 'google' ||
-        item.provider === 'microsoft' ||
-        item.provider === 'docusign' ||
-        item.provider === 'skribble')
-    ) {
+    if (!item) return
+
+    // Google / Microsoft : vrai OAuth Supabase (redirige vers Google/Microsoft).
+    // Après consent + callback, /auth/callback?gcal=1 ou ?outlook=1 sauve les tokens
+    // et l'UI se met à jour automatiquement via React Query invalidation.
+    if (item.provider === 'google') {
+      setToast('Redirection vers Google…')
+      google.connectGoogleCalendar()
+      return
+    }
+    if (item.provider === 'microsoft') {
+      setToast('Redirection vers Microsoft…')
+      outlook.connectOutlookCalendar()
+      return
+    }
+
+    // DocuSign / Skribble : stub OAuth modal (backend pas encore implémenté)
+    if (item.provider === 'docusign' || item.provider === 'skribble') {
       setOauthFor(item)
       return
     }
+
+    // Autres providers : mock local
     setConnecting(id)
     setTimeout(() => {
-      setItems(arr =>
+      setOtherItems(arr =>
         arr.map(it =>
           it.id === id
             ? {
@@ -1223,20 +1358,10 @@ export function IntegrationsSection() {
   }
 
   const completeOAuth = (item: Integration, account: string, scopes: string[]) => {
+    // Cette fonction n'est plus utilisée pour Google/Microsoft (vrai OAuth Supabase).
+    // Reste pour DocuSign/Skribble — stubs mock-only.
     let services: IntegrationServices
-    if (item.provider === 'google') {
-      services = {
-        calendar: scopes.includes('calendar'),
-        gmail: scopes.includes('gmail'),
-        contacts: scopes.includes('contacts'),
-      }
-    } else if (item.provider === 'microsoft') {
-      services = {
-        calendar: scopes.includes('calendar'),
-        mail: scopes.includes('mail'),
-        contacts: scopes.includes('contacts'),
-      }
-    } else if (item.provider === 'skribble') {
+    if (item.provider === 'skribble') {
       services = {
         sign: scopes.includes('sign'),
         attach: scopes.includes('attach'),
@@ -1250,12 +1375,10 @@ export function IntegrationsSection() {
       }
     }
     const accountLabel =
-      item.provider === 'docusign'
+      item.provider === 'docusign' || item.provider === 'skribble'
         ? `${account} · Plan Business`
-        : item.provider === 'skribble'
-          ? `${account} · Plan Business`
-          : account
-    setItems(arr =>
+        : account
+    setOtherItems(arr =>
       arr.map(it =>
         it.id === item.id
           ? { ...it, connected: true, account: accountLabel, connectedSince: "À l'instant", services }
@@ -1267,19 +1390,44 @@ export function IntegrationsSection() {
     setTimeout(() => setToast(null), 2400)
   }
 
-  const updateServices = (id: string, services: IntegrationServices) => {
-    setItems(arr => arr.map(it => (it.id === id ? { ...it, services } : it)))
-  }
+  const disconnect = async (id: string) => {
+    setConfirmDisc(null)
 
-  const disconnect = (id: string) => {
-    setItems(arr =>
+    // Google / Microsoft : déconnexion en cascade de tous les services du provider
+    // (calendar + mail). Chaque appel révoque chez l'éditeur + purge les tokens DB.
+    if (id === 'google') {
+      const results: string[] = []
+      if (google.isConnected) {
+        try { await google.disconnectGoogleCalendar(); results.push('Calendar') } catch {}
+      }
+      if (gmail.isConnected) {
+        try { await gmail.disconnectGmail(); results.push('Gmail') } catch {}
+      }
+      setToast(results.length ? `Google déconnecté (${results.join(', ')})` : 'Erreur de déconnexion')
+      setTimeout(() => setToast(null), 2400)
+      return
+    }
+    if (id === 'microsoft') {
+      const results: string[] = []
+      if (outlook.isConnected) {
+        try { await outlook.disconnectOutlookCalendar(); results.push('Calendar') } catch {}
+      }
+      if (outlookMail.isConnected) {
+        try { await outlookMail.disconnectOutlookMail(); results.push('Mail') } catch {}
+      }
+      setToast(results.length ? `Microsoft déconnecté (${results.join(', ')})` : 'Erreur de déconnexion')
+      setTimeout(() => setToast(null), 2400)
+      return
+    }
+
+    // Autres providers : state local
+    setOtherItems(arr =>
       arr.map(it =>
         it.id === id
           ? { ...it, connected: false, account: undefined, connectedSince: undefined }
           : it,
       ),
     )
-    setConfirmDisc(null)
     setToast('Intégration déconnectée')
     setTimeout(() => setToast(null), 2400)
   }
@@ -1638,6 +1786,37 @@ export function IntegrationsSection() {
                       details.services &&
                       details.services[s.key as keyof IntegrationServices]
                     )
+                    // calendar, gmail, mail : branchés côté backend.
+                    // contacts : Edge Functions People API / Graph Contacts non implémentées.
+                    const comingSoon = s.key === 'contacts'
+
+                    const handleToggle = async () => {
+                      if (comingSoon) return
+                      const isGoogle = details.provider === 'google'
+                      // Service activé → on déclenche disconnect
+                      if (on) {
+                        if (s.key === 'calendar') {
+                          isGoogle ? await google.disconnectGoogleCalendar() : await outlook.disconnectOutlookCalendar()
+                        } else if (s.key === 'gmail') {
+                          await gmail.disconnectGmail()
+                        } else if (s.key === 'mail') {
+                          await outlookMail.disconnectOutlookMail()
+                        }
+                        setToast(`${s.label} déconnecté`)
+                      } else {
+                        // Service inactif → on lance le flow OAuth correspondant
+                        if (s.key === 'calendar') {
+                          isGoogle ? google.connectGoogleCalendar() : outlook.connectOutlookCalendar()
+                        } else if (s.key === 'gmail') {
+                          gmail.connectGmail()
+                        } else if (s.key === 'mail') {
+                          outlookMail.connectOutlookMail()
+                        }
+                        setToast(`Redirection vers ${isGoogle ? 'Google' : 'Microsoft'}…`)
+                      }
+                      setTimeout(() => setToast(null), 2400)
+                    }
+
                     return (
                       <div
                         key={s.key}
@@ -1648,13 +1827,40 @@ export function IntegrationsSection() {
                           padding: '12px 14px',
                           borderBottom:
                             i < arr.length - 1 ? `1px solid ${SET.line}` : 'none',
+                          opacity: comingSoon ? 0.6 : 1,
                         }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div
-                            style={{ fontSize: 13.5, color: SET.ink, fontWeight: 600 }}
+                            style={{
+                              fontSize: 13.5,
+                              color: SET.ink,
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                            }}
                           >
                             {s.label}
+                            {comingSoon && (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  height: 18,
+                                  padding: '0 8px',
+                                  borderRadius: 999,
+                                  background: SET.cardSubtle,
+                                  color: SET.muted,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  letterSpacing: 0.3,
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                Bientôt
+                              </span>
+                            )}
                           </div>
                           <div
                             style={{
@@ -1668,14 +1874,8 @@ export function IntegrationsSection() {
                           </div>
                         </div>
                         <button
-                          onClick={() => {
-                            const next = {
-                              ...details.services,
-                              [s.key]: !on,
-                            }
-                            updateServices(details.id, next)
-                            setDetails({ ...details, services: next })
-                          }}
+                          disabled={comingSoon}
+                          onClick={handleToggle}
                           style={{
                             width: 38,
                             height: 22,
@@ -1683,7 +1883,7 @@ export function IntegrationsSection() {
                             border: 0,
                             background: on ? SET.black : '#D1D5DB',
                             position: 'relative',
-                            cursor: 'pointer',
+                            cursor: comingSoon ? 'not-allowed' : 'pointer',
                             transition: 'background .2s',
                             flexShrink: 0,
                           }}

@@ -36,7 +36,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/app/settings?tab=applications&gcal=success', { replace: true })
+        navigate('/dashboard/settings?integrations=gcal_success', { replace: true })
         return
       }
 
@@ -58,7 +58,51 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/app/settings?tab=applications&outlook=success', { replace: true })
+        navigate('/dashboard/settings?integrations=outlook_success', { replace: true })
+        return
+      }
+
+      // ── Gmail OAuth callback ──
+      if (params.get('gmail') === '1') {
+        const { data: { session: gmailSession } } = await supabase.auth.getSession()
+        if (gmailSession?.provider_token && gmailSession?.provider_refresh_token) {
+          try {
+            await supabase.functions.invoke('gmail-sync', {
+              body: {
+                action: 'save_tokens',
+                access_token: gmailSession.provider_token,
+                refresh_token: gmailSession.provider_refresh_token,
+                expires_in: 3600,
+                gmail_email: user.user_metadata?.email ?? null,
+              },
+            })
+          } catch {
+            // Token save failed — user can retry from Settings
+          }
+        }
+        navigate('/dashboard/settings?integrations=gmail_success', { replace: true })
+        return
+      }
+
+      // ── Outlook Mail OAuth callback ──
+      if (params.get('outlookmail') === '1') {
+        const { data: { session: outlookMailSession } } = await supabase.auth.getSession()
+        if (outlookMailSession?.provider_token && outlookMailSession?.provider_refresh_token) {
+          try {
+            await supabase.functions.invoke('outlook-mail-sync', {
+              body: {
+                action: 'save_tokens',
+                access_token: outlookMailSession.provider_token,
+                refresh_token: outlookMailSession.provider_refresh_token,
+                expires_in: 3600,
+                outlook_email: user.user_metadata?.email ?? null,
+              },
+            })
+          } catch {
+            // Token save failed — user can retry from Settings
+          }
+        }
+        navigate('/dashboard/settings?integrations=outlookmail_success', { replace: true })
         return
       }
 

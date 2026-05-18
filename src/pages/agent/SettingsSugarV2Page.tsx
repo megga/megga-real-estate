@@ -3,7 +3,7 @@
 // Bandeau pill par défaut. 9 sections placeholder, Profile en plein.
 
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
@@ -30,6 +30,7 @@ const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function SettingsSugarV2Page() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -50,6 +51,14 @@ export default function SettingsSugarV2Page() {
   const [active, setActive] = useState<SectionId>('profile')
   const activeSection =
     SETTINGS_SECTIONS.find(s => s.id === active) || SETTINGS_SECTIONS[0]
+
+  // Deep-link depuis le callback OAuth (?integrations=gcal_success|outlook_success)
+  // ouvre directement l'onglet Intégrations.
+  useEffect(() => {
+    if (searchParams.get('integrations')) {
+      setActive('integrations')
+    }
+  }, [searchParams])
 
   const onCmd = () => {
     /* placeholder */

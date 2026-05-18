@@ -16,6 +16,8 @@ import { SgIcon } from '@/components/crm-sugar-v3/icons'
 import { useAgencyProperties } from '@/hooks/useProperties'
 import { useContacts } from '@/hooks/useContacts'
 import { useCreateAgentVisit } from '@/hooks/useVisitDetail'
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
+import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 
 const STEPS = ['Bien & visiteur', 'Date & heure', 'Confirmation'] as const
 
@@ -107,6 +109,16 @@ export default function VisitModalSugarV3Page() {
     isPending: isSaving,
     error: saveError,
   } = useCreateAgentVisit()
+  // Auto-sync vers les calendriers connectés après création de la visite.
+  // Le hook n'expose pas de range ici (pas besoin d'events pour ce flow).
+  const {
+    isConnected: gcalConnected,
+    syncVisitToGoogle,
+  } = useGoogleCalendar()
+  const {
+    isConnected: ocalConnected,
+    syncVisitToOutlook,
+  } = useOutlookCalendar()
 
   const activeBiens = useMemo(
     () => (allBiens ?? []).filter((b) => b.status === 'active'),
@@ -176,6 +188,15 @@ export default function VisitModalSugarV3Page() {
       },
       {
         onSuccess: (newVisit) => {
+          // Push silencieux vers les calendriers connectés (best effort).
+          // Échec non bloquant : le user voit la visite créée même si Google
+          // est down, puis peut re-synchroniser manuellement depuis la fiche.
+          if (gcalConnected && newVisit?.id) {
+            syncVisitToGoogle(newVisit.id).catch(() => {})
+          }
+          if (ocalConnected && newVisit?.id) {
+            syncVisitToOutlook(newVisit.id).catch(() => {})
+          }
           navigate(`/dashboard/visites/${newVisit.id}`)
         },
       },

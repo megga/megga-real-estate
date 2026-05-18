@@ -18,6 +18,9 @@ export const CAL_EVENT_TYPES: Record<string, CalEventType> = {
   notary: { id: 'notary', label: 'Signature notaire', short: 'N', bg: '#E5D9E0', ink: '#4F3C48', accent: '#7A5C70', icon: 'stamp' },
   task: { id: 'task', label: 'Tâche / Relance', short: 'T', bg: '#DCE0E8', ink: '#3F4554', accent: '#5F6A82', icon: 'check' },
   publish: { id: 'publish', label: 'Publication', short: 'P', bg: '#0B0C0E', ink: '#FFFFFF', accent: '#FFFFFF', icon: 'upload', dark: true },
+  // Événements externes — synchronisés en lecture seule depuis Google/Outlook.
+  gcal: { id: 'gcal', label: 'Google Calendar', short: 'G', bg: '#E2DCEC', ink: '#4A4170', accent: '#6B5BA2', icon: 'check' },
+  ocal: { id: 'ocal', label: 'Outlook Calendar', short: 'O', bg: '#D9E2EE', ink: '#33476E', accent: '#4E6BA6', icon: 'check' },
 }
 
 export type CalEventTypeId = keyof typeof CAL_EVENT_TYPES

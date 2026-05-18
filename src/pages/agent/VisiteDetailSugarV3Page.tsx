@@ -9,6 +9,7 @@
 // Sync Realtime : tout update push du mobile arrive ici via useVisitRealtime.
 // Route : /dashboard/visites/:id
 
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
@@ -29,6 +30,8 @@ import {
   useVisitRealtime,
   useSignVisitBon,
 } from '@/hooks/useVisitDetail'
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
+import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 
 function vdDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-CH', {
@@ -45,6 +48,53 @@ export default function VisiteDetailSugarV3Page() {
   const { data: visit, isLoading, isError, error } = useVisitDetail(id)
   const { mutate: signBon } = useSignVisitBon()
   useVisitRealtime(id)
+
+  // Sync calendrier — update si déjà synchronisé, crée sinon (les Edge Functions
+  // `google-calendar-sync` et `outlook-calendar-sync` gèrent les deux cas).
+  const {
+    isConnected: gcalConnected,
+    updateVisitInGoogle,
+  } = useGoogleCalendar()
+  const {
+    isConnected: ocalConnected,
+    updateVisitInOutlook,
+  } = useOutlookCalendar()
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const calendarsConnected = gcalConnected || ocalConnected
+
+  const handleSync = async () => {
+    if (!visit?.id || !calendarsConnected) return
+    setSyncing(true)
+    setSyncMsg(null)
+    const okResults: string[] = []
+    const failResults: string[] = []
+    if (gcalConnected) {
+      try {
+        await updateVisitInGoogle(visit.id)
+        okResults.push('Google')
+      } catch {
+        failResults.push('Google')
+      }
+    }
+    if (ocalConnected) {
+      try {
+        await updateVisitInOutlook(visit.id)
+        okResults.push('Outlook')
+      } catch {
+        failResults.push('Outlook')
+      }
+    }
+    setSyncing(false)
+    if (okResults.length > 0 && failResults.length === 0) {
+      setSyncMsg(`Synchronisé avec ${okResults.join(' + ')}`)
+    } else if (okResults.length > 0) {
+      setSyncMsg(`OK : ${okResults.join('+')} · Échec : ${failResults.join('+')}`)
+    } else {
+      setSyncMsg('Erreur de synchronisation')
+    }
+    setTimeout(() => setSyncMsg(null), 3500)
+  }
 
   if (isLoading) {
     return (
@@ -113,6 +163,10 @@ export default function VisiteDetailSugarV3Page() {
       <style>{SUGAR_V3_KEYFRAMES}</style>
       <style>{`
         @keyframes vdPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes vdToastIn {
+          from { opacity: 0; transform: translate(-50%, 8px); }
+          to   { opacity: 1; transform: translate(-50%, 0); }
+        }
       `}</style>
 
       <main style={{ padding: '28px 40px 80px', minWidth: 0 }}>
@@ -144,6 +198,28 @@ export default function VisiteDetailSugarV3Page() {
             {visit.id.slice(0, 8).toUpperCase()}
           </span>
           <div style={{ flex: 1 }} />
+          {calendarsConnected && (
+            <SgCircleBtn
+              icon={
+                <SgIcon
+                  name={syncing ? 'refresh' : 'cal'}
+                  size={17}
+                  stroke={SugarV3.inkSoft}
+                />
+              }
+              title={
+                syncing
+                  ? 'Synchronisation en cours…'
+                  : `Synchroniser avec ${[
+                      gcalConnected && 'Google',
+                      ocalConnected && 'Outlook',
+                    ]
+                      .filter(Boolean)
+                      .join(' + ')}`
+              }
+              onClick={handleSync}
+            />
+          )}
           <SgCircleBtn
             icon={<SgIcon name="pencil" size={17} stroke={SugarV3.inkSoft} />}
             title="Modifier"
@@ -281,6 +357,33 @@ export default function VisiteDetailSugarV3Page() {
           <VdMobileCompanion visit={visit} framed={true} />
         </div>
       </main>
+
+      {/* Toast sync calendrier */}
+      {syncMsg && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 32,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: SugarV3.ink,
+            color: '#fff',
+            padding: '12px 22px',
+            borderRadius: 999,
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: '0 8px 24px rgba(11,12,14,0.30)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            animation: 'vdToastIn .25s cubic-bezier(.2,.8,.2,1) both',
+          }}
+        >
+          <SgIcon name="check" size={14} stroke="#fff" sw={2.4} />
+          {syncMsg}
+        </div>
+      )}
     </div>
   )
 }

@@ -26,8 +26,25 @@ import {
   CAL_MONTHS, fmtDate, fmtTime, sameDay,
 } from '@/components/crm-sugar/calendar/helpers'
 import { useCalendarSugar } from '@/hooks/useCalendarSugar'
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
+import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
+import type { CalEvent } from '@/components/crm-sugar/calendar/data'
+import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 const DARK_TONE: DarkTone = 'meggaAi'
+
+// Convertit un event Google/Outlook (CalendarEvent v1) vers CalEvent (Sugar v2)
+function externalEventToCalEvent(e: CalendarEvent, kind: 'gcal' | 'ocal'): CalEvent {
+  return {
+    id: e.id, // "gcal_xxx" ou "ocal_xxx" — pas de collision avec les UUIDs MEGGA
+    type: kind,
+    title: e.title,
+    location: e.location,
+    start: e.start,
+    end: e.end,
+    notes: e.description,
+  }
+}
 
 export default function CalendarSugarV2Page() {
   const navigate = useNavigate()
@@ -51,12 +68,45 @@ export default function CalendarSugarV2Page() {
 
   // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
   // HOT_BUYERS et AI_INSIGHTS restent câblés sur le mock pour cette PR.
-  const { events, hotBuyers } = useCalendarSugar()
+  const { events: meggaEvents, hotBuyers } = useCalendarSugar()
 
   const [view, setView] = useState<CalViewId>('day')
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filters, setFilters] = useState<Record<string, boolean>>({})
+
+  // Fenêtre de fetch pour Google/Outlook (±60j autour de la date courante,
+  // aligné sur useCalendarSugar pour cohérence)
+  const calRange = useMemo(() => {
+    const start = new Date(currentDate)
+    start.setDate(start.getDate() - 60)
+    const end = new Date(currentDate)
+    end.setDate(end.getDate() + 60)
+    return { start, end }
+  }, [currentDate])
+
+  const {
+    isConnected: gcalConnected,
+    googleEvents,
+  } = useGoogleCalendar(calRange)
+  const {
+    isConnected: ocalConnected,
+    outlookEvents,
+  } = useOutlookCalendar(calRange)
+
+  // Merge MEGGA events + Google + Outlook (en évitant les duplicats : les
+  // visites synchronisées MEGGA->Google portent un visit_id en metadata Google
+  // mais leur id reste "gcal_xxx" donc pas de collision avec les UUIDs MEGGA)
+  const events = useMemo<CalEvent[]>(() => {
+    const merged = [...meggaEvents]
+    if (googleEvents.length > 0) {
+      merged.push(...googleEvents.map(e => externalEventToCalEvent(e, 'gcal')))
+    }
+    if (outlookEvents.length > 0) {
+      merged.push(...outlookEvents.map(e => externalEventToCalEvent(e, 'ocal')))
+    }
+    return merged.sort((a, b) => a.start.getTime() - b.start.getTime())
+  }, [meggaEvents, googleEvents, outlookEvents])
 
   const filtered = useMemo(
     () => events.filter(e => filters[e.type] !== false),
@@ -323,7 +373,45 @@ export default function CalendarSugarV2Page() {
               <CalViewToggle value={view} onChange={setView} />
             </div>
 
+            {/* Status calendriers externes */}
+            {(gcalConnected || ocalConnected) && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 12px',
+                  borderRadius: 999,
+                  background: SP.cardSubtle,
+                  flexShrink: 0,
+                }}
+                title="Calendriers synchronisés en lecture seule"
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    background: '#10B981',
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: SP.ink,
+                    letterSpacing: 0.1,
+                  }}
+                >
+                  {[gcalConnected && 'Google', ocalConnected && 'Outlook']
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </div>
+            )}
+
             <button
+              onClick={() => navigate('/dashboard/visites/nouveau')}
               style={{
                 height: 38,
                 padding: '0 16px',
