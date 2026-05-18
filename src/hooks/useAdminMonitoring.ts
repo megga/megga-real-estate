@@ -44,43 +44,36 @@ const EDGE_FUNCTION_NAMES = [
 ]
 
 export function useAdminMonitoring() {
+  // RPC unique (migration 20260518_004) — remplace 6 queries parallèles
+  // (4 count:'exact' sur activity_events + 2 SELECT metric_value sur
+  // platform_metrics). Voir red-team CLAUDE.md §7.
   const health = useQuery({
     queryKey: ['admin-monitoring-health'],
     queryFn: async (): Promise<PlatformHealth> => {
-      const now = new Date()
-      const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-
-      // Parallel queries — all from activity_events + platform_metrics
-      const [errors, emails, lastScraping, apiRequests, dbMetric, storageMetric] = await Promise.all([
-        supabase.from('activity_events').select('id', { count: 'exact', head: true })
-          .eq('action', 'edge_function_error').gte('created_at', dayAgo),
-        supabase.from('activity_events').select('id', { count: 'exact', head: true })
-          .eq('action', 'email_sent').gte('created_at', todayStart),
-        supabase.from('activity_events').select('created_at')
-          .eq('action', 'scraping_completed').order('created_at', { ascending: false }).limit(1),
-        supabase.from('activity_events').select('id', { count: 'exact', head: true })
-          .gte('created_at', todayStart),
-        supabase.from('platform_metrics').select('metric_value')
-          .eq('metric_type', 'db_size_mb').order('recorded_at', { ascending: false }).limit(1),
-        supabase.from('platform_metrics').select('metric_value')
-          .eq('metric_type', 'storage_used_mb').order('recorded_at', { ascending: false }).limit(1),
-      ])
-
+      const { data, error } = await supabase.rpc('get_admin_monitoring_health')
+      if (error) throw error
+      const row = ((data as Array<{
+        errors_last_24h: number
+        emails_sent_today: number
+        api_requests_today: number
+        last_scraping_at: string | null
+        db_size_mb: number
+        storage_used_mb: number
+      }> | null) ?? [])[0]
       return {
-        dbSizeMb: dbMetric.data?.[0]?.metric_value ?? 160,
+        dbSizeMb: Number(row?.db_size_mb ?? 160),
         dbLimitMb: 8000, // Pro plan = 8 GB
         totalEdgeFunctions: EDGE_FUNCTION_NAMES.length,
-        errorsLast24h: errors.count ?? 0,
-        emailsSentToday: emails.count ?? 0,
-        lastScrapingRun: lastScraping.data?.[0]?.created_at ?? null,
-        apiRequestsToday: apiRequests.count ?? 0,
+        errorsLast24h: Number(row?.errors_last_24h ?? 0),
+        emailsSentToday: Number(row?.emails_sent_today ?? 0),
+        lastScrapingRun: row?.last_scraping_at ?? null,
+        apiRequestsToday: Number(row?.api_requests_today ?? 0),
         realtimeConnections: 0, // Updated via Edge Function
-        storageUsedMb: storageMetric.data?.[0]?.metric_value ?? 0,
+        storageUsedMb: Number(row?.storage_used_mb ?? 0),
         storageLimitMb: 100000, // Pro = 100 GB
       }
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   })
 
   // Edge Function statuses — per-function error/invocation counts

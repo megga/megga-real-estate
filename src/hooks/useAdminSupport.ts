@@ -96,24 +96,27 @@ export function useAdminSupport() {
     staleTime: 30_000,
   })
 
+  // RPC unique (migration 20260518_004) — remplace 4 count:'exact' parallèles
+  // sur support_tickets (red-team CLAUDE.md §7).
   const stats = useQuery({
     queryKey: ['admin-support-stats'],
     queryFn: async (): Promise<SupportStats> => {
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-      const [open, newTickets, resolved, breached] = await Promise.all([
-        supabase.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
-        supabase.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'new'),
-        supabase.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'resolved').gte('updated_at', weekAgo),
-        supabase.from('support_tickets').select('id', { count: 'exact', head: true }).eq('sla_breached', true).in('status', ['new', 'open', 'pending']),
-      ])
+      const { data, error } = await supabase.rpc('get_admin_support_stats')
+      if (error) throw error
+      const row = ((data as Array<{
+        open_count: number
+        new_count: number
+        resolved_this_week: number
+        sla_breached_open: number
+      }> | null) ?? [])[0]
       return {
-        openCount: open.count ?? 0,
-        newCount: newTickets.count ?? 0,
-        resolvedThisWeek: resolved.count ?? 0,
-        slaBreach: breached.count ?? 0,
+        openCount: Number(row?.open_count ?? 0),
+        newCount: Number(row?.new_count ?? 0),
+        resolvedThisWeek: Number(row?.resolved_this_week ?? 0),
+        slaBreach: Number(row?.sla_breached_open ?? 0),
       }
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   })
 
   const updateStatus = useMutation({

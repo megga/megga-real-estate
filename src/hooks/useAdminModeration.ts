@@ -53,22 +53,25 @@ export function useAdminModeration() {
     staleTime: 30_000,
   })
 
+  // RPC unique (migration 20260518_004) — remplace 3 count:'exact' parallèles
+  // sur properties + moderation_actions (red-team CLAUDE.md §7).
   const stats = useQuery({
     queryKey: ['admin-moderation-stats'],
     queryFn: async (): Promise<ModerationStats> => {
-      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-      const [published, flagged, removed] = await Promise.all([
-        supabase.from('properties').select('id', { count: 'exact', head: true }).eq('moderation_status', 'published'),
-        supabase.from('moderation_actions').select('id', { count: 'exact', head: true }).eq('action', 'flag').gte('created_at', monthStart),
-        supabase.from('moderation_actions').select('id', { count: 'exact', head: true }).eq('action', 'remove').gte('created_at', monthStart),
-      ])
+      const { data, error } = await supabase.rpc('get_admin_moderation_stats')
+      if (error) throw error
+      const row = ((data as Array<{
+        published_count: number
+        flags_this_month: number
+        removes_this_month: number
+      }> | null) ?? [])[0]
       return {
-        totalPublished: published.count ?? 0,
-        flaggedThisMonth: flagged.count ?? 0,
-        removedThisMonth: removed.count ?? 0,
+        totalPublished: Number(row?.published_count ?? 0),
+        flaggedThisMonth: Number(row?.flags_this_month ?? 0),
+        removedThisMonth: Number(row?.removes_this_month ?? 0),
       }
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   })
 
   const moderate = useMutation({

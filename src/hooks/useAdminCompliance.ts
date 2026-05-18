@@ -70,30 +70,27 @@ export function useAdminCompliance() {
     staleTime: 30_000,
   })
 
+  // RPC unique (migration 20260518_004) — remplace 4 queries parallèles
+  // (3 count:'exact' + 1 SELECT AVG) sur kyc_cases (red-team CLAUDE.md §7).
   const stats = useQuery({
     queryKey: ['admin-compliance-stats'],
     queryFn: async (): Promise<ComplianceStats> => {
-      const [total, pending, pep] = await Promise.all([
-        supabase.from('kyc_cases').select('id', { count: 'exact', head: true }),
-        supabase.from('kyc_cases').select('id', { count: 'exact', head: true }).in('status', ['pending', 'in_progress']),
-        supabase.from('kyc_cases').select('id', { count: 'exact', head: true }).eq('screening_status', 'match'),
-      ])
-
-      const { data: completionData } = await supabase
-        .from('kyc_cases')
-        .select('completion_pct')
-      const avgCompletion = completionData && completionData.length > 0
-        ? Math.round(completionData.reduce((sum, c) => sum + (c.completion_pct ?? 0), 0) / completionData.length)
-        : 0
-
+      const { data, error } = await supabase.rpc('get_admin_compliance_stats')
+      if (error) throw error
+      const row = ((data as Array<{
+        total: number
+        pending: number
+        screening_match: number
+        avg_completion: number
+      }> | null) ?? [])[0]
       return {
-        total: total.count ?? 0,
-        pending: pending.count ?? 0,
-        pepMatches: pep.count ?? 0,
-        avgCompletion,
+        total: Number(row?.total ?? 0),
+        pending: Number(row?.pending ?? 0),
+        pepMatches: Number(row?.screening_match ?? 0),
+        avgCompletion: Math.round(Number(row?.avg_completion ?? 0)),
       }
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   })
 
   const updateRiskLevel = useMutation({
