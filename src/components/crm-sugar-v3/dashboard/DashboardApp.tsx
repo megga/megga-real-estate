@@ -13,10 +13,12 @@ import {
   CK_DATA,
   ckMapPeriod,
   getDashboardData,
+  type DashboardData,
   type DecompStage,
   type PeriodKey,
   type ScopeKey,
 } from './data'
+import { useDashboardFunnel } from '@/hooks/useDashboardFunnel'
 import { DBContextBar, type DashboardTab } from './Shell'
 import { DBCockpit } from './DBCockpit'
 import { DBEntonnoir } from './DBEntonnoir'
@@ -39,9 +41,19 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
   const [toast, setToast] = useState(false)
   const [exportToast, setExportToast] = useState(false)
 
-  // Memo : évite de recalculer funnel/sources/forecast à chaque setState
-  // (refresh, tab switch, scope change ne touchent pas le scope/period).
-  const data = useMemo(() => getDashboardData(period, scope), [period, scope])
+  // Funnel + sources + forecast live (Sprint B) — fallback fixture pendant load
+  const funnelLive = useDashboardFunnel(period, scope)
+  const data = useMemo<DashboardData>(() => {
+    const fixture = getDashboardData(period, scope)
+    if (funnelLive.isLoading) return fixture
+    return {
+      ...fixture,
+      funnel: funnelLive.funnel.length > 0 ? funnelLive.funnel : fixture.funnel,
+      sources: funnelLive.sources.length > 0 ? funnelLive.sources : fixture.sources,
+      forecast: funnelLive.forecast,
+      compareLabel: funnelLive.compareLabel || fixture.compareLabel,
+    }
+  }, [period, scope, funnelLive])
 
   const triggerRefresh = () => {
     if (refreshing) return

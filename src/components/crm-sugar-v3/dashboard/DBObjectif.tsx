@@ -20,6 +20,7 @@ import {
   type PeriodKey,
   type ScenarioKey,
 } from './data'
+import { useDashboardObjectif } from '@/hooks/useDashboardObjectif'
 
 // ─── Données locales : leviers + nudges (statiques pour V1) ────────────
 const OBJ_LEVERS = [
@@ -812,7 +813,10 @@ export function DBObjectif({ period: shellPeriod }: { period: PeriodKey }) {
   const period = objMapPeriod(shellPeriod)
   const [scenario, setScenario] = useState<ScenarioKey>('median')
 
-  const d = OV_DATA[period]
+  // Source de vérité : Supabase via useDashboardObjectif.
+  // Fallback fixture OV_DATA pendant le chargement initial.
+  const { data: liveData } = useDashboardObjectif(shellPeriod)
+  const d = liveData ?? OV_DATA[period]
   const factor = OV_SCENARIOS_FACTORS.find((s) => s.v === scenario)!
   const projCurve = d[factor.curve] || d.median
   const endVal = projCurve[projCurve.length - 1]
