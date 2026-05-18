@@ -11,7 +11,8 @@ export default defineConfig({
     // Token lives in .env.sentry-build-plugin (gitignored) or env vars.
     sentryVitePlugin({
       org: 'gauthier-ru',
-      project: 'juarts',
+      // Project ID numérique (l'org Sentry n'a pas de slug textuel pour ce projet).
+      project: '4511407787933776',
       authToken: process.env.SENTRY_AUTH_TOKEN,
       disable: !process.env.SENTRY_AUTH_TOKEN,
     }),

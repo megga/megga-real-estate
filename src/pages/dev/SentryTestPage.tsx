@@ -13,7 +13,7 @@ export default function SentryTestPage() {
             Clique sur le bouton ci-dessous pour envoyer un log, une métrique et une erreur à Sentry.
             Va ensuite vérifier sur{' '}
             <a
-              href="https://gauthier-ru.sentry.io/projects/juarts/"
+              href="https://gauthier-ru.sentry.io/issues/?project=4511407787933776"
               target="_blank"
               rel="noreferrer"
               className="underline"
