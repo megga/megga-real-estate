@@ -1,6 +1,9 @@
 // supabase/functions/virtual-staging/index.ts
-// MEGGA Staging — Virtual staging IA via Google Gemini (Nano Banana 2)
-// Coût : ~CHF 0.034/image en batch 1K, ~CHF 0.05/image en 2K
+// MEGGA Staging — Virtual staging IA via Google Nano Banana 2
+// (Gemini 3.1 Flash Image Preview, lancé fév. 2026 — successeur de
+//  gemini-2.0-flash-exp utilisé en preview interne. Format API identique :
+//  on a juste swap le model ID dans l'URL.)
+// Coût : ~CHF 0.034/image (1024×1024 output, parity avec 2.0-flash-exp)
 // Quotas : Starter=0, Pro=50 images/mois, Agency=200 images/mois
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -15,8 +18,8 @@ const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY') || ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-// Gemini 2.0 Flash image generation endpoint
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_AI_API_KEY}`
+// Nano Banana 2 (Gemini 3.1 Flash Image Preview) — image generation endpoint
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${GOOGLE_AI_API_KEY}`
 
 interface StagingRequest {
   photoUrl: string
