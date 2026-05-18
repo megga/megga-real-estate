@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Pipeline deal card (kanban).
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx).
 
-import { useState, type DragEvent as ReactDragEvent } from 'react'
+import { memo, useState, type DragEvent as ReactDragEvent } from 'react'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
 import { CRM_STAGES, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
 import { crmContactById, crmBienById, type CrmContact, type CrmDeal } from '../mockData'
@@ -40,7 +40,7 @@ function nextActionIcon(kind: string): CrmIconName {
   return 'flag'
 }
 
-export function SugarDealCard({
+function SugarDealCardImpl({
   deal, focused = false, sp, dark, onClick, isDragging, onDragStart, onDragEnd,
 }: DealCardProps) {
   const c = crmContactById(deal.contactId)!
@@ -276,3 +276,22 @@ function MenuItem({
     </button>
   )
 }
+
+// Memoïsation : pendant un drag, le PipelineSugarV2Page re-render à chaque
+// `setDragOverStage`. Sans React.memo, toutes les SugarDealCard de toutes
+// les colonnes recalculent (60+ cards en pipeline réaliste).
+// Comparaison custom : on saute le re-render si le deal n'a pas changé ET que
+// les flags `focused`/`isDragging` sont identiques. `sp` change avec dark/light
+// (référence stable au sein du parent) — on l'inclut.
+export const SugarDealCard = memo(SugarDealCardImpl, (prev, next) => {
+  return (
+    prev.deal === next.deal
+    && prev.focused === next.focused
+    && prev.isDragging === next.isDragging
+    && prev.sp === next.sp
+    && prev.dark === next.dark
+    && prev.onClick === next.onClick
+    && prev.onDragStart === next.onDragStart
+    && prev.onDragEnd === next.onDragEnd
+  )
+})

@@ -331,7 +331,7 @@ export default function MatchingSugarV2Page() {
   const [schedulingFor, setSchedulingFor] = useState<MatchGroup | null>(null)
   // Local mirror : pastilles "Envoyé" / "Visite planifiée" optimistes pendant
   // que la mutation propage et que la query react-query revalide.
-  const [sentMatchIds, setSentMatchIds] = useState<Set<string>>(new Set())
+  const [sentMatchIds, setSentMatchIds] = useState<Set<string>>(() => new Set())
   const [scheduledVisits, setScheduledVisits] = useState<
     Array<{ buyerId: string; bienId: string; dayIso: string; slot: string; duration: number; notes: string }>
   >([])

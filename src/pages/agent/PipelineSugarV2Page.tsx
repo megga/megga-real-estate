@@ -225,14 +225,36 @@ export default function PipelineSugarV2Page() {
     })
   }, [search, filterStages, filterRisk, filterPeriod, localDeals])
 
-  const filteredByStage = (stage: StageId) => filteredDeals.filter(d => d.stage === stage)
+  // Pré-calculé une seule fois par render : un Map de stage → deals filtrés.
+  // Évite 9 .filter() séparés appelés inline dans la boucle render des colonnes
+  // (un par stage Kanban). Avec ~50 deals × 9 stages = 450 itérations par render,
+  // optimisé à 50 itérations + 9 lookups O(1).
+  const dealsByStage = useMemo(() => {
+    const map = new Map<StageId, CrmDeal[]>()
+    for (const stage of CRM_STAGE_ORDER) map.set(stage, [])
+    for (const d of filteredDeals) {
+      const arr = map.get(d.stage)
+      if (arr) arr.push(d)
+    }
+    return map
+  }, [filteredDeals])
+  const filteredByStage = (stage: StageId) => dealsByStage.get(stage) ?? []
   const activeFilters = (filterStages.length > 0 ? 1 : 0) + (filterRisk !== 'all' ? 1 : 0) + (filterPeriod !== 30 ? 1 : 0)
   const resetFilters = () => {
     setFilterStages([]); setFilterRisk('all'); setFilterPeriod(30); setSearch('')
   }
 
-  const totalValue = localDeals.reduce((s, d) => s + (d.value || 0), 0)
-  const atRisk = localDeals.filter(d => d.risk !== 'healthy').length
+  // Agrégations basées sur le pipeline complet (non filtré) — memoïsées pour
+  // éviter de scanner ~50 deals à chaque drag (chaque setPendingStage trigger
+  // un render parent).
+  const totalValue = useMemo(
+    () => localDeals.reduce((s, d) => s + (d.value || 0), 0),
+    [localDeals],
+  )
+  const atRisk = useMemo(
+    () => localDeals.filter(d => d.risk !== 'healthy').length,
+    [localDeals],
+  )
   const atRiskNames = useMemo(() => {
     return localDeals
       .filter(d => d.risk !== 'healthy')

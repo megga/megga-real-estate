@@ -4,7 +4,7 @@
 // Cartes flottantes, parcours horizontal avec connecteurs courbes,
 // chips d'équipe circulaires, Focus mode, drag/drop des colonnes.
 
-import { useState, useEffect, type MouseEvent as ReactMouseEvent } from 'react'
+import { useState, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
@@ -80,12 +80,18 @@ export default function TodaySugarPage() {
   const pipelinePop = useSugarPopover<{ kind: PipelineDrillKind }>()
 
   // ─── Toast helper ───────────────────────────────────────────────────
-  let _toastTimer: number | null = null
+  // useRef pour éviter la stale closure module-scope qui leak entre re-renders.
+  const toastTimerRef = useRef<number | null>(null)
   const flashToast = (msg: string) => {
     setToast(msg)
-    if (_toastTimer != null) window.clearTimeout(_toastTimer)
-    _toastTimer = window.setTimeout(() => setToast(null), 2200)
+    if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2200)
   }
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current != null) window.clearTimeout(toastTimerRef.current)
+    }
+  }, [])
   const toggleDone = (id: string) => {
     setDoneSet(prev => {
       const next = new Set(prev)

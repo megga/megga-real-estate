@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useTranslation, Trans } from 'react-i18next'
 import { X, CalendarDays, Check, Loader2, Video, MapPin, ArrowRight, ArrowLeft, Building2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Modal } from '@/components/ui/modal'
@@ -151,7 +151,13 @@ export default function RequestVisitModal({ listingAddress, propertyId, agencyId
               <Check className="h-7 w-7 text-emerald-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900">{t('listing.requestSent')}</h3>
-            <p className="text-sm text-gray-500 mt-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: t('listing.confirmationSent', { email }) }} />
+            <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+              <Trans
+                i18nKey="listing.confirmationSent"
+                values={{ email }}
+                components={{ strong: <strong /> }}
+              />
+            </p>
           </div>
         ) : (
           <>

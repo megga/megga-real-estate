@@ -21,35 +21,37 @@ interface AlertEvent {
   created_at: string
 }
 
+interface AdminStatsRow {
+  active_agencies: number
+  total_users: number
+  active_properties: number
+  active_transactions: number
+  high_risk_kyc: number
+  new_agencies_this_month: number
+  new_users_this_month: number
+}
+
 export function useAdminStats() {
+  // Single RPC call replaces 7 parallel count:'exact' queries (red-team perf
+  // fix — CLAUDE.md §7 violation, 7 full table scans → 1 SQL function).
   const kpis = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async (): Promise<AdminKPIs> => {
-      const now = new Date()
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-
-      const [agencies, users, properties, transactions, kyc, newAgencies, newUsers] = await Promise.all([
-        supabase.from('agencies').select('id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('transactions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('kyc_cases').select('id', { count: 'exact', head: true }).eq('risk_level', 'high'),
-        supabase.from('agencies').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
-      ])
-
+      const { data, error } = await supabase.rpc('get_admin_dashboard_stats')
+      if (error) throw error
+      const row = ((data as AdminStatsRow[] | null) ?? [])[0]
       return {
-        activeAgencies: agencies.count ?? 0,
-        totalUsers: users.count ?? 0,
-        activeProperties: properties.count ?? 0,
-        activeTransactions: transactions.count ?? 0,
+        activeAgencies: Number(row?.active_agencies ?? 0),
+        totalUsers: Number(row?.total_users ?? 0),
+        activeProperties: Number(row?.active_properties ?? 0),
+        activeTransactions: Number(row?.active_transactions ?? 0),
         estimatedMRR: 0,
-        highRiskKyc: kyc.count ?? 0,
-        newAgenciesThisMonth: newAgencies.count ?? 0,
-        newUsersThisMonth: newUsers.count ?? 0,
+        highRiskKyc: Number(row?.high_risk_kyc ?? 0),
+        newAgenciesThisMonth: Number(row?.new_agencies_this_month ?? 0),
+        newUsersThisMonth: Number(row?.new_users_this_month ?? 0),
       }
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   })
 
   const alerts = useQuery({
@@ -63,7 +65,7 @@ export function useAdminStats() {
       if (error) throw error
       return (data ?? []) as AlertEvent[]
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   })
 
   return {
