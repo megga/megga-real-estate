@@ -13,7 +13,7 @@ export default function SentryTestPage() {
             Clique sur le bouton ci-dessous pour envoyer un log, une métrique et une erreur à Sentry.
             Va ensuite vérifier sur{' '}
             <a
-              href="https://gauthier-ru.sentry.io/projects/javascript-react/"
+              href="https://gauthier-ru.sentry.io/projects/juarts/"
               target="_blank"
               rel="noreferrer"
               className="underline"

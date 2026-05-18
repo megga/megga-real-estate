@@ -11,7 +11,7 @@ export default defineConfig({
     // Token lives in .env.sentry-build-plugin (gitignored) or env vars.
     sentryVitePlugin({
       org: 'gauthier-ru',
-      project: 'javascript-react',
+      project: 'juarts',
       authToken: process.env.SENTRY_AUTH_TOKEN,
       disable: !process.env.SENTRY_AUTH_TOKEN,
     }),
