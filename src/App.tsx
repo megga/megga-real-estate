@@ -23,6 +23,7 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import CookieBanner from '@/components/CookieBanner'
 import { ToastProvider } from '@/components/ui/Toast'
 import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
+import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Lazy-loaded public pages
 // PropertyX public pages (anciennement eager — désormais lazy pour le SEO/LCP)
@@ -176,13 +177,9 @@ const AdminNpsPage = lazy(() => import('@/pages/admin/AdminNpsPage'))
 // Admin guard
 import SuperAdminGuard from '@/components/admin/SuperAdminGuard'
 
-function PageLoader() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="h-5 w-5 border-2 border-theme-border border-t-accent rounded-full animate-spin" />
-    </div>
-  )
-}
+// `PageLoader` (the generic centered spinner) replaced by `<SmartPageLoader>`
+// which picks a route-specific skeleton matching the page being loaded.
+// SmartPageLoader uses useLocation, so it must live inside <BrowserRouter>.
 
 // Defensive defaults for a reliable UX after long idles / sleep / wake:
 //
@@ -484,7 +481,7 @@ export default function App() {
           {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
               frosted-glass shimmer overlay, listens to languageChanged event. */}
           <LanguageChangeOverlay />
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={<SmartPageLoader />}>
             <AnimatedRoutes />
           </Suspense>
           {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
