@@ -54,6 +54,7 @@ interface ProfileJoinRow {
   full_name: string | null
   phone: string | null
   avatar_url: string | null
+  email_signature: string | null
   agency_id: string | null
   agencies: { name: string | null } | { name: string | null }[] | null
   agent_profile: { bio: string | null; languages: string[] | null; specialties: string[] | null } | { bio: string | null; languages: string[] | null; specialties: string[] | null }[] | null
@@ -83,7 +84,7 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
       if (!profileId) return null
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, phone, avatar_url, agency_id, agencies:agencies!agency_id(name), agent_profile:agent_profiles!profile_id(bio, languages, specialties)')
+        .select('id, email, full_name, phone, avatar_url, email_signature, agency_id, agencies:agencies!agency_id(name), agent_profile:agent_profiles!profile_id(bio, languages, specialties)')
         .eq('id', profileId)
         .single()
       if (error) throw error
@@ -113,7 +114,7 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
       languages: agent?.languages ?? [],
       specialties: agent?.specialties ?? [],
       bio: agent?.bio ?? '',
-      signature: '',                   // non persisté
+      signature: row.email_signature ?? '',
       initials: initialsOf(firstName, lastName),
       avatarBg: avatarBgFromId(row.id),
     }
@@ -136,11 +137,15 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
     mutationFn: async (next: ProfileData) => {
       if (!profileId) throw new Error('Profil non chargé')
 
-      // 1. profiles.full_name + phone
+      // 1. profiles.full_name + phone + email_signature
       const full_name = `${next.firstName} ${next.lastName}`.trim()
       const { error: pErr } = await supabase
         .from('profiles')
-        .update({ full_name, phone: next.phone || null })
+        .update({
+          full_name,
+          phone: next.phone || null,
+          email_signature: next.signature || null,
+        })
         .eq('id', profileId)
       if (pErr) throw pErr
 

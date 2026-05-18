@@ -174,3 +174,26 @@ export function useGmailMessagesForContact(
     staleTime: 60_000,
   })
 }
+
+// Vue inbox globale (pas filtrée par contact) — query Gmail libre
+export function useGmailInbox(maxResults = 30) {
+  const { user } = useAuth()
+  const userId = user?.id
+
+  return useQuery({
+    queryKey: ['gmail-inbox', userId, maxResults],
+    queryFn: async (): Promise<EmailMessage[]> => {
+      const res = await supabase.functions.invoke('gmail-sync', {
+        body: {
+          action: 'list_messages',
+          query: 'in:inbox',
+          max_results: maxResults,
+        },
+      })
+      if (res.error || !res.data?.messages) return []
+      return res.data.messages as EmailMessage[]
+    },
+    enabled: !!userId,
+    staleTime: 60_000,
+  })
+}

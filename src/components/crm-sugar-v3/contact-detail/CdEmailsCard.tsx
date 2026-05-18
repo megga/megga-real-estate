@@ -3,13 +3,14 @@
 // Source : Edge Functions gmail-sync / outlook-mail-sync (action list_by_contact)
 // agrégées via les hooks useGmailMessagesForContact / useOutlookMailMessagesForContact.
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycGhostPill, KycSection } from '../primitives'
 import { useGmail, useGmailMessagesForContact } from '@/hooks/useGmail'
 import { useOutlookMail, useOutlookMailMessagesForContact } from '@/hooks/useOutlookMail'
 import type { EmailMessage } from '@/hooks/useGmail'
+import { EmailComposerModal } from './EmailComposerModal'
 
 interface Props {
   contactId: string
@@ -18,6 +19,13 @@ interface Props {
 
 interface DisplayMessage extends EmailMessage {
   provider: 'gmail' | 'outlook'
+}
+
+interface ReplyContext {
+  messageId: string
+  provider: 'gmail' | 'outlook'
+  subject: string
+  to: string
 }
 
 function formatRelativeDate(iso: string): string {
@@ -38,6 +46,8 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
   const gmail = useGmail()
   const outlookMail = useOutlookMail()
   const anyConnected = gmail.isConnected || outlookMail.isConnected
+
+  const [reply, setReply] = useState<ReplyContext | null>(null)
 
   const gmailQuery = useGmailMessagesForContact(
     gmail.isConnected ? contactEmail : null,
@@ -279,9 +289,47 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
                 {msg.snippet}
               </div>
             )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+              <button
+                onClick={() => setReply({
+                  messageId: msg.id,
+                  provider: msg.provider,
+                  subject: msg.subject.startsWith('Re:') ? msg.subject : `Re: ${msg.subject || '(Sans objet)'}`,
+                  to: msg.from_address,
+                })}
+                style={{
+                  height: 28,
+                  padding: '0 14px',
+                  borderRadius: 999,
+                  border: 0,
+                  background: '#fff',
+                  color: SugarV3.ink,
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  boxShadow: '0 1px 2px rgba(11,12,14,0.08)',
+                }}
+              >
+                <SgIcon name="send" size={11} stroke={SugarV3.ink} sw={2} />
+                Répondre
+              </button>
+            </div>
           </div>
         ))}
       </div>
+
+      <EmailComposerModal
+        open={!!reply}
+        onClose={() => setReply(null)}
+        defaultTo={reply?.to ?? ''}
+        defaultSubject={reply?.subject ?? ''}
+        replyToMessageId={reply?.messageId}
+        forceProvider={reply?.provider}
+      />
     </KycSection>
   )
 }

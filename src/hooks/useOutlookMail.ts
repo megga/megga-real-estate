@@ -145,3 +145,26 @@ export function useOutlookMailMessagesForContact(
     staleTime: 60_000,
   })
 }
+
+// Inbox globale Outlook (pas filtrée par contact)
+export function useOutlookInbox(maxResults = 30) {
+  const { user } = useAuth()
+  const userId = user?.id
+
+  return useQuery({
+    queryKey: ['outlook-inbox', userId, maxResults],
+    queryFn: async (): Promise<EmailMessage[]> => {
+      const res = await supabase.functions.invoke('outlook-mail-sync', {
+        body: {
+          action: 'list_messages',
+          query: '',
+          max_results: maxResults,
+        },
+      })
+      if (res.error || !res.data?.messages) return []
+      return res.data.messages as EmailMessage[]
+    },
+    enabled: !!userId,
+    staleTime: 60_000,
+  })
+}
