@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'disconnect'
+type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'send_message' | 'disconnect'
 
 interface SyncRequest {
   action: Action
@@ -23,6 +23,14 @@ interface SyncRequest {
   email_address?: string
   contact_id?: string
   message_id?: string
+  // send_message
+  to?: string[]
+  cc?: string[]
+  bcc?: string[]
+  subject?: string
+  body_text?: string
+  body_html?: string
+  reply_to_message_id?: string
 }
 
 interface OutlookMessageRaw {
@@ -262,6 +270,68 @@ serve(async (req) => {
         }
 
         return new Response(JSON.stringify({ messages }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'send_message': {
+        const accessToken = await getValidToken(userId)
+        if (!accessToken) throw new Error('Outlook Mail not connected')
+        if (!body.to || body.to.length === 0) throw new Error('Missing recipient')
+
+        // Récup signature email du profil
+        const { data: profile } = await db
+          .from('profiles')
+          .select('email_signature')
+          .eq('id', userId)
+          .single()
+        const signature = profile?.email_signature ?? null
+
+        const textBody = body.body_text ?? ''
+        const fullText = signature ? `${textBody}\n\n--\n${signature}` : textBody
+
+        const message = {
+          subject: body.subject ?? '(Sans objet)',
+          body: {
+            contentType: 'Text' as const,
+            content: fullText,
+          },
+          toRecipients: body.to.map(addr => ({ emailAddress: { address: addr } })),
+          ccRecipients: (body.cc ?? []).map(addr => ({ emailAddress: { address: addr } })),
+          bccRecipients: (body.bcc ?? []).map(addr => ({ emailAddress: { address: addr } })),
+        }
+
+        // Microsoft Graph : si reply_to_message_id, on utilise /reply au lieu de /sendMail
+        // pour préserver le thread et le subject. Sinon /sendMail standard.
+        if (body.reply_to_message_id) {
+          const replyRes = await fetch(`${GRAPH_API}/me/messages/${body.reply_to_message_id}/reply`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ comment: fullText }),
+          })
+          if (!replyRes.ok) {
+            const err = await replyRes.text()
+            throw new Error(`Outlook reply error ${replyRes.status}: ${err}`)
+          }
+        } else {
+          const sendRes = await fetch(`${GRAPH_API}/me/sendMail`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message, saveToSentItems: true }),
+          })
+          if (!sendRes.ok) {
+            const err = await sendRes.text()
+            throw new Error(`Outlook send error ${sendRes.status}: ${err}`)
+          }
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }

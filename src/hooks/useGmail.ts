@@ -18,6 +18,15 @@ export interface EmailMessage {
   has_attachments: boolean
 }
 
+export interface SendMessageParams {
+  to: string[]
+  cc?: string[]
+  bcc?: string[]
+  subject: string
+  body_text: string
+  reply_to_message_id?: string
+}
+
 interface GmailToken {
   id: string
   user_id: string
@@ -51,12 +60,13 @@ export function useGmail() {
   const isConnected = !!tokenData?.sync_enabled
 
   // Lance le flow OAuth avec scopes mail (séparé du calendar pour permettre
-  // une révocation indépendante)
+  // une révocation indépendante). On demande readonly + send dès le premier
+  // consent pour éviter un second prompt à l'envoi du premier mail.
   function connectGmail() {
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        scopes: 'https://www.googleapis.com/auth/gmail.readonly',
+        scopes: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send',
         redirectTo: `${window.location.origin}/auth/callback?gmail=1`,
         queryParams: {
           access_type: 'offline',
@@ -90,6 +100,20 @@ export function useGmail() {
     },
   })
 
+  // Envoi d'un message — signature auto-append côté Edge Function
+  const sendMessageMutation = useMutation({
+    mutationFn: async (params: SendMessageParams): Promise<{ message_id: string; thread_id: string }> => {
+      const res = await supabase.functions.invoke('gmail-sync', {
+        body: { action: 'send_message', ...params },
+      })
+      if (res.error) throw new Error(res.error.message)
+      return res.data as { message_id: string; thread_id: string }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gmail-messages'] })
+    },
+  })
+
   async function saveTokens(params: {
     access_token: string
     refresh_token: string
@@ -115,6 +139,9 @@ export function useGmail() {
 
     listByContact: listByContactMutation.mutateAsync,
     isListing: listByContactMutation.isPending,
+
+    sendMessage: sendMessageMutation.mutateAsync,
+    isSending: sendMessageMutation.isPending,
 
     saveTokens,
   }

@@ -31,6 +31,7 @@ import { CdTimelineCard } from '@/components/crm-sugar-v3/contact-detail/CdTimel
 import { CdNotesCard } from '@/components/crm-sugar-v3/contact-detail/CdNotesCard'
 import { CdDocsCard } from '@/components/crm-sugar-v3/contact-detail/CdDocsCard'
 import { CdEmailsCard } from '@/components/crm-sugar-v3/contact-detail/CdEmailsCard'
+import { EmailComposerModal } from '@/components/crm-sugar-v3/contact-detail/EmailComposerModal'
 import { CdCriteriaCard } from '@/components/crm-sugar-v3/contact-detail/CdCriteriaCard'
 import { useContact } from '@/hooks/useContacts'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
@@ -57,6 +58,8 @@ export default function ContactDetailSugarV3Page() {
 
   const { data: contact, isLoading } = useContact(id)
   const { data: dossier } = useKycDossierByContact(id)
+
+  const [composerOpen, setComposerOpen] = useState(false)
 
   // Activity events filtrés sur cet entity_id
   const { data: allEvents = [] } = useAuditEvents({ days: 90 })
@@ -168,6 +171,7 @@ export default function ContactDetailSugarV3Page() {
             <CdHero
               contact={contact}
               onBack={() => navigate('/dashboard/contacts')}
+              onEmailClick={() => setComposerOpen(true)}
             />
 
             <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18 }}>
@@ -190,6 +194,13 @@ export default function ContactDetailSugarV3Page() {
           </div>
         </main>
       </div>
+
+      <EmailComposerModal
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        defaultTo={contact.email ?? ''}
+        defaultSubject={`Suivi · ${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim()}
+      />
     </div>
   )
 }

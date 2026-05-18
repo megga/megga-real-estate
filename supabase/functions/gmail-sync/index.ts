@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'disconnect'
+type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'send_message' | 'disconnect'
 
 interface SyncRequest {
   action: Action
@@ -26,6 +26,14 @@ interface SyncRequest {
   email_address?: string
   contact_id?: string
   message_id?: string
+  // send_message
+  to?: string[]
+  cc?: string[]
+  bcc?: string[]
+  subject?: string
+  body_text?: string
+  body_html?: string
+  reply_to_message_id?: string
 }
 
 interface GmailMessageMeta {
@@ -274,6 +282,88 @@ serve(async (req) => {
         }
 
         return new Response(JSON.stringify({ messages }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // ── Send a new message ──
+      case 'send_message': {
+        const accessToken = await getValidToken(userId)
+        if (!accessToken) throw new Error('Gmail not connected')
+        if (!body.to || body.to.length === 0) throw new Error('Missing recipient')
+
+        // Récup signature email du profil pour auto-append
+        let signature: string | null = null
+        const { data: profile } = await db
+          .from('profiles')
+          .select('email_signature')
+          .eq('id', userId)
+          .single()
+        signature = profile?.email_signature ?? null
+
+        const fromAddress = (await (async () => {
+          const { data: tokenRow } = await db
+            .from('gmail_tokens')
+            .select('gmail_email')
+            .eq('user_id', userId)
+            .single()
+          return tokenRow?.gmail_email ?? user.email ?? ''
+        })())
+
+        // Construit le MIME RFC 2822 multipart si on a HTML+texte, sinon plain
+        const subject = body.subject ?? '(Sans objet)'
+        const toLine = body.to.join(', ')
+        const ccLine = body.cc?.join(', ') ?? ''
+        const bccLine = body.bcc?.join(', ') ?? ''
+
+        const textBody = body.body_text ?? ''
+        const fullText = signature ? `${textBody}\n\n--\n${signature}` : textBody
+
+        // Encodage UTF-8 du subject (RFC 2047 simplifié pour caractères non-ASCII)
+        const encodedSubject = /[^\x20-\x7E]/.test(subject)
+          ? `=?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`
+          : subject
+
+        const headers = [
+          `From: ${fromAddress}`,
+          `To: ${toLine}`,
+          ccLine ? `Cc: ${ccLine}` : '',
+          bccLine ? `Bcc: ${bccLine}` : '',
+          `Subject: ${encodedSubject}`,
+          'MIME-Version: 1.0',
+          'Content-Type: text/plain; charset="UTF-8"',
+          'Content-Transfer-Encoding: 7bit',
+        ].filter(Boolean).join('\r\n')
+
+        const mime = `${headers}\r\n\r\n${fullText}`
+        // base64url-encode (Gmail API exigence)
+        const raw = btoa(unescape(encodeURIComponent(mime)))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '')
+
+        const payload: Record<string, unknown> = { raw }
+        if (body.reply_to_message_id) {
+          // Récup threadId du message original pour rester dans le thread
+          const orig = await gmailFetch(accessToken, `/users/me/messages/${body.reply_to_message_id}?format=metadata`) as { threadId?: string }
+          if (orig.threadId) payload.threadId = orig.threadId
+        }
+
+        const sendRes = await fetch(`${GMAIL_API}/users/me/messages/send`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+        if (!sendRes.ok) {
+          const err = await sendRes.text()
+          throw new Error(`Gmail send error ${sendRes.status}: ${err}`)
+        }
+        const sent = await sendRes.json() as { id: string; threadId: string }
+
+        return new Response(JSON.stringify({ success: true, message_id: sent.id, thread_id: sent.threadId }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }

@@ -9,9 +9,10 @@ import type { Contact } from '@/types/contact'
 interface Props {
   contact: Contact
   onBack: () => void
+  onEmailClick?: () => void
 }
 
-export function CdHero({ contact, onBack }: Props) {
+export function CdHero({ contact, onBack, onEmailClick }: Props) {
   const typeLabel =
     {
       buyer: 'Acheteur',
@@ -141,8 +142,9 @@ export function CdHero({ contact, onBack }: Props) {
             icon={<SgIcon name="phone" size={17} stroke={SugarV3.inkSoft} />}
           />
           <KycCircleBtn
-            title="E-mail"
+            title={contact.email ? `Envoyer un mail à ${contact.email}` : 'E-mail'}
             icon={<SgIcon name="mail" size={17} stroke={SugarV3.inkSoft} />}
+            onClick={onEmailClick}
           />
           <KycCircleBtn
             title="Message"

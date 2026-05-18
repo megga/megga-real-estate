@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { EmailMessage } from '@/hooks/useGmail'
+import type { EmailMessage, SendMessageParams } from '@/hooks/useGmail'
 
 // ── Types ──
 
@@ -41,7 +41,7 @@ export function useOutlookMail() {
     supabase.auth.signInWithOAuth({
       provider: 'azure',
       options: {
-        scopes: 'https://graph.microsoft.com/Mail.Read offline_access User.Read',
+        scopes: 'https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/Mail.Send offline_access User.Read',
         redirectTo: `${window.location.origin}/auth/callback?outlookmail=1`,
         queryParams: {
           prompt: 'consent',
@@ -73,6 +73,19 @@ export function useOutlookMail() {
     },
   })
 
+  const sendMessageMutation = useMutation({
+    mutationFn: async (params: SendMessageParams): Promise<{ success: boolean }> => {
+      const res = await supabase.functions.invoke('outlook-mail-sync', {
+        body: { action: 'send_message', ...params },
+      })
+      if (res.error) throw new Error(res.error.message)
+      return res.data as { success: boolean }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outlook-mail-messages'] })
+    },
+  })
+
   async function saveTokens(params: {
     access_token: string
     refresh_token: string
@@ -98,6 +111,9 @@ export function useOutlookMail() {
 
     listByContact: listByContactMutation.mutateAsync,
     isListing: listByContactMutation.isPending,
+
+    sendMessage: sendMessageMutation.mutateAsync,
+    isSending: sendMessageMutation.isPending,
 
     saveTokens,
   }
