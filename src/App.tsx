@@ -105,16 +105,10 @@ const DocumentsSugarV2Page = lazy(() => import('@/pages/agent/DocumentsSugarV2Pa
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
-const KycListSugarV2Page = lazy(() => import('@/pages/agent/KycListSugarV2Page'))
-const KycDetailSugarV2Page = lazy(() => import('@/pages/agent/KycDetailSugarV2Page'))
 const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
-const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
 const ReseauSugarV2Page = lazy(() => import('@/pages/agent/ReseauSugarV2Page'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
-const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
-const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
-const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
 const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
 const CustomTemplatePage = lazy(() => import('@/pages/agent/CustomTemplatePage'))
@@ -333,11 +327,6 @@ export default function App() {
                 <Route path="profil" element={<MonProfilPage />} />
               </Route>
 
-              {/* Dev showcase routes (no auth) */}
-              <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
-              <Route path="/dev/mfa" element={<MfaShowcasePage />} />
-              <Route path="/dev/sentry-test" element={<SentryTestPage />} />
-
               {/* Portail vendeur — accès tokénisé (production) */}
               <Route path="/portail/:token" element={<PortalGateway />}>
                 <Route index element={<MonDossierPage />} />
@@ -393,10 +382,6 @@ export default function App() {
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
                 <Route path="kyc" element={<KycSugarV3Page />} />
                 <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
-                {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
-                <Route path="kyc/showcase" element={<KycShowcasePage />} />
-                <Route path="kyc/v2" element={<KycListSugarV2Page />} />
-                <Route path="kyc/v2/:id" element={<KycDetailSugarV2Page />} />
                 <Route path="reseau" element={<ReseauSugarV2Page />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
                 <Route path="audit" element={<AuditSugarPage />} />
