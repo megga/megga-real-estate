@@ -2,7 +2,15 @@
 // 1:1 port from `crm-screen-settings-sugar.jsx`.
 
 import { useState, type ReactNode } from 'react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { SET_PALETTE, type SettingsIconName } from './data'
+
+// iOS-style tap feedback: scale 0.96 + snappy spring. Shared by SetBlackBtn
+// and SetGhostBtn — Gregory clicks "Sauvegarder" / "Annuler" / "Confirmer"
+// dozens of times per day, and the tap response is what makes a productivity
+// tool feel native vs. web-y.
+const TAP_SPRING = { type: 'spring' as const, stiffness: 480, damping: 28, mass: 0.6 }
 
 const SET = SET_PALETTE
 
@@ -453,13 +461,17 @@ export function SetBlackBtn({
   size = 'md',
 }: SetBlackBtnProps) {
   const [hover, setHover] = useState(false)
+  const reducedMotion = useReducedMotion()
   const h = size === 'lg' ? 50 : size === 'sm' ? 36 : 44
+  const tapDisabled = reducedMotion || disabled || loading
   return (
-    <button
+    <motion.button
       onClick={onClick}
       disabled={disabled || loading}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      whileTap={tapDisabled ? undefined : { scale: 0.96 }}
+      transition={TAP_SPRING}
       style={{
         height: h,
         padding: size === 'lg' ? '0 28px' : size === 'sm' ? '0 16px' : '0 22px',
@@ -498,7 +510,7 @@ export function SetBlackBtn({
       )}
       {!loading && icon}
       {children}
-    </button>
+    </motion.button>
   )
 }
 
@@ -520,13 +532,16 @@ export function SetGhostBtn({
   danger,
 }: SetGhostBtnProps) {
   const [hover, setHover] = useState(false)
+  const reducedMotion = useReducedMotion()
   const h = size === 'sm' ? 36 : 44
   return (
-    <button
+    <motion.button
       onClick={onClick}
       disabled={disabled}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      whileTap={reducedMotion || disabled ? undefined : { scale: 0.96 }}
+      transition={TAP_SPRING}
       style={{
         height: h,
         padding: size === 'sm' ? '0 14px' : '0 20px',
@@ -551,7 +566,7 @@ export function SetGhostBtn({
     >
       {icon}
       {children}
-    </button>
+    </motion.button>
   )
 }
 

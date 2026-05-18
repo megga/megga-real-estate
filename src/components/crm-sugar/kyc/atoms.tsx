@@ -3,6 +3,11 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { useState, type CSSProperties, type ReactNode } from 'react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
+
+// iOS UIButton tap-feedback spring used by BlackBtn + GhostBtn (KYC actions).
+const TAP_SPRING = { type: 'spring' as const, stiffness: 480, damping: 28, mass: 0.6 }
 
 // ─── Tokens partagés Sugar Pure ──────────────────────────────────────────
 export const SP = {
@@ -101,11 +106,14 @@ interface BlackBtnProps {
 
 export function BlackBtn({ children, icon, onClick, style }: BlackBtnProps) {
   const [hover, setHover] = useState(false)
+  const reducedMotion = useReducedMotion()
   return (
-    <button
+    <motion.button
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      whileTap={reducedMotion ? undefined : { scale: 0.96 }}
+      transition={TAP_SPRING}
       style={{
         height: 44,
         padding: '0 22px',
@@ -131,7 +139,7 @@ export function BlackBtn({ children, icon, onClick, style }: BlackBtnProps) {
     >
       {icon}
       {children}
-    </button>
+    </motion.button>
   )
 }
 
@@ -144,11 +152,14 @@ interface GhostBtnProps {
 
 export function GhostBtn({ children, onClick, style }: GhostBtnProps) {
   const [hover, setHover] = useState(false)
+  const reducedMotion = useReducedMotion()
   return (
-    <button
+    <motion.button
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      whileTap={reducedMotion ? undefined : { scale: 0.96 }}
+      transition={TAP_SPRING}
       style={{
         height: 40,
         padding: '0 18px',
@@ -165,7 +176,7 @@ export function GhostBtn({ children, onClick, style }: GhostBtnProps) {
       }}
     >
       {children}
-    </button>
+    </motion.button>
   )
 }
 

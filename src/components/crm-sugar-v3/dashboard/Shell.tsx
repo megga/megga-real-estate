@@ -34,8 +34,10 @@ function DashboardTabPill({
 }) {
   const reducedMotion = useReducedMotion()
   return (
-    <button
+    <motion.button
       onClick={onClick}
+      whileTap={reducedMotion ? undefined : { scale: 0.96 }}
+      transition={{ type: 'spring', stiffness: 480, damping: 28, mass: 0.6 }}
       style={{
         position: 'relative',
         height: 36,
@@ -50,7 +52,6 @@ function DashboardTabPill({
         cursor: 'pointer',
         letterSpacing: -0.1,
         whiteSpace: 'nowrap',
-        transition: 'color .18s ease',
         zIndex: 1,
       }}
     >
@@ -70,7 +71,7 @@ function DashboardTabPill({
         />
       )}
       <span style={{ position: 'relative', zIndex: 1 }}>{children}</span>
-    </button>
+    </motion.button>
   )
 }
 
@@ -84,11 +85,14 @@ interface DBChipProps {
 
 export function DBChip({ active, onClick, children, icon }: DBChipProps) {
   const [hover, setHover] = useState(false)
+  const reducedMotion = useReducedMotion()
   return (
-    <button
+    <motion.button
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      whileTap={reducedMotion ? undefined : { scale: 0.96 }}
+      transition={{ type: 'spring', stiffness: 480, damping: 28, mass: 0.6 }}
       style={{
         height: 36,
         padding: '0 14px',
@@ -115,7 +119,7 @@ export function DBChip({ active, onClick, children, icon }: DBChipProps) {
     >
       {icon}
       {children}
-    </button>
+    </motion.button>
   )
 }
 

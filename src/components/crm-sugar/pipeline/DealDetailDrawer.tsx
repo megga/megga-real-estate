@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-pipeline-deal-detail.jsx).
 
 import { useState, useEffect, type ReactNode } from 'react'
+import Sheet from '@/components/ui/Sheet'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
 import {
   CRM_STAGES, CRM_STAGE_ORDER, crmFmtCHF, crmInitials, crmRelative,
@@ -42,7 +43,8 @@ interface DealDetailDrawerProps {
   dark: boolean
 }
 
-export function DealDetailDrawer({ open, onClose, dealId, sp, t, dark }: DealDetailDrawerProps) {
+export function DealDetailDrawer({ open, onClose, dealId, sp, t: _t, dark }: DealDetailDrawerProps) {
+  void _t // overlay was sourced from t.overlay; <Sheet> now provides backdrop
   const [composer, setComposer] = useState<'note' | 'call' | 'email' | 'visit'>('note')
   const [text, setText] = useState('')
   const [expanded, setExpanded] = useState(false)
@@ -64,25 +66,20 @@ export function DealDetailDrawer({ open, onClose, dealId, sp, t, dark }: DealDet
   const showKycBanner = c.kyc?.status !== 'verified' && kycRequiredHere
 
   return (
-    <>
-      <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, background: t.overlay || 'rgba(14,20,16,.42)',
-        zIndex: 80, animation: 'ddOverlay .2s ease-out',
-      }} />
-      <div style={{
-        position: 'fixed', top: 0, right: 0, bottom: 0,
-        width: expanded ? '100vw' : 600, maxWidth: '100vw',
+    <Sheet
+      open={open}
+      onClose={onClose}
+      side="right"
+      width={expanded ? '100vw' : 600}
+      ariaLabel={`Deal ${deal.id}`}
+      style={{
         background: dark ? sp.pageBg : '#F4F5F8',
-        zIndex: 81, display: 'flex', flexDirection: 'column',
-        boxShadow: expanded ? 'none' : '-20px 0 60px -20px rgba(14,20,16,.30)',
-        animation: 'ddDrawer .28s cubic-bezier(.2,.7,.2,1)',
-        transition: 'width .32s cubic-bezier(.2,.7,.2,1)',
+        display: 'flex',
+        flexDirection: 'column',
         overflow: 'hidden',
-      }}>
-        <style>{`
-          @keyframes ddDrawer { from { transform: translateX(40px); opacity: 0 } to { transform: none; opacity: 1 } }
-          @keyframes ddOverlay { from { opacity: 0 } to { opacity: 1 } }
-        `}</style>
+        boxShadow: expanded ? 'none' : '-20px 0 60px -20px rgba(14,20,16,.30)',
+      }}
+    >
 
         {/* Header */}
         <div style={{
@@ -354,8 +351,7 @@ export function DealDetailDrawer({ open, onClose, dealId, sp, t, dark }: DealDet
             }}>Enregistrer</button>
           </div>
         </div>
-      </div>
-    </>
+    </Sheet>
   )
 }
 
