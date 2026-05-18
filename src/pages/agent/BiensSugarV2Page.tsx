@@ -9,6 +9,7 @@ import {
 import type { CrmBien } from '@/components/crm-sugar/mockData'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
+import { useBnSubmissions } from '@/hooks/useBnSubmissions'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -20,7 +21,6 @@ import {
   BnSubmissionsBanner, BnSubmissionsDrawer,
 } from '@/components/crm-sugar/biens/BnSubmissions'
 import { BnDetailOverlay } from '@/components/crm-sugar/biens/BnDetailOverlay'
-import { CRM_SUBMISSIONS } from '@/components/crm-sugar/biens/biensData'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -45,6 +45,8 @@ export default function BiensSugarV2Page() {
 
   // Source de vérité : Supabase via useBiensSugar (RLS agency-scopée)
   const { biens, isLoading } = useBiensSugar()
+  // Soumissions vendeurs (seller_leads status='new') via useBnSubmissions
+  const { submissions } = useBnSubmissions()
 
   const [search, setSearch] = useState('')
   const [fBaths, setFBaths] = useState('all')
@@ -296,7 +298,7 @@ export default function BiensSugarV2Page() {
 
           {/* Bandeau soumissions */}
           <BnSubmissionsBanner
-            subs={CRM_SUBMISSIONS}
+            subs={submissions}
             sp={sp}
             dark={dark}
             onOpen={() => setOpenSubs(true)}
@@ -449,7 +451,7 @@ export default function BiensSugarV2Page() {
       <BnSubmissionsDrawer
         open={openSubs}
         onClose={() => setOpenSubs(false)}
-        subs={CRM_SUBMISSIONS}
+        subs={submissions}
         sp={sp}
       />
 
