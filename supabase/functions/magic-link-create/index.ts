@@ -188,6 +188,36 @@ serve(async (req) => {
     )
   }
 
+  // Sprint 4.7.E — Auto-send email si email dans channels (fire-and-forget).
+  // L'échec d'envoi NE FAIT PAS échouer la création — l'agent peut copier
+  // l'URL manuellement depuis le modal Success.
+  let emailSent: { sent: boolean; reason?: string; recipient?: string } = { sent: false }
+  if (channels.includes('email')) {
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+      const sendUrl = `${supabaseUrl}/functions/v1/magic-link-send-email`
+      const sendRes = await fetch(sendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`,
+        },
+        body: JSON.stringify({ magic_link_id: inserted.id }),
+      })
+      if (sendRes.ok) {
+        emailSent = await sendRes.json()
+      } else {
+        emailSent = { sent: false, reason: `send-email returned ${sendRes.status}` }
+      }
+    } catch (sendErr) {
+      // Network / timeout — silencieux, on continue
+      emailSent = {
+        sent: false,
+        reason: sendErr instanceof Error ? sendErr.message : 'unknown send error',
+      }
+    }
+  }
+
   return new Response(
     JSON.stringify({
       magic_link_id: inserted.id,
@@ -195,6 +225,9 @@ serve(async (req) => {
       url: `https://${PUBLIC_DOMAIN}/${token}`,
       expires_at: inserted.expires_at,
       status: inserted.status,
+      email_sent: emailSent.sent,
+      email_recipient: emailSent.recipient ?? null,
+      email_reason: emailSent.sent ? null : emailSent.reason ?? null,
     }),
     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   )
