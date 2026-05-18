@@ -22,6 +22,7 @@ import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import CookieBanner from '@/components/CookieBanner'
 import { ToastProvider } from '@/components/ui/Toast'
+import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
 
 // Lazy-loaded public pages
 // PropertyX public pages (anciennement eager — désormais lazy pour le SEO/LCP)
@@ -480,6 +481,9 @@ export default function App() {
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <ToastProvider>
+          {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
+              frosted-glass shimmer overlay, listens to languageChanged event. */}
+          <LanguageChangeOverlay />
           <Suspense fallback={<PageLoader />}>
             <AnimatedRoutes />
           </Suspense>
