@@ -15,6 +15,7 @@ import { useGmail, useGmailInbox } from '@/hooks/useGmail'
 import { useOutlookMail, useOutlookInbox } from '@/hooks/useOutlookMail'
 import type { EmailMessage } from '@/hooks/useGmail'
 import { EmailComposerModal } from '@/components/crm-sugar-v3/contact-detail/EmailComposerModal'
+import { EmailThreadModal } from '@/components/crm-sugar-v3/contact-detail/EmailThreadModal'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -67,6 +68,7 @@ export default function InboxSugarV2Page() {
   const [search, setSearch] = useState('')
   const [composerOpen, setComposerOpen] = useState(false)
   const [reply, setReply] = useState<InboxMessage | null>(null)
+  const [openThread, setOpenThread] = useState<InboxMessage | null>(null)
 
   const messages = useMemo<InboxMessage[]>(() => {
     const merged: InboxMessage[] = []
@@ -104,6 +106,7 @@ export default function InboxSugarV2Page() {
       case 'parcours': navigate('/dashboard/parcours'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'docs': navigate('/dashboard/documents'); break
+      case 'inbox': navigate('/dashboard/inbox'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'reseau': navigate('/dashboard/reseau'); break
       case 'ai':
@@ -394,7 +397,7 @@ export default function InboxSugarV2Page() {
             {anyConnected && !isLoading && filtered.map(msg => (
               <button
                 key={`${msg.provider}-${msg.id}`}
-                onClick={() => setReply(msg)}
+                onClick={() => setOpenThread(msg)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -527,6 +530,33 @@ export default function InboxSugarV2Page() {
         defaultSubject={reply?.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply?.subject || '(Sans objet)'}`}
         replyToMessageId={reply?.id}
         forceProvider={reply?.provider}
+      />
+
+      {/* Thread view (read full conversation) */}
+      <EmailThreadModal
+        open={!!openThread}
+        onClose={() => setOpenThread(null)}
+        threadId={openThread?.thread_id ?? null}
+        provider={openThread?.provider ?? null}
+        markMessageIdAsRead={openThread?.is_unread ? openThread.id : undefined}
+        onReply={(params) => {
+          setOpenThread(null)
+          // Convert ThreadModal reply params into InboxMessage-shaped state for the composer
+          setReply({
+            id: params.messageId,
+            thread_id: openThread?.thread_id ?? '',
+            from_address: params.to,
+            from_name: '',
+            to_addresses: [],
+            cc_addresses: [],
+            subject: params.subject,
+            snippet: '',
+            sent_at: new Date().toISOString(),
+            is_unread: false,
+            has_attachments: false,
+            provider: params.provider,
+          })
+        }}
       />
     </div>
   )

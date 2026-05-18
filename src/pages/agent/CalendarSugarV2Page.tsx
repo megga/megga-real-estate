@@ -217,6 +217,7 @@ export default function CalendarSugarV2Page() {
         break
       case 'docs':
         navigate('/dashboard/documents'); break
+      case 'inbox': navigate('/dashboard/inbox'); break
       case 'kyc':
         navigate('/dashboard/kyc'); break
       case 'reseau':

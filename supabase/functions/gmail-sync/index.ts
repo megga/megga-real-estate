@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'send_message' | 'disconnect'
+type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'get_thread' | 'send_message' | 'mark_read' | 'disconnect'
 
 interface SyncRequest {
   action: Action
@@ -34,6 +34,9 @@ interface SyncRequest {
   body_text?: string
   body_html?: string
   reply_to_message_id?: string
+  // mark_read / get_thread
+  thread_id?: string
+  is_read?: boolean
 }
 
 interface GmailMessageMeta {
@@ -377,6 +380,102 @@ serve(async (req) => {
         const full = await gmailFetch(accessToken, `/users/me/messages/${body.message_id}?format=full`)
 
         return new Response(JSON.stringify({ message: full }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // ── Mark message read / unread ──
+      case 'mark_read': {
+        if (!body.message_id) throw new Error('Missing message_id')
+        const accessToken = await getValidToken(userId)
+        if (!accessToken) throw new Error('Gmail not connected')
+
+        const isRead = body.is_read ?? true
+        const payload = isRead
+          ? { removeLabelIds: ['UNREAD'] }
+          : { addLabelIds: ['UNREAD'] }
+
+        const res = await fetch(`${GMAIL_API}/users/me/messages/${body.message_id}/modify`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) {
+          const err = await res.text()
+          throw new Error(`Gmail mark_read error ${res.status}: ${err}`)
+        }
+
+        // Sync local cache
+        await db.from('email_messages_cache')
+          .update({ is_unread: !isRead })
+          .eq('user_id', userId)
+          .eq('provider', 'gmail')
+          .eq('external_message_id', body.message_id)
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // ── Get full thread (conversation) ──
+      case 'get_thread': {
+        if (!body.thread_id) throw new Error('Missing thread_id')
+        const accessToken = await getValidToken(userId)
+        if (!accessToken) throw new Error('Gmail not connected')
+
+        const data = await gmailFetch(accessToken, `/users/me/threads/${body.thread_id}?format=full`) as {
+          id: string
+          messages?: Array<{
+            id: string
+            threadId: string
+            snippet?: string
+            internalDate?: string
+            labelIds?: string[]
+            payload?: {
+              headers?: { name: string; value: string }[]
+              parts?: Array<{ mimeType?: string; body?: { data?: string; size?: number }; filename?: string }>
+              body?: { data?: string; size?: number }
+              mimeType?: string
+            }
+          }>
+        }
+
+        // Décode chaque message + extrait body text + liste pièces jointes (metadata seulement)
+        const messages = (data.messages ?? []).map(meta => {
+          const normalized = normalizeGmailMessage(meta as GmailMessageMeta)
+          // Extract body text (try plain part, fallback HTML)
+          let bodyText = ''
+          const attachments: { filename: string; mime_type: string; size: number; attachment_id: string }[] = []
+          const walkParts = (parts: NonNullable<NonNullable<typeof meta.payload>['parts']>) => {
+            for (const p of parts) {
+              if (p.filename && p.body && p.body.size) {
+                attachments.push({
+                  filename: p.filename,
+                  mime_type: p.mimeType ?? 'application/octet-stream',
+                  size: p.body.size ?? 0,
+                  attachment_id: '', // Gmail attachmentId is in body.attachmentId, omitted ici
+                })
+              }
+              if (p.mimeType === 'text/plain' && p.body?.data && !bodyText) {
+                try {
+                  bodyText = atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'))
+                } catch { /* ignore */ }
+              }
+            }
+          }
+          if (meta.payload?.parts) walkParts(meta.payload.parts)
+          if (!bodyText && meta.payload?.body?.data) {
+            try {
+              bodyText = atob(meta.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'))
+            } catch { /* ignore */ }
+          }
+          return { ...normalized, body_text: bodyText, attachments }
+        })
+
+        return new Response(JSON.stringify({ thread_id: data.id, messages }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }

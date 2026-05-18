@@ -204,6 +204,7 @@ export default function ContactsSugarV2Page() {
         navigate('/dashboard/calendar'); break
       case 'docs':
         navigate('/dashboard/documents'); break
+      case 'inbox': navigate('/dashboard/inbox'); break
       case 'kyc':
         navigate('/dashboard/kyc'); break
       case 'reseau':

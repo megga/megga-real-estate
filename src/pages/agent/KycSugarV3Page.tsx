@@ -115,6 +115,7 @@ export default function KycSugarV3Page() {
       case 'parcours': navigate('/dashboard/parcours'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'docs': navigate('/dashboard/documents'); break
+      case 'inbox': navigate('/dashboard/inbox'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'reseau': navigate('/dashboard/reseau'); break
       case 'ai':

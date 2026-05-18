@@ -11,6 +11,7 @@ import { useGmail, useGmailMessagesForContact } from '@/hooks/useGmail'
 import { useOutlookMail, useOutlookMailMessagesForContact } from '@/hooks/useOutlookMail'
 import type { EmailMessage } from '@/hooks/useGmail'
 import { EmailComposerModal } from './EmailComposerModal'
+import { EmailThreadModal } from './EmailThreadModal'
 
 interface Props {
   contactId: string
@@ -48,6 +49,7 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
   const anyConnected = gmail.isConnected || outlookMail.isConnected
 
   const [reply, setReply] = useState<ReplyContext | null>(null)
+  const [openThread, setOpenThread] = useState<DisplayMessage | null>(null)
 
   const gmailQuery = useGmailMessagesForContact(
     gmail.isConnected ? contactEmail : null,
@@ -198,6 +200,7 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
         {messages.map(msg => (
           <div
             key={`${msg.provider}-${msg.id}`}
+            onClick={() => setOpenThread(msg)}
             style={{
               padding: '14px 16px',
               borderRadius: 14,
@@ -206,6 +209,7 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
               flexDirection: 'column',
               gap: 6,
               borderLeft: `3px solid ${msg.provider === 'gmail' ? '#EA4335' : '#0078D4'}`,
+              cursor: 'pointer',
             }}
           >
             <div
@@ -291,12 +295,15 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
               <button
-                onClick={() => setReply({
-                  messageId: msg.id,
-                  provider: msg.provider,
-                  subject: msg.subject.startsWith('Re:') ? msg.subject : `Re: ${msg.subject || '(Sans objet)'}`,
-                  to: msg.from_address,
-                })}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setReply({
+                    messageId: msg.id,
+                    provider: msg.provider,
+                    subject: msg.subject.startsWith('Re:') ? msg.subject : `Re: ${msg.subject || '(Sans objet)'}`,
+                    to: msg.from_address,
+                  })
+                }}
                 style={{
                   height: 28,
                   padding: '0 14px',
@@ -329,6 +336,23 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
         defaultSubject={reply?.subject ?? ''}
         replyToMessageId={reply?.messageId}
         forceProvider={reply?.provider}
+      />
+
+      <EmailThreadModal
+        open={!!openThread}
+        onClose={() => setOpenThread(null)}
+        threadId={openThread?.thread_id ?? null}
+        provider={openThread?.provider ?? null}
+        markMessageIdAsRead={openThread?.is_unread ? openThread.id : undefined}
+        onReply={(params) => {
+          setOpenThread(null)
+          setReply({
+            messageId: params.messageId,
+            provider: params.provider,
+            subject: params.subject,
+            to: params.to,
+          })
+        }}
       />
     </KycSection>
   )

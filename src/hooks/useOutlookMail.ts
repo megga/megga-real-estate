@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { EmailMessage, SendMessageParams } from '@/hooks/useGmail'
+import type { EmailMessage, SendMessageParams, ThreadMessage } from '@/hooks/useGmail'
 
 // ── Types ──
 
@@ -73,6 +73,19 @@ export function useOutlookMail() {
     },
   })
 
+  const markReadMutation = useMutation({
+    mutationFn: async (params: { message_id: string; is_read: boolean }) => {
+      const res = await supabase.functions.invoke('outlook-mail-sync', {
+        body: { action: 'mark_read', ...params },
+      })
+      if (res.error) throw new Error(res.error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outlook-inbox'] })
+      queryClient.invalidateQueries({ queryKey: ['outlook-mail-messages'] })
+    },
+  })
+
   const sendMessageMutation = useMutation({
     mutationFn: async (params: SendMessageParams): Promise<{ success: boolean }> => {
       const res = await supabase.functions.invoke('outlook-mail-sync', {
@@ -115,8 +128,30 @@ export function useOutlookMail() {
     sendMessage: sendMessageMutation.mutateAsync,
     isSending: sendMessageMutation.isPending,
 
+    markAsRead: markReadMutation.mutateAsync,
+
     saveTokens,
   }
+}
+
+// Récupère un thread Outlook complet (tous les messages d'une conversation)
+export function useOutlookThread(threadId: string | null | undefined) {
+  const { user } = useAuth()
+  const userId = user?.id
+
+  return useQuery({
+    queryKey: ['outlook-thread', userId, threadId],
+    queryFn: async (): Promise<ThreadMessage[]> => {
+      if (!threadId) return []
+      const res = await supabase.functions.invoke('outlook-mail-sync', {
+        body: { action: 'get_thread', thread_id: threadId },
+      })
+      if (res.error || !res.data?.messages) return []
+      return res.data.messages as ThreadMessage[]
+    },
+    enabled: !!userId && !!threadId,
+    staleTime: 60_000,
+  })
 }
 
 export function useOutlookMailMessagesForContact(

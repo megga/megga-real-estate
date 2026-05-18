@@ -60,6 +60,9 @@ export default function DashboardSugarV4Page() {
       case 'docs':
         navigate('/dashboard/documents')
         break
+      case 'inbox':
+        navigate('/dashboard/inbox')
+        break
       case 'matching':
         navigate('/dashboard/matching')
         break

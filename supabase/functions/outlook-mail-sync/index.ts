@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'send_message' | 'disconnect'
+type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'get_thread' | 'send_message' | 'mark_read' | 'disconnect'
 
 interface SyncRequest {
   action: Action
@@ -31,6 +31,9 @@ interface SyncRequest {
   body_text?: string
   body_html?: string
   reply_to_message_id?: string
+  // mark_read / get_thread
+  thread_id?: string
+  is_read?: boolean
 }
 
 interface OutlookMessageRaw {
@@ -344,6 +347,82 @@ serve(async (req) => {
         const full = await graphFetch(accessToken, `/me/messages/${body.message_id}`)
 
         return new Response(JSON.stringify({ message: full }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'mark_read': {
+        if (!body.message_id) throw new Error('Missing message_id')
+        const accessToken = await getValidToken(userId)
+        if (!accessToken) throw new Error('Outlook Mail not connected')
+
+        const isRead = body.is_read ?? true
+        const res = await fetch(`${GRAPH_API}/me/messages/${body.message_id}`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ isRead }),
+        })
+        if (!res.ok) {
+          const err = await res.text()
+          throw new Error(`Outlook mark_read error ${res.status}: ${err}`)
+        }
+
+        await db.from('email_messages_cache')
+          .update({ is_unread: !isRead })
+          .eq('user_id', userId)
+          .eq('provider', 'outlook')
+          .eq('external_message_id', body.message_id)
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'get_thread': {
+        if (!body.thread_id) throw new Error('Missing thread_id')
+        const accessToken = await getValidToken(userId)
+        if (!accessToken) throw new Error('Outlook Mail not connected')
+
+        // Graph : threads = filtre par conversationId. On récupère le body + attachments
+        // de chaque message du thread.
+        const params = new URLSearchParams({
+          $filter: `conversationId eq '${body.thread_id.replace(/'/g, "''")}'`,
+          $orderby: 'receivedDateTime asc',
+          $top: '50',
+          $select: 'id,conversationId,subject,bodyPreview,receivedDateTime,sentDateTime,isRead,hasAttachments,from,toRecipients,ccRecipients,body',
+        })
+        const data = await graphFetch(accessToken, `/me/messages?${params}`) as {
+          value: Array<OutlookMessageRaw & { body?: { contentType: string; content: string }; hasAttachments?: boolean }>
+        }
+
+        const messages = await Promise.all((data.value ?? []).map(async raw => {
+          const normalized = normalizeOutlookMessage(raw)
+          const bodyText = raw.body?.contentType === 'html'
+            ? raw.body.content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
+            : (raw.body?.content ?? raw.bodyPreview ?? '')
+
+          // Liste les pièces jointes si présentes
+          let attachments: { filename: string; mime_type: string; size: number; attachment_id: string }[] = []
+          if (raw.hasAttachments) {
+            try {
+              const att = await graphFetch(accessToken, `/me/messages/${raw.id}/attachments?$select=id,name,contentType,size`) as {
+                value: Array<{ id: string; name: string; contentType: string; size: number }>
+              }
+              attachments = (att.value ?? []).map(a => ({
+                filename: a.name,
+                mime_type: a.contentType,
+                size: a.size,
+                attachment_id: a.id,
+              }))
+            } catch { /* ignore */ }
+          }
+          return { ...normalized, body_text: bodyText, attachments }
+        }))
+
+        return new Response(JSON.stringify({ thread_id: body.thread_id, messages }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }

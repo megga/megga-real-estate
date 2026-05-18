@@ -40,7 +40,7 @@ export function SugarRoundIconBtn({ children, dot, onClick, sp }: SugarRoundIcon
 // ─── Top navigation (logo + horizontal tabs + actions) ─────────────────
 export type SugarScreenId =
   | 'today' | 'pipeline' | 'matching' | 'parcours' | 'contacts'
-  | 'biens' | 'calendar' | 'docs' | 'julien'
+  | 'biens' | 'calendar' | 'docs' | 'julien' | 'inbox'
 
 interface SugarTopNavProps {
   active?: SugarScreenId
@@ -253,6 +253,7 @@ export function SugarIconRail({
   ]
   const modules: RailItem[] = [
     { id: 'ai',        icon: 'spark', label: 'MEGGA AI' },
+    { id: 'inbox',     icon: 'mail',  label: 'Boîte de réception' },
     { id: 'dashboard', icon: 'dash',  label: 'Dashboard' },
     { id: 'biens-new', icon: 'plus',  label: 'Créer un bien' },
   ]

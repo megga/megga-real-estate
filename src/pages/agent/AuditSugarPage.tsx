@@ -104,6 +104,7 @@ export default function AuditSugarPage() {
       case 'audit': break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'docs': navigate('/dashboard/documents'); break
+      case 'inbox': navigate('/dashboard/inbox'); break
       case 'ai':
       case 'julien': navigate('/dashboard/julien'); break
       case 'settings': navigate('/dashboard/settings'); break

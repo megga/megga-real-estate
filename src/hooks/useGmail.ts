@@ -27,6 +27,18 @@ export interface SendMessageParams {
   reply_to_message_id?: string
 }
 
+export interface EmailAttachment {
+  filename: string
+  mime_type: string
+  size: number
+  attachment_id: string
+}
+
+export interface ThreadMessage extends EmailMessage {
+  body_text: string
+  attachments: EmailAttachment[]
+}
+
 interface GmailToken {
   id: string
   user_id: string
@@ -100,6 +112,20 @@ export function useGmail() {
     },
   })
 
+  // Marquer un message lu / non lu
+  const markReadMutation = useMutation({
+    mutationFn: async (params: { message_id: string; is_read: boolean }) => {
+      const res = await supabase.functions.invoke('gmail-sync', {
+        body: { action: 'mark_read', ...params },
+      })
+      if (res.error) throw new Error(res.error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gmail-inbox'] })
+      queryClient.invalidateQueries({ queryKey: ['gmail-messages'] })
+    },
+  })
+
   // Envoi d'un message — signature auto-append côté Edge Function
   const sendMessageMutation = useMutation({
     mutationFn: async (params: SendMessageParams): Promise<{ message_id: string; thread_id: string }> => {
@@ -143,8 +169,30 @@ export function useGmail() {
     sendMessage: sendMessageMutation.mutateAsync,
     isSending: sendMessageMutation.isPending,
 
+    markAsRead: markReadMutation.mutateAsync,
+
     saveTokens,
   }
+}
+
+// Récupère un thread Gmail complet (tous les messages + body + attachments)
+export function useGmailThread(threadId: string | null | undefined) {
+  const { user } = useAuth()
+  const userId = user?.id
+
+  return useQuery({
+    queryKey: ['gmail-thread', userId, threadId],
+    queryFn: async (): Promise<ThreadMessage[]> => {
+      if (!threadId) return []
+      const res = await supabase.functions.invoke('gmail-sync', {
+        body: { action: 'get_thread', thread_id: threadId },
+      })
+      if (res.error || !res.data?.messages) return []
+      return res.data.messages as ThreadMessage[]
+    },
+    enabled: !!userId && !!threadId,
+    staleTime: 60_000,
+  })
 }
 
 // Query helper pour afficher directement les messages d'un contact (cache + fetch)
