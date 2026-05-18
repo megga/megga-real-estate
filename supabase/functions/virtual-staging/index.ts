@@ -16,8 +16,12 @@
 //   5. Gemini Nano Banana 2 → image staged
 //   6. Upload Storage + `ai_generated_photos` array + audit event
 //
-// Coût total : Claude Vision ~CHF 0.003 + Claude Haiku ~CHF 0.001
-//              + Gemini ~CHF 0.034 = ~CHF 0.038/image
+// Coût total à 2K (déc. 2026, sources Anthropic + Google AI) :
+//   - Claude Sonnet 4 Vision  : ~CHF 0.008
+//   - Claude Haiku 4.5        : ~CHF 0.002
+//   - Gemini Nano Banana 2 2K : ~CHF 0.089
+//   - TOTAL ~CHF 0.10/image (provisionne CHF 0.12 pour buffer +20%)
+// Quotas mensuels Pro=50 (~CHF 5/agent), Agency=200 (~CHF 20/agent).
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -450,6 +454,23 @@ serve(async (req) => {
         generationConfig: {
           responseModalities: ['TEXT', 'IMAGE'],
           temperature: 0.4,
+          // Nano Banana 2 default = 1K (1024×1024). On force 2K (2048) car :
+          //   - Le marketplace affiche les hero photos en 1200-1800px sur
+          //     desktop retina. 1K se fait downsize visible, 2K passe net.
+          //   - Coût Gemini : $0.067 (1K) → $0.101 (2K), +50% sur le step
+          //     image-gen. Vu le quota mensuel modeste (Pro=50), le surcoût
+          //     plafonne à ~CHF 1.50/agent/mois — négligeable vs gain visuel.
+          //   - 4K = $0.151 (+125%) sans gain perceptible sur le web → on
+          //     n'y va pas.
+          // On n'impose pas d'aspectRatio : Nano Banana 2 préserve la
+          // géométrie de l'image source quand on n'en demande pas, ce qui
+          // est exactement ce qu'on veut pour un staging (sinon les murs
+          // bougent).
+          responseFormat: {
+            image: {
+              imageSize: '2K',
+            },
+          },
         },
       }),
     })
