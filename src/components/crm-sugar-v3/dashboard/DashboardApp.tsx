@@ -144,6 +144,7 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
         {tab === 'cockpit' && (
           <DBCockpit
             period={period}
+            scope={scope}
             onDrilldownStage={handleDrilldownStage}
             onDrilldownVital={handleDrilldownVital}
             onCoachCta={handleCoachCta}

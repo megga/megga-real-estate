@@ -14,7 +14,9 @@ import {
   type CockpitTone,
   type DecompStage,
   type PeriodKey,
+  type ScopeKey,
 } from './data'
+import { useDashboardCockpit } from '@/hooks/useDashboardCockpit'
 
 // ─── Hero adaptatif pleine largeur ─────────────────────────────────────
 function CockpitHero({ data, tone }: { data: CockpitDataset; tone: CockpitTone }) {
@@ -754,6 +756,7 @@ function CockpitCoachBand({ data, onCta }: { data: CockpitDataset; onCta?: () =>
 // ─── DBCockpit (étage 1 complet) ───────────────────────────────────────
 interface DBCockpitProps {
   period: PeriodKey
+  scope: ScopeKey
   onDrilldownStage?: (id: DecompStage['id']) => void
   onDrilldownVital?: (id: string) => void
   onCoachCta?: () => void
@@ -761,12 +764,16 @@ interface DBCockpitProps {
 
 export function DBCockpit({
   period: shellPeriod,
+  scope,
   onDrilldownStage,
   onDrilldownVital,
   onCoachCta,
 }: DBCockpitProps) {
-  const period = ckMapPeriod(shellPeriod)
-  const data = CK_DATA[period]
+  // Source de vérité : Supabase via useDashboardCockpit.
+  // Fallback fixtures CK_DATA pendant le chargement initial pour éviter le flash.
+  const { data: liveData } = useDashboardCockpit(shellPeriod, scope)
+  const periodMapped = ckMapPeriod(shellPeriod)
+  const data: CockpitDataset = liveData ?? CK_DATA[periodMapped]
   const tone = ckTone(data.projected, data.target, data.periodWord)
   const stages = CK_DECOMP_STAGES
 
