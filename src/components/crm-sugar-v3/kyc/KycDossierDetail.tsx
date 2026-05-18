@@ -99,16 +99,20 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
 
   // nLPD art. 12 — log de l'accès consultation au dossier KYC (Roger #1).
   // Une seule fois par mount + dossier, pas à chaque re-render.
+  // NB : logRead.mutate exclu des deps — l'objet mutation change à chaque render
+  // et causerait une boucle infinie (fix Sprint 3.1).
   const readLoggedRef = useRef<string | null>(null)
+  const logReadMutate = logRead.mutate
   useEffect(() => {
     if (!dossier?.agency_id || readLoggedRef.current === dossierId) return
     readLoggedRef.current = dossierId
-    logRead.mutate({
+    logReadMutate({
       kycCaseId: dossierId,
       agencyId: dossier.agency_id,
       actorId: agentId,
     })
-  }, [dossier?.agency_id, dossierId, agentId, logRead])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dossier?.agency_id, dossierId, agentId])
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [examineTarget, setExamineTarget] = useState<ScreeningDecisionTarget | null>(null)

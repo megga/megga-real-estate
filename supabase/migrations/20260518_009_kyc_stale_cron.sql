@@ -71,12 +71,17 @@ COMMENT ON FUNCTION mark_stale_kyc_dossiers() IS
 
 -- ─── pg_cron daily 02:30 UTC ───────────────────────────────────────────────
 
+-- Fix Sprint 3.1 : la syntaxe `PERFORM ... WHERE EXISTS (...)` est INVALIDE
+-- en PL/pgSQL — PERFORM n'accepte pas de clause WHERE externe. Causait l'échec
+-- silencieux de la migration en prod.
+
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     -- Drop l'éventuel job existant pour idempotence
-    PERFORM cron.unschedule('kyc-stale-daily')
-    WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'kyc-stale-daily');
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'kyc-stale-daily') THEN
+      PERFORM cron.unschedule('kyc-stale-daily');
+    END IF;
 
     PERFORM cron.schedule(
       'kyc-stale-daily',
