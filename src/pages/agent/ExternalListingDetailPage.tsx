@@ -240,7 +240,15 @@ export default function ExternalListingDetailPage() {
             {listing.description && (
               <div className="rounded-xl border border-theme-border p-5">
                 <h3 className="text-xs text-theme-tertiary capitalize mb-3">{t('external.description')}</h3>
-                <div className="text-sm text-theme-secondary leading-relaxed prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: listing.description }} />
+                {/* Rendu texte brut + sauts de ligne préservés — évite XSS sur
+                    description scrapée par Flatfox/Homegate qui pourrait contenir
+                    du HTML malveillant si un site source est compromis. */}
+                <div
+                  className="text-sm text-theme-secondary leading-relaxed max-w-none"
+                  style={{ whiteSpace: 'pre-wrap' }}
+                >
+                  {listing.description}
+                </div>
               </div>
             )}
 
