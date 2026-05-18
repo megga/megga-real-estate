@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Documents (Tier 3.j)
 // 1:1 port from the Claude Design bundle (`crm-documents-sugar.jsx`).
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -23,9 +23,10 @@ import {
   TemplateEditorModal, type TemplateEditorPayload,
 } from '@/components/crm-sugar/documents/TemplateEditorModal'
 import {
-  DOC_FOLDERS, DOC_TEMPLATES,
-  type DocItem, type DocTemplate,
+  DOC_TEMPLATES,
+  type DocItem, type DocTemplate, type DocFolder,
 } from '@/components/crm-sugar/documents/data'
+import { useDocumentsSugar } from '@/hooks/useDocumentsSugar'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -48,14 +49,18 @@ export default function DocumentsSugarV2Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
+  // Source de vérité : transactions actives Supabase (un dossier = une transaction)
+  // + documents Supabase joints. Templates restent mock (chantier séparé).
+  const { folders } = useDocumentsSugar()
+
   const [view, setView] = useState<DocViewId>('living')
   const [filter, setFilter] = useState<DocFilterId>('active')
   const [query, setQuery] = useState('')
-  const [selectedFolder, setSelectedFolder] = useState<string>(DOC_FOLDERS[0].id)
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null)
   const [studioState, setStudioState] = useState<{
     doc: DocItem
-    folder: typeof DOC_FOLDERS[number]
+    folder: DocFolder
   } | null>(null)
   const [showNewDoc, setShowNewDoc] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<{
@@ -69,8 +74,17 @@ export default function DocumentsSugarV2Page() {
     return () => window.clearTimeout(id)
   }, [toast])
 
-  const folder = DOC_FOLDERS.find(f => f.id === selectedFolder) || DOC_FOLDERS[0]
-  const doc: DocItem | null = selectedDoc
+  // Sélection courante : celui de l'état si trouvé, sinon le premier dossier
+  const folder: DocFolder | null = useMemo(() => {
+    if (folders.length === 0) return null
+    if (selectedFolder) {
+      const match = folders.find(f => f.id === selectedFolder)
+      if (match) return match
+    }
+    return folders[0]
+  }, [folders, selectedFolder])
+
+  const doc: DocItem | null = selectedDoc && folder
     ? folder.docs.find(d => d.id === selectedDoc) || null
     : null
 
@@ -85,7 +99,7 @@ export default function DocumentsSugarV2Page() {
     setEditingTemplate({ template: tpl })
 
   const handleCreateDoc = (payload: NewDocPayload) => {
-    const target = DOC_FOLDERS.find(f => f.id === payload.folderId)
+    const target = folders.find(f => f.id === payload.folderId)
     setToast(
       payload.mode === 'template'
         ? `Document généré dans ${target?.title ?? 'le dossier'}`
@@ -195,7 +209,7 @@ export default function DocumentsSugarV2Page() {
                   lineHeight: 1.1,
                 }}
               >
-                {DOC_FOLDERS.filter(f => !f.isArchived).length} dossiers actifs
+                {folders.filter(f => !f.isArchived).length} dossiers actifs
               </div>
             </div>
 
@@ -252,12 +266,12 @@ export default function DocumentsSugarV2Page() {
               alignItems: 'flex-start',
             }}
           >
-            {view === 'living' && (
+            {view === 'living' && folder && (
               <>
                 <DocLeftColumn
                   sp={sp}
-                  folders={DOC_FOLDERS}
-                  selected={selectedFolder}
+                  folders={folders}
+                  selected={folder.id}
                   onSelect={id => {
                     setSelectedFolder(id)
                     setSelectedDoc(null)
@@ -281,11 +295,19 @@ export default function DocumentsSugarV2Page() {
                 />
               </>
             )}
+            {view === 'living' && !folder && (
+              <div style={{
+                flex: 1, minWidth: 0, padding: '60px 20px', textAlign: 'center',
+                color: sp.sub, fontSize: 13.5,
+              }}>
+                Aucun dossier actif. Créez une transaction depuis le Pipeline pour démarrer un dossier ici.
+              </div>
+            )}
 
             {view === 'grid' && (
               <div style={{ flex: 1, minWidth: 0 }}>
                 <DocGridView
-                  folders={DOC_FOLDERS}
+                  folders={folders}
                   sp={sp}
                   onSelectDoc={handleGridSelect}
                 />
@@ -375,7 +397,7 @@ export default function DocumentsSugarV2Page() {
 
       {showNewDoc && (
         <NewDocModal
-          folders={DOC_FOLDERS}
+          folders={folders}
           templates={DOC_TEMPLATES}
           dark={dark}
           onClose={() => setShowNewDoc(false)}

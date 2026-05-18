@@ -10,6 +10,7 @@ import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
 import { CRM_AGENT, crmContactById } from '@/components/crm-sugar/mockData'
+import { useTodaySugarKpi } from '@/hooks/useTodaySugarKpi'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
 import {
   SugarTopNav, SugarIconRail, SugarFrame, SugarRoundIconBtn,
@@ -50,6 +51,12 @@ export default function TodaySugarPage() {
 
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
+
+  // ─── KPIs live (Supabase) ───────────────────────────────────────────
+  // Les 5 tuiles en tête de page lisent reminders / transactions / matches.
+  // Les colonnes (relances/qualif/offres/comm) et la knowledge table restent
+  // mockées pour cette PR — chantier séparé.
+  const kpi = useTodaySugarKpi()
 
   // ─── Page state ─────────────────────────────────────────────────────
   const [detailContact, setDetailContact] = useState<CrmContact | null>(null)
@@ -378,20 +385,28 @@ export default function TodaySugarPage() {
                   }
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '10px 0 4px' }}>
-                    <SugarDonut sp={sp} value={5} total={6} color="#0041D9" bg={dark ? '#1A2A4D' : '#E8EFFE'} label="Exécutées"
+                    <SugarDonut sp={sp} value={kpi.executedToday} total={Math.max(kpi.executedTotal, 1)}
+                      color="#0041D9" bg={dark ? '#1A2A4D' : '#E8EFFE'} label="Exécutées"
                       onClick={e => pipelinePop.openAt(e, 'pipeline', { kind: 'executed' })} />
-                    <SugarDonut sp={sp} value={7} total={10} color="#E53935" bg={dark ? '#3A1F22' : '#FDECEA'} label="Actives"
+                    <SugarDonut sp={sp} value={kpi.activeTasks} total={kpi.activeTarget}
+                      color="#E53935" bg={dark ? '#3A1F22' : '#FDECEA'} label="Actives"
                       onClick={e => pipelinePop.openAt(e, 'pipeline', { kind: 'active' })} />
                   </div>
                   <div style={{
                     display: 'flex', justifyContent: 'space-around', marginTop: 10,
                     fontSize: 11.5, color: sp.sub,
                   }}>
-                    <SugarPipelineStat sp={sp} value="CHF 7.6M" valueColor={sp.ink} label="Pipeline"
+                    <SugarPipelineStat sp={sp}
+                      value={`CHF ${(kpi.pipelineValue / 1e6).toFixed(1)}M`}
+                      valueColor={sp.ink} label="Pipeline"
                       onClick={e => pipelinePop.openAt(e, 'pipeline', { kind: 'pipeline' })} />
-                    <SugarPipelineStat sp={sp} value="+3" valueColor="#0E9F6E" label="Nouveaux matchs"
+                    <SugarPipelineStat sp={sp}
+                      value={kpi.newMatchesToday > 0 ? `+${kpi.newMatchesToday}` : '0'}
+                      valueColor="#0E9F6E" label="Nouveaux matchs"
                       onClick={e => pipelinePop.openAt(e, 'pipeline', { kind: 'matches' })} />
-                    <SugarPipelineStat sp={sp} value="1" valueColor="#F59E0B" label="À risque"
+                    <SugarPipelineStat sp={sp}
+                      value={String(kpi.atRisk)}
+                      valueColor="#F59E0B" label="À risque"
                       onClick={e => pipelinePop.openAt(e, 'pipeline', { kind: 'risk' })} />
                   </div>
                 </SugarFrame>

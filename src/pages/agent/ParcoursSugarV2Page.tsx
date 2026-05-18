@@ -12,11 +12,11 @@ import {
 import { PCDossierFrame } from '@/components/crm-sugar/parcours/PCDossierFrame'
 import { PCFilters } from '@/components/crm-sugar/parcours/PCFilters'
 import {
-  PARCOURS_DOSSIERS,
   type ParcoursTask,
   type StageId,
   type Urgency,
 } from '@/components/crm-sugar/parcours/parcoursData'
+import { useParcoursSugar } from '@/hooks/useParcoursSugar'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -39,6 +39,10 @@ export default function ParcoursSugarV2Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
+  // Source de vérité : transactions actives Supabase (1 dossier = 1 transaction)
+  // Équipe agence + tâches granulaires restent dérivés heuristiquement (chantier RBAC séparé).
+  const { dossiers: liveDossiers } = useParcoursSugar()
+
   const [agentFilter, setAgentFilter] = useState<string>('all')
   const [stageFilter, setStageFilter] = useState<StageId | 'all'>('all')
   const [urgencyFilter, setUrgencyFilter] = useState<Urgency | 'all'>('all')
@@ -51,7 +55,7 @@ export default function ParcoursSugarV2Page() {
   }, [toast])
 
   const dossiers = useMemo(() => {
-    return PARCOURS_DOSSIERS.filter(d => {
+    return liveDossiers.filter(d => {
       if (urgencyFilter !== 'all' && d.urgency !== urgencyFilter) return false
       if (stageFilter !== 'all' && d.stageActive !== stageFilter) return false
       if (agentFilter !== 'all') {
@@ -64,7 +68,7 @@ export default function ParcoursSugarV2Page() {
       }
       return true
     })
-  }, [agentFilter, stageFilter, urgencyFilter])
+  }, [liveDossiers, agentFilter, stageFilter, urgencyFilter])
 
   const onCmd = () => {
     /* placeholder */

@@ -20,11 +20,12 @@ import { CalAgendaView } from '@/components/crm-sugar/calendar/CalAgendaView'
 import { CalLeftPanel } from '@/components/crm-sugar/calendar/CalLeftPanel'
 import { CalRightPanel } from '@/components/crm-sugar/calendar/CalRightPanel'
 import {
-  CAL_AI_INSIGHTS, CAL_EVENTS, CAL_HOT_BUYERS, CAL_NOW, CAL_PALETTE,
+  CAL_AI_INSIGHTS, CAL_HOT_BUYERS, CAL_PALETTE,
 } from '@/components/crm-sugar/calendar/data'
 import {
   CAL_MONTHS, fmtDate, fmtTime, sameDay,
 } from '@/components/crm-sugar/calendar/helpers'
+import { useCalendarSugar } from '@/hooks/useCalendarSugar'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -48,19 +49,23 @@ export default function CalendarSugarV2Page() {
   const sp = crmSugarPalette(t, dark, DARK_TONE)
   const SP = CAL_PALETTE
 
+  // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
+  // HOT_BUYERS et AI_INSIGHTS restent câblés sur le mock pour cette PR.
+  const { events } = useCalendarSugar()
+
   const [view, setView] = useState<CalViewId>('day')
-  const [currentDate, setCurrentDate] = useState<Date>(new Date(CAL_NOW))
-  const [selectedId, setSelectedId] = useState<string | null>('e5')
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filters, setFilters] = useState<Record<string, boolean>>({})
 
   const filtered = useMemo(
-    () => CAL_EVENTS.filter(e => filters[e.type] !== false),
-    [filters],
+    () => events.filter(e => filters[e.type] !== false),
+    [events, filters],
   )
   const selected = filtered.find(e => e.id === selectedId)
 
   // Live clock simulé
-  const [liveNow, setLiveNow] = useState<Date>(CAL_NOW)
+  const [liveNow, setLiveNow] = useState<Date>(() => new Date())
   useEffect(() => {
     const id = window.setInterval(() => {
       setLiveNow(prev => {
@@ -284,7 +289,7 @@ export default function CalendarSugarV2Page() {
                 size={34}
               />
               <button
-                onClick={() => setCurrentDate(new Date(CAL_NOW))}
+                onClick={() => setCurrentDate(new Date())}
                 style={{
                   height: 34,
                   padding: '0 14px',
@@ -354,7 +359,7 @@ export default function CalendarSugarV2Page() {
             <CalLeftPanel
               currentDate={currentDate}
               onDateChange={setCurrentDate}
-              events={CAL_EVENTS}
+              events={events}
               filters={filters}
               onFilters={setFilters}
               hotBuyers={CAL_HOT_BUYERS}

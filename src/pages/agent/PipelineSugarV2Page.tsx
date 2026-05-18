@@ -7,12 +7,14 @@ import {
   CRM_TOKENS, CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette,
   type DarkTone, type StageId,
 } from '@/components/crm-sugar/tokens'
-import { CRM_DEALS, crmBienById, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
+import { crmBienById, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
 import { SugarPipelineKycLock } from '@/components/crm-sugar-v3/pipeline/SugarPipelineKycLock'
 import { PipelineKycToast } from '@/components/crm-sugar-v3/pipeline/PipelineKycToast'
 import { KycOverrideModal } from '@/components/crm-sugar-v3/pipeline/KycOverrideModal'
 import { useLogAudit } from '@/hooks/useAuditLog'
+import { usePipelineSugar } from '@/hooks/usePipelineSugar'
+import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -68,8 +70,27 @@ export default function PipelineSugarV2Page() {
 
   const logAudit = useLogAudit()
 
+  // ── Source de vérité : Supabase via usePipelineSugar ────────────────
+  // Le hook remplit le registry runtime ; crmContactById/crmBienById ci-dessous
+  // renvoient automatiquement les contacts/biens Supabase.
+  const { deals: liveDeals, isLoading, updateStage } = usePipelineSugar()
+
+  // ── Optimistic overlay (drag-drop fluide) ────────────────────────────
+  // React Query invalide après mutation → léger délai. On overlay le stage
+  // optimiste localement le temps que la mutation aboutisse pour éviter le
+  // flash visuel (deal qui revient en arrière puis avance).
+  const [pendingStage, setPendingStage] = useState<Map<string, StageId>>(() => new Map())
+
+  const localDeals = useMemo<CrmDeal[]>(() => {
+    if (pendingStage.size === 0) return liveDeals
+    return liveDeals.map(d => {
+      const pending = pendingStage.get(d.id)
+      if (!pending) return d
+      return { ...d, stage: pending, probability: CRM_STAGE_PROBS[pending] || d.probability }
+    })
+  }, [liveDeals, pendingStage])
+
   // ── Drag & drop ──────────────────────────────────────────────────────
-  const [localDeals, setLocalDeals] = useState<CrmDeal[]>(CRM_DEALS)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<StageId | null>(null)
 
@@ -84,11 +105,26 @@ export default function PipelineSugarV2Page() {
   const [overrideOpen, setOverrideOpen] = useState(false)
 
   const applyDrop = (dealId: string, targetStage: StageId) => {
-    setLocalDeals(prev => prev.map(d =>
-      d.id === dealId
-        ? { ...d, stage: targetStage, probability: CRM_STAGE_PROBS[targetStage] || d.probability }
-        : d
-    ))
+    // Optimistic overlay
+    setPendingStage(prev => {
+      const next = new Map(prev)
+      next.set(dealId, targetStage)
+      return next
+    })
+    // Mutation Supabase (transactions.stage + activity_events 'stage_change')
+    updateStage.mutate(
+      { id: dealId, stage: stageIdToTransactionStage(targetStage) },
+      {
+        onSettled: () => {
+          setPendingStage(prev => {
+            if (!prev.has(dealId)) return prev
+            const next = new Map(prev)
+            next.delete(dealId)
+            return next
+          })
+        },
+      },
+    )
   }
 
   const handleDragStart = (dealId: string) => setDraggingId(dealId)
@@ -197,6 +233,29 @@ export default function PipelineSugarV2Page() {
 
   const totalValue = localDeals.reduce((s, d) => s + (d.value || 0), 0)
   const atRisk = localDeals.filter(d => d.risk !== 'healthy').length
+  const atRiskNames = useMemo(() => {
+    return localDeals
+      .filter(d => d.risk !== 'healthy')
+      .slice(0, 2)
+      .map(d => {
+        const c = crmContactById(d.contactId)
+        return c ? `${c.firstName} ${c.lastName}` : null
+      })
+      .filter((n): n is string => !!n)
+      .join(' · ')
+  }, [localDeals])
+
+  // ── Conversion : signed / total des stages clôturés (signed + lost) ──
+  // Source : pipeline live. Si pas de deals clôturés, on n'affiche pas de %.
+  const closedDeals = useMemo(
+    () => localDeals.filter(d => d.stage === 'signed' || d.stage === 'lost').length,
+    [localDeals],
+  )
+  const signedDeals = useMemo(
+    () => localDeals.filter(d => d.stage === 'signed').length,
+    [localDeals],
+  )
+  const conversionPct = closedDeals > 0 ? Math.round((signedDeals / closedDeals) * 100) : null
 
   // ── Deals bloqués par KYC (handoff SugarPipelineKycLock) ────────────
   // Sur stages sensibles uniquement : visit-done/interest-confirmed/offer/signed
@@ -267,8 +326,10 @@ export default function PipelineSugarV2Page() {
             <span style={{
               fontSize: 13, color: sp.sub, fontWeight: 500, marginBottom: 6,
             }}>
-              {filteredDeals.length} deal{filteredDeals.length > 1 ? 's' : ''} · {CRM_STAGE_ORDER.length} étapes
-              {activeFilters > 0 && ` · ${activeFilters} filtre${activeFilters > 1 ? 's' : ''}`}
+              {isLoading
+                ? 'Chargement…'
+                : `${filteredDeals.length} deal${filteredDeals.length > 1 ? 's' : ''} · ${CRM_STAGE_ORDER.length} étapes`}
+              {!isLoading && activeFilters > 0 && ` · ${activeFilters} filtre${activeFilters > 1 ? 's' : ''}`}
             </span>
             <div style={{ flex: 1 }} />
             <SugarSegmentedView sp={sp} value={view} onChange={setView} />
@@ -305,17 +366,22 @@ export default function PipelineSugarV2Page() {
             onOpenKyc={() => navigate('/dashboard/kyc')}
           />
 
-          {/* KPI tiles */}
+          {/* KPI tiles — source : pipeline live (usePipelineSugar) */}
           <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>
             <SugarKpiTile sp={sp} dark={dark} label="Pipeline actif"
-              value={CRM_DEALS.length} sub="6 deals · 7 étapes couvertes" />
+              value={localDeals.length}
+              sub={`${localDeals.length} deal${localDeals.length > 1 ? 's' : ''} · ${CRM_STAGE_ORDER.length} étapes`} />
             <SugarKpiTile sp={sp} dark={dark} label="Valeur totale"
               value={`CHF ${(totalValue / 1e6).toFixed(2)}M`}
-              sub="+ CHF 1.1M ce mois" accent={t.primary} />
+              sub="cumul deals actifs" accent={t.primary} />
             <SugarKpiTile sp={sp} dark={dark} label="À risque"
-              value={atRisk} sub="Pierre Vionnet · Linda Okafor" accent="#F59E0B" />
+              value={atRisk}
+              sub={atRiskNames || (atRisk === 0 ? 'Aucun deal à risque' : '—')}
+              accent="#F59E0B" />
             <SugarKpiTile sp={sp} dark={dark} label="Conversion"
-              value="18%" sub="vs 14% le mois dernier" accent="#0E9F6E" />
+              value={conversionPct !== null ? `${conversionPct}%` : '—'}
+              sub={closedDeals > 0 ? `${signedDeals}/${closedDeals} deals clôturés` : 'aucun deal clôturé'}
+              accent="#0E9F6E" />
           </div>
 
           {/* Search + filter pills */}
