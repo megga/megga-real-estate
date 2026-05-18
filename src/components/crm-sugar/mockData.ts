@@ -134,13 +134,6 @@ export const CRM_AGENT: CrmAgent = {
   initials: 'GL',
 }
 
-export const CRM_TEAM: CrmAgent[] = [
-  CRM_AGENT,
-  { id: 'agt-2', name: 'Sophie Martin',  role: 'Agent senior',       agency: 'MEGGA Genève',   initials: 'SM' },
-  { id: 'agt-3', name: 'Marc Dubois',    role: 'Agent',              agency: 'MEGGA Lausanne', initials: 'MD' },
-  { id: 'agt-4', name: 'Laure Berger',   role: 'Agent · Valais',     agency: 'MEGGA Sion',     initials: 'LB' },
-]
-
 // ─── Contacts ────────────────────────────────────────────────────────────
 export const CRM_CONTACTS: CrmContact[] = [
   { id: 'c-001', type: 'buyer',  firstName: 'Marie',     lastName: 'Bertrand',  email: 'm.bertrand@bluewin.ch',  phone: '+41 79 412 88 02', lang: 'fr',
