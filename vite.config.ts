@@ -1,9 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Uploads sourcemaps to Sentry so prod stack traces show readable code.
+    // Only active when SENTRY_AUTH_TOKEN is present (CI/local opt-in).
+    // Token lives in .env.sentry-build-plugin (gitignored) or env vars.
+    sentryVitePlugin({
+      org: 'gauthier-ru',
+      // Project ID numérique (l'org Sentry n'a pas de slug textuel pour ce projet).
+      project: '4511407787933776',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      disable: !process.env.SENTRY_AUTH_TOKEN,
+    }),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -21,6 +34,10 @@ export default defineConfig({
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
   },
   build: {
+    // 'hidden' generates .map files but omits the `//# sourceMappingURL` comment,
+    // so browsers don't auto-fetch them from prod. Sentry's plugin can still
+    // upload them via the build artifacts.
+    sourcemap: 'hidden',
     rolldownOptions: {
       output: {
         advancedChunks: {

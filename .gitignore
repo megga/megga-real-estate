@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 supabase/.temp/
 .claude/worktrees/
+
+# Sentry auth token for sourcemap upload
+.env.sentry-build-plugin
