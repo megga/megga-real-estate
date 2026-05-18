@@ -26,6 +26,7 @@ import { KwStepStart } from './KwStepStart'
 import { KwStepContact } from './KwStepContact'
 import { KwStepVigilance } from './KwStepVigilance'
 import { KwStepSuccess } from './KwStepSuccess'
+import { MlkAgentModal } from './MlkAgentModal'
 import { WIZARD_STEPS, type WizardData } from './types'
 import type { KycType } from '@/types/kyc'
 
@@ -46,6 +47,10 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
   const [done, setDone] = useState(false)
   const [createdId, setCreatedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Sprint 4.7.B — Modal magic link s'ouvre AU-DESSUS du wizard quand
+  // source === 'magic' et que le dossier vient d'être créé. À la fermeture
+  // (succès OU annulation), on bascule en done=true comme un flow normal.
+  const [magicModalOpen, setMagicModalOpen] = useState(false)
 
   const [data, setData] = useState<WizardData>({
     source: preset ? 'existing' : null,
@@ -96,11 +101,24 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
         vigilance: data.vigilance,
       })
       setCreatedId(dossier.id)
-      setDone(true)
+      // Sprint 4.7.B — si source='magic', on ouvre le modal Magic Link
+      // au lieu de basculer directement en done. Le modal gère lui-même
+      // la transition vers done (via onSuccess/onClose).
+      if (data.source === 'magic') {
+        setMagicModalOpen(true)
+      } else {
+        setDone(true)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Échec de la création')
     }
   }
+
+  // Contact résolu pour le modal Magic Link (depuis le state contacts du hook)
+  const magicContact = useMemo(() => {
+    if (!data.contactId) return null
+    return contacts.find((c) => c.id === data.contactId) ?? null
+  }, [data.contactId, contacts])
 
   const next = () => {
     setError(null)
@@ -306,11 +324,38 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
               {createDossier.isPending
                 ? 'Création…'
                 : step === WIZARD_STEPS.length - 1
-                  ? 'Ouvrir le dossier'
+                  ? data.source === 'magic'
+                    ? 'Préparer le lien magique'
+                    : 'Ouvrir le dossier'
                   : 'Continuer'}
             </KycBlackPill>
           </div>
         </footer>
+      )}
+
+      {/* Sprint 4.7.B — Modal Magic Link (au-dessus du wizard) */}
+      {magicModalOpen && createdId && magicContact && profile?.agency_id && (
+        <MlkAgentModal
+          kycCaseId={createdId}
+          contactId={magicContact.id}
+          contactName={`${magicContact.first_name} ${magicContact.last_name}`.trim()}
+          contactSummary={
+            magicContact.type === 'seller'
+              ? 'Vendeur'
+              : magicContact.type === 'landlord'
+                ? 'Bailleur'
+                : magicContact.type === 'tenant'
+                  ? 'Locataire'
+                  : 'Acheteur'
+          }
+          contactEmail={magicContact.email}
+          contactPhone={magicContact.phone}
+          defaultMode={data.vigilance === 'renforced' ? 'verifiee' : 'libre'}
+          onClose={() => {
+            setMagicModalOpen(false)
+            setDone(true)
+          }}
+        />
       )}
     </div>
   )
