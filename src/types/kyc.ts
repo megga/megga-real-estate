@@ -26,6 +26,18 @@ export type KycCheckCategory =
   | 'sanctions'  // OFAC / SECO / ONU / UE
   | 'funds'      // Source des fonds (LBA art. 6 si > CHF 100'000)
 
+/** LBA art. 6 al. 1 lit. b — typologie origine des fonds (Sprint 3). */
+export type KycSourceOfFundsType =
+  | 'salary'
+  | 'sale_property'
+  | 'sale_business'
+  | 'inheritance'
+  | 'investment'
+  | 'crypto'
+  | 'loan'
+  | 'mixed'
+  | 'other'
+
 export interface KycCase {
   id: string
   agency_id: string
@@ -53,6 +65,10 @@ export interface KycCase {
   vigilance: KycVigilance
   expires_at: string | null
   dossier_status: KycDossierStatus
+  // Sprint 3 — Origine économique des fonds (LBA art. 6 al. 1 lit. b)
+  source_of_funds_type: KycSourceOfFundsType | null
+  source_of_funds_description: string | null
+  source_of_funds_doc_id: string | null
   // Joined relations (optional)
   contact?: {
     first_name: string
@@ -124,17 +140,23 @@ export interface KycDocument {
   issued_at: string | null
   expires_at: string | null
   document_category: DocumentCategory
+  /** Sprint 3 — SHA-256 hex du contenu fichier (intégrité LBA art. 7). NULL pour les docs legacy. */
+  sha256_hash: string | null
 }
 
 export interface KycAuditEvent {
   id: string
   agency_id: string
-  actor_id: string
+  actor_id: string | null
+  /** Sprint 3 : 'user' = humain (actor_id → profiles), 'ai' / 'system' = actor_id NULL. */
+  actor_kind?: 'user' | 'ai' | 'system'
   action: string
   entity_type: string
   entity_id: string
   metadata: Record<string, unknown> | null
   created_at: string
+  /** Jointure optionnelle avec profiles pour afficher le nom réel de l'acteur. */
+  actor?: { full_name: string | null } | null
 }
 
 // ─── Sprint 1 — AuditEvent nLPD (handoff §Modèle de données) ───────────
@@ -175,4 +197,36 @@ export interface ScreeningResult {
   total_hits: number
   risk_score: number
   risk_level: KycRiskLevel
+}
+
+// ─── Sprint 2 — Workflow décision compliance (red-team Marc #2, Roger #6) ──
+
+export type ScreeningDecisionTarget = 'sanctions' | 'pep'
+
+export type ScreeningDecisionVerdict =
+  | 'false_positive'        // examen humain : faux match → débloque verified
+  | 'true_match'            // vrai match → SAR/MROS obligatoire
+  | 'escalated'             // remonté à la direction
+  | 'awaiting_evidence'     // en attente d'éléments complémentaires
+
+export interface KycScreeningDecision {
+  id: string
+  agency_id: string
+  kyc_case_id: string
+  decision_target: ScreeningDecisionTarget
+  decision: ScreeningDecisionVerdict
+  justification: string
+  decided_by: string
+  decided_at: string
+  screening_snapshot: Record<string, unknown>
+  supersedes_id: string | null
+}
+
+/** Forme renvoyée par la RPC `kyc_latest_screening_decision`. */
+export interface KycLatestScreeningDecision {
+  id: string
+  decision: ScreeningDecisionVerdict
+  justification: string
+  decided_by: string
+  decided_at: string
 }

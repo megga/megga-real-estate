@@ -4,10 +4,10 @@
 import { SugarV3, fmtDateTime } from '../tokens'
 import { KycGhostPill } from '../primitives'
 import { SgIcon } from '../icons'
-import type { AuditEvent } from '@/types/kyc'
+import type { KycAuditEvent } from '@/types/kyc'
 
 interface Props {
-  events: AuditEvent[]
+  events: KycAuditEvent[]
   onExportPdf?: () => void
 }
 
@@ -15,21 +15,37 @@ interface TimelineEntry {
   at: string
   label: string
   actor: string
+  severity?: 'info' | 'warn' | 'critical'
   note?: string
 }
 
+function resolveActor(e: KycAuditEvent): string {
+  if (e.actor_kind === 'ai') return 'MEGGA AI'
+  if (e.actor_kind === 'system') return 'Système'
+  const name = e.actor?.full_name?.trim()
+  if (name) return name
+  if (e.actor_id) return 'Agent inconnu'
+  return 'Système'
+}
+
 export function KycAuditTrail({ events, onExportPdf }: Props) {
-  // Transforme les AuditEvents en entrées timeline lisibles
   const entries: TimelineEntry[] = events
-    .map((e) => ({
-      at: e.created_at,
-      label: e.action,
-      actor: e.actor_id ? 'Agent' : 'Système',
-      note:
-        typeof e.metadata?.note === 'string'
-          ? (e.metadata.note as string)
-          : undefined,
-    }))
+    .map((e) => {
+      const sev =
+        typeof e.metadata?.severity === 'string'
+          ? (e.metadata.severity as 'info' | 'warn' | 'critical')
+          : undefined
+      return {
+        at: e.created_at,
+        label: e.action,
+        actor: resolveActor(e),
+        severity: sev,
+        note:
+          typeof e.metadata?.note === 'string'
+            ? (e.metadata.note as string)
+            : undefined,
+      }
+    })
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 
   return (

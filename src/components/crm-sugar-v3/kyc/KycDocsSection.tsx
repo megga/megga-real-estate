@@ -11,6 +11,25 @@ interface Props {
   onUpload?: () => void
 }
 
+type ExpiryStatus = { kind: 'expired' | 'soon' | 'ok'; label: string }
+
+const EXPIRY_SOON_DAYS = 30
+
+function getExpiryStatus(expiresAt: string | null): ExpiryStatus | null {
+  if (!expiresAt) return null
+  const ts = new Date(expiresAt).getTime()
+  if (Number.isNaN(ts)) return null
+  const now = Date.now()
+  if (ts <= now) {
+    return { kind: 'expired', label: 'Expiré' }
+  }
+  const daysLeft = Math.ceil((ts - now) / (1000 * 60 * 60 * 24))
+  if (daysLeft <= EXPIRY_SOON_DAYS) {
+    return { kind: 'soon', label: `Expire dans ${daysLeft}j` }
+  }
+  return { kind: 'ok', label: `Valide jusqu’au ${fmtDateShort(expiresAt)}` }
+}
+
 export function KycDocsSection({ docs, onUpload }: Props) {
   return (
     <div
@@ -81,73 +100,113 @@ export function KycDocsSection({ docs, onUpload }: Props) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {docs.map((d) => (
-            <div
-              key={d.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                padding: '12px 14px',
-                borderRadius: 14,
-                background: SugarV3.cardSubtle,
-              }}
-            >
+          {docs.map((d) => {
+            const expiry = getExpiryStatus(d.expires_at)
+            const expiredBg = expiry?.kind === 'expired'
+            return (
               <div
+                key={d.id}
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 12,
-                  background: SugarV3.card,
-                  display: 'grid',
-                  placeItems: 'center',
-                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  background: expiredBg ? SugarV3.errSoft : SugarV3.cardSubtle,
+                  border: expiredBg ? `1px solid ${SugarV3.err}33` : 'none',
                 }}
               >
-                <SgIcon name="file" size={18} stroke={SugarV3.inkSoft} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    color: SugarV3.ink,
-                    letterSpacing: -0.2,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 12,
+                    background: SugarV3.card,
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
                   }}
                 >
-                  {d.name}
+                  <SgIcon name="file" size={18} stroke={SugarV3.inkSoft} />
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: SugarV3.muted,
-                    fontWeight: 500,
-                    marginTop: 1,
-                  }}
-                >
-                  {d.size_bytes
-                    ? `${(d.size_bytes / (1024 * 1024)).toFixed(1)} Mo`
-                    : '—'}{' '}
-                  · Ajouté le {fmtDateShort(d.created_at)}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 700,
+                        color: SugarV3.ink,
+                        letterSpacing: -0.2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      {d.name}
+                    </span>
+                    {expiry && expiry.kind !== 'ok' && (
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          letterSpacing: 0.4,
+                          textTransform: 'uppercase',
+                          color:
+                            expiry.kind === 'expired'
+                              ? SugarV3.errDarker
+                              : SugarV3.warn,
+                        }}
+                      >
+                        {expiry.label}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: SugarV3.muted,
+                      fontWeight: 500,
+                      marginTop: 1,
+                    }}
+                  >
+                    {d.size_bytes
+                      ? `${(d.size_bytes / (1024 * 1024)).toFixed(1)} Mo`
+                      : '—'}{' '}
+                    · Ajouté le {fmtDateShort(d.created_at)}
+                    {expiry?.kind === 'ok' && ` · ${expiry.label}`}
+                    {d.sha256_hash && (
+                      <span
+                        title={`SHA-256 : ${d.sha256_hash}`}
+                        style={{ marginLeft: 6 }}
+                      >
+                        · sha {d.sha256_hash.slice(0, 8)}…
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <KycCircleBtn
+                  size={36}
+                  title="Aperçu"
+                  icon={<SgIcon name="eye" size={14} stroke={SugarV3.inkSoft} />}
+                />
+                <KycCircleBtn
+                  size={36}
+                  title="Télécharger"
+                  icon={
+                    <SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />
+                  }
+                />
               </div>
-              <KycCircleBtn
-                size={36}
-                title="Aperçu"
-                icon={<SgIcon name="eye" size={14} stroke={SugarV3.inkSoft} />}
-              />
-              <KycCircleBtn
-                size={36}
-                title="Télécharger"
-                icon={
-                  <SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />
-                }
-              />
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

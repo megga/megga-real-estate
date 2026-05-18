@@ -24,6 +24,8 @@ export type SgIconName =
   // Sprint 2 — Bien, Deal, Visite
   | 'arrowUp' | 'globe' | 'ruler' | 'heart' | 'photos' | 'pen' | 'mic'
   | 'pin' | 'smile' | 'play' | 'pause'
+  // KYC entity type
+  | 'building'
 
 const PATHS: Record<SgIconName, ReactNode> = {
   // Navigation / actions
@@ -106,6 +108,7 @@ const PATHS: Record<SgIconName, ReactNode> = {
   smile: <><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" /></>,
   play: <><path d="m6 4 14 8-14 8V4Z" /></>,
   pause: <><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></>,
+  building: <><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-4h4v4" /></>,
 }
 
 interface SgIconProps {
