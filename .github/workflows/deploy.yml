@@ -132,7 +132,18 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=megga-real-estate
+          # `--commit-message="deploy <sha>"` court-circuite l'introspection
+          # git de wrangler. Sans ça, wrangler pousse le message du HEAD vers
+          # l'API Cloudflare, qui a un validateur UTF-8 strict bogué : il
+          # rejette certaines séquences Unicode pourtant valides (constaté le
+          # 2026-05-18 sur un message contenant "—" + "→" + accents fr).
+          # Avec un SHA pur ASCII on évite définitivement ce mode de panne.
+          # `--commit-dirty=true` silence le warning "uncommitted changes"
+          # qui apparaît parce qu'on a build localement vers dist/.
+          command: |
+            pages deploy dist --project-name=megga-real-estate \
+              --commit-message="deploy ${{ github.sha }}" \
+              --commit-dirty=true
 
       - name: Link Supabase project and deploy functions
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
