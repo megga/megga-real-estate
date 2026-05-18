@@ -531,6 +531,16 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
           ) : (
             <KycBlackPill
               size="md"
+              onClick={() => {
+                // Sprint 4.4 — Ouvre la route print-friendly dans un nouvel onglet.
+                // L'agent peut Cmd+P (ou bouton "Imprimer" de la toolbar) pour
+                // générer le PDF natif via le navigateur.
+                window.open(
+                  `/dashboard/kyc/${dossierId}/export`,
+                  '_blank',
+                  'noopener,noreferrer'
+                )
+              }}
               icon={<SgIcon name="download" size={14} stroke="#fff" />}
             >
               Exporter dossier complet
