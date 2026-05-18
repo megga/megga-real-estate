@@ -184,6 +184,26 @@ function mapStage(s: TransactionStage): StageId {
   }
 }
 
+// ─── StageId UI → TransactionStage DB (inverse de mapStage) ─────────────
+// Utilisé par PipelineSugarV2Page lors du drag-drop d'une colonne UI vers une
+// autre. Note : 'offer' DB est un sur-ensemble (negotiation/reserved/financing/
+// notary collapsent sur 'offer' UI). Si l'agent drop sur la colonne 'offer'
+// alors que la transaction est déjà en negotiation, le code page court-circuite
+// via `deal.stage === targetStage` (les deux valent 'offer' StageId).
+export function stageIdToTransactionStage(s: StageId): TransactionStage {
+  switch (s) {
+    case 'new-lead':           return 'new_lead'
+    case 'to-qualify':         return 'to_qualify'
+    case 'searching':          return 'active_search'
+    case 'visit-scheduled':    return 'visit_planned'
+    case 'visit-done':         return 'visit_done'
+    case 'interest-confirmed': return 'interest_confirmed'
+    case 'offer':              return 'offer'
+    case 'signed':             return 'signed'
+    case 'lost':               return 'lost'
+  }
+}
+
 // ─── ContactTransaction (Supabase) → CrmDeal (mock UI shape) ───────────
 // Le hook `useContactTransactions(contactId)` renvoie un shape allégé
 // (id, stage, status, prix, updated_at, property). Le mock CrmDeal porte

@@ -1,44 +1,72 @@
 // MEGGA CRM Sugar v2 — Settings Profile section (full fidelity)
 // 1:1 port from `crm-screen-settings-sugar.jsx` (ProfileSectionWithStickyActions).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SetBlackBtn, SetCard, SetGhostBtn, SetIcon, SetInput, SetTextarea } from './atoms'
 import {
-  DEFAULT_PROFILE,
   profileCompletionScore,
   SET_PALETTE,
   type ProfileData,
 } from './data'
+import { useAgentProfileSugar } from '@/hooks/useAgentProfileSugar'
 
 const SET = SET_PALETTE
 
 export function ProfileSection() {
-  const [data, setData] = useState<ProfileData>(DEFAULT_PROFILE)
-  const [saved, setSaved] = useState<ProfileData>(DEFAULT_PROFILE)
+  // Source de vérité : Supabase via useAgentProfileSugar.
+  // Champs persistés : firstName/lastName/phone/bio/languages/specialties.
+  // Champs en local-only (TODO migration) : title/rcc/mobile/signature.
+  const { profile: serverProfile, isLoading, isSaving, hasBackend, save } = useAgentProfileSugar()
+
+  const [data, setData] = useState<ProfileData>(serverProfile)
+  const [saved, setSaved] = useState<ProfileData>(serverProfile)
+
+  // Sync depuis le serveur quand le profil charge (ou s'invalide après save)
+  useEffect(() => {
+    setData(serverProfile)
+    setSaved(serverProfile)
+  }, [serverProfile])
+
   const dirty = JSON.stringify(data) !== JSON.stringify(saved)
 
   const set = (patch: Partial<ProfileData>) => setData(d => ({ ...d, ...patch }))
   const reset = () => setData(saved)
 
-  const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const score = profileCompletionScore(data)
 
-  const handleSave = () => {
-    setSaving(true)
-    setTimeout(() => {
-      setSaved(data)
-      setSaving(false)
+  const handleSave = async () => {
+    if (!hasBackend) {
       setToast(true)
       setTimeout(() => setToast(false), 2400)
-    }, 700)
+      return
+    }
+    try {
+      await save(data)
+      setSaved(data)
+      setToast(true)
+      setTimeout(() => setToast(false), 2400)
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProfileSection] save failed', err)
+    }
   }
 
   const handleCancel = () => {
     if (!dirty) return
     setConfirmOpen(true)
+  }
+
+  // Pendant le chargement initial Supabase, on évite de rendre des champs
+  // vides (qui apparaîtraient dirty immédiatement contre serverProfile)
+  if (isLoading && !serverProfile.firstName && !serverProfile.email) {
+    return (
+      <div style={{ padding: 40, color: SET.muted, fontSize: 13 }}>
+        Chargement du profil…
+      </div>
+    )
   }
 
   return (
@@ -415,10 +443,10 @@ export function ProfileSection() {
           <SetGhostBtn onClick={handleCancel}>Annuler</SetGhostBtn>
           <SetBlackBtn
             onClick={handleSave}
-            loading={saving}
-            icon={!saving && <SetIcon name="check" size={14} stroke="#fff" sw={2.4} />}
+            loading={isSaving}
+            icon={!isSaving && <SetIcon name="check" size={14} stroke="#fff" sw={2.4} />}
           >
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
+            {isSaving ? 'Enregistrement…' : 'Enregistrer'}
           </SetBlackBtn>
         </div>
       )}

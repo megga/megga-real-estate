@@ -6,8 +6,9 @@ import { useNavigate } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
-import { CRM_BIENS, type CrmBien } from '@/components/crm-sugar/mockData'
+import type { CrmBien } from '@/components/crm-sugar/mockData'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
+import { useBiensSugar } from '@/hooks/useBiensSugar'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -42,6 +43,9 @@ export default function BiensSugarV2Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
+  // Source de vérité : Supabase via useBiensSugar (RLS agency-scopée)
+  const { biens, isLoading } = useBiensSugar()
+
   const [search, setSearch] = useState('')
   const [fBaths, setFBaths] = useState('all')
   const [fBeds, setFBeds] = useState('all')
@@ -53,7 +57,7 @@ export default function BiensSugarV2Page() {
   const [openBien, setOpenBien] = useState<CrmBien | null>(null)
 
   const filtered = useMemo<CrmBien[]>(() => {
-    let l = [...CRM_BIENS]
+    let l = [...biens]
     if (search.trim()) {
       const q = search.toLowerCase()
       l = l.filter(
@@ -79,7 +83,7 @@ export default function BiensSugarV2Page() {
     if (fStatus !== 'all') l = l.filter(b => b.status === fStatus)
     if (fType !== 'all') l = l.filter(b => b.type === fType)
     return l
-  }, [search, fBaths, fBeds, fSurface, fPrice, fStatus, fType])
+  }, [biens, search, fBaths, fBeds, fSurface, fPrice, fStatus, fType])
 
   const optBaths: FilterOption[] = [
     { value: 'all', label: 'Tous' },
@@ -240,8 +244,9 @@ export default function BiensSugarV2Page() {
                   fontWeight: 500,
                 }}
               >
-                {filtered.length} bien{filtered.length > 1 ? 's' : ''} sur{' '}
-                {CRM_BIENS.length} dans votre catalogue
+                {isLoading
+                  ? 'Chargement…'
+                  : `${filtered.length} bien${filtered.length > 1 ? 's' : ''} sur ${biens.length} dans votre catalogue`}
               </div>
             </div>
             <div style={{ flex: 1 }} />
