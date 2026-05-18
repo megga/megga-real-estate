@@ -29,6 +29,20 @@ const DropdownMenuSubTrigger = React.forwardRef<
 ))
 DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName
 
+// Directional slide-in based on Radix `data-side`. iOS dropdowns grow from
+// the trigger, not from the centre — feels physically connected to the
+// element that opened them. `data-side` is set by Radix to the resolved
+// placement (which may flip if the dropdown would overflow the viewport),
+// so this works correctly even when the menu flips.
+const DIRECTIONAL_DROPDOWN_ANIM =
+  "data-[state=open]:animate-in data-[state=closed]:animate-out " +
+  "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 " +
+  "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 " +
+  "data-[side=bottom]:slide-in-from-top-1 " +
+  "data-[side=top]:slide-in-from-bottom-1 " +
+  "data-[side=left]:slide-in-from-right-1 " +
+  "data-[side=right]:slide-in-from-left-1"
+
 const DropdownMenuSubContent = React.forwardRef<
   React.ComponentRef<typeof DropdownMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
@@ -36,7 +50,8 @@ const DropdownMenuSubContent = React.forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      "z-50 min-w-[8rem] overflow-hidden rounded-md border border-theme-border bg-theme-elevated p-1 text-theme-primary shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+      "z-50 min-w-[8rem] overflow-hidden rounded-md border border-theme-border bg-theme-elevated p-1 text-theme-primary shadow-lg",
+      DIRECTIONAL_DROPDOWN_ANIM,
       className,
     )}
     {...props}
@@ -53,7 +68,8 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-md border border-theme-border bg-theme-elevated p-1 text-theme-primary shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "z-50 min-w-[8rem] overflow-hidden rounded-md border border-theme-border bg-theme-elevated p-1 text-theme-primary shadow-md",
+        DIRECTIONAL_DROPDOWN_ANIM,
         className,
       )}
       {...props}

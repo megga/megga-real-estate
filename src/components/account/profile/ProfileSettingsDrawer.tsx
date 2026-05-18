@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import Sheet from '@/components/ui/Sheet'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import { useAuth } from '@/hooks/useAuth'
 import { useProfileMeta } from '@/hooks/useProfileMeta'
@@ -219,19 +219,7 @@ export default function ProfileSettingsDrawer({ open, onClose, initialPage = 'in
     (phone.trim() || null) !== (profile?.phone ?? null) ||
     (canton.trim() || null) !== (profile?.canton ?? null)
 
-  useEffect(() => {
-    if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prev
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [open, onClose])
+  // Escape key + body scroll lock are now handled by <Sheet>.
 
   const renderPage = () => {
     if (page === 'info') {
@@ -629,41 +617,21 @@ export default function ProfileSettingsDrawer({ open, onClose, initialPage = 'in
     return null
   }
 
-  if (!open) return null
-
-  return createPortal(
-    <>
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(14, 20, 16, 0.55)',
-          opacity: 1,
-          transition: 'opacity 240ms ease',
-          zIndex: 90,
-        }}
-      />
-      <div
-        role="dialog"
-        aria-label="Réglages du compte"
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: 'min(720px, 100vw)',
-          background: '#FAFAF7',
-          boxShadow: '-12px 0 40px rgba(14,20,16,0.18)',
-          transform: 'translateX(0)',
-          transition: 'transform 280ms cubic-bezier(0.32, 0.72, 0, 1)',
-          zIndex: 91,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          fontFamily: T.fontStack,
-        }}
-      >
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      side="right"
+      width="min(720px, 100vw)"
+      ariaLabel="Réglages du compte"
+      style={{
+        background: '#FAFAF7',
+        fontFamily: T.fontStack,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
         <div
           style={{
             padding: '20px 28px',
@@ -767,8 +735,6 @@ export default function ProfileSettingsDrawer({ open, onClose, initialPage = 'in
           </nav>
           <div style={{ padding: '24px 28px', overflowY: 'auto' }}>{renderPage()}</div>
         </div>
-      </div>
-    </>,
-    document.body
+    </Sheet>
   )
 }

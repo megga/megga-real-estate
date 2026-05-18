@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { motion } from 'motion/react'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
 import { CRM_MATCHES, crmContactById, type CrmBien } from '../mockData'
 import { crmInitials, type SugarPalette } from '../tokens'
@@ -182,7 +183,12 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
             marginBottom: 40,
           }}
         >
-          <div
+          <motion.div
+            // Shared element target — receives the photo growing from BnRow's
+            // 96×72 thumbnail via shared `layoutId`. The overlay mounts when
+            // openBien is set; framer-motion measures both bounding boxes and
+            // interpolates the photo with spring physics.
+            layoutId={`crm-bien-photo-${bien.id}`}
             style={{
               position: 'relative',
               aspectRatio: '4/3',
@@ -221,7 +227,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                 Voir les {bien.photoCount} photos
               </span>
             )}
-          </div>
+          </motion.div>
           <div
             style={{
               display: 'flex',

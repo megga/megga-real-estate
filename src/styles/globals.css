@@ -549,3 +549,51 @@ main {
     break-inside: avoid;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+   <Shimmer> skeleton — directional gradient sweep.
+   Used by src/components/ui/Shimmer.tsx as the className `megga-shimmer`.
+   Replaces the Tailwind `animate-pulse` opacity oscillation with a single
+   GPU-accelerated background-position pass, much closer to Apple Photos /
+   App Store skeletons. Reduced motion gates the animation off and keeps
+   the neutral base visible.
+   ────────────────────────────────────────────────────────────────────── */
+.megga-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--theme-section, rgba(127, 127, 127, 0.12));
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  background-position: -200% 0;
+  animation: megga-shimmer-sweep 1.4s linear infinite;
+}
+
+[data-theme="dark"] .megga-shimmer,
+.dark .megga-shimmer {
+  /* On a dark surface, the sweep should be a soft white highlight at
+     reduced intensity — pure white at 45% reads as harsh. */
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+@keyframes megga-shimmer-sweep {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .megga-shimmer {
+    animation: none;
+    background-image: none;
+  }
+}

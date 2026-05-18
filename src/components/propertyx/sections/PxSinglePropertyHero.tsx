@@ -16,6 +16,7 @@
 
 import { lazy, Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { motion } from 'motion/react'
 import { PX } from '..'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { pickPhoto, pickSrcSet, type CFVariant } from '@/lib/listingPhotos'
@@ -133,17 +134,25 @@ export default function PxSinglePropertyHero({ photos, photosCf, title, listingI
           }}
         >
           {main.src ? (
-            <img
-              src={main.src}
-              srcSet={main.srcSet}
-              sizes="(max-width: 768px) 100vw, 600px"
-              alt={resolvedTitle}
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-              referrerPolicy="no-referrer"
-              style={tileStyle}
-            />
+            <motion.div
+              // Shared element target — receives the photo growing from the
+              // PxListingsGrid card via shared `layoutId`. Only animates when
+              // `listingId` is known (otherwise the source can't match).
+              layoutId={listingId ? `listing-photo-${listingId}` : undefined}
+              style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+            >
+              <img
+                src={main.src}
+                srcSet={main.srcSet}
+                sizes="(max-width: 768px) 100vw, 600px"
+                alt={resolvedTitle}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                style={tileStyle}
+              />
+            </motion.div>
           ) : null}
         </button>
 

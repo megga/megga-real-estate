@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-settings-sugar.jsx` (ProfileSectionWithStickyActions).
 
 import { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import { SetBlackBtn, SetCard, SetGhostBtn, SetIcon, SetInput, SetTextarea } from './atoms'
 import {
   profileCompletionScore,
@@ -32,25 +33,24 @@ export function ProfileSection() {
   const set = (patch: Partial<ProfileData>) => setData(d => ({ ...d, ...patch }))
   const reset = () => setData(saved)
 
-  const [toast, setToast] = useState(false)
+  const toast = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const score = profileCompletionScore(data)
 
   const handleSave = async () => {
     if (!hasBackend) {
-      setToast(true)
-      setTimeout(() => setToast(false), 2400)
+      toast.success('Profil enregistré', { duration: 2400 })
       return
     }
     try {
       await save(data)
       setSaved(data)
-      setToast(true)
-      setTimeout(() => setToast(false), 2400)
+      toast.success('Profil enregistré', { duration: 2400 })
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[ProfileSection] save failed', err)
+      toast.error('Erreur lors de l’enregistrement')
     }
   }
 
@@ -451,43 +451,7 @@ export function ProfileSection() {
         </div>
       )}
 
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 101,
-            background: SET.black,
-            color: '#fff',
-            borderRadius: 999,
-            padding: '12px 22px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            boxShadow: '0 24px 60px rgba(11,12,14,0.30)',
-            fontSize: 13.5,
-            fontWeight: 600,
-            animation: 'setSlideUp .3s cubic-bezier(.2,.8,.2,1) both',
-          }}
-        >
-          <span
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: 999,
-              background: SET.ok,
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            <SetIcon name="check" size={12} stroke="#fff" sw={3} />
-          </span>
-          Profil enregistré
-        </div>
-      )}
+      {/* Toast handled by global useToast() — top-right spring stack. */}
 
       {/* Confirm cancel modal */}
       {confirmOpen && (

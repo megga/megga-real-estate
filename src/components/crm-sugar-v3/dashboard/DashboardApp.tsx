@@ -7,7 +7,8 @@
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DB_SP, DB_KEYFRAMES } from './tokens'
+import { DB_KEYFRAMES } from './tokens'
+import { useToast } from '@/components/ui/Toast'
 import './responsive.css'
 import {
   CK_DATA,
@@ -34,12 +35,11 @@ interface DashboardAppProps {
 export function DashboardApp({ embedded = true }: DashboardAppProps) {
   const navigate = useNavigate()
   const audit = useDashboardAudit()
+  const toast = useToast()
   const [period, setPeriod] = useState<PeriodKey>('month')
   const [scope, setScope] = useState<ScopeKey>('me')
   const [tab, setTab] = useState<DashboardTab>('cockpit')
   const [refreshing, setRefreshing] = useState(false)
-  const [toast, setToast] = useState(false)
-  const [exportToast, setExportToast] = useState(false)
 
   // Funnel + sources + forecast live (Sprint B) — fallback fixture pendant load
   const funnelLive = useDashboardFunnel(period, scope)
@@ -60,15 +60,13 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
     setRefreshing(true)
     window.setTimeout(() => {
       setRefreshing(false)
-      setToast(true)
-      window.setTimeout(() => setToast(false), 1800)
+      toast.success('Données à jour', { description: 'À l’instant', duration: 1800 })
     }, 1200)
   }
 
   const triggerExportPdf = () => {
     // Stub : export PDF post-launch (cf. handoff §"Export PDF : bouton stub").
-    setExportToast(true)
-    window.setTimeout(() => setExportToast(false), 2400)
+    toast.warn('Export PDF', { description: 'Bientôt disponible', duration: 2400 })
   }
 
   // Drilldowns Cockpit → Pipeline filtré par stage(s).
@@ -172,83 +170,8 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
         {tab === 'objectif' && <DBObjectif period={period} />}
       </div>
 
-      {toast && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 200,
-            background: DB_SP.black,
-            color: '#fff',
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: -0.1,
-            padding: '10px 14px',
-            borderRadius: 999,
-            boxShadow:
-              '0 16px 40px rgba(11,12,14,0.28), 0 4px 12px rgba(11,12,14,0.18)',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            animation: 'dbToastIn .3s cubic-bezier(.2,.8,.2,1) both',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: 999,
-              background: DB_SP.ok,
-              boxShadow: `0 0 0 3px ${DB_SP.ok}33`,
-            }}
-          />
-          Données à jour · à l'instant
-        </div>
-      )}
-
-      {exportToast && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 200,
-            background: DB_SP.black,
-            color: '#fff',
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: -0.1,
-            padding: '10px 14px',
-            borderRadius: 999,
-            boxShadow:
-              '0 16px 40px rgba(11,12,14,0.28), 0 4px 12px rgba(11,12,14,0.18)',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            animation: 'dbToastIn .3s cubic-bezier(.2,.8,.2,1) both',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: 999,
-              background: DB_SP.warn,
-              boxShadow: `0 0 0 3px ${DB_SP.warn}33`,
-            }}
-          />
-          Export PDF · bientôt disponible
-        </div>
-      )}
+      {/* Inline toast banners removed — now routed through global useToast()
+       *  (top-right spring slide with stack + hover-pause). */}
     </div>
   )
 }

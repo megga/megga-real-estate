@@ -11,8 +11,19 @@
 
 import type { ReactNode, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { PX } from './tokens'
 import PxFigmaIcon from './PxFigmaIcon'
+
+// Tap-down feedback shared across PxButton + PxCircleButton. Mirrors the
+// `<Pressable>` atom but kept inline because PxButton renders three different
+// elements (button / Link / a) and motion(Link) needs to wrap react-router's
+// Link directly. iOS UIButton tap feels approx scale 0.96 with a quick spring.
+const TAP_SCALE = 0.96
+const TAP_SPRING = { type: 'spring' as const, stiffness: 480, damping: 28, mass: 0.6 }
+
+const MotionLink = motion.create(Link)
 
 export type PxButtonVariant = 'primary' | 'invert' | 'ghost'
 export type PxButtonSize = 'sm' | 'lg'
@@ -135,9 +146,12 @@ export default function PxButton(props: PxButtonProps) {
     className,
     children,
   } = props
+  const reducedMotion = useReducedMotion()
 
   const baseStyle = buttonStyle(variant, size)
   const isGhost = variant === 'ghost'
+  const isDisabled = 'disabled' in props ? props.disabled : false
+  const tap = reducedMotion || isDisabled ? undefined : { scale: TAP_SCALE }
 
   const content = (
     <>
@@ -154,37 +168,48 @@ export default function PxButton(props: PxButtonProps) {
 
   if ('to' in props && props.to) {
     return (
-      <Link to={props.to} className={className} style={baseStyle}>
+      <MotionLink
+        to={props.to}
+        className={className}
+        style={baseStyle}
+        whileTap={tap}
+        transition={TAP_SPRING}
+      >
         {content}
-      </Link>
+      </MotionLink>
     )
   }
 
   if ('href' in props && props.href) {
     return (
-      <a
+      <motion.a
         href={props.href}
         target={props.target}
         rel={props.target === '_blank' ? 'noopener noreferrer' : undefined}
         className={className}
-        style={baseStyle}>
+        style={baseStyle}
+        whileTap={tap}
+        transition={TAP_SPRING}
+      >
         {content}
-      </a>
+      </motion.a>
     )
   }
 
   return (
-    <button
+    <motion.button
       type={(props as ButtonProps).type || 'button'}
       onClick={(props as ButtonProps).onClick}
       disabled={(props as ButtonProps).disabled}
       className={className}
+      whileTap={tap}
+      transition={TAP_SPRING}
       style={{
         ...baseStyle,
         opacity: (props as ButtonProps).disabled ? 0.5 : 1,
       }}>
       {content}
-    </button>
+    </motion.button>
   )
 }
 
@@ -206,15 +231,18 @@ interface PxCircleButtonProps {
 export function PxCircleButton({
   size = 'sm', variant = 'dark', children, onClick, ariaLabel,
 }: PxCircleButtonProps) {
+  const reducedMotion = useReducedMotion()
   const dim = size === 'lg' ? 40 : 32
   const bg = variant === 'dark' ? PX.neutral700 : PX.neutral100
   const shadow = variant === 'light' ? PX.shadow.small : undefined
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
+      whileTap={reducedMotion ? undefined : { scale: TAP_SCALE }}
+      transition={TAP_SPRING}
       style={{
         width: dim,
         height: dim,
@@ -226,9 +254,8 @@ export function PxCircleButton({
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: shadow,
-        transition: `transform ${PX.duration.fast} ${PX.ease}`,
       }}>
       {children}
-    </button>
+    </motion.button>
   )
 }

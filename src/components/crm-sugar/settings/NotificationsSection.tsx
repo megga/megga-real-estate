@@ -4,13 +4,13 @@
 // pour respecter la règle CLAUDE.md (canal interne, pas WhatsApp public).
 
 import { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import {
   SectionHeader,
   SetCard,
   SetIcon,
   SetSwitch,
   StickySaveBar,
-  Toast,
 } from './atoms'
 import { SET_PALETTE, type SettingsIconName } from './data'
 import { useNotifPreferences, type NotifPreferences } from '@/hooks/useNotifPreferences'
@@ -45,21 +45,19 @@ export function NotificationsSection() {
   }, [serverData])
 
   const dirty = JSON.stringify(data) !== JSON.stringify(saved)
-  const [toast, setToast] = useState(false)
+  const toast = useToast()
 
   const setCh = (id: keyof NotifData, v: boolean) => setData(d => ({ ...d, [id]: v }))
 
   const handleSave = async () => {
     if (!hasBackend) {
-      setToast(true)
-      setTimeout(() => setToast(false), 2400)
+      toast.success('Notifications enregistrées', { duration: 2400 })
       return
     }
     try {
       await save(data)
       setSaved(data)
-      setToast(true)
-      setTimeout(() => setToast(false), 2400)
+      toast.success('Notifications enregistrées', { duration: 2400 })
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[NotificationsSection] save failed', err)
@@ -144,7 +142,7 @@ export function NotificationsSection() {
         onSave={handleSave}
         onCancel={() => setData(saved)}
       />
-      <Toast open={toast} label="Notifications enregistrées" />
+      {/* Toast handled by global useToast(). */}
     </>
   )
 }

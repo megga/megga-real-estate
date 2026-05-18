@@ -8,6 +8,7 @@
 // price, rooms, surface, sort, q).
 
 import { Link } from 'react-router-dom'
+import { motion } from 'motion/react'
 import { PX, PxFigmaIcon, PxGoodDealBadge } from '..'
 import {
   useMarketListings,
@@ -228,29 +229,35 @@ function PropertyCardV2({
         }}
       >
         {image && (
-          <img
-            src={image}
-            alt={listing.title}
-            // Native lazy loading pour les cards sous le fold (cards 2+).
-            // Les 1-2 premières (priority) sont eager pour permettre à
-            // Lighthouse d'identifier le LCP correctement.
-            loading={priority ? 'eager' : 'lazy'}
-            // fetchPriority="high" sur la 1ère card → hint au navigateur
-            // que c'est le LCP candidate, prioritise le download.
-            fetchPriority={priority ? 'high' : 'auto'}
-            decoding="async"
-            // Skeleton gris natif pendant le chargement via le bg du Link
-            // parent (PX.neutral500). Pas besoin de placeholder JS.
+          <motion.div
+            // Shared element with PxSinglePropertyHero — clicking this card
+            // causes framer-motion to interpolate this image's bounding box
+            // to the hero position on `/propriete/${id}`. Both elements share
+            // the same `layoutId`, and the global AnimatePresence is in
+            // `popLayout` mode so they coexist briefly during the transition.
+            layoutId={`listing-photo-${listing.id}`}
             style={{
               position: 'absolute',
               inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center',
-              display: 'block',
+              overflow: 'hidden',
+              borderRadius: 'inherit',
             }}
-          />
+          >
+            <img
+              src={image}
+              alt={listing.title}
+              loading={priority ? 'eager' : 'lazy'}
+              fetchPriority={priority ? 'high' : 'auto'}
+              decoding="async"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center',
+                display: 'block',
+              }}
+            />
+          </motion.div>
         )}
         <div
           style={{

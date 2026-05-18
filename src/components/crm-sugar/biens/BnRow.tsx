@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-biens-sugar.jsx` (BnRow).
 
 import { useState } from 'react'
+import { motion } from 'motion/react'
 import CRMIcon from '../CRMIcon'
 import { crmContactById, type CrmBien } from '../mockData'
 import { crmInitials, type SugarPalette } from '../tokens'
@@ -48,13 +49,22 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
     >
       {/* Photo + status chip */}
       <div style={{ position: 'relative', width: 96 }}>
-        <BnPhoto
-          id={bien.id}
-          sp={sp}
-          w={96}
-          h={72}
-          signed={bien.signedPhotoCount === bien.photoCount}
-        />
+        <motion.div
+          // Shared element source — when the row is clicked and the detail
+          // overlay opens, the same `layoutId` on its hero photo causes
+          // framer-motion to interpolate this 96×72 thumb into the overlay's
+          // ~600×450 hero. iOS Photos feel inside the CRM.
+          layoutId={`crm-bien-photo-${bien.id}`}
+          style={{ width: 96, height: 72, borderRadius: 8, overflow: 'hidden' }}
+        >
+          <BnPhoto
+            id={bien.id}
+            sp={sp}
+            w={96}
+            h={72}
+            signed={bien.signedPhotoCount === bien.photoCount}
+          />
+        </motion.div>
         <span
           style={{
             position: 'absolute',
@@ -74,6 +84,7 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
           {meta.label}
         </span>
       </div>
+      {/* (motion wrapper closes above) */}
 
       {/* Titre + adresse + specs */}
       <div style={{ minWidth: 0 }}>
