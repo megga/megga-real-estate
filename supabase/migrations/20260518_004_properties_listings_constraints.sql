@@ -83,47 +83,58 @@ ALTER TABLE properties
 -- 2. LISTINGS — dedup then UNIQUE(property_id)
 -- ============================================================================
 
--- Step A: snapshot which listing-id is the keeper per property_id (most-recent
--- published_at wins, id as tiebreaker for determinism).
-DROP TABLE IF EXISTS _listings_dedup_keepers;
-CREATE TEMP TABLE _listings_dedup_keepers AS
-SELECT DISTINCT ON (property_id)
-  id,
-  property_id
-FROM listings
-ORDER BY property_id, published_at DESC NULLS LAST, id;
+-- NOTE: The earlier draft of this migration used a `CREATE TEMP TABLE
+-- _listings_dedup_keepers` followed by three statements that referenced it.
+-- That works in psql / `supabase db push` (single connection, BEGIN/COMMIT
+-- respected), but FAILS in the Supabase Dashboard SQL Editor with
+-- `42P01: relation "_listings_dedup_keepers" does not exist`. The Dashboard
+-- uses connection pooling — each statement can land on a different backend,
+-- and temp tables (session-scoped) get garbage-collected between them.
+--
+-- The rewrite below uses CTEs (scoped to a single statement) which survive
+-- any execution model — Dashboard, psql, or CLI push.
 
--- Step B: consolidate stats from soon-to-be-deleted duplicates onto the keeper.
--- Only touches rows that actually have duplicates — single-listing properties
--- are untouched.
-UPDATE listings l
-SET
-  views_count = stats.total_views,
-  favorites_count = stats.total_favorites
-FROM (
+-- Step A: consolidate views_count + favorites_count onto the keeper of each
+-- property_id that has duplicates. The keeper is the most-recently-published
+-- listing (ties broken by id for determinism). Single-listing properties are
+-- excluded by the HAVING COUNT(*) > 1 in the `stats` CTE.
+WITH stats AS (
   SELECT property_id,
-         SUM(views_count) AS total_views,
+         SUM(views_count)     AS total_views,
          SUM(favorites_count) AS total_favorites
   FROM listings
   GROUP BY property_id
   HAVING COUNT(*) > 1
-) stats
-WHERE l.id IN (SELECT id FROM _listings_dedup_keepers)
-  AND l.property_id = stats.property_id;
+),
+keepers AS (
+  SELECT DISTINCT ON (property_id) id, property_id
+  FROM listings
+  WHERE property_id IN (SELECT property_id FROM stats)
+  ORDER BY property_id, published_at DESC NULLS LAST, id
+)
+UPDATE listings l
+SET views_count     = s.total_views,
+    favorites_count = s.total_favorites
+FROM stats s
+JOIN keepers k ON k.property_id = s.property_id
+WHERE l.id = k.id;
 
--- Step C: delete the non-keeper duplicates.
+-- Step B: delete the non-keeper duplicates. Single-listing property_ids see
+-- their unique id present in the inner DISTINCT ON output, so they're not
+-- in NOT IN and not deleted.
 DELETE FROM listings
-WHERE id NOT IN (SELECT id FROM _listings_dedup_keepers)
-  AND property_id IN (SELECT property_id FROM _listings_dedup_keepers);
+WHERE id NOT IN (
+  SELECT DISTINCT ON (property_id) id
+  FROM listings
+  ORDER BY property_id, published_at DESC NULLS LAST, id
+);
 
--- Step D: enforce uniqueness going forward. The double-click race from the
+-- Step C: enforce uniqueness going forward. The double-click race from the
 -- E2E P0 scenario can no longer create twin marketplace rows.
 ALTER TABLE listings
   DROP CONSTRAINT IF EXISTS listings_property_id_unique;
 ALTER TABLE listings
   ADD CONSTRAINT listings_property_id_unique UNIQUE (property_id);
-
-DROP TABLE IF EXISTS _listings_dedup_keepers;
 
 -- ============================================================================
 -- 3. Address-dedup index on properties (lookup helper, no constraint)
