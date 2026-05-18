@@ -245,6 +245,55 @@ const EXT_FOR_MIME: Record<string, string> = {
   'image/webp': 'webp',
 }
 
+// Re-encode through a Canvas to strip ALL metadata (EXIF, IPTC, XMP). The Swiss
+// privacy law (nLPD art. 6) treats GPS coordinates as sensitive personal data;
+// a real estate photo uploaded straight from a phone leaks the agent's home/
+// office position in the JPEG EXIF GPS block.
+//
+// Trade-off : Canvas re-encoding is technically lossy for JPEG, but at quality
+// 0.95 the visual delta is imperceptible and listing photos pass through
+// further compression anyway (CDN, Flatfox sync, OG image scrapers).
+//
+// Defensive: any failure (huge image, decode error, missing Canvas context)
+// falls back to the original file so an upload never gets blocked by EXIF
+// stripping. The bucket RLS + MIME whitelist still enforce server-side limits.
+async function stripImageMetadata(file: File): Promise<File> {
+  if (!ALLOWED_PHOTO_MIME.has(file.type)) return file
+  if (typeof window === 'undefined' || typeof document === 'undefined') return file
+
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error('decode-failed'))
+      el.src = url
+    })
+
+    // Skip ridiculously large images — Canvas refuses > ~16K on most browsers
+    // and the re-encode would blow memory. Server has its own 10 Mo cap.
+    if (img.naturalWidth > 12_000 || img.naturalHeight > 12_000) return file
+
+    const canvas = document.createElement('canvas')
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return file
+    ctx.drawImage(img, 0, 0)
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, file.type, 0.95)
+    })
+    if (!blob) return file
+
+    return new File([blob], file.name, { type: file.type, lastModified: Date.now() })
+  } catch {
+    return file
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 export function useUploadPropertyPhotos() {
   const { profile } = useAuth()
 
@@ -265,12 +314,16 @@ export function useUploadPropertyPhotos() {
         if (!ALLOWED_PHOTO_MIME.has(file.type)) {
           throw new Error(`Format ${file.type || 'inconnu'} refusé (JPG/PNG/WebP uniquement)`)
         }
+        // Strip EXIF/IPTC/XMP before upload (LPD GPS protection). If the
+        // helper returns the same File reference it means the strip was
+        // skipped (e.g. oversized image) — we upload as-is in that case.
+        const stripped = await stripImageMetadata(file)
         const ext = EXT_FOR_MIME[file.type]
         const filePath = `${agencyId}/properties/${propertyId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
 
         const { error: uploadError } = await supabase.storage
           .from('property-photos')
-          .upload(filePath, file, { contentType: file.type })
+          .upload(filePath, stripped, { contentType: file.type })
 
         if (uploadError) throw uploadError
 

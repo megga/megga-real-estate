@@ -66,6 +66,16 @@ Règles :
 - external_regie : à remplir UNIQUEMENT si une régie de gestion est clairement identifiée (nom + au moins phone OU email). Sinon null.
 - Retourne UNIQUEMENT le JSON, pas de texte avant ou après`
 
+// Per-agency monthly quotas — mirror virtual-staging / extract-property-pdf
+// shape. URL extraction uses Claude Sonnet text (~CHF 0.01 per call), so
+// worst-case Pro = CHF 1/month/agent.
+const PLAN_QUOTAS: Record<string, number> = {
+  starter: 5,
+  pro: 100,
+  entreprise: 500,
+  agency: 500,
+}
+
 // Allowed domains for scraping
 const ALLOWED_DOMAINS = [
   'homegate.ch',
@@ -104,12 +114,46 @@ serve(async (req) => {
   try {
     const auth = await requireAgentAuth(req, corsHeaders)
     if (auth instanceof Response) return auth
+    const { profile, supabase } = auth
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ── Monthly quota check ────────────────────────────────────────────
+    const { data: agency } = await supabase
+      .from('agencies')
+      .select('plan')
+      .eq('id', profile.agency_id)
+      .single()
+    const plan = (agency?.plan as string) || 'starter'
+    const quota = PLAN_QUOTAS[plan] ?? 0
+
+    const startOfMonth = new Date()
+    startOfMonth.setUTCDate(1)
+    startOfMonth.setUTCHours(0, 0, 0, 0)
+
+    const { count: usageCount } = await supabase
+      .from('activity_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('agency_id', profile.agency_id)
+      .eq('action', 'extract_property_url')
+      .gte('created_at', startOfMonth.toISOString())
+
+    const currentUsage = usageCount ?? 0
+    if (currentUsage >= quota) {
+      return new Response(
+        JSON.stringify({
+          error: `Quota mensuel atteint (${currentUsage}/${quota} URL extraites ce mois)`,
+          quota_exceeded: true,
+          current_usage: currentUsage,
+          quota,
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -275,12 +319,32 @@ serve(async (req) => {
     // Ensure source_url is set
     extracted.source_url = url
 
+    // Log successful extraction for quota accounting and audit trail (only on
+    // the success path — failures don't burn the agent's monthly cap).
+    await supabase.from('activity_events').insert({
+      agency_id: profile.agency_id,
+      actor_id: profile.id,
+      actor_kind: 'ai',
+      action: 'extract_property_url',
+      entity_type: 'property',
+      severity: 'info',
+      category: 'ai',
+      metadata: {
+        source_url: url,
+        source_portal: (extracted as { source_portal?: string } | null)?.source_portal ?? null,
+        usage: result.usage ?? null,
+        usage_count: currentUsage + 1,
+        quota,
+      },
+    })
+
     return new Response(
       JSON.stringify({
         success: true,
         data: extracted,
         source_url: url,
         usage: result.usage,
+        quota: { current: currentUsage + 1, limit: quota, remaining: quota - currentUsage - 1 },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
