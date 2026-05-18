@@ -259,8 +259,8 @@ function AnimatedRoutes() {
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
               <Route path="/faq" element={<PropertyXFAQPage />} />
               <Route path="/properties" element={<PropertyXListingsPage />} />
-              <Route path="/propriete" element={<PageTransition variant="push"><PropertyXSinglePropertyPage /></PageTransition>} />
-              <Route path="/propriete/:id" element={<PageTransition variant="push"><PropertyXSinglePropertyPage /></PageTransition>} />
+              <Route path="/propriete" element={<PageTransition variant="crossfade"><PropertyXSinglePropertyPage /></PageTransition>} />
+              <Route path="/propriete/:id" element={<PageTransition variant="crossfade"><PropertyXSinglePropertyPage /></PageTransition>} />
               <Route path="/contact" element={<PropertyXContactPage />} />
               <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
               <Route path="/publier-bien" element={<PropertyXSubmitPropertyPage />} />
@@ -279,15 +279,15 @@ function AnimatedRoutes() {
               <Route path="/design-system/typography" element={<PropertyXDesignSystemTypographyPage />} />
               <Route path="/design-system/shadows" element={<PropertyXDesignSystemShadowsPage />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/listing/:id" element={<PageTransition variant="push"><ListingPage /></PageTransition>} />
+              <Route path="/listing/:id" element={<PageTransition variant="crossfade"><ListingPage /></PageTransition>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               {/* Marketplace publique — Property X design, branchée Supabase.
                   SearchPage (ancien design avec carte) reste accessible via
                   /acheter-legacy en attendant la v1.1 (toggle list/carte). */}
-              <Route path="/acheter" element={<PageTransition variant="push"><PropertyXListingsPage context="buy" /></PageTransition>} />
-              <Route path="/louer" element={<PageTransition variant="push"><PropertyXListingsPage context="rent" /></PageTransition>} />
+              <Route path="/acheter" element={<PageTransition variant="crossfade"><PropertyXListingsPage context="buy" /></PageTransition>} />
+              <Route path="/louer" element={<PageTransition variant="crossfade"><PropertyXListingsPage context="rent" /></PageTransition>} />
               <Route path="/acheter-legacy" element={<SearchPage />} />
               <Route path="/louer-legacy" element={<LouerPage />} />
               <Route path="/about" element={<AboutPage />} />
