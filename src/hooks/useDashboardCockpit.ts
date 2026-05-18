@@ -268,6 +268,14 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
   // 4. Velocity : moyenne jours entre created_at et updated_at sur transactions signed
   // dans la fenêtre. C'est une approximation de "vélocité globale du pipeline".
   // Un vrai calcul par stage_change nécessiterait une requête sur activity_events.
+  const computeVelocity = (rows: Array<{ created_at: string; updated_at: string }>): number => {
+    if (rows.length === 0) return 0
+    const totalDays = rows.reduce((sum, r) => {
+      const diff = (new Date(r.updated_at).getTime() - new Date(r.created_at).getTime()) / (24 * 60 * 60 * 1000)
+      return sum + Math.max(0, diff)
+    }, 0)
+    return Math.round(totalDays / rows.length)
+  }
   const { data: velocity = 0 } = useQuery({
     queryKey: ['dashboard-cockpit-velocity', agencyId, userId, period, scope],
     queryFn: async (): Promise<number> => {
@@ -281,13 +289,28 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
       if (scope === 'me' && userId) q = q.eq('assigned_to', userId)
       const { data, error } = await q
       if (error) throw error
-      const rows = (data ?? []) as Array<{ created_at: string; updated_at: string }>
-      if (rows.length === 0) return 0
-      const totalDays = rows.reduce((sum, r) => {
-        const diff = (new Date(r.updated_at).getTime() - new Date(r.created_at).getTime()) / (24 * 60 * 60 * 1000)
-        return sum + Math.max(0, diff)
-      }, 0)
-      return Math.round(totalDays / rows.length)
+      return computeVelocity((data ?? []) as Array<{ created_at: string; updated_at: string }>)
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
+
+  // 4b. Velocity sur fenêtre précédente — pour calculer deltaVel (Sprint C).
+  const { data: prevVelocity = 0 } = useQuery({
+    queryKey: ['dashboard-cockpit-velocity-prev', agencyId, userId, period, scope],
+    queryFn: async (): Promise<number> => {
+      if (!agencyId) return 0
+      let q = supabase
+        .from('transactions')
+        .select('created_at, updated_at')
+        .eq('agency_id', agencyId)
+        .eq('stage', 'signed')
+        .gte('updated_at', prevBounds.from.toISOString())
+        .lte('updated_at', prevBounds.to.toISOString())
+      if (scope === 'me' && userId) q = q.eq('assigned_to', userId)
+      const { data, error } = await q
+      if (error) throw error
+      return computeVelocity((data ?? []) as Array<{ created_at: string; updated_at: string }>)
     },
     enabled: !!agencyId,
     staleTime: 60_000,
@@ -369,7 +392,9 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
       ? Math.round(((transactions.length - prevTransactions.length) / prevTransactions.length) * 100)
       : 0
     const deltaConv = conversionPct - prevConversionPct        // points (signed)
-    const deltaVel = 0                                          // Sprint C : nécessite velocity sur fenêtre N-1
+    // deltaVel en JOURS (négatif = plus rapide ce mois, positif = plus lent).
+    // Ex : velocity=47, prevVelocity=59 → deltaVel=-12 = pipeline 12 j plus rapide.
+    const deltaVel = velocity - prevVelocity
     const deltaKyc = (kycCounts?.risk ?? 0) - (kycCounts?.riskPrev ?? 0)
 
     // deltaPct : projeté vs target — info "% à parcourir/dépassé"
@@ -409,7 +434,7 @@ export function useDashboardCockpit(period: PeriodKey, scope: ScopeKey): {
         cta: 'Voir le pipeline',
       },
     }
-  }, [transactions, prevTransactions, closed, prevClosed, kycCounts, target, velocity, bounds, txLoading, closedLoading, kycLoading])
+  }, [transactions, prevTransactions, closed, prevClosed, kycCounts, target, velocity, prevVelocity, bounds, txLoading, closedLoading, kycLoading])
 
   return {
     data,

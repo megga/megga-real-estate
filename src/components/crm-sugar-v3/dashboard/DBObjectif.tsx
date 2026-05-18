@@ -552,8 +552,14 @@ function ObjectifLeviersCard() {
 }
 
 // ─── Carte Jalons (T1/T2/T3/T4 ou Avril/Mai/Juin selon période) ───────
-function ObjectifJalonsCard({ period }: { period: 'month' | 'quarter' | 'year' }) {
-  const milestones = OV_MILESTONES[period] || OV_MILESTONES.year
+function ObjectifJalonsCard({
+  period,
+  milestones,
+}: {
+  period: 'month' | 'quarter' | 'year'
+  milestones?: import('./data').Milestone[]
+}) {
+  const resolvedMilestones = milestones ?? OV_MILESTONES[period] ?? OV_MILESTONES.year
   const unitLabel = period === 'month' ? 'Semaines' : period === 'quarter' ? 'Mois' : 'Trimestres'
   return (
     <div
@@ -595,7 +601,7 @@ function ObjectifJalonsCard({ period }: { period: 'month' | 'quarter' | 'year' }
         </h3>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {milestones.map((m, i) => (
+        {resolvedMilestones.map((m, i) => (
           <div
             key={i}
             style={{
@@ -815,8 +821,11 @@ export function DBObjectif({ period: shellPeriod }: { period: PeriodKey }) {
 
   // Source de vérité : Supabase via useDashboardObjectif.
   // Fallback fixture OV_DATA pendant le chargement initial.
-  const { data: liveData } = useDashboardObjectif(shellPeriod)
+  // Sprint C : milestones live (T1/T2/T3/T4, mois, semaines) dérivées du
+  // target proportionnel + real[] + median[].
+  const { data: liveData, milestones: liveMilestones } = useDashboardObjectif(shellPeriod)
   const d = liveData ?? OV_DATA[period]
+  const milestones = liveMilestones.length > 0 ? liveMilestones : OV_MILESTONES[period] ?? OV_MILESTONES.year
   const factor = OV_SCENARIOS_FACTORS.find((s) => s.v === scenario)!
   const projCurve = d[factor.curve] || d.median
   const endVal = projCurve[projCurve.length - 1]
@@ -1053,7 +1062,7 @@ export function DBObjectif({ period: shellPeriod }: { period: PeriodKey }) {
       {/* 3 cartes secondaires */}
       <div className="db-objectif-cards-grid">
         <ObjectifLeviersCard />
-        <ObjectifJalonsCard period={period} />
+        <ObjectifJalonsCard period={period} milestones={milestones} />
         <ObjectifNudgesCard period={period} />
       </div>
     </section>

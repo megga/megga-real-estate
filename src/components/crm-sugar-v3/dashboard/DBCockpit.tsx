@@ -17,6 +17,7 @@ import {
   type ScopeKey,
 } from './data'
 import { useDashboardCockpit } from '@/hooks/useDashboardCockpit'
+import { useDashboardAiHint } from '@/hooks/useDashboardAiHint'
 
 // ─── Hero adaptatif pleine largeur ─────────────────────────────────────
 function CockpitHero({ data, tone }: { data: CockpitDataset; tone: CockpitTone }) {
@@ -773,7 +774,23 @@ export function DBCockpit({
   // Fallback fixtures CK_DATA pendant le chargement initial pour éviter le flash.
   const { data: liveData } = useDashboardCockpit(shellPeriod, scope)
   const periodMapped = ckMapPeriod(shellPeriod)
-  const data: CockpitDataset = liveData ?? CK_DATA[periodMapped]
+  const baseData: CockpitDataset = liveData ?? CK_DATA[periodMapped]
+
+  // Sprint C — aiHint live via Claude API (Edge Function dashboard-ai-hint).
+  // Si la fonction répond, on remplace l'heuristique embarquée par la
+  // suggestion IA contextualisée. Sinon, on garde le fallback du hook Cockpit.
+  const { hint: liveHint } = useDashboardAiHint(liveData, shellPeriod, scope)
+  const data: CockpitDataset = liveHint
+    ? {
+        ...baseData,
+        aiHint: {
+          label: liveHint.label,
+          title: liveHint.title,
+          desc: liveHint.desc,
+          cta: liveHint.cta,
+        },
+      }
+    : baseData
   const tone = ckTone(data.projected, data.target, data.periodWord)
   const stages = CK_DECOMP_STAGES
 

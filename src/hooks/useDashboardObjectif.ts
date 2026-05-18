@@ -1,19 +1,17 @@
 // MEGGA CRM Sugar v3 — Source de vérité pour DBObjectif (Dashboard Analytics).
-// ObjectifDataset live depuis Supabase :
+// ObjectifDataset + Milestones[] live depuis Supabase (Sprint C complète) :
 //   - target           : agencies.{monthly,quarterly,yearly}_target
 //   - realized         : Σ commission transactions signed dans la fenêtre
 //   - real[] cumulé    : par jour (month) / semaine (quarter) / mois (year)
 //   - median/low/high  : extrapolation linéaire depuis real[realIdx] jusqu'à fin
-//
-// Hors scope cette PR :
-//   - Milestones T1/T2/T3/T4 ou hebdo — dérivables ensuite (proportionnels au
-//     target) ; restent côté fixtures OV_MILESTONES en l'état.
+//   - milestones[]     : 3-4 jalons par période (Sprint C) dérivés du target
+//                        proportionnel + real[] + median[]
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { ObjectifDataset, PeriodKey } from '@/components/crm-sugar-v3/dashboard/data'
+import type { Milestone, ObjectifDataset, PeriodKey } from '@/components/crm-sugar-v3/dashboard/data'
 
 interface SignedTxRow {
   updated_at: string
@@ -48,6 +46,107 @@ interface PeriodAxis {
 }
 
 const FR_MONTHS_SHORT = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
+const FR_MONTHS_LONG = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+
+// Découpe une période en N jalons (year=4 trimestres, quarter=3 mois, month=3 sub-périodes hebdo)
+interface MilestoneSpec {
+  id: string
+  title: string
+  subtitle: string
+  fromBucket: number       // index de bucket inclusif (sur l'axis du graph)
+  toBucket: number         // index de bucket inclusif
+}
+
+function buildMilestoneSpecs(period: PeriodKey): MilestoneSpec[] {
+  const now = new Date()
+  if (period === 'month') {
+    // 3 jalons par mois (1 par semaine de calendrier — semaines ISO partielles OK)
+    const buckets = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const w1End = Math.min(7, buckets) - 1
+    const w2End = Math.min(14, buckets) - 1
+    const w3End = Math.min(21, buckets) - 1
+    return [
+      { id: 'm-w1', title: 'Semaine 1', subtitle: `1 – ${w1End + 1} ${FR_MONTHS_SHORT[now.getMonth()].toLowerCase()}`, fromBucket: 0, toBucket: w1End },
+      { id: 'm-w2', title: 'Semaine 2', subtitle: `${w1End + 2} – ${w2End + 1} ${FR_MONTHS_SHORT[now.getMonth()].toLowerCase()}`, fromBucket: w1End + 1, toBucket: w2End },
+      { id: 'm-w3', title: 'Semaine 3', subtitle: `${w2End + 2} – ${w3End + 1} ${FR_MONTHS_SHORT[now.getMonth()].toLowerCase()}`, fromBucket: w2End + 1, toBucket: w3End },
+      { id: 'm-w4', title: 'Semaine 4+', subtitle: `${w3End + 2} – ${buckets} ${FR_MONTHS_SHORT[now.getMonth()].toLowerCase()}`, fromBucket: w3End + 1, toBucket: buckets - 1 },
+    ]
+  }
+  if (period === 'quarter') {
+    // 3 jalons par trimestre = 3 mois ; buckets axis = semaines (~13)
+    const q = Math.floor(now.getMonth() / 3)
+    const month1 = q * 3
+    const month2 = q * 3 + 1
+    const month3 = q * 3 + 2
+    // ~4-5 semaines par mois sur l'axis quarter
+    return [
+      { id: `q-m${month1}`, title: FR_MONTHS_LONG[month1], subtitle: 'S1 – S4', fromBucket: 0, toBucket: 3 },
+      { id: `q-m${month2}`, title: FR_MONTHS_LONG[month2], subtitle: 'S5 – S8', fromBucket: 4, toBucket: 8 },
+      { id: `q-m${month3}`, title: FR_MONTHS_LONG[month3], subtitle: 'S9 – S13', fromBucket: 9, toBucket: 12 },
+    ]
+  }
+  // year → 4 trimestres
+  return [
+    { id: 'y-t1', title: 'T1', subtitle: 'Jan – Mar', fromBucket: 0, toBucket: 2 },
+    { id: 'y-t2', title: 'T2', subtitle: 'Avr – Juin', fromBucket: 3, toBucket: 5 },
+    { id: 'y-t3', title: 'T3', subtitle: 'Juil – Sep', fromBucket: 6, toBucket: 8 },
+    { id: 'y-t4', title: 'T4', subtitle: 'Oct – Déc', fromBucket: 9, toBucket: 11 },
+  ]
+}
+
+// Construit les Milestones live à partir des données calculées du Cockpit
+function buildMilestones(
+  specs: MilestoneSpec[],
+  realIdx: number,
+  realCumul: number[],
+  median: number[],
+  effectiveTarget: number,
+): Milestone[] {
+  const totalBuckets = specs[specs.length - 1].toBucket + 1
+  const projectedAtBucket = (i: number): number => {
+    if (i <= realIdx) return realCumul[i] ?? 0
+    const offsetInProj = i - realIdx
+    return median[offsetInProj] ?? median[median.length - 1] ?? 0
+  }
+  return specs.map(spec => {
+    const milestoneEnd = spec.toBucket
+    const done = milestoneEnd < realIdx
+    const current = spec.fromBucket <= realIdx && realIdx <= milestoneEnd
+    // Target proportionnel : part de la période totale
+    const proportion = (milestoneEnd + 1) / totalBuckets
+    const target = Math.round(effectiveTarget * proportion)
+    // Value cumulée à la fin du jalon (réel si passé, valeur courante si current)
+    let value: number | null = null
+    if (done || current) {
+      const endIdx = Math.min(milestoneEnd, realIdx)
+      value = realCumul[endIdx] ?? 0
+    }
+    // ValueProjected : courbe median au bucket de fin du jalon
+    const valueProjected = Math.round(projectedAtBucket(milestoneEnd))
+    // Status humain
+    let status: string
+    if (done && value != null) {
+      const pct = target > 0 ? Math.round((value / target) * 100) : 0
+      status = pct >= 100 ? `Atteint à +${pct - 100} %` : `Atteint à ${pct} %`
+    } else if (current && value != null) {
+      const pct = target > 0 ? Math.round((value / target) * 100) : 0
+      status = `En cours · ${pct} %`
+    } else {
+      status = 'Projection médiane'
+    }
+    return {
+      id: spec.id,
+      title: spec.title,
+      subtitle: spec.subtitle,
+      done,
+      current,
+      value,
+      target,
+      valueProjected,
+      status,
+    }
+  })
+}
 
 function periodAxis(period: PeriodKey): PeriodAxis {
   const now = new Date()
@@ -102,7 +201,11 @@ function periodAxis(period: PeriodKey): PeriodAxis {
   }
 }
 
-export function useDashboardObjectif(period: PeriodKey): { data: ObjectifDataset | null; isLoading: boolean } {
+export function useDashboardObjectif(period: PeriodKey): {
+  data: ObjectifDataset | null
+  milestones: Milestone[]
+  isLoading: boolean
+} {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
 
@@ -147,9 +250,9 @@ export function useDashboardObjectif(period: PeriodKey): { data: ObjectifDataset
     staleTime: 5 * 60_000,
   })
 
-  return useMemo<{ data: ObjectifDataset | null; isLoading: boolean }>(() => {
+  return useMemo<{ data: ObjectifDataset | null; milestones: Milestone[]; isLoading: boolean }>(() => {
     const isLoading = sLoad || tLoad
-    if (isLoading) return { data: null, isLoading: true }
+    if (isLoading) return { data: null, milestones: [], isLoading: true }
 
     // Commission cumulée par bucket (jour/semaine/mois)
     const perBucket = new Array(axis.buckets).fill(0)
@@ -203,6 +306,10 @@ export function useDashboardObjectif(period: PeriodKey): { data: ObjectifDataset
       highCurve,
       daysLeft: axis.daysLeft,
     }
-    return { data, isLoading: false }
-  }, [signed, target, axis, sLoad, tLoad])
+    // Milestones live (Sprint C) — dérivés du target proportionnel + real[] + median[]
+    const specs = buildMilestoneSpecs(period)
+    const milestones = buildMilestones(specs, axis.realIdx, realCumul, median, effectiveTarget)
+
+    return { data, milestones, isLoading: false }
+  }, [signed, target, axis, period, sLoad, tLoad])
 }
