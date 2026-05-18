@@ -1,13 +1,24 @@
 // MEGGA CRM Sugar v3 — Card Timeline activité unifiée
 // Port 1:1 de crm-screen-contact-detail-sugar.jsx lignes 561-611 (CdTimelineCard).
+// Tier 1 mail : merge optionnel d'emails Gmail/Outlook avec les activity_events
+// → timeline réellement unifiée.
 
 import { SugarV3, fmtDateTime } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycGhostPill, KycSection } from '../primitives'
 import type { AuditEvent } from '@/types/kyc'
+import type { EmailMessage } from '@/hooks/useGmail'
+
+interface EmailEntry extends EmailMessage {
+  provider: 'gmail' | 'outlook'
+}
 
 interface Props {
   events: AuditEvent[]
+  /** Emails Gmail + Outlook mergés à la timeline. Direction (sent/received)
+   *  déduite via comparaison from_address vs contactEmail. */
+  emails?: EmailEntry[]
+  contactEmail?: string | null
 }
 
 const CATEGORY_TO_ICON: Record<string, string> = {
@@ -21,11 +32,30 @@ const CATEGORY_TO_ICON: Record<string, string> = {
   ai: 'sparkle',
 }
 
-export function CdTimelineCard({ events }: Props) {
-  const sorted = [...events].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  )
+interface TimelineItem {
+  key: string
+  kind: 'event' | 'email'
+  ts: number
+  payload: AuditEvent | EmailEntry
+}
+
+export function CdTimelineCard({ events, emails = [], contactEmail }: Props) {
+  // Merge events + emails dans une liste unifiée triée par date desc
+  const merged: TimelineItem[] = [
+    ...events.map(e => ({
+      key: `ev-${e.id}`,
+      kind: 'event' as const,
+      ts: new Date(e.created_at).getTime(),
+      payload: e,
+    })),
+    ...emails.map(m => ({
+      key: `email-${m.provider}-${m.id}`,
+      kind: 'email' as const,
+      ts: new Date(m.sent_at).getTime(),
+      payload: m,
+    })),
+  ]
+  const sorted = merged.sort((a, b) => b.ts - a.ts)
 
   return (
     <KycSection
@@ -64,18 +94,40 @@ export function CdTimelineCard({ events }: Props) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {sorted.map((ev, i) => {
-            const iconName = ev.category
-              ? CATEGORY_TO_ICON[ev.category] ?? 'note'
-              : 'note'
+          {sorted.map((item, i) => {
+            const isLast = i === sorted.length - 1
+            const lowerEmail = contactEmail?.toLowerCase()
+
+            let iconName = 'note'
+            let title = ''
+            let subtitle = ''
+            let detail = ''
+
+            if (item.kind === 'event') {
+              const ev = item.payload as AuditEvent
+              iconName = ev.category ? CATEGORY_TO_ICON[ev.category] ?? 'note' : 'note'
+              title = ev.action
+              subtitle = `${fmtDateTime(ev.created_at)} · ${ev.actor_id ? 'Agent' : 'MEGGA AI'}`
+              detail = ev.object_label ?? ''
+            } else {
+              const em = item.payload as EmailEntry
+              const isReceived = em.from_address?.toLowerCase() === lowerEmail
+              iconName = 'mail'
+              title = isReceived
+                ? `Email reçu — ${em.from_name || em.from_address}`
+                : `Email envoyé à ${em.to_addresses[0] ?? em.from_address}`
+              subtitle = `${fmtDateTime(em.sent_at)} · ${em.provider === 'gmail' ? 'Gmail' : 'Outlook'}${em.is_unread ? ' · Non lu' : ''}`
+              detail = em.subject || em.snippet || '(Sans objet)'
+            }
+
             return (
               <div
-                key={ev.id}
+                key={item.key}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'auto 1fr',
                   gap: 16,
-                  paddingBottom: i === sorted.length - 1 ? 0 : 20,
+                  paddingBottom: isLast ? 0 : 20,
                   position: 'relative',
                 }}
               >
@@ -91,7 +143,9 @@ export function CdTimelineCard({ events }: Props) {
                       width: 36,
                       height: 36,
                       borderRadius: 12,
-                      background: SugarV3.cardSubtle,
+                      background: item.kind === 'email'
+                        ? ((item.payload as EmailEntry).provider === 'gmail' ? '#FFE9E5' : '#E5EFFB')
+                        : SugarV3.cardSubtle,
                       color: SugarV3.ink,
                       display: 'grid',
                       placeItems: 'center',
@@ -100,7 +154,7 @@ export function CdTimelineCard({ events }: Props) {
                   >
                     <SgIcon name={iconName} size={16} stroke={SugarV3.ink} />
                   </div>
-                  {i < sorted.length - 1 && (
+                  {!isLast && (
                     <div
                       style={{
                         width: 2,
@@ -121,7 +175,7 @@ export function CdTimelineCard({ events }: Props) {
                       marginBottom: 3,
                     }}
                   >
-                    {ev.action}
+                    {title}
                   </div>
                   <div
                     style={{
@@ -131,10 +185,9 @@ export function CdTimelineCard({ events }: Props) {
                       marginBottom: 6,
                     }}
                   >
-                    {fmtDateTime(ev.created_at)} ·{' '}
-                    {ev.actor_id ? 'Agent' : 'MEGGA AI'}
+                    {subtitle}
                   </div>
-                  {ev.object_label && (
+                  {detail && (
                     <div
                       style={{
                         fontSize: 13,
@@ -143,7 +196,7 @@ export function CdTimelineCard({ events }: Props) {
                         lineHeight: 1.55,
                       }}
                     >
-                      {ev.object_label}
+                      {detail}
                     </div>
                   )}
                 </div>

@@ -32,6 +32,9 @@ import { CdNotesCard } from '@/components/crm-sugar-v3/contact-detail/CdNotesCar
 import { CdDocsCard } from '@/components/crm-sugar-v3/contact-detail/CdDocsCard'
 import { CdEmailsCard } from '@/components/crm-sugar-v3/contact-detail/CdEmailsCard'
 import { EmailComposerModal } from '@/components/crm-sugar-v3/contact-detail/EmailComposerModal'
+import { useGmail, useGmailMessagesForContact } from '@/hooks/useGmail'
+import { useOutlookMail, useOutlookMailMessagesForContact } from '@/hooks/useOutlookMail'
+import type { EmailMessage } from '@/hooks/useGmail'
 import { CdCriteriaCard } from '@/components/crm-sugar-v3/contact-detail/CdCriteriaCard'
 import { useContact } from '@/hooks/useContacts'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
@@ -67,6 +70,24 @@ export default function ContactDetailSugarV3Page() {
     () => allEvents.filter((e) => e.entity_id === id || (e.entity_type === 'contact' && e.entity_id === id)),
     [allEvents, id],
   )
+
+  // Emails Gmail + Outlook pour ce contact → mergés dans CdTimelineCard
+  const gmail = useGmail()
+  const outlookMail = useOutlookMail()
+  const gmailMessagesQuery = useGmailMessagesForContact(
+    gmail.isConnected ? contact?.email : null,
+    id,
+  )
+  const outlookMessagesQuery = useOutlookMailMessagesForContact(
+    outlookMail.isConnected ? contact?.email : null,
+    id,
+  )
+  const timelineEmails = useMemo<Array<EmailMessage & { provider: 'gmail' | 'outlook' }>>(() => {
+    const merged: Array<EmailMessage & { provider: 'gmail' | 'outlook' }> = []
+    for (const m of gmailMessagesQuery.data ?? []) merged.push({ ...m, provider: 'gmail' })
+    for (const m of outlookMessagesQuery.data ?? []) merged.push({ ...m, provider: 'outlook' })
+    return merged
+  }, [gmailMessagesQuery.data, outlookMessagesQuery.data])
 
   // Documents pour ce contact
   const { data: docs = [] } = useQuery({
@@ -178,7 +199,11 @@ export default function ContactDetailSugarV3Page() {
             <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18 }}>
               {/* COLONNE PRINCIPALE */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <CdTimelineCard events={contactEvents} />
+                <CdTimelineCard
+                  events={contactEvents}
+                  emails={timelineEmails}
+                  contactEmail={contact.email}
+                />
                 <CdEmailsCard contactId={contact.id} contactEmail={contact.email} />
                 <CdNotesCard notes={contact.notes} />
               </div>

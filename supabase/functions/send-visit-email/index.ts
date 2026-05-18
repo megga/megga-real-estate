@@ -30,6 +30,63 @@ function formatTimeFR(isoDate: string): string {
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
+/**
+ * Génère un fichier ICS RFC 5545 valide pour la visite.
+ * Le contact peut l'ajouter à n'importe quel calendrier (Google, Outlook,
+ * Apple Calendar, etc.) en cliquant la pièce jointe.
+ */
+function buildICS(opts: {
+  uid: string
+  start: Date
+  end: Date
+  summary: string
+  description: string
+  location: string
+  organizerEmail: string
+  organizerName: string
+  attendeeEmail: string
+  meetUrl?: string
+}): string {
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  // Échappe les caractères réservés ICS (RFC 5545 §3.3.11)
+  const escape = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
+  // Wrap les longues lignes à 75 chars (RFC 5545 §3.1)
+  const fold = (line: string): string => {
+    if (line.length <= 75) return line
+    const parts: string[] = []
+    let i = 0
+    while (i < line.length) {
+      parts.push((i === 0 ? '' : ' ') + line.slice(i, i + 74))
+      i += 74
+    }
+    return parts.join('\r\n')
+  }
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//MEGGA Real Estate//Visit Booking//FR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:REQUEST',
+    'BEGIN:VEVENT',
+    `UID:${opts.uid}@megga.ch`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(opts.start)}`,
+    `DTEND:${fmt(opts.end)}`,
+    `SUMMARY:${escape(opts.summary)}`,
+    `DESCRIPTION:${escape(opts.description)}`,
+    `LOCATION:${escape(opts.location)}`,
+    `ORGANIZER;CN=${escape(opts.organizerName)}:mailto:${opts.organizerEmail}`,
+    `ATTENDEE;CN=${escape(opts.attendeeEmail)};RSVP=TRUE:mailto:${opts.attendeeEmail}`,
+    opts.meetUrl ? `URL:${opts.meetUrl}` : '',
+    'STATUS:CONFIRMED',
+    'TRANSP:OPAQUE',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean).map(fold)
+  return lines.join('\r\n')
+}
+
 function buildHTML(subject: string, bodyParagraphs: string[]): string {
   return `<!DOCTYPE html>
 <html>
@@ -172,16 +229,49 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No recipient email' }), { status: 400, headers: corsHeaders })
     }
 
+    // Génère l'ICS pour confirmation_buyer (le destinataire peut l'ajouter à son
+    // propre calendrier en un click). On l'attache à l'email Resend.
+    const resendPayload: Record<string, unknown> = {
+      from: 'MEGGA <noreply@megga.ch>',
+      to: [to],
+      subject,
+      html,
+    }
+
+    if (type === 'confirmation_buyer') {
+      const start = new Date(visit.scheduled_at)
+      const durationMinutes = visit.duration_minutes ?? 45
+      const end = new Date(start.getTime() + durationMinutes * 60_000)
+      const icsContent = buildICS({
+        uid: visit.id,
+        start,
+        end,
+        summary: isVideo ? `Visite vidéo — ${propertyTitle}` : `Visite — ${propertyTitle}`,
+        description: [
+          isVideo ? `Visite vidéo via ${videoLabel}.` : '',
+          visit.video_link ? `Lien : ${visit.video_link}` : '',
+          `Gérer ma visite : ${manageUrl}`,
+        ].filter(Boolean).join('\n'),
+        location: isVideo ? (visit.video_link || videoLabel) : propertyAddress,
+        organizerEmail: agent?.email ?? 'noreply@megga.ch',
+        organizerName: agent?.full_name ?? 'MEGGA',
+        attendeeEmail: to,
+        meetUrl: visit.video_link ?? undefined,
+      })
+      // Encode en base64 standard (Resend attend ce format)
+      const icsBase64 = btoa(unescape(encodeURIComponent(icsContent)))
+      resendPayload.attachments = [{
+        filename: 'visite-megga.ics',
+        content: icsBase64,
+        content_type: 'text/calendar; charset=utf-8; method=REQUEST',
+      }]
+    }
+
     // Send via Resend
     const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'MEGGA <noreply@megga.ch>',
-        to: [to],
-        subject,
-        html,
-      }),
+      body: JSON.stringify(resendPayload),
     })
 
     const resendData = await resendRes.json()

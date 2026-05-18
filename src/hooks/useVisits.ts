@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
+import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 import type { CalendarEvent, EventColor, VisitStatus } from '@/components/calendar/week-view-types'
 
 // ── Supabase visit row shape ────────────────────────────────────────────────
@@ -107,6 +109,11 @@ export function useVisits() {
   const queryClient = useQueryClient()
   const agencyId = profile?.agency_id
 
+  // Hooks calendrier pour auto-sync update/delete (best-effort, non bloquant).
+  // Si l'agent n'a pas connecté Google/Outlook, isConnected=false et on skip.
+  const google = useGoogleCalendar()
+  const outlook = useOutlookCalendar()
+
   // ── Fetch all visits as CalendarEvents ──
   const { data: visits = [], isLoading } = useQuery({
     queryKey: ['visits', agencyId],
@@ -177,15 +184,28 @@ export function useVisits() {
         .eq('id', event.id)
 
       if (error) throw error
+      return event.id
     },
-    onSuccess: () => {
+    onSuccess: (visitId) => {
       queryClient.invalidateQueries({ queryKey: ['visits'] })
+      // Auto-sync vers les calendriers connectés (best-effort, non bloquant)
+      if (google.isConnected) google.updateVisitInGoogle(visitId).catch(() => {})
+      if (outlook.isConnected) outlook.updateVisitInOutlook(visitId).catch(() => {})
     },
   })
 
   // ── Delete a visit ──
   const deleteVisitMutation = useMutation({
     mutationFn: async (visitId: string) => {
+      // Remove des calendriers AVANT le delete SQL (sinon le mapping calendar_sync
+      // disparaît avec la visite et on perd la ref vers l'event Google/Outlook)
+      if (google.isConnected) {
+        try { await google.removeFromGoogle(visitId) } catch { /* best-effort */ }
+      }
+      if (outlook.isConnected) {
+        try { await outlook.removeFromOutlook(visitId) } catch { /* best-effort */ }
+      }
+
       const { error } = await supabase
         .from('visits')
         .delete()

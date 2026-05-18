@@ -18,6 +18,8 @@ import { useContacts } from '@/hooks/useContacts'
 import { useCreateAgentVisit } from '@/hooks/useVisitDetail'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
+import { useVisits } from '@/hooks/useVisits'
+import { supabase } from '@/lib/supabase'
 
 const STEPS = ['Bien & visiteur', 'Date & heure', 'Confirmation'] as const
 
@@ -109,16 +111,55 @@ export default function VisitModalSugarV3Page() {
     isPending: isSaving,
     error: saveError,
   } = useCreateAgentVisit()
-  // Auto-sync vers les calendriers connectés après création de la visite.
-  // Le hook n'expose pas de range ici (pas besoin d'events pour ce flow).
+  // Détection de conflits : on fetch les events du jour autour du créneau prévu
+  // pour avertir l'agent s'il y a un overlap avec un autre rdv (Google, Outlook
+  // ou autre visite MEGGA).
+  const conflictRange = useMemo(() => {
+    const start = new Date(`${date}T00:00:00`)
+    const end = new Date(`${date}T23:59:59`)
+    return { start, end }
+  }, [date])
+
   const {
     isConnected: gcalConnected,
+    googleEvents,
     syncVisitToGoogle,
-  } = useGoogleCalendar()
+  } = useGoogleCalendar(conflictRange)
   const {
     isConnected: ocalConnected,
+    outlookEvents,
     syncVisitToOutlook,
-  } = useOutlookCalendar()
+  } = useOutlookCalendar(conflictRange)
+  const { visits: allVisits } = useVisits()
+
+  // Calcul du créneau planifié + détection d'overlap
+  const conflicts = useMemo(() => {
+    if (!date || !time) return [] as Array<{ source: string; title: string; start: Date; end: Date }>
+    const slotStart = new Date(`${date}T${time}:00`)
+    if (Number.isNaN(slotStart.getTime())) return []
+    const slotEnd = new Date(slotStart.getTime() + duration * 60_000)
+
+    const overlap = (s: Date, e: Date): boolean => s < slotEnd && e > slotStart
+
+    const out: Array<{ source: string; title: string; start: Date; end: Date }> = []
+    // Visites MEGGA du jour (hors elle-même, mais on est en création donc pas d'id)
+    for (const v of allVisits) {
+      if (overlap(v.start, v.end)) {
+        out.push({ source: 'MEGGA', title: v.title, start: v.start, end: v.end })
+      }
+    }
+    for (const g of googleEvents) {
+      if (overlap(g.start, g.end)) {
+        out.push({ source: 'Google', title: g.title, start: g.start, end: g.end })
+      }
+    }
+    for (const o of outlookEvents) {
+      if (overlap(o.start, o.end)) {
+        out.push({ source: 'Outlook', title: o.title, start: o.start, end: o.end })
+      }
+    }
+    return out
+  }, [date, time, duration, allVisits, googleEvents, outlookEvents])
 
   const activeBiens = useMemo(
     () => (allBiens ?? []).filter((b) => b.status === 'active'),
@@ -189,13 +230,22 @@ export default function VisitModalSugarV3Page() {
       {
         onSuccess: (newVisit) => {
           // Push silencieux vers les calendriers connectés (best effort).
-          // Échec non bloquant : le user voit la visite créée même si Google
-          // est down, puis peut re-synchroniser manuellement depuis la fiche.
           if (gcalConnected && newVisit?.id) {
             syncVisitToGoogle(newVisit.id).catch(() => {})
           }
           if (ocalConnected && newVisit?.id) {
             syncVisitToOutlook(newVisit.id).catch(() => {})
+          }
+          // Email confirmation au contact avec ICS attaché (Tier 1).
+          // Conditionné au toggle emailVisitor de l'agent. Best-effort.
+          if (emailVisitor && newVisit?.id && contact?.agency_id) {
+            supabase.functions.invoke('send-visit-email', {
+              body: {
+                type: 'confirmation_buyer',
+                visit_id: newVisit.id,
+                agency_id: contact.agency_id,
+              },
+            }).catch(() => {})
           }
           navigate(`/dashboard/visites/${newVisit.id}`)
         },
@@ -692,6 +742,51 @@ export default function VisitModalSugarV3Page() {
                     </select>
                   </Field>
                 </div>
+
+                {/* Détection de conflits — Tier 1 mail/calendar */}
+                {conflicts.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 22,
+                      padding: '14px 16px',
+                      borderRadius: 14,
+                      background: '#FFF4E0',
+                      border: '1px solid rgba(245, 158, 11, 0.30)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#92400E',
+                        marginBottom: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <SgIcon name="alert" size={13} stroke="#92400E" sw={2.2} />
+                      Conflit détecté · {conflicts.length} rdv chevauchant
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {conflicts.map((c, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            fontSize: 12,
+                            color: '#78350F',
+                            fontWeight: 500,
+                          }}
+                        >
+                          <strong>{c.source}</strong> · {c.title} ·{' '}
+                          {c.start.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
+                          –
+                          {c.end.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Suggestions IA */}
                 <div style={{ marginTop: 26 }}>
