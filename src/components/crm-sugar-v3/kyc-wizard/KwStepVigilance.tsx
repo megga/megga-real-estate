@@ -68,6 +68,77 @@ export function KwStepVigilance({ data, set }: Props) {
         </p>
       </div>
 
+      <div style={{ marginBottom: 32 }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: SugarV3.muted,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+            marginBottom: 12,
+          }}
+        >
+          Type d&apos;entité LBA
+        </div>
+        <div
+          role="radiogroup"
+          aria-label="Type d'entité"
+          style={{ display: 'inline-flex', gap: 8, background: SugarV3.cardSubtle, padding: 6, borderRadius: 999 }}
+        >
+          {([
+            { value: 'pp', label: 'Personne physique', icon: 'user' },
+            { value: 'pm', label: 'Personne morale', icon: 'building' },
+          ] as const).map((opt) => {
+            const isSelected = data.entityType === opt.value
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => set({ entityType: opt.value })}
+                style={{
+                  border: 0,
+                  fontFamily: 'inherit',
+                  cursor: 'pointer',
+                  padding: '8px 18px',
+                  borderRadius: 999,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  background: isSelected ? SugarV3.black : 'transparent',
+                  color: isSelected ? '#fff' : SugarV3.inkSoft,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  transition: 'all .2s ease',
+                }}
+              >
+                <SgIcon
+                  name={opt.icon}
+                  size={14}
+                  stroke={isSelected ? '#fff' : SugarV3.inkSoft}
+                />
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+        {data.entityType === 'pm' && (
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 12,
+              color: SugarV3.muted,
+              fontWeight: 500,
+            }}
+          >
+            Les personnes morales déclenchent l&apos;identification des ayants
+            droit économiques (LBA art. 4).
+          </div>
+        )}
+      </div>
+
       <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
         <KwGateCard
           selected={data.vigilance === 'standard'}

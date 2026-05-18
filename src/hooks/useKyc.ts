@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase'
 import type {
   KycCase, KycCaseWithChecklist, KycChecklistItem,
   KycDocument, KycAuditEvent, KycStatus, ScreeningResult,
+  KycScreeningDecision, KycLatestScreeningDecision,
+  ScreeningDecisionTarget, ScreeningDecisionVerdict,
+  KycSourceOfFundsType,
 } from '@/types/kyc'
 
 interface KycFilters {
@@ -56,7 +59,7 @@ export function useKycDocuments(kycCaseId: string | undefined) {
       if (!kycCaseId) throw new Error('No KYC case ID')
       const { data, error } = await supabase
         .from('documents')
-        .select('id, kyc_case_id, name, type, storage_path, size_bytes, status, document_category, issued_at, expires_at, uploaded_by, created_at')
+        .select('id, kyc_case_id, name, type, storage_path, size_bytes, status, document_category, issued_at, expires_at, uploaded_by, created_at, sha256_hash')
         .eq('kyc_case_id', kycCaseId)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -73,14 +76,18 @@ export function useKycAuditEvents(kycCaseId: string | undefined) {
     queryKey: ['kyc-audit', kycCaseId],
     queryFn: async () => {
       if (!kycCaseId) throw new Error('No KYC case ID')
+      // entity_type peut être 'kyc' (legacy) ou 'kyc_case' (triggers SQL Sprint 1)
+      // — on accepte les deux pour ne pas perdre les events.
       const { data, error } = await supabase
         .from('activity_events')
-        .select('id, actor_id, action, entity_type, entity_id, metadata, created_at')
-        .eq('entity_type', 'kyc')
+        .select(
+          'id, agency_id, actor_id, actor_kind, action, entity_type, entity_id, metadata, created_at, actor:profiles!actor_id(full_name)'
+        )
+        .in('entity_type', ['kyc', 'kyc_case', 'kyc_check'])
         .eq('entity_id', kycCaseId)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return data as KycAuditEvent[]
+      return data as unknown as KycAuditEvent[]
     },
     enabled: !!kycCaseId,
   })
@@ -356,8 +363,32 @@ export function useUploadKycDocument() {
       documentCategory: 'identity' | 'domicile' | 'financial' | 'compliance' | 'other'
       uploadedBy: string
     }) => {
+      // Defensive : sanitize filename pour bloquer path traversal et caractères
+      // problématiques même si l'UI le filtre déjà. Sprint 2 red-team #C4.
+      const safeName = file.name
+        .replace(/[\\/]/g, '_')
+        .replace(/\.\.+/g, '_')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .slice(0, 200)
+
+      // SHA-256 hash du contenu (Sprint 3, Roger #5 — intégrité preuve LBA art. 7).
+      // Calculé AVANT upload, stocké en colonne documents.sha256_hash. Permet de
+      // prouver à un auditeur FINMA que le doc n'a pas été altéré post-upload.
+      let sha256Hex: string | null = null
+      try {
+        const buf = await file.arrayBuffer()
+        const digest = await crypto.subtle.digest('SHA-256', buf)
+        sha256Hex = Array.from(new Uint8Array(digest))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('')
+      } catch {
+        // Si Web Crypto indisponible (navigateur ancien), continue sans hash.
+        // Le hash sera NULL, traçable via la colonne (documents legacy).
+        sha256Hex = null
+      }
+
       // Upload to storage
-      const filePath = `${agencyId}/${kycCaseId}/${Date.now()}_${file.name}`
+      const filePath = `${agencyId}/${kycCaseId}/${Date.now()}_${safeName}`
       const { error: uploadError } = await supabase.storage
         .from('kyc-documents')
         .upload(filePath, file)
@@ -376,6 +407,7 @@ export function useUploadKycDocument() {
           uploaded_by: uploadedBy,
           status: 'pending',
           document_category: documentCategory,
+          sha256_hash: sha256Hex,
         })
         .select()
         .single()
@@ -496,6 +528,185 @@ export function useScreenKycCase() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
       queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })
+    },
+  })
+}
+
+// ─── Sprint 3 — Source of funds (LBA art. 6 al. 1 lit. b) ─────────────────
+
+export function useUpdateKycSourceOfFunds() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      kycCaseId: string
+      agencyId: string
+      actorId: string
+      sourceType: KycSourceOfFundsType
+      description: string | null
+      docId: string | null
+    }) => {
+      const requiresDescription =
+        input.sourceType === 'crypto' ||
+        input.sourceType === 'mixed' ||
+        input.sourceType === 'other'
+      if (requiresDescription) {
+        const desc = (input.description ?? '').trim()
+        if (desc.length < 20) {
+          throw new Error(
+            'Description requise (minimum 20 caractères) pour les types crypto / mixed / other (LBA art. 6 al. 1 lit. b).'
+          )
+        }
+      }
+      const { data, error } = await supabase
+        .from('kyc_cases')
+        .update({
+          source_of_funds_type: input.sourceType,
+          source_of_funds_description: input.description?.trim() || null,
+          source_of_funds_doc_id: input.docId,
+        })
+        .eq('id', input.kycCaseId)
+        .select()
+        .single()
+      if (error) throw error
+
+      await supabase.from('activity_events').insert({
+        agency_id: input.agencyId,
+        actor_id: input.actorId,
+        action: 'Origine des fonds renseignée',
+        entity_type: 'kyc_case',
+        entity_id: input.kycCaseId,
+        category: 'kyc',
+        severity: input.sourceType === 'crypto' || input.sourceType === 'mixed' ? 'warn' : 'info',
+        actor_kind: 'user',
+        metadata: {
+          source_of_funds_type: input.sourceType,
+          has_description: !!input.description,
+          has_doc: !!input.docId,
+          lba_article: 'art. 6 al. 1 lit. b',
+        },
+      })
+
+      return data as KycCase
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })
+    },
+  })
+}
+
+// ─── Sprint 3 — Log READ access (nLPD art. 12) ─────────────────────────────
+// Trace chaque consultation d'un dossier KYC. Roger #1 — la nLPD exige un
+// journal des accès aux données sensibles (PEP, sanctions). On déduplique
+// côté client : un log par mount, pas par re-render.
+
+export function useLogKycRead() {
+  return useMutation({
+    mutationFn: async (input: {
+      kycCaseId: string
+      agencyId: string
+      actorId: string
+    }) => {
+      const { error } = await supabase.from('activity_events').insert({
+        agency_id: input.agencyId,
+        actor_id: input.actorId,
+        action: 'Consultation dossier KYC',
+        entity_type: 'kyc_case',
+        entity_id: input.kycCaseId,
+        category: 'kyc',
+        severity: 'info',
+        actor_kind: 'user',
+        metadata: { read_at: new Date().toISOString() },
+      })
+      if (error) throw error
+    },
+  })
+}
+
+// ─── Sprint 2 — Workflow décision compliance (kyc_screening_decisions) ─────
+// Documente humainement chaque match Dilisense (faux positif / vrai match /
+// escalade / en attente d'éléments). Append-only, immuable, audit trail.
+
+export function useKycScreeningDecisions(kycCaseId: string | undefined) {
+  return useQuery({
+    queryKey: ['kyc-screening-decisions', kycCaseId],
+    queryFn: async () => {
+      if (!kycCaseId) throw new Error('No KYC case ID')
+      const { data, error } = await supabase
+        .from('kyc_screening_decisions')
+        .select('*, decider:profiles!decided_by(full_name)')
+        .eq('kyc_case_id', kycCaseId)
+        .order('decided_at', { ascending: false })
+      if (error) throw error
+      return data as unknown as (KycScreeningDecision & {
+        decider: { full_name: string | null } | null
+      })[]
+    },
+    enabled: !!kycCaseId,
+  })
+}
+
+/** Récupère la décision la plus récente non-supersedée pour une cible donnée. */
+export function useLatestKycScreeningDecision(
+  kycCaseId: string | undefined,
+  target: ScreeningDecisionTarget
+) {
+  return useQuery({
+    queryKey: ['kyc-screening-decision-latest', kycCaseId, target],
+    queryFn: async () => {
+      if (!kycCaseId) throw new Error('No KYC case ID')
+      const { data, error } = await supabase.rpc('kyc_latest_screening_decision', {
+        p_kyc_case_id: kycCaseId,
+        p_target: target,
+      })
+      if (error) throw error
+      const rows = (data ?? []) as KycLatestScreeningDecision[]
+      return rows[0] ?? null
+    },
+    enabled: !!kycCaseId,
+  })
+}
+
+export function useCreateKycScreeningDecision() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      kycCaseId: string
+      agencyId: string
+      decidedBy: string
+      target: ScreeningDecisionTarget
+      decision: ScreeningDecisionVerdict
+      justification: string
+      screeningSnapshot: Record<string, unknown>
+      supersedesId?: string | null
+    }) => {
+      if (input.justification.trim().length < 30) {
+        throw new Error(
+          'Justification requise (minimum 30 caractères, LBA art. 7 al. 1 lit. b).'
+        )
+      }
+      const { data, error } = await supabase
+        .from('kyc_screening_decisions')
+        .insert({
+          agency_id: input.agencyId,
+          kyc_case_id: input.kycCaseId,
+          decision_target: input.target,
+          decision: input.decision,
+          justification: input.justification.trim(),
+          decided_by: input.decidedBy,
+          screening_snapshot: input.screeningSnapshot,
+          supersedes_id: input.supersedesId ?? null,
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data as KycScreeningDecision
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-screening-decisions', variables.kycCaseId] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-screening-decision-latest', variables.kycCaseId] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
       queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })
     },
   })

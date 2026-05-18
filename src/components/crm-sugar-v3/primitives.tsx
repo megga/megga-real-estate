@@ -20,6 +20,8 @@ interface BlackPillProps {
   /** `md` = 40px, `lg` = 50px. */
   size?: 'md' | 'lg'
   style?: CSSProperties
+  /** Native HTML title attribute — tooltip au survol. */
+  title?: string
 }
 
 export function KycBlackPill({
@@ -29,6 +31,7 @@ export function KycBlackPill({
   icon,
   size = 'md',
   style,
+  title,
 }: BlackPillProps) {
   const [hover, setHover] = useState(false)
   const h = size === 'lg' ? 50 : 40
@@ -36,6 +39,7 @@ export function KycBlackPill({
     <button
       onClick={onClick}
       disabled={disabled}
+      title={title}
       onMouseEnter={() => !disabled && setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -82,6 +86,9 @@ interface GhostPillProps {
   active?: boolean
   size?: 'sm' | 'md'
   style?: CSSProperties
+  disabled?: boolean
+  /** Native HTML title attribute — tooltip au survol. */
+  title?: string
 }
 
 export function KycGhostPill({
@@ -91,6 +98,8 @@ export function KycGhostPill({
   active,
   size = 'md',
   style,
+  disabled,
+  title,
 }: GhostPillProps) {
   const [hover, setHover] = useState(false)
   const h = size === 'sm' ? 36 : 40
@@ -98,7 +107,9 @@ export function KycGhostPill({
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
+      disabled={disabled}
+      title={title}
+      onMouseEnter={() => !disabled && setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         height: h,
@@ -110,7 +121,8 @@ export function KycGhostPill({
         fontFamily: 'inherit',
         fontSize,
         fontWeight: 600,
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
         display: 'inline-flex',
         alignItems: 'center',
         gap: size === 'sm' ? 7 : 8,

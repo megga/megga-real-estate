@@ -50,6 +50,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
   const [data, setData] = useState<WizardData>({
     source: preset ? 'existing' : null,
     contactId: initialContactId ?? null,
+    entityType: 'pp',
     vigilance: null,
     riskLevel: 'low',
     smartReco: 'standard',
@@ -75,10 +76,11 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
 
   const inferKycType = (): KycType => {
     const c = data.contactId ? contacts.find((x) => x.id === data.contactId) : null
-    if (!c) return 'buyer_pp'
-    // Seul buyer/seller × PP/PM est connu de l'enum. Default: PP.
-    if (c.type === 'seller' || c.type === 'landlord') return 'seller_pp'
-    return 'buyer_pp'
+    const side: 'buyer' | 'seller' =
+      c?.type === 'seller' || c?.type === 'landlord' ? 'seller' : 'buyer'
+    const isCompany = data.entityType === 'pm'
+    if (side === 'seller') return isCompany ? 'seller_pm' : 'seller_pp'
+    return isCompany ? 'buyer_pm' : 'buyer_pp'
   }
 
   const finish = async () => {
