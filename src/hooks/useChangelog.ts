@@ -1,7 +1,20 @@
+// MEGGA CRM Sugar v2 — Changelog admin.
+// Source de vérité : table `admin_changelog` (migration 20260518_001).
+// Remplace le hack JSON dans `admin_notes` identifié dans l'audit red-team.
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 export interface ChangelogEntry {
+  id: string
+  title: string
+  content: string
+  version: string | null
+  published: boolean
+  created_at: string
+}
+
+interface ChangelogRow {
   id: string
   title: string
   content: string
@@ -16,37 +29,25 @@ export function useChangelog() {
   const entries = useQuery({
     queryKey: ['admin-changelog'],
     queryFn: async (): Promise<ChangelogEntry[]> => {
-      // Try to query — table may not exist yet, use admin_notes as storage
       const { data, error } = await supabase
-        .from('admin_notes')
-        .select('id, content, entity_id, entity_type, created_at')
-        .eq('entity_type', 'changelog')
+        .from('admin_changelog')
+        .select('id, title, content, version, published, created_at')
         .order('created_at', { ascending: false })
       if (error) throw error
-      return (data ?? []).map(n => {
-        let parsed = { title: '', body: '', version: '', published: false }
-        try { parsed = JSON.parse(n.content) } catch { parsed = { title: n.content, body: '', version: '', published: true } }
-        return {
-          id: n.id,
-          title: parsed.title || 'Sans titre',
-          content: parsed.body || '',
-          version: parsed.version || null,
-          published: parsed.published ?? true,
-          created_at: n.created_at,
-        }
-      })
+      return (data ?? []) as ChangelogRow[]
     },
     staleTime: 60_000,
   })
 
   const createEntry = useMutation({
     mutationFn: async (input: { title: string; content: string; version: string; published: boolean }) => {
-      const { data: profile } = await supabase.auth.getUser()
-      const { error } = await supabase.from('admin_notes').insert({
-        entity_type: 'changelog',
-        entity_id: crypto.randomUUID(),
-        content: JSON.stringify({ title: input.title, body: input.content, version: input.version, published: input.published }),
-        author_id: profile.user?.id,
+      const { data: user } = await supabase.auth.getUser()
+      const { error } = await supabase.from('admin_changelog').insert({
+        title: input.title,
+        content: input.content,
+        version: input.version || null,
+        published: input.published,
+        author_id: user.user?.id ?? null,
       })
       if (error) throw error
     },
@@ -55,7 +56,7 @@ export function useChangelog() {
 
   const deleteEntry = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('admin_notes').delete().eq('id', id)
+      const { error } = await supabase.from('admin_changelog').delete().eq('id', id)
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-changelog'] }),

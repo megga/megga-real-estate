@@ -11,7 +11,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { CalEvent } from '@/components/crm-sugar/calendar/data'
+import type { CalEvent, CalHotBuyer } from '@/components/crm-sugar/calendar/data'
 
 interface VisitJoin {
   id: string
@@ -98,7 +98,39 @@ function reminderToCalEvent(r: ReminderJoin): CalEvent {
 
 export interface UseCalendarSugarReturn {
   events: CalEvent[]
+  hotBuyers: CalHotBuyer[]
   isLoading: boolean
+}
+
+interface HotBuyerRow {
+  id: string
+  first_name: string
+  last_name: string
+  score: 'hot' | 'warm' | 'cold' | null
+  last_interaction_at: string | null
+}
+
+function initialsOf(first: string, last: string): string {
+  return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase() || '??'
+}
+
+function relativeDay(iso: string | null): string {
+  if (!iso) return '—'
+  const diffDays = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays <= 0) return "Aujourd'hui"
+  if (diffDays === 1) return 'Hier'
+  if (diffDays < 7) return `Il y a ${diffDays} j`
+  if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} sem`
+  return `Il y a ${Math.floor(diffDays / 30)} mois`
+}
+
+// Warm score 0-100 dérivé du score enum + récence d'interaction.
+// hot = 90 base, warm = 70 base, cold = 40 base. -1 par jour d'inactivité (plancher 30).
+function warmScore(row: HotBuyerRow): number {
+  const base = row.score === 'hot' ? 90 : row.score === 'warm' ? 70 : 40
+  if (!row.last_interaction_at) return base
+  const days = Math.floor((Date.now() - new Date(row.last_interaction_at).getTime()) / (1000 * 60 * 60 * 24))
+  return Math.max(30, base - days)
 }
 
 export function useCalendarSugar(): UseCalendarSugarReturn {
@@ -157,8 +189,41 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
     return out.sort((a, b) => a.start.getTime() - b.start.getTime())
   }, [visits, reminders])
 
+  // Hot buyers : contacts.score IN ('hot','warm') ordonnés par last_interaction_at,
+  // top 5 affichés dans CalRightPanel.
+  const { data: hotBuyerRows = [], isLoading: hotLoading } = useQuery({
+    queryKey: ['calendar-sugar-hot-buyers', agencyId],
+    queryFn: async (): Promise<HotBuyerRow[]> => {
+      if (!agencyId) return []
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('id, first_name, last_name, score, last_interaction_at')
+        .eq('agency_id', agencyId)
+        .in('score', ['hot', 'warm'])
+        .order('last_interaction_at', { ascending: false, nullsFirst: false })
+        .limit(5)
+      if (error) throw error
+      return (data ?? []) as HotBuyerRow[]
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
+
+  const hotBuyers = useMemo<CalHotBuyer[]>(() => {
+    return hotBuyerRows.map(c => ({
+      id: c.id,
+      name: `${c.first_name} ${c.last_name}`.trim(),
+      initials: initialsOf(c.first_name, c.last_name),
+      warm: warmScore(c),
+      reason: c.score === 'hot' ? 'Lead chaud · suivi prioritaire' : 'Lead tiède · à relancer',
+      lastContact: relativeDay(c.last_interaction_at),
+      tone: '#0B0C0E',
+    }))
+  }, [hotBuyerRows])
+
   return {
     events,
-    isLoading: visitsLoading || remindersLoading,
+    hotBuyers,
+    isLoading: visitsLoading || remindersLoading || hotLoading,
   }
 }

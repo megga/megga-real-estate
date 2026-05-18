@@ -1,3 +1,7 @@
+// MEGGA CRM Sugar v2 — NPS responses admin.
+// Source de vérité : table `admin_nps_responses` (migration 20260518_001).
+// Remplace le hack JSON dans `admin_notes` identifié dans l'audit red-team.
+
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -22,37 +26,30 @@ export interface NpsStats {
   detractors: number // 1-2
 }
 
+interface NpsRow {
+  id: string
+  rating: number
+  comment: string
+  user_email: string | null
+  user_name: string | null
+  agency_id: string | null
+  role: string | null
+  submitted_at: string
+}
+
 export function useAdminNps() {
   return useQuery({
     queryKey: ['admin-nps'],
     queryFn: async (): Promise<{ responses: NpsResponse[]; stats: NpsStats }> => {
       const { data, error } = await supabase
-        .from('admin_notes')
-        .select('id, content, created_at')
-        .eq('entity_type', 'nps_response')
-        .order('created_at', { ascending: false })
+        .from('admin_nps_responses')
+        .select('id, rating, comment, user_email, user_name, agency_id, role, submitted_at')
+        .order('submitted_at', { ascending: false })
       if (error) throw error
 
-      // Parse chaque réponse avec try/catch — un enregistrement corrompu ne doit pas crasher toute la page
-      const responses: NpsResponse[] = (data ?? []).flatMap(n => {
-        try {
-          const parsed = JSON.parse(n.content)
-          return [{
-            id: n.id,
-            rating: parsed.rating ?? 0,
-            comment: parsed.comment ?? '',
-            user_email: parsed.user_email ?? null,
-            user_name: parsed.user_name ?? null,
-            agency_id: parsed.agency_id ?? null,
-            role: parsed.role ?? null,
-            submitted_at: parsed.submitted_at ?? n.created_at,
-          }]
-        } catch {
-          return []
-        }
-      })
+      const responses = (data ?? []) as NpsRow[]
 
-      // Calculate stats
+      // Distribution + stats
       const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
       for (const r of responses) {
         distribution[r.rating] = (distribution[r.rating] ?? 0) + 1

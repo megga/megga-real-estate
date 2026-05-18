@@ -20,7 +20,7 @@ import { CalAgendaView } from '@/components/crm-sugar/calendar/CalAgendaView'
 import { CalLeftPanel } from '@/components/crm-sugar/calendar/CalLeftPanel'
 import { CalRightPanel } from '@/components/crm-sugar/calendar/CalRightPanel'
 import {
-  CAL_AI_INSIGHTS, CAL_HOT_BUYERS, CAL_PALETTE,
+  CAL_AI_INSIGHTS, CAL_PALETTE,
 } from '@/components/crm-sugar/calendar/data'
 import {
   CAL_MONTHS, fmtDate, fmtTime, sameDay,
@@ -51,7 +51,7 @@ export default function CalendarSugarV2Page() {
 
   // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
   // HOT_BUYERS et AI_INSIGHTS restent câblés sur le mock pour cette PR.
-  const { events } = useCalendarSugar()
+  const { events, hotBuyers } = useCalendarSugar()
 
   const [view, setView] = useState<CalViewId>('day')
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
@@ -362,7 +362,7 @@ export default function CalendarSugarV2Page() {
               events={events}
               filters={filters}
               onFilters={setFilters}
-              hotBuyers={CAL_HOT_BUYERS}
+              hotBuyers={hotBuyers}
               aiInsights={CAL_AI_INSIGHTS}
               onSelectEvent={setSelectedId}
             />

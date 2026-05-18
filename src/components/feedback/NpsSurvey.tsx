@@ -39,19 +39,14 @@ export default function NpsSurvey() {
   async function handleSubmit() {
     if (rating === null) return
     try {
-      await supabase.from('admin_notes').insert({
-        entity_type: 'nps_response',
-        entity_id: profile?.id ?? 'anonymous',
-        content: JSON.stringify({
-          rating,
-          comment,
-          user_email: profile?.email,
-          user_name: profile?.full_name,
-          agency_id: profile?.agency_id,
-          role: profile?.role,
-          submitted_at: new Date().toISOString(),
-        }),
-        author_id: profile?.id,
+      await supabase.from('admin_nps_responses').insert({
+        rating,
+        comment,
+        user_id: profile?.id ?? null,
+        user_email: profile?.email ?? null,
+        user_name: profile?.full_name ?? null,
+        agency_id: profile?.agency_id ?? null,
+        role: profile?.role ?? null,
       })
     } catch {
       /* silently fail */
