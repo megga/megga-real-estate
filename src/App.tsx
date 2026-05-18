@@ -83,13 +83,9 @@ const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
 // Lazy-loaded agent pages
-const DashboardPage = lazy(() => import('@/pages/agent/DashboardPage'))
 const DashboardSugarV4Page = lazy(() => import('@/pages/agent/DashboardSugarV4Page'))
-const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
 const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
-const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const ContactDetailSugarV3Page = lazy(() => import('@/pages/agent/ContactDetailSugarV3Page'))
-const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
 const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
 const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
 const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
@@ -107,13 +103,8 @@ const ParcoursSugarV2Page = lazy(() => import('@/pages/agent/ParcoursSugarV2Page
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
 const DocumentsSugarV2Page = lazy(() => import('@/pages/agent/DocumentsSugarV2Page'))
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
-const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
-const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
-const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
-const KycListPage = lazy(() => import('@/pages/agent/KycListPage'))
-const KycDetailPage = lazy(() => import('@/pages/agent/KycDetailPage'))
 const KycListSugarV2Page = lazy(() => import('@/pages/agent/KycListSugarV2Page'))
 const KycDetailSugarV2Page = lazy(() => import('@/pages/agent/KycDetailSugarV2Page'))
 const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
@@ -124,8 +115,6 @@ const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
 const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
-const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
-const TemplatesPage = lazy(() => import('@/pages/agent/TemplatesPage'))
 const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
 const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
 const CustomTemplatePage = lazy(() => import('@/pages/agent/CustomTemplatePage'))
@@ -382,7 +371,6 @@ export default function App() {
                 <Route path="pipeline" element={<PipelineSugarV2Page />} />
                 <Route path="contacts" element={<ContactsSugarV2Page />} />
                 <Route path="listings" element={<BiensSugarV2Page />} />
-                <Route path="listings-legacy" element={<ListingsPage />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}
                 <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
@@ -417,7 +405,8 @@ export default function App() {
                 <Route path="analytics" element={<DashboardSugarV4Page />} />
               </Route>
 
-              {/* Agent dashboard (protected) — AgentLayout chrome for legacy CRM pages */}
+              {/* Agent dashboard (protected) — AgentLayout chrome pour les routes
+                  partagées (import contact, wizard, docs, support, super-admin). */}
               <Route
                 path="/dashboard"
                 element={
@@ -426,27 +415,17 @@ export default function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route path="analytics-legacy" element={<DashboardPage />} />
-                <Route path="contacts-legacy" element={<ContactsPage />} />
                 <Route path="contacts/import" element={<ContactImportPage />} />
                 {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) */}
                 <Route path="contacts/:id" element={<ContactDetailSugarV3Page />} />
-                <Route path="contacts/:id/v2" element={<ContactDetailPage />} />
-                <Route path="pipeline-legacy" element={<PipelinePage />} />
-                <Route path="matching-legacy" element={<MatchingPage />} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
-                <Route path="kyc-legacy" element={<KycListPage />} />
-                <Route path="kyc-legacy/:id" element={<KycDetailPage />} />
-                <Route path="calendar-legacy" element={<CalendarPage />} />
-                <Route path="documents-legacy" element={<TemplatesPage />} />
                 <Route path="documents/generate" element={<DocumentGenerator />} />
                 <Route path="documents/templates/new" element={<CustomTemplatePage />} />
                 <Route path="documents/view" element={<DocumentViewer />} />
                 <Route path="support" element={<SupportPage />} />
                 <Route path="support/:id" element={<SupportTicketDetailPage />} />
-                <Route path="settings-legacy" element={<SettingsPage />} />
 
                 {/* Super-Admin routes */}
                 <Route path="admin" element={<SuperAdminGuard><AdminDashboardPage /></SuperAdminGuard>} />
