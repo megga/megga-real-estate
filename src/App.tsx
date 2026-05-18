@@ -20,7 +20,6 @@ import { AuthProvider } from '@/hooks/useAuth'
 import PasswordGate from '@/components/layout/PasswordGate'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
-import PageTransition from '@/components/layout/PageTransition'
 import CookieBanner from '@/components/CookieBanner'
 import { ToastProvider } from '@/components/ui/Toast'
 
@@ -231,36 +230,40 @@ const queryClient = new QueryClient({
 })
 
 /**
- * `<AnimatedRoutes>` wraps the entire route tree in framer-motion's
- * `<AnimatePresence>` and gives `<Routes>` a `key={location.pathname}` so
- * each navigation is treated as an enter/exit cycle.
+ * `<AnimatedRoutes>` wraps `<Routes>` in `<AnimatePresence>` SOLELY so that
+ * `layoutId`-based shared-element transitions work across route boundaries.
  *
- * Pages opt in to a specific transition by wrapping their top-level JSX in
- * `<PageTransition variant="push|sheet|crossfade|fade-up" />`. Pages without
- * that wrapper still work — they simply mount/unmount instantly while
- * neighbouring pages animate. Progressive enhancement.
+ * As of the "remove route-level transitions" pass, pages no longer fade or
+ * slide on navigation — feedback showed the 220 ms cross-fade made the CRM
+ * feel sluggish and the marketplace feel app-ified. Linear / Notion /
+ * Vercel / Stripe all ship with INSTANT route changes for the same reason.
  *
- * `mode="wait"` makes the outgoing page finish its exit before the next
- * page mounts. This is what gives the iOS "weight" feeling instead of two
- * pages overlapping mid-flight.
+ * What remains:
+ *   - Shared-element transition on the marketplace card → property hero
+ *     (PxListingsGrid.tsx ↔ PxSinglePropertyHero.tsx, layoutId on the photo)
+ *   - Shared-element transition on the CRM bien row → BnDetailOverlay
+ *     (same render tree — overlay is a conditional mount, not a route)
+ *   - Every other iOS-feel atom (Sheet, Toast, Pressable taps, segmented
+ *     control pill, parallax, shimmer, etc.) — those are surface-local and
+ *     don't depend on PageTransition.
+ *
+ * `mode="popLayout"` keeps the exiting subtree mounted just long enough for
+ * framer-motion to interpolate any `layoutId` pair between source and target.
+ * It is intentionally the ONLY transition behaviour at this level.
  */
 function AnimatedRoutes() {
   const location = useLocation()
   return (
-    // `popLayout` lets exiting and entering pages coexist briefly. This is
-    // required for shared-element transitions (a `layoutId` on the
-    // marketplace card photo + same id on the detail hero), and also makes
-    // iOS-style push transitions look right (old page slides out while
-    // new slides in from the right at the same time).
+    // popLayout — preserved for shared-element transitions only.
     <AnimatePresence mode="popLayout" initial={false}>
       <Routes location={location} key={location.pathname}>
               {/* Public */}
-              <Route path="/" element={<PageTransition variant="crossfade"><PropertyXHomePage /></PageTransition>} />
+              <Route path="/" element={<PropertyXHomePage />} />
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
               <Route path="/faq" element={<PropertyXFAQPage />} />
               <Route path="/properties" element={<PropertyXListingsPage />} />
-              <Route path="/propriete" element={<PageTransition variant="crossfade"><PropertyXSinglePropertyPage /></PageTransition>} />
-              <Route path="/propriete/:id" element={<PageTransition variant="crossfade"><PropertyXSinglePropertyPage /></PageTransition>} />
+              <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
+              <Route path="/propriete/:id" element={<PropertyXSinglePropertyPage />} />
               <Route path="/contact" element={<PropertyXContactPage />} />
               <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
               <Route path="/publier-bien" element={<PropertyXSubmitPropertyPage />} />
@@ -279,15 +282,15 @@ function AnimatedRoutes() {
               <Route path="/design-system/typography" element={<PropertyXDesignSystemTypographyPage />} />
               <Route path="/design-system/shadows" element={<PropertyXDesignSystemShadowsPage />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/listing/:id" element={<PageTransition variant="crossfade"><ListingPage /></PageTransition>} />
+              <Route path="/listing/:id" element={<ListingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               {/* Marketplace publique — Property X design, branchée Supabase.
                   SearchPage (ancien design avec carte) reste accessible via
                   /acheter-legacy en attendant la v1.1 (toggle list/carte). */}
-              <Route path="/acheter" element={<PageTransition variant="crossfade"><PropertyXListingsPage context="buy" /></PageTransition>} />
-              <Route path="/louer" element={<PageTransition variant="crossfade"><PropertyXListingsPage context="rent" /></PageTransition>} />
+              <Route path="/acheter" element={<PropertyXListingsPage context="buy" />} />
+              <Route path="/louer" element={<PropertyXListingsPage context="rent" />} />
               <Route path="/acheter-legacy" element={<SearchPage />} />
               <Route path="/louer-legacy" element={<LouerPage />} />
               <Route path="/about" element={<AboutPage />} />
@@ -385,12 +388,12 @@ function AnimatedRoutes() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<PageTransition variant="crossfade"><TodaySugarPage /></PageTransition>} />
-                <Route path="pipeline" element={<PageTransition variant="crossfade"><PipelineSugarV2Page /></PageTransition>} />
-                <Route path="contacts" element={<PageTransition variant="crossfade"><ContactsSugarV2Page /></PageTransition>} />
-                <Route path="listings" element={<PageTransition variant="crossfade"><BiensSugarV2Page /></PageTransition>} />
+                <Route index element={<TodaySugarPage />} />
+                <Route path="pipeline" element={<PipelineSugarV2Page />} />
+                <Route path="contacts" element={<ContactsSugarV2Page />} />
+                <Route path="listings" element={<BiensSugarV2Page />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}
-                <Route path="listings/:id" element={<PageTransition variant="push"><BienDetailSugarV3Page /></PageTransition>} />
+                <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
                 <Route path="transactions/:id" element={<DealDetailSugarV3Page />} />
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
@@ -403,13 +406,13 @@ function AnimatedRoutes() {
                 <Route path="visites/:id/companion" element={<VisitCompanionPage />} />
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
-                <Route path="matching" element={<PageTransition variant="crossfade"><MatchingSugarV2Page /></PageTransition>} />
+                <Route path="matching" element={<MatchingSugarV2Page />} />
                 <Route path="parcours" element={<ParcoursSugarV2Page />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
                 <Route path="documents" element={<DocumentsSugarV2Page />} />
                 <Route path="settings" element={<SettingsSugarV2Page />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
-                <Route path="kyc" element={<PageTransition variant="crossfade"><KycSugarV3Page /></PageTransition>} />
+                <Route path="kyc" element={<KycSugarV3Page />} />
                 <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
                 {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
                 <Route path="kyc/showcase" element={<KycShowcasePage />} />
@@ -435,7 +438,7 @@ function AnimatedRoutes() {
               >
                 <Route path="contacts/import" element={<ContactImportPage />} />
                 {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) */}
-                <Route path="contacts/:id" element={<PageTransition variant="push"><ContactDetailSugarV3Page /></PageTransition>} />
+                <Route path="contacts/:id" element={<ContactDetailSugarV3Page />} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
