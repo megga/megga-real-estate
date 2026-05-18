@@ -3,7 +3,7 @@
 // NB: la chaîne « WhatsApp » du proto est remplacée par « Messagerie interne »
 // pour respecter la règle CLAUDE.md (canal interne, pas WhatsApp public).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   SectionHeader,
   SetCard,
@@ -13,6 +13,7 @@ import {
   Toast,
 } from './atoms'
 import { SET_PALETTE, type SettingsIconName } from './data'
+import { useNotifPreferences, type NotifPreferences } from '@/hooks/useNotifPreferences'
 
 const SET = SET_PALETTE
 
@@ -30,37 +31,39 @@ const CHANNELS: Channel[] = [
   { id: 'inapp', label: 'Dans le CRM', icon: 'app', desc: 'Cloche de notifications du CRM' },
 ]
 
-export interface NotifData {
-  email: boolean
-  sms: boolean
-  messages: boolean
-  inapp: boolean
-}
-
-const DEFAULT_NOTIFS: NotifData = {
-  email: true,
-  sms: true,
-  messages: true,
-  inapp: true,
-}
+export type NotifData = NotifPreferences
 
 export function NotificationsSection() {
-  const [data, setData] = useState<NotifData>(DEFAULT_NOTIFS)
-  const [saved, setSaved] = useState<NotifData>(DEFAULT_NOTIFS)
+  // Source de vérité : profiles.preferences.notifications (JSON Supabase)
+  const { preferences: serverData, isSaving, hasBackend, save } = useNotifPreferences()
+  const [data, setData] = useState<NotifData>(serverData)
+  const [saved, setSaved] = useState<NotifData>(serverData)
+
+  useEffect(() => {
+    setData(serverData)
+    setSaved(serverData)
+  }, [serverData])
+
   const dirty = JSON.stringify(data) !== JSON.stringify(saved)
-  const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(false)
 
   const setCh = (id: keyof NotifData, v: boolean) => setData(d => ({ ...d, [id]: v }))
 
-  const handleSave = () => {
-    setSaving(true)
-    setTimeout(() => {
-      setSaved(data)
-      setSaving(false)
+  const handleSave = async () => {
+    if (!hasBackend) {
       setToast(true)
       setTimeout(() => setToast(false), 2400)
-    }, 700)
+      return
+    }
+    try {
+      await save(data)
+      setSaved(data)
+      setToast(true)
+      setTimeout(() => setToast(false), 2400)
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[NotificationsSection] save failed', err)
+    }
   }
 
   return (
@@ -137,7 +140,7 @@ export function NotificationsSection() {
 
       <StickySaveBar
         dirty={dirty}
-        saving={saving}
+        saving={isSaving}
         onSave={handleSave}
         onCancel={() => setData(saved)}
       />
