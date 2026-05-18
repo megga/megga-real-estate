@@ -131,6 +131,24 @@ export function useUpdateTransactionStage() {
   })
 }
 
+// Update privée notes d'une transaction (notes internes équipe agence)
+export function useUpdateTransactionNotes() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ notes: notes || null })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['transaction', variables.id] })
+    },
+  })
+}
+
 export interface ContactTransaction {
   id: string
   stage: string

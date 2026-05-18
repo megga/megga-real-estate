@@ -37,6 +37,7 @@ import {
   useUpdateProperty,
   type CreatePropertyInput,
 } from '@/hooks/useProperties'
+import { usePropertyStats } from '@/hooks/usePropertyStats'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useContacts } from '@/hooks/useContacts'
 import { useLogAudit } from '@/hooks/useAuditLog'
@@ -87,6 +88,7 @@ export default function BienDetailSugarV3Page() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: bien, isLoading, isError, error } = useProperty(id)
+  const { stats } = usePropertyStats(id)
   const { mutate: updateProperty, isPending: isSaving } = useUpdateProperty()
   const { mutate: logAudit } = useLogAudit()
 
@@ -612,9 +614,9 @@ export default function BienDetailSugarV3Page() {
                 }}
               >
                 {[
-                  { l: 'Vues', v: 0, icon: 'eye' as const },
-                  { l: 'Favoris', v: 0, icon: 'heart' as const },
-                  { l: 'Demandes', v: 0, icon: 'cal' as const },
+                  { l: 'Vues', v: stats.views, icon: 'eye' as const },
+                  { l: 'Favoris', v: stats.favorites, icon: 'heart' as const },
+                  { l: 'Demandes', v: stats.visitRequests, icon: 'cal' as const },
                 ].map((k) => (
                   <div
                     key={k.l}

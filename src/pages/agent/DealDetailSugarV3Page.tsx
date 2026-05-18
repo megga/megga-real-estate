@@ -12,7 +12,7 @@
 //
 // Route : /dashboard/transactions/:id
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { SugarV3, SUGAR_V3_KEYFRAMES, fmtDateTime } from '@/components/crm-sugar-v3/tokens'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
@@ -31,7 +31,7 @@ import {
   DdOfferCard,
   ddFmt,
 } from '@/components/crm-sugar-v3/deal-detail/DdShared'
-import { useTransaction } from '@/hooks/useTransactions'
+import { useTransaction, useUpdateTransactionNotes } from '@/hooks/useTransactions'
 import { useContact } from '@/hooks/useContacts'
 import { useProperty } from '@/hooks/useProperties'
 import { useOfferChain, lastOffer } from '@/hooks/useOffers'
@@ -81,6 +81,27 @@ export default function DealDetailSugarV3Page() {
 
   const [notesEditing, setNotesEditing] = useState(false)
   const [privateNotes, setPrivateNotes] = useState<string>('')
+
+  // Sync notes depuis Supabase quand le deal charge (ou s'invalide après save)
+  useEffect(() => {
+    setPrivateNotes(deal?.notes ?? '')
+  }, [deal?.notes])
+
+  const updateNotes = useUpdateTransactionNotes()
+  const handleNotesSave = async () => {
+    if (!deal?.id) return
+    try {
+      await updateNotes.mutateAsync({ id: deal.id, notes: privateNotes })
+      setNotesEditing(false)
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[DealDetail] save notes failed', err)
+    }
+  }
+  const handleNotesCancel = () => {
+    setPrivateNotes(deal?.notes ?? '')
+    setNotesEditing(false)
+  }
 
   const offers = useMemo(() => offerChain ?? [], [offerChain])
   const last = lastOffer(offers)
@@ -1086,7 +1107,8 @@ export default function DealDetailSugarV3Page() {
                     }}
                   >
                     <button
-                      onClick={() => setNotesEditing(false)}
+                      onClick={handleNotesCancel}
+                      disabled={updateNotes.isPending}
                       style={{
                         height: 36,
                         padding: '0 16px',
@@ -1097,13 +1119,15 @@ export default function DealDetailSugarV3Page() {
                         fontFamily: 'inherit',
                         fontSize: 12.5,
                         fontWeight: 600,
-                        cursor: 'pointer',
+                        cursor: updateNotes.isPending ? 'not-allowed' : 'pointer',
+                        opacity: updateNotes.isPending ? 0.5 : 1,
                       }}
                     >
                       Annuler
                     </button>
                     <button
-                      onClick={() => setNotesEditing(false)}
+                      onClick={handleNotesSave}
+                      disabled={updateNotes.isPending}
                       style={{
                         height: 36,
                         padding: '0 18px',
@@ -1114,10 +1138,11 @@ export default function DealDetailSugarV3Page() {
                         fontFamily: 'inherit',
                         fontSize: 12.5,
                         fontWeight: 700,
-                        cursor: 'pointer',
+                        cursor: updateNotes.isPending ? 'wait' : 'pointer',
+                        opacity: updateNotes.isPending ? 0.7 : 1,
                       }}
                     >
-                      Enregistrer
+                      {updateNotes.isPending ? 'Enregistrement…' : 'Enregistrer'}
                     </button>
                   </div>
                 </div>
