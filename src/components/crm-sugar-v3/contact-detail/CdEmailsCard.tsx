@@ -27,6 +27,7 @@ interface ReplyContext {
   provider: 'gmail' | 'outlook'
   subject: string
   to: string
+  prefillBody?: string
 }
 
 function formatRelativeDate(iso: string): string {
@@ -334,6 +335,7 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
         onClose={() => setReply(null)}
         defaultTo={reply?.to ?? ''}
         defaultSubject={reply?.subject ?? ''}
+        defaultBody={reply?.prefillBody}
         replyToMessageId={reply?.messageId}
         forceProvider={reply?.provider}
       />
@@ -351,6 +353,7 @@ export function CdEmailsCard({ contactId, contactEmail }: Props) {
             provider: params.provider,
             subject: params.subject,
             to: params.to,
+            prefillBody: params.prefillBody,
           })
         }}
       />

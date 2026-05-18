@@ -12,6 +12,13 @@ import { SgGhostPill, SgBlackPill, SgCircleBtn } from '../primitives'
 import { useGmail, useGmailThread } from '@/hooks/useGmail'
 import { useOutlookMail, useOutlookThread } from '@/hooks/useOutlookMail'
 import type { EmailAttachment } from '@/hooks/useGmail'
+import {
+  useEmailClassifier,
+  classificationLabel,
+  classificationColor,
+  intentLabel,
+  type ClassifierResult,
+} from '@/hooks/useEmailClassifier'
 
 /**
  * Config DOMPurify pour les emails HTML reçus :
@@ -45,7 +52,7 @@ interface Props {
   provider: 'gmail' | 'outlook' | null
   /** Optionnel : id du message à marquer lu à l'ouverture (single-message mark) */
   markMessageIdAsRead?: string
-  onReply?: (params: { messageId: string; subject: string; to: string; provider: 'gmail' | 'outlook' }) => void
+  onReply?: (params: { messageId: string; subject: string; to: string; provider: 'gmail' | 'outlook'; prefillBody?: string }) => void
 }
 
 function formatFullDate(iso: string): string {
@@ -88,6 +95,37 @@ export function EmailThreadModal({
 
   const [marked, setMarked] = useState(false)
   const [downloadingKey, setDownloadingKey] = useState<string | null>(null)
+
+  // Tier 3 : classification IA per-message (on-demand pour contrôler les coûts)
+  const { classify } = useEmailClassifier()
+  const [classifyings, setClassifyings] = useState<Set<string>>(new Set())
+  const [classifications, setClassifications] = useState<Map<string, ClassifierResult>>(new Map())
+
+  const handleClassify = async (msgId: string) => {
+    const msg = messages.find(m => m.id === msgId)
+    if (!msg || !provider) return
+    setClassifyings(prev => new Set(prev).add(msgId))
+    try {
+      const result = await classify({
+        provider,
+        external_message_id: msg.id,
+        from_address: msg.from_address,
+        from_name: msg.from_name,
+        subject: msg.subject,
+        snippet: msg.snippet,
+        body_text: msg.body_text,
+      })
+      setClassifications(prev => new Map(prev).set(msgId, result))
+    } catch (e) {
+      console.error('[EmailThreadModal] classify failed', e)
+    } finally {
+      setClassifyings(prev => {
+        const next = new Set(prev)
+        next.delete(msgId)
+        return next
+      })
+    }
+  }
 
   /**
    * Télécharge une pièce jointe via le provider courant.
@@ -302,6 +340,78 @@ export function EmailThreadModal({
                     {formatFullDate(msg.sent_at)}
                   </div>
                 </div>
+                {(() => {
+                  const cls = classifications.get(msg.id)
+                  const isLoadingClass = classifyings.has(msg.id)
+                  if (!cls && !isLoadingClass) {
+                    return (
+                      <button
+                        onClick={() => handleClassify(msg.id)}
+                        style={{
+                          height: 28,
+                          padding: '0 12px',
+                          borderRadius: 999,
+                          border: 0,
+                          background: SugarV3.cardSubtle,
+                          color: SugarV3.ink,
+                          fontFamily: 'inherit',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          flexShrink: 0,
+                        }}
+                        title="Classifier ce message avec MEGGA AI"
+                      >
+                        <SgIcon name="sparkle" size={11} stroke={SugarV3.ink} sw={2} />
+                        MEGGA AI
+                      </button>
+                    )
+                  }
+                  if (isLoadingClass) {
+                    return (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: SugarV3.muted,
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <SgIcon name="refresh" size={11} stroke={SugarV3.muted} sw={2} />
+                        Analyse…
+                      </div>
+                    )
+                  }
+                  const c = classificationColor(cls!.classification)
+                  return (
+                    <span
+                      style={{
+                        height: 24,
+                        padding: '0 10px',
+                        borderRadius: 999,
+                        background: c.bg,
+                        color: c.ink,
+                        fontFamily: 'inherit',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        flexShrink: 0,
+                      }}
+                      title={`Priorité IA : ${cls!.priority}/100`}
+                    >
+                      <SgIcon name="sparkle" size={10} stroke={c.ink} sw={2.2} />
+                      {classificationLabel(cls!.classification)}
+                    </span>
+                  )
+                })()}
                 {idx === messages.length - 1 && onReply && (
                   <button
                     onClick={() => onReply({
@@ -377,6 +487,133 @@ export function EmailThreadModal({
                   {msg.body_text || msg.snippet || '(Message vide)'}
                 </div>
               )}
+
+              {(() => {
+                const cls = classifications.get(msg.id)
+                if (!cls) return null
+                return (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 14,
+                      borderTop: '1px solid rgba(11,12,14,0.06)',
+                    }}
+                  >
+                    {cls.intents.length > 0 && (
+                      <div style={{ marginBottom: 12 }}>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: SugarV3.muted,
+                            letterSpacing: 0.5,
+                            textTransform: 'uppercase',
+                            marginBottom: 6,
+                          }}
+                        >
+                          Intentions détectées
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {cls.intents.map((intent, ix) => (
+                            <span
+                              key={`${msg.id}-intent-${ix}`}
+                              style={{
+                                fontSize: 11,
+                                padding: '3px 9px',
+                                borderRadius: 999,
+                                background: SugarV3.cardSubtle,
+                                color: SugarV3.inkSoft,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {intentLabel(intent)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {cls.suggested_replies.length > 0 && onReply && (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: SugarV3.muted,
+                            letterSpacing: 0.5,
+                            textTransform: 'uppercase',
+                            marginBottom: 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                          }}
+                        >
+                          <SgIcon name="sparkle" size={10} stroke={SugarV3.muted} sw={2} />
+                          Réponses suggérées par MEGGA AI
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {cls.suggested_replies.map((sr, ri) => (
+                            <button
+                              key={`${msg.id}-reply-${ri}`}
+                              onClick={() => onReply({
+                                messageId: msg.id,
+                                subject: msg.subject?.startsWith('Re:') ? msg.subject : `Re: ${msg.subject || '(Sans objet)'}`,
+                                to: msg.from_address,
+                                provider: provider!,
+                                prefillBody: sr.body,
+                              })}
+                              style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 14px',
+                                borderRadius: 12,
+                                border: '1px solid rgba(11,12,14,0.08)',
+                                background: '#fff',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                                transition: 'background .15s, border-color .15s',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = '#FAFBFC'
+                                e.currentTarget.style.borderColor = 'rgba(11,12,14,0.18)'
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = '#fff'
+                                e.currentTarget.style.borderColor = 'rgba(11,12,14,0.08)'
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: SugarV3.ink,
+                                  marginBottom: 4,
+                                }}
+                              >
+                                {sr.label}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 11.5,
+                                  color: SugarV3.muted,
+                                  fontWeight: 500,
+                                  lineHeight: 1.5,
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                }}
+                              >
+                                {sr.body}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {msg.attachments && msg.attachments.length > 0 && (
                 <div

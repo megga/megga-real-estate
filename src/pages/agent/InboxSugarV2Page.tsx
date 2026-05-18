@@ -68,6 +68,7 @@ export default function InboxSugarV2Page() {
   const [search, setSearch] = useState('')
   const [composerOpen, setComposerOpen] = useState(false)
   const [reply, setReply] = useState<InboxMessage | null>(null)
+  const [replyPrefillBody, setReplyPrefillBody] = useState<string | undefined>(undefined)
   const [openThread, setOpenThread] = useState<InboxMessage | null>(null)
 
   const messages = useMemo<InboxMessage[]>(() => {
@@ -525,9 +526,10 @@ export default function InboxSugarV2Page() {
       {/* Composer (reply) */}
       <EmailComposerModal
         open={!!reply}
-        onClose={() => setReply(null)}
+        onClose={() => { setReply(null); setReplyPrefillBody(undefined) }}
         defaultTo={reply?.from_address ?? ''}
         defaultSubject={reply?.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply?.subject || '(Sans objet)'}`}
+        defaultBody={replyPrefillBody}
         replyToMessageId={reply?.id}
         forceProvider={reply?.provider}
       />
@@ -556,6 +558,7 @@ export default function InboxSugarV2Page() {
             has_attachments: false,
             provider: params.provider,
           })
+          setReplyPrefillBody(params.prefillBody)
         }}
       />
     </div>
