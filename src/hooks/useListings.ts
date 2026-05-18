@@ -11,7 +11,7 @@ export function useListings(filters?: ListingFilters) {
     queryFn: async () => {
       let query = supabase
         .from('listings')
-        .select('*, property:properties(*), agency:agencies(name, logo_url)')
+        .select('*, property:properties(id, title, type, status, price, rooms, bedrooms, surface_m2, address, city, canton, postal_code, photos, published_at, transaction_type, c2pa_verified), agency:agencies(name, logo_url)')
 
       if (filters?.type) query = query.eq('property.type', filters.type)
       if (filters?.minPrice) query = query.gte('property.price', filters.minPrice)
@@ -32,6 +32,8 @@ export function useListing(id: string | undefined) {
     queryKey: ['listing', id],
     queryFn: async () => {
       if (!id) throw new Error('No listing ID')
+      // Single listing : page détail consomme description, features,
+      // floor_plan_hotspots, photo_tags. On garde properties(*) ici.
       const { data, error } = await supabase
         .from('listings')
         .select('*, property:properties(*), agency:agencies(name, logo_url)')
@@ -52,7 +54,7 @@ export function useAgencyListings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('listings')
-        .select('*, property:properties(*)')
+        .select('*, property:properties(id, title, type, status, price, rooms, bedrooms, surface_m2, address, city, canton, postal_code, photos, published_at, transaction_type, c2pa_verified)')
         .order('published_at', { ascending: false })
       if (error) throw error
       return data as Listing[]
