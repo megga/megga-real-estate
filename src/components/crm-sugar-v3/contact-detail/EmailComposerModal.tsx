@@ -2,7 +2,7 @@
 // Plein écran modal pour rédiger un email depuis la fiche contact.
 // Auto-append signature email (table profiles.email_signature) côté Edge Function.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
@@ -12,6 +12,40 @@ import { useOutlookMail } from '@/hooks/useOutlookMail'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { useQuery } from '@tanstack/react-query'
+import type { SendMessageAttachment } from '@/hooks/useGmail'
+
+// Limite raisonnable côté client. Gmail accepte 25 Mo total / message, Outlook 150 Mo.
+// On garde la plus stricte par défaut + une marge pour le base64 (overhead +33%).
+const MAX_ATTACHMENT_BYTES = 18 * 1024 * 1024 // 18 MB par fichier
+const MAX_TOTAL_BYTES = 24 * 1024 * 1024     // 24 MB total avant base64 (≈ 32 MB après)
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
+/**
+ * Convertit un File en SendMessageAttachment (base64 standard).
+ * Utilise FileReader.readAsDataURL pour récupérer un Data-URL, dont on extrait
+ * la partie base64 après la virgule.
+ */
+async function fileToAttachment(file: File): Promise<SendMessageAttachment> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      const base64 = dataUrl.split(',', 2)[1] ?? ''
+      resolve({
+        filename: file.name,
+        mime_type: file.type || 'application/octet-stream',
+        data: base64,
+      })
+    }
+    reader.onerror = () => reject(reader.error ?? new Error('FileReader error'))
+    reader.readAsDataURL(file)
+  })
+}
 
 interface Props {
   open: boolean
@@ -54,8 +88,14 @@ export function EmailComposerModal({
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sentToast, setSentToast] = useState(false)
+  const [attachments, setAttachments] = useState<Array<SendMessageAttachment & { sizeBytes: number }>>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Récupère la signature du profil pour afficher un aperçu
+  // Récupère la signature du profil pour afficher un aperçu.
+  // enabled ne dépend QUE de user?.id (pas de `open`) pour stabiliser l'ordre
+  // des hooks de useQuery — sinon React Query change ses subscriptions internes
+  // quand `enabled` flippe, ce qui décale l'ordre des hooks des composants
+  // mountés.
   const { data: signature } = useQuery({
     queryKey: ['profile-signature', user?.id],
     queryFn: async (): Promise<string | null> => {
@@ -67,7 +107,7 @@ export function EmailComposerModal({
         .single()
       return data?.email_signature ?? null
     },
-    enabled: !!user?.id && open,
+    enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -78,8 +118,44 @@ export function EmailComposerModal({
       setSubject(defaultSubject ?? '')
       setBody(defaultBody ?? '')
       setError(null)
+      setAttachments([])
     }
   }, [open, defaultTo, defaultSubject, defaultBody])
+
+  const handleAddFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const newOnes: Array<SendMessageAttachment & { sizeBytes: number }> = []
+    const totalCurrent = attachments.reduce((s, a) => s + a.sizeBytes, 0)
+    let runningTotal = totalCurrent
+    for (const file of Array.from(files)) {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        setError(`"${file.name}" dépasse la limite de ${formatSize(MAX_ATTACHMENT_BYTES)} par fichier.`)
+        continue
+      }
+      if (runningTotal + file.size > MAX_TOTAL_BYTES) {
+        setError(`Limite totale ${formatSize(MAX_TOTAL_BYTES)} atteinte — "${file.name}" ignoré.`)
+        break
+      }
+      try {
+        const att = await fileToAttachment(file)
+        newOnes.push({ ...att, sizeBytes: file.size })
+        runningTotal += file.size
+      } catch (e) {
+        setError(`Échec de la lecture de "${file.name}".`)
+        console.error('[EmailComposerModal] file read error', e)
+      }
+    }
+    if (newOnes.length > 0) {
+      setAttachments(prev => [...prev, ...newOnes])
+      // Ne pas écraser l'erreur si elle vient d'être set par une limite dépassée
+    }
+    // Reset l'input pour permettre de re-uploader le même fichier
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const removeAttachment = (idx: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== idx))
+  }
 
   useEffect(() => {
     if (!open) return
@@ -118,6 +194,11 @@ export function EmailComposerModal({
         subject: subject.trim(),
         body_text: body,
         reply_to_message_id: replyToMessageId,
+        attachments: attachments.map(({ filename, mime_type, data }) => ({
+          filename,
+          mime_type,
+          data,
+        })),
       }
       if (availableProvider === 'gmail') {
         await gmail.sendMessage(params)
@@ -341,6 +422,132 @@ export function EmailComposerModal({
               lineHeight: 1.6,
             }}
           />
+
+          {/* Attachments — drop zone + liste */}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={e => handleAddFiles(e.target.files)}
+              style={{ display: 'none' }}
+            />
+            {attachments.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1px dashed rgba(11,12,14,0.18)',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: SugarV3.muted,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <SgIcon name="plus" size={13} stroke={SugarV3.muted} sw={2.2} />
+                Ajouter une pièce jointe
+              </button>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: SugarV3.muted,
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>Pièces jointes · {attachments.length}</span>
+                  <span>
+                    {formatSize(attachments.reduce((s, a) => s + a.sizeBytes, 0))} / {formatSize(MAX_TOTAL_BYTES)}
+                  </span>
+                </div>
+                {attachments.map((att, idx) => (
+                  <div
+                    key={`${att.filename}-${idx}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      background: SugarV3.cardSubtle,
+                      fontSize: 12,
+                      color: SugarV3.ink,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <SgIcon name="file" size={13} stroke={SugarV3.inkSoft} />
+                    <span style={{
+                      flex: 1,
+                      minWidth: 0,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {att.filename}
+                    </span>
+                    <span style={{ fontSize: 11, color: SugarV3.muted, fontWeight: 500 }}>
+                      {formatSize(att.sizeBytes)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(idx)}
+                      title="Retirer"
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 999,
+                        border: 0,
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        display: 'grid',
+                        placeItems: 'center',
+                        color: SugarV3.muted,
+                      }}
+                    >
+                      <SgIcon name="close" size={11} stroke={SugarV3.muted} sw={2.2} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    height: 30,
+                    padding: '0 12px',
+                    borderRadius: 999,
+                    border: 0,
+                    background: SugarV3.cardSubtle,
+                    color: SugarV3.ink,
+                    fontFamily: 'inherit',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    alignSelf: 'flex-start',
+                  }}
+                >
+                  <SgIcon name="plus" size={11} stroke={SugarV3.ink} sw={2.2} />
+                  Ajouter encore
+                </button>
+              </div>
+            )}
+          </div>
 
           {signature && (
             <div

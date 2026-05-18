@@ -6,7 +6,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeadersFor, logIntegrationEvent } from '../_shared/integration-helpers.ts'
 
-type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'get_thread' | 'send_message' | 'mark_read' | 'disconnect'
+type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'get_thread' | 'send_message' | 'mark_read' | 'download_attachment' | 'disconnect'
 
 interface SyncRequest {
   action: Action
@@ -33,6 +33,15 @@ interface SyncRequest {
   // mark_read / get_thread
   thread_id?: string
   is_read?: boolean
+  // download_attachment
+  attachment_id?: string
+  // send_message attachments
+  attachments?: Array<{
+    filename: string
+    mime_type: string
+    /** base64-encoded content */
+    data: string
+  }>
 }
 
 interface GmailMessageMeta {
@@ -333,18 +342,58 @@ serve(async (req) => {
           ? `=?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`
           : subject
 
-        const headers = [
-          `From: ${fromAddress}`,
-          `To: ${toLine}`,
-          ccLine ? `Cc: ${ccLine}` : '',
-          bccLine ? `Bcc: ${bccLine}` : '',
-          `Subject: ${encodedSubject}`,
-          'MIME-Version: 1.0',
-          'Content-Type: text/plain; charset="UTF-8"',
-          'Content-Transfer-Encoding: 7bit',
-        ].filter(Boolean).join('\r\n')
+        const hasAttachments = (body.attachments ?? []).length > 0
+        let mime: string
 
-        const mime = `${headers}\r\n\r\n${fullText}`
+        if (hasAttachments) {
+          // Multipart MIME : 1 part texte + N parts pour les attachments
+          const boundary = `=_megga_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+          const baseHeaders = [
+            `From: ${fromAddress}`,
+            `To: ${toLine}`,
+            ccLine ? `Cc: ${ccLine}` : '',
+            bccLine ? `Bcc: ${bccLine}` : '',
+            `Subject: ${encodedSubject}`,
+            'MIME-Version: 1.0',
+            `Content-Type: multipart/mixed; boundary="${boundary}"`,
+          ].filter(Boolean).join('\r\n')
+
+          const textPart = [
+            `--${boundary}`,
+            'Content-Type: text/plain; charset="UTF-8"',
+            'Content-Transfer-Encoding: 7bit',
+            '',
+            fullText,
+          ].join('\r\n')
+
+          const attachmentParts = (body.attachments ?? []).map(att => {
+            const safeName = att.filename.replace(/"/g, '')
+            return [
+              `--${boundary}`,
+              `Content-Type: ${att.mime_type}; name="${safeName}"`,
+              `Content-Disposition: attachment; filename="${safeName}"`,
+              'Content-Transfer-Encoding: base64',
+              '',
+              // Re-wrap base64 toutes les 76 cols (norme RFC 2045)
+              att.data.replace(/(.{76})/g, '$1\r\n'),
+            ].join('\r\n')
+          }).join('\r\n')
+
+          mime = `${baseHeaders}\r\n\r\n${textPart}\r\n${attachmentParts}\r\n--${boundary}--`
+        } else {
+          const headers = [
+            `From: ${fromAddress}`,
+            `To: ${toLine}`,
+            ccLine ? `Cc: ${ccLine}` : '',
+            bccLine ? `Bcc: ${bccLine}` : '',
+            `Subject: ${encodedSubject}`,
+            'MIME-Version: 1.0',
+            'Content-Type: text/plain; charset="UTF-8"',
+            'Content-Transfer-Encoding: 7bit',
+          ].filter(Boolean).join('\r\n')
+
+          mime = `${headers}\r\n\r\n${fullText}`
+        }
         // base64url-encode (Gmail API exigence)
         const raw = btoa(unescape(encodeURIComponent(mime)))
           .replace(/\+/g, '-')
@@ -386,6 +435,30 @@ serve(async (req) => {
         const full = await gmailFetch(accessToken, `/users/me/messages/${body.message_id}?format=full`)
 
         return new Response(JSON.stringify({ message: full }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // ── Download an attachment (base64) ──
+      case 'download_attachment': {
+        if (!body.message_id || !body.attachment_id) {
+          throw new Error('Missing message_id or attachment_id')
+        }
+        const accessToken = await getValidToken(userId)
+        if (!accessToken) throw new Error('Gmail not connected')
+
+        const data = await gmailFetch(
+          accessToken,
+          `/users/me/messages/${body.message_id}/attachments/${body.attachment_id}`,
+        ) as { data?: string; size?: number }
+
+        // Gmail returns base64url, on convertit en base64 standard pour le client
+        const base64Standard = (data.data ?? '').replace(/-/g, '+').replace(/_/g, '/')
+
+        return new Response(JSON.stringify({
+          data: base64Standard,
+          size: data.size ?? 0,
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
@@ -449,36 +522,52 @@ serve(async (req) => {
           }>
         }
 
-        // Décode chaque message + extrait body text + liste pièces jointes (metadata seulement)
+        // Décode chaque message + extrait body text + HTML + liste pièces jointes
         const messages = (data.messages ?? []).map(meta => {
           const normalized = normalizeGmailMessage(meta as GmailMessageMeta)
-          // Extract body text (try plain part, fallback HTML)
           let bodyText = ''
+          let bodyHtml = ''
           const attachments: { filename: string; mime_type: string; size: number; attachment_id: string }[] = []
+          const decodeB64 = (b64: string): string => {
+            try {
+              const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'))
+              // Gmail renvoie l'UTF-8 brut, on doit le re-décoder pour les caractères accentués
+              return decodeURIComponent(escape(bin))
+            } catch {
+              return ''
+            }
+          }
           const walkParts = (parts: NonNullable<NonNullable<typeof meta.payload>['parts']>) => {
             for (const p of parts) {
-              if (p.filename && p.body && p.body.size) {
+              const pBody = p.body as { data?: string; size?: number; attachmentId?: string } | undefined
+              if (p.filename && pBody && (pBody.size ?? 0) > 0) {
                 attachments.push({
                   filename: p.filename,
                   mime_type: p.mimeType ?? 'application/octet-stream',
-                  size: p.body.size ?? 0,
-                  attachment_id: '', // Gmail attachmentId is in body.attachmentId, omitted ici
+                  size: pBody.size ?? 0,
+                  attachment_id: pBody.attachmentId ?? '',
                 })
+                continue
               }
-              if (p.mimeType === 'text/plain' && p.body?.data && !bodyText) {
-                try {
-                  bodyText = atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/'))
-                } catch { /* ignore */ }
+              if (p.mimeType === 'text/plain' && pBody?.data && !bodyText) {
+                bodyText = decodeB64(pBody.data)
               }
+              if (p.mimeType === 'text/html' && pBody?.data && !bodyHtml) {
+                bodyHtml = decodeB64(pBody.data)
+              }
+              // Multipart imbriqué (text/alternative) — récursion via cast unsafe
+              const nestedParts = (p as { parts?: typeof parts }).parts
+              if (nestedParts) walkParts(nestedParts)
             }
           }
           if (meta.payload?.parts) walkParts(meta.payload.parts)
-          if (!bodyText && meta.payload?.body?.data) {
-            try {
-              bodyText = atob(meta.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'))
-            } catch { /* ignore */ }
+          if (!bodyText && !bodyHtml && meta.payload?.body?.data) {
+            // Cas message single-part
+            const decoded = decodeB64(meta.payload.body.data)
+            if (meta.payload.mimeType === 'text/html') bodyHtml = decoded
+            else bodyText = decoded
           }
-          return { ...normalized, body_text: bodyText, attachments }
+          return { ...normalized, body_text: bodyText, body_html: bodyHtml, attachments }
         })
 
         return new Response(JSON.stringify({ thread_id: data.id, messages }), {

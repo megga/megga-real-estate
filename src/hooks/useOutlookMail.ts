@@ -73,6 +73,16 @@ export function useOutlookMail() {
     },
   })
 
+  const downloadAttachmentMutation = useMutation({
+    mutationFn: async (params: { message_id: string; attachment_id: string }): Promise<{ data: string; size: number }> => {
+      const res = await supabase.functions.invoke('outlook-mail-sync', {
+        body: { action: 'download_attachment', ...params },
+      })
+      if (res.error) throw new Error(res.error.message)
+      return res.data as { data: string; size: number }
+    },
+  })
+
   const markReadMutation = useMutation({
     mutationFn: async (params: { message_id: string; is_read: boolean }) => {
       const res = await supabase.functions.invoke('outlook-mail-sync', {
@@ -129,6 +139,9 @@ export function useOutlookMail() {
     isSending: sendMessageMutation.isPending,
 
     markAsRead: markReadMutation.mutateAsync,
+
+    downloadAttachment: downloadAttachmentMutation.mutateAsync,
+    isDownloading: downloadAttachmentMutation.isPending,
 
     saveTokens,
   }

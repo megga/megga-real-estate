@@ -5,11 +5,38 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import DOMPurify from 'dompurify'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { SgGhostPill, SgBlackPill, SgCircleBtn } from '../primitives'
 import { useGmail, useGmailThread } from '@/hooks/useGmail'
 import { useOutlookMail, useOutlookThread } from '@/hooks/useOutlookMail'
+import type { EmailAttachment } from '@/hooks/useGmail'
+
+/**
+ * Config DOMPurify pour les emails HTML reçus :
+ * - Strip <script>, <iframe>, on* event handlers (par défaut DOMPurify)
+ * - Strip <link rel="stylesheet"> et <style> qui pourraient injecter du JS via expressions
+ * - Force target="_blank" + rel="noopener noreferrer" sur tous les <a> via hook
+ * - Bloque les images data: et javascript: dans src
+ */
+function sanitizeEmailHtml(raw: string): string {
+  if (typeof window === 'undefined') return ''
+  // Hook : forcer target="_blank" et rel safe sur tous les liens externes
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if ('target' in node && node.tagName === 'A') {
+      node.setAttribute('target', '_blank')
+      node.setAttribute('rel', 'noopener noreferrer')
+    }
+  })
+  const clean = DOMPurify.sanitize(raw, {
+    FORBID_TAGS: ['style', 'link', 'meta', 'script', 'iframe'],
+    FORBID_ATTR: ['style'], // pas de style inline — couleurs marketing souvent moches en dark mode
+    ALLOW_DATA_ATTR: false,
+  })
+  DOMPurify.removeAllHooks()
+  return clean
+}
 
 interface Props {
   open: boolean
@@ -60,6 +87,40 @@ export function EmailThreadModal({
                     (provider === 'outlook' && outlookThread.isLoading)
 
   const [marked, setMarked] = useState(false)
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null)
+
+  /**
+   * Télécharge une pièce jointe via le provider courant.
+   * Convertit le base64 en Blob, génère un lien <a download> temporaire,
+   * et déclenche le download natif. Le browser sandboxe le fichier.
+   */
+  const handleDownload = async (messageId: string, att: EmailAttachment) => {
+    if (!provider || !att.attachment_id) return
+    const key = `${messageId}-${att.attachment_id}`
+    setDownloadingKey(key)
+    try {
+      const fetcher = provider === 'gmail' ? gmail.downloadAttachment : outlookMail.downloadAttachment
+      const result = await fetcher({ message_id: messageId, attachment_id: att.attachment_id })
+      // Convert base64 → binary → Blob
+      const binary = atob(result.data)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const blob = new Blob([bytes], { type: att.mime_type })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = att.filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      // Erreur silencieuse au niveau modal — le button revient à l'état idle
+      console.error('[EmailThreadModal] attachment download failed', e)
+    } finally {
+      setDownloadingKey(null)
+    }
+  }
 
   // Auto-mark as read à l'ouverture (best effort, non bloquant)
   useEffect(() => {
@@ -288,18 +349,34 @@ export function EmailThreadModal({
                 </div>
               )}
 
-              <div
-                style={{
-                  fontSize: 13.5,
-                  color: SugarV3.inkSoft,
-                  lineHeight: 1.65,
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'inherit',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {msg.body_text || msg.snippet || '(Message vide)'}
-              </div>
+              {msg.body_html ? (
+                <div
+                  className="megga-email-html"
+                  style={{
+                    fontSize: 13.5,
+                    color: SugarV3.inkSoft,
+                    lineHeight: 1.65,
+                    fontFamily: 'inherit',
+                    wordBreak: 'break-word',
+                  }}
+                  // HTML déjà sanitisé par DOMPurify (forbidden tags: script/iframe/style/link,
+                  // pas d'inline style, links forcés target=_blank rel=noopener)
+                  dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(msg.body_html) }}
+                />
+              ) : (
+                <div
+                  style={{
+                    fontSize: 13.5,
+                    color: SugarV3.inkSoft,
+                    lineHeight: 1.65,
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'inherit',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {msg.body_text || msg.snippet || '(Message vide)'}
+                </div>
+              )}
 
               {msg.attachments && msg.attachments.length > 0 && (
                 <div
@@ -322,36 +399,61 @@ export function EmailThreadModal({
                     Pièces jointes · {msg.attachments.length}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {msg.attachments.map((att, ai) => (
-                      <div
-                        key={`${msg.id}-att-${ai}`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          padding: '8px 12px',
-                          borderRadius: 10,
-                          background: SugarV3.cardSubtle,
-                          fontSize: 12,
-                          color: SugarV3.ink,
-                          fontWeight: 600,
-                        }}
-                      >
-                        <SgIcon name="file" size={14} stroke={SugarV3.inkSoft} />
-                        <span style={{
-                          flex: 1,
-                          minWidth: 0,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}>
-                          {att.filename}
-                        </span>
-                        <span style={{ fontSize: 11, color: SugarV3.muted, fontWeight: 500 }}>
-                          {formatSize(att.size)}
-                        </span>
-                      </div>
-                    ))}
+                    {msg.attachments.map((att, ai) => {
+                      const canDownload = !!att.attachment_id
+                      const downloading = downloadingKey === `${msg.id}-${att.attachment_id}`
+                      return (
+                        <button
+                          key={`${msg.id}-att-${ai}`}
+                          disabled={!canDownload || downloading}
+                          onClick={() => canDownload && handleDownload(msg.id, att)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '8px 12px',
+                            borderRadius: 10,
+                            background: SugarV3.cardSubtle,
+                            fontSize: 12,
+                            color: SugarV3.ink,
+                            fontWeight: 600,
+                            border: 0,
+                            fontFamily: 'inherit',
+                            textAlign: 'left',
+                            cursor: canDownload && !downloading ? 'pointer' : 'default',
+                            opacity: canDownload ? 1 : 0.6,
+                            transition: 'background .15s',
+                          }}
+                          onMouseEnter={e => {
+                            if (canDownload && !downloading) {
+                              e.currentTarget.style.background = '#EDEFF3'
+                            }
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.background = SugarV3.cardSubtle
+                          }}
+                          title={canDownload ? 'Télécharger' : 'Téléchargement indisponible'}
+                        >
+                          <SgIcon
+                            name={downloading ? 'refresh' : 'download'}
+                            size={14}
+                            stroke={SugarV3.inkSoft}
+                          />
+                          <span style={{
+                            flex: 1,
+                            minWidth: 0,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}>
+                            {att.filename}
+                          </span>
+                          <span style={{ fontSize: 11, color: SugarV3.muted, fontWeight: 500 }}>
+                            {formatSize(att.size)}
+                          </span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}

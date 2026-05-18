@@ -18,6 +18,13 @@ export interface EmailMessage {
   has_attachments: boolean
 }
 
+export interface SendMessageAttachment {
+  filename: string
+  mime_type: string
+  /** base64-encoded content (sans préfixe data:) */
+  data: string
+}
+
 export interface SendMessageParams {
   to: string[]
   cc?: string[]
@@ -25,6 +32,7 @@ export interface SendMessageParams {
   subject: string
   body_text: string
   reply_to_message_id?: string
+  attachments?: SendMessageAttachment[]
 }
 
 export interface EmailAttachment {
@@ -36,6 +44,7 @@ export interface EmailAttachment {
 
 export interface ThreadMessage extends EmailMessage {
   body_text: string
+  body_html: string
   attachments: EmailAttachment[]
 }
 
@@ -112,6 +121,17 @@ export function useGmail() {
     },
   })
 
+  // Télécharger une pièce jointe (renvoie base64 + size)
+  const downloadAttachmentMutation = useMutation({
+    mutationFn: async (params: { message_id: string; attachment_id: string }): Promise<{ data: string; size: number }> => {
+      const res = await supabase.functions.invoke('gmail-sync', {
+        body: { action: 'download_attachment', ...params },
+      })
+      if (res.error) throw new Error(res.error.message)
+      return res.data as { data: string; size: number }
+    },
+  })
+
   // Marquer un message lu / non lu
   const markReadMutation = useMutation({
     mutationFn: async (params: { message_id: string; is_read: boolean }) => {
@@ -170,6 +190,9 @@ export function useGmail() {
     isSending: sendMessageMutation.isPending,
 
     markAsRead: markReadMutation.mutateAsync,
+
+    downloadAttachment: downloadAttachmentMutation.mutateAsync,
+    isDownloading: downloadAttachmentMutation.isPending,
 
     saveTokens,
   }

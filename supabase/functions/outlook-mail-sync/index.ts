@@ -6,7 +6,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeadersFor, logIntegrationEvent } from '../_shared/integration-helpers.ts'
 
-type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'get_thread' | 'send_message' | 'mark_read' | 'disconnect'
+type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'get_thread' | 'send_message' | 'mark_read' | 'download_attachment' | 'disconnect'
 
 interface SyncRequest {
   action: Action
@@ -30,6 +30,15 @@ interface SyncRequest {
   // mark_read / get_thread
   thread_id?: string
   is_read?: boolean
+  // download_attachment
+  attachment_id?: string
+  // send_message attachments
+  attachments?: Array<{
+    filename: string
+    mime_type: string
+    /** base64-encoded content */
+    data: string
+  }>
 }
 
 interface OutlookMessageRaw {
@@ -298,7 +307,14 @@ serve(async (req) => {
         const textBody = body.body_text ?? ''
         const fullText = signature ? `${textBody}\n\n--\n${signature}` : textBody
 
-        const message = {
+        const graphAttachments = (body.attachments ?? []).map(att => ({
+          '@odata.type': '#microsoft.graph.fileAttachment',
+          name: att.filename,
+          contentType: att.mime_type,
+          contentBytes: att.data, // déjà en base64 standard côté client
+        }))
+
+        const message: Record<string, unknown> = {
           subject: body.subject ?? '(Sans objet)',
           body: {
             contentType: 'Text' as const,
@@ -308,10 +324,16 @@ serve(async (req) => {
           ccRecipients: (body.cc ?? []).map(addr => ({ emailAddress: { address: addr } })),
           bccRecipients: (body.bcc ?? []).map(addr => ({ emailAddress: { address: addr } })),
         }
+        if (graphAttachments.length > 0) {
+          message.attachments = graphAttachments
+        }
 
-        // Microsoft Graph : si reply_to_message_id, on utilise /reply au lieu de /sendMail
-        // pour préserver le thread et le subject. Sinon /sendMail standard.
-        if (body.reply_to_message_id) {
+        // 3 cas Graph :
+        //  - reply sans attachments : POST /reply (simple, raccourci natif)
+        //  - reply avec attachments : createReply → attach → send (Graph n'accepte
+        //    pas d'attachments sur /reply en un seul appel)
+        //  - new message : POST /sendMail standard
+        if (body.reply_to_message_id && graphAttachments.length === 0) {
           const replyRes = await fetch(`${GRAPH_API}/me/messages/${body.reply_to_message_id}/reply`, {
             method: 'POST',
             headers: {
@@ -323,6 +345,55 @@ serve(async (req) => {
           if (!replyRes.ok) {
             const err = await replyRes.text()
             throw new Error(`Outlook reply error ${replyRes.status}: ${err}`)
+          }
+        } else if (body.reply_to_message_id && graphAttachments.length > 0) {
+          // 1. createReply → renvoie un draft message
+          const draftRes = await fetch(`${GRAPH_API}/me/messages/${body.reply_to_message_id}/createReply`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+          })
+          if (!draftRes.ok) {
+            const err = await draftRes.text()
+            throw new Error(`Outlook createReply error ${draftRes.status}: ${err}`)
+          }
+          const draft = await draftRes.json() as { id: string }
+
+          // 2. PATCH draft pour mettre notre body texte
+          await fetch(`${GRAPH_API}/me/messages/${draft.id}`, {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              body: { contentType: 'Text', content: fullText },
+            }),
+          })
+
+          // 3. Ajouter les attachments un par un
+          for (const att of graphAttachments) {
+            await fetch(`${GRAPH_API}/me/messages/${draft.id}/attachments`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(att),
+            })
+          }
+
+          // 4. Envoyer le draft
+          const sendDraftRes = await fetch(`${GRAPH_API}/me/messages/${draft.id}/send`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}` },
+          })
+          if (!sendDraftRes.ok) {
+            const err = await sendDraftRes.text()
+            throw new Error(`Outlook send draft error ${sendDraftRes.status}: ${err}`)
           }
         } else {
           const sendRes = await fetch(`${GRAPH_API}/me/sendMail`, {
@@ -352,6 +423,26 @@ serve(async (req) => {
         const full = await graphFetch(accessToken, `/me/messages/${body.message_id}`)
 
         return new Response(JSON.stringify({ message: full }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'download_attachment': {
+        if (!body.message_id || !body.attachment_id) {
+          throw new Error('Missing message_id or attachment_id')
+        }
+        const accessToken = await getValidToken(userId)
+        if (!accessToken) throw new Error('Outlook Mail not connected')
+
+        const data = await graphFetch(
+          accessToken,
+          `/me/messages/${body.message_id}/attachments/${body.attachment_id}`,
+        ) as { contentBytes?: string; size?: number; name?: string }
+
+        return new Response(JSON.stringify({
+          data: data.contentBytes ?? '',
+          size: data.size ?? 0,
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
@@ -405,9 +496,13 @@ serve(async (req) => {
 
         const messages = await Promise.all((data.value ?? []).map(async raw => {
           const normalized = normalizeOutlookMessage(raw)
-          const bodyText = raw.body?.contentType === 'html'
-            ? raw.body.content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
-            : (raw.body?.content ?? raw.bodyPreview ?? '')
+          // Outlook nous donne un seul body avec contentType html ou text
+          const isHtml = raw.body?.contentType === 'html'
+          const bodyHtml = isHtml ? (raw.body?.content ?? '') : ''
+          const bodyText = !isHtml
+            ? (raw.body?.content ?? raw.bodyPreview ?? '')
+            // Si HTML, on fournit aussi une version texte stripped pour fallback
+            : (raw.body?.content ?? '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
 
           // Liste les pièces jointes si présentes
           let attachments: { filename: string; mime_type: string; size: number; attachment_id: string }[] = []
@@ -424,7 +519,7 @@ serve(async (req) => {
               }))
             } catch { /* ignore */ }
           }
-          return { ...normalized, body_text: bodyText, attachments }
+          return { ...normalized, body_text: bodyText, body_html: bodyHtml, attachments }
         }))
 
         return new Response(JSON.stringify({ thread_id: body.thread_id, messages }), {
