@@ -16,9 +16,16 @@
 CREATE INDEX IF NOT EXISTS idx_kyc_cases_status_created_at
   ON kyc_cases (status, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_kyc_cases_screening_status
-  ON kyc_cases (screening_status)
-  WHERE screening_status = 'match';
+-- Index partiel sur les dossiers en alerte screening (PEP ou sanctions match).
+-- La table `kyc_cases` n'a PAS de colonne agrégée `screening_status` —
+-- l'état de screening est porté par deux colonnes distinctes (`pep_status`
+-- et `sanctions_status`) ajoutées par 20260323_001_kyc_screening_fields.
+-- Les index simples sur chaque colonne existent déjà ; ce partial index
+-- accélère la vue compliance qui veut "dossiers en alerte, peu importe la
+-- source", trié par récence pour l'admin dashboard.
+CREATE INDEX IF NOT EXISTS idx_kyc_cases_screening_match
+  ON kyc_cases (created_at DESC)
+  WHERE pep_status = 'match' OR sanctions_status = 'match';
 
 -- activity_events : action + created_at DESC (useAdminMonitoring, useAdminLiveFeed)
 CREATE INDEX IF NOT EXISTS idx_activity_events_action_created_at
@@ -64,7 +71,8 @@ AS $$
   SELECT
     (SELECT COUNT(*) FROM kyc_cases),
     (SELECT COUNT(*) FROM kyc_cases WHERE status IN ('pending', 'in_progress')),
-    (SELECT COUNT(*) FROM kyc_cases WHERE screening_status = 'match'),
+    -- "screening match" agrège PEP + sanctions (cf. note sur idx_kyc_cases_screening_match)
+    (SELECT COUNT(*) FROM kyc_cases WHERE pep_status = 'match' OR sanctions_status = 'match'),
     COALESCE((SELECT ROUND(AVG(completion_pct)::numeric, 1) FROM kyc_cases), 0)
 $$;
 
