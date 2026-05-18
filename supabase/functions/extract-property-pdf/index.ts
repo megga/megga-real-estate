@@ -14,6 +14,15 @@ const corsHeaders = {
 // and prevents a single agent from running up the Anthropic bill on one call).
 const MAX_PDF_BASE64_BYTES = 10 * 1024 * 1024
 
+// Per-agency monthly quotas — mirror virtual-staging shape. PDF extraction
+// costs ~CHF 0.03 per call, so worst-case Pro = CHF 3/month/agent.
+const PLAN_QUOTAS: Record<string, number> = {
+  starter: 5,
+  pro: 100,
+  entreprise: 500,
+  agency: 500,
+}
+
 const EXTRACTION_PROMPT = `Tu es un expert immobilier suisse. Analyse ce document PDF et extrais TOUTES les informations du bien immobilier.
 
 Retourne un JSON strict avec ces champs (utilise null si l'info n'est pas trouvée) :
@@ -59,12 +68,48 @@ serve(async (req) => {
   try {
     const auth = await requireAgentAuth(req, corsHeaders)
     if (auth instanceof Response) return auth
+    const { profile, supabase } = auth
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ── Monthly quota check ────────────────────────────────────────────
+    // Same shape as virtual-staging: read agency.plan, look up the cap,
+    // count this-month's calls from activity_events. 429 if over.
+    const { data: agency } = await supabase
+      .from('agencies')
+      .select('plan')
+      .eq('id', profile.agency_id)
+      .single()
+    const plan = (agency?.plan as string) || 'starter'
+    const quota = PLAN_QUOTAS[plan] ?? 0
+
+    const startOfMonth = new Date()
+    startOfMonth.setUTCDate(1)
+    startOfMonth.setUTCHours(0, 0, 0, 0)
+
+    const { count: usageCount } = await supabase
+      .from('activity_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('agency_id', profile.agency_id)
+      .eq('action', 'extract_property_pdf')
+      .gte('created_at', startOfMonth.toISOString())
+
+    const currentUsage = usageCount ?? 0
+    if (currentUsage >= quota) {
+      return new Response(
+        JSON.stringify({
+          error: `Quota mensuel atteint (${currentUsage}/${quota} PDF extraits ce mois)`,
+          quota_exceeded: true,
+          current_usage: currentUsage,
+          quota,
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -145,12 +190,31 @@ serve(async (req) => {
       )
     }
 
+    // Log successful extraction for quota accounting and audit trail. We do
+    // this AFTER Claude returns so a 502/422 doesn't count against the cap.
+    await supabase.from('activity_events').insert({
+      agency_id: profile.agency_id,
+      actor_id: profile.id,
+      actor_kind: 'ai',
+      action: 'extract_property_pdf',
+      entity_type: 'property',
+      severity: 'info',
+      category: 'ai',
+      metadata: {
+        filename: filename ?? 'document.pdf',
+        usage: result.usage ?? null,
+        usage_count: currentUsage + 1,
+        quota,
+      },
+    })
+
     return new Response(
       JSON.stringify({
         success: true,
         data: extracted,
         filename: filename ?? 'document.pdf',
         usage: result.usage,
+        quota: { current: currentUsage + 1, limit: quota, remaining: quota - currentUsage - 1 },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

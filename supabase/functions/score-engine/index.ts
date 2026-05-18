@@ -3,6 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -496,22 +497,36 @@ async function processMarketChanges(agencyId?: string) {
 // GET SCORES — Read endpoint for frontend
 // ═══════════════════════════════════════════════════════════════
 
-async function getScores(params: { contact_id?: string; property_id?: string; market_listing_id?: string }) {
+async function getScores(params: {
+  contact_id?: string
+  property_id?: string
+  market_listing_id?: string
+  agency_id?: string
+}) {
   const supabase = db()
   const result: Record<string, unknown> = {}
 
+  // When agency_id is provided (always, for non-service-role callers), filter
+  // each score lookup by it so a forged contact_id/property_id from another
+  // agency returns nothing instead of leaking that agency's scores.
   if (params.contact_id) {
-    const { data } = await supabase.from('contact_scores').select('*').eq('contact_id', params.contact_id).single()
+    let q = supabase.from('contact_scores').select('*').eq('contact_id', params.contact_id)
+    if (params.agency_id) q = q.eq('agency_id', params.agency_id)
+    const { data } = await q.maybeSingle()
     result.contact_score = data
   }
 
   if (params.property_id) {
-    const { data } = await supabase.from('property_scores').select('*').eq('property_id', params.property_id).single()
+    let q = supabase.from('property_scores').select('*').eq('property_id', params.property_id)
+    if (params.agency_id) q = q.eq('agency_id', params.agency_id)
+    const { data } = await q.maybeSingle()
     result.property_score = data
   }
 
   if (params.market_listing_id) {
-    const { data } = await supabase.from('property_scores').select('*').eq('market_listing_id', params.market_listing_id).single()
+    let q = supabase.from('property_scores').select('*').eq('market_listing_id', params.market_listing_id)
+    if (params.agency_id) q = q.eq('agency_id', params.agency_id)
+    const { data } = await q.maybeSingle()
     result.property_score = data
   }
 
@@ -528,23 +543,47 @@ serve(async (req: Request) => {
   }
 
   try {
+    // ── Auth gate ────────────────────────────────────────────────────
+    // Same shape as matching-engine: pg_cron / trusted callers send the
+    // service_role JWT directly (compared byte-for-byte against the env
+    // var, no JWT decode) and may pass an explicit `agency_id` (or omit
+    // it for "scan-all" sweeps). End-user callers MUST present a valid
+    // agent JWT — we then derive agency_id from the JWT and ignore any
+    // body-supplied agency_id to prevent cross-tenant reads/writes.
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
+    const token = authHeader.toLowerCase().startsWith('bearer ')
+      ? authHeader.slice('bearer '.length).trim()
+      : ''
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+    const isServiceRole = token !== '' && token === serviceRoleKey
+
     const body = await req.json()
     const action = body.action as Action
+
+    let agency_id: string | undefined
+    if (isServiceRole) {
+      // pg_cron sweep can pass undefined for "all agencies"
+      agency_id = typeof body.agency_id === 'string' ? body.agency_id : undefined
+    } else {
+      const auth = await requireAgentAuth(req, corsHeaders)
+      if (auth instanceof Response) return auth
+      agency_id = auth.profile.agency_id
+    }
 
     let result: Record<string, unknown>
 
     switch (action) {
       case 'calculate_contact_scores':
-        result = await calculateContactScores(body.agency_id)
+        result = await calculateContactScores(agency_id)
         break
       case 'calculate_property_scores':
-        result = await calculatePropertyScores(body.agency_id)
+        result = await calculatePropertyScores(agency_id)
         break
       case 'process_market_changes':
-        result = await processMarketChanges(body.agency_id)
+        result = await processMarketChanges(agency_id)
         break
       case 'get_scores':
-        result = await getScores(body)
+        result = await getScores({ ...body, agency_id })
         break
       default:
         throw new Error(`Unknown action: ${action}`)

@@ -106,6 +106,14 @@ const PRICE_MIN_BUY = 50_000
 const PRICE_MIN_RENT = 100
 const PRICE_MAX_RENT = 50_000
 
+// CECB obligatoire à la vente dans certains cantons (loi cantonale énergie).
+// GE/VD/NE imposent la production du certificat énergétique cantonal CECB
+// avant toute mise en vente ; le notaire refusera l'acte sans cette pièce.
+// Voir src/lib/cantonalTaxRates.ts pour le mapping `energyLabelSystem`.
+const CECB_REQUIRED_CANTONS = ['GE', 'VD', 'NE'] as const
+
+const ENERGY_CLASS_OPTIONS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const
+
 // Shared cross-field validator for step 3 — applied on both the per-step
 // schema AND the merged fullSchema, so the publish path can't sneak past
 // the rent/buy bounds.
@@ -135,6 +143,27 @@ function refineStep3(
   }
 }
 
+// Cross-step validator — only meaningful on the merged fullSchema because it
+// needs transaction_type (step3) + canton (step2) + energy_class (step1) in
+// the same object. Applied on publish, not per-step.
+function refineCecb(
+  d: { transaction_type?: 'buy' | 'rent'; canton?: string; energy_class?: string },
+  ctx: z.RefinementCtx,
+) {
+  if (
+    d.transaction_type !== 'rent' &&
+    d.canton &&
+    (CECB_REQUIRED_CANTONS as readonly string[]).includes(d.canton) &&
+    !d.energy_class
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['energy_class'],
+      message: `CECB obligatoire à la vente dans le canton ${d.canton}. Renseignez la classe énergétique.`,
+    })
+  }
+}
+
 const step1Schema = z.object({
   title: z
     .string()
@@ -152,6 +181,9 @@ const step1Schema = z.object({
   total_floors: optionalNumber,
   year_built: optionalNumberRange(1800, CURRENT_YEAR + 5),
   condition: z.enum(['new', 'renovated', 'good', 'to_renovate']).optional(),
+  // CECB letter (A–G). Optional at step1; refineCecb (applied on fullSchema)
+  // promotes it to "required" when canton ∈ {GE,VD,NE} and transaction is buy.
+  energy_class: z.enum(ENERGY_CLASS_OPTIONS).optional(),
 })
 
 const step2Schema = z.object({
@@ -165,6 +197,13 @@ const step2Schema = z.object({
     .regex(/^[1-9]\d{3}$/, 'NPA suisse invalide (4 chiffres, ne commence pas par 0)'),
   lat: optionalCHLat,
   lng: optionalCHLng,
+  // EGID — Swiss federal building identifier (9 digits). Optional at the form
+  // layer but a DB CHECK constraint enforces format. The notaire requires it
+  // for the acte authentique; FINMA expects it for LBA dossier reconstruction.
+  egid: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
+    z.string().regex(/^[0-9]{9}$/, 'EGID = 9 chiffres (identifiant fédéral du bâtiment)').optional(),
+  ),
 })
 
 const step3SchemaBase = z.object({
@@ -211,12 +250,18 @@ const step5Schema = z.object({
 
 // `fullSchema` re-applies `refineStep3` so the publish path can't bypass
 // rent/buy bounds (publish calls fullSchema.safeParse, not step3Schema).
+// It also applies `refineCecb` which spans 3 steps (energy_class in step1 +
+// canton in step2 + transaction_type in step3) and therefore can only be
+// evaluated once everything is merged.
 const fullSchema = step1Schema
   .merge(step2Schema)
   .merge(step3SchemaBase)
   .merge(step4Schema)
   .merge(step5Schema)
-  .superRefine(refineStep3)
+  .superRefine((d, ctx) => {
+    refineStep3(d, ctx)
+    refineCecb(d, ctx)
+  })
 
 type ListingFormData = z.infer<typeof fullSchema>
 
@@ -519,6 +564,43 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
           ))}
         </div>
       </div>
+
+      {/* CECB — classe énergétique (obligatoire à la vente pour GE/VD/NE,
+          validée côté fullSchema via refineCecb) */}
+      <div>
+        <FieldLabel htmlFor="energy_class">Classe énergétique (CECB)</FieldLabel>
+        <div className="flex flex-wrap gap-2">
+          {ENERGY_CLASS_OPTIONS.map((letter) => {
+            const active = watch('energy_class') === letter
+            return (
+              <button
+                key={letter}
+                type="button"
+                onClick={() =>
+                  setValue(
+                    'energy_class',
+                    active ? undefined : letter,
+                    { shouldValidate: true, shouldDirty: true },
+                  )
+                }
+                className={cn(
+                  'h-10 w-10 rounded-lg text-sm font-semibold border transition-all',
+                  active
+                    ? 'border-theme-primary bg-theme-active text-theme-primary'
+                    : 'border-theme-border text-theme-secondary hover:bg-theme-hover hover:text-theme-primary',
+                )}
+                aria-pressed={active}
+              >
+                {letter}
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-xs text-theme-muted mt-1.5">
+          Requis à la vente dans les cantons GE, VD, NE (loi cantonale énergie).
+        </p>
+        <FieldError message={errors.energy_class?.message} />
+      </div>
     </div>
   )
 }
@@ -680,6 +762,26 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
           </button>
         </>
       )}
+
+      {/* EGID — identifiant fédéral du bâtiment (9 chiffres, OFS).
+          Optionnel au formulaire mais requis par le notaire pour l'acte
+          authentique. Toujours visible (mode autocomplete + mode manuel). */}
+      <div>
+        <FieldLabel htmlFor="egid">EGID (identifiant fédéral du bâtiment)</FieldLabel>
+        <input
+          id="egid"
+          {...register('egid')}
+          placeholder="987654321"
+          inputMode="numeric"
+          maxLength={9}
+          className={inputClass}
+        />
+        <p className="text-xs text-theme-muted mt-1.5">
+          9 chiffres — recherchable sur <span className="font-mono">map.geo.admin.ch</span>.
+          Optionnel ici, indispensable chez le notaire.
+        </p>
+        <FieldError message={errors.egid?.message} />
+      </div>
 
       {/* Mini map placeholder — will show actual map when lat/lng available */}
       <div className={cn(
@@ -2103,10 +2205,12 @@ export default function ListingFormPage() {
         floor: pdfData.floor ?? undefined,
         total_floors: pdfData.total_floors ?? undefined,
         year_built: pdfData.year_built ?? undefined,
+        energy_class: undefined,
         address: pdfData.address ?? '',
         city: pdfData.city ?? '',
         canton: pdfData.canton ?? '',
         postal_code: pdfData.postal_code ?? '',
+        egid: undefined,
         lat: undefined,
         lng: undefined,
         price: pdfData.price ?? 0,
@@ -2136,10 +2240,12 @@ export default function ListingFormPage() {
       floor: existingProperty.floor,
       total_floors: existingProperty.total_floors,
       year_built: existingProperty.year_built,
+      energy_class: (existingProperty.energy_class as ListingFormData['energy_class']) ?? undefined,
       address: existingProperty.address ?? '',
       city: existingProperty.city ?? '',
       canton: existingProperty.canton ?? '',
       postal_code: existingProperty.postal_code ?? '',
+      egid: (existingProperty as { egid?: string | null }).egid ?? undefined,
       lat: existingProperty.lat,
       lng: existingProperty.lng,
       price: existingProperty.price ?? 0,
@@ -2169,10 +2275,12 @@ export default function ListingFormPage() {
       floor: undefined,
       total_floors: undefined,
       year_built: undefined,
+      energy_class: undefined,
       address: '',
       city: '',
       canton: '',
       postal_code: '',
+      egid: undefined,
       lat: undefined,
       lng: undefined,
       price: undefined as unknown as number,
@@ -2242,6 +2350,9 @@ export default function ListingFormPage() {
     if (values.postal_code && !/^[1-9]\d{3}$/.test(values.postal_code)) return false
     if (typeof values.lat === 'number' && (values.lat < 45.8 || values.lat > 47.85)) return false
     if (typeof values.lng === 'number' && (values.lng < 5.95 || values.lng > 10.5)) return false
+    // If an EGID is present, it must match the 9-digit format. Empty is fine
+    // (the column is optional at the DB layer too).
+    if (values.egid && !/^[0-9]{9}$/.test(values.egid)) return false
     return true
   }, [])
 
@@ -2336,6 +2447,7 @@ export default function ListingFormPage() {
       floor: values.floor,
       total_floors: values.total_floors,
       year_built: values.year_built,
+      energy_class: values.energy_class ?? null,
       charges_monthly: values.charges_monthly,
       mandate_type: values.mandate_type,
       condition: values.condition,
@@ -2347,6 +2459,7 @@ export default function ListingFormPage() {
       city: values.city,
       canton: values.canton,
       postal_code: values.postal_code,
+      egid: values.egid ?? null,
       lat: values.lat,
       lng: values.lng,
       features: values.features,
@@ -2431,16 +2544,29 @@ export default function ListingFormPage() {
       const values = form.getValues()
 
       // ── LBA verrou (Loi sur le Blanchiment d'Argent) ─────────────────
-      // Art. 6 LBA : pour toute relation d'affaires immobilière ≥ CHF 100'000,
-      // l'agent doit avoir un mandat signé du vendeur AVANT la publication.
-      // Le mandat est la trace contractuelle qui ancre la chaîne KYC.
-      // Pas de bypass automatique — l'agent doit aller signer le mandat, puis
-      // revenir publier. (Brouillon possible sans mandat → cf. handleSaveDraft.)
-      const LBA_THRESHOLD = 100_000
-      const isHighValueBuy = values.transaction_type !== 'rent' && (values.price ?? 0) >= LBA_THRESHOLD
-      if (isHighValueBuy && !existingProperty?.mandate_signed_at) {
+      // Art. 6 LBA : pour toute relation d'affaires immobilière, l'agent doit
+      // identifier le cocontractant AVANT la mise en marché. Le mandat signé
+      // est la trace contractuelle qui ancre la chaîne KYC.
+      //
+      //   - Vente (transaction_type='buy') ≥ CHF 100'000 → mandat requis.
+      //     Le seuil bas reste un compromis pragmatique (objets <100K = niches,
+      //     friction inutile sur les box/places de parc).
+      //   - Location (transaction_type='rent') → mandat requis quel que soit
+      //     le loyer. Une régie qui publie sans gérance signée enfreint LBA
+      //     art. 6 + art. 7 al. 1 lit. b (documentation).
+      //
+      // Pas de bypass automatique — l'agent doit signer le mandat puis
+      // revenir publier. (Brouillon possible sans mandat → handleSaveDraft.)
+      const LBA_BUY_THRESHOLD = 100_000
+      const txType = values.transaction_type ?? 'buy'
+      const isHighValueBuy = txType === 'buy' && (values.price ?? 0) >= LBA_BUY_THRESHOLD
+      const isRentMandate = txType === 'rent'
+      if ((isHighValueBuy || isRentMandate) && !existingProperty?.mandate_signed_at) {
+        const reason = isRentMandate
+          ? `LBA art. 6 : un mandat de gérance signé est requis avant publication d'une location.`
+          : `LBA art. 6 : ce bien à CHF ${(values.price ?? 0).toLocaleString('fr-CH')} ne peut être publié sans mandat signé.`
         setSaveError(
-          `LBA art. 6 : ce bien à CHF ${(values.price ?? 0).toLocaleString('fr-CH')} ne peut être publié sans mandat signé. Enregistrez le mandat depuis la fiche du bien (brouillon) avant de publier.`,
+          `${reason} Enregistrez le mandat depuis la fiche du bien (brouillon) avant de publier.`,
         )
         return
       }

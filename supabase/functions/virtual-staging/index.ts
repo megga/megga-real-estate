@@ -99,6 +99,29 @@ serve(async (req) => {
       )
     }
 
+    // Ownership check: le bien doit appartenir à l'agence du caller.
+    // Le client Supabase utilise SERVICE_ROLE_KEY donc bypass RLS — c'est ici
+    // qu'on bloque le cross-tenant IDOR (agent A stage le bien de B).
+    const { data: property, error: propError } = await supabase
+      .from('properties')
+      .select('id, agency_id')
+      .eq('id', propertyId)
+      .single()
+
+    if (propError || !property) {
+      return new Response(
+        JSON.stringify({ error: 'Bien introuvable' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (property.agency_id !== profile.agency_id) {
+      return new Response(
+        JSON.stringify({ error: 'Bien hors agence — staging refusé' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Get agency plan
     const { data: agency } = await supabase
       .from('agencies')
