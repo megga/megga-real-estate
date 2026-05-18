@@ -79,24 +79,49 @@ jobs:
           TODAY=$(date -u +%Y%m%d)
           PROJECT_REF=eayczugyrvmtqnnmvjod
           shopt -s nullglob
+
+          # Retry up to 3 times on 5xx (transient Management API hiccup —
+          # we hit one of those on 2026-05-18 mid-deploy). 4xx is a real
+          # SQL error and fails fast. Backoff: 2s, 4s.
+          apply_migration() {
+            local f="$1"
+            local base
+            base=$(basename "$f")
+            local body
+            body=$(jq -Rs '{query: .}' < "$f")
+            local attempt=1
+            while [ $attempt -le 3 ]; do
+              local http
+              http=$(curl -sS -o /tmp/sb_resp.json -w '%{http_code}' \
+                -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+                -H "Authorization: Bearer $SB_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$body")
+              echo "HTTP $http (attempt $attempt/3)"
+              cat /tmp/sb_resp.json
+              echo
+              if [ "$http" -lt 400 ]; then
+                return 0
+              fi
+              if [ "$http" -ge 500 ] && [ $attempt -lt 3 ]; then
+                local delay=$((attempt * 2))
+                echo "::warning::Migration $base got HTTP $http — retrying in ${delay}s"
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                continue
+              fi
+              echo "::error::Migration $base failed (HTTP $http)"
+              return 1
+            done
+            return 1
+          }
+
           for f in $(ls supabase/migrations/*.sql | sort); do
             base=$(basename "$f")
             stamp="${base%%_*}"
             if [ "$stamp" -ge "$TODAY" ]; then
               echo "::group::Applying $base"
-              BODY=$(jq -Rs '{query: .}' < "$f")
-              HTTP=$(curl -sS -o /tmp/sb_resp.json -w '%{http_code}' \
-                -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
-                -H "Authorization: Bearer $SB_TOKEN" \
-                -H "Content-Type: application/json" \
-                -d "$BODY")
-              echo "HTTP $HTTP"
-              cat /tmp/sb_resp.json
-              echo
-              if [ "$HTTP" -ge 400 ]; then
-                echo "::error::Migration $base failed (HTTP $HTTP)"
-                exit 1
-              fi
+              apply_migration "$f"
               echo "::endgroup::"
             fi
           done
