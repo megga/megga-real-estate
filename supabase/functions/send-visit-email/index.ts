@@ -13,7 +13,7 @@ const corsHeaders = {
 }
 
 interface RequestBody {
-  type: 'confirmation_buyer' | 'notification_agent' | 'reminder'
+  type: 'confirmation_buyer' | 'notification_agent' | 'reminder' | 'update' | 'cancel'
   visit_id: string
   agency_id: string
 }
@@ -46,6 +46,10 @@ function buildICS(opts: {
   organizerName: string
   attendeeEmail: string
   meetUrl?: string
+  /** REQUEST (création/update) ou CANCEL (annulation) — RFC 5546 */
+  method?: 'REQUEST' | 'CANCEL'
+  /** Incrémenter pour signaler une mise à jour (REQUEST avec sequence > 0 = update) */
+  sequence?: number
 }): string {
   const fmt = (d: Date) =>
     d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
@@ -62,12 +66,15 @@ function buildICS(opts: {
     }
     return parts.join('\r\n')
   }
+  const method = opts.method ?? 'REQUEST'
+  const sequence = opts.sequence ?? 0
+  const status = method === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED'
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//MEGGA Real Estate//Visit Booking//FR',
     'CALSCALE:GREGORIAN',
-    'METHOD:REQUEST',
+    `METHOD:${method}`,
     'BEGIN:VEVENT',
     `UID:${opts.uid}@megga.ch`,
     `DTSTAMP:${fmt(new Date())}`,
@@ -79,7 +86,8 @@ function buildICS(opts: {
     `ORGANIZER;CN=${escape(opts.organizerName)}:mailto:${opts.organizerEmail}`,
     `ATTENDEE;CN=${escape(opts.attendeeEmail)};RSVP=TRUE:mailto:${opts.attendeeEmail}`,
     opts.meetUrl ? `URL:${opts.meetUrl}` : '',
-    'STATUS:CONFIRMED',
+    `STATUS:${status}`,
+    `SEQUENCE:${sequence}`,
     'TRANSP:OPAQUE',
     'END:VEVENT',
     'END:VCALENDAR',
@@ -211,6 +219,28 @@ serve(async (req) => {
         visit.buyer_message ? `<strong>Message :</strong> ${visit.buyer_message}` : '',
         `La visite apparaît dans votre calendrier MEGGA.`,
       ].filter(Boolean))
+    } else if (type === 'update') {
+      to = visit.buyer_email || contact?.email || ''
+      subject = `Visite reprogrammée — ${propertyTitle}`
+      const videoInfo = isVideo
+        ? `<strong>Mode :</strong> Visite vidéo via ${videoLabel}<br>${visit.video_link ? `<strong>Lien :</strong> <a href="${visit.video_link}" style="color:#2563eb">${visit.video_link}</a><br>` : ''}`
+        : `<strong>Adresse :</strong> ${propertyAddress}`
+      html = buildHTML('Visite reprogrammée', [
+        `Bonjour ${visit.buyer_name || contact?.first_name || ''},`,
+        `Votre visite pour <strong>${propertyTitle}</strong> a été reprogrammée.`,
+        `<strong>Nouvelle date :</strong> ${dateFR}<br><strong>Nouvelle heure :</strong> ${timeFR}<br>${videoInfo}`,
+        `Une mise à jour de votre calendrier est attachée à cet email.`,
+        `<a href="${manageUrl}" style="display:inline-block;margin-top:8px;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">Gérer ma visite</a>`,
+      ])
+    } else if (type === 'cancel') {
+      to = visit.buyer_email || contact?.email || ''
+      subject = `Visite annulée — ${propertyTitle}`
+      html = buildHTML('Visite annulée', [
+        `Bonjour ${visit.buyer_name || contact?.first_name || ''},`,
+        `Votre visite${isVideo ? ' vidéo' : ''} pour <strong>${propertyTitle}</strong>, initialement prévue le <strong>${dateFR} à ${timeFR}</strong>, a été annulée.`,
+        `Si vous souhaitez reprogrammer une visite, n'hésitez pas à nous contacter.`,
+        `Une notification d'annulation calendrier est attachée pour mettre à jour votre agenda.`,
+      ])
     } else if (type === 'reminder') {
       to = visit.buyer_email || contact?.email || ''
       subject = `Rappel : visite demain — ${propertyTitle}`
@@ -238,10 +268,16 @@ serve(async (req) => {
       html,
     }
 
-    if (type === 'confirmation_buyer') {
+    // ICS attaché pour confirmation, update et cancel (le contact peut maj
+    // son calendrier en 1 click). METHOD adapté selon le type.
+    if (type === 'confirmation_buyer' || type === 'update' || type === 'cancel') {
       const start = new Date(visit.scheduled_at)
       const durationMinutes = visit.duration_minutes ?? 45
       const end = new Date(start.getTime() + durationMinutes * 60_000)
+      const icsMethod: 'REQUEST' | 'CANCEL' = type === 'cancel' ? 'CANCEL' : 'REQUEST'
+      // sequence > 0 pour update — les clients calendar reconnaissent l'événement
+      // comme un re-publish du même UID (RFC 5546 §3.2.3)
+      const icsSequence = type === 'update' ? 1 : 0
       const icsContent = buildICS({
         uid: visit.id,
         start,
@@ -257,13 +293,14 @@ serve(async (req) => {
         organizerName: agent?.full_name ?? 'MEGGA',
         attendeeEmail: to,
         meetUrl: visit.video_link ?? undefined,
+        method: icsMethod,
+        sequence: icsSequence,
       })
-      // Encode en base64 standard (Resend attend ce format)
       const icsBase64 = btoa(unescape(encodeURIComponent(icsContent)))
       resendPayload.attachments = [{
-        filename: 'visite-megga.ics',
+        filename: type === 'cancel' ? 'annulation-megga.ics' : 'visite-megga.ics',
         content: icsBase64,
-        content_type: 'text/calendar; charset=utf-8; method=REQUEST',
+        content_type: `text/calendar; charset=utf-8; method=${icsMethod}`,
       }]
     }
 

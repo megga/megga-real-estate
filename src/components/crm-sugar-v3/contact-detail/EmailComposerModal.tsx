@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { useQuery } from '@tanstack/react-query'
 import type { SendMessageAttachment } from '@/hooks/useGmail'
+import { EMAIL_TEMPLATES, interpolateTemplate, type EmailTemplate } from '@/lib/email-templates'
 
 // Limite raisonnable côté client. Gmail accepte 25 Mo total / message, Outlook 150 Mo.
 // On garde la plus stricte par défaut + une marge pour le base64 (overhead +33%).
@@ -47,6 +48,16 @@ async function fileToAttachment(file: File): Promise<SendMessageAttachment> {
   })
 }
 
+interface TemplateContext {
+  contactFirstName?: string | null
+  contactLastName?: string | null
+  contactEmail?: string | null
+  propertyTitle?: string | null
+  propertyAddress?: string | null
+  visitDate?: string | null
+  visitTime?: string | null
+}
+
 interface Props {
   open: boolean
   onClose: () => void
@@ -56,6 +67,8 @@ interface Props {
   replyToMessageId?: string
   /** Force le provider d'envoi. Si absent, on prend le premier connecté (gmail prio). */
   forceProvider?: 'gmail' | 'outlook'
+  /** Contexte pour interpoler les templates (variables {{contact.first_name}} etc.) */
+  templateContext?: TemplateContext
 }
 
 export function EmailComposerModal({
@@ -66,6 +79,7 @@ export function EmailComposerModal({
   defaultBody,
   replyToMessageId,
   forceProvider,
+  templateContext,
 }: Props) {
   const { user } = useAuth()
   const gmail = useGmail()
@@ -90,6 +104,29 @@ export function EmailComposerModal({
   const [sentToast, setSentToast] = useState(false)
   const [attachments, setAttachments] = useState<Array<SendMessageAttachment & { sizeBytes: number }>>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+
+  /** Applique un template au composer en interpolant le contexte fourni. */
+  const applyTemplate = (tpl: EmailTemplate) => {
+    const interpolationCtx = {
+      contact: {
+        first_name: templateContext?.contactFirstName ?? '',
+        last_name: templateContext?.contactLastName ?? '',
+        email: templateContext?.contactEmail ?? '',
+      },
+      property: {
+        title: templateContext?.propertyTitle ?? '',
+        address: templateContext?.propertyAddress ?? '',
+      },
+      visit: {
+        date: templateContext?.visitDate ?? '',
+        time: templateContext?.visitTime ?? '',
+      },
+    }
+    setSubject(interpolateTemplate(tpl.subject, interpolationCtx))
+    setBody(interpolateTemplate(tpl.body, interpolationCtx))
+    setTemplatesOpen(false)
+  }
 
   // Récupère la signature du profil pour afficher un aperçu.
   // enabled ne dépend QUE de user?.id (pas de `open`) pour stabiliser l'ordre
@@ -298,6 +335,91 @@ export function EmailComposerModal({
             <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500, marginTop: 1 }}>
               Envoyé via {providerLabel}
             </div>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setTemplatesOpen(v => !v)}
+              style={{
+                height: 32,
+                padding: '0 12px',
+                borderRadius: 999,
+                border: 0,
+                background: SugarV3.cardSubtle,
+                color: SugarV3.ink,
+                fontFamily: 'inherit',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+              title="Insérer un modèle d'email"
+            >
+              <SgIcon name="sparkle" size={12} stroke={SugarV3.ink} sw={2} />
+              Modèles
+              <SgIcon name="chevDown" size={11} stroke={SugarV3.ink} sw={2.2} />
+            </button>
+            {templatesOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  right: 0,
+                  width: 340,
+                  maxHeight: 380,
+                  overflow: 'auto',
+                  background: '#fff',
+                  borderRadius: 14,
+                  boxShadow: '0 16px 40px rgba(11,12,14,0.20), 0 4px 12px rgba(11,12,14,0.08)',
+                  border: '1px solid rgba(11,12,14,0.08)',
+                  zIndex: 20,
+                  padding: 6,
+                }}
+              >
+                {EMAIL_TEMPLATES.map(tpl => (
+                  <button
+                    key={tpl.id}
+                    onClick={() => applyTemplate(tpl)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: 0,
+                      borderRadius: 10,
+                      background: 'transparent',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'background .12s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = SugarV3.cardSubtle }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: SugarV3.ink,
+                        marginBottom: 2,
+                      }}
+                    >
+                      {tpl.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        color: SugarV3.muted,
+                        fontWeight: 500,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {tpl.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <SgCircleBtn
             icon={<SgIcon name="close" size={15} stroke={SugarV3.inkSoft} />}

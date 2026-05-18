@@ -20,6 +20,7 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 import { useVisits } from '@/hooks/useVisits'
 import { supabase } from '@/lib/supabase'
+import { computeFreeSlots, formatSlotLabel, type BusyWindow } from '@/lib/free-busy'
 
 const STEPS = ['Bien & visiteur', 'Date & heure', 'Confirmation'] as const
 
@@ -111,12 +112,14 @@ export default function VisitModalSugarV3Page() {
     isPending: isSaving,
     error: saveError,
   } = useCreateAgentVisit()
-  // Détection de conflits : on fetch les events du jour autour du créneau prévu
-  // pour avertir l'agent s'il y a un overlap avec un autre rdv (Google, Outlook
-  // ou autre visite MEGGA).
-  const conflictRange = useMemo(() => {
+  // Détection de conflits + suggestions de créneaux libres : on fetch les events
+  // sur une fenêtre de 7 jours autour de la date courante.
+  // Conflits = filtré au jour planifié. Free/busy = la fenêtre entière.
+  const planningRange = useMemo(() => {
     const start = new Date(`${date}T00:00:00`)
-    const end = new Date(`${date}T23:59:59`)
+    start.setDate(start.getDate() - 1)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 8)
     return { start, end }
   }, [date])
 
@@ -124,12 +127,12 @@ export default function VisitModalSugarV3Page() {
     isConnected: gcalConnected,
     googleEvents,
     syncVisitToGoogle,
-  } = useGoogleCalendar(conflictRange)
+  } = useGoogleCalendar(planningRange)
   const {
     isConnected: ocalConnected,
     outlookEvents,
     syncVisitToOutlook,
-  } = useOutlookCalendar(conflictRange)
+  } = useOutlookCalendar(planningRange)
   const { visits: allVisits } = useVisits()
 
   // Calcul du créneau planifié + détection d'overlap
@@ -160,6 +163,24 @@ export default function VisitModalSugarV3Page() {
     }
     return out
   }, [date, time, duration, allVisits, googleEvents, outlookEvents])
+
+  // Free/busy : créneaux libres dans les 7 prochains jours, triés par préférence
+  const freeSlots = useMemo(() => {
+    const busy: BusyWindow[] = []
+    for (const v of allVisits) busy.push({ start: v.start, end: v.end })
+    for (const g of googleEvents) busy.push({ start: g.start, end: g.end })
+    for (const o of outlookEvents) busy.push({ start: o.start, end: o.end })
+    const from = new Date()
+    from.setHours(0, 0, 0, 0)
+    const to = new Date(from)
+    to.setDate(to.getDate() + 7)
+    return computeFreeSlots(busy, {
+      from,
+      to,
+      durationMinutes: duration,
+      maxResults: 4,
+    })
+  }, [allVisits, googleEvents, outlookEvents, duration])
 
   const activeBiens = useMemo(
     () => (allBiens ?? []).filter((b) => b.status === 'active'),
@@ -804,30 +825,48 @@ export default function VisitModalSugarV3Page() {
                     }}
                   >
                     <SgIcon name="sparkle" size={12} stroke={SugarV3.muted} sw={1.8} />
-                    Créneaux conseillés par MEGGA AI
+                    Créneaux libres ({gcalConnected || ocalConnected ? 'calendrier synchronisé' : 'visites MEGGA seules'})
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {['Demain · 10:00', 'Demain · 17:00', 'Sam. · 11:00', 'Mar. · 18:30'].map(
-                      (s) => (
-                        <button
-                          key={s}
-                          style={{
-                            height: 38,
-                            padding: '0 16px',
-                            borderRadius: 999,
-                            border: 0,
-                            background: SugarV3.cardSubtle,
-                            color: SugarV3.inkSoft,
-                            fontFamily: 'inherit',
-                            fontSize: 12.5,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {s}
-                        </button>
-                      ),
-                    )}
+                    {freeSlots.length === 0 ? (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: SugarV3.muted,
+                          fontStyle: 'italic',
+                          padding: '6px 0',
+                        }}
+                      >
+                        Aucun créneau libre dans les 7 prochains jours.
+                      </div>
+                    ) : freeSlots.map((slot, idx) => (
+                      <button
+                        key={`slot-${idx}`}
+                        onClick={() => {
+                          // Met à jour les champs date + time avec ce slot
+                          const iso = slot.start.toISOString()
+                          setDate(iso.split('T')[0])
+                          setTime(iso.split('T')[1].slice(0, 5))
+                        }}
+                        style={{
+                          height: 38,
+                          padding: '0 16px',
+                          borderRadius: 999,
+                          border: 0,
+                          background: SugarV3.cardSubtle,
+                          color: SugarV3.inkSoft,
+                          fontFamily: 'inherit',
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'background .15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#EDEFF3' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = SugarV3.cardSubtle }}
+                      >
+                        {formatSlotLabel(slot)}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

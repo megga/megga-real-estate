@@ -226,6 +226,11 @@ export default function ContactDetailSugarV3Page() {
         onClose={() => setComposerOpen(false)}
         defaultTo={contact.email ?? ''}
         defaultSubject={`Suivi · ${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim()}
+        templateContext={{
+          contactFirstName: contact.first_name,
+          contactLastName: contact.last_name,
+          contactEmail: contact.email,
+        }}
       />
     </div>
   )

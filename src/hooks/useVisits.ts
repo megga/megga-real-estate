@@ -178,25 +178,58 @@ export function useVisits() {
         updatePayload.rating = event.rating
       }
 
+      // Récup le scheduled_at AVANT update pour détecter si l'heure a changé
+      // (auquel cas on doit notifier le contact)
+      const { data: before } = await supabase
+        .from('visits')
+        .select('scheduled_at, agency_id')
+        .eq('id', event.id)
+        .single()
+
       const { error } = await supabase
         .from('visits')
         .update(updatePayload)
         .eq('id', event.id)
 
       if (error) throw error
-      return event.id
+      const reschedule = !!before && before.scheduled_at !== event.start.toISOString()
+      return { visitId: event.id, agencyId: before?.agency_id ?? null, reschedule }
     },
-    onSuccess: (visitId) => {
+    onSuccess: ({ visitId, agencyId, reschedule }) => {
       queryClient.invalidateQueries({ queryKey: ['visits'] })
       // Auto-sync vers les calendriers connectés (best-effort, non bloquant)
       if (google.isConnected) google.updateVisitInGoogle(visitId).catch(() => {})
       if (outlook.isConnected) outlook.updateVisitInOutlook(visitId).catch(() => {})
+      // Notification email au contact si la date/heure a changé
+      if (reschedule && agencyId) {
+        supabase.functions.invoke('send-visit-email', {
+          body: { type: 'update', visit_id: visitId, agency_id: agencyId },
+        }).catch(() => {})
+      }
     },
   })
 
   // ── Delete a visit ──
   const deleteVisitMutation = useMutation({
     mutationFn: async (visitId: string) => {
+      // Récup agency_id AVANT delete (besoin pour l'email d'annulation)
+      const { data: before } = await supabase
+        .from('visits')
+        .select('agency_id')
+        .eq('id', visitId)
+        .single()
+      const agencyId = before?.agency_id ?? null
+
+      // Envoi de l'email d'annulation au contact AVANT le delete SQL
+      // (l'Edge Function lit la visite pour générer le mail + ICS CANCEL)
+      if (agencyId) {
+        try {
+          await supabase.functions.invoke('send-visit-email', {
+            body: { type: 'cancel', visit_id: visitId, agency_id: agencyId },
+          })
+        } catch { /* best-effort */ }
+      }
+
       // Remove des calendriers AVANT le delete SQL (sinon le mapping calendar_sync
       // disparaît avec la visite et on perd la ref vers l'event Google/Outlook)
       if (google.isConnected) {
