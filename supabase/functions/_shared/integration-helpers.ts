@@ -100,12 +100,18 @@ export async function logIntegrationEvent(params: LogParams): Promise<void> {
     await db.from('activity_events').insert({
       agency_id: agencyId,
       actor_id: userId,
-      actor_kind: 'agent',
+      // 'user' est la seule valeur acceptée par le check constraint existant.
+      // Le rôle métier (agent vs admin vs assistant) reste lisible via metadata.role
+      // ou actor_id → profiles.role join si besoin.
+      actor_kind: 'user',
       action,
       entity_type: 'integration',
       entity_id: null,
       object_label: provider,
-      category: 'integration',
+      // Le check constraint accepte : kyc, deal, contact, bien, doc, auth, settings, ai.
+      // 'settings' est la catégorie la plus logique pour les OAuth d'intégration
+      // (l'agent les configure dans Settings → Intégrations).
+      category: 'settings',
       severity: 'info',
       metadata: {
         provider,
