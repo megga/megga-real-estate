@@ -69,6 +69,8 @@ export interface KycCase {
   source_of_funds_type: KycSourceOfFundsType | null
   source_of_funds_description: string | null
   source_of_funds_doc_id: string | null
+  // Sprint 4.5 — Analyse contextuelle Claude Sonnet 4 (complément Dilisense)
+  ai_analysis: KycAiAnalysis | null
   // Joined relations (optional)
   contact?: {
     first_name: string
@@ -197,6 +199,34 @@ export interface ScreeningResult {
   total_hits: number
   risk_score: number
   risk_level: KycRiskLevel
+  /** Sprint 4.5 — null si ANTHROPIC_API_KEY absent ou API plante (graceful). */
+  ai_analysis: KycAiAnalysis | null
+}
+
+// ─── Sprint 4.5 — Couche IA Claude Sonnet 4 ────────────────────────────────
+
+export type KycAiQualitativeRisk = 'low' | 'medium' | 'high' | 'critical'
+export type KycAiVigilanceReco = 'standard' | 'renforced' | 'escalation_mlro'
+
+export interface KycAiAnalysis {
+  /** Identifiant du modèle utilisé (ex: 'claude-sonnet-4-6'). */
+  provider: string
+  /** ISO timestamp de l'analyse. */
+  analyzed_at: string
+  /** Verdict qualitatif (différent du score quantitatif Dilisense/algo). */
+  qualitative_risk: KycAiQualitativeRisk
+  /** Recommandation au compliance officer. */
+  vigilance_recommendation: KycAiVigilanceReco
+  /** Patterns suspects détectés par Sonnet (structuring, unusual_pattern, ...). */
+  patterns_detected: string[]
+  /** Justification 2-3 phrases en français. */
+  justification: string
+  /** Checks complémentaires suggérés au compliance officer. */
+  additional_checks_suggested: string[]
+  /** Confiance Sonnet (0-1). */
+  confidence: number
+  prompt_tokens?: number
+  completion_tokens?: number
 }
 
 // ─── Sprint 2 — Workflow décision compliance (red-team Marc #2, Roger #6) ──

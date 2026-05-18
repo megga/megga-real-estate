@@ -33,6 +33,171 @@ interface RiskFactor {
   points: number
 }
 
+// ── Sprint 4.5 — Analyse contextuelle Claude Sonnet 4 ────────────────────────
+
+type SonnetQualitativeRisk = 'low' | 'medium' | 'high' | 'critical'
+type SonnetVigilanceReco = 'standard' | 'renforced' | 'escalation_mlro'
+
+interface SonnetAnalysisResult {
+  provider: string
+  analyzed_at: string
+  qualitative_risk: SonnetQualitativeRisk
+  vigilance_recommendation: SonnetVigilanceReco
+  patterns_detected: string[]
+  justification: string
+  additional_checks_suggested: string[]
+  confidence: number
+  prompt_tokens?: number
+  completion_tokens?: number
+}
+
+interface SonnetAnalysisInput {
+  anthropicKey: string | undefined
+  contactName: string
+  contactNationality: string | null
+  entityType: 'individual' | 'entity'
+  kycType: string
+  transactionAmount: number
+  completionPct: number
+  dilisenseResult: {
+    totalHits: number
+    pepHits: number
+    sanctionsHits: number
+    pepRecords: DilisenseRecord[]
+    sanctionRecords: DilisenseRecord[]
+  }
+  quantScore: number
+  quantLevel: 'low' | 'medium' | 'high'
+}
+
+/**
+ * Appelle Claude Sonnet 4 pour produire une analyse contextuelle qualitative
+ * en complément du screening factuel Dilisense.
+ *
+ * Graceful degradation : retourne `null` si :
+ *  - ANTHROPIC_API_KEY n'est pas configuré (env var manquante)
+ *  - L'API Anthropic est down / timeout / 5xx
+ *  - La réponse n'est pas parsable en JSON structuré
+ *
+ * Dans tous ces cas, le screening Dilisense factuel continue normalement.
+ * Sonnet ne BLOQUE jamais le pipeline KYC.
+ */
+async function analyzeWithSonnet(input: SonnetAnalysisInput): Promise<SonnetAnalysisResult | null> {
+  if (!input.anthropicKey) {
+    return null
+  }
+
+  const systemPrompt = `Tu es un compliance officer LBA Suisse expert en analyse de risque KYC immobilier.
+Ton rôle est d'analyser un dossier KYC en complément du screening Dilisense (qui interroge les listes officielles OFAC/SECO/UE/ONU).
+
+Tu produis une analyse CONTEXTUELLE qualitative qui complète (sans remplacer) la couche factuelle Dilisense.
+
+Tu réponds STRICTEMENT en JSON, sans markdown, sans texte avant/après. Format :
+{
+  "qualitative_risk": "low" | "medium" | "high" | "critical",
+  "vigilance_recommendation": "standard" | "renforced" | "escalation_mlro",
+  "patterns_detected": ["pattern_id_1", "pattern_id_2"],
+  "justification": "Texte 2-3 phrases en français expliquant la décision",
+  "additional_checks_suggested": ["Check 1", "Check 2"],
+  "confidence": 0.0 to 1.0
+}
+
+Patterns à détecter (liste non exhaustive) :
+- structuring : tentative de fragmentation pour échapper aux seuils LBA
+- unusual_pattern : profil/montant/nationalité incohérents
+- high_risk_jurisdiction : pays GAFI haut risque ou sanctions
+- pep_proxy : risque que la personne soit un proxy d'un PEP
+- corporate_layering : structure entreprise opaque (PM avec UBO peu clairs)
+- crypto_origin : origine crypto suspectée (si applicable au type immobilier)
+
+Articles LBA pertinents : art. 3 (identification), art. 4 (UBO), art. 6 (vigilance renforcée),
+art. 7 (documentation), art. 9 (signalement MROS).`
+
+  const userPrompt = `Analyse ce dossier KYC :
+
+CONTACT :
+- Nom : ${input.contactName}
+- Nationalité : ${input.contactNationality ?? 'non renseignée'}
+- Type entité : ${input.entityType}
+- Type KYC : ${input.kycType}
+
+TRANSACTION :
+- Montant : CHF ${input.transactionAmount.toLocaleString('fr-CH')}
+- Complétude dossier : ${input.completionPct}%
+
+SCREENING DILISENSE (factuel, listes officielles) :
+- Hits total : ${input.dilisenseResult.totalHits}
+- PEP hits : ${input.dilisenseResult.pepHits}
+- Sanctions hits : ${input.dilisenseResult.sanctionsHits}
+${input.dilisenseResult.pepRecords.length > 0
+    ? `- PEP records :\n${input.dilisenseResult.pepRecords.map(r => `  - ${r.name} (${r.source_type}, id=${r.source_id})`).join('\n')}`
+    : ''}
+${input.dilisenseResult.sanctionRecords.length > 0
+    ? `- Sanctions records :\n${input.dilisenseResult.sanctionRecords.map(r => `  - ${r.name} (${r.source_type}, id=${r.source_id})`).join('\n')}`
+    : ''}
+
+SCORE QUANTITATIF ALGO :
+- Score : ${input.quantScore}/100
+- Niveau : ${input.quantLevel}
+
+Produis ton analyse JSON.`
+
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': input.anthropicKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+    })
+    clearTimeout(timeoutId)
+
+    if (!resp.ok) {
+      console.error('Sonnet API error:', resp.status, await resp.text())
+      return null
+    }
+
+    const data = await resp.json()
+    const text: string = data?.content?.[0]?.text ?? ''
+    const cleaned = text.trim().replace(/^```json\s*|\s*```$/g, '')
+    const parsed = JSON.parse(cleaned)
+
+    // Validation minimale du shape retourné
+    if (!parsed.qualitative_risk || !parsed.vigilance_recommendation) {
+      console.error('Sonnet response missing required fields:', parsed)
+      return null
+    }
+
+    return {
+      provider: 'claude-sonnet-4-6',
+      analyzed_at: new Date().toISOString(),
+      qualitative_risk: parsed.qualitative_risk,
+      vigilance_recommendation: parsed.vigilance_recommendation,
+      patterns_detected: Array.isArray(parsed.patterns_detected) ? parsed.patterns_detected : [],
+      justification: typeof parsed.justification === 'string' ? parsed.justification : '',
+      additional_checks_suggested: Array.isArray(parsed.additional_checks_suggested)
+        ? parsed.additional_checks_suggested
+        : [],
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
+      prompt_tokens: data?.usage?.input_tokens,
+      completion_tokens: data?.usage?.output_tokens,
+    }
+  } catch (err) {
+    console.error('Sonnet analysis failed:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
 const FATF_HIGH_RISK_COUNTRIES = ['AF', 'KP', 'IR', 'MM', 'SY', 'YE', 'RU', 'BY']
 const FATF_INCREASED_MONITORING = [
   'BF', 'CM', 'CD', 'HT', 'KE', 'ML', 'MZ', 'NG',
@@ -189,6 +354,28 @@ serve(async (req) => {
 
     const riskLevel = riskResult.level
 
+    // ── Sprint 4.5 — Couche IA Claude Sonnet 4 (analyse contextuelle) ───────
+    // Optionnelle : si ANTHROPIC_API_KEY absent ou API plante, on continue
+    // sans bloquer le screening Dilisense factuel.
+    const aiAnalysis = await analyzeWithSonnet({
+      anthropicKey: Deno.env.get('ANTHROPIC_API_KEY'),
+      contactName: contact_name,
+      contactNationality: contact_nationality || null,
+      entityType: entity_type,
+      kycType: currentCase?.type ?? 'buyer_pp',
+      transactionAmount: currentCase?.transaction_amount ?? 0,
+      completionPct: currentCase?.completion_pct ?? 0,
+      dilisenseResult: {
+        totalHits: dilisenseData.total_hits,
+        pepHits: pepRecords.length,
+        sanctionsHits: sanctionRecords.length,
+        pepRecords: pepRecords.slice(0, 5),
+        sanctionRecords: sanctionRecords.slice(0, 5),
+      },
+      quantScore: riskResult.score,
+      quantLevel: riskResult.level,
+    })
+
     // Update kyc_cases
     const { error: updateError } = await supabaseClient
       .from('kyc_cases')
@@ -202,6 +389,7 @@ serve(async (req) => {
         risk_score: riskResult.score,
         risk_factors: riskResult.factors,
         risk_level: riskLevel,
+        ai_analysis: aiAnalysis,
       })
       .eq('id', kyc_case_id)
 
@@ -223,12 +411,17 @@ serve(async (req) => {
         entity_type: 'kyc',
         entity_id: kyc_case_id,
         metadata: {
-          provider: 'dilisense',
-          total_hits: dilisenseData.total_hits,
-          pep_hits: pepRecords.length,
-          sanctions_hits: sanctionRecords.length,
-          risk_score: riskResult.score,
-          risk_level: riskLevel,
+          providers: aiAnalysis ? ['dilisense', 'claude-sonnet-4-6'] : ['dilisense'],
+          dilisense: {
+            total_hits: dilisenseData.total_hits,
+            pep_hits: pepRecords.length,
+            sanctions_hits: sanctionRecords.length,
+          },
+          quant_risk_score: riskResult.score,
+          quant_risk_level: riskLevel,
+          ai_qualitative_risk: aiAnalysis?.qualitative_risk ?? null,
+          ai_vigilance_reco: aiAnalysis?.vigilance_recommendation ?? null,
+          ai_patterns_detected: aiAnalysis?.patterns_detected ?? null,
         },
       })
     }
@@ -242,6 +435,7 @@ serve(async (req) => {
         total_hits: dilisenseData.total_hits,
         risk_score: riskResult.score,
         risk_level: riskLevel,
+        ai_analysis: aiAnalysis,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
