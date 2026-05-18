@@ -34,9 +34,13 @@
 --     (utilisé par delete-account quand un user est supprimé)
 -- Toute autre modification ou suppression dans la fenêtre 10 ans → RAISE.
 
+-- Fix Sprint 3.1 : ajout SECURITY DEFINER + SET search_path
+-- pour éviter les RLS context leaks (cohérence avec les autres triggers KYC).
+
 CREATE OR REPLACE FUNCTION enforce_activity_events_immutability()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_age_years NUMERIC;

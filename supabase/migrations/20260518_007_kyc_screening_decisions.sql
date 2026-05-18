@@ -78,6 +78,12 @@ CREATE INDEX IF NOT EXISTS idx_kyc_screening_decisions_case
 CREATE INDEX IF NOT EXISTS idx_kyc_screening_decisions_agency
   ON kyc_screening_decisions (agency_id, decided_at DESC);
 
+-- Fix Sprint 3.1 : index sur supersedes_id pour éviter seq scan
+-- (utilisé 2× par auto_verify_kyc_dossier à chaque coche checklist).
+CREATE INDEX IF NOT EXISTS idx_kyc_screening_decisions_supersedes
+  ON kyc_screening_decisions (supersedes_id)
+  WHERE supersedes_id IS NOT NULL;
+
 -- ============================================================================
 -- 3. RLS — agency-scoped, append-only
 -- ============================================================================
