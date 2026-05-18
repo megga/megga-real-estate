@@ -6,9 +6,73 @@
 
 import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { DB_SP } from './tokens'
 import { DbIcon } from './icons'
 import type { PeriodKey, ScopeKey } from './data'
+
+// iOS UISegmentedControl spring — light, snappy, no overshoot. Tuned to land
+// the pill on the new tab in ~280 ms.
+const TAB_PILL_SPRING = { type: 'spring' as const, stiffness: 500, damping: 38, mass: 0.7 }
+
+/**
+ * Single tab in the dashboard's segmented control. The active state renders
+ * a `motion.div` with `layoutId="dashboard-tab-pill"` underneath the label;
+ * framer-motion interpolates its position+size between siblings sharing the
+ * same layoutId, so the pill slides from the previously-active tab to the
+ * new one instead of disappearing/reappearing.
+ */
+function DashboardTabPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  const reducedMotion = useReducedMotion()
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        position: 'relative',
+        height: 36,
+        padding: '0 16px',
+        borderRadius: 999,
+        border: 0,
+        background: 'transparent',
+        color: active ? '#fff' : DB_SP.inkSoft,
+        fontFamily: 'inherit',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: 'pointer',
+        letterSpacing: -0.1,
+        whiteSpace: 'nowrap',
+        transition: 'color .18s ease',
+        zIndex: 1,
+      }}
+    >
+      {active && (
+        <motion.span
+          layoutId="dashboard-tab-pill"
+          transition={reducedMotion ? { duration: 0 } : TAB_PILL_SPRING}
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 999,
+            background: DB_SP.black,
+            boxShadow: '0 4px 12px rgba(11,12,14,0.20)',
+            zIndex: -1,
+          }}
+        />
+      )}
+      <span style={{ position: 'relative', zIndex: 1 }}>{children}</span>
+    </button>
+  )
+}
 
 // ─── Small primitives ─────────────────────────────────────────────────
 interface DBChipProps {
@@ -213,28 +277,9 @@ export function DBContextBar({
             ).map((o) => {
               const active = tab === o.v
               return (
-                <button
-                  key={o.v}
-                  onClick={() => setTab(o.v)}
-                  style={{
-                    height: 36,
-                    padding: '0 16px',
-                    borderRadius: 999,
-                    border: 0,
-                    background: active ? DB_SP.black : 'transparent',
-                    color: active ? '#fff' : DB_SP.inkSoft,
-                    fontFamily: 'inherit',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    letterSpacing: -0.1,
-                    boxShadow: active ? '0 4px 12px rgba(11,12,14,0.20)' : 'none',
-                    transition: 'all .18s ease',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+                <DashboardTabPill key={o.v} active={active} onClick={() => setTab(o.v)}>
                   {o.l}
-                </button>
+                </DashboardTabPill>
               )
             })}
           </div>

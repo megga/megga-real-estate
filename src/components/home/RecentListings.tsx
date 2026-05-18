@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Clock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCHF } from '@/lib/utils'
+import Shimmer from '@/components/ui/Shimmer'
+import { StaggerList, StaggerItem } from '@/components/ui/StaggerList'
 
 interface RecentListing {
   id: string
@@ -91,16 +93,17 @@ export default function RecentListings() {
           </Link>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {/* Grid — stagger only on populated state. Loading uses static
+         *  skeletons so they don't flicker on every re-mount. */}
+        <StaggerList className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {isLoading
             ? Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="overflow-hidden rounded-xl">
-                  <div className="aspect-[4/3] bg-gray-100 animate-pulse rounded-xl" />
+                  <Shimmer className="aspect-[4/3] rounded-xl" />
                   <div className="pt-3 pb-1 space-y-1.5">
-                    <div className="h-4 w-2/3 bg-gray-100 animate-pulse rounded" />
-                    <div className="h-3 w-full bg-gray-100 animate-pulse rounded" />
-                    <div className="h-3 w-1/2 bg-gray-100 animate-pulse rounded" />
+                    <Shimmer className="h-4 w-2/3 rounded" />
+                    <Shimmer className="h-3 w-full rounded" />
+                    <Shimmer className="h-3 w-1/2 rounded" />
                   </div>
                 </div>
               ))
@@ -108,8 +111,8 @@ export default function RecentListings() {
                 const route = listing.transaction_type === 'rent' ? 'louer' : 'acheter'
                 const timeAgo = formatTimeAgo(listing.publishedAt)
                 return (
+                  <StaggerItem key={listing.id}>
                   <Link
-                    key={listing.id}
                     to={`/${route}?listing=market-${listing.id}`}
                     className="group overflow-hidden rounded-xl"
                   >
@@ -151,9 +154,10 @@ export default function RecentListings() {
                       </p>
                     </div>
                   </Link>
+                  </StaggerItem>
                 )
               })}
-        </div>
+        </StaggerList>
 
         {/* Mobile CTA */}
         <div className="mt-8 text-center md:hidden">

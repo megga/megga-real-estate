@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AnimatePresence } from 'motion/react'
 import { AuthProvider } from '@/hooks/useAuth'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -19,7 +20,9 @@ import { AuthProvider } from '@/hooks/useAuth'
 import PasswordGate from '@/components/layout/PasswordGate'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
+import PageTransition from '@/components/layout/PageTransition'
 import CookieBanner from '@/components/CookieBanner'
+import { ToastProvider } from '@/components/ui/Toast'
 
 // Lazy-loaded public pages
 // PropertyX public pages (anciennement eager — désormais lazy pour le SEO/LCP)
@@ -227,22 +230,37 @@ const queryClient = new QueryClient({
   },
 })
 
-export default function App() {
+/**
+ * `<AnimatedRoutes>` wraps the entire route tree in framer-motion's
+ * `<AnimatePresence>` and gives `<Routes>` a `key={location.pathname}` so
+ * each navigation is treated as an enter/exit cycle.
+ *
+ * Pages opt in to a specific transition by wrapping their top-level JSX in
+ * `<PageTransition variant="push|sheet|crossfade|fade-up" />`. Pages without
+ * that wrapper still work — they simply mount/unmount instantly while
+ * neighbouring pages animate. Progressive enhancement.
+ *
+ * `mode="wait"` makes the outgoing page finish its exit before the next
+ * page mounts. This is what gives the iOS "weight" feeling instead of two
+ * pages overlapping mid-flight.
+ */
+function AnimatedRoutes() {
+  const location = useLocation()
   return (
-    <PasswordGate>
-    <StaleBundleDetector />
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
+    // `popLayout` lets exiting and entering pages coexist briefly. This is
+    // required for shared-element transitions (a `layoutId` on the
+    // marketplace card photo + same id on the detail hero), and also makes
+    // iOS-style push transitions look right (old page slides out while
+    // new slides in from the right at the same time).
+    <AnimatePresence mode="popLayout" initial={false}>
+      <Routes location={location} key={location.pathname}>
               {/* Public */}
-              <Route path="/" element={<PropertyXHomePage />} />
+              <Route path="/" element={<PageTransition variant="crossfade"><PropertyXHomePage /></PageTransition>} />
               <Route path="/a-propos" element={<PropertyXAboutPage />} />
               <Route path="/faq" element={<PropertyXFAQPage />} />
               <Route path="/properties" element={<PropertyXListingsPage />} />
-              <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
-              <Route path="/propriete/:id" element={<PropertyXSinglePropertyPage />} />
+              <Route path="/propriete" element={<PageTransition variant="push"><PropertyXSinglePropertyPage /></PageTransition>} />
+              <Route path="/propriete/:id" element={<PageTransition variant="push"><PropertyXSinglePropertyPage /></PageTransition>} />
               <Route path="/contact" element={<PropertyXContactPage />} />
               <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
               <Route path="/publier-bien" element={<PropertyXSubmitPropertyPage />} />
@@ -261,15 +279,15 @@ export default function App() {
               <Route path="/design-system/typography" element={<PropertyXDesignSystemTypographyPage />} />
               <Route path="/design-system/shadows" element={<PropertyXDesignSystemShadowsPage />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/listing/:id" element={<ListingPage />} />
+              <Route path="/listing/:id" element={<PageTransition variant="push"><ListingPage /></PageTransition>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               {/* Marketplace publique — Property X design, branchée Supabase.
                   SearchPage (ancien design avec carte) reste accessible via
                   /acheter-legacy en attendant la v1.1 (toggle list/carte). */}
-              <Route path="/acheter" element={<PropertyXListingsPage context="buy" />} />
-              <Route path="/louer" element={<PropertyXListingsPage context="rent" />} />
+              <Route path="/acheter" element={<PageTransition variant="push"><PropertyXListingsPage context="buy" /></PageTransition>} />
+              <Route path="/louer" element={<PageTransition variant="push"><PropertyXListingsPage context="rent" /></PageTransition>} />
               <Route path="/acheter-legacy" element={<SearchPage />} />
               <Route path="/louer-legacy" element={<LouerPage />} />
               <Route path="/about" element={<AboutPage />} />
@@ -367,12 +385,12 @@ export default function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<TodaySugarPage />} />
-                <Route path="pipeline" element={<PipelineSugarV2Page />} />
-                <Route path="contacts" element={<ContactsSugarV2Page />} />
-                <Route path="listings" element={<BiensSugarV2Page />} />
+                <Route index element={<PageTransition variant="crossfade"><TodaySugarPage /></PageTransition>} />
+                <Route path="pipeline" element={<PageTransition variant="crossfade"><PipelineSugarV2Page /></PageTransition>} />
+                <Route path="contacts" element={<PageTransition variant="crossfade"><ContactsSugarV2Page /></PageTransition>} />
+                <Route path="listings" element={<PageTransition variant="crossfade"><BiensSugarV2Page /></PageTransition>} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}
-                <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
+                <Route path="listings/:id" element={<PageTransition variant="push"><BienDetailSugarV3Page /></PageTransition>} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
                 <Route path="transactions/:id" element={<DealDetailSugarV3Page />} />
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
@@ -385,13 +403,13 @@ export default function App() {
                 <Route path="visites/:id/companion" element={<VisitCompanionPage />} />
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
-                <Route path="matching" element={<MatchingSugarV2Page />} />
+                <Route path="matching" element={<PageTransition variant="crossfade"><MatchingSugarV2Page /></PageTransition>} />
                 <Route path="parcours" element={<ParcoursSugarV2Page />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
                 <Route path="documents" element={<DocumentsSugarV2Page />} />
                 <Route path="settings" element={<SettingsSugarV2Page />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
-                <Route path="kyc" element={<KycSugarV3Page />} />
+                <Route path="kyc" element={<PageTransition variant="crossfade"><KycSugarV3Page /></PageTransition>} />
                 <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
                 {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
                 <Route path="kyc/showcase" element={<KycShowcasePage />} />
@@ -417,7 +435,7 @@ export default function App() {
               >
                 <Route path="contacts/import" element={<ContactImportPage />} />
                 {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) */}
-                <Route path="contacts/:id" element={<ContactDetailSugarV3Page />} />
+                <Route path="contacts/:id" element={<PageTransition variant="push"><ContactDetailSugarV3Page /></PageTransition>} />
                 <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
@@ -447,12 +465,27 @@ export default function App() {
               {/* 404 */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
+    </AnimatePresence>
+  )
+}
+
+export default function App() {
+  return (
+    <PasswordGate>
+    <StaleBundleDetector />
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AuthProvider>
+          <ToastProvider>
+          <Suspense fallback={<PageLoader />}>
+            <AnimatedRoutes />
           </Suspense>
           {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
           <Suspense fallback={null}>
             <FavoritesLoginPrompt />
           </Suspense>
           <CookieBanner />
+          </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import Shimmer from '@/components/ui/Shimmer';
 import { cn, formatCHF } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -183,11 +184,11 @@ export default function FeaturedCarousel() {
                   key={i}
                   className="snap-start shrink-0 w-[300px] md:w-[340px] rounded-xl border border-gray-100 overflow-hidden"
                 >
-                  <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
+                  <Shimmer className="aspect-[4/3]" />
                   <div className="p-4 space-y-2">
-                    <div className="h-5 w-1/3 bg-gray-100 animate-pulse rounded" />
-                    <div className="h-4 w-2/3 bg-gray-100 animate-pulse rounded" />
-                    <div className="h-3 w-1/2 bg-gray-100 animate-pulse rounded" />
+                    <Shimmer className="h-5 w-1/3 rounded" />
+                    <Shimmer className="h-4 w-2/3 rounded" />
+                    <Shimmer className="h-3 w-1/2 rounded" />
                   </div>
                 </div>
               ))

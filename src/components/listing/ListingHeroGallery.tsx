@@ -2,7 +2,9 @@
 // Trois layouts : hero (1 grande + 2×2), mosaic (6 asymétriques), carousel
 // (single + flèches + thumbs). Status overlay diagonal (Vendu / Sous compromis).
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { motion, useScroll, useTransform } from 'motion/react'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
 import type { PhotoTag } from '@/types/floorPlan'
 
@@ -402,20 +404,63 @@ export default function ListingHeroGallery({
   // Mobile: compact horizontal scroll (1 layout)
   return (
     <>
-      <section className="hidden md:block">
-        {variant === 'mosaic' && filtered.length >= 6 ? (
-          <GalleryMosaic photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} aiSet={aiSet} />
-        ) : variant === 'carousel' ? (
-          <GalleryCarousel photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} aiSet={aiSet} />
-        ) : (
-          <GalleryHero photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} aiSet={aiSet} />
-        )}
-      </section>
+      <DesktopHero
+        variant={variant}
+        photos={filtered}
+        onOpen={onOpenLightbox}
+        statusOverlay={overlay}
+        aiSet={aiSet}
+      />
 
       {/* Mobile: same proto carousel layout (height 540 → adjusted for mobile) */}
       <section className="md:hidden">
         <GalleryCarousel photos={filtered} onOpen={onOpenLightbox} statusOverlay={overlay} aiSet={aiSet} />
       </section>
     </>
+  )
+}
+
+/**
+ * Desktop hero — wraps the variant-selected gallery in a parallax container.
+ * As the page scrolls down, the gallery translates up at ~30 % of scroll
+ * speed (subtle, iOS App Store / Apple Maps cards style). Reduced motion
+ * disables the effect.
+ */
+function DesktopHero({
+  variant,
+  photos,
+  onOpen,
+  statusOverlay,
+  aiSet,
+}: {
+  variant: GalleryVariant
+  photos: string[]
+  onOpen: (i: number) => void
+  statusOverlay: React.ReactNode
+  aiSet?: Set<string>
+}) {
+  const ref = useRef<HTMLElement>(null)
+  const reducedMotion = useReducedMotion()
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end start'],
+  })
+  // Slow upward drift as the gallery scrolls off the viewport: -60 px max.
+  const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -60])
+
+  return (
+    <motion.section
+      ref={ref}
+      className="hidden md:block"
+      style={reducedMotion ? undefined : { y: parallaxY, willChange: 'transform' }}
+    >
+      {variant === 'mosaic' && photos.length >= 6 ? (
+        <GalleryMosaic photos={photos} onOpen={onOpen} statusOverlay={statusOverlay} aiSet={aiSet} />
+      ) : variant === 'carousel' ? (
+        <GalleryCarousel photos={photos} onOpen={onOpen} statusOverlay={statusOverlay} aiSet={aiSet} />
+      ) : (
+        <GalleryHero photos={photos} onOpen={onOpen} statusOverlay={statusOverlay} aiSet={aiSet} />
+      )}
+    </motion.section>
   )
 }

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useMemo, useState } from 'react'
+import Sheet from '@/components/ui/Sheet'
 import { ACCOUNT_TOKENS as T } from '@/lib/account-tokens'
 import type { VendorDossier } from '@/hooks/useVendorDossiers'
 
@@ -297,19 +297,7 @@ interface Props {
 export default function ListingStatsDrawer({ open, dossier, onClose }: Props) {
   const [range, setRange] = useState<Range>('30j')
 
-  useEffect(() => {
-    if (!open) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prev
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [open, onClose])
+  // Escape key + body scroll lock are now handled by <Sheet>.
 
   // Derive synthetic data from the dossier — mirrors how the rich design
   // showed numbers without requiring real analytics tables yet.
@@ -344,8 +332,15 @@ export default function ListingStatsDrawer({ open, dossier, onClose }: Props) {
     return { history90d, views7d, funnel, sources, queries, p }
   }, [dossier])
 
-  if (!open || !dossier) return null
-  if (!data) return null
+  if (!dossier || !data) {
+    // Sheet still wraps so reopen/close animations work for empty states
+    // (parent may toggle `open` before `dossier` is hydrated by react-query).
+    return (
+      <Sheet open={open && !!dossier} onClose={onClose} side="right" ariaLabel="Statistiques de l'annonce">
+        <></>
+      </Sheet>
+    )
+  }
 
   const series =
     range === '7j' ? data.views7d : range === '30j' ? data.history90d.slice(-30) : data.history90d
@@ -353,39 +348,21 @@ export default function ListingStatsDrawer({ open, dossier, onClose }: Props) {
   const sourcesTotal = data.sources.reduce((a, s) => a + s.n, 0)
   const cvr = data.funnel.views > 0 ? ((data.funnel.contacts / data.funnel.views) * 100).toFixed(2) : '0.00'
 
-  const drawerNode = (
-    <>
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(14, 20, 16, 0.55)',
-          opacity: 1,
-          transition: 'opacity 240ms ease',
-          zIndex: 90,
-        }}
-      />
-      <div
-        role="dialog"
-        aria-label="Statistiques de l'annonce"
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: 'min(720px, 100vw)',
-          background: '#FAFAF7',
-          boxShadow: '-12px 0 40px rgba(14,20,16,0.18)',
-          transform: 'translateX(0)',
-          transition: 'transform 280ms cubic-bezier(0.32, 0.72, 0, 1)',
-          zIndex: 91,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          fontFamily: T.fontStack,
-        }}
-      >
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      side="right"
+      width="min(720px, 100vw)"
+      ariaLabel="Statistiques de l'annonce"
+      style={{
+        background: '#FAFAF7',
+        fontFamily: T.fontStack,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
         <div
           style={{
             padding: '20px 28px 16px',
@@ -802,9 +779,6 @@ export default function ListingStatsDrawer({ open, dossier, onClose }: Props) {
             </button>
           </div>
         </div>
-      </div>
-    </>
+    </Sheet>
   )
-
-  return createPortal(drawerNode, document.body)
 }

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { createPortal } from 'react-dom'
+import { motion } from 'motion/react'
 import {
   Home, GitBranch, Users, Shuffle, MoreHorizontal,
   LayoutDashboard, Building2, ShieldCheck, Calendar, FileText, Settings, X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
+import Sheet from '@/components/ui/Sheet'
 
 interface TabItem {
   icon: typeof Home
@@ -29,9 +31,14 @@ const MORE_ITEMS: TabItem[] = [
   { icon: Settings, label: 'Paramètres', path: '/dashboard/settings' },
 ]
 
+// iOS UITabBar physics: snappy spring for tap, indicator slides between tabs.
+const TAP_SPRING = { type: 'spring' as const, stiffness: 480, damping: 28, mass: 0.6 }
+const INDICATOR_SPRING = { type: 'spring' as const, stiffness: 520, damping: 38 }
+
 export default function BottomTabBar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const reducedMotion = useReducedMotion()
   const [moreOpen, setMoreOpen] = useState(false)
 
   const isActive = (path: string) => {
@@ -40,6 +47,7 @@ export default function BottomTabBar() {
   }
 
   const isMoreActive = MORE_ITEMS.some((item) => isActive(item.path))
+  const tap = reducedMotion ? undefined : { scale: 0.92 }
 
   return (
     <>
@@ -49,77 +57,96 @@ export default function BottomTabBar() {
           {TABS.map((tab) => {
             const active = isActive(tab.path)
             return (
-              <button
+              <motion.button
                 key={tab.path}
                 onClick={() => { navigate(tab.path); setMoreOpen(false) }}
+                whileTap={tap}
+                transition={TAP_SPRING}
                 className={cn(
-                  'flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors',
+                  'relative flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors',
                   active ? 'text-accent' : 'text-theme-tertiary'
                 )}
               >
-                {active && <div className="w-1 h-1 rounded-full bg-accent mb-0.5" />}
+                {/* Active indicator — `layoutId` makes framer-motion animate it
+                 *  from the previous tab to this one when `active` flips. */}
+                {active && (
+                  <motion.div
+                    layoutId="bottom-tab-indicator"
+                    className="absolute top-1 w-1 h-1 rounded-full bg-accent"
+                    transition={reducedMotion ? { duration: 0 } : INDICATOR_SPRING}
+                  />
+                )}
                 <tab.icon className="h-5 w-5" />
                 <span className="text-xs">{tab.label}</span>
-              </button>
+              </motion.button>
             )
           })}
 
           {/* More button */}
-          <button
+          <motion.button
             onClick={() => setMoreOpen(!moreOpen)}
+            whileTap={tap}
+            transition={TAP_SPRING}
             className={cn(
-              'flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors',
+              'relative flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors',
               moreOpen || isMoreActive ? 'text-accent' : 'text-theme-tertiary'
             )}
           >
-            {(moreOpen || isMoreActive) && !moreOpen && <div className="w-1 h-1 rounded-full bg-accent mb-0.5" />}
+            {isMoreActive && !moreOpen && (
+              <motion.div
+                layoutId="bottom-tab-indicator"
+                className="absolute top-1 w-1 h-1 rounded-full bg-accent"
+                transition={reducedMotion ? { duration: 0 } : INDICATOR_SPRING}
+              />
+            )}
             <MoreHorizontal className="h-5 w-5" />
             <span className="text-xs">Plus</span>
-          </button>
+          </motion.button>
         </div>
       </nav>
 
-      {/* More menu — bottom sheet */}
-      {moreOpen && createPortal(
-        <div className="fixed inset-0 z-[90] md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMoreOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-theme-card rounded-t-2xl border-t border-theme-border" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}>
-            {/* Handle */}
-            <div className="flex justify-center py-3">
-              <div className="w-10 h-1 rounded-full bg-theme-border" />
-            </div>
+      {/* More menu — backed by the shared <Sheet> atom (drag-to-dismiss,
+       *  rubber-band overdrag, Escape key, body scroll lock, reduced-motion). */}
+      <Sheet
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        ariaLabel="Menu Plus"
+        maxHeightVh={0.7}
+      >
+        <div className="flex items-center justify-between px-5 pb-3">
+          <span className="text-sm font-medium text-theme-primary">Plus</span>
+          <motion.button
+            onClick={() => setMoreOpen(false)}
+            aria-label="Fermer"
+            whileTap={tap}
+            transition={TAP_SPRING}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-theme-tertiary hover:text-theme-primary"
+          >
+            <X className="h-4 w-4" />
+          </motion.button>
+        </div>
 
-            {/* Close */}
-            <div className="flex items-center justify-between px-5 pb-3">
-              <span className="text-sm font-medium text-theme-primary">Plus</span>
-              <button onClick={() => setMoreOpen(false)} aria-label="Fermer" className="h-8 w-8 flex items-center justify-center rounded-lg text-theme-tertiary hover:text-theme-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Items */}
-            <div className="px-3 pb-4 space-y-0.5">
-              {MORE_ITEMS.map((item) => {
-                const active = isActive(item.path)
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => { navigate(item.path); setMoreOpen(false) }}
-                    className={cn(
-                      'w-full flex items-center gap-3 px-3 py-3 rounded-xl min-h-[44px] transition-colors',
-                      active ? 'bg-theme-active text-theme-primary' : 'text-theme-secondary hover:bg-theme-hover'
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    <span className="text-sm font-medium">{item.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+        <div className="px-3 pb-4 space-y-0.5">
+          {MORE_ITEMS.map((item) => {
+            const active = isActive(item.path)
+            return (
+              <motion.button
+                key={item.path}
+                onClick={() => { navigate(item.path); setMoreOpen(false) }}
+                whileTap={tap}
+                transition={TAP_SPRING}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-3 rounded-xl min-h-[44px] transition-colors',
+                  active ? 'bg-theme-active text-theme-primary' : 'text-theme-secondary hover:bg-theme-hover'
+                )}
+              >
+                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </motion.button>
+            )
+          })}
+        </div>
+      </Sheet>
     </>
   )
 }
