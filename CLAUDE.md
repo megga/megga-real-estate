@@ -251,7 +251,7 @@ Fichiers concernés : `useAdminNotifications.ts`, `useAdminLiveFeed.ts`, `useMes
 
 ---
 
-## 8. ÉTAT D'IMPLÉMENTATION (mise à jour : 16 avril 2026)
+## 8. ÉTAT D'IMPLÉMENTATION (mise à jour : 18 mai 2026)
 
 ### Vue d'ensemble
 
@@ -270,7 +270,13 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Super-Admin :** 14 pages (accent violet), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit.
 
-**Intégrations :** Resend, Stripe, Google/Outlook Calendar (OAuth), virtual staging (Gemini), Flatfox sync.
+**Intégrations :** Resend, Stripe, Google/Outlook Calendar + Gmail/Outlook Mail (OAuth, scopes séparés), virtual staging (Gemini), Flatfox sync.
+
+**Mail (Phase 1-4 live)** :
+- 4 Edge Functions : `gmail-sync`, `outlook-mail-sync`, `google-calendar-sync`, `outlook-calendar-sync` — toutes auditées (`activity_events` LPD) + CORS whitelist prod
+- Lecture par contact (CdEmailsCard), inbox unifiée (`/dashboard/inbox`), thread view, envoi avec signature auto-append, reply préservant le thread, mark-read auto à l'ouverture du thread
+- Signature persistée : `profiles.email_signature` éditable depuis Settings → Profil
+- Helper partagé : `supabase/functions/_shared/integration-helpers.ts` (CORS + audit)
 
 ### Secrets Supabase
 ```

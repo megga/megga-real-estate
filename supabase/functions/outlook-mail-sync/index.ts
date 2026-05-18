@@ -4,11 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeadersFor, logIntegrationEvent } from '../_shared/integration-helpers.ts'
 
 type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'get_thread' | 'send_message' | 'mark_read' | 'disconnect'
 
@@ -185,6 +181,7 @@ async function fetchMessagesList(
 }
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -217,6 +214,14 @@ serve(async (req) => {
           sync_enabled: true,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' })
+
+        await logIntegrationEvent({
+          db,
+          userId,
+          action: 'integration.connect',
+          provider: 'outlook_mail',
+          email: body.outlook_email,
+        })
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -440,6 +445,13 @@ serve(async (req) => {
           // manuellement sur account.microsoft.com/privacy/app-access.
           await db.from('email_messages_cache').delete().eq('user_id', userId).eq('provider', 'outlook')
           await db.from('outlook_mail_tokens').delete().eq('user_id', userId)
+
+          await logIntegrationEvent({
+            db,
+            userId,
+            action: 'integration.disconnect',
+            provider: 'outlook_mail',
+          })
         }
 
         return new Response(JSON.stringify({ success: true }), {

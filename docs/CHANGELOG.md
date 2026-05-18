@@ -6,6 +6,33 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Mail integration (Gmail + Outlook Mail) — 18 mai 2026
+Stack complète from-scratch en 4 phases. PR [#356](https://github.com/megga/megga-real-estate/pull/356).
+- **Migration `20260518_003_email_integrations`** : 3 tables (`gmail_tokens`, `outlook_mail_tokens`, `email_messages_cache`) + RLS + cascades `ON DELETE` + `email_signature` sur `profiles` (mig 004)
+- **Edge Functions** : `gmail-sync` + `outlook-mail-sync` (Gmail API + Microsoft Graph) — 8 actions chacune : `save_tokens`, `list_messages`, `list_by_contact`, `get_message`, `get_thread`, `send_message`, `mark_read`, `disconnect`
+- **Hooks** : `useGmail` + `useOutlookMail` (status, OAuth connect, disconnect, sendMessage, markAsRead) + `useGmailMessagesForContact` / `useOutlookMailMessagesForContact` (par contact) + `useGmailInbox` / `useOutlookInbox` (vue globale) + `useGmailThread` / `useOutlookThread`
+- **UI Sugar v3** :
+  - `CdEmailsCard` dans fiche contact : 5 états (pas connecté/pas d'email/loading/vide/liste), click → thread, bouton Répondre par message
+  - `EmailComposerModal` : portal plein écran, auto-pick provider, validation, signature en aperçu, toast succès
+  - `EmailThreadModal` : conversation complète, body texte décodé, pièces jointes en cards, auto-mark-read à l'ouverture
+  - `InboxSugarV2Page` (`/dashboard/inbox`) : vue unifiée Gmail+Outlook mergée et triée, filtres `all/unread/gmail/outlook`, recherche fulltext, 4 états gérés
+- **Scopes OAuth** : `gmail.readonly + gmail.send` (Google), `Mail.Read + Mail.Send` (Microsoft) — séparés du calendar pour révocation indépendante
+- **Reply** : Gmail utilise `threadId` pour rester dans le fil, Outlook utilise `/me/messages/{id}/reply`
+- **Signature** : `profiles.email_signature` éditée depuis Settings → Profil, auto-append côté Edge Function lors d'un envoi
+- **Sidebar link** : icône "Boîte de réception" dans le rail latéral entre AI et Dashboard, 19 pages Sugar routent vers `/dashboard/inbox`
+- **Polish LPD** : `_shared/integration-helpers.ts` centralise CORS prod-safe (whitelist `megga.ch`, `*.pages.dev`, `localhost`) + `logIntegrationEvent` (insert dans `activity_events` avec `actor_kind='agent'`, `category='integration'`, metadata provider+email) — appliqué aussi à google-calendar-sync et outlook-calendar-sync
+
+#### Google Calendar tables fix — 18 mai 2026
+- La migration `20260326_001_google_calendar_sync.sql` n'avait jamais été appliquée sur Supabase. Symptôme : `useGoogleCalendar` retournait silencieusement `isConnected=false`, mais l'Edge Function aurait crashé sur tout vrai click "Connecter Google".
+- Tables `google_calendar_tokens` + `calendar_sync` créées avec RLS — Google Calendar peut maintenant vraiment fonctionner en bout-en-bout.
+
+#### Calendar wiring Sugar v2/v3 — 18 mai 2026
+- `CalendarSugarV2Page` : merge `googleEvents` + `outlookEvents` avec visites MEGGA (nouveaux types `gcal` lavande + `ocal` bleu dans `CAL_EVENT_TYPES`), pill statut toolbar
+- `VisitModalSugarV3Page` : auto-sync post-création vers Google + Outlook si connectés (best-effort, non bloquant)
+- `VisiteDetailSugarV3Page` : bouton manuel "Synchroniser au calendrier" dans header (cal/refresh icon) + toast feedback
+- `IntegrationsSection` (Settings Sugar v2) : Google + Microsoft maintenant câblés sur `useGoogleCalendar` / `useOutlookCalendar` (plus de mock), Gmail + Outlook Mail toggles fonctionnels dans le panneau détail (chaque service est OAuth indépendant)
+- `AuthCallbackPage` : fix critique du redirect `/app/settings` (404) → `/dashboard/settings?integrations=…` avec deep-link auto-tab Intégrations + toast
+
 #### Marketplace publique (38K biens) — 24 mars 2026
 - **38'514 biens** dans table `market_listings` (scrappés de RealAdvisor, 26 cantons suisses)
 - Page `/acheter` connectée aux vraies données Supabase (plus de mock)

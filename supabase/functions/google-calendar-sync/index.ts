@@ -3,11 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeadersFor, logIntegrationEvent } from '../_shared/integration-helpers.ts'
 
 type Action = 'save_tokens' | 'list_events' | 'create_event' | 'update_event' | 'delete_event' | 'sync_all' | 'disconnect'
 
@@ -155,6 +151,7 @@ function visitToGoogleEvent(visit: Record<string, unknown>) {
 }
 
 serve(async (req: Request) => {
+  const corsHeaders = corsHeadersFor(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -189,6 +186,14 @@ serve(async (req: Request) => {
           sync_enabled: true,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' })
+
+        await logIntegrationEvent({
+          db,
+          userId,
+          action: 'integration.connect',
+          provider: 'google_calendar',
+          email: body.google_email,
+        })
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -460,6 +465,13 @@ serve(async (req: Request) => {
           // Delete tokens and sync mappings
           await db.from('calendar_sync').delete().eq('user_id', userId)
           await db.from('google_calendar_tokens').delete().eq('user_id', userId)
+
+          await logIntegrationEvent({
+            db,
+            userId,
+            action: 'integration.disconnect',
+            provider: 'google_calendar',
+          })
         }
 
         return new Response(JSON.stringify({ success: true }), {

@@ -4,11 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeadersFor, logIntegrationEvent } from '../_shared/integration-helpers.ts'
 
 type Action = 'save_tokens' | 'list_messages' | 'list_by_contact' | 'get_message' | 'get_thread' | 'send_message' | 'mark_read' | 'disconnect'
 
@@ -194,6 +190,7 @@ async function fetchMessagesList(accessToken: string, query: string, max: number
 }
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -227,6 +224,15 @@ serve(async (req) => {
           sync_enabled: true,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' })
+
+        // Audit trail LPD (best-effort, non bloquant)
+        await logIntegrationEvent({
+          db,
+          userId,
+          action: 'integration.connect',
+          provider: 'gmail',
+          email: body.gmail_email,
+        })
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -499,6 +505,14 @@ serve(async (req) => {
           // Purge cache + tokens
           await db.from('email_messages_cache').delete().eq('user_id', userId).eq('provider', 'gmail')
           await db.from('gmail_tokens').delete().eq('user_id', userId)
+
+          // Audit trail LPD (après suppression, on traçe la sortie de la donnée)
+          await logIntegrationEvent({
+            db,
+            userId,
+            action: 'integration.disconnect',
+            provider: 'gmail',
+          })
         }
 
         return new Response(JSON.stringify({ success: true }), {
