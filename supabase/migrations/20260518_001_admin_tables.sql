@@ -30,6 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_admin_changelog_created_at
 ALTER TABLE admin_changelog ENABLE ROW LEVEL SECURITY;
 
 -- Lecture : tout le monde voit les entrées publiées ; super_admin voit tout
+DROP POLICY IF EXISTS admin_changelog_select ON admin_changelog;
 CREATE POLICY admin_changelog_select ON admin_changelog
   FOR SELECT
   USING (
@@ -38,6 +39,7 @@ CREATE POLICY admin_changelog_select ON admin_changelog
   );
 
 -- Écriture : super_admin uniquement
+DROP POLICY IF EXISTS admin_changelog_write ON admin_changelog;
 CREATE POLICY admin_changelog_write ON admin_changelog
   FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'super_admin'))
@@ -65,11 +67,13 @@ CREATE INDEX IF NOT EXISTS idx_admin_feature_flags_key
 ALTER TABLE admin_feature_flags ENABLE ROW LEVEL SECURITY;
 
 -- Lecture : auth users peuvent vérifier si un flag est activé (côté front)
+DROP POLICY IF EXISTS admin_feature_flags_select ON admin_feature_flags;
 CREATE POLICY admin_feature_flags_select ON admin_feature_flags
   FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
 -- Écriture : super_admin uniquement
+DROP POLICY IF EXISTS admin_feature_flags_write ON admin_feature_flags;
 CREATE POLICY admin_feature_flags_write ON admin_feature_flags
   FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'super_admin'))
@@ -111,11 +115,13 @@ CREATE INDEX IF NOT EXISTS idx_admin_nps_rating
 ALTER TABLE admin_nps_responses ENABLE ROW LEVEL SECURITY;
 
 -- INSERT : auth user soumet sa propre réponse
+DROP POLICY IF EXISTS admin_nps_insert_own ON admin_nps_responses;
 CREATE POLICY admin_nps_insert_own ON admin_nps_responses
   FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL AND (user_id IS NULL OR user_id = auth.uid()));
 
 -- SELECT : super_admin uniquement (data agrégée sensible)
+DROP POLICY IF EXISTS admin_nps_select_admin ON admin_nps_responses;
 CREATE POLICY admin_nps_select_admin ON admin_nps_responses
   FOR SELECT
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'super_admin'));
