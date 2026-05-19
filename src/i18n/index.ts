@@ -17,11 +17,12 @@ import frDocuments from './locales/fr/documents.json'
 import frAdmin from './locales/fr/admin.json'
 import frDirectory from './locales/fr/directory.json'
 import frCompte from './locales/fr/compte.json'
+import frComingSoon from './locales/fr/comingSoon.json'
 
 const NAMESPACES = [
   'common', 'dashboard', 'settings', 'contacts', 'pipeline', 'listings',
   'kyc', 'messages', 'calendar', 'matching', 'documents',
-  'admin', 'directory', 'compte',
+  'admin', 'directory', 'compte', 'comingSoon',
 ] as const
 
 type Namespace = typeof NAMESPACES[number]
@@ -29,7 +30,7 @@ type SupportedLang = 'fr' | 'de' | 'en' | 'it'
 
 // DE/EN/IT sont lazy-loadés à la demande (évite ~420KB dans le main bundle)
 async function loadDe() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, documents, admin, directory, compte] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, documents, admin, directory, compte, comingSoon] = await Promise.all([
     import('./locales/de/common.json'),
     import('./locales/de/dashboard.json'),
     import('./locales/de/settings.json'),
@@ -44,12 +45,13 @@ async function loadDe() {
     import('./locales/de/admin.json'),
     import('./locales/de/directory.json'),
     import('./locales/de/compte.json'),
+    import('./locales/de/comingSoon.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, documents: documents.default, admin: admin.default, directory: directory.default, compte: compte.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, documents: documents.default, admin: admin.default, directory: directory.default, compte: compte.default, comingSoon: comingSoon.default }
 }
 
 async function loadEn() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, documents, admin, directory, compte] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, documents, admin, directory, compte, comingSoon] = await Promise.all([
     import('./locales/en/common.json'),
     import('./locales/en/dashboard.json'),
     import('./locales/en/settings.json'),
@@ -64,12 +66,13 @@ async function loadEn() {
     import('./locales/en/admin.json'),
     import('./locales/en/directory.json'),
     import('./locales/en/compte.json'),
+    import('./locales/en/comingSoon.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, documents: documents.default, admin: admin.default, directory: directory.default, compte: compte.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, documents: documents.default, admin: admin.default, directory: directory.default, compte: compte.default, comingSoon: comingSoon.default }
 }
 
 async function loadIt() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, documents, admin, directory, compte] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, documents, admin, directory, compte, comingSoon] = await Promise.all([
     import('./locales/it/common.json'),
     import('./locales/it/dashboard.json'),
     import('./locales/it/settings.json'),
@@ -84,8 +87,9 @@ async function loadIt() {
     import('./locales/it/admin.json'),
     import('./locales/it/directory.json'),
     import('./locales/it/compte.json'),
+    import('./locales/it/comingSoon.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, documents: documents.default, admin: admin.default, directory: directory.default, compte: compte.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, documents: documents.default, admin: admin.default, directory: directory.default, compte: compte.default, comingSoon: comingSoon.default }
 }
 
 async function loadLanguage(lng: SupportedLang): Promise<Record<Namespace, unknown>> {
@@ -97,6 +101,7 @@ async function loadLanguage(lng: SupportedLang): Promise<Record<Namespace, unkno
     pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages,
     calendar: frCalendar, matching: frMatching,
     documents: frDocuments, admin: frAdmin, directory: frDirectory, compte: frCompte,
+    comingSoon: frComingSoon,
   }
 }
 
@@ -110,6 +115,7 @@ i18n
         pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages,
         calendar: frCalendar, matching: frMatching,
         documents: frDocuments, admin: frAdmin, directory: frDirectory, compte: frCompte,
+        comingSoon: frComingSoon,
       },
     },
     fallbackLng: 'fr',

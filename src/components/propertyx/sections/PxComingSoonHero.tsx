@@ -5,10 +5,61 @@
 //   - Hero Section (11783:16895) : container rounded-24 957px, image aérienne
 //     ville + fade overlay top + content centré (title 72 + paragraph 16 +
 //     email pill 380×52 avec Subscribe button noir + arrow-right)
+//
+// Form Subscribe branché sur la table coming_soon_subscribers (Supabase).
+// États : idle → loading → success | error. Textes i18n (FR/DE/EN/IT).
 
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PX, PxLogo, PxFigmaIcon } from '..'
+import { supabase } from '@/lib/supabase'
+
+type FormState = 'idle' | 'loading' | 'success' | 'error'
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function PxComingSoonHero() {
+  const { t, i18n } = useTranslation('comingSoon')
+  const [email, setEmail] = useState('')
+  const [state, setState] = useState<FormState>('idle')
+  const [errorMsg, setErrorMsg] = useState<string>('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (state === 'loading') return
+
+    const trimmed = email.trim().toLowerCase()
+    if (!EMAIL_REGEX.test(trimmed)) {
+      setErrorMsg(t('errorInvalidEmail'))
+      setState('error')
+      return
+    }
+
+    setState('loading')
+    setErrorMsg('')
+
+    const { error } = await supabase
+      .from('coming_soon_subscribers')
+      .insert({
+        email: trimmed,
+        locale: i18n.language?.slice(0, 2) || 'fr',
+        source: 'coming_soon_splash',
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      })
+
+    if (error) {
+      if (error.code === '23505') {
+        setErrorMsg(t('errorAlreadySubscribed'))
+      } else {
+        setErrorMsg(t('errorGeneric'))
+      }
+      setState('error')
+      return
+    }
+
+    setState('success')
+  }
+
   return (
     <>
       {/* Placeholder color fidèle Figma : neutral500 #464851 (sinon le browser
@@ -147,6 +198,7 @@ export default function PxComingSoonHero() {
               <p style={{
                 margin: 0,
                 width: 571.795,
+                maxWidth: '100%',
                 fontFamily: PX.font.display,
                 fontSize: 72,
                 fontWeight: 500,
@@ -155,7 +207,7 @@ export default function PxComingSoonHero() {
                 color: PX.neutral100,
                 textAlign: 'center',
               }}>
-                Get notified when we launch
+                {t('title')}
               </p>
             </div>
 
@@ -163,23 +215,23 @@ export default function PxComingSoonHero() {
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'flex-start',
+              alignItems: 'center',
               flexShrink: 0,
             }}>
               {/* Paragraph block : pt-16, flex-col items-start justify-center */}
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'flex-start',
+                alignItems: 'center',
                 justifyContent: 'center',
                 paddingTop: 16,
                 flexShrink: 0,
               }}>
-                {/* Paragraph Default : 16 Regular, lh 1.5, ls -0.48, white, w-422, h-48, center */}
+                {/* Paragraph Default : 16 Regular, lh 1.5, ls -0.48, white, w-422, center */}
                 <p style={{
                   margin: 0,
                   width: 422,
-                  height: 48,
+                  maxWidth: '100%',
                   fontFamily: PX.font.display,
                   fontSize: 16,
                   fontWeight: 400,
@@ -188,7 +240,7 @@ export default function PxComingSoonHero() {
                   color: PX.neutral100,
                   textAlign: 'center',
                 }}>
-                  Lorem ipsum dolor sit amet consectetur gravida elementum dolor semper felis pulvinar feugiat risus.
+                  {t('paragraph')}
                 </p>
               </div>
 
@@ -196,90 +248,24 @@ export default function PxComingSoonHero() {
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'flex-start',
+                alignItems: 'center',
                 justifyContent: 'center',
                 paddingTop: 32,
                 flexShrink: 0,
               }}>
-                {/* Input Text pill : bg-neutral300, pl-16 pr-6 py-6, min-h-52, rounded-pill, w-380 */}
-                <form
-                  onSubmit={e => e.preventDefault()}
-                  style={{
-                    width: 380,
-                    minHeight: 52,
-                    paddingLeft: 16,
-                    paddingRight: 6,
-                    paddingTop: 6,
-                    paddingBottom: 6,
-                    background: PX.neutral300,
-                    borderRadius: PX.radius.pill,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexShrink: 0,
-                  }}
-                >
-                  {/* Placeholder Wrapper : flex-1 gap-6 items-center min-w-px */}
-                  <div style={{
-                    flex: 1,
-                    minWidth: 0,
-                    display: 'flex',
-                    gap: 6,
-                    alignItems: 'center',
-                  }}>
-                    {/* Wrapper : pt-2 */}
-                    <div style={{
-                      paddingTop: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      flex: 1,
-                    }}>
-                      <input
-                        type="email"
-                        placeholder="Enter your email address"
-                        aria-label="Email address"
-                        className="px-cs-input"
-                        style={{
-                          background: 'transparent',
-                          border: 0,
-                          outline: 'none',
-                          fontFamily: PX.font.display,
-                          fontSize: 16,
-                          fontWeight: 400,
-                          lineHeight: 1.25,
-                          letterSpacing: '-0.48px',
-                          color: PX.neutral700,
-                          width: '100%',
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Subscribe button : bg-neutral700, pl-16 pr-6 py-6, gap-6, rounded-pill */}
-                  <button
-                    type="submit"
+                {state === 'success' ? (
+                  <div
+                    role="status"
+                    aria-live="polite"
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      paddingLeft: 16,
-                      paddingRight: 6,
-                      paddingTop: 6,
-                      paddingBottom: 6,
-                      background: PX.neutral700,
-                      border: 0,
+                      width: 380,
+                      maxWidth: '100%',
+                      minHeight: 52,
+                      paddingLeft: 24,
+                      paddingRight: 24,
+                      background: PX.neutral300,
                       borderRadius: PX.radius.pill,
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {/* Wrapper text : pt-2 */}
-                    <span style={{
-                      paddingTop: 2,
-                      display: 'inline-flex',
+                      display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontFamily: PX.font.display,
@@ -287,25 +273,145 @@ export default function PxComingSoonHero() {
                       fontWeight: 500,
                       lineHeight: 1.25,
                       letterSpacing: '-0.48px',
-                      color: PX.neutral100,
+                      color: PX.neutral700,
                       textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                    }}>Subscribe</span>
-                    {/* Icon circle : bg-white, size-28, rounded-pill, arrow noir */}
-                    <span style={{
-                      width: 28,
-                      height: 28,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {t('successMessage')}
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={handleSubmit}
+                    style={{
+                      width: 380,
+                      maxWidth: '100%',
+                      minHeight: 52,
+                      paddingLeft: 16,
+                      paddingRight: 6,
+                      paddingTop: 6,
+                      paddingBottom: 6,
+                      background: PX.neutral300,
                       borderRadius: PX.radius.pill,
-                      background: PX.neutral100,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      justifyContent: 'space-between',
                       flexShrink: 0,
+                    }}
+                  >
+                    <div style={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: 'flex',
+                      gap: 6,
+                      alignItems: 'center',
                     }}>
-                      <PxFigmaIcon name="arrow-right" size={12} color={PX.neutral700} />
-                    </span>
-                  </button>
-                </form>
+                      <div style={{
+                        paddingTop: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        flex: 1,
+                      }}>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => {
+                            setEmail(e.target.value)
+                            if (state === 'error') {
+                              setState('idle')
+                              setErrorMsg('')
+                            }
+                          }}
+                          placeholder={t('emailPlaceholder')}
+                          aria-label={t('emailPlaceholder')}
+                          disabled={state === 'loading'}
+                          className="px-cs-input"
+                          style={{
+                            background: 'transparent',
+                            border: 0,
+                            outline: 'none',
+                            fontFamily: PX.font.display,
+                            fontSize: 16,
+                            fontWeight: 400,
+                            lineHeight: 1.25,
+                            letterSpacing: '-0.48px',
+                            color: PX.neutral700,
+                            width: '100%',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Subscribe button : bg-neutral700, pl-16 pr-6 py-6, gap-6, rounded-pill */}
+                    <button
+                      type="submit"
+                      disabled={state === 'loading'}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        paddingLeft: 16,
+                        paddingRight: 6,
+                        paddingTop: 6,
+                        paddingBottom: 6,
+                        background: PX.neutral700,
+                        border: 0,
+                        borderRadius: PX.radius.pill,
+                        cursor: state === 'loading' ? 'wait' : 'pointer',
+                        opacity: state === 'loading' ? 0.7 : 1,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{
+                        paddingTop: 2,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontFamily: PX.font.display,
+                        fontSize: 16,
+                        fontWeight: 500,
+                        lineHeight: 1.25,
+                        letterSpacing: '-0.48px',
+                        color: PX.neutral100,
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                      }}>{t('subscribe')}</span>
+                      <span style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: PX.radius.pill,
+                        background: PX.neutral100,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        <PxFigmaIcon name="arrow-right" size={12} color={PX.neutral700} />
+                      </span>
+                    </button>
+                  </form>
+                )}
+
+                {state === 'error' && errorMsg && (
+                  <p
+                    role="alert"
+                    style={{
+                      margin: 0,
+                      marginTop: 12,
+                      fontFamily: PX.font.display,
+                      fontSize: 13,
+                      fontWeight: 400,
+                      lineHeight: 1.4,
+                      color: '#FCA5A5',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {errorMsg}
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -489,27 +489,27 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <PasswordGate>
-    <StaleBundleDetector />
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AuthProvider>
-          <ToastProvider>
-          {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
-              frosted-glass shimmer overlay, listens to languageChanged event. */}
-          <LanguageChangeOverlay />
-          <Suspense fallback={<SmartPageLoader />}>
-            <AnimatedRoutes />
-          </Suspense>
-          {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
-          <Suspense fallback={null}>
-            <FavoritesLoginPrompt />
-          </Suspense>
-          <CookieBanner />
-          </ToastProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
-    </PasswordGate>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <PasswordGate>
+        <StaleBundleDetector />
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ToastProvider>
+            {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
+                frosted-glass shimmer overlay, listens to languageChanged event. */}
+            <LanguageChangeOverlay />
+            <Suspense fallback={<SmartPageLoader />}>
+              <AnimatedRoutes />
+            </Suspense>
+            {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
+            <Suspense fallback={null}>
+              <FavoritesLoginPrompt />
+            </Suspense>
+            <CookieBanner />
+            </ToastProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </PasswordGate>
+    </BrowserRouter>
   )
 }
