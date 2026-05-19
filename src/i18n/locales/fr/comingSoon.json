@@ -1,0 +1,16 @@
+{
+  "title": "On vous prévient au lancement.",
+  "paragraph": "MEGGA arrive bientôt. Laissez-nous votre email pour être les premiers informés du lancement de notre plateforme immobilière nouvelle génération.",
+  "emailPlaceholder": "Votre adresse email",
+  "subscribe": "S'inscrire",
+  "successMessage": "✓ Merci ! On vous notifiera.",
+  "errorAlreadySubscribed": "Cet email est déjà dans la liste.",
+  "errorGeneric": "Une erreur est survenue, réessayez.",
+  "errorInvalidEmail": "Adresse email invalide.",
+  "teamAccess": "Accès équipe",
+  "modalTitle": "Accès interne",
+  "modalPlaceholder": "Mot de passe",
+  "modalSubmit": "Entrer",
+  "modalError": "Mot de passe incorrect",
+  "copyright": "© 2026 MEGGA. Tous droits réservés."
+}
