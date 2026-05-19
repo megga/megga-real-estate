@@ -9,7 +9,7 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PX, PxLogo } from '@/components/propertyx'
+import { PX } from '@/components/propertyx'
 import PxComingSoonHero from '@/components/propertyx/sections/PxComingSoonHero'
 import PasswordModal from './PasswordModal'
 
@@ -35,7 +35,7 @@ export default function ComingSoonSplash({ verify, onUnlock }: ComingSoonSplashP
     }}>
       <PxComingSoonHero />
 
-      {/* Footer minimal splash — logo + copyright + accès équipe */}
+      {/* Footer minimal splash — Swiss Made Software badge + copyright + accès équipe */}
       <footer style={{
         width: '100%',
         maxWidth: PX.containerDesktop,
@@ -46,7 +46,13 @@ export default function ComingSoonSplash({ verify, onUnlock }: ComingSoonSplashP
         alignItems: 'center',
         gap: 20,
       }}>
-        <PxLogo variant="dark" form="text" size="sm" to="/" />
+        <img
+          src="/images/badges/swiss-made-software.svg"
+          alt="Swiss Made Software"
+          width={160}
+          height={27}
+          style={{ display: 'block' }}
+        />
 
         <p style={{
           margin: 0,
