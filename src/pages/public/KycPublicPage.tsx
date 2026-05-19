@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   useMagicLinkClient,
   useMagicLinkConfirmClient,
@@ -31,6 +32,7 @@ type LocalScreen = 'landing' | 'upload'
 
 export default function KycPublicPage() {
   const { token } = useParams<{ token: string }>()
+  const { t } = useTranslation('kyc')
   const { data, isLoading, error } = useMagicLinkClient(token)
   const uploadMut = useMagicLinkUploadClient()
   const confirmMut = useMagicLinkConfirmClient()
@@ -54,8 +56,8 @@ export default function KycPublicPage() {
     return (
       <MlkBackground>
         <MlkPlaceholder
-          title="Lien invalide"
-          message="Le lien que vous avez ouvert n'est pas reconnu. Vérifiez que vous avez bien copié l'URL complète depuis votre email."
+          title={t('client.placeholder.invalid_title')}
+          message={t('client.placeholder.invalid_body')}
           iconName="alert"
         />
       </MlkBackground>
@@ -66,8 +68,8 @@ export default function KycPublicPage() {
     return (
       <MlkBackground>
         <MlkPlaceholder
-          title="Chargement du lien…"
-          message="Quelques secondes — nous vérifions la validité de votre lien sécurisé."
+          title={t('client.placeholder.loading_title')}
+          message={t('client.placeholder.loading_body')}
           iconName="lock"
         />
       </MlkBackground>
@@ -78,8 +80,8 @@ export default function KycPublicPage() {
     return (
       <MlkBackground>
         <MlkPlaceholder
-          title="Connexion impossible"
-          message="Impossible de joindre le serveur. Vérifiez votre connexion internet et réessayez."
+          title={t('client.placeholder.network_title')}
+          message={t('client.placeholder.network_body')}
           iconName="alert"
         />
       </MlkBackground>
@@ -102,11 +104,8 @@ export default function KycPublicPage() {
           <MlkExpired />
         ) : (
           <MlkPlaceholder
-            title="Lien invalide"
-            message={
-              data.message ??
-              "Ce lien n'est plus valable. Demandez à votre agent un nouveau lien."
-            }
+            title={t('client.placeholder.invalid_title')}
+            message={data.message ?? t('client.placeholder.expired_link_body')}
             iconName="alert"
           />
         )}
@@ -115,9 +114,12 @@ export default function KycPublicPage() {
   }
 
   // ─── À partir d'ici, data est un MagicLinkPublicView valide ───────────
-  const firstName = data.contact?.first_name?.trim() || 'cher client'
-  const agentFullName = data.agent?.full_name?.trim() || 'votre agent'
-  const agencyName = data.agency?.name?.trim() || 'votre agence'
+  const firstName =
+    data.contact?.first_name?.trim() || t('client.placeholder.fallback_first_name')
+  const agentFullName =
+    data.agent?.full_name?.trim() || t('client.placeholder.fallback_agent')
+  const agencyName =
+    data.agency?.name?.trim() || t('client.placeholder.fallback_agency')
 
   // Status submitted → écran Success final
   if (data.status === 'submitted') {
@@ -172,12 +174,12 @@ export default function KycPublicPage() {
     // Validation client-side
     const MAX_BYTES = 10 * 1024 * 1024
     if (file.size <= 0 || file.size > MAX_BYTES) {
-      setUploadError(`Fichier trop volumineux (max 10 Mo, le vôtre fait ${(file.size / 1024 / 1024).toFixed(1)} Mo).`)
+      setUploadError(t('client.upload.error_size', { mb: (file.size / 1024 / 1024).toFixed(1) }))
       return
     }
     const ALLOWED = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic']
     if (!ALLOWED.includes(file.type)) {
-      setUploadError(`Format non accepté (${file.type}). Utilisez PDF, JPG, PNG, WEBP ou HEIC.`)
+      setUploadError(t('client.upload.error_format', { type: file.type }))
       return
     }
 
@@ -191,7 +193,7 @@ export default function KycPublicPage() {
           setUploadError(
             err instanceof Error
               ? err.message.replace(/^Upload failed: HTTP \d+ /, '')
-              : 'Échec du téléversement. Réessayez.',
+              : t('client.upload.error_default'),
           )
         },
       },
@@ -200,7 +202,7 @@ export default function KycPublicPage() {
 
   const handleConfirm = () => {
     if (allUploads.length === 0) {
-      setUploadError('Téléversez au moins un document avant de valider.')
+      setUploadError(t('client.upload.error_min_one'))
       return
     }
     confirmMut.mutate({ token })

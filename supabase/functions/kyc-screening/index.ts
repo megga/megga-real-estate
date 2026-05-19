@@ -46,7 +46,9 @@ interface SonnetAnalysisResult {
   patterns_detected: string[]
   justification: string
   additional_checks_suggested: string[]
-  confidence: number
+  // `null` si Sonnet n'a pas renvoyé un nombre exploitable —
+  // évite l'affichage trompeur "Confiance IA: 50%" alors qu'elle est inconnue.
+  confidence: number | null
   prompt_tokens?: number
   completion_tokens?: number
 }
@@ -188,7 +190,12 @@ Produis ton analyse JSON.`
       additional_checks_suggested: Array.isArray(parsed.additional_checks_suggested)
         ? parsed.additional_checks_suggested
         : [],
-      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.5,
+      confidence:
+        typeof parsed.confidence === 'number' &&
+        parsed.confidence >= 0 &&
+        parsed.confidence <= 1
+          ? parsed.confidence
+          : null,
       prompt_tokens: data?.usage?.input_tokens,
       completion_tokens: data?.usage?.output_tokens,
     }
@@ -297,27 +304,71 @@ serve(async (req) => {
       )
     }
 
+    // Sauvegarde des statuts pré-screening pour rollback en cas d'échec Dilisense.
+    // Sans cette sauvegarde, un crash Dilisense laisse le dossier figé en `pending`.
+    const { data: preScreenCase } = await supabaseClient
+      .from('kyc_cases')
+      .select('pep_status, sanctions_status, last_screening_at')
+      .eq('id', kyc_case_id)
+      .single()
+
+    // Idempotence : refuse un re-screening si l'agent a cliqué il y a moins de 60s.
+    // Évite la double-facturation Dilisense / Anthropic sur clic spam.
+    if (preScreenCase?.last_screening_at) {
+      const lastMs = new Date(preScreenCase.last_screening_at).getTime()
+      if (Date.now() - lastMs < 60_000) {
+        return new Response(
+          JSON.stringify({
+            error: 'Screening déjà effectué il y a moins d\'une minute. Réessayez dans quelques secondes.',
+            retry_after_ms: 60_000 - (Date.now() - lastMs),
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    const previousPepStatus = preScreenCase?.pep_status ?? 'not_checked'
+    const previousSanctionsStatus = preScreenCase?.sanctions_status ?? 'not_checked'
+
     // Set status to pending during screening
     await supabaseClient
       .from('kyc_cases')
       .update({ pep_status: 'pending', sanctions_status: 'pending' })
       .eq('id', kyc_case_id)
 
-    // Call dilisense API
+    // Call dilisense API avec timeout 15s (symétrie avec Sonnet 30s).
+    // En cas de timeout, fetch lève une AbortError → catch → rollback.
     const endpoint = entity_type === 'individual' ? 'checkIndividual' : 'checkEntity'
     const encodedName = encodeURIComponent(contact_name)
     const dilisenseUrl = `https://api.dilisense.com/v1/${endpoint}?names=${encodedName}&fuzzy_search=1`
 
-    const dilisenseRes = await fetch(dilisenseUrl, {
-      headers: { 'x-api-key': apiKey },
-    })
+    let dilisenseData: DilisenseResponse
+    try {
+      const dilisenseController = new AbortController()
+      const dilisenseTimeout = setTimeout(() => dilisenseController.abort(), 15_000)
+      const dilisenseRes = await fetch(dilisenseUrl, {
+        headers: { 'x-api-key': apiKey },
+        signal: dilisenseController.signal,
+      })
+      clearTimeout(dilisenseTimeout)
 
-    if (!dilisenseRes.ok) {
-      const errText = await dilisenseRes.text()
-      throw new Error(`Dilisense API error: ${dilisenseRes.status} ${errText}`)
+      if (!dilisenseRes.ok) {
+        const errText = await dilisenseRes.text()
+        throw new Error(`Dilisense API error: ${dilisenseRes.status} ${errText}`)
+      }
+      dilisenseData = await dilisenseRes.json()
+    } catch (dilisenseErr) {
+      // Rollback : restaure les statuts précédents pour ne pas figer le dossier
+      // en `pending` indéfiniment (l'agent peut alors retenter manuellement).
+      await supabaseClient
+        .from('kyc_cases')
+        .update({
+          pep_status: previousPepStatus,
+          sanctions_status: previousSanctionsStatus,
+        })
+        .eq('id', kyc_case_id)
+      throw dilisenseErr
     }
-
-    const dilisenseData: DilisenseResponse = await dilisenseRes.json()
 
     // Separate PEP and Sanctions hits
     const pepRecords = dilisenseData.found_records.filter(

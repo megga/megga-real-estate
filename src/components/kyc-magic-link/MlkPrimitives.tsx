@@ -386,14 +386,10 @@ interface ReassureItem {
 }
 
 export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
+  // Desktop : N colonnes (1 par item). Mobile < 560px : 2 colonnes (grid auto-fit).
+  // Le CSS @media est injecté en bas via MlkBackground (composant racine).
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${items.length}, 1fr)`,
-        gap: 16,
-      }}
-    >
+    <div className="mlk-reassure-row" data-cols={items.length}>
       {items.map((it, i) => (
         <div
           key={i}
@@ -444,6 +440,9 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
 }
 
 export function MlkFooter() {
+  // `rel="noreferrer"` empêche le token magic-link de fuiter dans le header
+  // Referer envoyé aux pages externes (mentions-legales, confidentialité).
+  // `target="_blank"` ouvre dans un nouvel onglet pour préserver le parcours KYC.
   return (
     <div
       style={{
@@ -458,10 +457,20 @@ export function MlkFooter() {
       }}
     >
       <div style={{ display: 'flex', gap: 18 }}>
-        <a href="/mentions-legales" style={{ color: 'inherit', textDecoration: 'none' }}>
+        <a
+          href="/mentions-legales"
+          target="_blank"
+          rel="noreferrer"
+          style={{ color: 'inherit', textDecoration: 'none' }}
+        >
           Mentions légales
         </a>
-        <a href="/confidentialite" style={{ color: 'inherit', textDecoration: 'none' }}>
+        <a
+          href="/confidentialite"
+          target="_blank"
+          rel="noreferrer"
+          style={{ color: 'inherit', textDecoration: 'none' }}
+        >
           Confidentialité
         </a>
       </div>
@@ -477,6 +486,8 @@ interface ShellProps {
 }
 
 export function MlkShell({ children, width = 720, pad = 56, style }: ShellProps) {
+  // Padding et border-radius adaptés mobile via classe + @media query
+  // (injectée par MlkBackground). Sur mobile : padding réduit, radius plus serré.
   return (
     <div
       style={{
@@ -488,16 +499,21 @@ export function MlkShell({ children, width = 720, pad = 56, style }: ShellProps)
       }}
     >
       <div
-        style={{
-          width,
-          maxWidth: 'calc(100vw - 32px)',
-          background: MLK.card,
-          borderRadius: 32,
-          boxShadow: MLK.shadowLg,
-          padding: pad,
-          animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
-          ...style,
-        }}
+        className="mlk-shell"
+        style={
+          {
+            width,
+            maxWidth: 'calc(100vw - 32px)',
+            background: MLK.card,
+            borderRadius: 32,
+            boxShadow: MLK.shadowLg,
+            // Variable CSS lue par @media query pour mobile
+            ['--mlk-shell-pad' as string]: `${pad}px`,
+            padding: 'var(--mlk-shell-pad)',
+            animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
+            ...style,
+          } as CSSProperties
+        }
       >
         {children}
       </div>
@@ -521,6 +537,36 @@ export function MlkBackground({ children }: { children: ReactNode }) {
         @keyframes sgFadeUp {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        /* Grid réassurance : N colonnes desktop, 2 colonnes < 560px */
+        .mlk-reassure-row {
+          display: grid;
+          gap: 16px;
+        }
+        .mlk-reassure-row[data-cols="1"] { grid-template-columns: 1fr; }
+        .mlk-reassure-row[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
+        .mlk-reassure-row[data-cols="3"] { grid-template-columns: repeat(3, 1fr); }
+        .mlk-reassure-row[data-cols="4"] { grid-template-columns: repeat(4, 1fr); }
+        @media (max-width: 560px) {
+          .mlk-reassure-row[data-cols="3"],
+          .mlk-reassure-row[data-cols="4"] {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        /* Shell padding réduit sur mobile pour gagner de l'espace */
+        @media (max-width: 560px) {
+          .mlk-shell {
+            padding: calc(var(--mlk-shell-pad) * 0.5) !important;
+            border-radius: 22px !important;
+          }
+        }
+        /* Titres H1 plus petits sur mobile (pas de débordement < 380px) */
+        @media (max-width: 480px) {
+          .mlk-h1 {
+            font-size: 26px !important;
+            letter-spacing: -0.5px !important;
+            line-height: 1.15 !important;
+          }
         }
       `}</style>
       {children}

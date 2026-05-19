@@ -26,5 +26,90 @@
     "error": "Errore durante la creazione del fascicolo",
     "creating": "Creazione...",
     "submit": "Creare il fascicolo"
+  },
+  "client": {
+    "landing": {
+      "lock_label": "Link crittografato · scade il {{date}}",
+      "agent_label": "Richiesta del Suo agente",
+      "title_part1": "Buongiorno {{firstName}},",
+      "title_part2": "completiamo il Suo fascicolo.",
+      "subtitle_prefix": "La legge svizzera antiriciclaggio (LRD) ci obbliga a verificare la Sua identità e, a seconda del fascicolo, l'origine dei fondi. Conti ",
+      "subtitle_duration": "5-8 minuti",
+      "subtitle_suffix": ".",
+      "cta_start": "Iniziare",
+      "consent": "Continuando, accetta il trattamento dei Suoi dati secondo la nLPD.",
+      "reassure_swiss_title": "Dati in Svizzera",
+      "reassure_swiss_sub": "Hosting a Ginevra",
+      "reassure_lock_title": "Crittografato end-to-end",
+      "reassure_lock_sub": "AES-256, transito TLS 1.3",
+      "reassure_shield_title": "Visto da 2 persone",
+      "reassure_shield_sub": "Suo agente + conformità",
+      "reassure_clock_title": "Conservato 10 anni",
+      "reassure_clock_sub": "LRD art. 7, poi eliminato"
+    },
+    "upload": {
+      "section_label": "Documenti giustificativi",
+      "title": "Buongiorno {{firstName}}, carichi i Suoi documenti",
+      "subtitle": "Allegare il documento d'identità, un giustificativo di domicilio recente e qualsiasi elemento che dimostri l'origine dei fondi. Può aggiungere i documenti uno per uno.",
+      "type_label": "Tipo di documento",
+      "drop_title": "Trascini il Suo documento qui",
+      "drop_hint": "PDF, JPG, PNG, WEBP o HEIC · max 10 MB",
+      "browse": "Sfogliare",
+      "uploading": "Caricamento in corso…",
+      "received_one": "{{count}} documento ricevuto",
+      "received_other": "{{count}} documenti ricevuti",
+      "received_pill": "Ricevuto",
+      "security_tip": "I Suoi documenti sono crittografati al momento del caricamento. Solo {{agentName}} e il team di conformità di {{agencyName}} vi avranno accesso.",
+      "cta_confirm": "Confermare e inviare",
+      "cta_confirming": "Invio in corso…",
+      "error_min_one": "Carichi almeno un documento prima di confermare.",
+      "error_size": "File troppo grande (max 10 MB, il Suo è {{mb}} MB).",
+      "error_format": "Formato non accettato ({{type}}). Usi PDF, JPG, PNG, WEBP o HEIC.",
+      "error_default": "Caricamento fallito. Riprovi."
+    },
+    "upload_types": {
+      "identity_title": "Documento d'identità",
+      "identity_sub": "Passaporto, carta d'identità o permesso C",
+      "address_title": "Giustificativo di domicilio",
+      "address_sub": "Bolletta elettricità, internet o contratto d'affitto (< 3 mesi)",
+      "funds_title": "Origine dei fondi",
+      "funds_sub": "Estratto conto, vendita di un bene, donazione, prestito",
+      "other_title": "Altro documento",
+      "other_sub": "Richiesto specificamente dal Suo agente"
+    },
+    "success": {
+      "title_part1": "Grazie {{firstName}},",
+      "title_part2": "i Suoi documenti sono stati inviati.",
+      "body_prefix": "{{agentName}} verificherà il Suo fascicolo entro ",
+      "body_duration": "24 ore lavorative",
+      "body_suffix": ". Riceverà un'email di conferma non appena il Suo fascicolo sarà validato.",
+      "agent_card_q": "Una domanda per {{firstName}}?"
+    },
+    "expired": {
+      "title": "Questo link è scaduto",
+      "body_prefix": "Per la sicurezza dei Suoi dati, i link MEGGA scadono dopo ",
+      "body_duration": "7 giorni",
+      "body_middle": ". Contatti {{agentName}}",
+      "body_agency_suffix": " presso {{agencyName}}",
+      "body_suffix": " per richiedere un nuovo link.",
+      "fallback_agent": "il Suo agente",
+      "no_data_loss": "Nessun dato è andato perso. I documenti caricati precedentemente sono conservati."
+    },
+    "placeholder": {
+      "invalid_title": "Link non valido",
+      "invalid_body": "Il link che ha aperto non è riconosciuto. Verifichi di aver copiato l'URL completo dalla Sua email.",
+      "loading_title": "Caricamento del link…",
+      "loading_body": "Qualche secondo — stiamo verificando la validità del Suo link sicuro.",
+      "network_title": "Connessione impossibile",
+      "network_body": "Impossibile raggiungere il server. Verifichi la connessione internet e riprovi.",
+      "expired_link_body": "Questo link non è più valido. Richieda un nuovo link al Suo agente.",
+      "fallback_first_name": "gentile cliente",
+      "fallback_agent": "il Suo agente",
+      "fallback_agency": "la Sua agenzia"
+    },
+    "footer": {
+      "legal": "Note legali",
+      "privacy": "Privacy"
+    }
   }
 }

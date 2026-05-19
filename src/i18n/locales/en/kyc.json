@@ -26,5 +26,90 @@
     "error": "Error creating case",
     "creating": "Creating...",
     "submit": "Create case"
+  },
+  "client": {
+    "landing": {
+      "lock_label": "Encrypted link · expires on {{date}}",
+      "agent_label": "Request from your agent",
+      "title_part1": "Hello {{firstName}},",
+      "title_part2": "let's complete your file.",
+      "subtitle_prefix": "Swiss anti-money laundering law (AMLA) requires us to verify your identity and, depending on the case, the source of funds. Allow ",
+      "subtitle_duration": "5 to 8 minutes",
+      "subtitle_suffix": ".",
+      "cta_start": "Get started",
+      "consent": "By continuing, you accept the processing of your data in accordance with the Swiss FADP.",
+      "reassure_swiss_title": "Data stored in Switzerland",
+      "reassure_swiss_sub": "Geneva-based hosting",
+      "reassure_lock_title": "End-to-end encrypted",
+      "reassure_lock_sub": "AES-256, TLS 1.3 in transit",
+      "reassure_shield_title": "Seen by 2 people",
+      "reassure_shield_sub": "Your agent + compliance",
+      "reassure_clock_title": "Kept for 10 years",
+      "reassure_clock_sub": "AMLA art. 7, then deleted"
+    },
+    "upload": {
+      "section_label": "Supporting documents",
+      "title": "Hello {{firstName}}, upload your documents",
+      "subtitle": "Attach your ID, a recent proof of address, and any evidence of the source of funds. You can add documents one by one.",
+      "type_label": "Document type",
+      "drop_title": "Drop your document here",
+      "drop_hint": "PDF, JPG, PNG, WEBP or HEIC · max 10 MB",
+      "browse": "Browse",
+      "uploading": "Uploading…",
+      "received_one": "{{count}} document received",
+      "received_other": "{{count}} documents received",
+      "received_pill": "Received",
+      "security_tip": "Your documents are encrypted upon upload. Only {{agentName}} and the compliance team at {{agencyName}} will have access.",
+      "cta_confirm": "Submit and send",
+      "cta_confirming": "Sending…",
+      "error_min_one": "Please upload at least one document before submitting.",
+      "error_size": "File too large (max 10 MB, yours is {{mb}} MB).",
+      "error_format": "Format not accepted ({{type}}). Use PDF, JPG, PNG, WEBP or HEIC.",
+      "error_default": "Upload failed. Please try again."
+    },
+    "upload_types": {
+      "identity_title": "ID document",
+      "identity_sub": "Passport, ID card or C permit",
+      "address_title": "Proof of address",
+      "address_sub": "Electricity, internet bill or lease (< 3 months)",
+      "funds_title": "Source of funds",
+      "funds_sub": "Bank statement, sale of property, donation, loan",
+      "other_title": "Other document",
+      "other_sub": "Specifically requested by your agent"
+    },
+    "success": {
+      "title_part1": "Thank you {{firstName}},",
+      "title_part2": "your documents are sent.",
+      "body_prefix": "{{agentName}} will review your file within ",
+      "body_duration": "24 business hours",
+      "body_suffix": ". You will receive a confirmation email as soon as your file is validated.",
+      "agent_card_q": "A question for {{firstName}}?"
+    },
+    "expired": {
+      "title": "This link has expired",
+      "body_prefix": "For the security of your data, MEGGA links expire after ",
+      "body_duration": "7 days",
+      "body_middle": ". Please contact {{agentName}}",
+      "body_agency_suffix": " at {{agencyName}}",
+      "body_suffix": " to request a new link.",
+      "fallback_agent": "your agent",
+      "no_data_loss": "No data has been lost. Documents you previously uploaded are still saved."
+    },
+    "placeholder": {
+      "invalid_title": "Invalid link",
+      "invalid_body": "The link you opened is not recognised. Please check that you copied the full URL from your email.",
+      "loading_title": "Loading the link…",
+      "loading_body": "Just a moment — we're verifying your secure link.",
+      "network_title": "Cannot connect",
+      "network_body": "Unable to reach the server. Check your internet connection and try again.",
+      "expired_link_body": "This link is no longer valid. Please ask your agent for a new link.",
+      "fallback_first_name": "dear client",
+      "fallback_agent": "your agent",
+      "fallback_agency": "your agency"
+    },
+    "footer": {
+      "legal": "Legal notice",
+      "privacy": "Privacy"
+    }
   }
 }

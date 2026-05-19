@@ -522,7 +522,28 @@ export function useScreenKycCase() {
           entity_type: entityType,
         },
       })
-      if (error) throw error
+      if (error) {
+        // L'EF a renvoyé un status non-2xx (ex : 429 idempotence,
+        // 401 auth, 500 Dilisense KO). Tentons de lire le body pour
+        // remonter le message d'erreur clair au lieu du
+        // "Edge Function returned a non-2xx status code" générique.
+        let serverMessage: string | null = null
+        try {
+          const errWithContext = error as { context?: Response }
+          if (errWithContext.context && typeof errWithContext.context.clone === 'function') {
+            const body = (await errWithContext.context.clone().json()) as {
+              error?: string
+              retry_after_ms?: number
+            }
+            if (typeof body.error === 'string' && body.error.trim().length > 0) {
+              serverMessage = body.error
+            }
+          }
+        } catch {
+          // body non-JSON ou déjà consommé — on garde le message générique
+        }
+        throw new Error(serverMessage ?? error.message)
+      }
       return data as ScreeningResult
     },
     onSuccess: (_, variables) => {

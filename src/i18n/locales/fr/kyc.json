@@ -26,5 +26,90 @@
     "error": "Erreur lors de la création du dossier",
     "creating": "Création...",
     "submit": "Créer le dossier"
+  },
+  "client": {
+    "landing": {
+      "lock_label": "Lien chiffré · expire le {{date}}",
+      "agent_label": "Demande de votre agent",
+      "title_part1": "Bonjour {{firstName}},",
+      "title_part2": "finalisons votre dossier.",
+      "subtitle_prefix": "La loi suisse anti-blanchiment (LBA) nous oblige à vérifier votre identité et, selon le dossier, l'origine des fonds. Comptez ",
+      "subtitle_duration": "5 à 8 minutes",
+      "subtitle_suffix": ".",
+      "cta_start": "Commencer",
+      "consent": "En continuant, vous acceptez le traitement de vos données conformément à la nLPD.",
+      "reassure_swiss_title": "Données en Suisse",
+      "reassure_swiss_sub": "Hébergement Genève",
+      "reassure_lock_title": "Chiffré bout-en-bout",
+      "reassure_lock_sub": "AES-256, transit TLS 1.3",
+      "reassure_shield_title": "Vu par 2 personnes",
+      "reassure_shield_sub": "Votre agent + conformité",
+      "reassure_clock_title": "Conservé 10 ans",
+      "reassure_clock_sub": "LBA art. 7, puis supprimé"
+    },
+    "upload": {
+      "section_label": "Pièces justificatives",
+      "title": "Bonjour {{firstName}}, déposez vos documents",
+      "subtitle": "Joignez votre pièce d'identité, un justificatif de domicile récent et tout élément démontrant l'origine des fonds. Vous pouvez ajouter les pièces une par une.",
+      "type_label": "Type de pièce",
+      "drop_title": "Glissez votre document ici",
+      "drop_hint": "PDF, JPG, PNG, WEBP ou HEIC · max 10 Mo",
+      "browse": "Parcourir",
+      "uploading": "Téléversement…",
+      "received_one": "{{count}} document reçu",
+      "received_other": "{{count}} documents reçus",
+      "received_pill": "Reçu",
+      "security_tip": "Vos documents sont chiffrés dès le téléversement. Personne d'autre que {{agentName}} et l'équipe conformité de {{agencyName}} n'y aura accès.",
+      "cta_confirm": "Valider et envoyer",
+      "cta_confirming": "Envoi en cours…",
+      "error_min_one": "Téléversez au moins un document avant de valider.",
+      "error_size": "Fichier trop volumineux (max 10 Mo, le vôtre fait {{mb}} Mo).",
+      "error_format": "Format non accepté ({{type}}). Utilisez PDF, JPG, PNG, WEBP ou HEIC.",
+      "error_default": "Échec du téléversement. Réessayez."
+    },
+    "upload_types": {
+      "identity_title": "Pièce d'identité",
+      "identity_sub": "Passeport, carte d'identité ou permis C",
+      "address_title": "Justificatif de domicile",
+      "address_sub": "Facture électricité, internet ou bail (< 3 mois)",
+      "funds_title": "Source des fonds",
+      "funds_sub": "Relevé bancaire, vente d'un bien, donation, prêt",
+      "other_title": "Autre document",
+      "other_sub": "Demandé spécifiquement par votre agent"
+    },
+    "success": {
+      "title_part1": "Merci {{firstName}},",
+      "title_part2": "vos pièces sont transmises.",
+      "body_prefix": "{{agentName}} vérifiera votre dossier sous ",
+      "body_duration": "24 heures ouvrées",
+      "body_suffix": ". Vous recevrez un email de confirmation dès que votre dossier est validé.",
+      "agent_card_q": "Une question pour {{firstName}} ?"
+    },
+    "expired": {
+      "title": "Ce lien a expiré",
+      "body_prefix": "Pour la sécurité de vos données, les liens MEGGA expirent au bout de ",
+      "body_duration": "7 jours",
+      "body_middle": ". Contactez {{agentName}}",
+      "body_agency_suffix": " chez {{agencyName}}",
+      "body_suffix": " pour qu'un nouveau lien vous soit envoyé.",
+      "fallback_agent": "votre agent",
+      "no_data_loss": "Aucune donnée n'a été perdue. Vos pièces précédemment téléversées sont conservées."
+    },
+    "placeholder": {
+      "invalid_title": "Lien invalide",
+      "invalid_body": "Le lien que vous avez ouvert n'est pas reconnu. Vérifiez que vous avez bien copié l'URL complète depuis votre email.",
+      "loading_title": "Chargement du lien…",
+      "loading_body": "Quelques secondes — nous vérifions la validité de votre lien sécurisé.",
+      "network_title": "Connexion impossible",
+      "network_body": "Impossible de joindre le serveur. Vérifiez votre connexion internet et réessayez.",
+      "expired_link_body": "Ce lien n'est plus valable. Demandez à votre agent un nouveau lien.",
+      "fallback_first_name": "cher client",
+      "fallback_agent": "votre agent",
+      "fallback_agency": "votre agence"
+    },
+    "footer": {
+      "legal": "Mentions légales",
+      "privacy": "Confidentialité"
+    }
   }
 }
