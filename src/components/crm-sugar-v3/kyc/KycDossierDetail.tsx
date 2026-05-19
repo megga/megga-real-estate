@@ -85,7 +85,7 @@ interface Props {
 const CHECK_KEYS: KycCheckCategory[] = ['id', 'address', 'pep', 'sanctions', 'funds']
 
 export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
-  const { data: dossier, isLoading } = useKycCase(dossierId)
+  const { data: dossier, isLoading, isError, error, refetch } = useKycCase(dossierId)
   const { data: docs = [] } = useKycDocuments(dossierId)
   const { data: auditEvents = [] } = useKycAuditEvents(dossierId)
   const markCheck = useMarkKycCheck()
@@ -138,6 +138,61 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
     return map
   }, [dossier])
 
+  // screeningGuard remonté ICI (avant tout early-return) pour respecter
+  // rules-of-hooks. Tolère un dossier null/undefined pendant le chargement.
+  const screeningGuard = useMemo<ScreeningGuard>(() => {
+    if (!dossier) return { status: 'missing' }
+    const sanctions = dossier.sanctions_status
+    const pep = dossier.pep_status
+    // Un match est BLOQUANT sauf si une décision false_positive l'a écarté
+    if (sanctions === 'match' && sanctionsDecision?.decision !== 'false_positive') {
+      return { status: 'match', kind: 'sanctions' }
+    }
+    if (pep === 'match' && pepDecision?.decision !== 'false_positive') {
+      return { status: 'match', kind: 'pep' }
+    }
+    if (sanctions === 'pending' || pep === 'pending') return { status: 'pending' }
+    if (!sanctions || !pep || sanctions === 'not_checked' || pep === 'not_checked') {
+      return { status: 'missing' }
+    }
+    return { status: 'ok' }
+  }, [
+    dossier,
+    sanctionsDecision?.decision,
+    pepDecision?.decision,
+  ])
+
+  if (isError && !isLoading) {
+    return (
+      <div
+        role="alert"
+        style={{
+          maxWidth: 1080,
+          margin: '60px auto',
+          padding: '32px',
+          textAlign: 'center',
+          background: SugarV3.card,
+          borderRadius: 22,
+          boxShadow: SugarV3.shadow,
+          color: SugarV3.err,
+          fontSize: 14,
+          fontWeight: 600,
+        }}
+      >
+        <div style={{ marginBottom: 8 }}>
+          Impossible de charger ce dossier KYC.
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: SugarV3.muted, marginBottom: 18 }}>
+          {(error as Error)?.message || 'Erreur réseau ou base de données.'}
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <KycGhostPill onClick={onBack}>Retour à la liste</KycGhostPill>
+          <KycBlackPill onClick={() => refetch()}>Réessayer</KycBlackPill>
+        </div>
+      </div>
+    )
+  }
+
   if (isLoading || !dossier) {
     return (
       <div style={{ maxWidth: 1080, margin: '0 auto', padding: '60px 0', textAlign: 'center', color: SugarV3.muted, fontSize: 14, fontWeight: 500 }}>
@@ -163,28 +218,6 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
     if (!item) return
     markCheck.mutate({ checkId: item.id, is_completed: true, actorId: agentId })
   }
-
-  const screeningGuard = useMemo<ScreeningGuard>(() => {
-    const sanctions = dossier.sanctions_status
-    const pep = dossier.pep_status
-    // Un match est BLOQUANT sauf si une décision false_positive l'a écarté
-    if (sanctions === 'match' && sanctionsDecision?.decision !== 'false_positive') {
-      return { status: 'match', kind: 'sanctions' }
-    }
-    if (pep === 'match' && pepDecision?.decision !== 'false_positive') {
-      return { status: 'match', kind: 'pep' }
-    }
-    if (sanctions === 'pending' || pep === 'pending') return { status: 'pending' }
-    if (!sanctions || !pep || sanctions === 'not_checked' || pep === 'not_checked') {
-      return { status: 'missing' }
-    }
-    return { status: 'ok' }
-  }, [
-    dossier.sanctions_status,
-    dossier.pep_status,
-    sanctionsDecision?.decision,
-    pepDecision?.decision,
-  ])
 
   const isVerified = dossier.dossier_status === 'verified'
 

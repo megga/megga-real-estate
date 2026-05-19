@@ -1,5 +1,7 @@
 // MEGGA — Écrans du parcours client KYC Magic Link
 // Sprint 4.7.C — Port pixel-près de handoff-kyc-magic-link/maquette/megga-kyc-magic-link.jsx
+// Sprint 4.7.F — Brancher i18n (FR/DE/EN/IT) + responsive mobile (@media query
+// sur le grid de réassurance et les tailles de titre).
 //
 // 4 écrans :
 //   1. MlkLanding  — accueil rassurant (Bonjour <prénom>, finalisons votre dossier)
@@ -10,6 +12,7 @@
 // Mode 'verifiee' (OCR) → couvert par Sprint 4.7.D (composant MlkVerified à venir).
 
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   MLK,
   MlkAgentAvatar,
@@ -23,8 +26,13 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-function formatDateShort(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-CH', {
+function formatDateShort(iso: string, locale: string): string {
+  const localeTag =
+    locale === 'de' ? 'de-CH' :
+    locale === 'it' ? 'it-CH' :
+    locale === 'en' ? 'en-GB' :
+    'fr-CH'
+  return new Date(iso).toLocaleDateString(localeTag, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -36,29 +44,6 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
 }
-
-const REASSURE_ITEMS = [
-  {
-    icon: 'swiss' as const,
-    title: 'Données en Suisse',
-    sub: 'Hébergement Genève',
-  },
-  {
-    icon: 'lock' as const,
-    title: 'Chiffré bout-en-bout',
-    sub: 'AES-256, transit TLS 1.3',
-  },
-  {
-    icon: 'shield' as const,
-    title: 'Vu par 2 personnes',
-    sub: 'Votre agent + conformité',
-  },
-  {
-    icon: 'clock' as const,
-    title: 'Conservé 10 ans',
-    sub: 'LBA art. 7, puis supprimé',
-  },
-]
 
 // ─── 1. MlkLanding ────────────────────────────────────────────────────────
 
@@ -77,6 +62,31 @@ export function MlkLanding({
   expiresAt,
   onStart,
 }: LandingProps) {
+  const { t, i18n } = useTranslation('kyc')
+
+  const reassureItems = [
+    {
+      icon: 'swiss' as const,
+      title: t('client.landing.reassure_swiss_title'),
+      sub: t('client.landing.reassure_swiss_sub'),
+    },
+    {
+      icon: 'lock' as const,
+      title: t('client.landing.reassure_lock_title'),
+      sub: t('client.landing.reassure_lock_sub'),
+    },
+    {
+      icon: 'shield' as const,
+      title: t('client.landing.reassure_shield_title'),
+      sub: t('client.landing.reassure_shield_sub'),
+    },
+    {
+      icon: 'clock' as const,
+      title: t('client.landing.reassure_clock_title'),
+      sub: t('client.landing.reassure_clock_sub'),
+    },
+  ]
+
   return (
     <MlkShell>
       {/* Top bar */}
@@ -104,7 +114,7 @@ export function MlkLanding({
           }}
         >
           <MlkIcon name="lock" size={12} stroke={MLK.ink} sw={2} />
-          Lien chiffré · expire le {formatDateShort(expiresAt)}
+          {t('client.landing.lock_label', { date: formatDateShort(expiresAt, i18n.language) })}
         </div>
       </div>
 
@@ -132,7 +142,7 @@ export function MlkLanding({
               marginBottom: 3,
             }}
           >
-            Demande de votre agent
+            {t('client.landing.agent_label')}
           </div>
           <div
             style={{
@@ -149,6 +159,7 @@ export function MlkLanding({
 
       {/* Titre + sous-titre */}
       <h1
+        className="mlk-h1"
         style={{
           margin: '0 0 16px',
           fontSize: 38,
@@ -158,9 +169,9 @@ export function MlkLanding({
           lineHeight: 1.08,
         }}
       >
-        Bonjour {firstName},
+        {t('client.landing.title_part1', { firstName })}
         <br />
-        finalisons votre dossier.
+        {t('client.landing.title_part2')}
       </h1>
       <p
         style={{
@@ -172,14 +183,16 @@ export function MlkLanding({
           maxWidth: 580,
         }}
       >
-        La loi suisse anti-blanchiment (LBA) nous oblige à vérifier votre identité et,
-        selon le dossier, l&apos;origine des fonds. Comptez{' '}
-        <strong style={{ color: MLK.ink, fontWeight: 700 }}>5 à 8 minutes</strong>.
+        {t('client.landing.subtitle_prefix')}
+        <strong style={{ color: MLK.ink, fontWeight: 700 }}>
+          {t('client.landing.subtitle_duration')}
+        </strong>
+        {t('client.landing.subtitle_suffix')}
       </p>
 
-      {/* Reassurance bullets — 4 colonnes */}
+      {/* Reassurance bullets — 4 colonnes desktop, 2x2 mobile */}
       <div style={{ marginTop: 36, marginBottom: 36 }}>
-        <MlkReassureRow items={REASSURE_ITEMS} />
+        <MlkReassureRow items={reassureItems} />
       </div>
 
       {/* CTA */}
@@ -189,7 +202,7 @@ export function MlkLanding({
         size="lg"
         full
       >
-        Commencer
+        {t('client.landing.cta_start')}
       </MlkBlackPill>
 
       <div
@@ -201,7 +214,7 @@ export function MlkLanding({
           fontWeight: 500,
         }}
       >
-        En continuant, vous acceptez le traitement de vos données conformément à la nLPD.
+        {t('client.landing.consent')}
       </div>
 
       <MlkFooter />
@@ -212,29 +225,6 @@ export function MlkLanding({
 // ─── 2. MlkUpload ─────────────────────────────────────────────────────────
 
 type UploadType = 'identity' | 'address' | 'funds' | 'other'
-
-const UPLOAD_TYPE_LABELS: Record<UploadType, { title: string; sub: string; icon: 'id' | 'home' | 'coins' | 'fileText' }> = {
-  identity: {
-    title: "Pièce d'identité",
-    sub: 'Passeport, carte d’identité ou permis C',
-    icon: 'id',
-  },
-  address: {
-    title: 'Justificatif de domicile',
-    sub: 'Facture électricité, internet ou bail (< 3 mois)',
-    icon: 'home',
-  },
-  funds: {
-    title: 'Source des fonds',
-    sub: 'Relevé bancaire, vente d’un bien, donation, prêt',
-    icon: 'coins',
-  },
-  other: {
-    title: 'Autre document',
-    sub: 'Demandé spécifiquement par votre agent',
-    icon: 'fileText',
-  },
-}
 
 interface UploadedFileLite {
   id: string
@@ -269,9 +259,33 @@ export function MlkUpload({
   onConfirm,
   isConfirming,
 }: UploadProps) {
+  const { t } = useTranslation('kyc')
   const [selectedType, setSelectedType] = useState<UploadType>('identity')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
+
+  const uploadTypeDefs: Record<UploadType, { title: string; sub: string; icon: 'id' | 'home' | 'coins' | 'fileText' }> = {
+    identity: {
+      title: t('client.upload_types.identity_title'),
+      sub: t('client.upload_types.identity_sub'),
+      icon: 'id',
+    },
+    address: {
+      title: t('client.upload_types.address_title'),
+      sub: t('client.upload_types.address_sub'),
+      icon: 'home',
+    },
+    funds: {
+      title: t('client.upload_types.funds_title'),
+      sub: t('client.upload_types.funds_sub'),
+      icon: 'coins',
+    },
+    other: {
+      title: t('client.upload_types.other_title'),
+      sub: t('client.upload_types.other_sub'),
+      icon: 'fileText',
+    },
+  }
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return
@@ -308,9 +322,10 @@ export function MlkUpload({
           marginBottom: 14,
         }}
       >
-        Pièces justificatives
+        {t('client.upload.section_label')}
       </div>
       <h1
+        className="mlk-h1"
         style={{
           margin: '0 0 12px',
           fontSize: 32,
@@ -320,7 +335,7 @@ export function MlkUpload({
           lineHeight: 1.1,
         }}
       >
-        Bonjour {firstName}, déposez vos documents
+        {t('client.upload.title', { firstName })}
       </h1>
       <p
         style={{
@@ -332,9 +347,7 @@ export function MlkUpload({
           maxWidth: 600,
         }}
       >
-        Joignez votre pièce d&apos;identité, un justificatif de domicile récent et tout
-        élément démontrant l&apos;origine des fonds. Vous pouvez ajouter les pièces une
-        par une.
+        {t('client.upload.subtitle')}
       </p>
 
       {/* Type sélecteur — 4 radio cards en grid 2x2 */}
@@ -348,7 +361,7 @@ export function MlkUpload({
           marginBottom: 10,
         }}
       >
-        Type de pièce
+        {t('client.upload.type_label')}
       </div>
       <div
         style={{
@@ -358,14 +371,14 @@ export function MlkUpload({
           marginBottom: 22,
         }}
       >
-        {(Object.keys(UPLOAD_TYPE_LABELS) as UploadType[]).map((t) => {
-          const isSelected = selectedType === t
-          const def = UPLOAD_TYPE_LABELS[t]
+        {(Object.keys(uploadTypeDefs) as UploadType[]).map((typeKey) => {
+          const isSelected = selectedType === typeKey
+          const def = uploadTypeDefs[typeKey]
           return (
             <button
-              key={t}
+              key={typeKey}
               type="button"
-              onClick={() => setSelectedType(t)}
+              onClick={() => setSelectedType(typeKey)}
               style={{
                 width: '100%',
                 textAlign: 'left',
@@ -499,7 +512,7 @@ export function MlkUpload({
               letterSpacing: -0.2,
             }}
           >
-            Glissez votre document ici
+            {t('client.upload.drop_title')}
           </div>
           <div
             style={{
@@ -509,7 +522,7 @@ export function MlkUpload({
               marginTop: 4,
             }}
           >
-            PDF, JPG, PNG, WEBP ou HEIC · max 10 Mo
+            {t('client.upload.drop_hint')}
           </div>
         </div>
         <input
@@ -526,7 +539,7 @@ export function MlkUpload({
             size="sm"
             disabled={isUploading}
           >
-            {isUploading ? 'Téléversement…' : 'Parcourir'}
+            {isUploading ? t('client.upload.uploading') : t('client.upload.browse')}
           </MlkBlackPill>
         </div>
       </div>
@@ -567,8 +580,7 @@ export function MlkUpload({
               marginBottom: 10,
             }}
           >
-            {uploaded.length} document{uploaded.length > 1 ? 's' : ''} reçu
-            {uploaded.length > 1 ? 's' : ''}
+            {t(uploaded.length === 1 ? 'client.upload.received_one' : 'client.upload.received_other', { count: uploaded.length })}
           </div>
           <div
             style={{
@@ -579,10 +591,10 @@ export function MlkUpload({
             }}
           >
             {uploaded.map((f) => {
-              const typeKey = (f.type as UploadType) in UPLOAD_TYPE_LABELS
+              const typeKey = (f.type as UploadType) in uploadTypeDefs
                 ? (f.type as UploadType)
                 : 'other'
-              const def = UPLOAD_TYPE_LABELS[typeKey]
+              const def = uploadTypeDefs[typeKey]
               return (
                 <div
                   key={f.id}
@@ -656,7 +668,7 @@ export function MlkUpload({
                         background: '#10B981',
                       }}
                     />
-                    Reçu
+                    {t('client.upload.received_pill')}
                   </span>
                 </div>
               )
@@ -686,8 +698,7 @@ export function MlkUpload({
             lineHeight: 1.5,
           }}
         >
-          Vos documents sont chiffrés dès le téléversement. Personne d&apos;autre que{' '}
-          {agentFullName} et l&apos;équipe conformité de {agencyName} n&apos;y aura accès.
+          {t('client.upload.security_tip', { agentName: agentFullName, agencyName })}
         </div>
       </div>
 
@@ -707,7 +718,7 @@ export function MlkUpload({
           disabled={!canConfirm}
           size="md"
         >
-          {isConfirming ? 'Envoi en cours…' : 'Valider et envoyer'}
+          {isConfirming ? t('client.upload.cta_confirming') : t('client.upload.cta_confirm')}
         </MlkBlackPill>
       </div>
 
@@ -725,6 +736,9 @@ interface SuccessProps {
 }
 
 export function MlkSuccess({ firstName, agentFullName, agencyName }: SuccessProps) {
+  const { t } = useTranslation('kyc')
+  const agentFirstName = agentFullName.split(' ')[0]
+
   return (
     <MlkShell width={680} pad={56}>
       {/* Top bar */}
@@ -751,6 +765,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName }: SuccessProp
       </div>
 
       <h1
+        className="mlk-h1"
         style={{
           margin: '0 0 14px',
           fontSize: 36,
@@ -761,9 +776,9 @@ export function MlkSuccess({ firstName, agentFullName, agencyName }: SuccessProp
           textAlign: 'center',
         }}
       >
-        Merci {firstName},
+        {t('client.success.title_part1', { firstName })}
         <br />
-        vos pièces sont transmises.
+        {t('client.success.title_part2')}
       </h1>
       <p
         style={{
@@ -778,9 +793,11 @@ export function MlkSuccess({ firstName, agentFullName, agencyName }: SuccessProp
           marginRight: 'auto',
         }}
       >
-        {agentFullName} vérifiera votre dossier sous{' '}
-        <strong style={{ color: MLK.ink, fontWeight: 700 }}>24 heures ouvrées</strong>.
-        Vous recevrez un email de confirmation dès que votre dossier est validé.
+        {t('client.success.body_prefix', { agentName: agentFullName })}
+        <strong style={{ color: MLK.ink, fontWeight: 700 }}>
+          {t('client.success.body_duration')}
+        </strong>
+        {t('client.success.body_suffix')}
       </p>
 
       {/* Card agent */}
@@ -806,7 +823,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName }: SuccessProp
               letterSpacing: -0.1,
             }}
           >
-            Une question pour {agentFullName.split(' ')[0]} ?
+            {t('client.success.agent_card_q', { firstName: agentFirstName })}
           </div>
           <div
             style={{
@@ -834,6 +851,12 @@ interface ExpiredProps {
 }
 
 export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
+  const { t } = useTranslation('kyc')
+  const agentName = agentFullName ?? t('client.expired.fallback_agent')
+  const agencySuffix = agencyName
+    ? t('client.expired.body_agency_suffix', { agencyName })
+    : ''
+
   return (
     <MlkShell width={620} pad={56}>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
@@ -857,6 +880,7 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
       </div>
 
       <h1
+        className="mlk-h1"
         style={{
           margin: '0 0 14px',
           fontSize: 30,
@@ -867,7 +891,7 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
           textAlign: 'center',
         }}
       >
-        Ce lien a expiré
+        {t('client.expired.title')}
       </h1>
       <p
         style={{
@@ -882,10 +906,13 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
           marginRight: 'auto',
         }}
       >
-        Pour la sécurité de vos données, les liens MEGGA expirent au bout de{' '}
-        <strong style={{ color: MLK.ink, fontWeight: 700 }}>7 jours</strong>.
-        Contactez {agentFullName ?? 'votre agent'}
-        {agencyName ? ` chez ${agencyName}` : ''} pour qu&apos;un nouveau lien vous soit envoyé.
+        {t('client.expired.body_prefix')}
+        <strong style={{ color: MLK.ink, fontWeight: 700 }}>
+          {t('client.expired.body_duration')}
+        </strong>
+        {t('client.expired.body_middle', { agentName })}
+        {agencySuffix}
+        {t('client.expired.body_suffix')}
       </p>
 
       <div
@@ -897,7 +924,7 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
           fontWeight: 500,
         }}
       >
-        Aucune donnée n&apos;a été perdue. Vos pièces précédemment téléversées sont conservées.
+        {t('client.expired.no_data_loss')}
       </div>
 
       <MlkFooter />
@@ -933,6 +960,7 @@ export function MlkPlaceholder({ title, message, iconName = 'alert' }: Placehold
         <MlkIcon name={iconName} size={28} stroke={MLK.ink} sw={1.7} />
       </div>
       <h1
+        className="mlk-h1"
         style={{
           margin: '0 0 12px',
           fontSize: 24,
@@ -960,4 +988,3 @@ export function MlkPlaceholder({ title, message, iconName = 'alert' }: Placehold
     </MlkShell>
   )
 }
-

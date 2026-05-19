@@ -1,6 +1,8 @@
 // MEGGA CRM Sugar v2 — KYC list/dashboard (Tier 4)
 // 1:1 port from `megga-kyc-variations.jsx` VariationC (lines 595-743).
-// Wiring Supabase via useKycCases — fallback sur KYC_ROWS mock si table vide.
+// Wiring Supabase via useKycCases — empty state propre si aucun dossier
+// (les fallbacks mock KYC_ROWS / KYC_KPIS ont été retirés car ils affichaient
+// des faux PEP en prod si la table était vide pour l'agency_id courant).
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -14,7 +16,7 @@ import {
   Avatar, BlackBtn, GhostBtn, KycIcon, Pill, SP,
 } from '@/components/crm-sugar/kyc/atoms'
 import {
-  KYC_FILTERS, KYC_KPIS, KYC_ROWS, KYC_STATUS_MAP,
+  KYC_FILTERS, KYC_STATUS_MAP,
 } from '@/components/crm-sugar/kyc/data'
 import { KycWizardModal } from '@/components/crm-sugar/kyc/KycWizardModal'
 import { mapKycCaseToRow } from '@/components/crm-sugar/kyc/mapping'
@@ -41,27 +43,24 @@ export default function KycListSugarV2Page() {
 
   // ─── Real data from Supabase ──────────────────────────────────────────
   const { data: kycCases, isLoading, isError, error } = useKycCases()
-  const isUsingMock = !kycCases || kycCases.length === 0
+  const isEmpty = !kycCases || kycCases.length === 0
   const rows = useMemo(
-    () =>
-      isUsingMock
-        ? KYC_ROWS
-        : kycCases.map(mapKycCaseToRow),
-    [kycCases, isUsingMock],
+    () => (isEmpty ? [] : kycCases.map(mapKycCaseToRow)),
+    [kycCases, isEmpty],
   )
 
   const kpis = useMemo(() => {
-    if (isUsingMock) return KYC_KPIS
-    const total = kycCases.length
-    const review = kycCases.filter(c => c.status === 'review').length
-    const high = kycCases.filter(c => (c.risk_score ?? 0) >= 60).length
-    const stale = kycCases.filter(c => {
+    const list = kycCases ?? []
+    const total = list.length
+    const review = list.filter(c => c.status === 'review').length
+    const high = list.filter(c => (c.risk_score ?? 0) >= 60).length
+    const stale = list.filter(c => {
       if (!c.last_screening_at) return false
       const months = (Date.now() - new Date(c.last_screening_at).getTime()) / (1000 * 60 * 60 * 24 * 30)
       return months > 12
     }).length
     const avgRisk = total > 0
-      ? Math.round(kycCases.reduce((sum, c) => sum + (c.risk_score ?? 0), 0) / total)
+      ? Math.round(list.reduce((sum, c) => sum + (c.risk_score ?? 0), 0) / total)
       : 0
     return [
       { k: 'Dossiers actifs', v: String(total), sub: `${total} au total`, tone: 'neutral' as const },
@@ -70,7 +69,7 @@ export default function KycListSugarV2Page() {
       { k: 'Risque élevé', v: String(high), sub: 'Score ≥ 60', tone: 'danger' as const },
       { k: 'Screenings > 12 mois', v: String(stale), sub: 'À rafraîchir', tone: 'pending' as const },
     ]
-  }, [kycCases, isUsingMock])
+  }, [kycCases])
 
   const onCmd = () => {}
   const onNavigate = (id: SugarScreenId | string) => {
@@ -172,14 +171,14 @@ export default function KycListSugarV2Page() {
             </BlackBtn>
           </div>
 
-          {/* Demo banner if using mock data */}
-          {isUsingMock && !isLoading && !isError && (
+          {/* Empty state (aucun dossier dans Supabase pour l'agence courante) */}
+          {isEmpty && !isLoading && !isError && (
             <div
               style={{
                 padding: '10px 16px',
                 borderRadius: 14,
-                background: SP.pendingSoft,
-                color: SP.pending,
+                background: SP.cardSubtle,
+                color: SP.inkSoft,
                 fontSize: 12,
                 fontWeight: 600,
                 display: 'flex',
@@ -187,9 +186,9 @@ export default function KycListSugarV2Page() {
                 gap: 10,
               }}
             >
-              <KycIcon name="alert" size={14} stroke={SP.pending} sw={2} />
-              Mode démo · aucun dossier KYC dans Supabase. Affichage des données
-              d'exemple. Cliquez « Nouveau dossier » pour créer le premier.
+              <KycIcon name="alert" size={14} stroke={SP.inkSoft} sw={2} />
+              Aucun dossier KYC pour le moment. Cliquez « Nouveau dossier » pour
+              créer le premier.
             </div>
           )}
           {isError && (

@@ -113,7 +113,11 @@ serve(async (req) => {
     )
   }
 
-  // 5. Premier hit (status='pending') → on log l'ouverture
+  // 5. Premier hit (status='pending') → on log l'ouverture.
+  // Guard race condition : `.eq('status', 'pending')` garantit que seul le
+  // PREMIER hit pose les valeurs forensiques (IP/UA). Sans ce guard, un preview
+  // Gmail + un clic utilisateur en parallèle écraseraient l'IP du premier
+  // ouvreur réel.
   if (link.status === 'pending') {
     const clientIp =
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -130,6 +134,7 @@ serve(async (req) => {
         client_user_agent: clientUa,
       })
       .eq('id', magicLinkId)
+      .eq('status', 'pending')
   }
 
   // 6. Charge contexte UX pour l'écran client

@@ -26,5 +26,90 @@
     "error": "Fehler bei der Erstellung des Dossiers",
     "creating": "Erstellen...",
     "submit": "Dossier erstellen"
+  },
+  "client": {
+    "landing": {
+      "lock_label": "Verschlüsselter Link · läuft ab am {{date}}",
+      "agent_label": "Anfrage Ihres Maklers",
+      "title_part1": "Hallo {{firstName}},",
+      "title_part2": "vervollständigen wir Ihr Dossier.",
+      "subtitle_prefix": "Das Schweizer Geldwäschereigesetz (GwG) verpflichtet uns, Ihre Identität und je nach Fall die Herkunft der Mittel zu überprüfen. Rechnen Sie mit ",
+      "subtitle_duration": "5 bis 8 Minuten",
+      "subtitle_suffix": ".",
+      "cta_start": "Beginnen",
+      "consent": "Mit dem Fortfahren stimmen Sie der Verarbeitung Ihrer Daten gemäss nDSG zu.",
+      "reassure_swiss_title": "Daten in der Schweiz",
+      "reassure_swiss_sub": "Hosting in Genf",
+      "reassure_lock_title": "Ende-zu-Ende verschlüsselt",
+      "reassure_lock_sub": "AES-256, TLS 1.3-Transit",
+      "reassure_shield_title": "Von 2 Personen geprüft",
+      "reassure_shield_sub": "Ihr Makler + Compliance",
+      "reassure_clock_title": "10 Jahre aufbewahrt",
+      "reassure_clock_sub": "GwG Art. 7, dann gelöscht"
+    },
+    "upload": {
+      "section_label": "Belege",
+      "title": "Hallo {{firstName}}, laden Sie Ihre Dokumente hoch",
+      "subtitle": "Fügen Sie Ihren Ausweis, einen aktuellen Wohnsitznachweis und alle Belege zur Mittelherkunft bei. Sie können die Dokumente einzeln hinzufügen.",
+      "type_label": "Dokumenttyp",
+      "drop_title": "Ziehen Sie Ihr Dokument hierher",
+      "drop_hint": "PDF, JPG, PNG, WEBP oder HEIC · max. 10 MB",
+      "browse": "Durchsuchen",
+      "uploading": "Wird hochgeladen…",
+      "received_one": "{{count}} Dokument erhalten",
+      "received_other": "{{count}} Dokumente erhalten",
+      "received_pill": "Erhalten",
+      "security_tip": "Ihre Dokumente werden beim Hochladen verschlüsselt. Niemand ausser {{agentName}} und dem Compliance-Team von {{agencyName}} hat Zugriff darauf.",
+      "cta_confirm": "Bestätigen und senden",
+      "cta_confirming": "Wird gesendet…",
+      "error_min_one": "Laden Sie mindestens ein Dokument hoch, bevor Sie bestätigen.",
+      "error_size": "Datei zu gross (max. 10 MB, Ihre hat {{mb}} MB).",
+      "error_format": "Format nicht akzeptiert ({{type}}). Verwenden Sie PDF, JPG, PNG, WEBP oder HEIC.",
+      "error_default": "Hochladen fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "upload_types": {
+      "identity_title": "Ausweisdokument",
+      "identity_sub": "Reisepass, Identitätskarte oder Ausweis C",
+      "address_title": "Wohnsitznachweis",
+      "address_sub": "Strom-, Internetrechnung oder Mietvertrag (< 3 Monate)",
+      "funds_title": "Mittelherkunft",
+      "funds_sub": "Bankauszug, Verkauf einer Immobilie, Schenkung, Darlehen",
+      "other_title": "Anderes Dokument",
+      "other_sub": "Speziell von Ihrem Makler angefordert"
+    },
+    "success": {
+      "title_part1": "Danke {{firstName}},",
+      "title_part2": "Ihre Dokumente sind übermittelt.",
+      "body_prefix": "{{agentName}} wird Ihr Dossier innerhalb von ",
+      "body_duration": "24 Geschäftsstunden",
+      "body_suffix": " prüfen. Sie erhalten eine Bestätigungs-E-Mail, sobald Ihr Dossier validiert ist.",
+      "agent_card_q": "Eine Frage an {{firstName}}?"
+    },
+    "expired": {
+      "title": "Dieser Link ist abgelaufen",
+      "body_prefix": "Aus Sicherheitsgründen laufen MEGGA-Links nach ",
+      "body_duration": "7 Tagen",
+      "body_middle": " ab. Kontaktieren Sie {{agentName}}",
+      "body_agency_suffix": " bei {{agencyName}}",
+      "body_suffix": ", um einen neuen Link zu erhalten.",
+      "fallback_agent": "Ihren Makler",
+      "no_data_loss": "Es sind keine Daten verloren gegangen. Ihre zuvor hochgeladenen Dokumente bleiben gespeichert."
+    },
+    "placeholder": {
+      "invalid_title": "Ungültiger Link",
+      "invalid_body": "Der geöffnete Link wird nicht erkannt. Überprüfen Sie, ob Sie die vollständige URL aus Ihrer E-Mail kopiert haben.",
+      "loading_title": "Link wird geladen…",
+      "loading_body": "Einen Moment — wir prüfen die Gültigkeit Ihres gesicherten Links.",
+      "network_title": "Verbindung nicht möglich",
+      "network_body": "Server nicht erreichbar. Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
+      "expired_link_body": "Dieser Link ist nicht mehr gültig. Bitten Sie Ihren Makler um einen neuen Link.",
+      "fallback_first_name": "geschätzter Kunde",
+      "fallback_agent": "Ihr Makler",
+      "fallback_agency": "Ihre Agentur"
+    },
+    "footer": {
+      "legal": "Impressum",
+      "privacy": "Datenschutz"
+    }
   }
 }

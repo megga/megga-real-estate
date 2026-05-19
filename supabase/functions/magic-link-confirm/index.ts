@@ -141,16 +141,28 @@ serve(async (req) => {
       .eq('magic_link_id', link.id)
   }
 
-  // Transition status → submitted
-  const { error: updErr } = await supabase
+  // Transition status → submitted (guard race condition : refuse l'UPDATE
+  // si un confirm concurrent a déjà basculé le lien).
+  const { data: updated, error: updErr } = await supabase
     .from('kyc_magic_links')
     .update({ status: 'submitted', confirmed_at: confirmedAt })
     .eq('id', link.id)
+    .neq('status', 'submitted')
+    .select('id')
 
   if (updErr) {
     return new Response(
       JSON.stringify({ error: 'submit update failed', details: updErr.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // Si 0 ligne touchée → un confirm concurrent a gagné la course.
+  // On répond OK idempotent (le client n'a pas besoin de savoir).
+  if (!updated || updated.length === 0) {
+    return new Response(
+      JSON.stringify({ status: 'submitted', magic_link_id: link.id, idempotent: true }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
 

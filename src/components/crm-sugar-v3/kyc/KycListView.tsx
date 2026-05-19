@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) {
-  const { data: dossiers = [], isLoading } = useKycDossiers()
+  const { data: dossiers = [], isLoading, isError, error, refetch } = useKycDossiers()
 
   const stats = {
     verified: dossiers.filter((d) => d.dossier_status === 'verified').length,
@@ -203,6 +203,45 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
           animation: 'sgFadeUp .65s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
+        {isError && !isLoading && (
+          <div
+            role="alert"
+            style={{
+              padding: '20px 24px',
+              background: SugarV3.card,
+              borderRadius: 22,
+              boxShadow: SugarV3.shadow,
+              color: SugarV3.err,
+              fontSize: 13.5,
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
+            <SgIcon name="alert" size={18} stroke={SugarV3.err} sw={2} />
+            <div style={{ flex: 1, minWidth: 200 }}>
+              Impossible de charger les dossiers KYC.
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: SugarV3.muted,
+                  marginTop: 4,
+                }}
+              >
+                {(error as Error)?.message || 'Erreur réseau ou base de données.'}
+              </div>
+            </div>
+            <KycGhostPill
+              onClick={() => refetch()}
+              icon={<SgIcon name="refresh" size={13} stroke={SugarV3.inkSoft} />}
+            >
+              Réessayer
+            </KycGhostPill>
+          </div>
+        )}
         {isLoading && (
           <div
             style={{
