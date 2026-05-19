@@ -51,6 +51,9 @@ const PropertyXDesignSystemColorsPage = lazy(() => import('@/pages/public/Proper
 const PropertyXDesignSystemTypographyPage = lazy(() => import('@/pages/public/PropertyXDesignSystemTypographyPage'))
 const PropertyXDesignSystemShadowsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemShadowsPage'))
 
+// Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
+const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
+
 // Auth + blog v2 — lazy car secondary path
 const BlogV2Page = lazy(() => import('@/pages/public/BlogV2Page'))
 const LoginPage = lazy(() => import('@/pages/public/LoginPage'))
@@ -286,6 +289,8 @@ function AnimatedRoutes() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
+              <Route path="/kyc/:token" element={<KycPublicPage />} />
               {/* Marketplace publique — Property X design, branchée Supabase.
                   SearchPage (ancien design avec carte) reste accessible via
                   /acheter-legacy en attendant la v1.1 (toggle list/carte). */}
