@@ -54,6 +54,19 @@ export default function ComingSoonSplash({ verify, onUnlock }: ComingSoonSplashP
           style={{ display: 'block' }}
         />
 
+        <address style={{
+          margin: 0,
+          fontStyle: 'normal',
+          fontFamily: PX.font.display,
+          fontSize: 13,
+          fontWeight: 400,
+          lineHeight: 1.4,
+          color: PX.neutral500,
+          textAlign: 'center',
+        }}>
+          Rue du Rhône 84 · 1204 Genève
+        </address>
+
         <p style={{
           margin: 0,
           fontFamily: PX.font.display,
