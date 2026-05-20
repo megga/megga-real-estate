@@ -159,9 +159,15 @@ export default function PxComingSoonHero() {
                 pointerEvents: 'none',
               }}
             >
-              <img
-                src="/images/sections/coming-soon/hero-aerial.jpg"
-                alt=""
+              <video
+                src="/videos/coming-soon/hero-geneva.mp4"
+                poster="/videos/coming-soon/hero-poster.jpg"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                aria-hidden="true"
                 style={{
                   position: 'absolute',
                   left: 0,
