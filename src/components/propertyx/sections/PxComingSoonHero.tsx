@@ -62,10 +62,25 @@ export default function PxComingSoonHero() {
 
   return (
     <>
-      {/* Placeholder color fidèle Figma : neutral500 #464851 (sinon le browser
-          applique gray-400 ou une opacité atténuée du color de l'input). */}
+      {/* Placeholder color fidèle Figma + responsive overrides (tablet < 1024, mobile < 640). */}
       <style>{`
         .px-cs-input::placeholder { color: ${PX.neutral500}; opacity: 1; }
+        @media (max-width: 1023px) {
+          .px-cs-hero { height: 720px !important; padding: 0 !important; }
+          .px-cs-content { padding-top: 80px !important; }
+          .px-cs-title { font-size: 56px !important; letter-spacing: -1.68px !important; width: 100% !important; max-width: 480px !important; }
+          .px-cs-paragraph { width: 100% !important; max-width: 420px !important; height: auto !important; }
+        }
+        @media (max-width: 639px) {
+          .px-cs-section { padding-left: 12px !important; padding-right: 12px !important; }
+          .px-cs-hero { height: 600px !important; border-radius: 16px !important; }
+          .px-cs-content { padding-top: 56px !important; padding-left: 20px !important; padding-right: 20px !important; }
+          .px-cs-title { font-size: 36px !important; letter-spacing: -1.08px !important; line-height: 1.1 !important; max-width: 100% !important; }
+          .px-cs-paragraph { font-size: 14px !important; max-width: 100% !important; }
+          .px-cs-form { width: 100% !important; max-width: 100% !important; }
+          .px-cs-bg-image { width: 200% !important; height: 100% !important; }
+          .px-cs-bg-fade { width: 200% !important; height: 60% !important; }
+        }
       `}</style>
       {/* ─── Header Wrapper : pt-24, items-center ─────────────────────── */}
       <div style={{
@@ -93,31 +108,37 @@ export default function PxComingSoonHero() {
       </div>
 
       {/* ─── Hero Section : pt-24 pb-24 px-24, w-1440 max ──────────────── */}
-      <section style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        paddingTop: 24,
-        paddingBottom: 24,
-        paddingLeft: 24,
-        paddingRight: 24,
-        width: '100%',
-        maxWidth: PX.containerDesktop,
-        margin: '0 auto',
-        position: 'relative',
-        zIndex: 2,
-      }}>
-        {/* Container : h-957, w-full, rounded-24, overflow-clip, position relative */}
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          height: 957,
-          borderRadius: PX.radius.large,
-          overflow: 'hidden',
+      <section
+        className="px-cs-section"
+        style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-        }}>
+          paddingTop: 24,
+          paddingBottom: 24,
+          paddingLeft: 24,
+          paddingRight: 24,
+          width: '100%',
+          maxWidth: PX.containerDesktop,
+          margin: '0 auto',
+          position: 'relative',
+          zIndex: 2,
+        }}
+      >
+        {/* Container : h-957, w-full, rounded-24, overflow-clip, position relative */}
+        <div
+          className="px-cs-hero"
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: 957,
+            borderRadius: PX.radius.large,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
           {/* ─── Background absolu (image + fade) ─────────────────────── */}
           <div style={{
             position: 'absolute',
@@ -125,16 +146,19 @@ export default function PxComingSoonHero() {
             overflow: 'hidden',
           }}>
             {/* Image : 1413.9×1015, translateX(-50%) left-50% bottom-(-7.14) */}
-            <div style={{
-              position: 'absolute',
-              left: '50%',
-              bottom: -7.14,
-              height: 1015.289,
-              width: 1413.899,
-              transform: 'translateX(-50%)',
-              overflow: 'hidden',
-              pointerEvents: 'none',
-            }}>
+            <div
+              className="px-cs-bg-image"
+              style={{
+                position: 'absolute',
+                left: '50%',
+                bottom: -7.14,
+                height: 1015.289,
+                width: 1413.899,
+                transform: 'translateX(-50%)',
+                overflow: 'hidden',
+                pointerEvents: 'none',
+              }}
+            >
               <img
                 src="/images/sections/coming-soon/hero-aerial.jpg"
                 alt=""
@@ -151,14 +175,17 @@ export default function PxComingSoonHero() {
               />
             </div>
             {/* Fade : 1411.9×674.85, left-(-8.95) top-(-5.29) */}
-            <div style={{
-              position: 'absolute',
-              left: -8.95,
-              top: -5.29,
-              width: 1411.899,
-              height: 674.85,
-              pointerEvents: 'none',
-            }}>
+            <div
+              className="px-cs-bg-fade"
+              style={{
+                position: 'absolute',
+                left: -8.95,
+                top: -5.29,
+                width: 1411.899,
+                height: 674.85,
+                pointerEvents: 'none',
+              }}
+            >
               <img
                 src="/images/sections/coming-soon/hero-fade.png"
                 alt=""
@@ -176,16 +203,21 @@ export default function PxComingSoonHero() {
           </div>
 
           {/* ─── Content : w-1200, pt-100, flex-col items-center ──────── */}
-          <div style={{
-            position: 'relative',
-            width: 1200,
-            maxWidth: '100%',
-            paddingTop: 100,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            flexShrink: 0,
-          }}>
+          <div
+            className="px-cs-content"
+            style={{
+              position: 'relative',
+              width: 1200,
+              maxWidth: '100%',
+              paddingTop: 100,
+              paddingLeft: 24,
+              paddingRight: 24,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}
+          >
             {/* Title block : pt-16 (Sections/PD Extra Small), items-center justify-center */}
             <div style={{
               display: 'flex',
@@ -195,18 +227,21 @@ export default function PxComingSoonHero() {
               flexShrink: 0,
             }}>
               {/* Heading H1 : 72 Medium, lh 1.15, ls -2.16, white, w-571.795, center */}
-              <p style={{
-                margin: 0,
-                width: 571.795,
-                maxWidth: '100%',
-                fontFamily: PX.font.display,
-                fontSize: 72,
-                fontWeight: 500,
-                lineHeight: 1.15,
-                letterSpacing: '-2.16px',
-                color: PX.neutral100,
-                textAlign: 'center',
-              }}>
+              <p
+                className="px-cs-title"
+                style={{
+                  margin: 0,
+                  width: 571.795,
+                  maxWidth: '100%',
+                  fontFamily: PX.font.display,
+                  fontSize: 72,
+                  fontWeight: 500,
+                  lineHeight: 1.15,
+                  letterSpacing: '-2.16px',
+                  color: PX.neutral100,
+                  textAlign: 'center',
+                }}
+              >
                 {t('title')}
               </p>
             </div>
@@ -228,18 +263,21 @@ export default function PxComingSoonHero() {
                 flexShrink: 0,
               }}>
                 {/* Paragraph Default : 16 Regular, lh 1.5, ls -0.48, white, w-422, center */}
-                <p style={{
-                  margin: 0,
-                  width: 422,
-                  maxWidth: '100%',
-                  fontFamily: PX.font.display,
-                  fontSize: 16,
-                  fontWeight: 400,
-                  lineHeight: 1.5,
-                  letterSpacing: '-0.48px',
-                  color: PX.neutral100,
-                  textAlign: 'center',
-                }}>
+                <p
+                  className="px-cs-paragraph"
+                  style={{
+                    margin: 0,
+                    width: 422,
+                    maxWidth: '100%',
+                    fontFamily: PX.font.display,
+                    fontSize: 16,
+                    fontWeight: 400,
+                    lineHeight: 1.5,
+                    letterSpacing: '-0.48px',
+                    color: PX.neutral100,
+                    textAlign: 'center',
+                  }}
+                >
                   {t('paragraph')}
                 </p>
               </div>
@@ -257,6 +295,7 @@ export default function PxComingSoonHero() {
                   <div
                     role="status"
                     aria-live="polite"
+                    className="px-cs-form"
                     style={{
                       width: 380,
                       maxWidth: '100%',
@@ -283,6 +322,7 @@ export default function PxComingSoonHero() {
                 ) : (
                   <form
                     onSubmit={handleSubmit}
+                    className="px-cs-form"
                     style={{
                       width: 380,
                       maxWidth: '100%',
