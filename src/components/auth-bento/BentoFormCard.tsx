@@ -1,6 +1,7 @@
 // MEGGA Auth — Form card + 7 states (signin/signup/reset/resetsent · initial/sent/error)
 // Source : handoff-auth/auth/megga-auth-bento.jsx → BentoFormCard + renderFormFields
 import { useState, type ReactNode } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { ERROR_COLOR, type BentoTokens } from './tokens'
 import {
   AlertIcon,
@@ -52,19 +53,10 @@ export type AuthHandlers = {
   onBackToSignIn?: () => void
 }
 
-const TITLES: Record<AuthState, string> = {
-  initial: 'Bienvenue.',
-  sent: 'Lien envoyé.',
-  error: 'Trop de tentatives.',
-  signin: 'Bon retour.',
-  signup: 'Rejoignez MEGGA.',
-  verifyEmail: 'Vérifiez votre email.',
-  reset: 'Mot de passe oublié.',
-  resetsent: 'Email envoyé.',
-  setNewPassword: 'Nouveau mot de passe.',
-}
+// Titles are sourced from i18n via `t('titles.<state>')` — see fr/auth.json.
 
 function Divider({ tokens }: { tokens: BentoTokens }) {
+  const { t } = useTranslation('auth')
   return (
     <div
       style={{
@@ -79,7 +71,7 @@ function Divider({ tokens }: { tokens: BentoTokens }) {
       }}
     >
       <div style={{ flex: 1, height: 1, background: tokens.ghostColor, opacity: 0.45 }} />
-      <span>ou</span>
+      <span>{t('divider')}</span>
       <div style={{ flex: 1, height: 1, background: tokens.ghostColor, opacity: 0.45 }} />
     </div>
   )
@@ -92,6 +84,7 @@ function PasswordChecklist({
   password: string
   visible: boolean
 }) {
+  const { t } = useTranslation('auth')
   if (!visible) return null
   const rules = validatePassword(password)
   return (
@@ -106,8 +99,9 @@ function PasswordChecklist({
         letterSpacing: tokens.letterSpacing,
       }}
     >
-      {PASSWORD_RULE_LABELS.map(({ key, label }) => {
+      {PASSWORD_RULE_LABELS.map(({ key }) => {
         const ok = rules[key]
+        const label = t(`passwordRules.${key}`)
         return (
           <div
             key={key}
@@ -200,6 +194,7 @@ export function BentoFormCard({
   currentEmail?: string
   compact?: boolean
 }) {
+  const { t } = useTranslation('auth')
   return (
     <div
       style={{
@@ -231,7 +226,7 @@ export function BentoFormCard({
           color: tokens.titleColor,
         }}
       >
-        {TITLES[etat]}
+        {t(`titles.${etat}`)}
       </h1>
 
       <FormFields
@@ -254,6 +249,7 @@ function FormFields({
   handlers: AuthHandlers
   currentEmail?: string
 }) {
+  const { t } = useTranslation('auth')
   const [email, setEmailRaw] = useState(currentEmail ?? '')
   const [password, setPasswordRaw] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -319,14 +315,14 @@ function FormFields({
           type="email"
           value={email}
           onChange={setEmail}
-          placeholder="votre@email.ch"
+          placeholder={t('fields.emailParticulier')}
           leftIcon={MailIcon}
           autoFocus
         />
         <BentoCTA
           tokens={tokens}
-          label="Recevoir un lien magique"
-          loadingLabel="Envoi en cours…"
+          label={t('ctas.magicLink')}
+          loadingLabel={t('ctas.magicLinkLoading')}
           loading={submitting}
           cooldownSeconds={magicCooldown.remaining}
           onClick={withLoading(async () => {
@@ -343,13 +339,17 @@ function FormFields({
     return (
       <>
         <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
-          Lien envoyé à{' '}
-          <strong style={{ color: tokens.titleColor }}>{currentEmail ?? email}</strong>. Vérifiez votre boîte mail.
+          <Trans
+            i18nKey="body.linkSentTo"
+            ns="auth"
+            values={{ email: currentEmail ?? email }}
+            components={{ strong: <strong style={{ color: tokens.titleColor }} /> }}
+          />
         </div>
         <BentoCTA
           tokens={tokens}
-          label="Renvoyer le lien"
-          loadingLabel="Envoi en cours…"
+          label={t('ctas.resend')}
+          loadingLabel={t('ctas.resendLoading')}
           loading={submitting}
           cooldownSeconds={magicCooldown.remaining}
           onClick={withLoading(async () => {
@@ -358,7 +358,7 @@ function FormFields({
           })}
         />
         <FooterLink tokens={tokens} onClick={() => handlers.onChangeEmail?.()}>
-          ← Changer d'email
+          {t('footer.changeEmail')}
         </FooterLink>
       </>
     )
@@ -369,12 +369,12 @@ function FormFields({
     return (
       <>
         <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
-          Vous avez demandé trop de liens. Réessayez dans quelques minutes.
+          {t('body.rateLimited')}
         </div>
         <BentoCTA
           tokens={tokens}
-          label="Réessayer"
-          loadingLabel="Patientez…"
+          label={t('ctas.retry')}
+          loadingLabel={t('ctas.retryLoading')}
           loading={submitting}
           onClick={withLoading(() => handlers.onRetry?.())}
         />
@@ -389,13 +389,13 @@ function FormFields({
         <BentoOAuth
           tokens={tokens}
           icon={GoogleIcon}
-          label="Continuer avec Google"
+          label={t('ctas.google')}
           onClick={() => handlers.onOAuth?.('google')}
         />
         <BentoOAuth
           tokens={tokens}
           icon={MicrosoftIcon}
-          label="Continuer avec Microsoft"
+          label={t('ctas.microsoft')}
           onClick={() => handlers.onOAuth?.('microsoft')}
         />
         <Divider tokens={tokens} />
@@ -404,7 +404,7 @@ function FormFields({
           type="email"
           value={email}
           onChange={setEmail}
-          placeholder="email@agence.ch"
+          placeholder={t('fields.emailAgent')}
           leftIcon={MailIcon}
           autoFocus
           error={signinError}
@@ -415,15 +415,15 @@ function FormFields({
           type="password"
           value={password}
           onChange={setPassword}
-          placeholder="Mot de passe"
+          placeholder={t('fields.password')}
           leftIcon={LockIcon}
           error={signinError}
           shakeKey={shakeKey}
         />
         <BentoCTA
           tokens={tokens}
-          label="Se connecter"
-          loadingLabel="Connexion…"
+          label={t('ctas.signin')}
+          loadingLabel={t('ctas.signinLoading')}
           loading={submitting}
           onClick={handleAgentSignin}
         />
@@ -442,7 +442,7 @@ function FormFields({
             }}
           >
             {AlertIcon}
-            <span>Email ou mot de passe incorrect.</span>
+            <span>{t('errors.signinFailed')}</span>
           </div>
         )}
         <div
@@ -458,10 +458,10 @@ function FormFields({
           }}
         >
           <FooterLink tokens={tokens} onClick={() => handlers.onForgotPassword?.()}>
-            Mot de passe oublié
+            {t('footer.forgotPassword')}
           </FooterLink>
           <FooterLink tokens={tokens} onClick={() => handlers.onGoSignUp?.()}>
-            Créer un compte
+            {t('footer.createAccount')}
           </FooterLink>
         </div>
       </>
@@ -475,13 +475,13 @@ function FormFields({
         <BentoOAuth
           tokens={tokens}
           icon={GoogleIcon}
-          label="Continuer avec Google"
+          label={t('ctas.google')}
           onClick={() => handlers.onOAuth?.('google')}
         />
         <BentoOAuth
           tokens={tokens}
           icon={MicrosoftIcon}
-          label="Continuer avec Microsoft"
+          label={t('ctas.microsoft')}
           onClick={() => handlers.onOAuth?.('microsoft')}
         />
         <Divider tokens={tokens} />
@@ -490,7 +490,7 @@ function FormFields({
           type="text"
           value={name}
           onChange={setName}
-          placeholder="Nom complet"
+          placeholder={t('fields.fullName')}
           leftIcon={UserIcon}
           autoFocus
         />
@@ -499,7 +499,7 @@ function FormFields({
           type="text"
           value={agency}
           onChange={setAgency}
-          placeholder="Nom de l'agence"
+          placeholder={t('fields.agency')}
           leftIcon={BuildingIcon}
         />
         <BentoInput
@@ -507,7 +507,7 @@ function FormFields({
           type="email"
           value={email}
           onChange={setEmail}
-          placeholder="email@agence.ch"
+          placeholder={t('fields.emailAgent')}
           leftIcon={MailIcon}
         />
         <BentoInput
@@ -515,7 +515,7 @@ function FormFields({
           type="password"
           value={password}
           onChange={setPassword}
-          placeholder="Mot de passe"
+          placeholder={t('fields.password')}
           leftIcon={LockIcon}
         />
         <PasswordChecklist
@@ -525,8 +525,8 @@ function FormFields({
         />
         <BentoCTA
           tokens={tokens}
-          label="Créer mon espace"
-          loadingLabel="Création en cours…"
+          label={t('ctas.signup')}
+          loadingLabel={t('ctas.signupLoading')}
           loading={submitting}
           disabled={!passwordIsValid(password) || !name.trim() || !agency.trim() || !email.trim()}
           onClick={withLoading(() =>
@@ -543,9 +543,9 @@ function FormFields({
             marginTop: -4,
           }}
         >
-          Déjà un compte ?{' '}
+          {t('footer.alreadyAccount')}{' '}
           <FooterLink tokens={tokens} onClick={() => handlers.onGoSignIn?.()}>
-            Se connecter
+            {t('footer.signIn')}
           </FooterLink>
         </div>
       </>
@@ -557,14 +557,17 @@ function FormFields({
     return (
       <>
         <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
-          Un lien d'activation a été envoyé à{' '}
-          <strong style={{ color: tokens.titleColor }}>{currentEmail ?? email}</strong>.
-          Cliquez dessus pour activer votre compte et accéder à MEGGA.
+          <Trans
+            i18nKey="body.verifyEmailIntro"
+            ns="auth"
+            values={{ email: currentEmail ?? email }}
+            components={{ strong: <strong style={{ color: tokens.titleColor }} /> }}
+          />
         </div>
         <BentoCTA
           tokens={tokens}
-          label="Renvoyer le lien"
-          loadingLabel="Envoi en cours…"
+          label={t('ctas.resend')}
+          loadingLabel={t('ctas.resendLoading')}
           loading={submitting}
           cooldownSeconds={verifyCooldown.remaining}
           onClick={withLoading(async () => {
@@ -573,7 +576,7 @@ function FormFields({
           })}
         />
         <FooterLink tokens={tokens} onClick={() => handlers.onBackToSignup?.()}>
-          ← Changer d'email
+          {t('footer.backToSignup')}
         </FooterLink>
       </>
     )
@@ -588,14 +591,14 @@ function FormFields({
           type="email"
           value={email}
           onChange={setEmail}
-          placeholder="email@agence.ch"
+          placeholder={t('fields.emailAgent')}
           leftIcon={MailIcon}
           autoFocus
         />
         <BentoCTA
           tokens={tokens}
-          label="Recevoir le lien"
-          loadingLabel="Envoi en cours…"
+          label={t('ctas.resetRequest')}
+          loadingLabel={t('ctas.resendLoading')}
           loading={submitting}
           cooldownSeconds={resetCooldown.remaining}
           onClick={withLoading(async () => {
@@ -604,7 +607,7 @@ function FormFields({
           })}
         />
         <FooterLink tokens={tokens} onClick={() => handlers.onBackToSignIn?.()}>
-          ← Retour à la connexion
+          {t('footer.backToSignIn')}
         </FooterLink>
       </>
     )
@@ -619,18 +622,18 @@ function FormFields({
         {setNewPasswordDone ? (
           <>
             <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
-              Votre mot de passe a été mis à jour. Vous pouvez maintenant accéder à MEGGA.
+              {t('body.passwordUpdated')}
             </div>
             <BentoCTA
               tokens={tokens}
-              label="Aller à MEGGA"
+              label={t('ctas.goToCrm')}
               onClick={() => handlers.onBackToSignIn?.()}
             />
           </>
         ) : (
           <>
             <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
-              Choisissez un mot de passe d'au moins 12 caractères, avec une majuscule, un chiffre et un caractère spécial.
+              {t('body.setNewPasswordIntro')}
             </div>
             <BentoInput
               tokens={tokens}
@@ -640,7 +643,7 @@ function FormFields({
                 setPassword(v)
                 setSetNewPasswordError(null)
               }}
-              placeholder="Nouveau mot de passe"
+              placeholder={t('fields.newPassword')}
               leftIcon={LockIcon}
               autoFocus
             />
@@ -657,7 +660,7 @@ function FormFields({
                 setConfirmPassword(v)
                 setSetNewPasswordError(null)
               }}
-              placeholder="Confirmer le mot de passe"
+              placeholder={t('fields.confirmPassword')}
               leftIcon={LockIcon}
               error={confirmPassword.length > 0 && !passwordsMatch}
             />
@@ -676,13 +679,13 @@ function FormFields({
                 }}
               >
                 {AlertIcon}
-                <span>Les deux mots de passe ne correspondent pas.</span>
+                <span>{t('errors.passwordsMismatch')}</span>
               </div>
             )}
             <BentoCTA
               tokens={tokens}
-              label="Définir le mot de passe"
-              loadingLabel="Mise à jour…"
+              label={t('ctas.setNewPassword')}
+              loadingLabel={t('ctas.setNewPasswordLoading')}
               loading={submitting}
               disabled={!canSubmit}
               onClick={async () => {
@@ -692,7 +695,7 @@ function FormFields({
                 try {
                   const res = await handlers.onSetNewPassword?.(password)
                   if (res && !res.ok) {
-                    setSetNewPasswordError(res.message ?? 'Échec de la mise à jour.')
+                    setSetNewPasswordError(res.message ?? t('errors.updateFailed'))
                     setShakeKey((k) => k + 1)
                   } else if (res?.ok) {
                     setSetNewPasswordDone(true)
@@ -731,13 +734,17 @@ function FormFields({
     return (
       <>
         <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
-          Un lien de réinitialisation a été envoyé à{' '}
-          <strong style={{ color: tokens.titleColor }}>{currentEmail ?? email}</strong>.
+          <Trans
+            i18nKey="body.resetSentTo"
+            ns="auth"
+            values={{ email: currentEmail ?? email }}
+            components={{ strong: <strong style={{ color: tokens.titleColor }} /> }}
+          />
         </div>
         <BentoCTA
           tokens={tokens}
-          label="Renvoyer le lien"
-          loadingLabel="Envoi en cours…"
+          label={t('ctas.resend')}
+          loadingLabel={t('ctas.resendLoading')}
           loading={submitting}
           cooldownSeconds={resetCooldown.remaining}
           onClick={withLoading(async () => {
@@ -746,7 +753,7 @@ function FormFields({
           })}
         />
         <FooterLink tokens={tokens} onClick={() => handlers.onBackToSignIn?.()}>
-          ← Retour à la connexion
+          {t('footer.backToSignIn')}
         </FooterLink>
       </>
     )

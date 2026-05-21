@@ -1,14 +1,10 @@
 // MEGGA Auth — Toggles (Portal "duo" + Theme sun/moon)
 // Source : handoff-auth/auth/megga-auth-bento.jsx → BentoToggleDuo + BentoThemeToggle
 import { useState, type MouseEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { BentoTokens } from './tokens'
 
 export type Portail = 'particulier' | 'agent'
-
-const OPTIONS: Array<{ value: Portail; label: string }> = [
-  { value: 'particulier', label: 'Privé' },
-  { value: 'agent', label: 'Pro' },
-]
 
 export function BentoPortalToggle({
   tokens, portail, onChange, size = 'lg',
@@ -18,6 +14,11 @@ export function BentoPortalToggle({
   onChange: (v: Portail) => void
   size?: 'lg' | 'sm'
 }) {
+  const { t } = useTranslation('auth')
+  const OPTIONS: Array<{ value: Portail; label: string }> = [
+    { value: 'particulier', label: t('portails.particulier') },
+    { value: 'agent', label: t('portails.agent') },
+  ]
   const HEIGHT = size === 'sm' ? 44 : 52
   const CIRCLE = size === 'sm' ? 34 : 40
   const PAD_X = size === 'sm' ? 16 : 24
@@ -170,6 +171,7 @@ export function BentoThemeToggle({
   dark: boolean
   onChange: (theme: 'light' | 'dark') => void
 }) {
+  const { t } = useTranslation('auth')
   const [hover, setHover] = useState(false)
   return (
     <button
@@ -177,7 +179,7 @@ export function BentoThemeToggle({
       onClick={() => onChange(dark ? 'light' : 'dark')}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      aria-label={dark ? 'Passer en thème clair' : 'Passer en thème sombre'}
+      aria-label={dark ? t('themeToggle.toLight') : t('themeToggle.toDark')}
       style={{
         width: 40,
         height: 40,
