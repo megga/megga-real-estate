@@ -75,7 +75,7 @@ export function BentoInput({
         background: focus ? tokens.cardBg : tokens.subtleBg,
         borderRadius: 200,
         height: 50,
-        transition: 'all 0.18s',
+        transition: 'var(--bento-tx), box-shadow 0.18s ease',
         boxShadow: error
           ? `0 0 0 2px ${ERROR_COLOR} inset`
           : focus
@@ -139,7 +139,7 @@ export function BentoInput({
             borderRadius: 999,
             color: reveal ? tokens.inkColor : tokens.mutedColor,
             cursor: 'pointer',
-            transition: 'color 0.15s, background 0.15s',
+            transition: 'var(--bento-tx), color 0.15s ease, background 0.15s ease',
             marginRight: -8,
           }}
           onMouseEnter={(e) => {
@@ -242,7 +242,7 @@ export function BentoCTA({
         letterSpacing: tokens.letterSpacing,
         cursor: isBusy ? 'not-allowed' : 'pointer',
         opacity: disabled || inCooldown ? 0.55 : 1,
-        transition: 'all 0.18s',
+        transition: 'var(--bento-tx), opacity 0.18s ease',
         display: 'flex',
         alignItems: 'center',
         paddingLeft: 22,
@@ -271,7 +271,7 @@ export function BentoCTA({
           alignItems: 'center',
           justifyContent: 'center',
           transform: hover && !isBusy ? 'translateX(2px)' : 'none',
-          transition: 'transform 0.18s',
+          transition: 'var(--bento-tx), transform 0.18s ease',
         }}
       >
         {loading ? SpinnerIcon : ArrowIcon}
@@ -317,7 +317,7 @@ export function BentoOAuth({
         letterSpacing: tokens.letterSpacing,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
-        transition: 'all 0.18s',
+        transition: 'var(--bento-tx), opacity 0.18s ease',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -384,6 +384,7 @@ export function BentoLogoGG({
         display: 'block',
         color: tokens.titleColor,
         filter: tokens.logoInvert ? 'invert(1)' : 'none',
+        transition: 'var(--bento-tx)',
       }}
     />
   )
@@ -406,6 +407,7 @@ export function BentoLogoWordmark({
         display: 'block',
         color: tokens.titleColor,
         filter: tokens.logoInvert ? 'invert(1)' : 'none',
+        transition: 'var(--bento-tx)',
       }}
     />
   )

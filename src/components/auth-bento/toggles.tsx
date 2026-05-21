@@ -61,6 +61,7 @@ export function BentoPortalToggle({
                 letterSpacing: tokens.letterSpacing,
                 cursor: 'default',
                 gap: 14,
+                transition: 'var(--bento-tx)',
               }}
             >
               <span>{o.label}</span>
@@ -74,6 +75,7 @@ export function BentoPortalToggle({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  transition: 'var(--bento-tx)',
                 }}
               >
                 <svg
@@ -114,7 +116,7 @@ export function BentoPortalToggle({
               fontWeight: 500,
               letterSpacing: tokens.letterSpacing,
               cursor: 'pointer',
-              transition: 'all 0.18s',
+              transition: 'var(--bento-tx)',
             }}
           >
             {o.label}
@@ -192,7 +194,7 @@ export function BentoThemeToggle({
         boxShadow: `0 0 0 1px ${tokens.inputBorder} inset`,
         color: tokens.titleColor,
         cursor: 'pointer',
-        transition: 'all 0.18s',
+        transition: 'var(--bento-tx)',
         padding: 0,
         position: 'relative',
         overflow: 'hidden',
@@ -207,7 +209,7 @@ export function BentoThemeToggle({
           justifyContent: 'center',
           opacity: dark ? 0 : 1,
           transform: dark ? 'rotate(-30deg) scale(0.8)' : 'rotate(0) scale(1)',
-          transition: 'opacity 0.25s, transform 0.25s',
+          transition: 'opacity 0.32s cubic-bezier(.22,1,.36,1), transform 0.32s cubic-bezier(.22,1,.36,1)',
         }}
       >
         {MoonIcon}
@@ -221,7 +223,7 @@ export function BentoThemeToggle({
           justifyContent: 'center',
           opacity: dark ? 1 : 0,
           transform: dark ? 'rotate(0) scale(1)' : 'rotate(30deg) scale(0.8)',
-          transition: 'opacity 0.25s, transform 0.25s',
+          transition: 'opacity 0.32s cubic-bezier(.22,1,.36,1), transform 0.32s cubic-bezier(.22,1,.36,1)',
         }}
       >
         {SunIcon}

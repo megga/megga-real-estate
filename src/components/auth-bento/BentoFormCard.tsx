@@ -68,11 +68,12 @@ function Divider({ tokens }: { tokens: BentoTokens }) {
         fontWeight: 500,
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
+        transition: 'var(--bento-tx)',
       }}
     >
-      <div style={{ flex: 1, height: 1, background: tokens.ghostColor, opacity: 0.45 }} />
+      <div style={{ flex: 1, height: 1, background: tokens.ghostColor, opacity: 0.45, transition: 'var(--bento-tx)' }} />
       <span>{t('divider')}</span>
-      <div style={{ flex: 1, height: 1, background: tokens.ghostColor, opacity: 0.45 }} />
+      <div style={{ flex: 1, height: 1, background: tokens.ghostColor, opacity: 0.45, transition: 'var(--bento-tx)' }} />
     </div>
   )
 }
@@ -112,7 +113,7 @@ function PasswordChecklist({
               fontSize: 12,
               fontWeight: 500,
               color: ok ? tokens.titleColor : tokens.mutedColor,
-              transition: 'color 0.18s',
+              transition: 'var(--bento-tx), color 0.18s ease',
             }}
           >
             <span
@@ -127,7 +128,7 @@ function PasswordChecklist({
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: tokens.ctaFg,
-                transition: 'all 0.18s',
+                transition: 'var(--bento-tx), background 0.18s ease, box-shadow 0.18s ease',
               }}
             >
               {ok && (
@@ -177,6 +178,7 @@ function FooterLink({
         textDecoration: 'underline',
         textUnderlineOffset: 3,
         whiteSpace: 'nowrap',
+        transition: 'var(--bento-tx)',
       }}
     >
       {children}
@@ -209,6 +211,7 @@ export function BentoFormCard({
         flexDirection: 'column',
         gap: 22,
         animation: 'megga-auth-fade-up 0.4s cubic-bezier(.22,1,.36,1) both',
+        transition: 'var(--bento-tx)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -224,6 +227,7 @@ export function BentoFormCard({
           lineHeight: 1.05,
           letterSpacing: tokens.titleLetterSpacing,
           color: tokens.titleColor,
+          transition: 'var(--bento-tx)',
         }}
       >
         {t(`titles.${etat}`)}
@@ -338,7 +342,7 @@ function FormFields({
   if (portail === 'particulier' && etat === 'sent') {
     return (
       <>
-        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
           <Trans
             i18nKey="body.linkSentTo"
             ns="auth"
@@ -368,7 +372,7 @@ function FormFields({
   if (portail === 'particulier' && etat === 'error') {
     return (
       <>
-        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
           {t('body.rateLimited')}
         </div>
         <BentoCTA
@@ -556,7 +560,7 @@ function FormFields({
   if (portail === 'agent' && etat === 'verifyEmail') {
     return (
       <>
-        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
           <Trans
             i18nKey="body.verifyEmailIntro"
             ns="auth"
@@ -621,7 +625,7 @@ function FormFields({
       <>
         {setNewPasswordDone ? (
           <>
-            <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
               {t('body.passwordUpdated')}
             </div>
             <BentoCTA
@@ -632,7 +636,7 @@ function FormFields({
           </>
         ) : (
           <>
-            <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
               {t('body.setNewPasswordIntro')}
             </div>
             <BentoInput
@@ -733,7 +737,7 @@ function FormFields({
   if (portail === 'agent' && etat === 'resetsent') {
     return (
       <>
-        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
           <Trans
             i18nKey="body.resetSentTo"
             ns="auth"

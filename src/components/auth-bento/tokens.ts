@@ -98,7 +98,31 @@ export function bentoTokens(dark: boolean): BentoTokens {
 
 export const ERROR_COLOR = '#B8412A'
 
+/**
+ * Transition unique pour TOUS les changements de thème (light ↔ dark).
+ * Couvre background, color, border, shadow, filter. À composer avec les
+ * transitions hover spécifiques (transform 0.18s, opacity 0.22s, etc.).
+ *
+ * Référence via `var(--bento-tx)` côté inline-style → permet à
+ * `prefers-reduced-motion: reduce` de désactiver toutes les transitions
+ * en surchargeant la variable à 'none' (inline-styles ne peuvent pas être
+ * overridés par les media queries autrement).
+ *
+ * Timing 0.32s cubic-bezier(.22,1,.36,1) = compromis entre la canvas
+ * (0.4s ease) et le hover (0.18s) → sensation cohérente.
+ */
+export const BENTO_THEME_TRANSITION =
+  'background-color 0.32s cubic-bezier(.22,1,.36,1), background 0.32s cubic-bezier(.22,1,.36,1), color 0.32s cubic-bezier(.22,1,.36,1), border-color 0.32s cubic-bezier(.22,1,.36,1), box-shadow 0.32s cubic-bezier(.22,1,.36,1), filter 0.32s cubic-bezier(.22,1,.36,1)'
+
 export const BENTO_GLOBAL_CSS = `
+  :root {
+    --bento-tx: ${BENTO_THEME_TRANSITION};
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --bento-tx: none;
+    }
+  }
   @keyframes megga-auth-fade-up {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
