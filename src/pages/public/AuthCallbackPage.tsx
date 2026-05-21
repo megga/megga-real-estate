@@ -108,9 +108,9 @@ export default function AuthCallbackPage() {
           navigate('/', { replace: true })
         }
       }
-      // Handle password recovery redirect
+      // Handle password recovery redirect → new bento auth screen
       if (event === 'PASSWORD_RECOVERY') {
-        navigate('/reset-password', { replace: true })
+        navigate('/auth/mot-de-passe-oublie/redefinir', { replace: true })
       }
     })
 
@@ -120,7 +120,7 @@ export default function AuthCallbackPage() {
       if (session?.user) {
         handleRedirect(session.user.id, session.user)
       } else {
-        navigate('/login', { replace: true })
+        navigate('/auth/connexion', { replace: true })
       }
     }, 5000)
 

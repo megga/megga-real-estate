@@ -21,13 +21,14 @@ interface AuthContextType {
   loading: boolean
   isAgent: boolean
   isParticulier: boolean
-  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
-  signInWithEmail: (email: string) => Promise<{ error: string | null }>
+  signInWithPassword: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>
+  signInWithEmail: (email: string, captchaToken?: string) => Promise<{ error: string | null }>
   signInWithGoogle: (role?: UserRole) => Promise<{ error: string | null }>
   signInWithMicrosoft: (role?: UserRole) => Promise<{ error: string | null }>
   signInWithFacebook: (role?: UserRole) => Promise<{ error: string | null }>
-  resetPassword: (email: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error: string | null }>
+  resetPassword: (email: string, captchaToken?: string) => Promise<{ error: string | null }>
+  updatePassword: (password: string) => Promise<{ error: string | null }>
+  signUp: (email: string, password: string, fullName: string, role?: UserRole, captchaToken?: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -177,8 +178,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [loadProfile])
 
-  const signInWithPassword = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  const signInWithPassword = useCallback(async (email: string, password: string, captchaToken?: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: captchaToken ? { captchaToken } : undefined,
+    })
     if (error) return { error: error.message }
 
     // Fix role mismatch: if user_metadata has a role but profile still has default
@@ -193,11 +198,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }, [])
 
-  const signInWithEmail = useCallback(async (email: string) => {
+  const signInWithEmail = useCallback(async (email: string, captchaToken?: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        ...(captchaToken ? { captchaToken } : {}),
       },
     })
     return { error: error?.message ?? null }
@@ -249,20 +255,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
-  const resetPassword = useCallback(async (email: string) => {
+  const resetPassword = useCallback(async (email: string, captchaToken?: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      ...(captchaToken ? { captchaToken } : {}),
     })
     return { error: error?.message ?? null }
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string, fullName: string, role: UserRole = 'particulier') => {
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    return { error: error?.message ?? null }
+  }, [])
+
+  const signUp = useCallback(async (email: string, password: string, fullName: string, role: UserRole = 'particulier', captchaToken?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName, role },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        ...(captchaToken ? { captchaToken } : {}),
       },
     })
     if (error) return { error: error.message }
@@ -314,6 +327,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithFacebook,
         signUp,
         resetPassword,
+        updatePassword,
         signOut: handleSignOut,
         refreshProfile,
       }}

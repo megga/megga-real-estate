@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AnimatePresence } from 'motion/react'
 import { AuthProvider } from '@/hooks/useAuth'
@@ -56,8 +56,32 @@ const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
 
 // Auth + blog v2 — lazy car secondary path
 const BlogV2Page = lazy(() => import('@/pages/public/BlogV2Page'))
-const LoginPage = lazy(() => import('@/pages/public/LoginPage'))
 const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
+// New auth bento (modal-style) — pages wrap AuthBentoApp.
+const AuthConnexionPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthConnexionPage })),
+)
+const AuthMagicSentPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthMagicSentPage })),
+)
+const AuthMagicErrorPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthMagicErrorPage })),
+)
+const AuthSignupPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthSignupPage })),
+)
+const AuthVerifyEmailPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthVerifyEmailPage })),
+)
+const AuthResetPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthResetPage })),
+)
+const AuthResetSentPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthResetSentPage })),
+)
+const AuthSetNewPasswordPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthSetNewPasswordPage })),
+)
 
 // Layout shells agent — lazy car ils ne wrappent que les routes dashboard
 const AgentLayout = lazy(() => import('@/components/layout/AgentLayout'))
@@ -286,9 +310,20 @@ function AnimatedRoutes() {
               <Route path="/design-system/shadows" element={<PropertyXDesignSystemShadowsPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<LoginPage />} />
+              {/* Legacy /login + /register → redirect to the new bento auth.
+                  Old code/CTA still works; the new modal owns the experience. */}
+              <Route path="/login" element={<Navigate to="/auth/connexion" replace />} />
+              <Route path="/register" element={<Navigate to="/auth/inscription" replace />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              {/* New bento auth (modal-style, Property X strict, light + dark Pure Ink) */}
+              <Route path="/auth/connexion" element={<AuthConnexionPage />} />
+              <Route path="/auth/connexion/lien-envoye" element={<AuthMagicSentPage />} />
+              <Route path="/auth/connexion/erreur" element={<AuthMagicErrorPage />} />
+              <Route path="/auth/inscription" element={<AuthSignupPage />} />
+              <Route path="/auth/inscription/email-verifier" element={<AuthVerifyEmailPage />} />
+              <Route path="/auth/mot-de-passe-oublie" element={<AuthResetPage />} />
+              <Route path="/auth/mot-de-passe-oublie/envoye" element={<AuthResetSentPage />} />
+              <Route path="/auth/mot-de-passe-oublie/redefinir" element={<AuthSetNewPasswordPage />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
               {/* Marketplace publique — Property X design, branchée Supabase.
