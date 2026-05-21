@@ -211,7 +211,7 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
         letterSpacing: tokens.letterSpacing,
         color: tokens.titleColor,
         overflow: 'auto',
-        transition: 'background 0.4s ease',
+        transition: 'var(--bento-tx)',
       }}
     >
       <style>{BENTO_GLOBAL_CSS}</style>
