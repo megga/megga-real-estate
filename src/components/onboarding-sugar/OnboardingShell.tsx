@@ -160,7 +160,8 @@ export function OnboardingShell({ dark = false }: { dark?: boolean }) {
 
   const enterCrm = async () => {
     if (!profile) {
-      navigate('/dashboard', { replace: true })
+      // Pas de profil chargé : le ProtectedRoute du Premier jour gérera la suite.
+      navigate('/dashboard/premier-jour', { replace: true })
       return
     }
     setSaving(true)
@@ -175,7 +176,10 @@ export function OnboardingShell({ dark = false }: { dark?: boolean }) {
       await refreshProfile()
     } finally {
       setSaving(false)
-      navigate('/dashboard', { replace: true })
+      // Sortie de l'onboarding → sas Premier jour (calibrage IA + Today fantôme).
+      // Si l'agent l'a déjà joué (relogin), ProtectedRoute le by-passera vers
+      // /dashboard automatiquement.
+      navigate('/dashboard/premier-jour', { replace: true })
     }
   }
 
