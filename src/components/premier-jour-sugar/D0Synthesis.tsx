@@ -6,7 +6,6 @@ import { useState } from 'react'
 import { obPalette, type ObTheme } from '@/components/onboarding-sugar/tokens'
 import {
   ObBlackPill,
-  ObGhostPill,
   ObIcon,
   type ObIconName,
 } from '@/components/onboarding-sugar/primitives'
@@ -16,7 +15,6 @@ import {
   d0BuildCommitments,
   d0ZoneListLabel,
 } from './data'
-import { D0AIBadge } from './primitives'
 import type { Autonomy, D0Answers } from './types'
 
 export function D0Synthesis({
@@ -92,19 +90,6 @@ export function D0Synthesis({
           animation: 'd0SlideUp .5s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        {/* Badge MEGGA AI + eyebrow "SYNTHÈSE" — signale visuellement que
-            ce qu'on lit ci-dessous est généré par l'IA, pas saisi par
-            l'agent. C'est le moment de séduction (handoff §Philosophie). */}
-        <div
-          style={{
-            display: 'inline-flex',
-            justifyContent: 'center',
-            marginBottom: 22,
-          }}
-        >
-          <D0AIBadge size={28} dark={dark} label="MEGGA AI · Synthèse" />
-        </div>
-
         <h1
           style={{
             margin: 0,
@@ -119,19 +104,6 @@ export function D0Synthesis({
           <br />
           de vous, {prenom}.
         </h1>
-        <p
-          style={{
-            margin: '18px auto 0',
-            maxWidth: 540,
-            fontSize: 15.5,
-            color: t.inkSoft,
-            fontWeight: 500,
-            lineHeight: 1.55,
-          }}
-        >
-          Vous pouvez ajuster mon niveau d'autonomie et modifier n'importe
-          quelle réponse.
-        </p>
       </div>
 
       {/* Card centrale 2 colonnes */}
@@ -270,9 +242,7 @@ export function D0Synthesis({
         <D0AutonomySlider value={autonomy} onChange={setAutonomy} dark={dark} />
       </div>
 
-      {/* CTA — pilule noire principale + ghost "Modifier mes réponses"
-          côte à côte (handoff §Phase synthesis "CTA final"). Le ghost
-          renvoie sur q0 pour permettre de re-jouer le calibrage. */}
+      {/* CTA */}
       <div
         style={{
           display: 'flex',
@@ -284,42 +254,22 @@ export function D0Synthesis({
           animationFillMode: 'both',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-          }}
+        <ObBlackPill
+          onClick={onEnter}
+          dark={dark}
+          size="lg"
+          autoFocus
+          icon={
+            <ObIcon
+              name="arrowR"
+              size={18}
+              stroke={dark ? '#0B0C0E' : '#fff'}
+              sw={2}
+            />
+          }
         >
-          <ObGhostPill
-            onClick={() => onEditQuestion(0)}
-            dark={dark}
-            size="lg"
-            icon={
-              <ObIcon name="arrowL" size={16} stroke={t.inkSoft} sw={2} />
-            }
-          >
-            Modifier mes réponses
-          </ObGhostPill>
-          <ObBlackPill
-            onClick={onEnter}
-            dark={dark}
-            size="lg"
-            autoFocus
-            icon={
-              <ObIcon
-                name="arrowR"
-                size={18}
-                stroke={dark ? '#0B0C0E' : '#fff'}
-                sw={2}
-              />
-            }
-          >
-            Entrer dans MEGGA
-          </ObBlackPill>
-        </div>
+          Entrer dans MEGGA
+        </ObBlackPill>
         <div
           style={{
             fontSize: 12.5,
