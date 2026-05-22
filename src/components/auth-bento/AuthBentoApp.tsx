@@ -2,6 +2,7 @@
 // Source : handoff-auth/auth/megga-auth-bento.jsx → AuthBentoApp
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { BENTO_GLOBAL_CSS, bentoTokens } from './tokens'
 import { BentoLogoGG } from './primitives'
@@ -202,7 +203,6 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
 
   return (
     <div
-      key={route.portail /* force remount → cascade animation au switch portail */}
       style={{
         position: 'fixed',
         inset: 0,
@@ -276,15 +276,33 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
             justifyContent: 'center',
           }}
         >
-          <div style={{ width: '100%' }}>
-            <BentoFormCard
-              tokens={tokens}
-              portail={route.portail}
-              etat={route.etat as AuthState}
-              handlers={handlers}
-              currentEmail={currentEmail}
-              compact={isMobile}
-            />
+          <div style={{ width: '100%', position: 'relative' }}>
+            {/* AnimatePresence wrappe la form card : à chaque switch portail
+                ou etat, l'ancienne sort en fade-down (0.22s), la nouvelle
+                entre en fade-up (0.36s). `mode="wait"` évite le chevauchement
+                pour rester clean. */}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${route.portail}-${route.etat}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{
+                  duration: 0.36,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                style={{ width: '100%' }}
+              >
+                <BentoFormCard
+                  tokens={tokens}
+                  portail={route.portail}
+                  etat={route.etat as AuthState}
+                  handlers={handlers}
+                  currentEmail={currentEmail}
+                  compact={isMobile}
+                />
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

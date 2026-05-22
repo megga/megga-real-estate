@@ -1,6 +1,6 @@
 // MEGGA Auth — Toggles (Portal "duo" + Theme sun/moon)
 // Source : handoff-auth/auth/megga-auth-bento.jsx → BentoToggleDuo + BentoThemeToggle
-import { useState, type MouseEvent } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { BentoTokens } from './tokens'
 
@@ -19,107 +19,89 @@ export function BentoPortalToggle({
     { value: 'particulier', label: t('portails.particulier') },
     { value: 'agent', label: t('portails.agent') },
   ]
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+
   const HEIGHT = size === 'sm' ? 44 : 52
   const CIRCLE = size === 'sm' ? 34 : 40
-  const PAD_X = size === 'sm' ? 16 : 24
-  const PAD_LEFT_ACTIVE = size === 'sm' ? 16 : 22
-  const handleHover = (active: boolean, e: MouseEvent<HTMLButtonElement>) => {
-    if (active) return
-    const el = e.currentTarget
-    el.style.boxShadow = `0 0 0 1px ${tokens.inkColor} inset`
-    el.style.color = tokens.titleColor
-  }
-  const handleLeave = (active: boolean, e: MouseEvent<HTMLButtonElement>) => {
-    if (active) return
-    const el = e.currentTarget
-    el.style.boxShadow = `0 0 0 1px ${tokens.inputBorder} inset`
-    el.style.color = tokens.bodyColor
-  }
+  const PAD_LEFT = size === 'sm' ? 16 : 22
+  const PAD_RIGHT_ACTIVE = 6
+  const PAD_RIGHT_INACTIVE = PAD_LEFT
+  const GAP_ACTIVE = 14
+  const TX = '0.36s cubic-bezier(.22,1,.36,1)'
+
   return (
     <div style={{ display: 'inline-flex', gap: 8, fontFamily: tokens.font }}>
-      {OPTIONS.map((o) => {
+      {OPTIONS.map((o, i) => {
         const active = portail === o.value
-        if (active) {
-          return (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => onChange(o.value)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                height: HEIGHT,
-                paddingLeft: PAD_LEFT_ACTIVE,
-                paddingRight: 6,
-                background: tokens.inkColor,
-                border: 0,
-                borderRadius: 200,
-                color: tokens.ctaFg,
-                fontFamily: tokens.font,
-                fontSize: 14,
-                fontWeight: 500,
-                letterSpacing: tokens.letterSpacing,
-                cursor: 'default',
-                gap: 14,
-                transition: 'var(--bento-tx)',
-              }}
-            >
-              <span>{o.label}</span>
-              <span
-                style={{
-                  width: CIRCLE,
-                  height: CIRCLE,
-                  borderRadius: 999,
-                  background: tokens.ctaCircleBg,
-                  color: tokens.ctaCircleFg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'var(--bento-tx)',
-                }}
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="5 12 10 17 19 7" />
-                </svg>
-              </span>
-            </button>
-          )
-        }
+        const hovered = hoverIdx === i
+        // Width fixe : largeur label + cercle + padding actif → pas de layout shift
+        // au switch (l'inactive réserve l'espace du cercle).
+        const ringColor = hovered && !active ? tokens.inkColor : tokens.inputBorder
         return (
           <button
             key={o.value}
             type="button"
-            onClick={() => onChange(o.value)}
-            onMouseEnter={(e) => handleHover(false, e)}
-            onMouseLeave={(e) => handleLeave(false, e)}
+            onClick={() => !active && onChange(o.value)}
+            onMouseEnter={() => setHoverIdx(i)}
+            onMouseLeave={() => setHoverIdx(null)}
+            aria-pressed={active}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               height: HEIGHT,
-              padding: `0 ${PAD_X}px`,
-              background: 'transparent',
+              // Padding constant : actif et inactif occupent la même largeur.
+              paddingLeft: PAD_LEFT,
+              paddingRight: active ? PAD_RIGHT_ACTIVE : PAD_RIGHT_INACTIVE,
+              background: active ? tokens.inkColor : 'transparent',
               border: 0,
               borderRadius: 200,
-              boxShadow: `0 0 0 1px ${tokens.inputBorder} inset`,
-              color: tokens.bodyColor,
+              boxShadow: active ? 'none' : `0 0 0 1px ${ringColor} inset`,
+              color: active ? tokens.ctaFg : hovered ? tokens.titleColor : tokens.bodyColor,
               fontFamily: tokens.font,
               fontSize: 14,
               fontWeight: 500,
               letterSpacing: tokens.letterSpacing,
-              cursor: 'pointer',
-              transition: 'var(--bento-tx)',
+              cursor: active ? 'default' : 'pointer',
+              gap: GAP_ACTIVE,
+              transition: `background ${TX}, color ${TX}, box-shadow ${TX}, padding-right ${TX}`,
             }}
           >
-            {o.label}
+            <span style={{ whiteSpace: 'nowrap' }}>{o.label}</span>
+            {/* Cercle inverse — toujours présent dans le DOM, son opacité +
+                scale + width morphent entre actif/inactif. Évite l'unmount
+                qui ferait pop le cercle au switch. */}
+            <span
+              aria-hidden
+              style={{
+                width: active ? CIRCLE : 0,
+                height: CIRCLE,
+                borderRadius: 999,
+                background: tokens.ctaCircleBg,
+                color: tokens.ctaCircleFg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: active ? 1 : 0,
+                transform: active ? 'scale(1)' : 'scale(0.4)',
+                overflow: 'hidden',
+                flexShrink: 0,
+                transition: `width ${TX}, opacity ${TX}, transform ${TX}, background-color 0.32s cubic-bezier(.22,1,.36,1), color 0.32s cubic-bezier(.22,1,.36,1)`,
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0 }}
+              >
+                <polyline points="5 12 10 17 19 7" />
+              </svg>
+            </span>
           </button>
         )
       })}

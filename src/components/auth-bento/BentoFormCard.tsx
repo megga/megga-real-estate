@@ -210,7 +210,9 @@ export function BentoFormCard({
         display: 'flex',
         flexDirection: 'column',
         gap: 22,
-        animation: 'megga-auth-fade-up 0.4s cubic-bezier(.22,1,.36,1) both',
+        // Note : l'animation d'entrée est maintenant gérée par AnimatePresence
+        // dans le shell (motion.div parent). On garde uniquement la transition
+        // pour le switch light/dark.
         transition: 'var(--bento-tx)',
       }}
     >
