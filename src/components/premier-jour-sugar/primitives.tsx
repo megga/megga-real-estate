@@ -164,13 +164,23 @@ export function D0OptionCard({
           aria-hidden
           style={{
             position: 'absolute',
-            // Ajustement par icône — certaines (building, target) remplissent
-            // leur viewBox jusqu'au bord et touchent la bordure de la card.
+            // Ajustement par icône — certaines (building, surface, target,
+            // clock, calendar, sparkle) remplissent leur viewBox jusqu'au
+            // bord et touchent la bordure de la card. On les remonte / décale.
             bottom:
               iconName === 'building' ? -10 :
+              iconName === 'surface' ? -13 :
               iconName === 'target' ? -16 :
+              iconName === 'clock' ? -14 :
+              iconName === 'calendar' ? -14 :
+              iconName === 'sparkle' ? -14 :
               -22,
-            right: -18,
+            right:
+              iconName === 'calendar' ? -14 :
+              iconName === 'sparkle' ? -14 :
+              iconName === 'surface' ? -14 :
+              iconName === 'flag' ? -38 :
+              -18,
             pointerEvents: 'none',
             width: 180,
             height: 180,
@@ -229,6 +239,7 @@ export function D0OptionCard({
             fontWeight: 500,
             lineHeight: 1.5,
             maxWidth: 'calc(100% - 80px)',
+            whiteSpace: 'pre-line',
           }}
         >
           {hint}

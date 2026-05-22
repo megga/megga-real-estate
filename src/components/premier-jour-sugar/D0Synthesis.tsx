@@ -7,9 +7,9 @@ import { obPalette, type ObTheme } from '@/components/onboarding-sugar/tokens'
 import {
   ObBlackPill,
   ObGhostPill,
-  ObIcon,
-  type ObIconName,
 } from '@/components/onboarding-sugar/primitives'
+import { ObThemeToggle } from '@/components/onboarding-sugar/OnboardingShell'
+import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
 import {
   D0_AUTONOMY,
   D0_QUESTIONS,
@@ -27,6 +27,7 @@ export function D0Synthesis({
   onEnter,
   onEditQuestion,
   dark,
+  onThemeChange,
 }: {
   prenom: string
   answers: D0Answers
@@ -35,6 +36,7 @@ export function D0Synthesis({
   onEnter: () => void
   onEditQuestion: (i: 0 | 1 | 2 | 3) => void
   dark?: boolean
+  onThemeChange?: (theme: 'light' | 'dark') => void
 }) {
   const t = obPalette(dark)
 
@@ -47,7 +49,7 @@ export function D0Synthesis({
   const zoneLabel = d0ZoneListLabel(answers.zone, { fallback: '—' })
   const dispoQ = D0_QUESTIONS[2]
   const dispoOpt =
-    dispoQ.kind === 'segmented'
+    dispoQ.kind === 'cards'
       ? dispoQ.options.find((o) => o.id === answers.dispo)
       : undefined
   const dispoLabel = dispoOpt?.label ?? '—'
@@ -69,8 +71,15 @@ export function D0Synthesis({
         padding: '40px 32px 80px',
       }}
     >
-      {/* Logo seul */}
-      <div style={{ marginBottom: 32 }}>
+      {/* Header — logo gauche + toggle dark mode droite */}
+      <div
+        style={{
+          marginBottom: 32,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <img
           src="/megga-logo.svg"
           alt="MEGGA"
@@ -81,6 +90,9 @@ export function D0Synthesis({
             filter: dark ? 'invert(1)' : 'none',
           }}
         />
+        {onThemeChange && (
+          <ObThemeToggle dark={!!dark} onChange={onThemeChange} t={t} />
+        )}
       </div>
 
       {/* Header */}
@@ -108,11 +120,13 @@ export function D0Synthesis({
         <h1
           style={{
             margin: 0,
-            fontSize: 44,
+            fontFamily:
+              '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+            fontSize: 56,
             fontWeight: 700,
             color: t.ink,
-            letterSpacing: -1.1,
-            lineHeight: 1.05,
+            letterSpacing: '-0.035em',
+            lineHeight: 1.02,
           }}
         >
           Voici ce que j'ai compris
@@ -134,16 +148,17 @@ export function D0Synthesis({
         </p>
       </div>
 
-      {/* Card centrale 2 colonnes */}
+      {/* Card centrale 2 colonnes — hybrid PX (border 1px subtile + shadow) */}
       <div
         style={{
           maxWidth: 1020,
           width: '100%',
           margin: '0 auto 32px',
           background: t.card,
+          border: `1px solid ${t.cardBorder}`,
           borderRadius: 28,
           overflow: 'hidden',
-          boxShadow: t.shadowLg,
+          boxShadow: t.shadow,
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           animation: 'd0SlideUp .55s cubic-bezier(.2,.8,.2,1) both',
@@ -192,7 +207,7 @@ export function D0Synthesis({
             t={t}
           />
           <D0ProfileRow
-            icon="map"
+            icon="location"
             label="Zone"
             value={zoneLabel}
             onEdit={() => onEditQuestion(1)}
@@ -298,7 +313,12 @@ export function D0Synthesis({
             dark={dark}
             size="lg"
             icon={
-              <ObIcon name="arrowL" size={16} stroke={t.inkSoft} sw={2} />
+              <PxIcon
+                name="arrow-left"
+                size={16}
+                color={t.inkSoft}
+                strokeWidth={2}
+              />
             }
           >
             Modifier mes réponses
@@ -309,11 +329,11 @@ export function D0Synthesis({
             size="lg"
             autoFocus
             icon={
-              <ObIcon
-                name="arrowR"
+              <PxIcon
+                name="arrow-right"
                 size={18}
-                stroke={dark ? '#0B0C0E' : '#fff'}
-                sw={2}
+                color={dark ? '#0B0C0E' : '#FFFFFF'}
+                strokeWidth={2}
               />
             }
           >
@@ -353,6 +373,7 @@ function D0AutonomySlider({
     <div
       style={{
         background: t.card,
+        border: `1px solid ${t.cardBorder}`,
         borderRadius: 22,
         padding: '26px 28px',
         boxShadow: t.shadow,
@@ -437,7 +458,7 @@ function D0ProfileRow({
   delay = 0,
   t,
 }: {
-  icon: ObIconName
+  icon: PxIconName
   label: string
   value: string
   onEdit: () => void
@@ -463,16 +484,13 @@ function D0ProfileRow({
       <div
         style={{
           flexShrink: 0,
-          width: 34,
-          height: 34,
-          borderRadius: 10,
-          background: t.cardSubtle,
+          width: 28,
           color: t.ink,
           display: 'grid',
           placeItems: 'center',
         }}
       >
-        <ObIcon name={icon} size={16} stroke="currentColor" sw={1.7} />
+        <PxIcon name={icon} size={20} color="currentColor" strokeWidth={1.7} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -562,7 +580,7 @@ function D0CommitmentRow({
           animationFillMode: 'both',
         }}
       >
-        <ObIcon name="check" size={12} stroke="currentColor" sw={2.6} />
+        <PxIcon name="check" size={12} color="currentColor" strokeWidth={2.4} />
       </div>
       <p
         style={{

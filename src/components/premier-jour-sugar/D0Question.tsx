@@ -1,8 +1,12 @@
 // MEGGA Premier jour — Écran question générique (Q1/Q2/Q3/Q4)
 // Layout commun avec eyebrow N/4, titre, sub, body selon kind (cards/zone/segmented),
 // footer fixe (Précédent/Continuer), header avec logo + dots + skip.
+// Transition Q→Q : cross-fade + tiny Y via Framer Motion AnimatePresence
+// (mode="wait", spring stiffness 280 damping 30) — feel "content morph en
+// place" plutôt que "page change".
 // Source : handoff-premier-jour/premier-jour/crm-day0-calibration.jsx → D0QuestionScreen
-import { obPalette, type ObTheme } from '@/components/onboarding-sugar/tokens'
+import { AnimatePresence, motion } from 'framer-motion'
+import { obPalette } from '@/components/onboarding-sugar/tokens'
 import {
   ObBlackPill,
   ObGhostPill,
@@ -82,7 +86,6 @@ export function D0QuestionScreen({
 
       {/* CONTENU CENTRAL */}
       <main
-        key={q.id}
         style={{
           flex: 1,
           display: 'flex',
@@ -91,13 +94,26 @@ export function D0QuestionScreen({
           padding: '20px 32px 140px',
         }}
       >
-        <div
-          style={{
-            width: '100%',
-            maxWidth: 720,
-            animation: 'd0SlideUp .45s cubic-bezier(.2,.8,.2,1) both',
-          }}
-        >
+        {/* AnimatePresence mode="wait" — l'ancienne question fait son exit
+            COMPLET avant que la nouvelle entre. Cross-fade + tiny Y donne
+            le feel "content morph en place" (pas de page navigation). */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={q.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{
+              type: 'spring',
+              stiffness: 280,
+              damping: 30,
+              mass: 0.6,
+            }}
+            style={{
+              width: '100%',
+              maxWidth: 720,
+            }}
+          >
           {/* Titre — Objectivity Bold, cohérent avec le wizard onboarding.
               Case normale (pas uppercase) car ce sont des questions, pas des
               statements monumentaux. */}
@@ -111,6 +127,7 @@ export function D0QuestionScreen({
               color: t.ink,
               letterSpacing: '-0.03em',
               lineHeight: 1.05,
+              whiteSpace: 'pre-line',
             }}
           >
             {q.title}
@@ -125,6 +142,7 @@ export function D0QuestionScreen({
               fontWeight: 500,
               lineHeight: 1.5,
               maxWidth: 560,
+              whiteSpace: 'pre-line',
             }}
           >
             {q.sub}
@@ -177,16 +195,8 @@ export function D0QuestionScreen({
             />
           )}
 
-          {q.kind === 'segmented' && (
-            <D0Segmented
-              options={q.options}
-              value={typeof value === 'string' ? value : null}
-              onChange={(v) => onChange(v)}
-              dark={dark}
-              t={t}
-            />
-          )}
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* FOOTER fixe */}
@@ -243,95 +253,3 @@ export function D0QuestionScreen({
   )
 }
 
-// ─── Segmented control 3 positions (Q3 dispo) ────────────────────────
-
-function D0Segmented({
-  options,
-  value,
-  onChange,
-  dark,
-  t,
-}: {
-  options: { id: string; label: string; hint: string }[]
-  value: string | null
-  onChange: (id: string) => void
-  dark?: boolean
-  t: ObTheme
-}) {
-  const active = options.find((o) => o.id === value)
-  return (
-    <div style={{ marginTop: 8 }}>
-      {/* Segmented */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
-          gap: 6,
-          padding: 6,
-          background: t.cardSubtle,
-          borderRadius: 999,
-          boxShadow: t.shadowSm,
-        }}
-      >
-        {options.map((o) => {
-          const isSel = value === o.id
-          return (
-            <button
-              key={o.id}
-              onClick={() => onChange(o.id)}
-              style={{
-                height: 48,
-                borderRadius: 999,
-                border: 0,
-                background: isSel ? t.black : 'transparent',
-                color: isSel ? (dark ? '#0B0C0E' : '#fff') : t.inkSoft,
-                fontFamily: 'inherit',
-                fontSize: 14.5,
-                fontWeight: 600,
-                letterSpacing: -0.2,
-                cursor: 'pointer',
-                boxShadow: isSel ? '0 6px 16px rgba(11,12,14,0.20)' : 'none',
-                transition: 'all .2s ease',
-              }}
-            >
-              {o.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Détail dynamique en dessous */}
-      <div
-        key={active?.id ?? 'none'}
-        style={{
-          marginTop: 22,
-          textAlign: 'center',
-          animation: 'd0FadeIn .25s ease both',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: t.muted,
-            letterSpacing: 1.4,
-            textTransform: 'uppercase',
-            marginBottom: 6,
-          }}
-        >
-          Concrètement
-        </div>
-        <div
-          style={{
-            fontSize: 17,
-            fontWeight: 600,
-            color: t.ink,
-            letterSpacing: -0.3,
-          }}
-        >
-          {active?.hint ?? '—'}
-        </div>
-      </div>
-    </div>
-  )
-}

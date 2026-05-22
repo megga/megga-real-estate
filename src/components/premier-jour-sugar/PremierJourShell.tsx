@@ -17,6 +17,7 @@ import { D0_CSS } from './tokens'
 import { D0Welcome } from './D0Welcome'
 import { D0QuestionScreen } from './D0Question'
 import { D0Synthesis } from './D0Synthesis'
+import { D0Configuring } from './D0Configuring'
 import { D0TodayPremierJour } from './D0Today'
 import { useActivationChecklist } from '@/hooks/useActivationChecklist'
 import {
@@ -72,6 +73,19 @@ export function PremierJourShell({
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  // Escape hatch dev : `?reset=1` purge localStorage et recharge à 'welcome'.
+  // Permet de rejouer le sas sans toucher au profil Supabase ni à la console.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('reset') === '1') {
+      clearLocalState()
+      // Retire le query param pour éviter une boucle après reload
+      window.history.replaceState({}, '', window.location.pathname)
+      window.location.reload()
+    }
+  }, [])
 
   const onThemeChange = (next: 'light' | 'dark') => {
     setTheme(next)
@@ -197,9 +211,9 @@ export function PremierJourShell({
     }
   }
 
-  // Auto-pré-remplissage si on saute directement à synthesis/today
+  // Auto-pré-remplissage si on saute directement à synthesis/configuring/today
   useEffect(() => {
-    if (phase === 'synthesis' || phase === 'today') {
+    if (phase === 'synthesis' || phase === 'configuring' || phase === 'today') {
       setAnswers((prev) => ({
         specialite: prev.specialite ?? SKIP_DEFAULTS.specialite,
         zone: prev.zone.length > 0 ? prev.zone : [...SKIP_DEFAULTS.zone],
@@ -272,9 +286,18 @@ export function PremierJourShell({
         answers={answers}
         autonomy={autonomy}
         setAutonomy={setAutonomy}
-        onEnter={() => setPhase('today')}
+        onEnter={() => setPhase('configuring')}
         onEditQuestion={(i) => setPhase(`q${i}` as D0Phase)}
         dark={dark}
+        onThemeChange={onThemeChange}
+      />
+    )
+  } else if (phase === 'configuring') {
+    body = (
+      <D0Configuring
+        answers={answers}
+        dark={dark}
+        onComplete={() => setPhase('today')}
       />
     )
   } else if (phase === 'today') {
@@ -305,8 +328,19 @@ export function PremierJourShell({
     >
       <style>{OB_GLOBAL_CSS + D0_CSS}</style>
 
+      {/* Phase-group key : welcome/questions/synthesis/today. Toutes les
+          q0/q1/q2/q3 partagent la même key "questions" → D0QuestionScreen
+          reste monté, et son AnimatePresence interne anime le contenu Q→Q.
+          Les transitions inter-écrans (welcome → q0, q3 → synthesis, etc.)
+          déclenchent un fade-in via la CSS d0FadeIn. */}
       <div
-        key={phase}
+        key={
+          phase === 'welcome' ? 'welcome' :
+          phase.startsWith('q') ? 'questions' :
+          phase === 'synthesis' ? 'synthesis' :
+          phase === 'configuring' ? 'configuring' :
+          'today'
+        }
         style={{
           animation: 'd0FadeIn .35s ease both',
         }}

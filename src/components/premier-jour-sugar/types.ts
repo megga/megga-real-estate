@@ -1,7 +1,7 @@
 // MEGGA Premier jour — Types
 // Source : handoff-premier-jour/HANDOFF_PREMIER_JOUR_CLAUDE_CODE.md §"Modèle de données"
 
-export type Specialite = 'vente' | 'location' | 'commercial' | 'mix'
+export type Specialite = 'vente' | 'location' | 'commercial' | 'terrain'
 export type Dispo = 'office' | 'wide' | '247'
 export type Priorite = 'acquisition' | 'closing' | 'fidelisation'
 export type Autonomy = 'suggest' | 'notify' | 'resume'
@@ -13,6 +13,7 @@ export type D0Phase =
   | 'q2'
   | 'q3'
   | 'synthesis'
+  | 'configuring'
   | 'today'
 
 export type D0Answers = {
@@ -45,6 +46,7 @@ export const D0_PHASES: D0Phase[] = [
   'q2',
   'q3',
   'synthesis',
+  'configuring',
   'today',
 ]
 
