@@ -102,6 +102,36 @@ export const D0_QUESTIONS: D0Question[] = [
   },
 ]
 
+// ─── Routes CRM ciblées par les cartes priorité ──────────────────────
+// Au clic sur une carte priorité du Today Premier jour, on quitte le sas
+// (first_day_done=true + AuditEvent) et on atterrit directement sur la
+// page CRM correspondante. Si l'id n'est pas listé ici, fallback /dashboard.
+//
+// Source : handoff-premier-jour/HANDOFF_PREMIER_JOUR_CLAUDE_CODE.md §"Phase today".
+
+export const D0_PRIORITY_ROUTES: Record<string, string> = {
+  mandat: '/dashboard/listings/new',
+  matching: '/dashboard/matching',
+  import: '/dashboard/contacts/import',
+  agenda: '/dashboard/calendar',
+  // Les intégrations email sont dans Settings (section Integrations). Deep-link
+  // direct à ajouter quand SettingsSugarV2Page supportera ?section=integrations.
+  mail: '/dashboard/settings',
+  templates: '/dashboard/documents/templates/new',
+}
+
+// Quels id de cartes priorité correspondent aussi à un item de la checklist
+// d'activation (cocher l'item au clic, idempotent).
+export const D0_PRIORITY_TO_CHECKLIST: Record<string, string> = {
+  mandat: 'mandat',
+  import: 'import',
+  agenda: 'agenda',
+  mail: 'mail',
+  templates: 'templates',
+  // 'matching' n'a pas d'équivalent checklist — c'est une activation auto
+  // côté serveur, pas une étape manuelle.
+}
+
 // ─── Mapping priorité Q4 → 3 cartes priorité sur Aujourd'hui ─────────
 
 export type D0PriorityCard = {

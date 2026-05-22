@@ -14,7 +14,12 @@ import { D0Welcome } from './D0Welcome'
 import { D0QuestionScreen } from './D0Question'
 import { D0Synthesis } from './D0Synthesis'
 import { D0TodayPremierJour } from './D0Today'
-import { D0_CHECKLIST, D0_QUESTIONS } from './data'
+import {
+  D0_CHECKLIST,
+  D0_PRIORITY_ROUTES,
+  D0_PRIORITY_TO_CHECKLIST,
+  D0_QUESTIONS,
+} from './data'
 import {
   clearLocalState,
   loadLocalState,
@@ -151,8 +156,10 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
     })
   }
 
-  // ─── Entrée dans le CRM : persistance + redirect /dashboard ──────
-  const enterCrm = async () => {
+  // ─── Sortie du sas : persistance + redirect vers route cible ────
+  // Si `target` est fourni, on route directement vers cette page CRM.
+  // Sinon, /dashboard (atterrissage par défaut depuis la synthèse).
+  const enterCrm = async (target: string = '/dashboard') => {
     if (saving) return
     setSaving(true)
     try {
@@ -180,7 +187,7 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
       // Le gate ProtectedRoute rejouera le sas au prochain refresh si nécessaire.
     } finally {
       setSaving(false)
-      navigate('/dashboard', { replace: true })
+      navigate(target, { replace: true })
     }
   }
 
@@ -197,12 +204,29 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
-  // Hook futur — au clic sur une carte priorité, on quitte le mode Premier jour
-  // et on file sur l'écran CRM correspondant (cf. handoff §Today). Pour l'instant
-  // on enregistre simplement la complétion et on route vers le dashboard.
-  const onPriorityClick = (_cardId: string) => {
-    void _cardId
-    void enterCrm()
+  // Clic sur une carte priorité du Today Premier jour :
+  // 1. coche l'item correspondant de la checklist (idempotent serveur)
+  // 2. quitte le sas et route vers la vraie page CRM (D0_PRIORITY_ROUTES)
+  // Fallback /dashboard si l'id n'a pas de route mappée.
+  const onPriorityClick = (cardId: string) => {
+    const checklistId = D0_PRIORITY_TO_CHECKLIST[cardId]
+    if (checklistId) {
+      setChecklist((items) => {
+        // Idempotent : on ne re-coche pas si déjà fait.
+        if (items.find((i) => i.id === checklistId)?.done) return items
+        const next = items.map((i) =>
+          i.id === checklistId ? { ...i, done: true } : i,
+        )
+        if (profile?.id) {
+          void saveActivationChecklist(profile.id, next).catch(() => {
+            /* silent — l'audit ne bloque pas l'atterrissage CRM */
+          })
+        }
+        return next
+      })
+    }
+    const target = D0_PRIORITY_ROUTES[cardId] ?? '/dashboard'
+    void enterCrm(target)
   }
 
   // ─── Rendu par phase ────────────────────────────────────────────
