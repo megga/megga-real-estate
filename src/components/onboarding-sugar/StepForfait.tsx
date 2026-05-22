@@ -389,8 +389,7 @@ function ObPlanCard({
               MEGGA AI illimité — matching, parcours auto, rédaction
             </ObPlanFeature>
             <ObPlanFeature dark={dark} invert>
-              KYC automatisé <strong>LBA / LSFin</strong> (OCR, PEP, archivage
-              10 ans)
+              KYC automatisé <strong>LBA / LSFin</strong> (OCR, PEP, archivage légal)
             </ObPlanFeature>
             <ObPlanFeature dark={dark} invert>
               Signature électronique Skribble QES + DocuSign
