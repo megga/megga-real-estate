@@ -487,7 +487,11 @@ export function StepProfilAgence({
       Le branding public arrive plus tard, depuis vos paramètres.
     </>
   ) : (
-    <>Votre équipe a posé les fondations. Logo, adresse, conformité — déjà en place.</>
+    <>
+      Votre équipe a posé les fondations.
+      <br />
+      Logo, adresse, conformité déjà en place.
+    </>
   )
 
   return (

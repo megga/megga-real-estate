@@ -114,7 +114,17 @@ function ObAgencyRow({
             marginTop: 2,
           }}
         >
-          {ag.city}, {ag.canton} · {ag.agents} agents · depuis {ag.since}
+          {[
+            [ag.city, ag.canton].filter(Boolean).join(', '),
+            ag.agents > 0
+              ? `${ag.agents} ${ag.agents === 1 ? 'agent' : 'agents'}`
+              : null,
+            ag.since && ag.since < new Date().getFullYear()
+              ? `depuis ${ag.since}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </div>
       </div>
       <span
@@ -394,143 +404,141 @@ function ObAgencySelected({
       }}
     >
       <ObCard padding={0} radius={24} dark={dark}>
+        {!validated && (
+          <>
+            <div
+              style={{
+                position: 'relative',
+                padding: '32px 30px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                gap: 14,
+              }}
+            >
+              <ObAgencyMark ag={ag} size={64} dark={dark} />
+              <div style={{ minWidth: 0, maxWidth: '100%' }}>
+                <div
+                  style={{
+                    fontFamily:
+                      '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+                    fontSize: 26,
+                    fontWeight: 700,
+                    color: t.ink,
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.1,
+                    marginBottom: 6,
+                  }}
+                >
+                  {ag.name}
+                </div>
+                <div
+                  style={{ fontSize: 13, color: t.inkSoft, fontWeight: 500 }}
+                >
+                  {[
+                    [ag.city, ag.canton].filter(Boolean).join(', '),
+                    ag.agents > 0
+                      ? `${ag.agents} ${ag.agents === 1 ? 'agent' : 'agents'}`
+                      : null,
+                    ag.since && ag.since < new Date().getFullYear()
+                      ? `depuis ${ag.since}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              </div>
+              {!sent && (
+                <button
+                  onClick={onBack}
+                  style={{
+                    position: 'absolute',
+                    top: 14,
+                    right: 14,
+                    background: 'transparent',
+                    border: 0,
+                    color: t.muted,
+                    cursor: 'pointer',
+                    padding: 8,
+                    borderRadius: 999,
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
+                >
+                  <PxIcon name="close" size={18} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ height: 1, background: t.divider, margin: '0 30px' }} />
+          </>
+        )}
+
         <div
           style={{
-            padding: '28px 30px 22px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 18,
+            padding: validated ? '64px 40px 64px' : '22px 30px 26px',
           }}
         >
-          <ObAgencyMark ag={ag} size={64} dark={dark} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                color: t.muted,
-                letterSpacing: 1.2,
-                textTransform: 'uppercase',
-                marginBottom: 6,
-              }}
-            >
-              Agence sélectionnée
-            </div>
-            <div
-              style={{
-                fontSize: 24,
-                fontWeight: 700,
-                color: t.ink,
-                letterSpacing: -0.5,
-                marginBottom: 4,
-              }}
-            >
-              {ag.name}
-            </div>
-            <div
-              style={{ fontSize: 13, color: t.inkSoft, fontWeight: 500 }}
-            >
-              {ag.city}, {ag.canton} · {ag.agents} agents · depuis {ag.since}
-            </div>
-          </div>
-          {!sent && (
-            <button
-              onClick={onBack}
-              style={{
-                background: 'transparent',
-                border: 0,
-                color: t.muted,
-                cursor: 'pointer',
-                padding: 8,
-                borderRadius: 999,
-                display: 'grid',
-                placeItems: 'center',
-              }}
-            >
-              <PxIcon name="close" size={18} />
-            </button>
-          )}
-        </div>
-
-        <div style={{ height: 1, background: t.divider, margin: '0 30px' }} />
-
-        <div style={{ padding: '22px 30px 26px' }}>
           {!sent && !validated && (
             <>
               <div
                 style={{
-                  fontSize: 13.5,
+                  textAlign: 'center',
+                  fontSize: 14,
                   color: t.inkSoft,
                   fontWeight: 500,
-                  lineHeight: 1.6,
-                  marginBottom: 22,
+                  lineHeight: 1.5,
+                  marginBottom: 18,
                 }}
               >
-                Votre demande sera envoyée à l'administrateur de {ag.name}. Vous
-                pourrez accéder au CRM dès la validation (généralement sous 24h).
+                L'admin de {ag.name} reçoit votre demande.
               </div>
 
               <div
-                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  gap: '8px 18px',
+                  fontSize: 12,
+                  color: t.muted,
+                  fontWeight: 600,
+                  letterSpacing: -0.1,
+                }}
               >
                 {[
-                  ["Vous rejoignez l'équipe existante", 'Pas de doublon créé'],
-                  ["L'admin vérifie votre rôle", 'Sécurité LBA'],
-                  [
-                    'Vous héritez du logo, de l\'adresse, des modèles',
-                    'Aucune ressaisie',
-                  ],
-                ].map(([title, sub], i) => (
-                  <div
+                  'Conformité LBA',
+                  'Logo & modèles hérités',
+                ].map((label, i) => (
+                  <span
                     key={i}
                     style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 12,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
                     }}
                   >
-                    <div
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 999,
-                        background: t.cardSubtle,
-                        color: t.ink,
-                        display: 'grid',
-                        placeItems: 'center',
-                        flexShrink: 0,
-                        marginTop: 1,
-                      }}
-                    >
-                      <PxIcon name="check" size={12} color={t.ink} strokeWidth={2.2} />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 13.5,
-                          fontWeight: 600,
-                          color: t.ink,
-                          letterSpacing: -0.2,
-                        }}
-                      >
-                        {title}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: t.muted,
-                          fontWeight: 500,
-                          marginTop: 2,
-                        }}
-                      >
-                        {sub}
-                      </div>
-                    </div>
-                  </div>
+                    <PxIcon
+                      name="check"
+                      size={12}
+                      color={t.ok}
+                      strokeWidth={2.4}
+                    />
+                    {label}
+                  </span>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 14,
+                  marginTop: 28,
+                }}
+              >
                 <ObBlackPill
                   onClick={onConfirm}
                   dark={dark}
@@ -657,70 +665,60 @@ function ObAgencySelected({
 
           {validated && (
             <div
-              style={{ animation: 'obFadeUp .4s cubic-bezier(.2,.8,.2,1) both' }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                gap: 20,
+                animation: 'obFadeUp .4s cubic-bezier(.2,.8,.2,1) both',
+              }}
             >
               <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  marginBottom: 20,
+                  width: 64,
+                  height: 64,
+                  borderRadius: 999,
+                  background: t.ok,
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                  boxShadow: `0 10px 28px ${t.ok}40`,
                 }}
               >
+                <PxIcon
+                  name="check"
+                  size={28}
+                  strokeWidth={2.4}
+                  color="#FFFFFF"
+                />
+              </div>
+              <div style={{ maxWidth: 380 }}>
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 999,
-                    background: t.ink,
-                    color: t.card,
-                    display: 'grid',
-                    placeItems: 'center',
+                    fontFamily:
+                      '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+                    fontSize: 22,
+                    fontWeight: 700,
+                    color: t.ink,
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.2,
                   }}
                 >
-                  <PxIcon
-                    name="check"
-                    size={20}
-                    strokeWidth={2.4}
-                    color={dark ? '#0B0C0E' : '#fff'}
-                  />
+                  Bienvenue dans l'équipe.
                 </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: t.ink,
-                      letterSpacing: -0.3,
-                    }}
-                  >
-                    Bienvenue dans l'équipe
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      color: t.muted,
-                      fontWeight: 500,
-                      marginTop: 2,
-                    }}
-                  >
-                    {ag.name} a validé votre demande.
-                  </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: t.inkSoft,
+                    fontWeight: 500,
+                    marginTop: 8,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Vous faites maintenant partie de {ag.name}.
                 </div>
               </div>
-              <ObBlackPill
-                onClick={onValidateNow}
-                dark={dark}
-                icon={
-                  <PxIcon
-                    name="arrow-right"
-                    size={16}
-                    color={dark ? '#0B0C0E' : '#fff'}
-                  />
-                }
-              >
-                Continuer
-              </ObBlackPill>
             </div>
           )}
         </div>

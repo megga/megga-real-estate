@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase'
 import { OB_GLOBAL_CSS, obPalette } from './tokens'
 import { ObBlackPill, ObGhostPill, ObIcon } from './primitives'
 import { OnboardingSplash } from './OnboardingSplash'
-import { OnboardingFinal } from './OnboardingFinal'
 import { StepKYC } from './StepKYC'
 import { StepAgence } from './StepAgence'
 import { StepProfilAgence } from './StepProfilAgence'
@@ -34,7 +33,7 @@ const STEPS = [
   { id: 'forfait', label: 'Forfait' },
 ] as const
 
-type Phase = 'splash' | 'wizard' | 'final'
+type Phase = 'splash' | 'wizard'
 
 // ─── ObThemeToggle (sun/moon, palette Sugar Pure) ──────────────────────
 // Cercle 40×40, crossfade + rotate des deux icônes. Aria-label inversé
@@ -243,9 +242,11 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
       setStep(ns)
       void persistProgress(ns)
     } else {
-      // last step (Forfait) → finalize, persist, jump to final screen
+      // Last step (Forfait) → finalize + go directly to /dashboard.
+      // L'écran "Bienvenue, Marie." (OnboardingFinal) est skipped : on
+      // saute direct au "Premier jour" (la vue Aujourd'hui du CRM).
       await finalizeOnboarding()
-      setPhase('final')
+      await enterCrm()
     }
   }
 
@@ -483,19 +484,6 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
         </div>
       )}
 
-      {phase === 'final' && (
-        <div
-          style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '60px 32px',
-          }}
-        >
-          <OnboardingFinal data={data} dark={dark} onEnter={enterCrm} />
-        </div>
-      )}
     </div>
   )
 }
