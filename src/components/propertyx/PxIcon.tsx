@@ -23,7 +23,7 @@ export type PxIconName =
   | 'edit' | 'trash' | 'copy' | 'external'
   | 'play' | 'pause' | 'refresh' | 'expand' | 'collapse'
   | 'thumb-up' | 'thumb-down' | 'message' | 'send' | 'briefcase'
-  | 'pipeline' | 'camera'
+  | 'pipeline' | 'camera' | 'target'
 
 const PATHS: Record<PxIconName, ReactNode> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
@@ -101,6 +101,7 @@ const PATHS: Record<PxIconName, ReactNode> = {
   // — symbolise un flux de travail intégré. Style Property X : line-rounded.
   pipeline: <><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" /><path d="M7 6h6a2 2 0 0 1 2 2v2" /><path d="M7 18h6a2 2 0 0 0 2-2v-2" /></>,
   camera: <><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" /><circle cx="12" cy="13" r="3.2" /></>,
+  target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></>,
 }
 
 interface PxIconProps {

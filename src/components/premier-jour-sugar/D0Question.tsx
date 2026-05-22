@@ -8,6 +8,7 @@ import {
   ObGhostPill,
   ObIcon,
 } from '@/components/onboarding-sugar/primitives'
+import { ObThemeToggle } from '@/components/onboarding-sugar/OnboardingShell'
 import { D0Dots, D0OptionCard } from './primitives'
 import { D0ZoneSearch } from './D0ZoneSearch'
 import type { D0Question } from './data'
@@ -20,8 +21,8 @@ export function D0QuestionScreen({
   onChange,
   onPrev,
   onNext,
-  onSkip,
   dark,
+  onThemeChange,
 }: {
   q: D0Question
   index: number
@@ -30,8 +31,8 @@ export function D0QuestionScreen({
   onChange: (next: string | string[]) => void
   onPrev: () => void
   onNext: () => void
-  onSkip: () => void
   dark?: boolean
+  onThemeChange?: (theme: 'light' | 'dark') => void
 }) {
   const t = obPalette(dark)
   const canNext = Array.isArray(value) ? value.length > 0 : !!value
@@ -67,22 +68,16 @@ export function D0QuestionScreen({
           }}
         />
         <D0Dots count={total} current={index} dark={dark} />
-        <button
-          onClick={onSkip}
-          style={{
-            background: 'transparent',
-            border: 0,
-            padding: '6px 10px',
-            color: t.muted,
-            fontFamily: 'inherit',
-            fontSize: 12.5,
-            fontWeight: 600,
-            cursor: 'pointer',
-            letterSpacing: -0.1,
-          }}
-        >
-          Passer le calibrage
-        </button>
+        {/* Toggle light/dark — partage le cookie `megga.theme` avec le wizard. */}
+        {onThemeChange ? (
+          <ObThemeToggle
+            dark={!!dark}
+            onChange={onThemeChange}
+            t={t}
+          />
+        ) : (
+          <div style={{ width: 40 }} />
+        )}
       </header>
 
       {/* CONTENU CENTRAL */}
@@ -103,30 +98,19 @@ export function D0QuestionScreen({
             animation: 'd0SlideUp .45s cubic-bezier(.2,.8,.2,1) both',
           }}
         >
-          {/* Eyebrow — numéro de question */}
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: t.muted,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              marginBottom: 18,
-              fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-            }}
-          >
-            {q.eyebrow}
-          </div>
-
-          {/* Titre */}
+          {/* Titre — Objectivity Bold, cohérent avec le wizard onboarding.
+              Case normale (pas uppercase) car ce sont des questions, pas des
+              statements monumentaux. */}
           <h1
             style={{
               margin: '0 0 14px',
-              fontSize: 38,
+              fontFamily:
+                '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+              fontSize: 52,
               fontWeight: 700,
               color: t.ink,
-              letterSpacing: -1,
-              lineHeight: 1.1,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.05,
             }}
           >
             {q.title}
@@ -146,34 +130,42 @@ export function D0QuestionScreen({
             {q.sub}
           </p>
 
-          {/* Body selon kind */}
+          {/* Body selon kind — grille 2×2 (Q1 4 options) ou 2-col avec
+              dernière card span 2 (Q4 3 options) */}
           {q.kind === 'cards' && (
             <div
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 12,
                 marginTop: 8,
               }}
             >
-              {q.options.map((o, i) => (
-                <div
-                  key={o.id}
-                  style={{
-                    animation: 'd0SlideUp .4s cubic-bezier(.2,.8,.2,1) both',
-                    animationDelay: `${i * 0.05 + 0.15}s`,
-                    animationFillMode: 'both',
-                  }}
-                >
-                  <D0OptionCard
-                    label={o.label}
-                    hint={o.hint}
-                    selected={value === o.id}
-                    onClick={() => onChange(o.id)}
-                    dark={dark}
-                  />
-                </div>
-              ))}
+              {q.options.map((o, i) => {
+                const isLast = i === q.options.length - 1
+                const isOdd = q.options.length % 2 === 1
+                const spanFull = isLast && isOdd
+                return (
+                  <div
+                    key={o.id}
+                    style={{
+                      gridColumn: spanFull ? '1 / -1' : undefined,
+                      animation: 'd0SlideUp .4s cubic-bezier(.2,.8,.2,1) both',
+                      animationDelay: `${i * 0.05 + 0.15}s`,
+                      animationFillMode: 'both',
+                    }}
+                  >
+                    <D0OptionCard
+                      label={o.label}
+                      hint={o.hint}
+                      iconName={o.icon}
+                      selected={value === o.id}
+                      onClick={() => onChange(o.id)}
+                      dark={dark}
+                    />
+                  </div>
+                )
+              })}
             </div>
           )}
 

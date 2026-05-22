@@ -4,6 +4,7 @@
 // Persistance Supabase : full_name / phone / canton / onboarding_step / onboarding_completed.
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { OB_GLOBAL_CSS, obPalette } from './tokens'
@@ -19,6 +20,7 @@ import {
   saveAgentProfile,
   savePlanOnAgency,
 } from './persistence'
+import { clearLocalState as clearDay0LocalState } from '@/components/premier-jour-sugar/persistence'
 import {
   INITIAL_DATA,
   type AgentProfile,
@@ -35,36 +37,74 @@ const STEPS = [
 
 type Phase = 'splash' | 'wizard'
 
-// ─── ObThemeToggle (sun/moon, palette Sugar Pure) ──────────────────────
-// Cercle 40×40, crossfade + rotate des deux icônes. Aria-label inversé
-// (affiche la cible, pas l'état actuel).
+// ─── ObThemeToggle (sun/moon animé pathLength, palette Sugar Pure) ─────
+// Cercle 40×40 avec animation framer-motion : les rayons du soleil
+// "se dessinent / se déchirent" et la lune apparaît via pathLength.
+// Aria-label inversé (affiche la cible, pas l'état actuel).
 
-const SunIcon = (
-  <svg
-    width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="4" />
-    <line x1="12" y1="2" x2="12" y2="4" />
-    <line x1="12" y1="20" x2="12" y2="22" />
-    <line x1="4.93" y1="4.93" x2="6.34" y2="6.34" />
-    <line x1="17.66" y1="17.66" x2="19.07" y2="19.07" />
-    <line x1="2" y1="12" x2="4" y2="12" />
-    <line x1="20" y1="12" x2="22" y2="12" />
-    <line x1="4.93" y1="19.07" x2="6.34" y2="17.66" />
-    <line x1="17.66" y1="6.34" x2="19.07" y2="4.93" />
-  </svg>
-)
-const MoonIcon = (
-  <svg
-    width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
-  >
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
-)
+const SUN_PATHS = [
+  // Centre du soleil
+  'M12.4058 17.7625C15.1672 17.7625 17.4058 15.5239 17.4058 12.7625C17.4058 10.0011 15.1672 7.76251 12.4058 7.76251C9.64434 7.76251 7.40576 10.0011 7.40576 12.7625C7.40576 15.5239 9.64434 17.7625 12.4058 17.7625Z',
+  // 8 rayons
+  'M12.4058 1.76251V3.76251',
+  'M12.4058 21.7625V23.7625',
+  'M4.62598 4.98248L6.04598 6.40248',
+  'M18.7656 19.1225L20.1856 20.5425',
+  'M1.40576 12.7625H3.40576',
+  'M21.4058 12.7625H23.4058',
+  'M4.62598 20.5425L6.04598 19.1225',
+  'M18.7656 6.40248L20.1856 4.98248',
+] as const
 
-function ObThemeToggle({
+const MOON_PATH =
+  'M21.1918 13.2013C21.0345 14.9035 20.3957 16.5257 19.35 17.8781C18.3044 19.2305 16.8953 20.2571 15.2875 20.8379C13.6797 21.4186 11.9398 21.5294 10.2713 21.1574C8.60281 20.7854 7.07479 19.9459 5.86602 18.7371C4.65725 17.5283 3.81774 16.0003 3.4457 14.3318C3.07367 12.6633 3.18451 10.9234 3.76526 9.31561C4.346 7.70783 5.37263 6.29868 6.72501 5.25307C8.07739 4.20746 9.69959 3.56862 11.4018 3.41132C10.4052 4.75958 9.92564 6.42077 10.0503 8.09273C10.175 9.76469 10.8957 11.3364 12.0812 12.5219C13.2667 13.7075 14.8384 14.4281 16.5104 14.5528C18.1823 14.6775 19.8435 14.1979 21.1918 13.2013Z'
+
+function SolarSwitch({ isDark }: { isDark: boolean }) {
+  const duration = 0.7
+  const sunVariants = {
+    light: { pathLength: 1, opacity: 1, scale: 1 },
+    dark: { pathLength: 0, opacity: 0, scale: 0 },
+  }
+  const moonVariants = {
+    light: { pathLength: 0, opacity: 0, scale: 0 },
+    dark: { pathLength: 1, opacity: 1, scale: 1 },
+  }
+  return (
+    <motion.svg
+      width="20"
+      height="20"
+      viewBox="0 0 25 25"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      initial={false}
+      animate={isDark ? 'dark' : 'light'}
+    >
+      {SUN_PATHS.map((d, i) => (
+        <motion.path
+          key={`sun-${i}`}
+          d={d}
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          variants={sunVariants}
+          transition={{ duration }}
+        />
+      ))}
+      <motion.path
+        d={MOON_PATH}
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        variants={moonVariants}
+        transition={{ duration }}
+      />
+    </motion.svg>
+  )
+}
+
+export function ObThemeToggle({
   dark, onChange, t,
 }: {
   dark: boolean
@@ -86,46 +126,17 @@ function ObThemeToggle({
         alignItems: 'center',
         justifyContent: 'center',
         background: hover ? t.card : t.cardSubtle,
-        border: 0,
+        border: `1px solid ${t.cardBorder}`,
         borderRadius: 999,
         boxShadow: hover ? t.shadow : t.shadowSm,
         color: t.ink,
         cursor: 'pointer',
         transition: 'all 0.25s cubic-bezier(.22,1,.36,1)',
         padding: 0,
-        position: 'relative',
-        overflow: 'hidden',
         flexShrink: 0,
       }}
     >
-      <span
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: dark ? 0 : 1,
-          transform: dark ? 'rotate(-30deg) scale(0.8)' : 'rotate(0) scale(1)',
-          transition: 'opacity 0.32s cubic-bezier(.22,1,.36,1), transform 0.32s cubic-bezier(.22,1,.36,1)',
-        }}
-      >
-        {MoonIcon}
-      </span>
-      <span
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: dark ? 1 : 0,
-          transform: dark ? 'rotate(0) scale(1)' : 'rotate(30deg) scale(0.8)',
-          transition: 'opacity 0.32s cubic-bezier(.22,1,.36,1), transform 0.32s cubic-bezier(.22,1,.36,1)',
-        }}
-      >
-        {SunIcon}
-      </span>
+      <SolarSwitch isDark={dark} />
     </button>
   )
 }
@@ -134,7 +145,7 @@ function ObThemeToggle({
 
 const COOKIE_KEY = 'megga.theme'
 
-function readThemeCookie(): 'light' | 'dark' | null {
+export function readThemeCookie(): 'light' | 'dark' | null {
   if (typeof document === 'undefined') return null
   const match = document.cookie
     .split('; ')
@@ -144,13 +155,13 @@ function readThemeCookie(): 'light' | 'dark' | null {
   return v === 'dark' || v === 'light' ? v : null
 }
 
-function writeThemeCookie(theme: 'light' | 'dark') {
+export function writeThemeCookie(theme: 'light' | 'dark') {
   if (typeof document === 'undefined') return
   document.cookie = `${COOKIE_KEY}=${theme}; Max-Age=31536000; Path=/; SameSite=Lax`
   document.documentElement.dataset.theme = theme
 }
 
-function resolveInitialTheme(): 'light' | 'dark' {
+export function resolveInitialTheme(): 'light' | 'dark' {
   const cookie = readThemeCookie()
   if (cookie) return cookie
   if (typeof window !== 'undefined') {
@@ -301,6 +312,12 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
   }
 
   const enterCrm = async () => {
+    // Clear localStorage Premier jour : on arrive frais de l'onboarding, on doit
+    // démarrer au D0Welcome, pas reprendre une session antérieure (testing OK,
+    // prod OK car la reprise est pour les fermetures de tab mid-flow et non pour
+    // les sorties d'onboarding qui marquent toujours un fresh start).
+    clearDay0LocalState()
+
     if (!profile) {
       // Pas de profil chargé : le ProtectedRoute du Premier jour gérera la suite.
       navigate('/dashboard/premier-jour', { replace: true })

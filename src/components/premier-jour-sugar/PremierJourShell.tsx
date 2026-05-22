@@ -9,6 +9,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { OB_GLOBAL_CSS, obPalette } from '@/components/onboarding-sugar/tokens'
+import {
+  resolveInitialTheme,
+  writeThemeCookie,
+} from '@/components/onboarding-sugar/OnboardingShell'
 import { D0_CSS } from './tokens'
 import { D0Welcome } from './D0Welcome'
 import { D0QuestionScreen } from './D0Question'
@@ -50,9 +54,29 @@ const skipAnswers = (): D0Answers => ({
   priorite: SKIP_DEFAULTS.priorite,
 })
 
-export function PremierJourShell({ dark = false }: { dark?: boolean }) {
+export function PremierJourShell({
+  dark: darkProp,
+}: {
+  dark?: boolean
+} = {}) {
   const { profile, refreshProfile } = useAuth()
   const navigate = useNavigate()
+
+  // Theme : prop > cookie > prefers-color-scheme > light (même logique que
+  // l'OnboardingShell, partage le cookie `megga.theme` avec le bento auth).
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    darkProp !== undefined ? (darkProp ? 'dark' : 'light') : resolveInitialTheme(),
+  )
+  const dark = theme === 'dark'
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+
+  const onThemeChange = (next: 'light' | 'dark') => {
+    setTheme(next)
+    writeThemeCookie(next)
+  }
 
   const t = obPalette(dark)
 
@@ -210,6 +234,7 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
         dark={dark}
         onStart={() => setPhase('q0')}
         onSkip={handleSkipAll}
+        onThemeChange={onThemeChange}
       />
     )
   } else if (phase.startsWith('q') && currentQ >= 0 && currentQ <= 3) {
@@ -236,8 +261,8 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
         }}
         onPrev={handleQPrev}
         onNext={handleQNext}
-        onSkip={handleSkipAll}
         dark={dark}
+        onThemeChange={onThemeChange}
       />
     )
   } else if (phase === 'synthesis') {

@@ -3,10 +3,7 @@
 // Source : handoff-premier-jour/premier-jour/crm-day0-calibration.jsx → D0ZoneSearch
 import { useMemo, useRef, useState } from 'react'
 import { obPalette, type ObTheme } from '@/components/onboarding-sugar/tokens'
-import {
-  ObIcon,
-  type ObIconName,
-} from '@/components/onboarding-sugar/primitives'
+import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
 import { D0_ZONES, d0ZoneSubtitle, type D0Zone } from './data'
 
 const TYPE_ORDER: Record<D0Zone['type'], number> = {
@@ -16,9 +13,10 @@ const TYPE_ORDER: Record<D0Zone['type'], number> = {
   city: 3,
 }
 
-const iconFor = (z: D0Zone): ObIconName => {
+const iconFor = (z: D0Zone): PxIconName => {
   if (z.type === 'city') return 'building'
-  if (z.type === 'region') return 'map'
+  if (z.type === 'region') return 'location'
+  if (z.type === 'country') return 'globe'
   return 'flag'
 }
 
@@ -36,6 +34,7 @@ export function D0ZoneSearch({
 }) {
   const t = obPalette(dark)
   const [query, setQuery] = useState('')
+  const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const selectedIds = useMemo(() => new Set(value), [value])
   const selected = useMemo(
@@ -87,29 +86,40 @@ export function D0ZoneSearch({
 
   return (
     <div style={{ marginTop: 8 }}>
-      {/* Barre de recherche */}
+      {/* Barre de recherche XL pill — cohérent avec Step 2 Agence du wizard.
+          Pill 999px, height 76, font 22 medium, focus ring 2px ink inset. */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 14,
-          padding: '18px 22px',
+          gap: 18,
           background: t.card,
-          borderRadius: 18,
-          boxShadow: t.shadow,
-          transition: 'box-shadow .2s ease',
+          borderRadius: 999,
+          height: 76,
+          padding: '0 28px',
+          boxShadow: focused
+            ? `${t.shadowHov}, 0 0 0 2px ${t.ink} inset`
+            : t.shadow,
+          transition: 'box-shadow .25s cubic-bezier(.22,1,.36,1)',
         }}
       >
-        <ObIcon name="search" size={20} stroke={t.muted} sw={1.8} />
+        <PxIcon
+          name="search"
+          size={26}
+          color={focused ? t.ink : t.muted}
+          strokeWidth={1.8}
+        />
         <input
           ref={inputRef}
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 150)}
           onKeyDown={onKeyDown}
           placeholder={
             selected.length === 0
-              ? 'Cherchez un canton, une ville ou une région…'
+              ? 'Genève, Vaud, Suisse romande…'
               : 'Ajouter une autre zone…'
           }
           style={{
@@ -120,26 +130,32 @@ export function D0ZoneSearch({
             background: 'transparent',
             color: t.ink,
             fontFamily: 'inherit',
-            fontSize: 16,
+            fontSize: 22,
             fontWeight: 500,
-            letterSpacing: -0.2,
+            letterSpacing: '-0.015em',
           }}
         />
         {query && (
           <button
-            onClick={() => setQuery('')}
+            onClick={() => {
+              setQuery('')
+              inputRef.current?.focus()
+            }}
             aria-label="Effacer"
             style={{
-              background: 'transparent',
+              width: 32,
+              height: 32,
+              borderRadius: 999,
               border: 0,
-              padding: 4,
+              background: t.cardSubtle,
               color: t.muted,
               cursor: 'pointer',
               display: 'grid',
               placeItems: 'center',
+              transition: 'background .15s ease',
             }}
           >
-            <ObIcon name="close" size={14} stroke="currentColor" sw={2} />
+            <PxIcon name="close" size={14} color="currentColor" strokeWidth={2} />
           </button>
         )}
       </div>
@@ -169,7 +185,7 @@ export function D0ZoneSearch({
                 fontSize: 13,
                 fontWeight: 600,
                 letterSpacing: -0.1,
-                boxShadow: '0 4px 12px rgba(11,12,14,0.18)',
+                boxShadow: t.shadowSm,
                 animation: 'd0SlideUp .25s cubic-bezier(.2,.8,.2,1) both',
               }}
             >
@@ -189,33 +205,21 @@ export function D0ZoneSearch({
                   placeItems: 'center',
                 }}
               >
-                <ObIcon name="close" size={10} stroke="currentColor" sw={2.6} />
+                <PxIcon name="close" size={10} color="currentColor" strokeWidth={2.4} />
               </button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Suggestions */}
+      {/* Suggestions — sans eyebrow (le dropdown parle de lui-même) */}
       {suggestions.length > 0 && (
-        <div style={{ marginTop: 18 }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: t.muted,
-              letterSpacing: 1.4,
-              textTransform: 'uppercase',
-              marginBottom: 10,
-              paddingLeft: 4,
-            }}
-          >
-            {query ? `Résultats (${suggestions.length})` : 'Suggestions'}
-          </div>
+        <div style={{ marginTop: 14 }}>
           <div
             style={{
               background: t.card,
-              borderRadius: 18,
+              border: `1px solid ${t.cardBorder}`,
+              borderRadius: 20,
               boxShadow: t.shadow,
               overflow: 'hidden',
             }}
@@ -242,7 +246,8 @@ export function D0ZoneSearch({
             marginTop: 18,
             padding: '22px 24px',
             background: t.card,
-            borderRadius: 18,
+            border: `1px solid ${t.cardBorder}`,
+            borderRadius: 20,
             boxShadow: t.shadow,
             color: t.muted,
             fontSize: 14,
@@ -267,7 +272,7 @@ function ZoneRow({
   t,
 }: {
   z: D0Zone
-  icon: ObIconName
+  icon: PxIconName
   onClick: () => void
   divider: boolean
   dark?: boolean
@@ -285,7 +290,7 @@ function ZoneRow({
         border: 0,
         background: h ? t.cardSubtle : 'transparent',
         cursor: 'pointer',
-        padding: '13px 22px',
+        padding: '14px 22px',
         display: 'flex',
         alignItems: 'center',
         gap: 14,
@@ -299,16 +304,13 @@ function ZoneRow({
       <div
         style={{
           flexShrink: 0,
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          background: t.cardSubtle,
+          width: 28,
           color: t.inkSoft,
           display: 'grid',
           placeItems: 'center',
         }}
       >
-        <ObIcon name={icon} size={14} stroke="currentColor" sw={1.7} />
+        <PxIcon name={icon} size={18} color="currentColor" strokeWidth={1.7} />
       </div>
       <div
         style={{

@@ -1,19 +1,24 @@
 // MEGGA Premier jour — Écran 0 : Welcome
-// Hero plein écran centré : prénom + accroche + CTA + skip.
+// Hero plein écran centré, composition monumentale éditoriale.
+// Cohérent avec Step 1 KYC du wizard (Objectivity 64-84px).
 // Source : handoff-premier-jour/premier-jour/crm-day0-calibration.jsx → D0Welcome
 import { obPalette } from '@/components/onboarding-sugar/tokens'
-import { ObBlackPill, ObIcon } from '@/components/onboarding-sugar/primitives'
+import { ObBlackPill } from '@/components/onboarding-sugar/primitives'
+import { ObThemeToggle } from '@/components/onboarding-sugar/OnboardingShell'
+import PxIcon from '@/components/propertyx/PxIcon'
 
 export function D0Welcome({
   prenom,
   onStart,
-  onSkip,
   dark,
+  onThemeChange,
 }: {
   prenom: string
   onStart: () => void
-  onSkip: () => void
+  /** Conservé pour la signature mais non utilisé : le skip n'est plus affiché. */
+  onSkip?: () => void
   dark?: boolean
+  onThemeChange?: (theme: 'light' | 'dark') => void
 }) {
   const t = obPalette(dark)
   return (
@@ -28,8 +33,18 @@ export function D0Welcome({
         position: 'relative',
       }}
     >
-      {/* MEGGA logo discret en haut gauche */}
-      <div style={{ position: 'absolute', top: 26, left: 32 }}>
+      {/* Header — logo gauche + toggle dark mode droite */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 22,
+          left: 32,
+          right: 32,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <img
           src="/megga-logo.svg"
           alt="MEGGA"
@@ -40,24 +55,29 @@ export function D0Welcome({
             filter: dark ? 'invert(1)' : 'none',
           }}
         />
+        {onThemeChange && (
+          <ObThemeToggle dark={!!dark} onChange={onThemeChange} t={t} />
+        )}
       </div>
 
-      {/* Titre */}
+      {/* Hero — H1 monumental Objectivity, cohérent avec wizard onboarding */}
       <div
         style={{
           textAlign: 'center',
-          maxWidth: 640,
+          maxWidth: 820,
           animation: 'd0SlideUp .55s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
         <h1
           style={{
-            margin: '0 0 18px',
-            fontSize: 46,
+            margin: '0 0 20px',
+            fontFamily:
+              '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+            fontSize: 64,
             fontWeight: 700,
             color: t.ink,
-            letterSpacing: -1.1,
-            lineHeight: 1.05,
+            letterSpacing: '-0.04em',
+            lineHeight: 1.02,
           }}
         >
           Bonjour {prenom}.
@@ -69,25 +89,25 @@ export function D0Welcome({
         <p
           style={{
             margin: '0 auto',
-            maxWidth: 460,
+            maxWidth: 480,
             fontSize: 16,
             color: t.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
+            letterSpacing: '-0.005em',
           }}
         >
-          Quelques minutes maintenant, et MEGGA AI saura comment vous aider dès demain matin.
+          Quelques minutes maintenant, et MEGGA AI saura comment vous aider
+          dès demain matin.
         </p>
       </div>
 
-      {/* CTA + Skip */}
+      {/* CTA — Commencer (sans skip, comme les questions) */}
       <div
         style={{
-          marginTop: 44,
+          marginTop: 48,
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 12,
+          justifyContent: 'center',
           animation: 'd0SlideUp .55s cubic-bezier(.2,.8,.2,1) both',
           animationDelay: '0.15s',
           animationFillMode: 'both',
@@ -99,32 +119,16 @@ export function D0Welcome({
           size="lg"
           autoFocus
           icon={
-            <ObIcon
-              name="arrowR"
+            <PxIcon
+              name="arrow-right"
               size={16}
-              stroke={dark ? '#0B0C0E' : '#fff'}
-              sw={2}
+              color={dark ? '#0B0C0E' : '#FFFFFF'}
+              strokeWidth={2}
             />
           }
         >
           Commencer
         </ObBlackPill>
-        <button
-          onClick={onSkip}
-          style={{
-            background: 'transparent',
-            border: 0,
-            padding: '8px 16px',
-            color: t.muted,
-            fontFamily: 'inherit',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            letterSpacing: -0.1,
-          }}
-        >
-          Passer toutes les questions
-        </button>
       </div>
     </div>
   )

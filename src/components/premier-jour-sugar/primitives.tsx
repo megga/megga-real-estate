@@ -2,6 +2,7 @@
 // Source : handoff-premier-jour/premier-jour/crm-day0-tokens.jsx
 import { useState, type ReactNode } from 'react'
 import { obPalette } from '@/components/onboarding-sugar/tokens'
+import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
 
 // ─── Badge MEGGA AI animé — pulse subtil ─────────────────────────────
 
@@ -108,7 +109,8 @@ export function D0Dots({
   )
 }
 
-// ─── Card option : label + hint, radio cercle qui se remplit en noir ─
+// ─── Card option : pattern bento avec icône top-left + ghost décoratif
+// bottom-right. Border 1px hybrid PX. Sélection via thick ink border.
 
 export function D0OptionCard({
   label,
@@ -117,6 +119,7 @@ export function D0OptionCard({
   onClick,
   dark,
   trailing,
+  iconName,
 }: {
   label: string
   hint: string
@@ -124,6 +127,8 @@ export function D0OptionCard({
   onClick: () => void
   dark?: boolean
   trailing?: ReactNode
+  /** Nom PxIcon — affiché en small top-left + ghost décoratif bottom-right. */
+  iconName?: PxIconName
 }) {
   const t = obPalette(dark)
   const [h, setH] = useState(false)
@@ -133,75 +138,114 @@ export function D0OptionCard({
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}
       style={{
+        position: 'relative',
         textAlign: 'left',
         fontFamily: 'inherit',
-        padding: '22px 26px',
+        padding: '40px 44px',
         background: t.card,
-        border: 0,
-        borderRadius: 18,
+        border: `1px solid ${t.cardBorder}`,
+        borderRadius: 24,
         cursor: 'pointer',
-        boxShadow: selected
-          ? `${t.shadowHov}, 0 0 0 2px ${t.black} inset`
-          : h
-            ? t.shadowHov
-            : t.shadow,
+        boxShadow: selected ? t.shadowHov : h ? t.shadowHov : t.shadow,
         transform: h && !selected ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all .22s cubic-bezier(.2,.8,.2,1)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 20,
         width: '100%',
+        minHeight: 280,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
       }}
     >
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Ghost icon décoratif bottom-right — seule signature visuelle.
+          Plus de small icon top-left : la card respire, l'icône ghost suffit. */}
+      {iconName && (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            // Ajustement par icône — certaines (building, target) remplissent
+            // leur viewBox jusqu'au bord et touchent la bordure de la card.
+            bottom:
+              iconName === 'building' ? -10 :
+              iconName === 'target' ? -16 :
+              -22,
+            right: -18,
+            pointerEvents: 'none',
+            width: 180,
+            height: 180,
+          }}
+        >
+          {/* Layer 1 — ghost line constant en fond (line-style 1.2) */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              color: t.ink,
+              opacity: dark ? 0.11 : 0.07,
+            }}
+          >
+            <PxIcon name={iconName} size={180} strokeWidth={1.2} color={t.ink} />
+          </div>
+
+          {/* Layer 2 — version foncée révélée par clip-path animation
+              quand la card est sélectionnée. Effet "remplissage du bas
+              vers le haut" en temps réel. */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              color: t.ink,
+              opacity: dark ? 0.48 : 0.38,
+              clipPath: selected
+                ? 'inset(0% 0 0 0)'
+                : 'inset(100% 0 0 0)',
+              transition: 'clip-path .6s cubic-bezier(.2,.8,.2,1)',
+            }}
+          >
+            <PxIcon name={iconName} size={180} strokeWidth={1.2} color={t.ink} />
+          </div>
+        </div>
+      )}
+
+      {/* Label + hint — alignés en bas pour libérer le top de la card */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
         <div
           style={{
-            fontSize: 17,
+            fontSize: 22,
             fontWeight: 700,
             color: t.ink,
-            letterSpacing: -0.35,
-            marginBottom: 4,
+            letterSpacing: -0.4,
+            marginBottom: 8,
+            lineHeight: 1.2,
           }}
         >
           {label}
         </div>
         <div
           style={{
-            fontSize: 13.5,
+            fontSize: 14.5,
             color: t.muted,
             fontWeight: 500,
             lineHeight: 1.5,
+            maxWidth: 'calc(100% - 80px)',
           }}
         >
           {hint}
         </div>
       </div>
-      {trailing ?? (
+
+      {/* Trailing slot (legacy — pour les usages externes qui passent un radio) */}
+      {trailing && (
         <div
           style={{
-            flexShrink: 0,
-            width: 22,
-            height: 22,
-            borderRadius: 999,
-            background: selected ? t.black : 'transparent',
-            boxShadow: selected
-              ? 'none'
-              : `0 0 0 1.5px ${dark ? 'rgba(236,237,243,0.22)' : 'rgba(11,12,14,0.18)'} inset`,
-            display: 'grid',
-            placeItems: 'center',
-            transition: 'all .2s ease',
+            position: 'absolute',
+            top: 22,
+            right: 22,
+            zIndex: 1,
           }}
         >
-          {selected && (
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 999,
-                background: dark ? '#0B0C0E' : '#fff',
-              }}
-            />
-          )}
+          {trailing}
         </div>
       )}
     </button>
