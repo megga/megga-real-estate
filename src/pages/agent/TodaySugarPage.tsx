@@ -29,6 +29,7 @@ import {
 } from '@/components/crm-sugar/SugarPopovers'
 import SugarContactDetail from '@/components/crm-sugar/SugarContactDetail'
 import type { CrmContact } from '@/components/crm-sugar/mockData'
+import { ActivationChecklistPill } from '@/components/premier-jour-sugar/ActivationChecklistPill'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -504,6 +505,11 @@ export default function TodaySugarPage() {
 
       {/* Hidden agent ref so unused import elimination doesn't strip it during refactors */}
       <span style={{ display: 'none' }} aria-hidden>{CRM_AGENT.initials}</span>
+
+      {/* Pastille checklist d'activation — suit l'agent depuis le sas
+          Premier jour, persiste via profiles.activation_checklist, et se
+          masque automatiquement à 5/5 (showWhenComplete=false par défaut). */}
+      <ActivationChecklistPill dark={dark} defaultOpen={false} />
     </div>
   )
 }

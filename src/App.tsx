@@ -153,6 +153,7 @@ const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
 const CustomTemplatePage = lazy(() => import('@/pages/agent/CustomTemplatePage'))
 const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
 const OnboardingWizardPage = lazy(() => import('@/pages/agent/OnboardingWizardPage'))
+const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
 
 // Lazy-loaded seller portal pages
 const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
@@ -415,6 +416,18 @@ function AnimatedRoutes() {
                 element={
                   <ProtectedRoute skipOnboardingCheck>
                     <OnboardingWizardPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Premier jour — calibrage IA + atterrissage Aujourd'hui (one-shot)
+                  Se joue immédiatement après l'onboarding, avant la première
+                  session CRM. Voir handoff-premier-jour. */}
+              <Route
+                path="/dashboard/premier-jour"
+                element={
+                  <ProtectedRoute skipOnboardingCheck>
+                    <PremierJourPage />
                   </ProtectedRoute>
                 }
               />
