@@ -14,8 +14,8 @@ import { D0Welcome } from './D0Welcome'
 import { D0QuestionScreen } from './D0Question'
 import { D0Synthesis } from './D0Synthesis'
 import { D0TodayPremierJour } from './D0Today'
+import { useActivationChecklist } from '@/hooks/useActivationChecklist'
 import {
-  D0_CHECKLIST,
   D0_PRIORITY_ROUTES,
   D0_PRIORITY_TO_CHECKLIST,
   D0_QUESTIONS,
@@ -23,7 +23,6 @@ import {
 import {
   clearLocalState,
   loadLocalState,
-  saveActivationChecklist,
   saveDay0Payload,
   saveLocalAnswers,
   saveLocalAutonomy,
@@ -35,7 +34,6 @@ import {
   SKIP_DEFAULTS,
   type Autonomy,
   type D0Answers,
-  type D0ChecklistItem,
   type D0Payload,
   type D0Phase,
   type Dispo,
@@ -72,7 +70,9 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
     return ls.autonomy ?? 'suggest'
   })
 
-  const [checklist, setChecklist] = useState<D0ChecklistItem[]>(D0_CHECKLIST)
+  // La checklist est gérée par le hook (persistance Supabase + optimistic
+  // updates). Le shell expose juste setAll/markDone aux composants enfants.
+  const checklistHook = useActivationChecklist()
   const [demoLoaded, setDemoLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -128,30 +128,12 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
     setPhase('today')
   }
 
-  // ─── Checklist toggle ───────────────────────────────────────────
-  const toggleChecklist = (id: string) => {
-    setChecklist((items) => {
-      const next = items.map((i) =>
-        i.id === id ? { ...i, done: !i.done } : i,
-      )
-      // Persiste sans bloquer l'UI (idempotent côté serveur)
-      if (profile?.id) {
-        void saveActivationChecklist(profile.id, next).catch(() => {
-          /* silent — l'utilisateur peut toujours toggler localement */
-        })
-      }
-      return next
-    })
-  }
-
+  // ─── Mode démo (dev/staging only) — coche/décoche les 5 items en bulk
+  // pour visualiser une checklist complète sans avoir à toucher 5 boutons.
   const onLoadDemo = () => {
     setDemoLoaded((d) => {
       const next = !d
-      if (next) {
-        setChecklist((items) => items.map((i) => ({ ...i, done: true })))
-      } else {
-        setChecklist(D0_CHECKLIST.map((i) => ({ ...i, done: false })))
-      }
+      checklistHook.setAll(next)
       return next
     })
   }
@@ -205,25 +187,14 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
   }, [phase])
 
   // Clic sur une carte priorité du Today Premier jour :
-  // 1. coche l'item correspondant de la checklist (idempotent serveur)
+  // 1. coche l'item correspondant de la checklist (idempotent via le hook)
   // 2. quitte le sas et route vers la vraie page CRM (D0_PRIORITY_ROUTES)
   // Fallback /dashboard si l'id n'a pas de route mappée.
   const onPriorityClick = (cardId: string) => {
     const checklistId = D0_PRIORITY_TO_CHECKLIST[cardId]
     if (checklistId) {
-      setChecklist((items) => {
-        // Idempotent : on ne re-coche pas si déjà fait.
-        if (items.find((i) => i.id === checklistId)?.done) return items
-        const next = items.map((i) =>
-          i.id === checklistId ? { ...i, done: true } : i,
-        )
-        if (profile?.id) {
-          void saveActivationChecklist(profile.id, next).catch(() => {
-            /* silent — l'audit ne bloque pas l'atterrissage CRM */
-          })
-        }
-        return next
-      })
+      // Le hook gère l'idempotence (skip si déjà done) et la persistance.
+      checklistHook.markDone(checklistId)
     }
     const target = D0_PRIORITY_ROUTES[cardId] ?? '/dashboard'
     void enterCrm(target)
@@ -289,8 +260,6 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
         initials={initials}
         answers={answers}
         autonomy={autonomy}
-        checklist={checklist}
-        onToggleChecklist={toggleChecklist}
         demoLoaded={demoLoaded}
         onLoadDemo={onLoadDemo}
         onPriorityClick={onPriorityClick}
