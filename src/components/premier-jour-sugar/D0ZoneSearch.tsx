@@ -1,99 +1,14 @@
 // MEGGA Premier jour — Q2 Zone : autocomplete multi-sélection
 // Recherche accent-insensible sur 60+ zones suisses + synonymes.
-// IP geolocation : on détecte le canton de l'utilisateur via ipapi.co pour
-// adapter le placeholder + booster les suggestions par défaut (un agent à
-// Zurich voit Zurich/Zoug en premier, un agent à Genève voit Genève/Léman).
+// Placeholder statique + tri par type/alpha (cf. RLS/GDPR : pas d'IP geo
+// côté client sans consent — voir review PR #400 finding #2).
 // Source : handoff-premier-jour/premier-jour/crm-day0-calibration.jsx → D0ZoneSearch
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { obPalette, type ObTheme } from '@/components/onboarding-sugar/tokens'
 import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
 import { D0_ZONES, d0ZoneSubtitle, type D0Zone } from './data'
 
-// ─── IP geolocation hook (free, no API key) ──────────────────────────
-
-const GEO_CACHE_KEY = 'megga.geo.canton'
-const GEO_CACHE_TTL = 24 * 60 * 60 * 1000 // 24h
-const GEO_FETCH_TIMEOUT = 3000 // 3s avant fallback silencieux
-
-type UserGeo = { canton: string | null; ts: number }
-
-function readGeoCache(): UserGeo | null {
-  try {
-    const raw = localStorage.getItem(GEO_CACHE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as UserGeo
-    if (Date.now() - parsed.ts > GEO_CACHE_TTL) return null
-    return parsed
-  } catch {
-    return null
-  }
-}
-
-async function fetchGeoFromIp(): Promise<UserGeo | null> {
-  try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), GEO_FETCH_TIMEOUT)
-    const res = await fetch('https://ipapi.co/json/', { signal: ctrl.signal })
-    clearTimeout(timer)
-    if (!res.ok) return null
-    const data = (await res.json()) as { country_code?: string; region_code?: string }
-    // Hors Suisse → on ne stocke rien et on laisse le placeholder par défaut.
-    if (data.country_code !== 'CH') return null
-    return { canton: data.region_code ?? null, ts: Date.now() }
-  } catch {
-    return null
-  }
-}
-
-/** Retourne le code canton de l'utilisateur (ex: 'GE', 'ZH') ou null. */
-function useUserCanton(): string | null {
-  const [canton, setCanton] = useState<string | null>(() => readGeoCache()?.canton ?? null)
-
-  useEffect(() => {
-    if (canton) return // cache hit, pas de re-fetch
-    let mounted = true
-    fetchGeoFromIp().then((geo) => {
-      if (!mounted || !geo) return
-      localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(geo))
-      setCanton(geo.canton)
-    })
-    return () => {
-      mounted = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  return canton
-}
-
-/** Construit le placeholder à partir du canton détecté.
- *  Ex: GE → "Genève, Arc lémanique, Suisse romande…"
- *      ZH → "Zurich, Zoug, Toute la Suisse…" */
-function buildPlaceholder(userCanton: string | null): string {
-  const fallback = 'Genève, Vaud, Suisse romande…'
-  if (!userCanton) return fallback
-
-  const items: string[] = []
-  const pushUnique = (s: string | undefined) => {
-    if (s && !items.includes(s)) items.push(s)
-  }
-
-  const cantonZone = D0_ZONES.find((z) => z.code === userCanton)
-  const cityZone =
-    D0_ZONES.find((z) => z.type === 'city' && z.popular && z.cantons.includes(userCanton)) ??
-    D0_ZONES.find((z) => z.type === 'city' && z.cantons.includes(userCanton))
-  const regionZone = D0_ZONES.find(
-    (z) => z.type === 'region' && z.cantons.includes(userCanton),
-  )
-
-  pushUnique(cantonZone?.label)
-  pushUnique(cityZone?.label)
-  pushUnique(regionZone?.label)
-  // Toujours finir par un fallback générique pour atteindre 3 items.
-  pushUnique('Suisse romande')
-
-  return items.slice(0, 3).join(', ') + '…'
-}
+const DEFAULT_PLACEHOLDER = 'Genève, Vaud, Suisse romande…'
 
 const TYPE_ORDER: Record<D0Zone['type'], number> = {
   country: 0,
@@ -128,14 +43,8 @@ export function D0ZoneSearch({
   /** Timer du blur retardé — annulé si le focus revient avant 150ms.
    *  Empêche le flicker du ring inset au clic sur une suggestion. */
   const blurTimerRef = useRef<number | null>(null)
-  const userCanton = useUserCanton()
-  const placeholder = useMemo(
-    () =>
-      value.length === 0
-        ? buildPlaceholder(userCanton)
-        : 'Ajouter une autre zone…',
-    [userCanton, value.length],
-  )
+  const placeholder =
+    value.length === 0 ? DEFAULT_PLACEHOLDER : 'Ajouter une autre zone…'
   const selectedIds = useMemo(() => new Set(value), [value])
   const selected = useMemo(
     () => value.map((id) => D0_ZONES.find((z) => z.id === id)).filter((z): z is D0Zone => !!z),
@@ -152,24 +61,15 @@ export function D0ZoneSearch({
         .join(' ')
       return hay.includes(nq)
     }
-    // Sort : zones du canton de l'utilisateur d'abord, puis ordre par type
-    // (country/region/canton/city), puis alpha. Garde le boost actif même
-    // quand l'agent tape — utile si le canton apparaît dans plusieurs zones.
-    const matchesUserCanton = (z: D0Zone) =>
-      userCanton ? z.cantons.includes(userCanton) || z.code === userCanton : false
+    // Sort : ordre par type (country/region/canton/city), puis alpha.
     return D0_ZONES.filter((z) => !selectedIds.has(z.id))
       .filter(matches)
       .sort((a, b) => {
-        if (userCanton) {
-          const aHit = matchesUserCanton(a)
-          const bHit = matchesUserCanton(b)
-          if (aHit !== bHit) return aHit ? -1 : 1
-        }
         const d = TYPE_ORDER[a.type] - TYPE_ORDER[b.type]
         return d !== 0 ? d : a.label.localeCompare(b.label, 'fr')
       })
       .slice(0, 8)
-  }, [nq, selectedIds, userCanton])
+  }, [nq, selectedIds])
 
   const addZone = (id: string) => {
     onChange(Array.from(new Set([...value, id])))
