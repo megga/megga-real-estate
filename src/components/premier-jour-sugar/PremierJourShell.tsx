@@ -9,10 +9,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { OB_GLOBAL_CSS, obPalette } from '@/components/onboarding-sugar/tokens'
+import {
+  resolveInitialTheme,
+  writeThemeCookie,
+} from '@/components/onboarding-sugar/OnboardingShell'
 import { D0_CSS } from './tokens'
 import { D0Welcome } from './D0Welcome'
 import { D0QuestionScreen } from './D0Question'
 import { D0Synthesis } from './D0Synthesis'
+import { D0Configuring } from './D0Configuring'
 import { D0TodayPremierJour } from './D0Today'
 import { useActivationChecklist } from '@/hooks/useActivationChecklist'
 import {
@@ -50,9 +55,42 @@ const skipAnswers = (): D0Answers => ({
   priorite: SKIP_DEFAULTS.priorite,
 })
 
-export function PremierJourShell({ dark = false }: { dark?: boolean }) {
+export function PremierJourShell({
+  dark: darkProp,
+}: {
+  dark?: boolean
+} = {}) {
   const { profile, refreshProfile } = useAuth()
   const navigate = useNavigate()
+
+  // Theme : prop > cookie > prefers-color-scheme > light (même logique que
+  // l'OnboardingShell, partage le cookie `megga.theme` avec le bento auth).
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    darkProp !== undefined ? (darkProp ? 'dark' : 'light') : resolveInitialTheme(),
+  )
+  const dark = theme === 'dark'
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+
+  // Escape hatch dev : `?reset=1` purge localStorage et recharge à 'welcome'.
+  // Permet de rejouer le sas sans toucher au profil Supabase ni à la console.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('reset') === '1') {
+      clearLocalState()
+      // Retire le query param pour éviter une boucle après reload
+      window.history.replaceState({}, '', window.location.pathname)
+      window.location.reload()
+    }
+  }, [])
+
+  const onThemeChange = (next: 'light' | 'dark') => {
+    setTheme(next)
+    writeThemeCookie(next)
+  }
 
   const t = obPalette(dark)
 
@@ -173,9 +211,9 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
     }
   }
 
-  // Auto-pré-remplissage si on saute directement à synthesis/today
+  // Auto-pré-remplissage si on saute directement à synthesis/configuring/today
   useEffect(() => {
-    if (phase === 'synthesis' || phase === 'today') {
+    if (phase === 'synthesis' || phase === 'configuring' || phase === 'today') {
       setAnswers((prev) => ({
         specialite: prev.specialite ?? SKIP_DEFAULTS.specialite,
         zone: prev.zone.length > 0 ? prev.zone : [...SKIP_DEFAULTS.zone],
@@ -210,6 +248,7 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
         dark={dark}
         onStart={() => setPhase('q0')}
         onSkip={handleSkipAll}
+        onThemeChange={onThemeChange}
       />
     )
   } else if (phase.startsWith('q') && currentQ >= 0 && currentQ <= 3) {
@@ -236,8 +275,8 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
         }}
         onPrev={handleQPrev}
         onNext={handleQNext}
-        onSkip={handleSkipAll}
         dark={dark}
+        onThemeChange={onThemeChange}
       />
     )
   } else if (phase === 'synthesis') {
@@ -247,9 +286,18 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
         answers={answers}
         autonomy={autonomy}
         setAutonomy={setAutonomy}
-        onEnter={() => setPhase('today')}
+        onEnter={() => setPhase('configuring')}
         onEditQuestion={(i) => setPhase(`q${i}` as D0Phase)}
         dark={dark}
+        onThemeChange={onThemeChange}
+      />
+    )
+  } else if (phase === 'configuring') {
+    body = (
+      <D0Configuring
+        answers={answers}
+        dark={dark}
+        onComplete={() => setPhase('today')}
       />
     )
   } else if (phase === 'today') {
@@ -280,8 +328,19 @@ export function PremierJourShell({ dark = false }: { dark?: boolean }) {
     >
       <style>{OB_GLOBAL_CSS + D0_CSS}</style>
 
+      {/* Phase-group key : welcome/questions/synthesis/today. Toutes les
+          q0/q1/q2/q3 partagent la même key "questions" → D0QuestionScreen
+          reste monté, et son AnimatePresence interne anime le contenu Q→Q.
+          Les transitions inter-écrans (welcome → q0, q3 → synthesis, etc.)
+          déclenchent un fade-in via la CSS d0FadeIn. */}
       <div
-        key={phase}
+        key={
+          phase === 'welcome' ? 'welcome' :
+          phase.startsWith('q') ? 'questions' :
+          phase === 'synthesis' ? 'synthesis' :
+          phase === 'configuring' ? 'configuring' :
+          'today'
+        }
         style={{
           animation: 'd0FadeIn .35s ease both',
         }}

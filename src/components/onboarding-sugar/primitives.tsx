@@ -216,10 +216,13 @@ export function ObStepHeader({
   )
 }
 
-// ─── Card Sugar générique (surface blanche, ombre, pas de bordure) ───
+// ─── Card hybride (surface + ombre Sugar Pure × border Property X) ───
+// Direction hybride : on garde la générosité (padding, shadow douce) et la
+// chaleur de la canvas Sugar Pure, mais on adopte la border 1px subtile
+// architecturale Property X — comme dans le bento auth.
 
 export function ObCard({
-  children, padding = 28, radius = 22, dark, style, onClick, hoverable,
+  children, padding = 28, radius = 24, dark, style, onClick, hoverable,
 }: {
   children: ReactNode
   padding?: number
@@ -238,6 +241,7 @@ export function ObCard({
       onMouseLeave={() => setH(false)}
       style={{
         background: t.card,
+        border: `1px solid ${t.cardBorder}`,
         borderRadius: radius,
         padding,
         boxShadow: hoverable && h ? t.shadowHov : t.shadow,

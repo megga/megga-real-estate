@@ -6,6 +6,7 @@ export type ObTheme = {
   bgGradient: string
   card: string
   cardSubtle: string
+  cardBorder: string
   black: string
   blackHover: string
   ink: string
@@ -28,7 +29,8 @@ export const OB_LIGHT: ObTheme = {
   bgGradient:
     'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
   card: '#FFFFFF',
-  cardSubtle: '#F7F8FA',
+  cardSubtle: '#FAFAFB',
+  cardBorder: 'rgba(11,12,14,0.08)',
   black: '#0B0C0E',
   blackHover: '#1F2024',
   ink: '#0B0C0E',
@@ -36,10 +38,10 @@ export const OB_LIGHT: ObTheme = {
   muted: '#7A8088',
   ghost: '#B5BAC2',
   divider: 'rgba(11,12,14,0.06)',
-  shadowSm: '0 4px 16px rgba(15,23,42,0.04)',
-  shadow: '0 12px 40px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)',
-  shadowLg: '0 24px 60px rgba(15,23,42,0.10), 0 4px 16px rgba(15,23,42,0.05)',
-  shadowHov: '0 32px 70px rgba(15,23,42,0.12), 0 6px 20px rgba(15,23,42,0.05)',
+  shadowSm: '0 4px 16px rgba(20,22,28,0.04)',
+  shadow: '0 12px 40px rgba(20,22,28,0.06), 0 2px 8px rgba(20,22,28,0.03)',
+  shadowLg: '0 24px 60px rgba(20,22,28,0.10), 0 4px 16px rgba(20,22,28,0.05)',
+  shadowHov: '0 32px 70px rgba(20,22,28,0.12), 0 6px 20px rgba(20,22,28,0.05)',
   ok: '#059669',
   warn: '#C45A00',
   err: '#BE3434',
@@ -50,8 +52,9 @@ export const OB_DARK: ObTheme = {
   bg: '#0E0E14',
   bgGradient:
     'radial-gradient(ellipse 120% 80% at 50% 100%, #1F2030 0%, #161722 50%, #0E0E14 100%)',
-  card: '#16161F',
-  cardSubtle: '#1E1E2A',
+  card: '#1B1D24',
+  cardSubtle: '#22252D',
+  cardBorder: '#2A2D36',
   black: '#ECEDF3',
   blackHover: '#FFFFFF',
   ink: '#ECEDF3',
@@ -60,9 +63,9 @@ export const OB_DARK: ObTheme = {
   ghost: '#3F4252',
   divider: 'rgba(236,237,243,0.08)',
   shadowSm: '0 4px 16px rgba(0,0,0,0.30)',
-  shadow: '0 12px 40px rgba(0,0,0,0.40), 0 2px 8px rgba(0,0,0,0.25)',
-  shadowLg: '0 24px 60px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.30)',
-  shadowHov: '0 32px 70px rgba(0,0,0,0.60), 0 6px 20px rgba(0,0,0,0.30)',
+  shadow: '0 24px 60px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04) inset',
+  shadowLg: '0 32px 80px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.30)',
+  shadowHov: '0 40px 90px rgba(0,0,0,0.60), 0 6px 20px rgba(0,0,0,0.30)',
   ok: '#10B981',
   warn: '#F59E0B',
   err: '#EF4444',

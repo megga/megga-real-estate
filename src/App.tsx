@@ -148,6 +148,7 @@ const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
 const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
+const D0ConfiguringDemoPage = lazy(() => import('@/pages/dev/D0ConfiguringDemoPage'))
 const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
 const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
 const CustomTemplatePage = lazy(() => import('@/pages/agent/CustomTemplatePage'))
@@ -399,6 +400,7 @@ function AnimatedRoutes() {
               <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
               <Route path="/dev/mfa" element={<MfaShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
+              <Route path="/dev/configuring" element={<D0ConfiguringDemoPage />} />
 
               {/* Portail vendeur — accès tokénisé (production) */}
               <Route path="/portail/:token" element={<PortalGateway />}>

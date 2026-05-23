@@ -6,11 +6,10 @@ import { obPalette, type ObTheme } from './tokens'
 import {
   ObCard,
   ObField,
-  ObIcon,
-  ObStepHeader,
   obInputStyle,
 } from './primitives'
 import { uploadAgentAvatar } from './persistence'
+import PxIcon from '@/components/propertyx/PxIcon'
 import type {
   AgentProfile,
   AgentRole,
@@ -70,14 +69,13 @@ function ObAvatarUploader({
         backgroundImage: value ? `url(${value})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
+        border: value ? 'none' : `1px solid ${t.cardBorder}`,
         display: 'grid',
         placeItems: 'center',
         cursor: 'pointer',
         flexShrink: 0,
-        boxShadow: drag
-          ? `0 0 0 3px ${t.ink} inset, 0 12px 30px rgba(11,12,14,0.18)`
-          : '0 12px 30px rgba(11,12,14,0.10), 0 2px 8px rgba(11,12,14,0.06)',
-        transition: 'box-shadow .2s ease',
+        boxShadow: drag ? `0 0 0 2px ${t.ink} inset` : 'none',
+        transition: 'box-shadow .18s ease, border-color .18s ease',
       }}
     >
       {!value && (
@@ -110,7 +108,7 @@ function ObAvatarUploader({
             boxShadow: `0 6px 14px rgba(11,12,14,0.25), 0 0 0 3px ${t.bg}`,
           }}
         >
-          <ObIcon name="camera" size={15} stroke={dark ? '#0B0C0E' : '#fff'} />
+          <PxIcon name="camera" size={15} color={dark ? '#0B0C0E' : '#fff'} strokeWidth={1.8} />
         </div>
       )}
 
@@ -147,16 +145,15 @@ function ObAvatarUploader({
             width: 26,
             height: 26,
             borderRadius: 999,
-            border: 0,
+            border: `1px solid ${t.cardBorder}`,
             background: t.card,
             color: t.inkSoft,
             cursor: 'pointer',
             display: 'grid',
             placeItems: 'center',
-            boxShadow: t.shadowSm,
           }}
         >
-          <ObIcon name="close" size={12} />
+          <PxIcon name="close" size={12} color={t.inkSoft} strokeWidth={1.8} />
         </button>
       )}
 
@@ -221,16 +218,17 @@ function ObChipMulti<T extends string>({
                   height: 16,
                   borderRadius: 999,
                   background: dark ? '#0B0C0E' : 'rgba(255,255,255,0.18)',
-                  color: dark ? '#ECEDF3' : '#fff',
                   display: 'grid',
                   placeItems: 'center',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 0,
                   flexShrink: 0,
                 }}
               >
-                ✓
+                <PxIcon
+                  name="check"
+                  size={10}
+                  color={dark ? '#ECEDF3' : '#fff'}
+                  strokeWidth={2.4}
+                />
               </span>
             )}
             {opt.label}
@@ -289,11 +287,44 @@ export function StepProfilAgent({
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', paddingTop: 8 }}>
-      <ObStepHeader
-        title="Vous, sur MEGGA."
-        sub="Photo, rôle, mobile, langues parlées. Vous pourrez compléter le reste à tout moment depuis vos paramètres."
-        dark={dark}
-      />
+      {/* Hero form-first : H1 réduit + sub court, la card prend le devant */}
+      <div
+        style={{
+          marginBottom: 32,
+          animation: 'obFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <h1
+          style={{
+            margin: '0 0 10px',
+            fontFamily:
+              '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+            fontSize: 40,
+            fontWeight: 700,
+            color: t.ink,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.0,
+            textTransform: 'uppercase',
+          }}
+        >
+          Vous, sur MEGGA.
+        </h1>
+        <p
+          style={{
+            margin: 0,
+            maxWidth: 480,
+            fontSize: 15,
+            fontWeight: 400,
+            color: t.inkSoft,
+            lineHeight: 1.5,
+            letterSpacing: '-0.005em',
+          }}
+        >
+          Photo, rôle, mobile, langues parlées.
+          <br />
+          Le reste se peaufine plus tard, depuis vos paramètres.
+        </p>
+      </div>
 
       <ObCard
         padding={32}

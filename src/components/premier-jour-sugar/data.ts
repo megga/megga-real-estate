@@ -4,6 +4,7 @@
 //
 // Source : handoff-premier-jour/premier-jour/crm-day0-tokens.jsx
 import type { ObIconName } from '@/components/onboarding-sugar/primitives'
+import type { PxIconName } from '@/components/propertyx/PxIcon'
 import type {
   Autonomy,
   D0Answers,
@@ -17,7 +18,7 @@ import type {
 
 export type D0Option<TId extends string> = {
   id: TId
-  icon: ObIconName
+  icon: PxIconName
   label: string
   hint: string
 }
@@ -43,8 +44,8 @@ export type D0Question =
       eyebrow: string
       title: string
       sub: string
-      kind: 'segmented'
-      options: { id: Dispo; label: string; hint: string }[]
+      kind: 'cards'
+      options: D0Option<Dispo>[]
     }
   | {
       id: 'priorite'
@@ -65,8 +66,8 @@ export const D0_QUESTIONS: D0Question[] = [
     options: [
       { id: 'vente', icon: 'home', label: 'Vente résidentielle', hint: 'Maisons, appartements en propriété' },
       { id: 'location', icon: 'building', label: 'Location', hint: 'Baux à loyer, gérance' },
-      { id: 'commercial', icon: 'pipeline', label: 'Commercial / Investissement', hint: 'Bureaux, immeubles de rendement' },
-      { id: 'mix', icon: 'target', label: 'Un peu de tout', hint: 'Plusieurs spécialités en parallèle' },
+      { id: 'commercial', icon: 'pipeline', label: 'Commercial / Investissement', hint: 'Bureaux, arcades, immeubles de rendement' },
+      { id: 'terrain', icon: 'surface', label: 'Terrain', hint: 'Parcelles, lots constructibles' },
     ],
   },
   {
@@ -79,13 +80,13 @@ export const D0_QUESTIONS: D0Question[] = [
   {
     id: 'dispo',
     eyebrow: '03 / 04',
-    title: 'Quand puis-je vous solliciter ?',
-    sub: 'Je vous rappelle les actions, génère vos relances et calcule vos SLA sur cette base.',
-    kind: 'segmented',
+    title: 'Quand puis-je\nvous solliciter ?',
+    sub: 'Je vous rappelle les actions, génère vos relances\net calcule vos SLA sur cette base.',
+    kind: 'cards',
     options: [
-      { id: 'office', label: 'Bureau', hint: 'Lundi à vendredi · 9h à 18h' },
-      { id: 'wide', label: 'Élargi', hint: 'Lundi à samedi · 8h à 20h' },
-      { id: '247', label: 'Toujours', hint: 'Pas de limite horaire — vous gérez' },
+      { id: 'office', icon: 'clock', label: 'Bureau', hint: 'Lundi à vendredi · 9h à 18h' },
+      { id: 'wide', icon: 'calendar', label: 'Élargi', hint: 'Lundi à samedi · 8h à 20h' },
+      { id: '247', icon: 'sparkle', label: 'Toujours', hint: 'Pas de limite horaire,\nvous gérez' },
     ],
   },
   {
@@ -312,7 +313,7 @@ export const d0BuildCommitments = (answers: D0Answers): D0Commitment[] => {
     vente: 'vendeurs',
     location: 'locataires et propriétaires',
     commercial: 'investisseurs',
-    mix: 'clients',
+    terrain: 'promoteurs et investisseurs fonciers',
   }
   const spec = answers.specialite ? specLabel[answers.specialite] : 'clients'
 

@@ -7,13 +7,12 @@ import { obPalette, type ObTheme } from './tokens'
 import {
   ObCard,
   ObField,
-  ObIcon,
-  ObStepHeader,
   obInputStyle,
-  type ObIconName,
 } from './primitives'
 import { uploadAgencyLogo } from './persistence'
 import type { OnboardingData, Setter, AgenceProfile } from './types'
+import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
+import { SWISS_CANTONS, CANTON_LABELS } from '@/hooks/useMarketFilters'
 
 // ─── Logo uploader (square) ──────────────────────────────────────────
 
@@ -66,32 +65,18 @@ function ObLogoUploader({
         backgroundImage: value ? `url(${value})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
+        border: value ? 'none' : `1px solid ${t.cardBorder}`,
         display: 'grid',
         placeItems: 'center',
         cursor: 'pointer',
         flexShrink: 0,
-        boxShadow: drag
-          ? `0 0 0 3px ${t.ink} inset, 0 12px 30px rgba(11,12,14,0.18)`
-          : '0 12px 30px rgba(11,12,14,0.10), 0 2px 8px rgba(11,12,14,0.06)',
-        transition: 'box-shadow .2s ease',
+        boxShadow: drag ? `0 0 0 2px ${t.ink} inset` : 'none',
+        transition: 'box-shadow .18s ease, border-color .18s ease',
       }}
     >
       {!value && (
-        <div style={{ display: 'grid', placeItems: 'center', gap: 8 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              background: t.card,
-              color: t.ink,
-              display: 'grid',
-              placeItems: 'center',
-              boxShadow: t.shadowSm,
-            }}
-          >
-            <ObIcon name="upload" size={18} />
-          </div>
+        <div style={{ display: 'grid', placeItems: 'center', gap: 10 }}>
+          <PxIcon name="upload" size={22} strokeWidth={1.7} color={t.ink} />
           <div
             style={{
               fontSize: 10.5,
@@ -146,7 +131,7 @@ function ObLogoUploader({
             boxShadow: t.shadowSm,
           }}
         >
-          <ObIcon name="close" size={12} />
+          <PxIcon name="close" size={12} strokeWidth={1.8} color={t.inkSoft} />
         </button>
       )}
       <input
@@ -171,11 +156,11 @@ function ObAgencyInheritedView({
   dark?: boolean
 }) {
   const t = obPalette(dark)
-  const tiles: Array<[ObIconName, string, string]> = [
-    ['building', 'Logo et identité', "Définis par l'admin"],
-    ['map', 'Adresse et contact', `${agCity}, ${agCanton}`],
-    ['pipeline', 'Modèles de mandat', '12 templates partagés'],
-    ['shield', 'Conformité LBA', 'Validée au niveau agence'],
+  const tiles: Array<[PxIconName, string, string]> = [
+    ['building', 'Identité visuelle', "Configurée par l'équipe"],
+    ['location', 'Adresse et contact', `${agCity}, ${agCanton}`],
+    ['pipeline', 'Modèles partagés', '12 documents prêts à l’emploi'],
+    ['shield', 'Conformité LBA', 'Active sur tous vos mandats'],
   ]
   return (
     <div
@@ -206,14 +191,14 @@ function ObAgencyInheritedView({
               boxShadow: '0 10px 22px rgba(11,12,14,0.20)',
             }}
           >
-            <ObIcon
+            <PxIcon
               name="check"
               size={26}
-              sw={2.4}
-              stroke={dark ? '#0B0C0E' : '#fff'}
+              strokeWidth={2.2}
+              color={dark ? '#0B0C0E' : '#fff'}
             />
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
                 fontSize: 10.5,
@@ -224,18 +209,23 @@ function ObAgencyInheritedView({
                 marginBottom: 6,
               }}
             >
-              Tout est déjà en place
+              Vous rejoignez
             </div>
             <div
               style={{
-                fontSize: 22,
+                fontFamily:
+                  '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+                fontSize: 26,
                 fontWeight: 700,
                 color: t.ink,
-                letterSpacing: -0.5,
-                lineHeight: 1.2,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
-              Vous héritez de la fiche {agName}.
+              {agName}
             </div>
           </div>
         </div>
@@ -264,18 +254,15 @@ function ObAgencyInheritedView({
             >
               <div
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  background: t.card,
-                  color: t.ink,
+                  width: 28,
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
-                  boxShadow: t.shadowSm,
+                  color: t.ink,
+                  marginTop: 1,
                 }}
               >
-                <ObIcon name={icon} size={16} sw={1.6} />
+                <PxIcon name={icon} size={22} strokeWidth={1.7} color={t.ink} />
               </div>
               <div style={{ minWidth: 0 }}>
                 <div
@@ -312,7 +299,8 @@ function ObAgencyInheritedView({
 
 // ─── Variant B : created agency → single-column form ─────────────────
 
-const CANTONS_LIST = ['VD', 'GE', 'VS', 'FR', 'NE', 'JU', 'BE', 'ZH', 'BS', 'BL', 'TI'] as const
+// 26 cantons suisses, triés alphabétiquement par code pour la trouvabilité
+const CANTONS_LIST = [...SWISS_CANTONS].sort()
 
 function ObAgencyCreatedForm({
   data, set, dark,
@@ -424,7 +412,7 @@ function ObAgencyCreatedForm({
               style={obInputStyle(t)}
             >
               {CANTONS_LIST.map((c) => (
-                <option key={c} value={c}>
+                <option key={c} value={c} title={CANTON_LABELS[c] ?? c}>
                   {c}
                 </option>
               ))}
@@ -489,18 +477,61 @@ export function StepProfilAgence({
   const created = data.agenceCreated
   const joined = data.agenceSelected
   const isCreator = !!created
+  const t = obPalette(dark)
+
+  const heroTitle = isCreator ? 'Votre structure.' : 'Tout est déjà construit.'
+  const heroSub = isCreator ? (
+    <>
+      Posons les fondations. Logo, adresse, contact.
+      <br />
+      Le branding public arrive plus tard, depuis vos paramètres.
+    </>
+  ) : (
+    <>
+      Votre équipe a posé les fondations.
+      <br />
+      Logo, adresse, conformité déjà en place.
+    </>
+  )
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', paddingTop: 8 }}>
-      <ObStepHeader
-        title={isCreator ? 'Votre agence.' : 'Tout est déjà prêt.'}
-        sub={
-          isCreator
-            ? "Logo, adresse, contact. La cover et les options d'habillage public arriveront depuis vos paramètres."
-            : 'Vous héritez de la fiche de votre agence. Continuez votre profil personnel à l\'étape suivante.'
-        }
-        dark={dark}
-      />
+      {/* Hero form-first : H1 réduit + sub court, la card/form prend le devant */}
+      <div
+        style={{
+          marginBottom: 32,
+          animation: 'obFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <h1
+          style={{
+            margin: '0 0 10px',
+            fontFamily:
+              '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+            fontSize: 40,
+            fontWeight: 700,
+            color: t.ink,
+            letterSpacing: '-0.03em',
+            lineHeight: 1.0,
+            textTransform: 'uppercase',
+          }}
+        >
+          {heroTitle}
+        </h1>
+        <p
+          style={{
+            margin: 0,
+            maxWidth: 480,
+            fontSize: 15,
+            fontWeight: 400,
+            color: t.inkSoft,
+            lineHeight: 1.5,
+            letterSpacing: '-0.005em',
+          }}
+        >
+          {heroSub}
+        </p>
+      </div>
 
       {isCreator ? (
         <ObAgencyCreatedForm data={data} set={set} dark={dark} />

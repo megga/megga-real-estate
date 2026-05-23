@@ -3,172 +3,13 @@
 // Purely informational — NEVER collect ID pieces here (KYC = buyer scope, not agent).
 import type { ReactNode } from 'react'
 import { obPalette } from './tokens'
-import { ObIcon, type ObIconName } from './primitives'
-import { ObSwissFlag } from './primitives'
-
-function ObKYCIdCard({ dark }: { dark?: boolean }) {
-  const t = obPalette(dark)
-  const bar = (w: number | string, h = 6, opacity = 1) => ({
-    width: w,
-    height: h,
-    borderRadius: 4,
-    background: dark
-      ? `rgba(236,237,243,${0.10 * opacity})`
-      : `rgba(11,12,14,${0.10 * opacity})`,
-  })
-  const barStrong = (w: number | string, h = 8) => ({
-    width: w,
-    height: h,
-    borderRadius: 4,
-    background: dark ? 'rgba(236,237,243,0.22)' : 'rgba(11,12,14,0.22)',
-  })
-
-  return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: 360,
-        aspectRatio: '1.586 / 1',
-        background: t.card,
-        borderRadius: 18,
-        boxShadow: t.shadow,
-        padding: '24px 22px',
-        display: 'flex',
-        gap: 18,
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          right: 18,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
-        <ObSwissFlag size={12} />
-        <span
-          style={{
-            fontSize: 9,
-            fontWeight: 700,
-            color: t.muted,
-            letterSpacing: 1,
-            textTransform: 'uppercase',
-          }}
-        >
-          Pièce d'identité
-        </span>
-      </div>
-
-      <div
-        style={{
-          flexShrink: 0,
-          width: 78,
-          height: 100,
-          borderRadius: 8,
-          background: t.cardSubtle,
-          display: 'grid',
-          placeItems: 'center',
-          alignSelf: 'center',
-        }}
-      >
-        <svg
-          width="34"
-          height="34"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={dark ? 'rgba(236,237,243,0.30)' : 'rgba(11,12,14,0.20)'}
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="12" cy="9" r="3.6" />
-          <path d="M5 20a7 7 0 0 1 14 0" />
-        </svg>
-      </div>
-
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          paddingTop: 18,
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={bar(38, 4, 0.55)} />
-          <div style={barStrong(96, 8)} />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={bar(42, 4, 0.55)} />
-          <div style={barStrong(70, 7)} />
-        </div>
-        <div style={{ display: 'flex', gap: 16 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={bar(28, 4, 0.55)} />
-            <div style={barStrong(46, 7)} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={bar(28, 4, 0.55)} />
-            <div style={barStrong(40, 7)} />
-          </div>
-        </div>
-
-        <div
-          style={{
-            marginTop: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 3,
-            fontFamily: "ui-monospace, 'JetBrains Mono', monospace",
-          }}
-        >
-          <div style={bar('100%', 5, 0.45)} />
-          <div style={bar('88%', 5, 0.45)} />
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          bottom: -14,
-          right: -14,
-          width: 38,
-          height: 38,
-          borderRadius: 999,
-          background: t.ink,
-          color: t.card,
-          display: 'grid',
-          placeItems: 'center',
-          boxShadow: '0 12px 24px rgba(11,12,14,0.30)',
-          border: `3px solid ${t.bg}`,
-        }}
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={dark ? '#0B0C0E' : '#fff'}
-          strokeWidth="2.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m5 13 4 4 10-12" />
-        </svg>
-      </div>
-    </div>
-  )
-}
+import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
+import SwissIdCardSkeleton from './SwissIdCardSkeleton'
 
 function ObKYCFeature({
   icon, title, sub, dark,
 }: {
-  icon: ObIconName
+  icon: PxIconName
   title: string
   sub: ReactNode
   dark?: boolean
@@ -179,24 +20,23 @@ function ObKYCFeature({
       style={{
         display: 'flex',
         alignItems: 'flex-start',
-        gap: 16,
+        gap: 18,
         padding: '16px 0',
         borderBottom: `1px solid ${t.divider}`,
       }}
     >
+      {/* Icône Property X — pas de fond, juste le glyph line-stroke 1.7 */}
       <div
         style={{
           flexShrink: 0,
-          width: 40,
-          height: 40,
-          borderRadius: 12,
-          background: t.cardSubtle,
-          color: t.ink,
+          width: 28,
           display: 'grid',
           placeItems: 'center',
+          color: t.ink,
+          marginTop: 2,
         }}
       >
-        <ObIcon name={icon} size={18} stroke={t.ink} sw={1.7} />
+        <PxIcon name={icon} size={26} color={t.ink} strokeWidth={1.7} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -225,23 +65,21 @@ function ObKYCFeature({
   )
 }
 
-const FEATURES: Array<{ icon: ObIconName; title: string; sub: string }> = [
+const FEATURES: Array<{ icon: PxIconName; title: string; sub: string }> = [
   {
     icon: 'pipeline',
-    title: 'Natif, pas un plug-in',
-    sub:
-      'Le KYC vit dans le pipeline — pas dans une boîte à part, pas un outil tiers à connecter.',
+    title: 'Cousu dans le pipeline.',
+    sub: "Le KYC n'a pas son onglet. Il apparaît quand un dossier le réclame, disparaît quand c'est fait.",
   },
   {
     icon: 'shield',
-    title: 'Conforme LBA / LSFin',
-    sub:
-      'OCR pièce d\'identité, vérification PEP, archivage 10 ans — out of the box.',
+    title: 'Audit-ready. Toujours.',
+    sub: 'OCR identité, PEP en continu, archivage légal automatique. À chaque dossier, sans intervention.',
   },
   {
     icon: 'sparkle',
-    title: 'Déclenché par MEGGA AI',
-    sub: 'Au bon moment sur l\'acheteur, jamais en avance, jamais à la main.',
+    title: "L'IA déclenche au compromis.",
+    sub: "Pas à l'inscription. Pas à la visite. Au moment légalement requis.",
   },
 ]
 
@@ -249,61 +87,98 @@ export function StepKYC({ dark }: { dark?: boolean }) {
   const t = obPalette(dark)
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', paddingTop: 4 }}>
-      <div
-        style={{
-          textAlign: 'center',
-          marginBottom: 44,
-          animation: 'obFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
-        }}
-      >
-        <h1
-          style={{
-            margin: '0 0 14px',
-            fontSize: 44,
-            fontWeight: 700,
-            color: t.ink,
-            letterSpacing: -1,
-            lineHeight: 1.05,
-          }}
-        >
-          Le premier CRM avec
-          <br />
-          le KYC intégré.
-        </h1>
-        <p
-          style={{
-            margin: '0 auto',
-            maxWidth: 540,
-            fontSize: 15.5,
-            color: t.inkSoft,
-            fontWeight: 500,
-            lineHeight: 1.55,
-          }}
-        >
-          Plus d'outils tiers, plus de classeur Excel. Tout est natif, conforme LBA,
-          et déclenché au bon moment.
-        </p>
-      </div>
-
+      {/* ── HERO : 2 colonnes — H1 + lead + punch à gauche, ID card à droite ── */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr minmax(280px, 360px)',
-          gap: 56,
+          gridTemplateColumns: '1fr 320px',
+          gap: 80,
           alignItems: 'center',
+          marginBottom: 88,
           animation: 'obFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
-          animationDelay: '0.1s',
-          animationFillMode: 'both',
         }}
       >
         <div>
-          {FEATURES.map((f, i) => (
-            <ObKYCFeature key={i} {...f} dark={dark} />
-          ))}
+          {/* Strate 1 — H1 monumental, 3 lignes asymétriques */}
+          <h1
+            style={{
+              margin: 0,
+              fontFamily:
+                '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+              fontSize: 84,
+              fontWeight: 700,
+              color: t.ink,
+              letterSpacing: '-0.04em',
+              lineHeight: 0.9,
+              textTransform: 'uppercase',
+            }}
+          >
+            Le KYC suit.
+            <br />
+            Vous,
+            <br />
+            vous vendez.
+          </h1>
+
+          {/* Divider Pangram — trait court signature */}
+          <div
+            style={{
+              width: 60,
+              height: 1.5,
+              background: t.ink,
+              margin: '32px 0',
+            }}
+          />
+
+          {/* Strate 2 — Lead : petit, factuel, max-width étroit */}
+          <p
+            style={{
+              margin: 0,
+              maxWidth: 400,
+              fontSize: 15,
+              fontWeight: 400,
+              color: t.inkSoft,
+              lineHeight: 1.6,
+              letterSpacing: '-0.005em',
+            }}
+          >
+            Premier CRM immobilier suisse où l'OCR identité,
+            <br />
+            le PEP et l'archivage légal sont intégrés au pipeline.
+          </p>
+
+          {/* Strate 3 — Punch inline avec séparateur typographique " · " */}
+          <p
+            style={{
+              margin: '20px 0 0',
+              fontSize: 11,
+              fontWeight: 700,
+              color: t.ink,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              lineHeight: 1.4,
+            }}
+          >
+            Aucun outil tiers · Aucune ressaisie · Aucune amende
+          </p>
         </div>
+
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <ObKYCIdCard dark={dark} />
+          <SwissIdCardSkeleton dark={dark} />
         </div>
+      </div>
+
+      {/* ── FEATURES : pleine largeur, stacked avec dividers ── */}
+      <div
+        style={{
+          animation: 'obFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
+          animationDelay: '0.15s',
+          animationFillMode: 'both',
+        }}
+      >
+        {FEATURES.map((f, i) => (
+          <ObKYCFeature key={i} {...f} dark={dark} />
+        ))}
       </div>
     </div>
   )

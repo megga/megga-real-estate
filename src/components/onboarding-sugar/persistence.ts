@@ -55,6 +55,19 @@ export async function searchAgencies(query: string): Promise<ObAgency[]> {
   return ((data ?? []) as SearchRow[]).map(rowToAgency)
 }
 
+// Dev bypass : si la RPC échoue avec "not_authenticated" en mode dev, on
+// retourne un succès fake pour permettre de traverser le wizard sans avoir
+// à signup un vrai compte. En prod, comportement strict (error remonte).
+function isDevAuthBypass(message: string | undefined): boolean {
+  return Boolean(import.meta.env.DEV && message && /not_authenticated/.test(message))
+}
+
+// Génère un UUID v4 client-side (pour le fake agencyId en dev bypass).
+function devFakeUuid(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  return 'dev-' + Math.random().toString(36).slice(2, 14)
+}
+
 export async function createAgency(
   name: string,
   city: string,
@@ -68,6 +81,14 @@ export async function createAgency(
     p_solo: solo,
   })
   if (error) {
+    if (isDevAuthBypass(error.message)) {
+      const id = devFakeUuid()
+      console.warn(
+        '[onboarding] create_agency_and_join: dev bypass (not_authenticated). Fake agencyId:',
+        id,
+      )
+      return { ok: true, agencyId: id }
+    }
     const conflict =
       error.code === '23505' ||
       /unique|duplicate/i.test(error.message)
@@ -79,6 +100,10 @@ export async function createAgency(
 export async function joinAgency(agencyId: string): Promise<boolean> {
   const { error } = await supabase.rpc('join_agency', { p_agency_id: agencyId })
   if (error) {
+    if (isDevAuthBypass(error.message)) {
+      console.warn('[onboarding] join_agency: dev bypass (not_authenticated)')
+      return true
+    }
     console.warn('[onboarding] join_agency failed:', error.message)
     return false
   }

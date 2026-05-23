@@ -1,8 +1,12 @@
 // MEGGA Onboarding — Étape Forfait
 // Source : handoff-onboarding/onboarding/megga-onboarding-step-forfait.jsx
+// Direction A — Specimen typographique : 2 plans en miroir, séparés par une
+// hairline. Plus de cards arrondies/ombrées, plus de star ⭐ "Recommandé".
+// Pro se distingue uniquement par un tiny eyebrow + features asymétriques.
 import { useState, type ReactNode } from 'react'
 import { obPalette } from './tokens'
 import type { Billing, OnboardingData, Plan, Setter } from './types'
+import PxIcon from '@/components/propertyx/PxIcon'
 
 // ─── Toggle monthly / yearly ─────────────────────────────────────────
 
@@ -116,67 +120,14 @@ function ObBillingToggle({
   )
 }
 
-// ─── Feature line ────────────────────────────────────────────────────
-
-function ObPlanFeature({
-  children, dark, invert, strong,
-}: {
-  children: ReactNode
-  dark?: boolean
-  invert?: boolean
-  strong?: boolean
-}) {
-  const t = obPalette(dark)
-  const tickBg = invert
-    ? dark ? 'rgba(11,12,14,0.10)' : 'rgba(255,255,255,0.14)'
-    : t.cardSubtle
-  const tickStroke = invert ? (dark ? '#0B0C0E' : '#FFFFFF') : t.ink
-  const textColor = invert
-    ? dark ? 'rgba(11,12,14,0.78)' : 'rgba(255,255,255,0.86)'
-    : t.inkSoft
-  return (
-    <li
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12,
-        fontSize: 13.5,
-        lineHeight: 1.5,
-        color: textColor,
-        fontWeight: strong ? 600 : 500,
-      }}
-    >
-      <span
-        style={{
-          flexShrink: 0,
-          marginTop: 1,
-          width: 20,
-          height: 20,
-          borderRadius: 999,
-          background: tickBg,
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        <svg
-          width="11"
-          height="11"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={tickStroke}
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m5 13 4 4 10-12" />
-        </svg>
-      </span>
-      <span>{children}</span>
-    </li>
-  )
-}
-
-// ─── Plan card ───────────────────────────────────────────────────────
+// ─── Plan card (Direction B — Polish hybrid PX) ──────────────────────
+// Cards comme containers visuels (chunking), mais nettoyées :
+// - 4 features max (vs 7 avant)
+// - PxIcon partout (no SVG inline)
+// - Pas de star ⭐ "Recommandé" → eyebrow discret
+// - Prix 40px (vs 56px) — moins agressif
+// - Border 1px hybrid PX sur Free, Pro garde son surface ink
+// - Tick pastille typographique → micro PxIcon check
 
 function ObPlanCard({
   variant, selected, onSelect, billing, dark,
@@ -191,28 +142,57 @@ function ObPlanCard({
   const [h, setH] = useState(false)
   const isPro = variant === 'pro'
 
-  const priceMonth = isPro ? (billing === 'yearly' ? 65 : 79) : 0
-  const annualBilled = 790
+  const priceMonth = isPro ? (billing === 'yearly' ? 65 : 79) : null
+  const annualSave = 158
 
+  // Surfaces — Free clair avec border, Pro accent ink
   const surface = isPro ? t.black : t.card
   const ink = isPro ? (dark ? '#0B0C0E' : '#FFFFFF') : t.ink
   const inkSoft = isPro
-    ? dark ? 'rgba(11,12,14,0.72)' : 'rgba(255,255,255,0.78)'
+    ? dark
+      ? 'rgba(11,12,14,0.72)'
+      : 'rgba(255,255,255,0.82)'
     : t.inkSoft
   const muted = isPro
-    ? dark ? 'rgba(11,12,14,0.52)' : 'rgba(255,255,255,0.58)'
+    ? dark
+      ? 'rgba(11,12,14,0.52)'
+      : 'rgba(255,255,255,0.58)'
     : t.muted
+  const dividerColor = isPro
+    ? dark
+      ? 'rgba(11,12,14,0.12)'
+      : 'rgba(255,255,255,0.14)'
+    : t.divider
+  const tickBg = isPro
+    ? dark
+      ? 'rgba(11,12,14,0.10)'
+      : 'rgba(255,255,255,0.14)'
+    : t.cardSubtle
 
-  const baseLift = isPro ? -6 : 0
-  const hoverLift = h ? -3 : 0
+  // Border + shadow — hybrid PX (Free a une fine ligne, Pro garde son volume)
+  const border = isPro ? 'none' : `1px solid ${t.cardBorder}`
   const baseShadow = isPro ? t.shadowLg : t.shadow
   const hoverShadow = t.shadowHov
-  const ringColor = isPro ? (dark ? '#0B0C0E' : '#FFFFFF') : t.black
-  const selectedShadow = selected
+  const ringColor = isPro ? (dark ? '#0B0C0E' : '#FFFFFF') : t.ink
+  const finalShadow = selected
     ? `${hoverShadow}, 0 0 0 2px ${ringColor} inset`
     : h
       ? hoverShadow
       : baseShadow
+
+  const features: Array<ReactNode> = isPro
+    ? [
+        <>Mandats, contacts & publications <strong>illimités</strong></>,
+        <>MEGGA AI illimité — matching, parcours, rédaction</>,
+        <>KYC automatisé <strong>LBA / LSFin</strong></>,
+        <>Skribble QES + DocuSign · reporting avancé</>,
+      ]
+    : [
+        <><strong>3 mandats</strong> actifs · <strong>50 contacts</strong></>,
+        <>Pipeline & vue aujourd'hui complète</>,
+        <>3 publications / mois · IA 10 sugg./mois</>,
+        <>Documents standards · KYC manuel</>,
+      ]
 
   return (
     <div
@@ -221,14 +201,13 @@ function ObPlanCard({
       onMouseLeave={() => setH(false)}
       style={{
         position: 'relative',
-        flex: '1 1 0',
-        minWidth: 0,
-        padding: '34px 30px 30px',
+        padding: '32px 28px 28px',
         background: surface,
+        border,
         borderRadius: 24,
-        boxShadow: selectedShadow,
-        transform: `translateY(${baseLift + hoverLift}px)`,
-        transition: 'all .28s cubic-bezier(.2,.8,.2,1)',
+        boxShadow: finalShadow,
+        transform: h ? 'translateY(-2px)' : 'translateY(0)',
+        transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
@@ -236,268 +215,219 @@ function ObPlanCard({
         animationDelay: isPro ? '0.12s' : '0.06s',
       }}
     >
-      {isPro && (
-        <div
-          style={{
-            position: 'absolute',
-            top: -12,
-            right: 22,
-            padding: '6px 12px',
-            borderRadius: 999,
-            background: dark ? '#0B0C0E' : '#FFFFFF',
-            color: dark ? '#ECEDF3' : '#0B0C0E',
-            fontSize: 10.5,
-            fontWeight: 700,
-            letterSpacing: 0.8,
-            textTransform: 'uppercase',
-            whiteSpace: 'nowrap',
-            boxShadow: '0 8px 20px rgba(11,12,14,0.20)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2l2.6 6.7L22 9.3l-5.5 4.9 1.8 7.3L12 17.8 5.7 21.5l1.8-7.3L2 9.3l7.4-.6L12 2Z" />
-          </svg>
-          Recommandé
-        </div>
-      )}
-
-      <div style={{ marginBottom: 22 }}>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 700,
-            color: muted,
-            letterSpacing: 1.4,
-            textTransform: 'uppercase',
-            marginBottom: 10,
-          }}
-        >
-          {isPro ? 'Pour les agents en activité' : 'Pour démarrer'}
-        </div>
-        <div
-          style={{
-            fontSize: 26,
-            fontWeight: 700,
-            color: ink,
-            letterSpacing: -0.8,
-            lineHeight: 1.1,
-          }}
-        >
-          {isPro ? 'Pro' : 'Découverte'}
-        </div>
-        <div
-          style={{
-            marginTop: 6,
-            fontSize: 13.5,
-            color: inkSoft,
-            fontWeight: 500,
-            lineHeight: 1.5,
-          }}
-        >
-          {isPro
-            ? "L'outil de production pour boucler des mandats au quotidien."
-            : 'Pour boucler votre premier mandat avec MEGGA.'}
-        </div>
-      </div>
-
-      <div
+      {/* Name + tagline */}
+      <h2
         style={{
-          marginBottom: 24,
-          paddingBottom: 24,
-          borderBottom: `1px solid ${
-            isPro
-              ? dark
-                ? 'rgba(11,12,14,0.10)'
-                : 'rgba(255,255,255,0.14)'
-              : t.divider
-          }`,
+          margin: 0,
+          fontFamily:
+            '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+          fontSize: 28,
+          fontWeight: 700,
+          color: ink,
+          letterSpacing: '-0.025em',
+          lineHeight: 1.05,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              color: inkSoft,
-              letterSpacing: -0.2,
-            }}
-          >
-            CHF
-          </span>
-          <span
-            style={{
-              fontSize: 56,
-              fontWeight: 700,
-              color: ink,
-              letterSpacing: -2,
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-              transition: 'color .2s ease',
-            }}
-          >
-            {priceMonth}
-          </span>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-              color: muted,
-              letterSpacing: -0.1,
-            }}
-          >
-            / mois
-          </span>
-        </div>
-        <div
-          style={{
-            marginTop: 8,
-            fontSize: 12,
-            color: muted,
-            fontWeight: 500,
-            lineHeight: 1.5,
-            minHeight: 18,
-          }}
-        >
-          {isPro
-            ? billing === 'yearly'
-              ? `Facturé CHF ${annualBilled.toLocaleString('fr-CH').replace(/\s/g, "'")} / an · Économie CHF 158`
-              : 'Sans engagement · annulable à tout moment'
-            : 'Gratuit, pour toujours'}
-        </div>
-      </div>
-
-      <ul
+        {isPro ? 'Pro' : 'Découverte'}
+      </h2>
+      <p
         style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          flex: 1,
+          margin: '10px 0 0',
+          fontSize: 13.5,
+          fontWeight: 500,
+          color: inkSoft,
+          lineHeight: 1.5,
+        }}
+      >
+        {isPro
+          ? "L'outil de production pour boucler des mandats au quotidien."
+          : 'Pour boucler votre premier mandat avec MEGGA.'}
+      </p>
+
+      {/* Prix */}
+      <div
+        style={{
+          marginTop: 24,
+          paddingBottom: 22,
+          borderBottom: `1px solid ${dividerColor}`,
         }}
       >
         {isPro ? (
           <>
-            <ObPlanFeature dark={dark} invert strong>
-              Mandats, contacts & publications <strong>illimités</strong>
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark} invert>
-              MEGGA AI illimité — matching, parcours auto, rédaction
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark} invert>
-              KYC automatisé <strong>LBA / LSFin</strong> (OCR, PEP, archivage
-              10 ans)
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark} invert>
-              Signature électronique Skribble QES + DocuSign
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark} invert>
-              C2PA sur photos publiées · calendrier sync Google/Outlook
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark} invert>
-              Documents avancés, reporting, export Bexio / Abacus
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark} invert>
-              Support prioritaire FR/DE/IT — réponse &lt; 4 h ouvrées
-            </ObPlanFeature>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
+              <span
+                style={{
+                  fontFamily:
+                    '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+                  fontSize: 40,
+                  fontWeight: 700,
+                  color: ink,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                CHF {priceMonth}
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: muted }}>
+                / mois
+              </span>
+            </div>
+            <div
+              style={{
+                marginTop: 7,
+                fontSize: 12,
+                color: muted,
+                fontWeight: 500,
+              }}
+            >
+              {billing === 'yearly'
+                ? `Facturé annuellement · économie CHF ${annualSave}`
+                : 'Sans engagement'}
+            </div>
           </>
         ) : (
           <>
-            <ObPlanFeature dark={dark} strong>
-              <strong>3 mandats</strong> actifs · <strong>50 contacts</strong>
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark}>
-              Pipeline Kanban & vue Aujourd'hui complète
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark}>
-              Wizard de publication (3 publications / mois)
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark}>
-              MEGGA AI — 10 suggestions / mois
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark}>
-              Documents standards (mandat, fiche bien)
-            </ObPlanFeature>
-            <ObPlanFeature dark={dark}>
-              KYC manuel · support communautaire
-            </ObPlanFeature>
+            <div
+              style={{
+                fontFamily:
+                  '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+                fontSize: 40,
+                fontWeight: 700,
+                color: ink,
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+              }}
+            >
+              Gratuit
+            </div>
+            <div
+              style={{
+                marginTop: 7,
+                fontSize: 12,
+                color: muted,
+                fontWeight: 500,
+              }}
+            >
+              Pour toujours
+            </div>
           </>
         )}
+      </div>
+
+      {/* Features — 4 max avec tick pastille PxIcon */}
+      <ul
+        style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: '22px 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          flex: 1,
+        }}
+      >
+        {features.map((feature, i) => (
+          <li
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              fontSize: 13,
+              fontWeight: 500,
+              color: inkSoft,
+              lineHeight: 1.5,
+              letterSpacing: '-0.005em',
+            }}
+          >
+            <span
+              style={{
+                flexShrink: 0,
+                marginTop: 2,
+                width: 18,
+                height: 18,
+                borderRadius: 999,
+                background: tickBg,
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <PxIcon
+                name="check"
+                size={10}
+                strokeWidth={2.4}
+                color={ink}
+              />
+            </span>
+            <span>{feature}</span>
+          </li>
+        ))}
       </ul>
 
-      <div style={{ marginTop: 28 }}>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelect()
-          }}
-          style={{
-            width: '100%',
-            height: 48,
-            borderRadius: 999,
-            border: 0,
-            background: isPro
-              ? dark ? '#0B0C0E' : '#FFFFFF'
-              : t.black,
-            color: isPro
-              ? dark ? '#ECEDF3' : '#0B0C0E'
-              : dark ? '#0B0C0E' : '#FFFFFF',
-            fontFamily: 'inherit',
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 0.1,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            boxShadow: isPro
-              ? '0 8px 20px rgba(0,0,0,0.18)'
-              : '0 6px 16px rgba(11,12,14,0.18)',
-            transition: 'all .18s ease',
-            transform: h ? 'translateY(-1px)' : 'translateY(0)',
-          }}
-        >
-          {selected ? (
-            <>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="m5 13 4 4 10-12" />
-              </svg>
-              Sélectionné
-            </>
-          ) : (
-            <>
-              {isPro ? 'Choisir Pro' : 'Continuer en Découverte'}
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </>
-          )}
-        </button>
-      </div>
+      {/* CTA — bouton plein, plus discret que l'ancien */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onSelect()
+        }}
+        style={{
+          marginTop: 24,
+          width: '100%',
+          height: 44,
+          borderRadius: 999,
+          border: 0,
+          background: isPro
+            ? dark
+              ? '#0B0C0E'
+              : '#FFFFFF'
+            : t.ink,
+          color: isPro
+            ? dark
+              ? '#ECEDF3'
+              : '#0B0C0E'
+            : dark
+              ? '#0B0C0E'
+              : '#FFFFFF',
+          fontFamily: 'inherit',
+          fontSize: 13.5,
+          fontWeight: 700,
+          letterSpacing: '-0.005em',
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          transition: 'all .18s ease',
+        }}
+      >
+        {selected ? (
+          <>
+            <PxIcon
+              name="check"
+              size={14}
+              strokeWidth={2.4}
+              color={
+                isPro ? (dark ? '#ECEDF3' : '#0B0C0E') : dark ? '#0B0C0E' : '#FFFFFF'
+              }
+            />
+            Sélectionné
+          </>
+        ) : (
+          <>
+            {isPro ? 'Choisir Pro' : 'Continuer en Découverte'}
+            <PxIcon
+              name="arrow-right"
+              size={13}
+              strokeWidth={1.9}
+              color={
+                isPro ? (dark ? '#ECEDF3' : '#0B0C0E') : dark ? '#0B0C0E' : '#FFFFFF'
+              }
+            />
+          </>
+        )}
+      </button>
     </div>
   )
 }
@@ -520,50 +450,47 @@ export function StepForfait({
 
   return (
     <div style={{ maxWidth: 980, margin: '0 auto', paddingTop: 4 }}>
+      {/* Hero monumental éditorial — composition centrée comme Step 1 KYC */}
       <div
         style={{
           textAlign: 'center',
-          marginBottom: 30,
+          marginBottom: 56,
           animation: 'obFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: t.muted,
-            letterSpacing: 1.4,
-            textTransform: 'uppercase',
-            marginBottom: 14,
-          }}
-        >
-          Forfait
-        </div>
         <h1
           style={{
-            margin: '0 0 14px',
-            fontSize: 44,
+            margin: 0,
+            fontFamily:
+              '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+            fontSize: 72,
             fontWeight: 700,
             color: t.ink,
-            letterSpacing: -1,
-            lineHeight: 1.05,
+            letterSpacing: '-0.04em',
+            lineHeight: 0.95,
+            textTransform: 'uppercase',
           }}
         >
-          Choisissez votre rythme.
+          Votre rythme.
         </h1>
-        <p
+
+        {/* Sous-titre — titre secondaire sous le H1 */}
+        <h2
           style={{
-            margin: '0 auto',
-            maxWidth: 540,
-            fontSize: 15.5,
-            color: t.inkSoft,
+            margin: '24px 0 0',
+            fontFamily:
+              '"Objectivity", "Plus Jakarta Sans", system-ui, sans-serif',
+            fontSize: 24,
             fontWeight: 500,
-            lineHeight: 1.55,
+            color: t.inkSoft,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.3,
           }}
         >
-          Démarrez gratuitement, passez à Pro quand votre activité décolle. Vous
-          pouvez basculer à tout moment — sans engagement.
-        </p>
+          Démarrez gratuitement.
+          <br />
+          Passez à Pro quand l'activité décolle.
+        </h2>
       </div>
 
       <div
@@ -576,11 +503,12 @@ export function StepForfait({
         <ObBillingToggle value={billing} onChange={setBilling} dark={dark} />
       </div>
 
+      {/* Grid 2-col — Polish hybrid PX, cards comme containers */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: 22,
+          gap: 20,
           alignItems: 'stretch',
           paddingTop: 14,
         }}
@@ -601,73 +529,7 @@ export function StepForfait({
         />
       </div>
 
-      <div
-        style={{
-          marginTop: 28,
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 28,
-          flexWrap: 'wrap',
-          animation: 'obFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
-          animationDelay: '0.25s',
-          animationFillMode: 'both',
-        }}
-      >
-        {[
-          ['check', 'Aucune carte requise'],
-          ['clock', 'Bascule à tout moment'],
-          ['flag', 'Facturation suisse · TVA incluse'],
-        ].map(([_icon, label], i) => (
-          <div
-            key={i}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: t.muted,
-              letterSpacing: 0.1,
-            }}
-          >
-            <span
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 999,
-                background: t.card,
-                color: t.inkSoft,
-                display: 'grid',
-                placeItems: 'center',
-                boxShadow: t.shadowSm,
-              }}
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {_icon === 'check' && <path d="m5 13 4 4 10-12" />}
-                {_icon === 'clock' && (
-                  <>
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 2" />
-                  </>
-                )}
-                {_icon === 'flag' && <path d="M4 22V4M4 4h14l-2 5 2 5H4" />}
-              </svg>
-            </span>
-            {label}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ marginTop: 18, textAlign: 'center' }}>
+      <div style={{ marginTop: 32, textAlign: 'center' }}>
         <a
           href="#"
           onClick={(e) => e.preventDefault()}

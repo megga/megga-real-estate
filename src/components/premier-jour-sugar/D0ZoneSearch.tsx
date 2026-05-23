@@ -1,13 +1,14 @@
 // MEGGA Premier jour — Q2 Zone : autocomplete multi-sélection
 // Recherche accent-insensible sur 60+ zones suisses + synonymes.
+// Placeholder statique + tri par type/alpha (cf. RLS/GDPR : pas d'IP geo
+// côté client sans consent — voir review PR #400 finding #2).
 // Source : handoff-premier-jour/premier-jour/crm-day0-calibration.jsx → D0ZoneSearch
 import { useMemo, useRef, useState } from 'react'
 import { obPalette, type ObTheme } from '@/components/onboarding-sugar/tokens'
-import {
-  ObIcon,
-  type ObIconName,
-} from '@/components/onboarding-sugar/primitives'
+import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
 import { D0_ZONES, d0ZoneSubtitle, type D0Zone } from './data'
+
+const DEFAULT_PLACEHOLDER = 'Genève, Vaud, Suisse romande…'
 
 const TYPE_ORDER: Record<D0Zone['type'], number> = {
   country: 0,
@@ -16,9 +17,10 @@ const TYPE_ORDER: Record<D0Zone['type'], number> = {
   city: 3,
 }
 
-const iconFor = (z: D0Zone): ObIconName => {
+const iconFor = (z: D0Zone): PxIconName => {
   if (z.type === 'city') return 'building'
-  if (z.type === 'region') return 'map'
+  if (z.type === 'region') return 'location'
+  if (z.type === 'country') return 'globe'
   return 'flag'
 }
 
@@ -36,7 +38,13 @@ export function D0ZoneSearch({
 }) {
   const t = obPalette(dark)
   const [query, setQuery] = useState('')
+  const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  /** Timer du blur retardé — annulé si le focus revient avant 150ms.
+   *  Empêche le flicker du ring inset au clic sur une suggestion. */
+  const blurTimerRef = useRef<number | null>(null)
+  const placeholder =
+    value.length === 0 ? DEFAULT_PLACEHOLDER : 'Ajouter une autre zone…'
   const selectedIds = useMemo(() => new Set(value), [value])
   const selected = useMemo(
     () => value.map((id) => D0_ZONES.find((z) => z.id === id)).filter((z): z is D0Zone => !!z),
@@ -53,6 +61,7 @@ export function D0ZoneSearch({
         .join(' ')
       return hay.includes(nq)
     }
+    // Sort : ordre par type (country/region/canton/city), puis alpha.
     return D0_ZONES.filter((z) => !selectedIds.has(z.id))
       .filter(matches)
       .sort((a, b) => {
@@ -87,76 +96,50 @@ export function D0ZoneSearch({
 
   return (
     <div style={{ marginTop: 8 }}>
-      {/* Barre de recherche */}
+      {/* Barre de recherche XL avec chips INSIDE — pattern Notion/Linear.
+          Les zones sélectionnées sont rendues comme des chips inline dans
+          la pill : aucun layout shift à la sélection, focus ring stable
+          (timer blur cancellable au refocus). */}
       <div
+        onClick={() => inputRef.current?.focus()}
         style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          padding: '18px 22px',
+          alignItems: 'flex-start',
+          gap: 18,
           background: t.card,
-          borderRadius: 18,
-          boxShadow: t.shadow,
-          transition: 'box-shadow .2s ease',
+          borderRadius: selected.length > 0 ? 28 : 999,
+          minHeight: 76,
+          padding: '14px 14px 14px 24px',
+          cursor: 'text',
+          boxShadow: focused
+            ? `${t.shadowHov}, 0 0 0 2px ${t.ink} inset`
+            : t.shadow,
+          transition:
+            'box-shadow .25s cubic-bezier(.22,1,.36,1), border-radius .25s cubic-bezier(.22,1,.36,1)',
         }}
       >
-        <ObIcon name="search" size={20} stroke={t.muted} sw={1.8} />
-        <input
-          ref={inputRef}
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder={
-            selected.length === 0
-              ? 'Cherchez un canton, une ville ou une région…'
-              : 'Ajouter une autre zone…'
-          }
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: 0,
-            outline: 'none',
-            background: 'transparent',
-            color: t.ink,
-            fontFamily: 'inherit',
-            fontSize: 16,
-            fontWeight: 500,
-            letterSpacing: -0.2,
-          }}
-        />
-        {query && (
-          <button
-            onClick={() => setQuery('')}
-            aria-label="Effacer"
-            style={{
-              background: 'transparent',
-              border: 0,
-              padding: 4,
-              color: t.muted,
-              cursor: 'pointer',
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            <ObIcon name="close" size={14} stroke="currentColor" sw={2} />
-          </button>
-        )}
-      </div>
+        <div style={{ flexShrink: 0, paddingTop: 11 }}>
+          <PxIcon
+            name="search"
+            size={26}
+            color={focused ? t.ink : t.muted}
+            strokeWidth={1.8}
+          />
+        </div>
 
-      {/* Tags sélectionnés */}
-      {selected.length > 0 && (
+        {/* Chips inline + input flex sur la même row (wrap si débordement) */}
         <div
           style={{
-            marginTop: 14,
+            flex: 1,
             display: 'flex',
             flexWrap: 'wrap',
+            alignItems: 'center',
             gap: 8,
-            animation: 'd0FadeIn .25s ease both',
+            minHeight: 48,
           }}
         >
           {selected.map((z) => (
-            <div
+            <span
               key={z.id}
               style={{
                 display: 'inline-flex',
@@ -165,17 +148,21 @@ export function D0ZoneSearch({
                 padding: '7px 6px 7px 14px',
                 borderRadius: 999,
                 background: t.black,
-                color: dark ? '#0B0C0E' : '#fff',
+                color: dark ? '#0B0C0E' : '#FFFFFF',
                 fontSize: 13,
                 fontWeight: 600,
                 letterSpacing: -0.1,
-                boxShadow: '0 4px 12px rgba(11,12,14,0.18)',
+                boxShadow: t.shadowSm,
                 animation: 'd0SlideUp .25s cubic-bezier(.2,.8,.2,1) both',
+                whiteSpace: 'nowrap',
               }}
             >
               {z.label}
               <button
-                onClick={() => removeZone(z.id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  removeZone(z.id)
+                }}
                 aria-label={`Retirer ${z.label}`}
                 style={{
                   width: 20,
@@ -187,35 +174,89 @@ export function D0ZoneSearch({
                   cursor: 'pointer',
                   display: 'grid',
                   placeItems: 'center',
+                  flexShrink: 0,
                 }}
               >
-                <ObIcon name="close" size={10} stroke="currentColor" sw={2.6} />
+                <PxIcon name="close" size={10} color="currentColor" strokeWidth={2.4} />
               </button>
-            </div>
+            </span>
           ))}
-        </div>
-      )}
-
-      {/* Suggestions */}
-      {suggestions.length > 0 && (
-        <div style={{ marginTop: 18 }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: t.muted,
-              letterSpacing: 1.4,
-              textTransform: 'uppercase',
-              marginBottom: 10,
-              paddingLeft: 4,
+          <input
+            ref={inputRef}
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => {
+              if (blurTimerRef.current !== null) {
+                window.clearTimeout(blurTimerRef.current)
+                blurTimerRef.current = null
+              }
+              setFocused(true)
             }}
-          >
-            {query ? `Résultats (${suggestions.length})` : 'Suggestions'}
+            onBlur={() => {
+              if (blurTimerRef.current !== null) {
+                window.clearTimeout(blurTimerRef.current)
+              }
+              blurTimerRef.current = window.setTimeout(() => {
+                setFocused(false)
+                blurTimerRef.current = null
+              }, 150)
+            }}
+            onKeyDown={onKeyDown}
+            placeholder={placeholder}
+            style={{
+              flex: 1,
+              minWidth: 140,
+              height: 48,
+              border: 0,
+              outline: 'none',
+              background: 'transparent',
+              color: t.ink,
+              fontFamily: 'inherit',
+              fontSize: 22,
+              fontWeight: 500,
+              letterSpacing: '-0.015em',
+            }}
+          />
+        </div>
+
+        {(query || selected.length > 0) && (
+          <div style={{ flexShrink: 0, paddingTop: 8 }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setQuery('')
+                if (selected.length > 0) onChange([])
+                inputRef.current?.focus()
+              }}
+              aria-label="Effacer"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                border: 0,
+                background: t.cardSubtle,
+                color: t.muted,
+                cursor: 'pointer',
+                display: 'grid',
+                placeItems: 'center',
+                transition: 'background .15s ease',
+              }}
+            >
+              <PxIcon name="close" size={14} color="currentColor" strokeWidth={2} />
+            </button>
           </div>
+        )}
+      </div>
+
+      {/* Suggestions — sans eyebrow (le dropdown parle de lui-même) */}
+      {suggestions.length > 0 && (
+        <div style={{ marginTop: 14 }}>
           <div
             style={{
               background: t.card,
-              borderRadius: 18,
+              border: `1px solid ${t.cardBorder}`,
+              borderRadius: 20,
               boxShadow: t.shadow,
               overflow: 'hidden',
             }}
@@ -242,7 +283,8 @@ export function D0ZoneSearch({
             marginTop: 18,
             padding: '22px 24px',
             background: t.card,
-            borderRadius: 18,
+            border: `1px solid ${t.cardBorder}`,
+            borderRadius: 20,
             boxShadow: t.shadow,
             color: t.muted,
             fontSize: 14,
@@ -267,7 +309,7 @@ function ZoneRow({
   t,
 }: {
   z: D0Zone
-  icon: ObIconName
+  icon: PxIconName
   onClick: () => void
   divider: boolean
   dark?: boolean
@@ -285,7 +327,7 @@ function ZoneRow({
         border: 0,
         background: h ? t.cardSubtle : 'transparent',
         cursor: 'pointer',
-        padding: '13px 22px',
+        padding: '14px 22px',
         display: 'flex',
         alignItems: 'center',
         gap: 14,
@@ -299,16 +341,13 @@ function ZoneRow({
       <div
         style={{
           flexShrink: 0,
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          background: t.cardSubtle,
+          width: 28,
           color: t.inkSoft,
           display: 'grid',
           placeItems: 'center',
         }}
       >
-        <ObIcon name={icon} size={14} stroke="currentColor" sw={1.7} />
+        <PxIcon name={icon} size={18} color="currentColor" strokeWidth={1.7} />
       </div>
       <div
         style={{
