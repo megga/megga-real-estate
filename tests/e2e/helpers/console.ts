@@ -7,8 +7,6 @@ const IGNORED_PATTERNS: Array<RegExp | string> = [
   'Failed to load resource',
   /favicon/i,
   'chrome-extension',
-  // Tracked: SugarConnector writes calc()/% into SVG path "d" — see spawn_task chip
-  /<path>\s*attribute d:\s*Expected number/,
   // Tracked: Mapbox token missing in test env (VITE_MAPBOX_TOKEN unset)
   /mapbox/i,
 ]
