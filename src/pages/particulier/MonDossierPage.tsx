@@ -8,7 +8,7 @@ import {
 import { Link } from 'react-router-dom'
 import {
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
-  LineChart, Line, ReferenceLine,
+  ReferenceLine,
 } from 'recharts'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { MANDATE_STEPS, getStepIndex } from '@/lib/mockSellerData'
@@ -228,23 +228,36 @@ function Squircle({
 }
 
 // ─── Sparkline (inline, inside KPI) ──────────────────────────────────────
+// Native SVG instead of Recharts: no ResizeObserver, no width(-1)/height(-1)
+// warnings at mount, ~10x lighter for a one-line chart inside a 24px box.
 
 function Sparkline({ data, tone }: { data: { i: number; v: number }[]; tone: 'primary' | 'mint' | 'coral' | 'amber' | 'lilac' }) {
   const color = tokens[tone] ?? tokens.primary
+  if (data.length < 2) return <div className="w-full h-6 mt-2" aria-hidden />
+  const values = data.map(d => d.v)
+  const minV = Math.min(...values)
+  const maxV = Math.max(...values)
+  const range = maxV - minV || 1
+  const points = data
+    .map((d, i) => {
+      const x = (i / (data.length - 1)) * 100
+      const y = 100 - ((d.v - minV) / range) * 100
+      return `${x.toFixed(2)},${y.toFixed(2)}`
+    })
+    .join(' ')
   return (
     <div className="w-full h-6 mt-2" aria-hidden>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 1, right: 1, bottom: 1, left: 1 }}>
-          <Line
-            type="monotone"
-            dataKey="v"
-            stroke={color}
-            strokeWidth={1.75}
-            dot={false}
-            isAnimationActive={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
     </div>
   )
 }
