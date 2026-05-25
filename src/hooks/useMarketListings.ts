@@ -306,8 +306,12 @@ export function useMarketListings(filters: MarketFilters = {}) {
 
       const listings: ListingCardData[] = []
 
-      // Ajouter les biens internes en première page uniquement
-      if (pageParam === 0) {
+      // Ajouter les biens internes en première page uniquement.
+      // Guard auth : la table `properties` a une RLS basée sur get_user_agency_id().
+      // Pour les anon/particuliers, cette RPC est bloquée (permission denied),
+      // donc on skip directement la query au lieu de la laisser échouer en boucle.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (pageParam === 0 && session?.user) {
         let internalQuery = supabase
           .from('properties')
           .select(
