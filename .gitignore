@@ -27,3 +27,9 @@ supabase/.temp/
 
 # Sentry auth token for sourcemap upload
 .env.sentry-build-plugin
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
