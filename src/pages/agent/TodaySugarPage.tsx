@@ -268,28 +268,28 @@ export default function TodaySugarPage() {
                 }
               >
                 <div style={{ position: 'relative' }}>
-                  {/* Connectors layer */}
+                  {/* Connectors layer — viewBox 0..100 so child coords map to % */}
                   <svg style={{
                     position: 'absolute', inset: 0, width: '100%', height: '100%',
                     pointerEvents: 'none', zIndex: 0,
-                  }} preserveAspectRatio="none">
+                  }} viewBox="0 0 100 100" preserveAspectRatio="none">
                     <defs>
                       <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
                         <circle cx="3" cy="3" r="2.5" fill="#0041D9" />
                       </marker>
                     </defs>
-                    <SugarConnector x1="22%" y1="22%" x2="28%" y2="22%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="22%" y1="22%" x2="28%" y2="42%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="22%" y1="22%" x2="28%" y2="62%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="22%" y1="78%" x2="28%" y2="78%" color="#E53935" fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#E53935" />
-                    <SugarConnector x1="22%" y1="78%" x2="28%" y2="92%" color="#E53935" fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#E53935" />
-                    <SugarConnector x1="48%" y1="78%" x2="54%" y2="50%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="48%" y1="92%" x2="54%" y2="78%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="48%" y1="22%" x2="54%" y2="22%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="48%" y1="42%" x2="54%" y2="35%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="48%" y1="62%" x2="54%" y2="64%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="74%" y1="50%" x2="80%" y2="34%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[2]} toCol={columnOrder[3]} hoveredCol={hoveredCol} accentColor="#0041D9" />
-                    <SugarConnector x1="74%" y1="50%" x2="80%" y2="50%" color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[2]} toCol={columnOrder[3]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={22} y1={22} x2={28} y2={22} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={22} y1={22} x2={28} y2={42} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={22} y1={22} x2={28} y2={62} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={22} y1={78} x2={28} y2={78} color="#E53935" fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#E53935" />
+                    <SugarConnector x1={22} y1={78} x2={28} y2={92} color="#E53935" fromCol={columnOrder[0]} toCol={columnOrder[1]} hoveredCol={hoveredCol} accentColor="#E53935" />
+                    <SugarConnector x1={48} y1={78} x2={54} y2={50} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={48} y1={92} x2={54} y2={78} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={48} y1={22} x2={54} y2={22} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={48} y1={42} x2={54} y2={35} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={48} y1={62} x2={54} y2={64} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[1]} toCol={columnOrder[2]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={74} y1={50} x2={80} y2={34} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[2]} toCol={columnOrder[3]} hoveredCol={hoveredCol} accentColor="#0041D9" />
+                    <SugarConnector x1={74} y1={50} x2={80} y2={50} color={dark ? '#3A4660' : '#C7CFDB'} fromCol={columnOrder[2]} toCol={columnOrder[3]} hoveredCol={hoveredCol} accentColor="#0041D9" />
                   </svg>
 
                   <div style={{

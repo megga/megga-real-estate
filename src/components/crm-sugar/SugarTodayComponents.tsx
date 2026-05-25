@@ -19,8 +19,10 @@ const initialsOf = (name: string) => crmInitials(name)
 
 // ─── Curved connector between two anchor points ───────────────────────
 // Reacts to hovered column: highlights when its source/target column is hovered.
+// Coordinates are in viewBox user units — the parent <svg> must declare
+// viewBox="0 0 100 100" so values map to percent-like positions.
 interface SugarConnectorProps {
-  x1: string; y1: string; x2: string; y2: string
+  x1: number; y1: number; x2: number; y2: number
   color?: string; dashed?: boolean
   fromCol?: string; toCol?: string; hoveredCol?: string | null
   accentColor?: string
@@ -29,7 +31,7 @@ export function SugarConnector({
   x1, y1, x2, y2, color = '#C7CFDB', dashed = true,
   fromCol, toCol, hoveredCol, accentColor,
 }: SugarConnectorProps) {
-  const mid = `calc((${x1} + ${x2}) / 2)`
+  const mid = (x1 + x2) / 2
   const d = `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`
   const active = hoveredCol != null && (hoveredCol === fromCol || hoveredCol === toCol)
   const dimmed = hoveredCol != null && !active
