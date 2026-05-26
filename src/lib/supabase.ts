@@ -1,4 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
+// Database types are generated in src/types/database.ts. Wiring them via
+// createClient<Database>(...) is blocked: the baseline schema dumped from
+// prod is incomplete (missing several columns + RPCs added after the dump).
+// Activating typed client surfaces 10+ type errors that cascade as each is
+// fixed. Track via dedicated chip — a fresh `supabase db dump` against prod
+// is the prerequisite.
 
 // Real anon key for the MEGGA Supabase project (eayczugyrvmtqnnmvjod).
 // anon keys are PUBLIC BY DESIGN — their security relies on Row Level Security (RLS).
