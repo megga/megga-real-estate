@@ -15,6 +15,7 @@ import {
   type CrmActivity, type CrmBien,
 } from '../mockData'
 import { useLogAudit } from '@/hooks/useAuditLog'
+import { useReminders } from '@/hooks/useReminders'
 
 // Mock-id guard — CRM_DEALS uses `d-…` ids; real Supabase rows use UUIDs.
 // Mutations that hit real tables skip cleanly for mock data instead of
@@ -55,12 +56,24 @@ export function DealDetailDrawer({ open, onClose, dealId, sp, t: _t, dark }: Dea
   void _t // overlay was sourced from t.overlay; <Sheet> now provides backdrop
   const navigate = useNavigate()
   const logAudit = useLogAudit()
+  const { reminders, markAsDone, isLoading: remindersLoading } = useReminders()
   const [composer, setComposer] = useState<'note' | 'call' | 'email' | 'visit'>('note')
   const [text, setText] = useState('')
   const [expanded, setExpanded] = useState(false)
   const [savingTrace, setSavingTrace] = useState(false)
 
   useEffect(() => { if (!open) setExpanded(false) }, [open])
+
+  // Find the real next-action reminder linked to this transaction.
+  // useReminders pre-filters on status IN ('pending','triggered','snoozed')
+  // and orders by trigger_at ascending, so [0] is the most-imminent pending
+  // task. Only meaningful when dealId is a real UUID — mock seed deals
+  // (`d-…`) never match. When no real reminder exists, we fall back to
+  // the mock deal.nextAction (read-only — "Marquer fait" gets disabled
+  // because there's nothing real to flip).
+  const realNextReminder = !isMockId(dealId)
+    ? reminders.find((r) => r.transactionId === dealId)
+    : undefined
 
   // Persist a call/email/visit/note trace as an activity_event row.
   // The composer used to be a silent no-op (button had no onClick at all).
@@ -213,38 +226,81 @@ export function DealDetailDrawer({ open, onClose, dealId, sp, t: _t, dark }: Dea
               cta="Lancer KYC" />
           )}
 
-          {/* Next action */}
-          {deal.nextAction && (
-            <Section sp={sp} title="Prochaine action">
-              <div style={{
-                background: sp.cardBg, border: `1px solid ${sp.cardBorder}`, borderRadius: 18,
-                padding: 16, boxShadow: sp.shadow,
-                display: 'flex', alignItems: 'center', gap: 14,
-              }}>
+          {/* Next action — real reminder when present (real deal id),
+              otherwise the mock fallback from CRM_DEALS for the
+              design-system seed deals. */}
+          {(realNextReminder || deal.nextAction) && (() => {
+            // Pick the live data source. Reminder wins because it's the
+            // actual database row we can mutate.
+            const source = realNextReminder
+              ? {
+                  kind: realNextReminder.type,
+                  note: realNextReminder.title,
+                  dueAt: realNextReminder.triggerAt,
+                  isReal: true as const,
+                }
+              : deal.nextAction
+                ? { ...deal.nextAction, isReal: false as const }
+                : null
+            if (!source) return null
+
+            const dueLabel =
+              source.dueAt && source.dueAt.length >= 16
+                ? `${source.dueAt.slice(0, 10).split('-').reverse().join('/')} ${source.dueAt.slice(11, 16)}`
+                : ''
+            const canMarkDone = source.isReal && !!realNextReminder
+            const title = canMarkDone
+              ? 'Marquer ce reminder comme fait'
+              : "Le rappel est un exemple de démo — créez un vrai reminder lié à ce deal pour pouvoir le marquer fait."
+
+            return (
+              <Section sp={sp} title="Prochaine action">
                 <div style={{
-                  width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-                  background: sp.ink, display: 'grid', placeItems: 'center',
+                  background: sp.cardBg, border: `1px solid ${sp.cardBorder}`, borderRadius: 18,
+                  padding: 16, boxShadow: sp.shadow,
+                  display: 'flex', alignItems: 'center', gap: 14,
                 }}>
-                  <CRMIcon name={kindIcon(deal.nextAction.kind)} size={16} stroke={sp.pageBg} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: 13.5, fontWeight: 700, color: sp.ink, letterSpacing: -0.2,
-                  }}>{deal.nextAction.note}</div>
-                  <div style={{
-                    fontSize: 11.5, color: sp.sub, marginTop: 2, fontVariantNumeric: 'tabular-nums',
+                    width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+                    background: sp.ink, display: 'grid', placeItems: 'center',
                   }}>
-                    {KIND_LABEL[deal.nextAction.kind] || deal.nextAction.kind} · échéance {deal.nextAction.dueAt.slice(0, 10).split('-').reverse().join('/')} {deal.nextAction.dueAt.slice(11, 16)}
+                    <CRMIcon name={kindIcon(source.kind)} size={16} stroke={sp.pageBg} />
                   </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 13.5, fontWeight: 700, color: sp.ink, letterSpacing: -0.2,
+                    }}>{source.note}</div>
+                    <div style={{
+                      fontSize: 11.5, color: sp.sub, marginTop: 2, fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {KIND_LABEL[source.kind] || source.kind}
+                      {dueLabel ? ` · échéance ${dueLabel}` : ''}
+                      {!source.isReal ? ' · démo' : ''}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (canMarkDone && realNextReminder) markAsDone(realNextReminder.id)
+                    }}
+                    disabled={!canMarkDone || remindersLoading}
+                    title={title}
+                    style={{
+                      padding: '9px 16px', borderRadius: 999, border: 0,
+                      cursor: canMarkDone && !remindersLoading ? 'pointer' : 'not-allowed',
+                      background: canMarkDone && !remindersLoading ? sp.ink : sp.cardSubBg,
+                      color: canMarkDone && !remindersLoading ? sp.pageBg : sp.sub,
+                      fontWeight: 700, fontSize: 12,
+                      fontFamily: 'inherit',
+                      boxShadow: canMarkDone && !remindersLoading ? sp.focusShadow : 'none',
+                      opacity: canMarkDone && !remindersLoading ? 1 : 0.7,
+                    }}
+                  >
+                    Marquer fait
+                  </button>
                 </div>
-                <button style={{
-                  padding: '9px 16px', borderRadius: 999, border: 0, cursor: 'pointer',
-                  background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 12,
-                  fontFamily: 'inherit', boxShadow: sp.focusShadow,
-                }}>Marquer fait</button>
-              </div>
-            </Section>
-          )}
+              </Section>
+            )
+          })()}
 
           {/* Quick actions — wired to real flows. The 8 buttons used to all
               be window.alert() placeholders. Each now navigates to the
