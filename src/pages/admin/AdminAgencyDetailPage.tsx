@@ -281,7 +281,7 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
             {member.role ?? 'agent'}
           </span>
           <span className="w-24 text-xs text-theme-tertiary text-right">
-            {formatDate(member.created_at)}
+            {formatDate(member.created_at ?? '')}
           </span>
           <span className="w-10 flex justify-end">
             <button

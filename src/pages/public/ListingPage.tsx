@@ -146,7 +146,7 @@ export default function ListingPage() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url, phone, email')
-        .eq('id', internalData!.created_by)
+        .eq('id', internalData!.created_by ?? '')
         .single()
       if (error) throw error
       return data

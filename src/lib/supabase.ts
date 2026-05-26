@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
-// Types are generated in src/types/database.ts but NOT applied to the client
-// yet — the local baseline diverges from prod (check_email_exists RPC is in
-// prod but missing from our snapshot, plus 4 other type discrepancies in
-// LoginPage / ListingPage / ContactDetailSugarV3Page). Wiring `<Database>`
-// here surfaces those as build errors. Track-and-fix in a dedicated chip
-// before activating typed client.
+// Database types are generated in src/types/database.ts. Wiring them via
+// createClient<Database>(...) is blocked: the baseline schema dumped from
+// prod is incomplete (missing several columns + RPCs added after the dump).
+// Activating typed client surfaces 10+ type errors that cascade as each is
+// fixed. Track via dedicated chip — a fresh `supabase db dump` against prod
+// is the prerequisite.
 
 // Real anon key for the MEGGA Supabase project (eayczugyrvmtqnnmvjod).
 // anon keys are PUBLIC BY DESIGN — their security relies on Row Level Security (RLS).

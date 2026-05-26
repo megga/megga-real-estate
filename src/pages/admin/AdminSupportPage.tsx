@@ -315,7 +315,7 @@ function TicketDetail({ ticket, agents }: { ticket: SupportTicket; agents: Admin
                 <span className="w-1.5 h-1.5 rounded-full bg-admin-accent/50 flex-shrink-0" />
                 <span>{EVENT_LABELS[evt.action] ?? evt.action}</span>
                 {evt.new_value && <span className="text-theme-secondary">{'\u2192'} {STATUS_LABEL[evt.new_value] ?? evt.new_value}</span>}
-                <span className="ml-auto">{formatRelativeDate(evt.created_at)}</span>
+                <span className="ml-auto">{formatRelativeDate(evt.created_at ?? '')}</span>
               </div>
             ))}
           </div>

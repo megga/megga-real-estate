@@ -8,7 +8,9 @@ import { KycCircleBtn, KycGhostPill, KycSection } from '../primitives'
 interface DocItem {
   id: string
   name: string
-  created_at: string
+  // Nullable: aligns with the Supabase column (DEFAULT now() but NULL allowed).
+  // fmtDateShort below already handles null/undefined defensively.
+  created_at: string | null
 }
 
 interface Props {

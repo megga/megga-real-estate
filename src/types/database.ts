@@ -4435,6 +4435,7 @@ export type Database = {
         Args: { p_action_type: string; p_agent_id: string }
         Returns: boolean
       }
+      check_email_exists: { Args: { p_email: string }; Returns: boolean }
       cleanup_orphan_property_drafts: { Args: never; Returns: number }
       compute_agent_preferences: { Args: { p_agent_id: string }; Returns: Json }
       count_market_by_canton: {
