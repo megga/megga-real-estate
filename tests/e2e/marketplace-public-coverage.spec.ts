@@ -1,0 +1,84 @@
+// Phase C (part 1) — Couverture de la marketplace publique et des landing
+// pages. Routes accessibles sans authentification (ou avec bypass mock).
+//
+// Scope : pages "core" — homepage, marketplace, landing produit, légales,
+// auth, annuaires, blog, help center root. Les sous-routes /aide/:category
+// et le design-system sont hors scope (internes/dev).
+
+import { test, expect } from '@playwright/test'
+import { collectConsoleErrors } from './helpers/console'
+
+const MOCK_UUID = '00000000-0000-0000-0000-000000000000'
+const MOCK_SLUG = 'test-slug-mock'
+const MOCK_TOKEN = 'dummy_token_mock'
+
+interface RouteSpec {
+  path: string
+  label: string
+}
+
+const PUBLIC_ROUTES: RouteSpec[] = [
+  // ── Homepage & landing ─────────────────────────────────────────────────
+  { path: '/', label: 'Homepage' },
+  { path: '/vendre', label: 'Vendre (landing)' },
+  { path: '/services', label: 'Services' },
+  { path: '/estimations', label: 'Estimations' },
+
+  // ── Marketplace ────────────────────────────────────────────────────────
+  { path: '/acheter', label: 'Marketplace Acheter' },
+  { path: '/properties', label: 'Marketplace Properties' },
+
+  // ── Info / about / legal ───────────────────────────────────────────────
+  { path: '/a-propos', label: 'À propos' },
+  { path: '/contact', label: 'Contact' },
+  { path: '/faq', label: 'FAQ' },
+  { path: '/privacy', label: 'Privacy / RGPD' },
+  { path: '/coming-soon', label: 'Coming soon' },
+
+  // ── Annuaires ──────────────────────────────────────────────────────────
+  { path: '/agences', label: 'Annuaire agences' },
+  { path: '/agents', label: 'Annuaire agents' },
+
+  // ── Blog ───────────────────────────────────────────────────────────────
+  { path: '/blog', label: 'Blog' },
+
+  // ── Help center ────────────────────────────────────────────────────────
+  { path: '/aide', label: 'Help center' },
+  { path: '/aide/glossaire', label: 'Help > Glossaire' },
+
+  // ── Auth pages (en bypass auth, peuvent rediriger vers /dashboard) ─────
+  { path: '/login', label: 'Login' },
+  { path: '/register', label: 'Register' },
+  { path: '/reset-password', label: 'Reset password' },
+
+  // ── Publier ────────────────────────────────────────────────────────────
+  { path: '/publier-bien', label: 'Publier un bien' },
+
+  // ── Routes paramétrées (mock IDs / slugs) ──────────────────────────────
+  { path: `/propriete/${MOCK_UUID}`, label: 'Propriete detail (mock)' },
+  { path: `/listing/${MOCK_UUID}`, label: 'Listing detail legacy (mock)' },
+  { path: `/agences/${MOCK_SLUG}`, label: 'Agence profile (mock slug)' },
+  { path: `/agents/${MOCK_SLUG}`, label: 'Agent profile (mock slug)' },
+  { path: `/portail/${MOCK_TOKEN}`, label: 'Portail vendeur prod (mock token)' },
+]
+
+test.describe('Marketplace publique — parametric route coverage', () => {
+  for (const route of PUBLIC_ROUTES) {
+    test(`${route.label} loads cleanly`, async ({ page }) => {
+      const collector = collectConsoleErrors(page)
+      await page.goto(route.path)
+      await page.waitForLoadState('networkidle')
+
+      const bodyText = await page.locator('body').innerText()
+      expect(
+        bodyText.length,
+        `${route.path}: body too small (${bodyText.length} chars) — likely a render crash`
+      ).toBeGreaterThan(50)
+
+      expect(
+        collector.errors,
+        `${route.path}: blocking console errors:\n${collector.errors.join('\n')}`
+      ).toEqual([])
+    })
+  }
+})

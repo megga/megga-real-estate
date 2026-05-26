@@ -16,7 +16,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
-    "test:e2e:ai": "playwright test tests/ai/ --workers=1"
+    "test:e2e:ai": "playwright test tests/ai/ --workers=1",
+    "test:e2e:admin": "playwright test --config=playwright.admin.config.ts"
   },
   "dependencies": {
     "@deepgram/sdk": "^5.0.0",

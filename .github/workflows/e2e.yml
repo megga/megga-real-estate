@@ -50,8 +50,11 @@ jobs:
       - name: Run unit tests (Vitest)
         run: npm run test:unit
 
-      - name: Run E2E suite
+      - name: Run E2E suite (agent role)
         run: npm run test:e2e
+
+      - name: Run E2E suite (super-admin role)
+        run: npm run test:e2e:admin
 
       - name: Upload Playwright report
         if: always()
