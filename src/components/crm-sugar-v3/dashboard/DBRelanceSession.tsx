@@ -32,6 +32,56 @@ import {
   type ToneId,
 } from './relanceData'
 import { useDashboardAudit } from './useDashboardAudit'
+import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
+
+// Synthesize a demo email for mock leads (RELANCE_LEADS has no email
+// field — they're seed data). Resend will reject these as undeliverable
+// which is the honest outcome: the audit row reflects a real attempt
+// that failed because the destination doesn't exist. When the relance
+// session is wired to real Supabase contacts (separate chip), the lead
+// will carry its real email and the send will go through.
+function demoEmailFor(leadId: string, first: string, last: string): string {
+  const slug = `${first}.${last}`.toLowerCase().replace(/[^a-z0-9.]/g, '')
+  return `${slug || leadId}@relance-demo.megga.local`
+}
+
+interface RelanceEmailResult {
+  ok: boolean
+  emailId: string | null
+  error: string | null
+}
+
+// Calls the send-relance-email Edge Function. Never throws — always
+// returns a structured result so the caller can write a faithful audit
+// row whether the send succeeded or failed.
+async function sendRelanceEmail(input: {
+  to: string
+  subject: string
+  body: string
+  leadId: string
+  agencyId: string | null
+  agentName: string | null
+}): Promise<RelanceEmailResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-relance-email', {
+      body: {
+        to: input.to,
+        subject: input.subject,
+        body: input.body,
+        leadId: input.leadId,
+        agencyId: input.agencyId ?? undefined,
+        agentName: input.agentName ?? undefined,
+      },
+    })
+    if (error) return { ok: false, emailId: null, error: error.message }
+    const payload = (data ?? {}) as { emailId?: string; error?: string }
+    if (payload.error) return { ok: false, emailId: null, error: payload.error }
+    return { ok: true, emailId: payload.emailId ?? null, error: null }
+  } catch (e) {
+    return { ok: false, emailId: null, error: e instanceof Error ? e.message : 'unknown' }
+  }
+}
 
 // ─── Hook streaming (réécriture progressive) ───────────────────────────
 function useStreamingText(initial: string) {
@@ -1027,6 +1077,8 @@ interface DBRelanceSessionProps {
 export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSessionProps) {
   const LEADS = RELANCE_LEADS
   const audit = useDashboardAudit()
+  const { profile } = useAuth()
+  const [sending, setSending] = useState(false)
 
   const [state, setState] = useState<RelanceSessionState>(() => {
     const saved = loadSession()
@@ -1182,29 +1234,62 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
     window.setTimeout(() => persistDraft({ subject: next.subject, body: next.body }), 50)
   }
 
-  const advance = (action: 'sent' | 'called' | 'postponed') => {
-    if (!lead) return
+  const advance = async (action: 'sent' | 'called' | 'postponed') => {
+    if (!lead || sending) return
     persistDraft()
-    // AuditEvent (b) : trace l'action sur le lead courant — handoff DoD.
-    // Honest naming: the email isn't actually sent (Resend Edge Function
-    // is not wired in this view) and the call isn't actually placed —
-    // the agent is *marking* the relance as done. The audit metadata
-    // flags `system_dispatch: false` so consumers can filter the lie out.
-    const auditAction =
-      action === 'sent'
-        ? 'relance-marked-sent'
-        : action === 'called'
-          ? 'relance-marked-called'
-          : 'relance-postponed'
+
+    // For 'sent', call the real Resend Edge Function. Honest naming:
+    //   - success → action 'relance-sent' + system_dispatch: true + emailId
+    //   - failure → action 'relance-marked-sent' + system_dispatch: false
+    //     + the actual error captured in metadata.dispatch_error
+    // For 'called'/'postponed' there's no system action (we don't auto-dial),
+    // so they stay 'marked' to be honest about what happened.
+    let auditAction:
+      | 'relance-sent'
+      | 'relance-marked-sent'
+      | 'relance-marked-called'
+      | 'relance-postponed' = 'relance-postponed'
+    let dispatch: { success: boolean; emailId?: string; error?: string } = {
+      success: false,
+    }
+
+    if (action === 'sent') {
+      setSending(true)
+      try {
+        const to = demoEmailFor(lead.id, lead.first, lead.last)
+        const result = await sendRelanceEmail({
+          to,
+          subject,
+          body,
+          leadId: lead.id,
+          agencyId: profile?.agency_id ?? null,
+          agentName: profile?.full_name ?? null,
+        })
+        if (result.ok) {
+          auditAction = 'relance-sent'
+          dispatch = { success: true, emailId: result.emailId ?? undefined }
+        } else {
+          auditAction = 'relance-marked-sent'
+          dispatch = { success: false, error: result.error ?? 'unknown' }
+        }
+      } finally {
+        setSending(false)
+      }
+    } else if (action === 'called') {
+      auditAction = 'relance-marked-called'
+    } else {
+      auditAction = 'relance-postponed'
+    }
+
     audit(auditAction, `${lead.first} ${lead.last} · ${lead.bien.split(' · ')[0]}`, {
       leadId: lead.id,
       action,
       idx: state.currentIdx,
-      // Explicit: this audit row reflects an AGENT UI ack, not a system
-      // send/call. When Resend integration lands, set to true and switch
-      // the action name back to 'relance-sent'/'relance-called'.
-      system_dispatch: false,
+      system_dispatch: dispatch.success,
+      ...(dispatch.emailId ? { resend_email_id: dispatch.emailId } : {}),
+      ...(dispatch.error ? { dispatch_error: dispatch.error } : {}),
     })
+
     setState((s) => ({
       ...s,
       treated: { ...s.treated, [lead.id]: { action, ts: Date.now() } },
@@ -1447,39 +1532,39 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
             </button>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <button onClick={() => advance('called')} style={secondaryBtn}>
+              <button onClick={() => { void advance('called') }} style={secondaryBtn} disabled={sending}>
                 <DbIcon name="phone" size={13} stroke={DB_SP.inkSoft} sw={2} />
                 Plutôt l'appeler
               </button>
-              <button onClick={() => advance('postponed')} style={secondaryBtn}>
+              <button onClick={() => { void advance('postponed') }} style={secondaryBtn} disabled={sending}>
                 <DbIcon name="clock" size={13} stroke={DB_SP.inkSoft} sw={2} />
                 Reporter à J+7
               </button>
               <button
-                onClick={() => advance('sent')}
-                disabled={streaming}
-                title="Marque la relance comme envoyée. L'envoi automatique d'email arrive dans une prochaine release — copiez le contenu et envoyez via votre client mail habituel."
+                onClick={() => { void advance('sent') }}
+                disabled={streaming || sending}
+                title="Envoie le brouillon via Resend puis passe au lead suivant. Si la destinataire n'a pas d'email réel (lead de démo), l'audit consigne la tentative et l'erreur."
                 style={{
                   height: 46,
                   padding: '0 22px',
                   borderRadius: 999,
                   border: 0,
-                  background: streaming ? DB_SP.ghost : DB_SP.black,
+                  background: streaming || sending ? DB_SP.ghost : DB_SP.black,
                   color: '#fff',
                   fontFamily: 'inherit',
                   fontSize: 13.5,
                   fontWeight: 700,
-                  cursor: streaming ? 'not-allowed' : 'pointer',
+                  cursor: streaming || sending ? 'not-allowed' : 'pointer',
                   letterSpacing: -0.1,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 9,
-                  boxShadow: streaming ? 'none' : '0 8px 20px rgba(11,12,14,0.22)',
+                  boxShadow: streaming || sending ? 'none' : '0 8px 20px rgba(11,12,14,0.22)',
                   whiteSpace: 'nowrap',
                 }}
               >
-                Marquer envoyé & suivant
-                <DbIcon name="send" size={14} stroke="#fff" sw={2} />
+                {sending ? 'Envoi…' : 'Envoyer & suivant'}
+                {!sending && <DbIcon name="send" size={14} stroke="#fff" sw={2} />}
               </button>
             </div>
           </footer>

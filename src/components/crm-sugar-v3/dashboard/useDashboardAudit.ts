@@ -17,11 +17,17 @@ import { useLogAudit } from '@/hooks/useAuditLog'
 // something as done in the UI without the system actually performing it
 // use the `-marked-` prefix to make the audit trail honest.
 //
-// The relance session currently writes -marked-* because the Resend
-// integration isn't wired yet. When that lands, switch back to the
-// direct verb forms.
+// As of PR #440, the relance session calls send-relance-email. On success
+// it writes 'relance-sent' + system_dispatch: true + the Resend email id.
+// On failure (mock leads with synthetic domains, network errors, Resend
+// 4xx) it falls back to 'relance-marked-sent' + system_dispatch: false +
+// the actual error in metadata.dispatch_error.
+//
+// `relance-marked-called` stays — we don't auto-dial, so a "called" ack
+// is always agent UI. Same for 'relance-postponed' (no system action).
 export type DashboardAiAction =
   | 'open-relance-session'
+  | 'relance-sent'
   | 'relance-marked-sent'
   | 'relance-marked-called'
   | 'relance-postponed'
