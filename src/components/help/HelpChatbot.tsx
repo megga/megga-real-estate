@@ -270,7 +270,7 @@ export default function HelpChatbot() {
         conversation_id: conversationDbId,
         role,
         content,
-        metadata: metadata || {},
+        metadata: (metadata || {}) as Record<string, unknown> as import('@/types/database').Json,
       })
     } catch { /* silent fail */ }
   }

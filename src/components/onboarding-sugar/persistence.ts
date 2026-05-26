@@ -2,6 +2,7 @@
 // Voir migration 20260521_001_onboarding_persistence.sql.
 import { supabase } from '@/lib/supabase'
 import type { Billing, ObAgency, OnboardingData } from './types'
+import type { TablesUpdate } from '@/types/database'
 
 // ─── Agencies — autocomplete + create + join ─────────────────────────
 
@@ -225,7 +226,7 @@ export async function saveAgencyProfile(
 
   const { error } = await supabase
     .from('agencies')
-    .update(updates)
+    .update(updates as TablesUpdate<'agencies'>)
     .eq('id', agencyId)
   if (error) {
     console.warn('[onboarding] saveAgencyProfile failed:', error.message)

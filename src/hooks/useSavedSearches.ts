@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import type { Json } from '@/types/database'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ export function useSavedSearches() {
         .order('created_at', { ascending: false })
         .limit(MAX_SEARCHES)
       if (error) throw error
-      return (data as DbSavedSearch[]).map(dbToFrontend)
+      return (data as unknown as DbSavedSearch[]).map(dbToFrontend)
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000,
@@ -123,7 +124,7 @@ export function useSavedSearches() {
           id: s.id.length === 36 ? s.id : undefined, // only use valid UUIDs
           user_id: user.id,
           name: s.name,
-          filters: s.filters,
+          filters: s.filters as unknown as Json,
           alert_enabled: s.alertEnabled,
           alert_email: s.email || null,
           alert_frequency: s.alertFrequency || 'daily',
@@ -151,7 +152,7 @@ export function useSavedSearches() {
       const { error } = await supabase.from('saved_searches').insert({
         user_id: user!.id,
         name: params.name,
-        filters: params.filters,
+        filters: params.filters as unknown as Json,
         alert_enabled: params.alertEnabled,
         alert_email: params.email || null,
         alert_frequency: params.alertFrequency,

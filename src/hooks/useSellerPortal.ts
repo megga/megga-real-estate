@@ -324,7 +324,7 @@ export function useSellerPortals() {
       .single()
 
     if (!data) return null
-    return { id: data.id, token: data.token, contactId: data.contact_id, status: data.status }
+    return { id: data.id, token: data.token, contactId: data.contact_id, status: data.status as 'expired' | 'active' | 'revoked' }
   }, [])
 
   const getPortalUrl = useCallback((token: string): string => {

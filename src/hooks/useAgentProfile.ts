@@ -20,10 +20,10 @@ export function useAgentProfile(slug: string) {
           .select('*')
           .eq('id', data.agency_profile_id)
           .single()
-        agency = agencyData
+        agency = agencyData as unknown as AgencyProfileRow | null
       }
 
-      return { agent: data as AgentProfileRow, agency }
+      return { agent: data as unknown as AgentProfileRow, agency }
     },
     enabled: !!slug,
     staleTime: 60_000,

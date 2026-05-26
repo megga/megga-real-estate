@@ -78,7 +78,7 @@ export function useNotifPreferences(): UseNotifPreferencesReturn {
       const updated = { ...prefs, notifications: next }
       const { error: writeErr } = await supabase
         .from('profiles')
-        .update({ preferences: updated })
+        .update({ preferences: updated as unknown as import('@/types/database').Json })
         .eq('id', profileId)
       if (writeErr) throw writeErr
     },

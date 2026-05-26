@@ -15,6 +15,7 @@ import type {
   VisitKind,
 } from '@/types/visit'
 import { visitStatusToKind } from '@/types/visit'
+import type { Json, TablesInsert } from '@/types/database'
 
 // ─── Type enrichi Sprint 2 ──────────────────────────────────────────────
 
@@ -174,10 +175,10 @@ export function useCreateAgentVisit() {
           duration_minutes: input.durationMinutes,
           agent_id: user?.id ?? null,
           status: 'planned',
-          bon,
+          bon: bon as unknown as Json,
           rapport: null,
-          qualification,
-        })
+          qualification: qualification as unknown as Json,
+        } as unknown as TablesInsert<'visits'>)
         .select('id')
         .single()
       if (error) throw error
@@ -202,7 +203,7 @@ export function useSignVisitBon() {
       }
       const { data, error } = await supabase
         .from('visits')
-        .update({ bon: signed })
+        .update({ bon: signed as unknown as Json })
         .eq('id', visitId)
         .select('id')
         .single()
@@ -230,7 +231,7 @@ export function useSaveVisitRapport() {
       const { data, error } = await supabase
         .from('visits')
         .update({
-          rapport,
+          rapport: rapport as unknown as Json,
           status: 'done',
           completed_at: new Date().toISOString(),
         })

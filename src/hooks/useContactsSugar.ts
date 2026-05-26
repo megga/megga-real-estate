@@ -40,7 +40,7 @@ export function useContactsSugar(): UseContactsSugarReturn {
         .select('*')
         .order('last_interaction_at', { ascending: false, nullsFirst: false })
       if (error) throw error
-      return (data ?? []) as Contact[]
+      return (data ?? []) as unknown as Contact[]
     },
     enabled: !!agencyId,
   })

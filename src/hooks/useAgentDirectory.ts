@@ -97,17 +97,17 @@ export function useAgentDirectory(filters: DirectoryFilters) {
       const { data, error } = await supabase.rpc('search_directory', {
         search_query: filters.query,
         search_type: filters.type,
-        filter_canton: filters.canton,
-        filter_city: filters.city,
-        filter_specialties: filters.specialties.length > 0 ? filters.specialties : null,
-        filter_languages: filters.languages.length > 0 ? filters.languages : null,
-        filter_verified: filters.verifiedOnly ? true : null,
+        filter_canton: filters.canton ?? undefined,
+        filter_city: filters.city ?? undefined,
+        filter_specialties: filters.specialties.length > 0 ? filters.specialties : undefined,
+        filter_languages: filters.languages.length > 0 ? filters.languages : undefined,
+        filter_verified: filters.verifiedOnly ? true : undefined,
         sort_by: filters.sortBy,
         page_number: filters.page,
         page_size: PAGE_SIZE,
       })
       if (error) throw error
-      return data as DirectoryResult
+      return data as unknown as DirectoryResult
     },
     staleTime: 60_000,
   })

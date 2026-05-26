@@ -42,7 +42,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
     mutationFn: async (newPlan: string) => {
       const { error } = await supabase
         .from('agencies')
-        .update({ plan: newPlan })
+        .update({ plan: newPlan as 'starter' | 'pro' | 'agency' | 'enterprise' })
         .eq('id', agencyId)
       if (error) throw error
     },

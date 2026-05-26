@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import type { Json } from '@/types/database'
 import type { AuditEvent, AuditCategory, AuditSeverity } from '@/types/kyc'
 
 // ─── Read : liste filtrée pour le journal nLPD ─────────────────────────
@@ -96,7 +97,7 @@ export function useLogAudit() {
           entity_type: input.entityType,
           entity_id: input.entityId ?? null,
           object_label: input.objectLabel ?? null,
-          metadata: input.metadata ?? {},
+          metadata: (input.metadata ?? {}) as unknown as Json,
           ip_address: input.ipAddress ?? null,
         })
         .select('*')

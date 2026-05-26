@@ -40,7 +40,7 @@ export function useTeamMembers() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, avatar_url, role, phone, created_at')
-        .eq('agency_id', profile!.agency_id)
+        .eq('agency_id', profile!.agency_id!)
         .order('created_at', { ascending: true })
 
       if (error) throw error
@@ -82,7 +82,7 @@ export function useAgencyPlan() {
       const { data, error } = await supabase
         .from('agencies')
         .select('plan')
-        .eq('id', profile!.agency_id)
+        .eq('id', profile!.agency_id!)
         .single()
 
       if (error) throw error
@@ -176,7 +176,7 @@ export function useChangeTeamRole() {
         .from('profiles')
         .update({ role: input.newRole })
         .eq('id', input.memberId)
-        .eq('agency_id', profile!.agency_id)
+        .eq('agency_id', profile!.agency_id!)
 
       if (error) throw error
 
@@ -215,7 +215,7 @@ export function useRemoveTeamMember() {
         .from('profiles')
         .update({ agency_id: null, role: 'buyer' })
         .eq('id', memberId)
-        .eq('agency_id', profile!.agency_id)
+        .eq('agency_id', profile!.agency_id!)
 
       if (error) throw error
 

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { CalendarEvent, EventColor, VisitStatus } from '@/components/calendar/week-view-types'
+import type { TablesInsert, TablesUpdate } from '@/types/database'
 
 // ── Supabase visit row shape ────────────────────────────────────────────────
 
@@ -138,7 +139,7 @@ export function useVisits() {
       const payload = calendarEventToVisitPayload(event, agencyId)
       const { data, error } = await supabase
         .from('visits')
-        .insert(payload)
+        .insert(payload as unknown as TablesInsert<'visits'>)
         .select('id')
         .single()
 
@@ -173,7 +174,7 @@ export function useVisits() {
 
       const { error } = await supabase
         .from('visits')
-        .update(updatePayload)
+        .update(updatePayload as TablesUpdate<'visits'>)
         .eq('id', event.id)
 
       if (error) throw error

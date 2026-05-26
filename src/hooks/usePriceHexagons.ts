@@ -50,11 +50,11 @@ export function usePriceHexagons({ bbox, zoom, transactionType, types, enabled =
         p_max_lat: maxLat,
         p_hex_size_m: size,
         p_transaction_type: txType,
-        p_types: types && types.length > 0 ? types : null,
+        p_types: types && types.length > 0 ? types : undefined,
         p_min_count: 3,
       })
       if (error) throw error
-      const rows = (data ?? []) as Array<{
+      const rows = (data ?? []) as unknown as Array<{
         hex_id: string
         geom: Polygon
         median_price_m2: number

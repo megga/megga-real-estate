@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import type { TablesUpdate } from '@/types/database'
 
 export interface SupportTicket {
   id: string
@@ -88,10 +89,11 @@ export function useAdminSupport() {
 
       return tickets.map(t => ({
         ...t,
+        description: t.description ?? null,
         agency_name: t.agency_id ? agencyMap[t.agency_id] ?? null : null,
         last_message_at: msgStats[t.id]?.lastAt ?? null,
         message_count: msgStats[t.id]?.count ?? 0,
-      }))
+      })) as unknown as SupportTicket[]
     },
     staleTime: 30_000,
   })
@@ -124,7 +126,7 @@ export function useAdminSupport() {
       const updates: Record<string, unknown> = { status }
       if (status === 'resolved') updates.resolved_at = new Date().toISOString()
       if (status === 'closed') updates.closed_at = new Date().toISOString()
-      const { error } = await supabase.from('support_tickets').update(updates).eq('id', id)
+      const { error } = await supabase.from('support_tickets').update(updates as TablesUpdate<'support_tickets'>).eq('id', id)
       if (error) throw error
 
       await supabase.from('ticket_events').insert({
@@ -230,7 +232,7 @@ export function useSendTicketReply() {
       if (!ticket?.first_responded_at) updates.first_responded_at = new Date().toISOString()
       if (ticket?.status === 'new') updates.status = 'open'
       if (Object.keys(updates).length > 0) {
-        await supabase.from('support_tickets').update(updates).eq('id', ticketId)
+        await supabase.from('support_tickets').update(updates as TablesUpdate<'support_tickets'>).eq('id', ticketId)
       }
 
       // Log audit event

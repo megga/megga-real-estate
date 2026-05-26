@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import type { TablesUpdate } from '@/types/database'
 
 export type ReminderType = 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom'
 export type ReminderStatus = 'pending' | 'triggered' | 'done' | 'cancelled' | 'snoozed'
@@ -223,7 +224,7 @@ export function useReminders() {
 
       if (fetchErr || !current) throw fetchErr || new Error('Reminder not found')
 
-      const newTrigger = new Date(current.trigger_at)
+      const newTrigger = new Date(current.trigger_at ?? Date.now())
       newTrigger.setDate(newTrigger.getDate() + 3)
 
       const { error } = await supabase
@@ -481,7 +482,7 @@ export function useMessageTemplates() {
 
       const { error } = await supabase
         .from('message_templates')
-        .update(dbUpdates)
+        .update(dbUpdates as TablesUpdate<'message_templates'>)
         .eq('id', id)
       if (error) throw error
     },

@@ -40,7 +40,7 @@ export function useSellerLeads(status?: string) {
 
       const { data, error } = await query
       if (error) throw error
-      return data as SellerLeadRow[]
+      return data as unknown as SellerLeadRow[]
     },
     staleTime: 30_000,
   })
@@ -163,7 +163,7 @@ export function useAcceptSellerLead() {
             data: {
               name: lead.contact_name,
               portal_url: `${window.location.origin}/portail/${token}`,
-              address: lead.property_data?.address || '',
+              address: (lead.property_data as { address?: string } | null)?.address || '',
               agent_name: agentName,
             },
           },

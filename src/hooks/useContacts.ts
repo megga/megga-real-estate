@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Contact, ContactType } from '@/types/contact'
 import type { ContactScore } from '@/lib/constants'
+import type { TablesUpdate } from '@/types/database'
 
 export interface CreateContactInput {
   firstName: string
@@ -40,7 +41,7 @@ export function useContacts(filters?: ContactFilters) {
 
       const { data, error } = await query.order('created_at', { ascending: false })
       if (error) throw error
-      return data as Contact[]
+      return data as unknown as Contact[]
     },
     enabled: !!user,
   })
@@ -58,12 +59,12 @@ export function useContacts(filters?: ContactFilters) {
           source: 'onboarding',
           user_id: user?.id ?? null,
           agency_id: profile?.agency_id ?? null,
-          form_data: input.formData ?? null,
+          form_data: (input.formData ?? null) as unknown as import('@/types/database').Json | null,
         })
         .select()
         .single()
       if (error) throw error
-      return data as Contact
+      return data as unknown as Contact
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
@@ -89,7 +90,7 @@ export function useContact(id: string | undefined) {
         .eq('id', id)
         .single()
       if (error) throw error
-      return data as Contact
+      return data as unknown as Contact
     },
     enabled: !!id,
   })
@@ -132,7 +133,7 @@ export function useUpdateContact() {
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<Record<string, unknown>>) => {
       const { data, error } = await supabase
         .from('contacts')
-        .update(updates)
+        .update(updates as TablesUpdate<'contacts'>)
         .eq('id', id)
         .select()
         .single()

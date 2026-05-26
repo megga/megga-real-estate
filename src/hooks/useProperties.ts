@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import type { Property } from '@/types/listing'
 import type { PropertyStatus } from '@/lib/constants'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
+import type { TablesInsert, TablesUpdate } from '@/types/database'
 
 // ── Query single property (for edit mode) ──
 
@@ -19,7 +20,7 @@ export function useProperty(id: string | undefined) {
         .is('deleted_at', null)
         .single()
       if (error) throw error
-      return data as Property
+      return data as unknown as Property
     },
     enabled: !!id,
   })
@@ -37,7 +38,7 @@ export function useAgencyProperties() {
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return data as (Property & { listing: Array<{ id: string; views_count: number; favorites_count: number; published_at: string }> })[]
+      return data as unknown as (Property & { listing: Array<{ id: string; views_count: number; favorites_count: number; published_at: string }> })[]
     },
   })
 }
@@ -83,15 +84,16 @@ export function useCreateProperty() {
 
   return useMutation({
     mutationFn: async (input: CreatePropertyInput) => {
+      const payload = {
+        ...input,
+        agency_id: profile?.agency_id,
+        created_by: user?.id,
+        features: input.features ?? [],
+        photos: input.photos ?? [],
+      } as unknown as TablesInsert<'properties'>
       const { data, error } = await supabase
         .from('properties')
-        .insert({
-          ...input,
-          agency_id: profile?.agency_id,
-          created_by: user?.id,
-          features: input.features ?? [],
-          photos: input.photos ?? [],
-        })
+        .insert(payload)
         .select('id, updated_at')
         .single()
       if (error) throw error
@@ -129,7 +131,7 @@ export function useUpdateProperty() {
     }: { id: string; expected_updated_at?: string } & Partial<CreatePropertyInput>) => {
       let query = supabase
         .from('properties')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...updates, updated_at: new Date().toISOString() } as unknown as TablesUpdate<'properties'>)
         .eq('id', id)
 
       if (expected_updated_at) {
@@ -197,7 +199,7 @@ export function useUpdatePropertyStatus() {
       }
       const { error } = await supabase
         .from('properties')
-        .update(updates)
+        .update(updates as TablesUpdate<'properties'>)
         .eq('id', id)
       if (error) throw error
     },

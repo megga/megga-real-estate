@@ -4405,6 +4405,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profile_meta: {
+        Row: {
+          bio: string
+          created_at: string
+          mode: string
+          notifications: Json
+          preferences: Json
+          privacy: Json
+          security: Json
+          updated_at: string
+          user_id: string
+          verifications: Json
+        }
+        Insert: {
+          bio?: string
+          created_at?: string
+          mode?: string
+          notifications?: Json
+          preferences?: Json
+          privacy?: Json
+          security?: Json
+          updated_at?: string
+          user_id: string
+          verifications?: Json
+        }
+        Update: {
+          bio?: string
+          created_at?: string
+          mode?: string
+          notifications?: Json
+          preferences?: Json
+          privacy?: Json
+          security?: Json
+          updated_at?: string
+          user_id?: string
+          verifications?: Json
+        }
+        Relationships: []
+      }
       vendor_dossiers: {
         Row: {
           address: string
@@ -4816,6 +4855,15 @@ export type Database = {
           sla_breached_open: number
         }[]
       }
+      get_agency_stats: {
+        Args: { agency_ids: string[] }
+        Returns: {
+          agency_id: string
+          agent_count: number
+          property_count: number
+          transaction_count: number
+        }[]
+      }
       get_app_config: { Args: { config_key: string }; Returns: string }
       get_cities_by_canton: {
         Args: { p_canton: string; p_context?: string }
@@ -4848,6 +4896,18 @@ export type Database = {
         }[]
       }
       get_my_agency_id: { Args: never; Returns: string }
+      get_onboarding_milestones: {
+        Args: { agency_ids: string[] }
+        Returns: {
+          agency_id: string
+          has_contact: boolean
+          has_kyc: boolean
+          has_match: boolean
+          has_property: boolean
+          has_transaction: boolean
+          last_activity_at: string
+        }[]
+      }
       get_popular_articles: {
         Args: { limit_count?: number }
         Returns: {

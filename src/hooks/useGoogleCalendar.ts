@@ -60,7 +60,7 @@ export function useGoogleCalendar(dateRange?: { start: Date; end: Date }) {
         .eq('user_id', userId!)
         .single()
       if (error || !data) return null
-      return data
+      return data as unknown as GoogleCalendarToken
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,

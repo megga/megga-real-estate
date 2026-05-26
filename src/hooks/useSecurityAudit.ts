@@ -119,10 +119,11 @@ export function useSecurityAudit(filters?: AuditFilters) {
 
       return (data ?? []).map(e => ({
         ...e,
+        entity_id: e.entity_id ?? '',
         metadata: (e.metadata ?? {}) as Record<string, unknown>,
         actor_name: e.actor_id ? actorMap[e.actor_id]?.name : undefined,
         actor_email: e.actor_id ? actorMap[e.actor_id]?.email : undefined,
-      }))
+      })) as unknown as AuditEntry[]
     },
     staleTime: 15_000,
   })

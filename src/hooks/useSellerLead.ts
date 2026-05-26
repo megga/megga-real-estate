@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { EstimationResult } from './usePropertyEstimation'
+import type { TablesInsert, Json } from '@/types/database'
 
 export interface SellerLeadInput {
   // Property data
@@ -70,50 +71,50 @@ export function useSellerLead() {
       if (contactErr) throw contactErr
 
       // 2. Create property (status: 'draft')
+      // Cast: has_outdoor exists at DB level but not yet in generated types; agency_id set by RLS/trigger.
+      const propertyPayload = {
+        title: `${pd.type === 'apartment' ? 'Appartement' : pd.type === 'house' ? 'Maison' : pd.type === 'villa' ? 'Villa' : pd.type === 'land' ? 'Terrain' : 'Bien'} — ${pd.city || pd.canton}`,
+        type: (pd.type || 'apartment') as 'apartment' | 'house' | 'villa' | 'commercial' | 'land',
+        status: 'draft',
+        price: input.estimation.estimation || null,
+        currency: 'CHF',
+        rooms: pd.rooms ? parseFloat(pd.rooms) : null,
+        bedrooms: pd.bedrooms ? parseInt(pd.bedrooms) : null,
+        surface_m2: pd.surface || null,
+        condition: pd.condition || null,
+        year_built: pd.yearBuilt ? parseInt(pd.yearBuilt) : null,
+        address: pd.address,
+        city: pd.city || null,
+        canton: pd.canton,
+        postal_code: pd.postalCode || null,
+        lat: pd.lat || null,
+        lng: pd.lng || null,
+        photos: pd.photos.length > 0 ? pd.photos : null,
+        floor: pd.floor ? (pd.floor === 'RDC' ? 0 : pd.floor === 'Attique' ? 99 : parseInt(pd.floor) || null) : null,
+        charges_monthly: pd.ppeCharges || null,
+        has_outdoor: pd.hasBalcony || pd.hasGarden || false,
+        has_parking: pd.parkingSpaces ? parseInt(pd.parkingSpaces) > 0 : false,
+        features: [
+          pd.hasBalcony && 'Balcon/Terrasse',
+          pd.balconySurface && `Balcon ${pd.balconySurface} m²`,
+          pd.hasGarden && 'Jardin',
+          pd.hasPool && 'Piscine',
+          pd.viewType === 'lake' && 'Vue lac',
+          pd.viewType === 'mountain' && 'Vue montagne',
+          pd.viewType === 'open' && 'Vue dégagée',
+          pd.landSurface && `Terrain ${pd.landSurface} m²`,
+          pd.parkingSpaces && `${pd.parkingSpaces} parking`,
+          pd.landZone && `Zone ${pd.landZone}`,
+          pd.cosIus && `COS/IUS ${pd.cosIus}`,
+          pd.commercialType && pd.commercialType,
+          pd.annualRent && `Loyer ${pd.annualRent} CHF/an`,
+          pd.isOccupied === true && 'Occupé',
+          pd.isOccupied === false && 'Vacant',
+        ].filter(Boolean) as string[],
+      }
       const { data: property, error: propErr } = await supabase
         .from('properties')
-        .insert({
-          title: `${pd.type === 'apartment' ? 'Appartement' : pd.type === 'house' ? 'Maison' : pd.type === 'villa' ? 'Villa' : pd.type === 'land' ? 'Terrain' : 'Bien'} — ${pd.city || pd.canton}`,
-          type: pd.type || 'apartment',
-          status: 'draft',
-          price: input.estimation.estimation || null,
-          currency: 'CHF',
-          rooms: pd.rooms ? parseFloat(pd.rooms) : null,
-          bedrooms: pd.bedrooms ? parseInt(pd.bedrooms) : null,
-          surface_m2: pd.surface || null,
-          condition: pd.condition || null,
-          year_built: pd.yearBuilt ? parseInt(pd.yearBuilt) : null,
-          address: pd.address,
-          city: pd.city || null,
-          canton: pd.canton,
-          postal_code: pd.postalCode || null,
-          lat: pd.lat || null,
-          lng: pd.lng || null,
-          photos: pd.photos.length > 0 ? pd.photos : null,
-          // Type-specific fields mapped to DB columns
-          floor: pd.floor ? (pd.floor === 'RDC' ? 0 : pd.floor === 'Attique' ? 99 : parseInt(pd.floor) || null) : null,
-          charges_monthly: pd.ppeCharges || null,
-          has_outdoor: pd.hasBalcony || pd.hasGarden || false,
-          has_parking: pd.parkingSpaces ? parseInt(pd.parkingSpaces) > 0 : false,
-          // Store extra details in features array
-          features: [
-            pd.hasBalcony && 'Balcon/Terrasse',
-            pd.balconySurface && `Balcon ${pd.balconySurface} m²`,
-            pd.hasGarden && 'Jardin',
-            pd.hasPool && 'Piscine',
-            pd.viewType === 'lake' && 'Vue lac',
-            pd.viewType === 'mountain' && 'Vue montagne',
-            pd.viewType === 'open' && 'Vue dégagée',
-            pd.landSurface && `Terrain ${pd.landSurface} m²`,
-            pd.parkingSpaces && `${pd.parkingSpaces} parking`,
-            pd.landZone && `Zone ${pd.landZone}`,
-            pd.cosIus && `COS/IUS ${pd.cosIus}`,
-            pd.commercialType && pd.commercialType,
-            pd.annualRent && `Loyer ${pd.annualRent} CHF/an`,
-            pd.isOccupied === true && 'Occupé',
-            pd.isOccupied === false && 'Vacant',
-          ].filter(Boolean) as string[],
-        })
+        .insert(propertyPayload as unknown as TablesInsert<'properties'>)
         .select('id')
         .single()
 
@@ -123,7 +124,7 @@ export function useSellerLead() {
       const { data: lead, error: leadErr } = await supabase
         .from('seller_leads')
         .insert({
-          property_data: pd,
+          property_data: pd as unknown as Json,
           estimation_min: input.estimation.estimation_min,
           estimation_max: input.estimation.estimation_max,
           estimation_median: input.estimation.estimation,
@@ -159,6 +160,7 @@ export function useSellerLead() {
       }).then(() => {})
 
       // 5. Create daily_action for agent notification
+      // agency_id/agent_id set by RLS/trigger from seller_leads.assigned_agency_id.
       await supabase.from('daily_actions').insert({
         priority: 'high',
         category: 'follow_up',
@@ -168,7 +170,7 @@ export function useSellerLead() {
         entity_id: contact.id,
         action_type: 'call',
         is_completed: false,
-      }).then(() => {})
+      } as unknown as TablesInsert<'daily_actions'>).then(() => {})
 
       // 6. Send confirmation email to seller (fire & forget)
       try {

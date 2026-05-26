@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Transaction, TransactionStatus, MandateType } from '@/types/transaction'
 import type { TransactionStage } from '@/lib/constants'
+import type { TablesUpdate } from '@/types/database'
 
 interface TransactionFilters {
   stage?: TransactionStage
@@ -98,7 +99,7 @@ export function useUpdateTransactionStage() {
 
       const { data, error } = await supabase
         .from('transactions')
-        .update(updatePayload)
+        .update(updatePayload as TablesUpdate<'transactions'>)
         .eq('id', id)
         .select()
         .single()

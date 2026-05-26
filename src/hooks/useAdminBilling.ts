@@ -70,7 +70,7 @@ export function useAdminBilling() {
         return sum + monthly
       }, 0)
 
-      const churned = allSubs.filter(s => s.status === 'canceled' && s.created_at >= monthStart).length
+      const churned = allSubs.filter(s => s.status === 'canceled' && (s.created_at ?? '') >= monthStart).length
       const pastDue = allSubs.filter(s => s.status === 'past_due').length
 
       const planMap = new Map<string, { count: number; mrr: number }>()

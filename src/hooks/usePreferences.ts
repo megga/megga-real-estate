@@ -145,7 +145,7 @@ export function usePreferences() {
     debounceRef.current = setTimeout(() => {
       supabase
         .from('profiles')
-        .update({ preferences: prefs })
+        .update({ preferences: prefs as unknown as import('@/types/database').Json })
         .eq('id', profileId)
         .then(() => { /* silent */ })
     }, 500)

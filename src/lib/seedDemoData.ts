@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import type { TablesInsert } from '@/types/database'
 
 const DEMO_TAG = '_demo'
 
@@ -17,7 +18,7 @@ export async function seedDemoData(agencyId: string, userId: string): Promise<{ 
     // ── 1. Contacts ──
     const { data: contacts, error: contactsErr } = await supabase
       .from('contacts')
-      .insert([
+      .insert(([
         {
           agency_id: agencyId,
           first_name: 'Marc',
@@ -205,7 +206,7 @@ export async function seedDemoData(agencyId: string, userId: string): Promise<{ 
           notes: 'Cherche location 3p Lausanne CHF 2500/mois',
           created_at: daysAgo(30),
         },
-      ])
+      ] as unknown as TablesInsert<'contacts'>[]))
       .select('id, first_name, last_name')
 
     if (contactsErr) throw contactsErr
@@ -251,7 +252,7 @@ export async function seedDemoData(agencyId: string, userId: string): Promise<{ 
     // ── 2. Properties ──
     const { data: properties, error: propsErr } = await supabase
       .from('properties')
-      .insert([
+      .insert(([
         {
           agency_id: agencyId,
           title: 'Appartement 3 pièces — Rue de la Fontaine',
@@ -384,7 +385,7 @@ export async function seedDemoData(agencyId: string, userId: string): Promise<{ 
           photos: [],
           created_by: userId,
         },
-      ])
+      ] as unknown as TablesInsert<'properties'>[]))
       .select('id, title')
 
     if (propsErr) throw propsErr

@@ -40,8 +40,8 @@ export function useContactTimeline(contactId: string | undefined) {
           id: row.id,
           action: row.action,
           entity_type: row.entity_type,
-          entity_id: row.entity_id,
-          metadata: row.metadata,
+          entity_id: row.entity_id ?? '',
+          metadata: row.metadata as Record<string, unknown> | null,
           created_at: row.created_at,
           actor_name: null,
         }))
@@ -53,10 +53,10 @@ export function useContactTimeline(contactId: string | undefined) {
           id: row.id,
           action: row.action,
           entity_type: row.entity_type,
-          entity_id: row.entity_id,
-          metadata: row.metadata,
+          entity_id: row.entity_id ?? '',
+          metadata: row.metadata as Record<string, unknown> | null,
           created_at: row.created_at,
-          actor_name: actor?.full_name ?? null,
+          actor_name: (actor as { full_name?: string } | null)?.full_name ?? null,
         }
       })
     },

@@ -229,7 +229,7 @@ export function useMatching(contactId?: string) {
       const { data, error } = await query
       if (error) throw error
 
-      const supabaseMatches = (data || []) as SupabaseMatchResult[]
+      const supabaseMatches = (data || []) as unknown as SupabaseMatchResult[]
       return supabaseMatches.map(supabaseToMatch)
     },
     enabled: true,

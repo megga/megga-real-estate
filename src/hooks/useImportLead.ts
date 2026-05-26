@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { ContactType } from '@/types/contact'
 import type { ExtractedLead, LeadIntent, LeadNextAction } from '@/hooks/useExtractLead'
+import type { TablesInsert } from '@/types/database'
 
 /**
  * Sprint 3 — Orchestration de la création d'un Contact + Deal depuis un
@@ -80,16 +81,16 @@ async function persistLead(input: ImportLeadInput, agencyId: string | null, user
   const { data: rpcResult, error: rpcErr } = await supabase.rpc('create_lead_with_optional_deal', {
     p_first_name: extracted.firstName || 'Prénom',
     p_last_name:  extracted.lastName  || 'Nom',
-    p_email:      extracted.email || null,
-    p_phone:      extracted.phone || null,
+    p_email:      extracted.email ?? undefined,
+    p_phone:      extracted.phone ?? undefined,
     p_type:       contactType,
     p_source:     'import',
     p_score:      score,
     p_tags:       ['import-ia'],
-    p_notes:      notesContact,
-    p_budget_announced: extracted.budget,
+    p_notes:      notesContact ?? undefined,
+    p_budget_announced: extracted.budget ?? undefined,
     p_search_zones:     extracted.zone ? [extracted.zone] : [],
-    p_import_raw_text:  rawText ?? null,
+    p_import_raw_text:  rawText ?? undefined,
     p_create_deal:      createDeal && !!agencyId,
     p_deal_stage:       dealStage,
     p_deal_notes:       `Lead importé via MEGGA AI. Action suggérée : ${labelForNextAction(extracted.nextAction)}.`,
@@ -114,7 +115,7 @@ async function persistLead(input: ImportLeadInput, agencyId: string | null, user
   //    LBA art. 7 / nLPD art. 12 — pas de perte silencieuse §A.3).
   //    Si un insert audit échoue, on remonte l'erreur côté caller : la création
   //    métier est OK mais l'agent verra un toast d'avertissement.
-  const auditRows: Array<Record<string, unknown>> = [
+  const auditRows: TablesInsert<'activity_events'>[] = [
     {
       agency_id: agencyId,
       actor_id: userId,

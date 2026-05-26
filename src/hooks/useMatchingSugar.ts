@@ -23,6 +23,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
+import type { Json, TablesInsert } from '@/types/database'
 import type { Contact, SearchCriteria } from '@/types/contact'
 import type { KycCase } from '@/types/kyc'
 import { contactToCrm, listingToBien } from '@/lib/sugarAdapters'
@@ -112,7 +113,7 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
         .select('*')
         .in('id', buyerIds)
       if (error) throw error
-      return (data ?? []) as Contact[]
+      return (data ?? []) as unknown as Contact[]
     },
     enabled: !!agencyId && buyerIds.length > 0,
   })
@@ -223,7 +224,7 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
         duration_minutes: input.durationMin,
         status: 'planned',
         notes: input.notes ?? null,
-      })
+      } as TablesInsert<'visits'>)
       if (error) throw error
     },
     onSuccess: () => {
@@ -249,7 +250,7 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
       // 2. Update contacts.search_criteria (vue dénormalisée)
       const { error: contactErr } = await supabase
         .from('contacts')
-        .update({ search_criteria: merged })
+        .update({ search_criteria: merged as unknown as Json })
         .eq('id', contactId)
       if (contactErr) throw contactErr
 
@@ -263,11 +264,11 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
         .limit(1)
 
       if (existingSearches && existingSearches.length > 0) {
-        const search = existingSearches[0] as { id: string; criteria: SearchCriteria }
+        const search = existingSearches[0] as unknown as { id: string; criteria: SearchCriteria }
         const mergedSearch: SearchCriteria = { ...(search.criteria ?? {}), ...patch }
         const { error: updErr } = await supabase
           .from('client_searches')
-          .update({ criteria: mergedSearch, updated_at: new Date().toISOString() })
+          .update({ criteria: mergedSearch as unknown as Json, updated_at: new Date().toISOString() })
           .eq('id', search.id)
         if (updErr) throw updErr
       } else {
@@ -277,7 +278,7 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
           .insert({
             agency_id: agencyId,
             contact_id: contactId,
-            criteria: merged,
+            criteria: merged as unknown as Json,
             is_active: true,
           })
         if (insErr) throw insErr

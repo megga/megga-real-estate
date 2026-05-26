@@ -89,7 +89,7 @@ export function useContactMemory(contactId: string | undefined) {
         .eq('id', contactId!)
         .single()
       if (error) return null
-      return data as ContactRecord
+      return data as unknown as ContactRecord
     },
     enabled: !!contactId,
     staleTime: 5 * 60 * 1000,
@@ -195,7 +195,7 @@ export async function fetchContactMemory(contactId: string): Promise<ContactMemo
   ])
 
   return {
-    contact: (contactRes.data as ContactRecord) ?? null,
+    contact: (contactRes.data as unknown as ContactRecord) ?? null,
     interactions: (interactionsRes.data ?? []) as InteractionRecord[],
     matchesSent: (matchesRes.data ?? []) as unknown as MatchRecord[],
     visits: (visitsRes.data ?? []) as unknown as VisitRecord[],

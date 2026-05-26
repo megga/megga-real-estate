@@ -326,7 +326,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
         }
 
         if (filters.types && filters.types.length > 0) {
-          internalQuery = internalQuery.in('type', filters.types)
+          internalQuery = internalQuery.in('type', filters.types as ('apartment' | 'house' | 'villa' | 'commercial' | 'land')[])
         }
         if (filters.canton) {
           internalQuery = internalQuery.eq('canton', filters.canton)
@@ -569,14 +569,14 @@ export function useMapPoints(filters: MarketFilters = {}) {
       // Single RPC call returns all points at once (bypasses REST 1000-row limit)
       const marketPromise = supabase.rpc('get_market_map_points', {
         p_context: filters.context || 'buy',
-        p_types: filters.types && filters.types.length > 0 ? filters.types : null,
-        p_canton: filters.canton || null,
-        p_city: filters.city || null,
-        p_min_price: filters.minPrice ?? null,
-        p_max_price: filters.maxPrice ?? null,
-        p_min_rooms: filters.minRooms ?? null,
-        p_min_surface: filters.minSurface ?? null,
-        p_features: filters.features && filters.features.length > 0 ? filters.features : null,
+        p_types: filters.types && filters.types.length > 0 ? filters.types : undefined,
+        p_canton: filters.canton || undefined,
+        p_city: filters.city || undefined,
+        p_min_price: filters.minPrice ?? undefined,
+        p_max_price: filters.maxPrice ?? undefined,
+        p_min_rooms: filters.minRooms ?? undefined,
+        p_min_surface: filters.minSurface ?? undefined,
+        p_features: filters.features && filters.features.length > 0 ? filters.features : undefined,
       })
 
       // Internal properties in parallel

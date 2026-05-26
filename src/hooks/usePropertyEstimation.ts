@@ -40,13 +40,13 @@ export function usePropertyEstimation(params: EstimationParams | null) {
 
       const { data, error } = await supabase.rpc('estimate_property_price', {
         p_canton: params.canton,
-        p_city: params.city || null,
-        p_type: params.type || null,
-        p_surface: params.surface ? Math.round(params.surface) : null,
+        p_city: params.city || undefined,
+        p_type: params.type || undefined,
+        p_surface: params.surface ? Math.round(params.surface) : undefined,
       })
 
       if (error) throw error
-      return data as EstimationResult
+      return data as unknown as EstimationResult
     },
     enabled: !!params?.canton,
     staleTime: 5 * 60 * 1000, // 5 min cache

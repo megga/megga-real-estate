@@ -37,6 +37,7 @@ export function useAdminUsers() {
 
       return (data ?? []).map(u => ({
         ...u,
+        created_at: u.created_at ?? '',
         agency_name: u.agency_id ? agencyMap[u.agency_id] ?? null : null,
       }))
     },
