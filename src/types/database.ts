@@ -1127,6 +1127,7 @@ export type Database = {
           created_at: string | null
           engagement_score: number | null
           engagement_trend: string | null
+          estimated_budget: number | null
           estimated_real_budget: number | null
           id: string
           intent_signals: Json | null
@@ -1149,6 +1150,7 @@ export type Database = {
           created_at?: string | null
           engagement_score?: number | null
           engagement_trend?: string | null
+          estimated_budget?: number | null
           estimated_real_budget?: number | null
           id?: string
           intent_signals?: Json | null
@@ -1171,6 +1173,7 @@ export type Database = {
           created_at?: string | null
           engagement_score?: number | null
           engagement_trend?: string | null
+          estimated_budget?: number | null
           estimated_real_budget?: number | null
           id?: string
           intent_signals?: Json | null
@@ -4070,6 +4073,70 @@ export type Database = {
           },
         ]
       }
+      team_invitations: {
+        Row: {
+          agency_id: string
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
+        }
+        Insert: {
+          agency_id: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+        }
+        Update: {
+          agency_id?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invitations_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_canned_responses: {
         Row: {
           body: string
@@ -4334,6 +4401,69 @@ export type Database = {
           os?: string | null
           trusted?: boolean
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vendor_dossiers: {
+        Row: {
+          address: string
+          agent: Json
+          created_at: string
+          estimation: Json | null
+          id: string
+          msg_id: string | null
+          next_action: Json | null
+          photos_count: number
+          property_type: string
+          publication: Json | null
+          rooms: number | null
+          status: string
+          status_history: Json
+          surface: string | null
+          title: string
+          transaction: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          agent: Json
+          created_at?: string
+          estimation?: Json | null
+          id: string
+          msg_id?: string | null
+          next_action?: Json | null
+          photos_count?: number
+          property_type: string
+          publication?: Json | null
+          rooms?: number | null
+          status?: string
+          status_history?: Json
+          surface?: string | null
+          title: string
+          transaction: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          agent?: Json
+          created_at?: string
+          estimation?: Json | null
+          id?: string
+          msg_id?: string | null
+          next_action?: Json | null
+          photos_count?: number
+          property_type?: string
+          publication?: Json | null
+          rooms?: number | null
+          status?: string
+          status_history?: Json
+          surface?: string | null
+          title?: string
+          transaction?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -4854,6 +4984,7 @@ export type Database = {
         | "expired"
         | "withdrawn"
       document_status: "pending" | "validated" | "rejected"
+      invitation_status: "pending" | "accepted" | "cancelled" | "expired"
       kyc_magic_link_mode: "libre" | "verifiee"
       kyc_magic_link_status:
         | "pending"
@@ -5062,6 +5193,7 @@ export const Constants = {
         "withdrawn",
       ],
       document_status: ["pending", "validated", "rejected"],
+      invitation_status: ["pending", "accepted", "cancelled", "expired"],
       kyc_magic_link_mode: ["libre", "verifiee"],
       kyc_magic_link_status: [
         "pending",
