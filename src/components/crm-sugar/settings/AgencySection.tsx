@@ -63,16 +63,9 @@ const DEFAULT_AGENCY: AgencyData = {
   network: 'megga',
 }
 
-const NETWORK_OPTIONS = [
-  {
-    id: 'megga',
-    label: 'Réseau MEGGA',
-    sub: 'Conformité C2PA, partage portefeuille opt-in',
-  },
-  { id: 'naef', label: 'Naef Immobilier', sub: 'Affilié partenaire' },
-  { id: 'bory', label: 'Bory & Cie', sub: 'Affilié partenaire' },
-  { id: 'independant', label: 'Indépendant', sub: 'Aucun réseau, gestion solo' },
-]
+// NETWORK_OPTIONS removed alongside the "Réseau d'affiliation" card.
+// Will be re-introduced when the affiliation feature is rebuilt against
+// a real partner registry (separate chip).
 
 interface ColorFieldProps {
   label: string
@@ -496,89 +489,10 @@ export function AgencySection() {
           </div>
         </SetCard>
 
-        {/* Card réseau */}
-        <SetCard
-          title="Réseau d'affiliation"
-          sub="Sélectionnez votre réseau partenaire. Les annonces porteront sa charte si configurée."
-        >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 12,
-            }}
-          >
-            {NETWORK_OPTIONS.map(opt => {
-              const active = data.network === opt.id
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => set({ network: opt.id })}
-                  style={{
-                    padding: '16px 18px',
-                    borderRadius: 16,
-                    border: 0,
-                    textAlign: 'left',
-                    background: active ? SET.black : SET.cardSubtle,
-                    color: active ? '#fff' : SET.ink,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    boxShadow: active ? '0 8px 22px rgba(11,12,14,0.22)' : 'none',
-                    transition: 'all .18s',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 12,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 999,
-                      border: `2px solid ${active ? '#fff' : SET.ghost}`,
-                      display: 'grid',
-                      placeItems: 'center',
-                      flexShrink: 0,
-                      marginTop: 2,
-                    }}
-                  >
-                    {active && (
-                      <span
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 999,
-                          background: '#fff',
-                        }}
-                      />
-                    )}
-                  </span>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        letterSpacing: -0.1,
-                      }}
-                    >
-                      {opt.label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12.5,
-                        fontWeight: 500,
-                        marginTop: 3,
-                        color: active ? 'rgba(255,255,255,0.72)' : SET.muted,
-                      }}
-                    >
-                      {opt.sub}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </SetCard>
+        {/* "Réseau d'affiliation" card removed — Tier 3 trim (Julien call):
+            non-essentiel pour le MVP CRM. Le champ data.network reste dans
+            le state pour ne pas casser le save handler ; il sera retiré
+            quand le wizard onboarding ne le proposera plus. */}
       </div>
 
       <StickySaveBar
