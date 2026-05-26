@@ -9,6 +9,7 @@ import { crmContactById, crmBienById, type CrmContact, type CrmDeal } from '../m
 import { KycDealBadge } from '../kyc/KycNonBlocking'
 import { SugarMiniRing } from './SugarMiniRing'
 import { useUpdateTransactionStage } from '@/hooks/useTransactions'
+import { useTeamMembers } from '@/hooks/useTeam'
 import { supabase } from '@/lib/supabase'
 
 // Mock-id guard — CRM_DEALS uses `d-…` ids; real Supabase rows use UUIDs.
@@ -204,6 +205,7 @@ function CardQuickActions({
 }) {
   const navigate = useNavigate()
   const updateStage = useUpdateTransactionStage()
+  const [reassignOpen, setReassignOpen] = useState(false)
   const stop = (e: React.MouseEvent) => e.stopPropagation()
 
   // Helper: status update on transactions (archive only — stage transitions
@@ -313,18 +315,137 @@ function CardQuickActions({
             WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
             padding: 6, zIndex: 10, animation: 'qaFade .14s ease-out',
           }}>
-            {/* Réassigner stays as alert — needs an agent picker UI
-                (separate chip). Archiver + Marquer perdu are wired. */}
             <MenuItem sp={sp} icon="contacts" label="Réassigner" onClick={() => {
-              setMenuOpen(false)
-              // eslint-disable-next-line no-alert
-              window.alert("Réassignation d'agent disponible dans une prochaine release.")
+              if (isMockId(dealId)) {
+                setMenuOpen(false)
+                // eslint-disable-next-line no-alert
+                window.alert('Réassignation disponible sur un deal réel uniquement (donnée de démo).')
+                return
+              }
+              setReassignOpen(true)
             }} />
             <MenuItem sp={sp} icon="docs" label="Archiver" onClick={() => { setMenuOpen(false); void archiveDeal() }} />
             <MenuItem sp={sp} icon="risk" label="Marquer perdu" tone="danger" onClick={() => { setMenuOpen(false); void markLost() }} />
           </div>
         )}
+        {reassignOpen && (
+          <ReassignPicker
+            sp={sp}
+            dark={dark}
+            dealId={dealId}
+            onClose={() => { setReassignOpen(false); setMenuOpen(false) }}
+          />
+        )}
       </div>
+    </div>
+  )
+}
+
+// ─── Reassign-to-agent popover ────────────────────────────────────────
+// Lists the agency's team members (via useTeamMembers), shows each agent's
+// current pipeline load (count of active transactions assigned to them),
+// updates transactions.assigned_to on pick. RLS already gates this so
+// agent A can only reassign deals in their own agency.
+function ReassignPicker({
+  sp, dark, dealId, onClose,
+}: {
+  sp: SugarPalette
+  dark: boolean
+  dealId: string
+  onClose: () => void
+}) {
+  const { data: members = [] as Array<{ id: string; full_name: string; avatar_url: string | null }>, isLoading } = useTeamMembers()
+  const [saving, setSaving] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function pick(agentId: string) {
+    setSaving(agentId)
+    setError(null)
+    try {
+      const { error: err } = await supabase
+        .from('transactions')
+        .update({ assigned_to: agentId })
+        .eq('id', dealId)
+      if (err) {
+        setError(err.message)
+        return
+      }
+      onClose()
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  const surface = dark ? 'rgba(28,36,30,.96)' : 'rgba(255,255,255,.98)'
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: 'absolute', top: 32, right: 0, minWidth: 240, maxWidth: 280,
+        background: surface,
+        border: `1px solid ${sp.cardBorder}`, borderRadius: 14,
+        boxShadow: '0 10px 30px -10px rgba(14,20,16,.25), 0 2px 6px rgba(14,20,16,.08)',
+        backdropFilter: 'blur(16px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+        padding: 8, zIndex: 20, animation: 'qaFade .14s ease-out',
+      }}
+    >
+      <div style={{ padding: '4px 8px 8px', fontSize: 11, fontWeight: 700, color: sp.sub, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+        Réassigner à
+      </div>
+      {isLoading && (
+        <div style={{ padding: 12, color: sp.sub, fontSize: 12 }}>Chargement…</div>
+      )}
+      {!isLoading && members.length === 0 && (
+        <div style={{ padding: 12, color: sp.sub, fontSize: 12 }}>
+          Aucun autre agent dans l'agence.
+        </div>
+      )}
+      <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+        {members.map((m) => (
+          <button
+            key={m.id}
+            disabled={saving !== null}
+            onClick={() => { void pick(m.id) }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 10px', background: 'transparent', border: 0, borderRadius: 8,
+              cursor: saving === null ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit', textAlign: 'left',
+              opacity: saving !== null && saving !== m.id ? 0.5 : 1,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = sp.cardSubBg }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <div style={{
+              width: 28, height: 28, borderRadius: 999,
+              background: m.avatar_url ? `center/cover no-repeat url(${m.avatar_url})` : sp.ink,
+              color: '#fff', fontSize: 10, fontWeight: 700,
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+            }}>
+              {!m.avatar_url && crmInitials(m.full_name)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {m.full_name}
+              </div>
+            </div>
+            {saving === m.id && (
+              <span style={{ fontSize: 10, color: sp.sub }}>…</span>
+            )}
+          </button>
+        ))}
+      </div>
+      {error && (
+        <div role="alert" style={{
+          marginTop: 6, padding: '6px 10px', borderRadius: 8,
+          background: '#FEF2F2', color: '#B91C1C',
+          fontSize: 11, fontWeight: 600, border: '1px solid #FCA5A5',
+        }}>
+          {error}
+        </div>
+      )}
     </div>
   )
 }
