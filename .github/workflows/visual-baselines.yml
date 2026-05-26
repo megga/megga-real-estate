@@ -51,7 +51,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Generate baselines (update snapshots)
-        run: npx playwright test --update-snapshots tests/e2e/visual-regression.spec.ts
+        # Uses the dedicated playwright.visual.config.ts — the default
+        # config testIgnores visual-regression so even pointing at the spec
+        # file directly results in "no tests found".
+        run: npx playwright test --config=playwright.visual.config.ts --update-snapshots=all
 
       - name: Commit & push baselines if changed
         run: |
