@@ -56,6 +56,13 @@ jobs:
       - name: Run E2E suite (super-admin role)
         run: npm run test:e2e:admin
 
+      - name: Run visual regression suite
+        # Uses playwright.visual.config.ts (dedicated, narrow testMatch).
+        # Baselines live under tests/e2e/visual-regression.spec.ts-snapshots/
+        # — they're committed to the branch by the
+        # /regenerate-visual-baselines slash command on a PR.
+        run: npm run test:e2e:visual
+
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
