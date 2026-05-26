@@ -47,6 +47,9 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      - name: Run unit tests (Vitest)
+        run: npm run test:unit
+
       - name: Run E2E suite
         run: npm run test:e2e
 
