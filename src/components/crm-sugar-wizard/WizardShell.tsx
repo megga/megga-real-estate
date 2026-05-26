@@ -19,6 +19,15 @@ import { Step6Options } from './steps/Step6Options'
 import { Step7Publish } from './steps/Step7Publish'
 import { Step8Success } from './steps/Step8Success'
 import { useCreateProperty } from '@/hooks/useProperties'
+import { useCreateContact } from '@/hooks/useContacts'
+import { useCreateTransaction } from '@/hooks/useTransactions'
+import { useAuth } from '@/hooks/useAuth'
+
+// Mock-ID guard — Step1Vendor's saveNew assigns `c-new-${Date.now()}` to
+// `data.ownerContactId` when the agent fills the inline new-contact form.
+// We detect that here so handlePublish knows to create the contact first
+// before linking it via a transaction row.
+const NEW_CONTACT_PREFIX = 'c-new-'
 
 interface WizardShellProps {
   onClose: () => void
@@ -32,14 +41,17 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   const [data, setDataRaw] = useState<WizardData>(EMPTY_WIZARD)
   const set = (patch: Partial<WizardData>) => setDataRaw(prev => ({ ...prev, ...patch }))
 
+  const { profile } = useAuth()
   const createProperty = useCreateProperty()
+  const createContact = useCreateContact()
+  const createTransaction = useCreateTransaction()
 
   // Map the wizard's publishMode to the (status, published_at) pair the
   // properties table expects. There's no scheduled-publish backend yet,
   // so 'schedule' is persisted as 'draft' — separate chip to wire a real
   // cron-based publication when the feature is designed.
   async function handlePublish() {
-    if (createProperty.isPending) return
+    if (createProperty.isPending || createContact.isPending || createTransaction.isPending) return
     setPublishError(null)
 
     const status =
@@ -58,7 +70,36 @@ export default function WizardShell({ onClose }: WizardShellProps) {
     const title = titleParts.join(' ')
 
     try {
-      await createProperty.mutateAsync({
+      // 1) Resolve the vendor contact_id. If the agent created a new vendor
+      // inline (Step 1 — `_newContact` populated with a `c-new-…` mock id),
+      // persist it first and use the real id. Otherwise use the existing
+      // selected contact id. Without this, the new vendor used to be
+      // silently dropped — property published with NO linkage (data loss).
+      let sellerContactId: string | null = null
+      if (
+        data._newContact &&
+        data.ownerContactId &&
+        data.ownerContactId.startsWith(NEW_CONTACT_PREFIX)
+      ) {
+        const newC = await createContact.mutateAsync({
+          firstName: data._newContact.firstName,
+          lastName: data._newContact.lastName,
+          email: data._newContact.email,
+          phone: data._newContact.phone || undefined,
+          type: 'seller',
+          source: 'manual',
+        })
+        sellerContactId = newC.id
+      } else if (
+        data.ownerContactId &&
+        !data.ownerContactId.startsWith(NEW_CONTACT_PREFIX)
+      ) {
+        sellerContactId = data.ownerContactId
+      }
+
+      // 2) Create the property (no direct vendor column — link comes via
+      // a transactions row below).
+      const created = await createProperty.mutateAsync({
         title,
         type: data.type,
         status,
@@ -87,8 +128,40 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         features: data.features,
         published_at: status === 'active' ? new Date().toISOString() : undefined,
       })
-      // Cache Helpers auto-invalidates the properties list — the agent's
-      // /dashboard/listings will show the new bien on next render.
+
+      // 3) Link the vendor — properties has no contact_seller_id column;
+      // the relationship lives in `transactions` (same model the deal
+      // pipeline uses). Only create the transaction if we have BOTH a
+      // resolved seller AND an agency_id (RLS gate).
+      if (sellerContactId && profile?.agency_id) {
+        // Wizard `mandate.type` is 'simple' | 'exclusive' | 'co'.
+        // DB enum is 'simple' | 'exclusive' | 'semi_exclusive'.
+        // Map 'co' → 'semi_exclusive'.
+        const mandateType = data.mandate?.type === 'co'
+          ? 'semi_exclusive'
+          : data.mandate?.type
+        try {
+          await createTransaction.mutateAsync({
+            agency_id: profile.agency_id,
+            property_id: created.id,
+            contact_seller_id: sellerContactId,
+            // 'new_lead' if the mandate isn't signed yet, otherwise we
+            // treat the listing as actively brokered.
+            stage: data.mandate?.signed ? 'active_search' : 'new_lead',
+            mandate_type: mandateType,
+          })
+        } catch (txErr) {
+          // The property published successfully — surface the transaction
+          // failure as a soft warning rather than blocking the success
+          // screen (the agent can re-link from the deal detail page).
+          // eslint-disable-next-line no-console
+          console.warn('[wizard] vendor-link transaction failed:', txErr)
+        }
+      }
+
+      // Cache Helpers auto-invalidates the properties + transactions lists
+      // — the agent's /dashboard/listings and /dashboard/pipeline both
+      // refresh on next render.
       setPublished(true)
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Erreur inconnue'

@@ -1186,16 +1186,24 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
     if (!lead) return
     persistDraft()
     // AuditEvent (b) : trace l'action sur le lead courant — handoff DoD.
+    // Honest naming: the email isn't actually sent (Resend Edge Function
+    // is not wired in this view) and the call isn't actually placed —
+    // the agent is *marking* the relance as done. The audit metadata
+    // flags `system_dispatch: false` so consumers can filter the lie out.
     const auditAction =
       action === 'sent'
-        ? 'relance-sent'
+        ? 'relance-marked-sent'
         : action === 'called'
-          ? 'relance-called'
+          ? 'relance-marked-called'
           : 'relance-postponed'
     audit(auditAction, `${lead.first} ${lead.last} · ${lead.bien.split(' · ')[0]}`, {
       leadId: lead.id,
       action,
       idx: state.currentIdx,
+      // Explicit: this audit row reflects an AGENT UI ack, not a system
+      // send/call. When Resend integration lands, set to true and switch
+      // the action name back to 'relance-sent'/'relance-called'.
+      system_dispatch: false,
     })
     setState((s) => ({
       ...s,
@@ -1450,6 +1458,7 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
               <button
                 onClick={() => advance('sent')}
                 disabled={streaming}
+                title="Marque la relance comme envoyée. L'envoi automatique d'email arrive dans une prochaine release — copiez le contenu et envoyez via votre client mail habituel."
                 style={{
                   height: 46,
                   padding: '0 22px',
@@ -1469,7 +1478,7 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
                   whiteSpace: 'nowrap',
                 }}
               >
-                Envoyer & suivant
+                Marquer envoyé & suivant
                 <DbIcon name="send" size={14} stroke="#fff" sw={2} />
               </button>
             </div>
