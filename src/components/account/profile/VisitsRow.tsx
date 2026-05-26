@@ -4,17 +4,33 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import SectionShell from './SectionShell'
 
+// UI-level status — drives label + colors. Maps from the DB enum below.
+type UiStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled'
+
 interface VisitRow {
   id: string
   scheduled_at: string
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  status: UiStatus
   notes: string | null
   property_title: string | null
   property_address: string | null
   agent_name: string | null
 }
 
-const STATUS_META: Record<VisitRow['status'], { label: string; bg: string; fg: string }> = {
+// `visits.status` is constrained to: planned | confirmed | done | cancelled | no_show
+// (see baseline migration, visits_status_check). Map to the 4-bucket UI status.
+function mapDbStatus(dbStatus: string | null | undefined): UiStatus {
+  switch (dbStatus) {
+    case 'confirmed': return 'confirmed'
+    case 'done':      return 'completed'
+    case 'cancelled': return 'cancelled'
+    case 'no_show':   return 'cancelled'
+    case 'planned':
+    default:          return 'pending'
+  }
+}
+
+const STATUS_META: Record<UiStatus, { label: string; bg: string; fg: string }> = {
   confirmed: { label: 'Confirmée', bg: '#E7F5EC', fg: '#0F7A3A' },
   pending: { label: 'En attente', bg: '#FBE9E0', fg: '#A85020' },
   completed: { label: 'Effectuée', bg: '#F2F4F8', fg: '#4A5249' },
@@ -129,26 +145,63 @@ function VisitItem({ v, isPast }: { v: VisitRow; isPast: boolean }) {
   )
 }
 
+// Shape of the raw row returned by the supabase query below — typed here so
+// the .map() callback is checked even though the client is currently untyped.
+interface VisitsQueryRow {
+  id: string
+  scheduled_at: string
+  status: string
+  buyer_message: string | null
+  properties: { title: string; address: string | null } | null
+  agent: { full_name: string } | null
+}
+
 export default function VisitsRow() {
   const { user } = useAuth()
+  const email = user?.email ?? null
 
   const { data: visits = [] } = useQuery({
-    queryKey: ['account-visits', user?.id],
+    queryKey: ['account-visits', email],
     queryFn: async () => {
-      if (!user) return [] as VisitRow[]
+      if (!email) return [] as VisitRow[]
+
+      // `visits` table (not `property_visits` — that one never existed).
+      // RLS: relies on policy `visits_select_by_buyer_email` to grant access
+      // when buyer_email matches the JWT email. See migration
+      // 20260526140000_visits_select_by_buyer_email.sql.
       const { data, error } = await supabase
-        .from('property_visits')
-        .select('id, scheduled_at, status, notes, property_title, property_address, agent_name')
-        .eq('contact_email', user.email ?? '')
+        .from('visits')
+        .select(`
+          id,
+          scheduled_at,
+          status,
+          buyer_message,
+          properties:property_id ( title, address ),
+          agent:profiles!agent_id ( full_name )
+        `)
         .order('scheduled_at', { ascending: false })
         .limit(20)
+
       if (error) {
-        // If table missing or filter invalid, just return empty
+        // Defensive: never throw from this query — empty list degrades cleanly
+        // (the section short-circuits on visits.length === 0 below).
         return [] as VisitRow[]
       }
-      return (data ?? []) as VisitRow[]
+
+      return (data ?? []).map((r): VisitRow => {
+        const row = r as unknown as VisitsQueryRow
+        return {
+          id: row.id,
+          scheduled_at: row.scheduled_at,
+          status: mapDbStatus(row.status),
+          notes: row.buyer_message,
+          property_title: row.properties?.title ?? null,
+          property_address: row.properties?.address ?? null,
+          agent_name: row.agent?.full_name ?? null,
+        }
+      })
     },
-    enabled: !!user,
+    enabled: !!email,
   })
 
   if (visits.length === 0) return null
