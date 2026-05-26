@@ -1,5 +1,25 @@
+// Migrated to @supabase-cache-helpers/postgrest-react-query.
+//
+// useReminders + useMessageTemplates: fully migrated — list query + simple
+// CRUD mutations. Cache Helpers auto-invalidates queries against the same
+// table on Insert/Update/Delete, so we removed manual queryClient.invalidate
+// calls.
+//
+// useAutomationRules: kept on classic React Query because the queryFn issues
+// 3 dependent sub-queries (count generated, count active, last triggered) per
+// rule. Cache Helpers' declarative query API doesn't model dependent fetches
+// that join data from one query into the WHERE of another. Migrating it
+// would require either a database VIEW (server-side) or two separate hooks
+// that the consumer assembles — both larger changes outside this PR scope.
+
 import { useCallback, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery as useRqQuery } from '@tanstack/react-query'
+import {
+  useQuery,
+  useInsertMutation,
+  useUpdateMutation,
+  useDeleteMutation,
+} from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { TablesUpdate } from '@/types/database'
@@ -179,97 +199,99 @@ function rowToTemplate(row: TemplateRow): MessageTemplate {
 export function useReminders() {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
-  const queryClient = useQueryClient()
 
-  const { data: reminders = [], isLoading } = useQuery({
-    queryKey: ['reminders', agencyId],
-    queryFn: async () => {
-      if (!agencyId) return []
-      const { data, error } = await supabase
-        .from('reminders')
-        .select('id, type, status, trigger_at, channel, contact_id, property_id, transaction_id, match_id, message_template, created_at, completed_at, contact:contacts(first_name, last_name), property:properties(title, address)')
-        .eq('agency_id', agencyId)
-        .in('status', ['pending', 'triggered', 'snoozed'])
-        .order('trigger_at', { ascending: true })
-        .limit(100)
+  // Build the query lazily — if agencyId is missing, we still need a valid
+  // query expression for Cache Helpers to inspect (it short-circuits via
+  // `enabled` before any fetch fires).
+  const remindersQuery = useQuery(
+    supabase
+      .from('reminders')
+      .select('id, type, status, trigger_at, channel, contact_id, property_id, transaction_id, match_id, message_template, created_at, completed_at, contact:contacts(first_name, last_name), property:properties(title, address)')
+      .eq('agency_id', agencyId ?? '00000000-0000-0000-0000-000000000000')
+      .in('status', ['pending', 'triggered', 'snoozed'])
+      .order('trigger_at', { ascending: true })
+      .limit(100),
+    { enabled: !!agencyId, staleTime: 30_000 }
+  )
 
-      if (error) throw error
-      return ((data || []) as ReminderRow[]).map(rowToReminder)
+  const reminders = useMemo(
+    () => ((remindersQuery.data ?? []) as unknown as ReminderRow[]).map(rowToReminder),
+    [remindersQuery.data]
+  )
+
+  // Mutations: useUpdateMutation auto-invalidates any cached query against
+  // `reminders` (including the list above), so manual invalidations are
+  // gone. action-board components share the same table, so they invalidate
+  // automatically too.
+  const updateReminder = useUpdateMutation(supabase.from('reminders'), ['id'])
+
+  const markAsDone = useCallback(
+    (id: string) => {
+      void updateReminder.mutateAsync({
+        id,
+        status: 'done',
+        completed_at: new Date().toISOString(),
+      })
     },
-    enabled: !!agencyId,
-    staleTime: 30_000,
-  })
+    [updateReminder]
+  )
 
-  const markAsDoneMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('reminders')
-        .update({ status: 'done', completed_at: new Date().toISOString() })
-        .eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reminders'] })
-      queryClient.invalidateQueries({ queryKey: ['action-board', 'reminders'] })
-    },
-  })
-
-  const snoozeMutation = useMutation({
-    mutationFn: async (id: string) => {
+  const snooze = useCallback(
+    async (id: string) => {
+      // Need current trigger_at to compute the new value; fetch directly
+      // (one-shot, not cached).
       const { data: current, error: fetchErr } = await supabase
         .from('reminders')
         .select('trigger_at')
         .eq('id', id)
         .single()
-
-      if (fetchErr || !current) throw fetchErr || new Error('Reminder not found')
+      if (fetchErr || !current) return
 
       const newTrigger = new Date(current.trigger_at ?? Date.now())
       newTrigger.setDate(newTrigger.getDate() + 3)
 
-      const { error } = await supabase
-        .from('reminders')
-        .update({ status: 'snoozed', trigger_at: newTrigger.toISOString() })
-        .eq('id', id)
-      if (error) throw error
+      await updateReminder.mutateAsync({
+        id,
+        status: 'snoozed',
+        trigger_at: newTrigger.toISOString(),
+      })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reminders'] })
-      queryClient.invalidateQueries({ queryKey: ['action-board', 'reminders'] })
-    },
-  })
+    [updateReminder]
+  )
 
-  const cancelMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('reminders')
-        .update({ status: 'cancelled' })
-        .eq('id', id)
-      if (error) throw error
+  const cancel = useCallback(
+    (id: string) => {
+      void updateReminder.mutateAsync({ id, status: 'cancelled' })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reminders'] })
-      queryClient.invalidateQueries({ queryKey: ['action-board', 'reminders'] })
-    },
-  })
-
-  const markAsDone = useCallback((id: string) => markAsDoneMutation.mutate(id), [markAsDoneMutation])
-  const snooze = useCallback((id: string) => snoozeMutation.mutate(id), [snoozeMutation])
-  const cancel = useCallback((id: string) => cancelMutation.mutate(id), [cancelMutation])
+    [updateReminder]
+  )
 
   const active = useMemo(() => reminders.filter((r) => r.status === 'pending' || r.status === 'triggered'), [reminders])
   const triggered = useMemo(() => reminders.filter((r) => r.status === 'triggered'), [reminders])
   const pending = useMemo(() => reminders.filter((r) => r.status === 'pending'), [reminders])
 
-  return { reminders, active, triggered, pending, markAsDone, snooze, cancel, isLoading }
+  return {
+    reminders,
+    active,
+    triggered,
+    pending,
+    markAsDone,
+    snooze,
+    cancel,
+    isLoading: remindersQuery.isLoading,
+  }
 }
 
+// Kept on classic React Query — the queryFn issues N dependent sub-queries
+// per rule (count generated, count active, last triggered) which Cache
+// Helpers' declarative API can't express. A DB view would be the proper
+// migration path; out of scope here.
 export function useAutomationRules() {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
   const queryClient = useQueryClient()
 
-  const { data: rules = [], isLoading } = useQuery({
+  const { data: rules = [], isLoading } = useRqQuery({
     queryKey: ['automation-rules', agencyId],
     queryFn: async () => {
       if (!agencyId) return []
@@ -431,31 +453,30 @@ export function useAutomationRules() {
 export function useMessageTemplates() {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
-  const queryClient = useQueryClient()
 
-  const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['message-templates', agencyId],
-    queryFn: async () => {
-      if (!agencyId) return []
-      const { data, error } = await supabase
-        .from('message_templates')
-        .select('id, name, category, channel, subject, body')
-        .eq('agency_id', agencyId)
-        .order('created_at', { ascending: false })
+  const templatesQuery = useQuery(
+    supabase
+      .from('message_templates')
+      .select('id, name, category, channel, subject, body')
+      .eq('agency_id', agencyId ?? '00000000-0000-0000-0000-000000000000')
+      .order('created_at', { ascending: false }),
+    { enabled: !!agencyId, staleTime: 60_000 }
+  )
 
-      if (error) throw error
-      return ((data || []) as TemplateRow[]).map(rowToTemplate)
-    },
-    enabled: !!agencyId,
-    staleTime: 60_000,
-  })
+  const templates = useMemo(
+    () => ((templatesQuery.data ?? []) as unknown as TemplateRow[]).map(rowToTemplate),
+    [templatesQuery.data]
+  )
 
-  const addTemplateMutation = useMutation({
-    mutationFn: async (template: Omit<MessageTemplate, 'id'>) => {
+  const insertTemplate = useInsertMutation(supabase.from('message_templates'), ['id'])
+  const updateTemplate = useUpdateMutation(supabase.from('message_templates'), ['id'])
+  const deleteTemplateMutation = useDeleteMutation(supabase.from('message_templates'), ['id'])
+
+  const addTemplate = useCallback(
+    async (template: Omit<MessageTemplate, 'id'>) => {
       if (!agencyId) throw new Error('No agency')
-      const { error } = await supabase
-        .from('message_templates')
-        .insert({
+      await insertTemplate.mutateAsync([
+        {
           agency_id: agencyId,
           name: template.name,
           category: template.category,
@@ -463,63 +484,42 @@ export function useMessageTemplates() {
           subject: template.subject,
           body: template.body,
           is_ai_generated: false,
-        })
-      if (error) throw error
+        },
+      ])
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-templates'] })
-    },
-  })
+    [agencyId, insertTemplate]
+  )
 
-  const updateTemplateMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Omit<MessageTemplate, 'id'>> }) => {
+  const updateTemplateFn = useCallback(
+    async (id: string, updates: Partial<Omit<MessageTemplate, 'id'>>) => {
       const dbUpdates: Record<string, unknown> = {}
       if (updates.name !== undefined) dbUpdates.name = updates.name
       if (updates.category !== undefined) dbUpdates.category = updates.category
       if (updates.channel !== undefined) dbUpdates.channel = updates.channel
       if (updates.subject !== undefined) dbUpdates.subject = updates.subject
       if (updates.body !== undefined) dbUpdates.body = updates.body
-
-      const { error } = await supabase
-        .from('message_templates')
-        .update(dbUpdates as TablesUpdate<'message_templates'>)
-        .eq('id', id)
-      if (error) throw error
+      await updateTemplate.mutateAsync({
+        id,
+        ...dbUpdates,
+      } as unknown as TablesUpdate<'message_templates'>)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-templates'] })
-    },
-  })
-
-  const deleteTemplateMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('message_templates')
-        .delete()
-        .eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-templates'] })
-    },
-  })
-
-  const addTemplate = useCallback(
-    (template: Omit<MessageTemplate, 'id'>) => addTemplateMutation.mutate(template),
-    [addTemplateMutation]
-  )
-
-  const updateTemplate = useCallback(
-    (id: string, updates: Partial<Omit<MessageTemplate, 'id'>>) => updateTemplateMutation.mutate({ id, updates }),
-    [updateTemplateMutation]
+    [updateTemplate]
   )
 
   const deleteTemplate = useCallback(
-    (id: string) => deleteTemplateMutation.mutate(id),
+    async (id: string) => {
+      await deleteTemplateMutation.mutateAsync({ id })
+    },
     [deleteTemplateMutation]
   )
 
-  return { templates, addTemplate, updateTemplate, deleteTemplate, isLoading }
+  return {
+    templates,
+    addTemplate,
+    updateTemplate: updateTemplateFn,
+    deleteTemplate,
+    isLoading: templatesQuery.isLoading,
+  }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

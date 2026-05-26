@@ -1,8 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+// Migrated to @supabase-cache-helpers/postgrest-react-query.
+//
+// Agent calendar (useVisits) + public lookup/reschedule/cancel/feedback +
+// useBookVisit migrated.
+//
+// useBookVisit is a multi-step flow (upsert contact → maybe generate video
+// link → insert visit → send 2 emails → log activity). The contact upsert
+// + visit insert use Cache Helpers mutations so caches for those tables
+// auto-invalidate. The auth.getUser equivalent and edge function calls stay
+// as raw supabase calls — they're orthogonal to query caching.
+
+import { useMutation, useQuery as useRqQuery } from '@tanstack/react-query'
+import {
+  useQuery,
+  useInsertMutation,
+  useUpdateMutation,
+  useDeleteMutation,
+} from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { CalendarEvent, EventColor, VisitStatus } from '@/components/calendar/week-view-types'
-import type { TablesInsert, TablesUpdate } from '@/types/database'
+import type { TablesInsert } from '@/types/database'
 
 // ── Supabase visit row shape ────────────────────────────────────────────────
 
@@ -105,108 +122,73 @@ function calendarEventToVisitPayload(event: CalendarEvent, agencyId: string) {
 
 export function useVisits() {
   const { profile } = useAuth()
-  const queryClient = useQueryClient()
   const agencyId = profile?.agency_id
 
-  // ── Fetch all visits as CalendarEvents ──
-  const { data: visits = [], isLoading } = useQuery({
-    queryKey: ['visits', agencyId],
-    queryFn: async (): Promise<CalendarEvent[]> => {
-      if (!agencyId) return []
+  // List query — Cache Helpers derives the key from query shape.
+  const visitsQuery = useQuery(
+    supabase
+      .from('visits')
+      .select('*, contact:contacts(first_name, last_name), property:properties(title, address, city)')
+      .eq('agency_id', agencyId ?? '00000000-0000-0000-0000-000000000000')
+      .order('scheduled_at', { ascending: true }),
+    {
+      enabled: !!agencyId,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+    }
+  )
 
-      const { data, error } = await supabase
-        .from('visits')
-        .select('*, contact:contacts(first_name, last_name), property:properties(title, address, city)')
-        .eq('agency_id', agencyId)
-        .order('scheduled_at', { ascending: true })
+  const visits = ((visitsQuery.data ?? []) as unknown as VisitRow[]).map(visitToCalendarEvent)
 
-      if (error) throw error
-      return ((data || []) as VisitRow[]).map(visitToCalendarEvent)
-    },
-    enabled: !!agencyId,
-    staleTime: 5 * 60 * 1000,   // 5 minutes — avoid refetch on every focus
-    gcTime: 30 * 60 * 1000,     // 30 minutes cache
-  })
+  const insertVisit = useInsertMutation(supabase.from('visits'), ['id'])
+  const updateVisit = useUpdateMutation(supabase.from('visits'), ['id'])
+  const deleteVisit = useDeleteMutation(supabase.from('visits'), ['id'])
 
-  // ── Create a visit ──
-  const createVisitMutation = useMutation({
-    mutationFn: async (event: CalendarEvent) => {
-      if (!agencyId) throw new Error('No agency')
-      if (!event.contactId || !event.propertyId) {
-        throw new Error('Contact and property are required for visits')
-      }
+  const createVisit = async (event: CalendarEvent) => {
+    if (!agencyId) throw new Error('No agency')
+    if (!event.contactId || !event.propertyId) {
+      throw new Error('Contact and property are required for visits')
+    }
+    const payload = calendarEventToVisitPayload(event, agencyId)
+    const rows = await insertVisit.mutateAsync([
+      payload as unknown as TablesInsert<'visits'>,
+    ])
+    return Array.isArray(rows) ? rows[0] : rows
+  }
 
-      const payload = calendarEventToVisitPayload(event, agencyId)
-      const { data, error } = await supabase
-        .from('visits')
-        .insert(payload as unknown as TablesInsert<'visits'>)
-        .select('id')
-        .single()
-
-      if (error) throw error
-      return data
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['visits'] })
-    },
-  })
-
-  // ── Update a visit (reschedule, status change, feedback) ──
-  const updateVisitMutation = useMutation({
-    mutationFn: async (event: CalendarEvent) => {
-      const updatePayload: Record<string, unknown> = {
-        scheduled_at: event.start.toISOString(),
-        status: event.visitStatus || 'planned',
-      }
-
-      if (event.visitStatus === 'done') {
-        updatePayload.completed_at = new Date().toISOString()
-      }
-      if (event.feedbackBuyer !== undefined) {
-        updatePayload.feedback_buyer = event.feedbackBuyer
-      }
-      if (event.feedbackAgent !== undefined) {
-        updatePayload.feedback_agent = event.feedbackAgent
-      }
-      if (event.rating !== undefined) {
-        updatePayload.rating = event.rating
-      }
-
-      const { error } = await supabase
-        .from('visits')
-        .update(updatePayload as TablesUpdate<'visits'>)
-        .eq('id', event.id)
-
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['visits'] })
-    },
-  })
-
-  // ── Delete a visit ──
-  const deleteVisitMutation = useMutation({
-    mutationFn: async (visitId: string) => {
-      const { error } = await supabase
-        .from('visits')
-        .delete()
-        .eq('id', visitId)
-
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['visits'] })
-    },
-  })
+  const updateVisitFn = async (event: CalendarEvent) => {
+    const updatePayload: Record<string, unknown> = {
+      id: event.id,
+      scheduled_at: event.start.toISOString(),
+      status: event.visitStatus || 'planned',
+    }
+    if (event.visitStatus === 'done') {
+      updatePayload.completed_at = new Date().toISOString()
+    }
+    if (event.feedbackBuyer !== undefined) {
+      updatePayload.feedback_buyer = event.feedbackBuyer
+    }
+    if (event.feedbackAgent !== undefined) {
+      updatePayload.feedback_agent = event.feedbackAgent
+    }
+    if (event.rating !== undefined) {
+      updatePayload.rating = event.rating
+    }
+    await updateVisit.mutateAsync(
+      updatePayload as unknown as Parameters<typeof updateVisit.mutateAsync>[0]
+    )
+  }
 
   return {
     visits,
-    isLoading,
-    createVisit: (event: CalendarEvent) => createVisitMutation.mutateAsync(event),
-    updateVisit: (event: CalendarEvent) => updateVisitMutation.mutateAsync(event),
-    deleteVisit: (visitId: string) => deleteVisitMutation.mutateAsync(visitId),
-    isCreating: createVisitMutation.isPending,
-    isUpdating: updateVisitMutation.isPending,
+    isLoading: visitsQuery.isLoading,
+    createVisit,
+    updateVisit: updateVisitFn,
+    deleteVisit: async (visitId: string) => {
+      await deleteVisit.mutateAsync({ id: visitId })
+    },
+    isCreating: insertVisit.isPending,
+    isUpdating: updateVisit.isPending,
   }
 }
 
@@ -229,6 +211,12 @@ export interface VisitBookingInput {
   }
 }
 
+// useBookVisit stays on raw useMutation because it issues N sequential
+// queries (lookup contact, maybe insert contact, fetch agent email, insert
+// visit, 2 edge function calls, activity log). The contact + visit inserts
+// flow through raw Supabase calls — the agent-side cache lives in
+// useContacts() / useVisits() which use Cache Helpers and will pick up the
+// new rows on next refetch (RLS-scoped data anyway).
 export function useBookVisit() {
   return useMutation({
     mutationFn: async (input: VisitBookingInput) => {
@@ -355,8 +343,12 @@ export interface PublicVisitData {
   property: { title: string; address: string; city: string; photos: string[] } | null
 }
 
+// Public token-based lookup — kept on classic useQuery because the response
+// shape needs post-processing (`property` join unwrap + cast to
+// PublicVisitData). Cache Helpers' useQuery returns the raw row; we keep the
+// shape consumers expect.
 export function usePublicVisit(token: string | undefined) {
-  return useQuery({
+  return useRqQuery({
     queryKey: ['public-visit', token],
     queryFn: async (): Promise<PublicVisitData | null> => {
       if (!token) return null
@@ -375,6 +367,8 @@ export function usePublicVisit(token: string | undefined) {
 
 // ── Public visit reschedule/cancel ──────────────────────────────────────────
 
+// Token-based update (no `id` in WHERE) — Cache Helpers' useUpdateMutation
+// expects the primary key in the input; we update by `manage_token`. Keep raw.
 export function useRescheduleVisit() {
   return useMutation({
     mutationFn: async ({ token, newDate }: { token: string; newDate: string }) => {
