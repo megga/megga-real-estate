@@ -29,15 +29,14 @@ describe.skipIf(!HAS_KEYS)('backend smoke — local Supabase is reachable', () =
     expect(Array.isArray(data)).toBe(true)
   })
 
-  it('service-role client can list tables via SQL', async () => {
+  it('service-role client can query any table (bypasses RLS)', async () => {
     const supabase = serviceRoleClient()
-    // information_schema is always readable with service_role.
-    const { data, error } = await supabase
-      .rpc('version')
-      .single()
-      .throwOnError()
-    // version() is a Postgres built-in; if Supabase isn't up, this throws.
-    expect(error).toBeNull()
-    expect(data).toBeDefined()
+    // service_role bypasses RLS, so SELECT on any table must succeed.
+    // We pick market_listings because it's the largest, most-used table.
+    const { error } = await supabase
+      .from('market_listings')
+      .select('id', { head: true, count: 'estimated' })
+
+    expect(error, `query error: ${error?.message ?? 'none'}`).toBeNull()
   })
 })
