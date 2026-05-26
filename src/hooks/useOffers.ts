@@ -93,11 +93,11 @@ export function useCreateOffer() {
         by_label: input.byLabel,
         amount: input.amount,
         currency: 'CHF',
-        conditions: input.conditions ?? EMPTY_OFFER_CONDITIONS,
+        conditions: (input.conditions ?? EMPTY_OFFER_CONDITIONS) as unknown as import('@/types/database').Json,
         deposit: input.deposit ?? null,
         closing_date: input.closingDate ?? null,
         expires_at: input.expiresAt,
-        attachments: input.attachments ?? [],
+        attachments: (input.attachments ?? []) as unknown as import('@/types/database').Json,
         notes: input.notes ?? null,
         status: 'pending' as const,
         created_by: user?.id ?? null,
@@ -108,7 +108,7 @@ export function useCreateOffer() {
         .select('*')
         .single()
       if (error) throw error
-      return normalizeOfferRow(data) as Offer
+      return normalizeOfferRow(data as unknown as RawOfferRow) as Offer
     },
     onSuccess: (offer) => {
       queryClient.invalidateQueries({ queryKey: ['offer-chain', offer.deal_id] })
@@ -142,7 +142,7 @@ export function useUpdateOfferStatus() {
         .select('*')
         .single()
       if (error) throw error
-      return normalizeOfferRow(data) as Offer
+      return normalizeOfferRow(data as unknown as RawOfferRow) as Offer
     },
     onSuccess: (offer) => {
       queryClient.invalidateQueries({ queryKey: ['offer-chain', offer.deal_id] })

@@ -58,10 +58,10 @@ export function useFindContactDuplicates(input: FindDuplicatesInput) {
     queryKey: ['contact-duplicates', input.email, input.phone, input.firstName, input.lastName],
     queryFn: async (): Promise<DuplicateCandidate[]> => {
       const { data, error } = await supabase.rpc('find_contact_duplicates', {
-        p_email: input.email?.trim() || null,
-        p_phone: input.phone?.trim() || null,
-        p_first_name: input.firstName?.trim() || null,
-        p_last_name: input.lastName?.trim() || null,
+        p_email: input.email?.trim() || undefined,
+        p_phone: input.phone?.trim() || undefined,
+        p_first_name: input.firstName?.trim() || undefined,
+        p_last_name: input.lastName?.trim() || undefined,
       })
       if (error) throw error
       return (data ?? []) as DuplicateCandidate[]

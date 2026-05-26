@@ -40,7 +40,7 @@ export function useListing(id: string | undefined) {
         .eq('id', id)
         .single()
       if (error) throw error
-      return data as Listing
+      return data as unknown as Listing
     },
     enabled: !!id,
   })

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import type { Json } from '@/types/database'
 
 // Profile metadata store — local-first synced to Supabase when authenticated.
 //
@@ -157,7 +158,7 @@ async function fetchRemote(userId: string): Promise<ProfileMeta | null> {
     .eq('user_id', userId)
     .maybeSingle()
   if (error || !data) return null
-  return dbToFrontend(data as DbRow, globalMeta.sessions)
+  return dbToFrontend(data as unknown as DbRow, globalMeta.sessions)
 }
 
 async function upsertRemote(meta: ProfileMeta, userId: string) {
@@ -166,11 +167,11 @@ async function upsertRemote(meta: ProfileMeta, userId: string) {
       user_id: userId,
       mode: meta.mode,
       bio: meta.bio,
-      verifications: meta.verifications,
-      notifications: meta.notifications,
-      security: meta.security,
-      privacy: meta.privacy,
-      preferences: meta.preferences,
+      verifications: meta.verifications as unknown as Json,
+      notifications: meta.notifications as unknown as Json,
+      security: meta.security as unknown as Json,
+      privacy: meta.privacy as unknown as Json,
+      preferences: meta.preferences as unknown as Json,
     },
     { onConflict: 'user_id' }
   )

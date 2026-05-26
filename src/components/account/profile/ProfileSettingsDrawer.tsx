@@ -199,7 +199,7 @@ export default function ProfileSettingsDrawer({ open, onClose, initialPage = 'in
     const { error } = await supabase
       .from('profiles')
       .update({
-        full_name: fullName.trim() || null,
+        full_name: fullName.trim() || profile.full_name,
         phone: phone.trim() || null,
         canton: canton.trim() || null,
       })

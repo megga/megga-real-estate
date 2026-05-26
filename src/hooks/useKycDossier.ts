@@ -21,6 +21,7 @@ import type {
   KycCountByStatus,
   KycType,
 } from '@/types/kyc'
+import type { TablesUpdate } from '@/types/database'
 
 /** Ligne enrichie pour la liste : KycCase + contact + compteurs. */
 export interface KycDossierRow extends Omit<KycCase, 'contact'> {
@@ -138,7 +139,7 @@ export function useMarkKycCheck() {
       }
       const { data, error } = await supabase
         .from('kyc_checklist_items')
-        .update(updates)
+        .update(updates as TablesUpdate<'kyc_checklist_items'>)
         .eq('id', checkId)
         .select('*')
         .single()

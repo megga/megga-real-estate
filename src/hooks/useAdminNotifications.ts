@@ -66,6 +66,7 @@ export function useAdminNotifications() {
       const readIds = readReadIds()
       return (data ?? []).map(n => ({
         ...n,
+        entity_id: n.entity_id ?? '',
         metadata: (n.metadata ?? {}) as Record<string, unknown>,
         read: readIds.includes(n.id),
       }))

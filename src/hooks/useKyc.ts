@@ -7,6 +7,7 @@ import type {
   ScreeningDecisionTarget, ScreeningDecisionVerdict,
   KycSourceOfFundsType,
 } from '@/types/kyc'
+import type { TablesUpdate } from '@/types/database'
 
 interface KycFilters {
   status?: KycStatus
@@ -120,7 +121,7 @@ export function useUpdateKycItem() {
 
       const { data, error } = await supabase
         .from('kyc_checklist_items')
-        .update(updates)
+        .update(updates as TablesUpdate<'kyc_checklist_items'>)
         .eq('id', id)
         .select('*, kyc_case:kyc_cases(id, agency_id)')
         .single()
@@ -716,13 +717,13 @@ export function useCreateKycScreeningDecision() {
           decision: input.decision,
           justification: input.justification.trim(),
           decided_by: input.decidedBy,
-          screening_snapshot: input.screeningSnapshot,
+          screening_snapshot: input.screeningSnapshot as unknown as import('@/types/database').Json,
           supersedes_id: input.supersedesId ?? null,
         })
         .select()
         .single()
       if (error) throw error
-      return data as KycScreeningDecision
+      return data as unknown as KycScreeningDecision
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kyc-screening-decisions', variables.kycCaseId] })

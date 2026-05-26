@@ -27,7 +27,7 @@ export function useUserC2pa(): Signature[] {
       const { data: rows, error } = await supabase
         .from('properties')
         .select('id, title, photos, c2pa_verified, c2pa_verified_at, status')
-        .eq('owner_id', user.id)
+        .eq('created_by', user.id)
         .eq('c2pa_verified', true)
         .order('c2pa_verified_at', { ascending: false })
         .limit(50)

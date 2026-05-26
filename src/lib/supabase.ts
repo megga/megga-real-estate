@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
-// Database types in src/types/database.ts. createClient<Database>(...) is
-// still OFF after 4 PoC attempts. Latest run (with team_invitations +
-// vendor_dossiers tables restored, 15 columns restored) :
-//   - 125 type errors remaining in 56 files
-//   - Most are real null-checks / type narrowing in app code, NOT schema
-//     drift anymore. So the path forward is now an audit of the codebase,
-//     not more migrations.
-// Estimated effort: 5-10h of focused fixes file by file. Tracked in chip.
+import type { Database } from '@/types/database'
+
+// Typed client — schema in src/types/database.ts is regenerated via:
+//   supabase gen types typescript --local > src/types/database.ts
+// (re-run when migrations change the schema, then re-run `npm run build` to
+// catch any new type errors).
 
 // Real anon key for the MEGGA Supabase project (eayczugyrvmtqnnmvjod).
 // anon keys are PUBLIC BY DESIGN — their security relies on Row Level Security (RLS).
@@ -187,7 +185,7 @@ function purgeExpiredAuthTokens() {
 // reads a clean slate.
 purgeExpiredAuthTokens()
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: rememberAwareStorage,
     persistSession: true,

@@ -61,7 +61,7 @@ export function useContactScore(contactId: string | undefined) {
     queryFn: async (): Promise<ContactScore | null> => {
       const { data, error } = await supabase
         .from('contact_scores')
-        .select('contact_id, overall_score, reactivity_score, engagement_score, budget_coherence_score, visit_quality_score, conversion_score, estimated_budget, rejection_patterns, intent_signals, updated_at')
+        .select('contact_id, overall_score, reactivity_score, engagement_score, budget_coherence_score, visit_quality_score, conversion_score, estimated_budget, rejection_patterns, intent_signals, last_calculated_at')
         .eq('contact_id', contactId!)
         .single()
       if (error || !data) return null

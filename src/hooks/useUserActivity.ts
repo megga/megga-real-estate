@@ -31,7 +31,7 @@ export function useUserActivity(): { events: ActivityEvent[]; loading: boolean }
       const { data, error } = await supabase
         .from('message_threads')
         .select('id, contact_name, last_message, last_message_at, property_title')
-        .eq('contact_email', user.email ?? '')
+        .eq('buyer_user_id', user.id)
         .order('last_message_at', { ascending: false })
         .limit(5)
       if (error) return []
@@ -39,7 +39,7 @@ export function useUserActivity(): { events: ActivityEvent[]; loading: boolean }
         (t): ActivityEvent => ({
           id: `thread-${t.id}`,
           kind: 'agent-replied',
-          at: t.last_message_at,
+          at: t.last_message_at ?? '',
           title: `${t.contact_name} a répondu`,
           sub: t.last_message ? `« ${t.last_message.slice(0, 80)} »` : t.property_title || undefined,
           deepLink: '/compte#messages',
@@ -57,7 +57,7 @@ export function useUserActivity(): { events: ActivityEvent[]; loading: boolean }
       const { data, error } = await supabase
         .from('properties')
         .select('id, title, published_at, status')
-        .eq('owner_id', user.id)
+        .eq('created_by', user.id)
         .not('published_at', 'is', null)
         .order('published_at', { ascending: false })
         .limit(5)

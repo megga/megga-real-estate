@@ -259,7 +259,7 @@ export default function MyListingsRow({ onOpenStats }: Props) {
         .select(
           'id, title, address, surface_m2, rooms, price, status, photos, views_count, favorites_count, published_at'
         )
-        .eq('owner_id', user.id)
+        .eq('created_by', user.id)
         .order('created_at', { ascending: false })
         .limit(20)
       if (error) throw error

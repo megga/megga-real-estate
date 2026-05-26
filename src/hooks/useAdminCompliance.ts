@@ -34,8 +34,8 @@ export function useAdminCompliance() {
         .order('created_at', { ascending: false })
       if (error) throw error
 
-      const contactIds = [...new Set((data ?? []).map(c => c.contact_id).filter(Boolean))]
-      const agencyIds = [...new Set((data ?? []).map(c => c.agency_id).filter(Boolean))]
+      const contactIds = [...new Set((data ?? []).map(c => c.contact_id).filter((x): x is string => x !== null))]
+      const agencyIds = [...new Set((data ?? []).map(c => c.agency_id).filter((x): x is string => x !== null))]
 
       const [contacts, agencies] = await Promise.all([
         contactIds.length > 0
@@ -56,13 +56,13 @@ export function useAdminCompliance() {
       return (data ?? []).map(c => ({
         id: c.id,
         type: c.type,
-        risk_level: c.risk_level ?? 'unassessed',
+        risk_level: (c.risk_level ?? 'unassessed') as 'low' | 'medium' | 'high' | 'unassessed',
         risk_score: c.risk_score ?? null,
         status: c.status,
         completion_pct: c.completion_pct ?? 0,
         screening_status: c.screening_status ?? null,
         created_at: c.created_at,
-        contact_name: contactMap[c.contact_id] ?? 'Inconnu',
+        contact_name: c.contact_id ? contactMap[c.contact_id] ?? 'Inconnu' : 'Inconnu',
         agency_name: c.agency_id ? agencyMap[c.agency_id] ?? null : null,
         agency_id: c.agency_id,
       }))
@@ -95,7 +95,7 @@ export function useAdminCompliance() {
 
   const updateRiskLevel = useMutation({
     mutationFn: async ({ id, riskLevel }: { id: string; riskLevel: string }) => {
-      const { error } = await supabase.from('kyc_cases').update({ risk_level: riskLevel }).eq('id', id)
+      const { error } = await supabase.from('kyc_cases').update({ risk_level: riskLevel as 'low' | 'medium' | 'high' | 'unassessed' }).eq('id', id)
       if (error) throw error
     },
     onSuccess: () => {

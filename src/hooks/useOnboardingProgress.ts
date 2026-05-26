@@ -38,7 +38,7 @@ export function useOnboardingProgress() {
 
       const completedMap = new Map<string, { completed: boolean; completed_at: string | null }>()
       for (const row of rows || []) {
-        completedMap.set(row.step_key, { completed: row.completed, completed_at: row.completed_at })
+        completedMap.set(row.step_key, { completed: row.completed ?? false, completed_at: row.completed_at })
       }
 
       // Live-check conditions

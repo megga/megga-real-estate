@@ -87,7 +87,7 @@ export function useMessaging(threadId: string | null) {
         .from('messages')
         .insert({
           thread_id: threadId,
-          sender_id: user?.id,
+          sender_id: user?.id ?? '',
           sender_type: senderType,
           sender_name: senderName,
           content,

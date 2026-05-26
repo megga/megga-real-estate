@@ -70,7 +70,7 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
         .select('*')
         .in('id', contactIds)
       if (error) throw error
-      return (data ?? []) as Contact[]
+      return (data ?? []) as unknown as Contact[]
     },
     enabled: !!agencyId && contactIds.length > 0,
   })
@@ -102,7 +102,7 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
         .select('*')
         .in('id', propertyIds)
       if (error) throw error
-      return (data ?? []) as Property[]
+      return (data ?? []) as unknown as Property[]
     },
     enabled: !!agencyId && propertyIds.length > 0,
   })
