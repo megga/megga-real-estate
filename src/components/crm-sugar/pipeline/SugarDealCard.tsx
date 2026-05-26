@@ -2,11 +2,18 @@
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx).
 
 import { memo, useState, type DragEvent as ReactDragEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
 import { CRM_STAGES, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
 import { crmContactById, crmBienById, type CrmContact, type CrmDeal } from '../mockData'
 import { KycDealBadge } from '../kyc/KycNonBlocking'
 import { SugarMiniRing } from './SugarMiniRing'
+import { useUpdateTransactionStage } from '@/hooks/useTransactions'
+import { supabase } from '@/lib/supabase'
+
+// Mock-id guard — CRM_DEALS uses `d-…` ids; real Supabase rows use UUIDs.
+const MOCK_ID_RE = /^[bcd]-\d/
+const isMockId = (id: string | null | undefined): boolean => !!id && MOCK_ID_RE.test(id)
 
 const KYC_TOTAL_DOCS = 6
 
@@ -84,7 +91,15 @@ function SugarDealCardImpl({
       onMouseLeave={() => { setHover(false); setMenuOpen(false) }}>
 
       {(hover || menuOpen) && (
-        <CardQuickActions sp={sp} focused={focused} contact={c} menuOpen={menuOpen} setMenuOpen={setMenuOpen} dark={dark} />
+        <CardQuickActions
+          sp={sp}
+          focused={focused}
+          contact={c}
+          dealId={deal.id}
+          menuOpen={menuOpen}
+          setMenuOpen={setMenuOpen}
+          dark={dark}
+        />
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -177,16 +192,64 @@ function SugarDealCardImpl({
 
 // ─── Quick action overlay (phone/visit/menu) ──────────────────────────
 function CardQuickActions({
-  sp, focused, contact, menuOpen, setMenuOpen, dark,
+  sp, focused, contact, dealId, menuOpen, setMenuOpen, dark,
 }: {
   sp: SugarPalette
   focused: boolean
   contact: CrmContact
+  dealId: string
   menuOpen: boolean
   setMenuOpen: (v: boolean | ((o: boolean) => boolean)) => void
   dark: boolean
 }) {
+  const navigate = useNavigate()
+  const updateStage = useUpdateTransactionStage()
   const stop = (e: React.MouseEvent) => e.stopPropagation()
+
+  // Helper: status update on transactions (archive only — stage transitions
+  // for 'lost' use useUpdateTransactionStage which also writes an audit
+  // event for compliance).
+  async function archiveDeal() {
+    if (isMockId(dealId)) {
+      // eslint-disable-next-line no-alert
+      window.alert('Archivage disponible sur un deal réel uniquement (donnée de démo).')
+      return
+    }
+    if (typeof window !== 'undefined' && !window.confirm('Archiver ce deal ?')) return
+    // The transactions.status enum has no 'archived' — we use 'cancelled'
+    // as the closest "remove from active view" semantic. Could split into
+    // a dedicated 'archived' value via a future migration if needed.
+    const { error } = await supabase
+      .from('transactions')
+      .update({ status: 'cancelled' })
+      .eq('id', dealId)
+    // eslint-disable-next-line no-alert
+    if (error) window.alert(`Échec : ${error.message}`)
+    // Cache Helpers in sibling hooks invalidates on update via auto-key
+    // matching; the pipeline kanban refreshes on next render.
+  }
+
+  async function markLost() {
+    if (isMockId(dealId)) {
+      // eslint-disable-next-line no-alert
+      window.alert('Marquer perdu disponible sur un deal réel uniquement (donnée de démo).')
+      return
+    }
+    if (typeof window === 'undefined') return
+    const reason = window.prompt('Motif de la perte (optionnel, journalisé dans l\'audit trail) :')
+    if (reason === null) return // cancelled
+    try {
+      await updateStage.mutateAsync({
+        id: dealId,
+        stage: 'lost',
+        lostReason: reason.trim() || undefined,
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'erreur inconnue'
+      // eslint-disable-next-line no-alert
+      window.alert(`Échec : ${msg}`)
+    }
+  }
   const btnBg = focused ? 'rgba(255,255,255,.16)' : sp.cardBg
   const btnFg = focused ? sp.focusInk : sp.ink
   const btnBorder = focused ? 'rgba(255,255,255,.18)' : sp.cardBorder
@@ -205,15 +268,25 @@ function CardQuickActions({
       animation: 'qaFade .14s ease-out',
     }}>
       <style>{`@keyframes qaFade { from { opacity: 0; transform: translateY(-2px) } to { opacity: 1; transform: none } }`}</style>
-      <button title={contact.phone ? `Appeler ${contact.phone}` : 'Appeler'}
-        onClick={e => { stop(e); window.alert(`Appel ${contact.firstName} ${contact.lastName} — ${contact.phone || 'numéro non renseigné'}`) }}
+      <button title={contact.phone ? `Appeler ${contact.phone}` : 'Pas de numéro'}
+        onClick={e => {
+          stop(e)
+          if (contact.phone) window.location.href = `tel:${contact.phone.replace(/\s/g, '')}`
+          // eslint-disable-next-line no-alert
+          else window.alert(`Pas de numéro renseigné pour ${contact.firstName} ${contact.lastName}`)
+        }}
         style={baseBtn()}
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}>
         <CRMIcon name="phone" size={11} stroke={btnFg} />
       </button>
       <button title="Planifier une visite"
-        onClick={e => { stop(e); window.alert(`Planifier une visite avec ${contact.firstName}`) }}
+        onClick={e => {
+          stop(e)
+          const q = new URLSearchParams()
+          if (!isMockId(contact.id)) q.set('contactId', contact.id)
+          navigate(`/dashboard/visites/nouveau${q.toString() ? '?' + q : ''}`)
+        }}
         style={baseBtn()}
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}>
@@ -240,9 +313,15 @@ function CardQuickActions({
             WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
             padding: 6, zIndex: 10, animation: 'qaFade .14s ease-out',
           }}>
-            <MenuItem sp={sp} icon="contacts" label="Réassigner" onClick={() => { setMenuOpen(false); window.alert('Réassigner le deal à un autre agent') }} />
-            <MenuItem sp={sp} icon="docs" label="Archiver" onClick={() => { setMenuOpen(false); window.alert('Archiver ce deal') }} />
-            <MenuItem sp={sp} icon="risk" label="Marquer perdu" tone="danger" onClick={() => { setMenuOpen(false); window.alert('Marquer ce deal comme perdu — choisir un motif') }} />
+            {/* Réassigner stays as alert — needs an agent picker UI
+                (separate chip). Archiver + Marquer perdu are wired. */}
+            <MenuItem sp={sp} icon="contacts" label="Réassigner" onClick={() => {
+              setMenuOpen(false)
+              // eslint-disable-next-line no-alert
+              window.alert("Réassignation d'agent disponible dans une prochaine release.")
+            }} />
+            <MenuItem sp={sp} icon="docs" label="Archiver" onClick={() => { setMenuOpen(false); void archiveDeal() }} />
+            <MenuItem sp={sp} icon="risk" label="Marquer perdu" tone="danger" onClick={() => { setMenuOpen(false); void markLost() }} />
           </div>
         )}
       </div>

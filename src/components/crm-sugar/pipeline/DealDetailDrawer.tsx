@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-pipeline-deal-detail.jsx).
 
 import { useState, useEffect, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sheet from '@/components/ui/Sheet'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
 import {
@@ -13,6 +14,13 @@ import {
   crmContactById, crmBienById,
   type CrmActivity, type CrmBien,
 } from '../mockData'
+import { useLogAudit } from '@/hooks/useAuditLog'
+
+// Mock-id guard — CRM_DEALS uses `d-…` ids; real Supabase rows use UUIDs.
+// Mutations that hit real tables skip cleanly for mock data instead of
+// 4xx-ing with cryptic FK violations.
+const MOCK_ID_RE = /^[bcd]-\d/
+const isMockId = (id: string | null | undefined): boolean => !!id && MOCK_ID_RE.test(id)
 
 const KIND_LABEL: Record<string, string> = {
   call: 'Appel', email: 'Email', sms: 'SMS', visit: 'Visite', meeting: 'RDV',
@@ -45,11 +53,57 @@ interface DealDetailDrawerProps {
 
 export function DealDetailDrawer({ open, onClose, dealId, sp, t: _t, dark }: DealDetailDrawerProps) {
   void _t // overlay was sourced from t.overlay; <Sheet> now provides backdrop
+  const navigate = useNavigate()
+  const logAudit = useLogAudit()
   const [composer, setComposer] = useState<'note' | 'call' | 'email' | 'visit'>('note')
   const [text, setText] = useState('')
   const [expanded, setExpanded] = useState(false)
+  const [savingTrace, setSavingTrace] = useState(false)
 
   useEffect(() => { if (!open) setExpanded(false) }, [open])
+
+  // Persist a call/email/visit/note trace as an activity_event row.
+  // The composer used to be a silent no-op (button had no onClick at all).
+  async function saveTrace() {
+    if (!text.trim() || savingTrace) return
+    setSavingTrace(true)
+    try {
+      // The action enum on activity_events is free-form text in our schema —
+      // use a clear prefix so this kind of agent-typed trace is queryable.
+      await new Promise<void>((resolve, reject) => {
+        logAudit.mutate(
+          {
+            category: 'deal',
+            severity: 'info',
+            action: `deal-${composer}-trace`,
+            entityType: 'transaction',
+            entityId: dealId && !isMockId(dealId) ? dealId : null,
+            objectLabel: `Deal ${dealId ?? ''}`,
+            metadata: {
+              body: text.trim(),
+              composer,
+              // Flag mock deals so reports can filter demo data out.
+              demo_data: isMockId(dealId),
+            },
+          },
+          {
+            onSuccess: () => resolve(),
+            onError: (err) => reject(err),
+          }
+        )
+      })
+      setText('')
+    } catch (err) {
+      // Surface via window.alert (lightweight — the drawer has no toast slot).
+      // Better UX = small toast inside the drawer; chip for follow-up.
+      // eslint-disable-next-line no-alert, no-console
+      console.error('[deal-drawer] saveTrace failed', err)
+      // eslint-disable-next-line no-alert
+      window.alert("Échec de l'enregistrement de la trace. Réessayez.")
+    } finally {
+      setSavingTrace(false)
+    }
+  }
 
   const deal = dealId ? CRM_DEALS.find(d => d.id === dealId) : null
   if (!open || !deal) return null
@@ -192,17 +246,102 @@ export function DealDetailDrawer({ open, onClose, dealId, sp, t: _t, dark }: Dea
             </Section>
           )}
 
-          {/* Quick actions */}
+          {/* Quick actions — wired to real flows. The 8 buttons used to all
+              be window.alert() placeholders. Each now navigates to the
+              corresponding existing page (which already has its own data
+              + mutations wired). */}
           <Section sp={sp} title="Actions">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-              <Quick sp={sp} icon="phone" label="Appeler" onClick={() => window.alert(`Appel à ${c.firstName} ${c.lastName} — ${c.phone || 'numéro non renseigné'}`)} />
-              <Quick sp={sp} icon="mail" label="Email" onClick={() => window.alert(`Composer un email à ${c.email}`)} />
-              <Quick sp={sp} icon="home" label="Visite" onClick={() => window.alert('Planifier une visite — ouvrir le calendrier')} />
-              <Quick sp={sp} icon="docs" label="Document" onClick={() => window.alert('Envoyer un document — choisir un modèle')} />
-              <Quick sp={sp} icon="spark" label="Matchs" onClick={() => window.alert('Lancer le moteur de matching IA pour ce contact')} />
-              <Quick sp={sp} icon="kyc" label="KYC" onClick={() => window.alert(`Lancer la procédure KYC — statut actuel : ${c.kyc?.status || 'non lancé'}`)} />
-              <Quick sp={sp} icon="flag" label="Offre" onClick={() => window.alert('Créer une offre formelle — ouvrir le wizard')} />
-              <Quick sp={sp} icon="cal" label="Planifier" onClick={() => window.alert('Planifier une tâche ou un rendez-vous')} />
+              <Quick
+                sp={sp}
+                icon="phone"
+                label="Appeler"
+                onClick={() => {
+                  // tel: deep-link is the cleanest "call now" UX — opens
+                  // the OS dialer / soft-phone. Falls back to alert if no
+                  // phone on file.
+                  if (c.phone) window.location.href = `tel:${c.phone.replace(/\s/g, '')}`
+                  // eslint-disable-next-line no-alert
+                  else window.alert(`Pas de numéro renseigné pour ${c.firstName} ${c.lastName}`)
+                }}
+              />
+              <Quick
+                sp={sp}
+                icon="mail"
+                label="Email"
+                onClick={() => {
+                  if (c.email) window.location.href = `mailto:${c.email}`
+                  // eslint-disable-next-line no-alert
+                  else window.alert(`Pas d'email renseigné pour ${c.firstName} ${c.lastName}`)
+                }}
+              />
+              <Quick
+                sp={sp}
+                icon="home"
+                label="Visite"
+                onClick={() => {
+                  // /dashboard/visites/nouveau exists + is wired (#429 +
+                  // existing useCreateAgentVisit). Pre-fill via query string
+                  // — page accepts ?contactId / ?propertyId hints.
+                  const q = new URLSearchParams()
+                  if (!isMockId(deal.contactId)) q.set('contactId', deal.contactId)
+                  if (deal.bienId && !isMockId(deal.bienId)) q.set('propertyId', deal.bienId)
+                  navigate(`/dashboard/visites/nouveau${q.toString() ? '?' + q : ''}`)
+                  onClose()
+                }}
+              />
+              <Quick
+                sp={sp}
+                icon="docs"
+                label="Document"
+                onClick={() => {
+                  navigate('/dashboard/documents/generate')
+                  onClose()
+                }}
+              />
+              <Quick
+                sp={sp}
+                icon="spark"
+                label="Matchs"
+                onClick={() => {
+                  navigate('/dashboard/matching')
+                  onClose()
+                }}
+              />
+              <Quick
+                sp={sp}
+                icon="kyc"
+                label="KYC"
+                onClick={() => {
+                  navigate('/dashboard/kyc')
+                  onClose()
+                }}
+              />
+              <Quick
+                sp={sp}
+                icon="flag"
+                label="Offre"
+                onClick={() => {
+                  // The offer modal lives at /dashboard/transactions/:id/offre/:kind
+                  // — chip says route exists. Skip for mock deals (no real id).
+                  if (isMockId(dealId)) {
+                    // eslint-disable-next-line no-alert
+                    window.alert('Création d\'offre disponible sur un deal réel uniquement.')
+                    return
+                  }
+                  navigate(`/dashboard/transactions/${dealId}/offre/contre-offre`)
+                  onClose()
+                }}
+              />
+              <Quick
+                sp={sp}
+                icon="cal"
+                label="Planifier"
+                onClick={() => {
+                  navigate('/dashboard/calendar')
+                  onClose()
+                }}
+              />
             </div>
           </Section>
 
@@ -341,14 +480,19 @@ export function DealDetailDrawer({ open, onClose, dealId, sp, t: _t, dark }: Dea
                 fontSize: 13, fontFamily: 'inherit', resize: 'none', outline: 'none', lineHeight: 1.4,
               }}
             />
-            <button disabled={!text} style={{
-              height: 40, padding: '0 18px', borderRadius: 999, border: 0,
-              cursor: text ? 'pointer' : 'not-allowed',
-              background: text ? sp.ink : sp.cardSubBg,
-              color: text ? sp.pageBg : sp.sub,
-              fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit',
-              boxShadow: text ? sp.focusShadow : 'none',
-            }}>Enregistrer</button>
+            <button
+              onClick={saveTrace}
+              disabled={!text || savingTrace}
+              style={{
+                height: 40, padding: '0 18px', borderRadius: 999, border: 0,
+                cursor: text && !savingTrace ? 'pointer' : 'not-allowed',
+                background: text && !savingTrace ? sp.ink : sp.cardSubBg,
+                color: text && !savingTrace ? sp.pageBg : sp.sub,
+                fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit',
+                boxShadow: text && !savingTrace ? sp.focusShadow : 'none',
+              }}>
+              {savingTrace ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
           </div>
         </div>
     </Sheet>
