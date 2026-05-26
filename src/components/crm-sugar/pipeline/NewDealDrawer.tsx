@@ -7,9 +7,23 @@ import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { CRM_STAGES, CRM_STAGE_ORDER, crmFmtCHF, crmInitials, type CrmTheme, type SugarPalette, type StageId } from '../tokens'
 import {
   CRM_CONTACTS, CRM_BIENS, CRM_DEALS,
-  crmBienById,
+  crmContactById, crmBienById,
   type CrmContact,
 } from '../mockData'
+import { useAuth } from '@/hooks/useAuth'
+import { useCreateContact } from '@/hooks/useContacts'
+import { useCreateTransaction } from '@/hooks/useTransactions'
+import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
+
+// Mock-id patterns from `src/components/crm-sugar/mockData.ts` — both `c-…`
+// and `b-…` prefixes are reserved for the design-system seed data and will
+// never match a real Supabase UUID. We detect them up front so the agent
+// gets a clear error instead of a cryptic FK violation.
+const MOCK_ID_RE = /^[bcd]-\d/
+
+function isMockId(id: string | null | undefined): boolean {
+  return !!id && MOCK_ID_RE.test(id)
+}
 
 interface Archetype {
   id: 'buyer-search' | 'buyer-bien' | 'seller-mandate' | 'tenant'
@@ -74,6 +88,14 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
   const [aiText, setAiText] = useState('')
   const [aiThinking, setAiThinking] = useState(false)
   const [created, setCreated] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  // Auth + mutations — wired so the "Créer" button actually persists the
+  // deal (previously a silent no-op that only flipped the `created` flag).
+  const { profile } = useAuth()
+  const createContact = useCreateContact()
+  const createTransaction = useCreateTransaction()
+  const isPending = createContact.isPending || createTransaction.isPending
 
   const arch = ARCHETYPES.find(a => a.id === archetype)
   useEffect(() => {
@@ -96,7 +118,9 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
     else if (b?.rent) setValue(String(b.rent * 12))
   }, [bienId])
 
-  const selectedContact = contactId ? CRM_CONTACTS.find(c => c.id === contactId) || null : null
+  // Use the registry-aware lookup so real Supabase contacts (pushed by
+  // PipelineSugarV2Page via `registerLiveContact`) resolve here too.
+  const selectedContact = contactId ? crmContactById(contactId) || null : null
   const selectedBien = bienId ? crmBienById(bienId) : null
 
   const needsKycBanner = ['interest-confirmed', 'offer', 'signed'].includes(stage)
@@ -142,6 +166,76 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
       setAiThinking(false)
       setAiOpen(false)
     }, 900)
+  }
+
+  async function handleCreate() {
+    if (!canCreate || isPending) return
+    setCreateError(null)
+
+    // 1) Guards — surface clear errors before hitting the DB
+    if (!profile?.agency_id) {
+      setCreateError("Aucune agence rattachée — impossible de créer le deal")
+      return
+    }
+    if (arch?.needsBien && isMockId(bienId)) {
+      setCreateError(
+        "Le bien sélectionné est un exemple de démo. Sélectionnez un bien réel du portefeuille agence.",
+      )
+      return
+    }
+
+    try {
+      // 2) Resolve / create the contact
+      let realContactId: string
+      if (contactMode === 'new') {
+        const contact = await createContact.mutateAsync({
+          firstName: newContact.firstName,
+          lastName: newContact.lastName,
+          email: newContact.email,
+          phone: newContact.phone || undefined,
+          type: arch?.contactType ?? 'buyer',
+          source: 'manual',
+          // TODO: once #433 lands, pass newContact.lang via form_data
+          // (the extended useCreateContact signature). Until then it's
+          // dropped — non-critical (default lang inferred elsewhere).
+        })
+        realContactId = contact.id
+      } else {
+        if (isMockId(contactId)) {
+          setCreateError(
+            "Le contact sélectionné est un exemple de démo. Sélectionnez un contact réel.",
+          )
+          return
+        }
+        if (!contactId) {
+          setCreateError('Sélectionnez un contact')
+          return
+        }
+        realContactId = contactId
+      }
+
+      // 3) Create the transaction (deal). Stage IDs differ between the
+      // mock CRM UI (`'visit-scheduled'`) and the DB enum (`'visit_planned'`)
+      // — `stageIdToTransactionStage` is the mapper.
+      const isBuyerSide = arch?.contactType === 'buyer'
+      await createTransaction.mutateAsync({
+        agency_id: profile.agency_id,
+        property_id: arch?.needsBien && bienId ? bienId : undefined,
+        contact_buyer_id: isBuyerSide ? realContactId : undefined,
+        contact_seller_id: !isBuyerSide ? realContactId : undefined,
+        stage: stageIdToTransactionStage(stage),
+        notes: actionNote
+          ? `[${NEXT_ACTION_KINDS.find(k => k.k === actionKind)?.label ?? actionKind} — ${actionDue}] ${actionNote}`
+          : undefined,
+      })
+
+      // Cache Helpers auto-invalidates `transactions` queries — pipeline
+      // refreshes itself on the next render.
+      setCreated(true)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Erreur inconnue'
+      setCreateError(message)
+    }
   }
 
   if (!open) return null
@@ -240,7 +334,10 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
             </div>
 
             <Footer sp={sp} canCreate={canCreate}
-              onCancel={onClose} onCreate={() => setCreated(true)} />
+              onCancel={onClose}
+              onCreate={handleCreate}
+              isPending={isPending}
+              error={createError} />
           </>
         )}
       </div>
@@ -882,33 +979,47 @@ function Guard({
 
 // ─── Footer ────────────────────────────────────────────────────────────
 function Footer({
-  sp, canCreate, onCancel, onCreate,
+  sp, canCreate, onCancel, onCreate, isPending = false, error = null,
 }: {
   sp: SugarPalette
   canCreate: boolean
   onCancel: () => void
   onCreate: () => void
+  isPending?: boolean
+  error?: string | null
 }) {
+  const enabled = canCreate && !isPending
   return (
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0,
       padding: '16px 24px',
       background: sp.pageBg, borderTop: `1px solid ${sp.cardBorder}`,
-      display: 'flex', gap: 10, alignItems: 'center',
+      display: 'flex', flexDirection: 'column', gap: 10,
     }}>
-      <button onClick={onCancel} style={{
-        flex: 1, height: 46, borderRadius: 999, border: 0, cursor: 'pointer',
-        background: 'transparent', color: sp.soft,
-        fontWeight: 700, fontSize: 13.5, fontFamily: 'inherit',
-      }}>Annuler</button>
-      <button onClick={onCreate} disabled={!canCreate} style={{
-        flex: 2, height: 46, borderRadius: 999, border: 0,
-        cursor: canCreate ? 'pointer' : 'not-allowed',
-        background: canCreate ? sp.ink : sp.cardSubBg,
-        color: canCreate ? sp.pageBg : sp.sub,
-        fontWeight: 700, fontSize: 13.5, fontFamily: 'inherit',
-        boxShadow: canCreate ? sp.focusShadow : 'none',
-      }}>Créer le deal</button>
+      {error && (
+        <div role="alert" style={{
+          background: '#FEF2F2', color: '#B91C1C',
+          border: '1px solid #FCA5A5', borderRadius: 10,
+          padding: '8px 12px', fontSize: 12, fontWeight: 600, lineHeight: 1.4,
+        }}>{error}</div>
+      )}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <button onClick={onCancel} disabled={isPending} style={{
+          flex: 1, height: 46, borderRadius: 999, border: 0,
+          cursor: isPending ? 'not-allowed' : 'pointer',
+          background: 'transparent', color: sp.soft,
+          fontWeight: 700, fontSize: 13.5, fontFamily: 'inherit',
+          opacity: isPending ? 0.5 : 1,
+        }}>Annuler</button>
+        <button onClick={onCreate} disabled={!enabled} style={{
+          flex: 2, height: 46, borderRadius: 999, border: 0,
+          cursor: enabled ? 'pointer' : 'not-allowed',
+          background: enabled ? sp.ink : sp.cardSubBg,
+          color: enabled ? sp.pageBg : sp.sub,
+          fontWeight: 700, fontSize: 13.5, fontFamily: 'inherit',
+          boxShadow: enabled ? sp.focusShadow : 'none',
+        }}>{isPending ? 'Création…' : 'Créer le deal'}</button>
+      </div>
     </div>
   )
 }
