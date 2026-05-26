@@ -104,9 +104,14 @@ interface ModalNewContactProps {
   dark: boolean
   onClose: () => void
   onSave: (data: NewContactPayload) => void
+  /** When true: disable save button, show "Création..." label. Parent should
+   * close the modal itself on mutation success. */
+  isPending?: boolean
+  /** Error message to display inline above the action row (mutation failure). */
+  error?: string | null
 }
 
-export function ModalNewContact({ sp, dark, onClose, onSave }: ModalNewContactProps) {
+export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, error = null }: ModalNewContactProps) {
   const [type, setType] = useState<NewContactType>('buyer')
   const [civility, setCivility] = useState('mr')
   const [firstName, setFirstName] = useState('')
@@ -142,7 +147,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave }: ModalNewContactPr
   )
 
   const handleSave = () => {
-    if (!canSave) return
+    if (!canSave || isPending) return
     onSave({
       type,
       civility,
@@ -173,7 +178,8 @@ export function ModalNewContact({ sp, dark, onClose, onSave }: ModalNewContactPr
           }
         : undefined,
     })
-    onClose()
+    // NOTE: don't close here — parent closes on mutation success so we can
+    // keep the modal open + display the error inline on failure.
   }
 
   useEffect(() => {
@@ -1041,7 +1047,25 @@ export function ModalNewContact({ sp, dark, onClose, onSave }: ModalNewContactPr
             du contact
           </label>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {error && (
+              <div
+                role="alert"
+                style={{
+                  fontSize: 12,
+                  color: '#B91C1C',
+                  fontWeight: 600,
+                  background: '#FEF2F2',
+                  border: '1px solid #FCA5A5',
+                  borderRadius: 8,
+                  padding: '6px 10px',
+                  marginRight: 4,
+                  maxWidth: 360,
+                }}
+              >
+                {error}
+              </div>
+            )}
             <span
               style={{
                 fontSize: 11,
@@ -1054,6 +1078,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave }: ModalNewContactPr
             </span>
             <button
               onClick={onClose}
+              disabled={isPending}
               style={{
                 height: 38,
                 padding: '0 16px',
@@ -1063,39 +1088,40 @@ export function ModalNewContact({ sp, dark, onClose, onSave }: ModalNewContactPr
                 color: sp.ink,
                 fontSize: 12.5,
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: isPending ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
+                opacity: isPending ? 0.5 : 1,
               }}
             >
               Annuler
             </button>
             <button
               onClick={handleSave}
-              disabled={!canSave}
+              disabled={!canSave || isPending}
               style={{
                 height: 38,
                 padding: '0 18px',
                 borderRadius: 999,
-                background: canSave ? primaryBg : subSurfaceBg,
+                background: canSave && !isPending ? primaryBg : subSurfaceBg,
                 border: 0,
-                color: canSave ? primaryInk : sp.sub,
+                color: canSave && !isPending ? primaryInk : sp.sub,
                 fontSize: 12.5,
                 fontWeight: 700,
-                cursor: canSave ? 'pointer' : 'not-allowed',
+                cursor: canSave && !isPending ? 'pointer' : 'not-allowed',
                 fontFamily: 'inherit',
-                boxShadow: canSave ? sp.focusShadow : 'none',
+                boxShadow: canSave && !isPending ? sp.focusShadow : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                opacity: canSave ? 1 : 0.7,
+                opacity: canSave && !isPending ? 1 : 0.7,
               }}
             >
               <CRMIcon
                 name="check"
                 size={12}
-                stroke={canSave ? primaryInk : sp.sub}
+                stroke={canSave && !isPending ? primaryInk : sp.sub}
               />
-              Créer le contact
+              {isPending ? 'Création…' : 'Créer le contact'}
             </button>
           </div>
         </div>

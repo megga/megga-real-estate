@@ -8,6 +8,7 @@ import {
 } from '@/components/crm-sugar/tokens'
 import type { CrmContact, CrmDeal } from '@/components/crm-sugar/mockData'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
+import { useCreateContact } from '@/hooks/useContacts'
 import { useTransactions } from '@/hooks/useTransactions'
 import { transactionToCrmDeal } from '@/lib/sugarAdapters'
 import type { TransactionStage } from '@/lib/constants'
@@ -227,9 +228,55 @@ export default function ContactsSugarV2Page() {
     }
   }
 
-  const handleNewContactSave = (data: NewContactPayload) => {
-    const fullName = `${data.firstName} ${data.lastName}`.trim()
-    flashToast(`Contact créé — ${fullName}`)
+  // Map modal source slugs → DB-allowed source enum.
+  // DB enforces source IN ('onboarding','manual','import','website','referral').
+  // Modal offers a richer UX list — collapse the extras into 'manual' or
+  // 'import' so the constraint passes. The original slug is preserved in
+  // form_data for analytics + future migration to a dedicated column.
+  const SOURCE_DB_MAP: Record<string, string> = {
+    website: 'website',
+    referral: 'referral',
+    portal: 'website',
+    'walk-in': 'manual',
+    csv: 'import',
+    other: 'manual',
+  }
+
+  const createContact = useCreateContact()
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  const handleNewContactSave = async (data: NewContactPayload) => {
+    setCreateError(null)
+    try {
+      const fullName = `${data.firstName} ${data.lastName}`.trim()
+      await createContact.mutateAsync({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone || undefined,
+        type: data.type,
+        source: SOURCE_DB_MAP[data.source] ?? 'manual',
+        tags: data.tags,
+        notes: data.notes || undefined,
+        search_criteria: data.criteria ?? null,
+        // Catch-all for UI-only fields without dedicated columns yet —
+        // preserved for analytics + future schema migration.
+        form_data: {
+          civility: data.civility,
+          lang: data.lang,
+          assigned_to: data.assignedTo,
+          source_slug_ui: data.source,
+          linked_bien: data.linkedBien ?? null,
+        },
+      })
+      // Cache Helpers auto-invalidates the contacts list — UI refreshes itself.
+      flashToast(`Contact créé — ${fullName}`)
+      setNewContactOpen(false)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Erreur inconnue'
+      setCreateError(message)
+      flashToast(`Erreur — ${message}`)
+    }
   }
 
   return (
@@ -346,8 +393,13 @@ export default function ContactsSugarV2Page() {
         <ModalNewContact
           sp={sp}
           dark={dark}
-          onClose={() => setNewContactOpen(false)}
+          onClose={() => {
+            setCreateError(null)
+            setNewContactOpen(false)
+          }}
           onSave={handleNewContactSave}
+          isPending={createContact.isPending}
+          error={createError}
         />
       )}
 

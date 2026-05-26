@@ -133,6 +133,11 @@ export function useCreateContact() {
         score?: ContactScore
         tags?: string[]
         notes?: string
+        /** Buyer/tenant search criteria (cantons, budget, types, rooms). */
+        search_criteria?: Record<string, unknown> | null
+        /** Catch-all for non-mapped UI fields (civility, lang, assigned_to,
+         * linked_bien, etc.) — preserved for future migration. */
+        form_data?: Record<string, unknown> | null
       }
     ) => {
       const rows = await insert.mutateAsync([
@@ -148,6 +153,8 @@ export function useCreateContact() {
           notes: input.notes ?? null,
           agency_id: input.agency_id ?? profile?.agency_id ?? null,
           user_id: user?.id ?? null,
+          search_criteria: (input.search_criteria ?? null) as unknown as import('@/types/database').Json | null,
+          form_data: (input.form_data ?? null) as unknown as import('@/types/database').Json | null,
         },
       ])
       return (Array.isArray(rows) ? rows[0] : rows) as unknown as Contact
