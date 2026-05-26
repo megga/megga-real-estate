@@ -18,6 +18,7 @@ import { Step5PriceDesc } from './steps/Step5PriceDesc'
 import { Step6Options } from './steps/Step6Options'
 import { Step7Publish } from './steps/Step7Publish'
 import { Step8Success } from './steps/Step8Success'
+import { useCreateProperty } from '@/hooks/useProperties'
 
 interface WizardShellProps {
   onClose: () => void
@@ -27,8 +28,73 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   const [step, setStep] = useState(0)
   const [subStep, setSubStep] = useState(0)        // 0 = Vendeur, 1 = Mandat
   const [published, setPublished] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
   const [data, setDataRaw] = useState<WizardData>(EMPTY_WIZARD)
   const set = (patch: Partial<WizardData>) => setDataRaw(prev => ({ ...prev, ...patch }))
+
+  const createProperty = useCreateProperty()
+
+  // Map the wizard's publishMode to the (status, published_at) pair the
+  // properties table expects. There's no scheduled-publish backend yet,
+  // so 'schedule' is persisted as 'draft' — separate chip to wire a real
+  // cron-based publication when the feature is designed.
+  async function handlePublish() {
+    if (createProperty.isPending) return
+    setPublishError(null)
+
+    const status =
+      data.publishMode === 'draft' ? 'draft'
+      : data.publishMode === 'schedule' ? 'draft'
+      : 'active'
+
+    // Build a readable title from the address. The DB column is NOT NULL,
+    // so we synthesize one (the agent can rename later from the listing
+    // detail page).
+    const titleParts = [
+      data.type ? data.type.charAt(0).toUpperCase() + data.type.slice(1) : 'Bien',
+      data.rooms ? `${data.rooms} pièces` : null,
+      data.city || data.addr ? `— ${data.city || data.addr}` : null,
+    ].filter(Boolean)
+    const title = titleParts.join(' ')
+
+    try {
+      await createProperty.mutateAsync({
+        title,
+        type: data.type,
+        status,
+        price: data.transaction === 'vente' ? (data.price ?? 0) : (data.rent ?? 0),
+        rooms: data.rooms ?? 0,
+        bedrooms: data.bedrooms ?? 0,
+        bathrooms: data.bathrooms ?? 0,
+        surface_m2: data.area ?? 0,
+        floor: data.floor ?? undefined,
+        total_floors: data.floorsTotal ?? undefined,
+        year_built: data.year ?? undefined,
+        charges_monthly: data.charges ?? undefined,
+        mandate_type: data.mandate?.type,
+        mandate_commission_pct: data.mandate?.commission ?? null,
+        mandate_signed_at: data.mandate?.signed ? new Date().toISOString() : null,
+        mandate_expires_at: data.mandate?.duration && data.mandate?.signed
+          ? new Date(Date.now() + data.mandate.duration * 30 * 24 * 3600 * 1000).toISOString()
+          : null,
+        energy_class: data.energy ?? null,
+        description: data.description || undefined,
+        address: data.addr,
+        city: data.city ?? '',
+        canton: data.cantonShort ?? data.canton,
+        postal_code: data.postCode,
+        photos: data.photos.map(p => (typeof p === 'string' ? p : '')).filter(Boolean),
+        features: data.features,
+        published_at: status === 'active' ? new Date().toISOString() : undefined,
+      })
+      // Cache Helpers auto-invalidates the properties list — the agent's
+      // /dashboard/listings will show the new bien on next render.
+      setPublished(true)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Erreur inconnue'
+      setPublishError(message)
+    }
+  }
 
   const canNext = (() => {
     if (step === 0) {
@@ -165,14 +231,30 @@ export default function WizardShell({ onClose }: WizardShellProps) {
               Continuer
             </SgBlackPill>
           ) : (
-            <SgBlackPill onClick={() => setPublished(true)}>
-              {data.publishMode === 'schedule' ? 'Programmer la publication'
+            <SgBlackPill onClick={handlePublish} disabled={createProperty.isPending}>
+              {createProperty.isPending
+                ? 'Publication…'
+                : data.publishMode === 'schedule' ? 'Programmer la publication'
                 : data.publishMode === 'draft' ? 'Enregistrer en brouillon'
                 : 'Publier sur MEGGA'}
             </SgBlackPill>
           )}
         </div>
       </footer>}
+
+      {/* Inline publish error — sits above the footer so the agent sees
+          exactly what went wrong without losing their wizard state. */}
+      {publishError && !published && (
+        <div role="alert" style={{
+          position: 'absolute', bottom: 92, left: 32, right: 32, zIndex: 21,
+          padding: '10px 14px', borderRadius: 12,
+          background: '#FEF2F2', color: '#B91C1C',
+          border: '1px solid #FCA5A5',
+          fontSize: 12.5, fontWeight: 600,
+        }}>
+          Échec de la publication : {publishError}
+        </div>
+      )}
     </div>
   )
 }
