@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Eye, CalendarDays, HandCoins, Clock,
   Mail, Check, HelpCircle, Phone,
@@ -351,6 +351,25 @@ export default function MonDossierPage() {
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all')
   const [hoveredStep, setHoveredStep] = useState<string | null>(null)
   const [period, setPeriod] = useState<Period>('30')
+
+  // Measure the chart container before mounting Recharts. Without this,
+  // ResponsiveContainer's internal ResizeObserver reads width/height as -1
+  // on first paint (parent layout not yet stable) and logs warnings.
+  // Mounting only after we have a positive, observed size eliminates them.
+  const chartContainerRef = useRef<HTMLDivElement>(null)
+  const [chartSize, setChartSize] = useState<{ w: number; h: number } | null>(null)
+  useEffect(() => {
+    const el = chartContainerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0) {
+        setChartSize({ w: width, h: height })
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const filteredActivities = activityFilter === 'all'
     ? activities
@@ -718,8 +737,9 @@ export default function MonDossierPage() {
               </div>
             </div>
 
-            <div className="h-[220px] -mx-2">
-              <ResponsiveContainer width="100%" height="100%">
+            <div ref={chartContainerRef} className="h-[220px] -mx-2">
+              {chartSize && (
+              <ResponsiveContainer width={chartSize.w} height={chartSize.h}>
                 <AreaChart data={viewSeries} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
                   <defs>
                     <linearGradient id="viewsGradient" x1="0" y1="0" x2="0" y2="1">
@@ -768,6 +788,7 @@ export default function MonDossierPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              )}
             </div>
           </section>
 
