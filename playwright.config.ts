@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
+  // Exclude visual regression — needs baselines generated in CI Ubuntu, run
+  // separately via `npm run test:e2e:visual` after baselines are committed.
+  testIgnore: ['**/visual-regression.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
