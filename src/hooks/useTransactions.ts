@@ -1,4 +1,27 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+// Migrated to @supabase-cache-helpers/postgrest-react-query (partial).
+//
+// Migrated:
+//   - useTransactions (list)
+//   - useTransaction (single)
+//   - useContactTransactions (list filtered by contact)
+//   - useCreateTransaction
+//   - useUpdateTransactionNotes (simple field update)
+//
+// Stayed on classic React Query (with reason):
+//   - useUpdateTransactionStage: fetches the old transaction, applies the
+//     stage update, then logs an activity_event. The activity log writes to
+//     a different table than the update target, so Cache Helpers'
+//     auto-invalidation alone wouldn't cover the dependent caches.
+//
+// Auto-invalidation now covers consumers reading transactions (Pipeline,
+// DealDetail) without manual queryClient.invalidateQueries calls.
+
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  useQuery,
+  useInsertMutation,
+  useUpdateMutation,
+} from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Transaction, TransactionStatus, MandateType } from '@/types/transaction'
@@ -13,40 +36,38 @@ interface TransactionFilters {
 
 export function useTransactions(filters?: TransactionFilters) {
   const { user } = useAuth()
-  return useQuery({
-    queryKey: ['transactions', filters],
-    enabled: !!user,
-    queryFn: async () => {
-      let query = supabase
-        .from('transactions')
-        .select('*, property:properties(title, address, city, price, photos), buyer:contacts!contact_buyer_id(first_name, last_name), seller:contacts!contact_seller_id(first_name, last_name), agent:profiles!assigned_to(full_name, avatar_url)')
 
-      if (filters?.stage) query = query.eq('stage', filters.stage)
-      if (filters?.status) query = query.eq('status', filters.status)
-      if (filters?.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
+  let baseQuery = supabase
+    .from('transactions')
+    .select('*, property:properties(title, address, city, price, photos), buyer:contacts!contact_buyer_id(first_name, last_name), seller:contacts!contact_seller_id(first_name, last_name), agent:profiles!assigned_to(full_name, avatar_url)')
 
-      const { data, error } = await query.order('updated_at', { ascending: false })
-      if (error) throw error
-      return data as Transaction[]
-    },
-  })
+  if (filters?.stage) baseQuery = baseQuery.eq('stage', filters.stage)
+  if (filters?.status) baseQuery = baseQuery.eq('status', filters.status)
+  if (filters?.assigned_to) baseQuery = baseQuery.eq('assigned_to', filters.assigned_to)
+
+  const result = useQuery(
+    baseQuery.order('updated_at', { ascending: false }),
+    { enabled: !!user }
+  )
+  return {
+    ...result,
+    data: result.data as unknown as Transaction[] | undefined,
+  }
 }
 
 export function useTransaction(id: string | undefined) {
-  return useQuery({
-    queryKey: ['transaction', id],
-    queryFn: async () => {
-      if (!id) throw new Error('No transaction ID')
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*, property:properties(*), buyer:contacts!contact_buyer_id(*), seller:contacts!contact_seller_id(*), agent:profiles!assigned_to(full_name, avatar_url)')
-        .eq('id', id)
-        .single()
-      if (error) throw error
-      return data as Transaction
-    },
-    enabled: !!id,
-  })
+  const result = useQuery(
+    supabase
+      .from('transactions')
+      .select('*, property:properties(*), buyer:contacts!contact_buyer_id(*), seller:contacts!contact_seller_id(*), agent:profiles!assigned_to(full_name, avatar_url)')
+      .eq('id', id ?? '00000000-0000-0000-0000-000000000000')
+      .single(),
+    { enabled: !!id }
+  )
+  return {
+    ...result,
+    data: result.data as unknown as Transaction | undefined,
+  }
 }
 
 interface CreateTransactionInput {
@@ -61,23 +82,22 @@ interface CreateTransactionInput {
 }
 
 export function useCreateTransaction() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async (input: CreateTransactionInput) => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert(input)
-        .select()
-        .single()
-      if (error) throw error
-      return data
+  const insert = useInsertMutation(supabase.from('transactions'), ['id'])
+  return {
+    mutateAsync: async (input: CreateTransactionInput) => {
+      const rows = await insert.mutateAsync([
+        input as unknown as Parameters<typeof insert.mutateAsync>[0][number],
+      ])
+      return Array.isArray(rows) ? rows[0] : rows
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-    },
-  })
+    isPending: insert.isPending,
+  }
 }
 
+// Kept on raw useMutation: fetches old stage, updates transaction, then
+// writes an activity_event. The side-effect write to a different table
+// means Cache Helpers' auto-invalidation wouldn't cover the activity log
+// caches; explicit invalidate keeps the contract.
 export function useUpdateTransactionStage() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -134,20 +154,16 @@ export function useUpdateTransactionStage() {
 
 // Update privée notes d'une transaction (notes internes équipe agence)
 export function useUpdateTransactionNotes() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
-      const { error } = await supabase
-        .from('transactions')
-        .update({ notes: notes || null })
-        .eq('id', id)
-      if (error) throw error
+  const update = useUpdateMutation(supabase.from('transactions'), ['id'])
+  return {
+    mutateAsync: async ({ id, notes }: { id: string; notes: string }) => {
+      await update.mutateAsync({
+        id,
+        notes: notes || null,
+      } as unknown as Parameters<typeof update.mutateAsync>[0])
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['transaction', variables.id] })
-    },
-  })
+    isPending: update.isPending,
+  }
 }
 
 export interface ContactTransaction {
@@ -161,30 +177,39 @@ export interface ContactTransaction {
 }
 
 export function useContactTransactions(contactId: string | undefined) {
-  return useQuery({
-    queryKey: ['transactions', 'contact', contactId],
-    queryFn: async (): Promise<ContactTransaction[]> => {
-      if (!contactId) return []
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('id, stage, status, price_offered, price_final, updated_at, property:properties(title, address, city, price, photos)')
-        .or(`contact_buyer_id.eq.${contactId},contact_seller_id.eq.${contactId}`)
-        .order('updated_at', { ascending: false })
-      if (error) throw error
-      return (data || []).map((row) => {
-        const prop = Array.isArray(row.property) ? row.property[0] ?? null : row.property ?? null
-        return {
-          id: row.id as string,
-          stage: row.stage as string,
-          status: row.status as string,
-          price_offered: row.price_offered as number | null,
-          price_final: row.price_final as number | null,
-          updated_at: row.updated_at as string,
-          property: prop,
-        }
-      })
-    },
-    enabled: !!contactId,
-    staleTime: 30_000,
+  const result = useQuery(
+    supabase
+      .from('transactions')
+      .select('id, stage, status, price_offered, price_final, updated_at, property:properties(title, address, city, price, photos)')
+      .or(`contact_buyer_id.eq.${contactId ?? '00000000-0000-0000-0000-000000000000'},contact_seller_id.eq.${contactId ?? '00000000-0000-0000-0000-000000000000'}`)
+      .order('updated_at', { ascending: false }),
+    { enabled: !!contactId, staleTime: 30_000 }
+  )
+  const data = ((result.data ?? []) as unknown as Array<{
+    id: string
+    stage: string
+    status: string
+    price_offered: number | null
+    price_final: number | null
+    updated_at: string
+    property:
+      | { title: string; address: string; city: string; price: number; photos: string[] }
+      | { title: string; address: string; city: string; price: number; photos: string[] }[]
+      | null
+  }>).map((row) => {
+    const prop = Array.isArray(row.property) ? row.property[0] ?? null : row.property ?? null
+    return {
+      id: row.id,
+      stage: row.stage,
+      status: row.status,
+      price_offered: row.price_offered,
+      price_final: row.price_final,
+      updated_at: row.updated_at,
+      property: prop,
+    } satisfies ContactTransaction
   })
+  return {
+    ...result,
+    data,
+  }
 }

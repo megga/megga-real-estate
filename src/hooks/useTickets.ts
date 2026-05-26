@@ -1,4 +1,28 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+// Migrated to @supabase-cache-helpers/postgrest-react-query (partial).
+//
+// Migrated:
+//   - useTickets (list)
+//   - useCannedResponses (list)
+//   - useUpdateTicket
+//   - useSubmitCsat (token-based — kept on raw mutation, see below)
+//
+// Stayed on classic React Query (with reason):
+//   - useTicket / useTicketByToken: return composite { ticket, messages }
+//     assembled from two queries. Cache Helpers' useQuery operates on a
+//     single PostgrestBuilder; can't express a join across two SELECTs.
+//     Would need to be split into two hooks, but consumers expect the
+//     composite — out of scope for this migration.
+//   - useCreateTicket: chains insert → insert (messages) → 2 edge functions
+//     → admin lookup. Multi-step orchestration, not a pure cache mutation.
+//   - useAddMessage: insert + conditional update of parent ticket. Mixed
+//     table writes; raw mutation keeps the logic local.
+//   - useSubmitCsat: updates by (ticket_number, access_token) — not by PK.
+
+import { useMutation, useQuery as useRqQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useQuery,
+  useUpdateMutation,
+} from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 
 export interface TicketRow {
@@ -38,25 +62,27 @@ export interface TicketMessageRow {
 // ── Agent-side: list tickets ─────────────────────────────────────
 
 export function useTickets(filters?: { status?: string; priority?: string; category?: string }) {
-  return useQuery({
-    queryKey: ['tickets', filters],
-    queryFn: async () => {
-      let query = supabase.from('support_tickets').select('*').order('created_at', { ascending: false })
-      if (filters?.status) query = query.eq('status', filters.status)
-      if (filters?.priority) query = query.eq('priority', filters.priority)
-      if (filters?.category) query = query.eq('category', filters.category)
-      const { data, error } = await query
-      if (error) throw error
-      return data as TicketRow[]
-    },
-    staleTime: 30_000,
-  })
+  let baseQuery = supabase.from('support_tickets').select('*')
+  if (filters?.status) baseQuery = baseQuery.eq('status', filters.status)
+  if (filters?.priority) baseQuery = baseQuery.eq('priority', filters.priority)
+  if (filters?.category) baseQuery = baseQuery.eq('category', filters.category)
+
+  const result = useQuery(
+    baseQuery.order('created_at', { ascending: false }),
+    { staleTime: 30_000 }
+  )
+  return {
+    ...result,
+    data: (result.data ?? []) as unknown as TicketRow[],
+  }
 }
 
 // ── Agent-side: single ticket with messages ──────────────────────
+// Kept on raw useQuery — returns composite { ticket, messages } from two
+// separate SELECTs. Cache Helpers' useQuery takes a single query expression.
 
 export function useTicket(id: string | undefined) {
-  return useQuery({
+  return useRqQuery({
     queryKey: ['ticket', id],
     queryFn: async () => {
       if (!id) return null
@@ -76,9 +102,10 @@ export function useTicket(id: string | undefined) {
 }
 
 // ── Public: ticket by number + access token ──────────────────────
+// Same composite shape as useTicket; kept on raw useQuery.
 
 export function useTicketByToken(ticketNumber: string | undefined, token: string | null) {
-  return useQuery({
+  return useRqQuery({
     queryKey: ['ticket-public', ticketNumber, token],
     queryFn: async () => {
       if (!ticketNumber || !token) return null
@@ -108,6 +135,8 @@ export function useTicketByToken(ticketNumber: string | undefined, token: string
 }
 
 // ── Create ticket (public) ───────────────────────────────────────
+// Multi-step orchestration (insert ticket → insert first message → 2 email
+// edge functions). Kept on raw useMutation.
 
 export function useCreateTicket() {
   return useMutation({
@@ -193,25 +222,40 @@ export function useCreateTicket() {
 }
 
 // ── Update ticket (agent) ────────────────────────────────────────
+// Migrated. Cache Helpers auto-invalidates the useTickets list query.
+// useTicket() (composite) is on a separate query-key and isn't auto-
+// invalidated, so we still call queryClient.invalidate for that one.
 
 export function useUpdateTicket() {
   const qc = useQueryClient()
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; status?: string; priority?: string; assigned_to?: string }) => {
-      const { error } = await supabase
-        .from('support_tickets')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tickets'] })
+  const update = useUpdateMutation(supabase.from('support_tickets'), ['id'])
+  return {
+    mutateAsync: async ({ id, ...updates }: { id: string; status?: string; priority?: string; assigned_to?: string }) => {
+      await update.mutateAsync({
+        id,
+        ...updates,
+        updated_at: new Date().toISOString(),
+      } as unknown as Parameters<typeof update.mutateAsync>[0])
+      // useTicket() composes ticket+messages on a manual queryKey; Cache
+      // Helpers can't observe it.
       qc.invalidateQueries({ queryKey: ['ticket'] })
     },
-  })
+    isPending: update.isPending,
+    // Compatibility: SupportTicketDetailPage uses both .mutateAsync and
+    // .mutate (via tanstack defaults). Provide a no-op fallback so the
+    // common destructure pattern keeps compiling.
+    mutate: (input: { id: string; status?: string; priority?: string; assigned_to?: string }) => {
+      void update.mutateAsync({
+        ...input,
+        updated_at: new Date().toISOString(),
+      } as unknown as Parameters<typeof update.mutateAsync>[0])
+    },
+  }
 }
 
 // ── Add message (agent or customer) ──────────────────────────────
+// Insert into ticket_messages + conditional update of parent ticket.
+// Mixed-table write; raw mutation keeps the logic local.
 
 export function useAddMessage() {
   const qc = useQueryClient()
@@ -260,6 +304,8 @@ export function useAddMessage() {
 }
 
 // ── Submit CSAT ──────────────────────────────────────────────────
+// Update by (ticket_number, access_token) — not by primary key. Cache
+// Helpers' useUpdateMutation requires the PK in the input; raw stays.
 
 export function useSubmitCsat() {
   return useMutation({
@@ -282,17 +328,16 @@ export function useSubmitCsat() {
 // ── Canned responses ─────────────────────────────────────────────
 
 export function useCannedResponses() {
-  return useQuery({
-    queryKey: ['canned-responses'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ticket_canned_responses')
-        .select('*')
-        .eq('is_active', true)
-        .order('title')
-      if (error) throw error
-      return data as { id: string; title: string; body: string; shortcut: string | null }[]
-    },
-    staleTime: 300_000,
-  })
+  const result = useQuery(
+    supabase
+      .from('ticket_canned_responses')
+      .select('*')
+      .eq('is_active', true)
+      .order('title'),
+    { staleTime: 300_000 }
+  )
+  return {
+    ...result,
+    data: (result.data ?? []) as unknown as { id: string; title: string; body: string; shortcut: string | null }[],
+  }
 }

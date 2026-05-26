@@ -1,4 +1,33 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+// Migrated to @supabase-cache-helpers/postgrest-react-query (partial).
+//
+// What migrated:
+//   - useProperty (single read)
+//   - useAgencyProperties (list read)
+//   - useCreateProperty
+//   - useDeleteProperty (soft-delete via UPDATE deleted_at)
+//   - useUpdatePropertyStatus
+//
+// What stayed on classic React Query (with reason):
+//   - useUpdateProperty: optimistic locking adds `.eq('updated_at', expected)`
+//     to the WHERE clause and inspects affected rows to raise
+//     PropertyUpdateConflictError. Cache Helpers' useUpdateMutation forces
+//     PK-only WHERE and discards row count. Migrating it would lose the
+//     conflict detection used by ListingFormPage.
+//   - useUploadFloorPlan / useUploadPropertyPhotos: storage uploads, not
+//     postgrest mutations.
+//
+// Cache Helpers auto-invalidates queries against the `properties` table on
+// each migrated mutation, so the manual invalidate(['agency-properties']),
+// invalidate(['agency-listings']), invalidate(['listings']) calls are gone.
+// (Note: the related `listings` and `agency-listings` queries live in other
+// hooks; they'll only auto-invalidate once those hooks are migrated too.)
+
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  useQuery,
+  useInsertMutation,
+  useUpdateMutation,
+} from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Property } from '@/types/listing'
@@ -9,38 +38,39 @@ import type { TablesInsert, TablesUpdate } from '@/types/database'
 // ── Query single property (for edit mode) ──
 
 export function useProperty(id: string | undefined) {
-  return useQuery({
-    queryKey: ['property', id],
-    queryFn: async () => {
-      if (!id) throw new Error('No property ID')
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', id)
-        .is('deleted_at', null)
-        .single()
-      if (error) throw error
-      return data as unknown as Property
-    },
-    enabled: !!id,
-  })
+  // Cache Helpers needs a valid query expression even when disabled; we pass
+  // a sentinel UUID and gate via `enabled`.
+  const result = useQuery(
+    supabase
+      .from('properties')
+      .select('*')
+      .eq('id', id ?? '00000000-0000-0000-0000-000000000000')
+      .is('deleted_at', null)
+      .single(),
+    { enabled: !!id }
+  )
+  return {
+    ...result,
+    data: result.data as unknown as Property | undefined,
+  }
 }
 
 // ── Query all agency properties (including drafts without listings) ──
 
 export function useAgencyProperties() {
-  return useQuery({
-    queryKey: ['agency-properties'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('id, title, type, status, price, rooms, bedrooms, surface_m2, address, city, canton, postal_code, photos, created_at, updated_at, listing:listings(id, views_count, favorites_count, published_at)')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data as unknown as (Property & { listing: Array<{ id: string; views_count: number; favorites_count: number; published_at: string }> })[]
-    },
-  })
+  const result = useQuery(
+    supabase
+      .from('properties')
+      .select('id, title, type, status, price, rooms, bedrooms, surface_m2, address, city, canton, postal_code, photos, created_at, updated_at, listing:listings(id, views_count, favorites_count, published_at)')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+  )
+  return {
+    ...result,
+    data: result.data as unknown as
+      | (Property & { listing: Array<{ id: string; views_count: number; favorites_count: number; published_at: string }> })[]
+      | undefined,
+  }
 }
 
 // ── Create property ──
@@ -80,10 +110,14 @@ export interface CreatePropertyInput {
 
 export function useCreateProperty() {
   const { user, profile } = useAuth()
-  const queryClient = useQueryClient()
+  const insert = useInsertMutation(
+    supabase.from('properties'),
+    ['id'],
+    'id, updated_at'
+  )
 
-  return useMutation({
-    mutationFn: async (input: CreatePropertyInput) => {
+  return {
+    mutateAsync: async (input: CreatePropertyInput): Promise<{ id: string; updated_at: string }> => {
       const payload = {
         ...input,
         agency_id: profile?.agency_id,
@@ -91,20 +125,12 @@ export function useCreateProperty() {
         features: input.features ?? [],
         photos: input.photos ?? [],
       } as unknown as TablesInsert<'properties'>
-      const { data, error } = await supabase
-        .from('properties')
-        .insert(payload)
-        .select('id, updated_at')
-        .single()
-      if (error) throw error
-      return data as { id: string; updated_at: string }
+      const rows = await insert.mutateAsync([payload])
+      const row = Array.isArray(rows) ? rows[0] : rows
+      return row as unknown as { id: string; updated_at: string }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
-      queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
-      queryClient.invalidateQueries({ queryKey: ['listings'] })
-    },
-  })
+    isPending: insert.isPending,
+  }
 }
 
 // ── Update property ──
@@ -112,6 +138,10 @@ export function useCreateProperty() {
 // the WHERE clause. A concurrent edit from another tab/agent will have moved
 // `updated_at` forward, the .eq() filter matches no rows, and we throw a
 // conflict error rather than silently overwriting their work.
+//
+// Kept on raw supabase + useMutation because Cache Helpers' useUpdateMutation
+// only filters by primary key. The conflict-detection contract used by
+// ListingFormPage would break otherwise.
 
 export class PropertyUpdateConflictError extends Error {
   constructor() {
@@ -149,6 +179,8 @@ export function useUpdateProperty() {
       return data[0] as { id: string; updated_at: string }
     },
     onSuccess: (_, variables) => {
+      // Manual invalidate kept here: Cache Helpers can't observe writes that
+      // bypass its mutation hooks (this is a raw supabase update).
       queryClient.invalidateQueries({ queryKey: ['property', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
       queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
@@ -164,51 +196,36 @@ export function useUpdateProperty() {
 // orphan-draft cleanup; agents should never need it.
 
 export function useDeleteProperty() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('properties')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id)
-      if (error) throw error
+  const update = useUpdateMutation(supabase.from('properties'), ['id'])
+  return {
+    mutateAsync: async (id: string) => {
+      await update.mutateAsync({
+        id,
+        deleted_at: new Date().toISOString(),
+      } as unknown as Parameters<typeof update.mutateAsync>[0])
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
-      queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
-      queryClient.invalidateQueries({ queryKey: ['listings'] })
-    },
-  })
+    isPending: update.isPending,
+  }
 }
 
 // ── Update property status ──
 
 export function useUpdatePropertyStatus() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: PropertyStatus }) => {
+  const update = useUpdateMutation(supabase.from('properties'), ['id'])
+  return {
+    mutateAsync: async ({ id, status }: { id: string; status: PropertyStatus }) => {
       const updates: Record<string, unknown> = {
+        id,
         status,
         updated_at: new Date().toISOString(),
       }
-      // Set published_at when going active
       if (status === 'active') {
         updates.published_at = new Date().toISOString()
       }
-      const { error } = await supabase
-        .from('properties')
-        .update(updates as TablesUpdate<'properties'>)
-        .eq('id', id)
-      if (error) throw error
+      await update.mutateAsync(updates as unknown as Parameters<typeof update.mutateAsync>[0])
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['property', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
-      queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
-    },
-  })
+    isPending: update.isPending,
+  }
 }
 
 // ── Upload floor plan image to Supabase Storage ──
