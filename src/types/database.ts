@@ -1123,6 +1123,7 @@ export type Database = {
           buyer_score: number | null
           contact_id: string
           conversion_probability: number | null
+          conversion_score: number | null
           created_at: string | null
           engagement_score: number | null
           engagement_trend: string | null
@@ -1132,6 +1133,7 @@ export type Database = {
           interactions_count: number | null
           last_calculated_at: string | null
           matches_sent_count: number | null
+          overall_score: number | null
           reactivity_score: number | null
           rejection_patterns: Json | null
           visit_quality_score: number | null
@@ -1143,6 +1145,7 @@ export type Database = {
           buyer_score?: number | null
           contact_id: string
           conversion_probability?: number | null
+          conversion_score?: number | null
           created_at?: string | null
           engagement_score?: number | null
           engagement_trend?: string | null
@@ -1152,6 +1155,7 @@ export type Database = {
           interactions_count?: number | null
           last_calculated_at?: string | null
           matches_sent_count?: number | null
+          overall_score?: number | null
           reactivity_score?: number | null
           rejection_patterns?: Json | null
           visit_quality_score?: number | null
@@ -1163,6 +1167,7 @@ export type Database = {
           buyer_score?: number | null
           contact_id?: string
           conversion_probability?: number | null
+          conversion_score?: number | null
           created_at?: string | null
           engagement_score?: number | null
           engagement_trend?: string | null
@@ -1172,6 +1177,7 @@ export type Database = {
           interactions_count?: number | null
           last_calculated_at?: string | null
           matches_sent_count?: number | null
+          overall_score?: number | null
           reactivity_score?: number | null
           rejection_patterns?: Json | null
           visit_quality_score?: number | null
@@ -1206,10 +1212,12 @@ export type Database = {
           id: string
           import_raw_text: string | null
           import_raw_text_received_at: string | null
+          last_interaction_at: string | null
           last_name: string
           notes: string | null
           phone: string | null
           score: string | null
+          search_criteria: Json | null
           source: string
           tags: string[] | null
           type: string
@@ -1227,10 +1235,12 @@ export type Database = {
           id?: string
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
+          last_interaction_at?: string | null
           last_name: string
           notes?: string | null
           phone?: string | null
           score?: string | null
+          search_criteria?: Json | null
           source?: string
           tags?: string[] | null
           type: string
@@ -1248,10 +1258,12 @@ export type Database = {
           id?: string
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
+          last_interaction_at?: string | null
           last_name?: string
           notes?: string | null
           phone?: string | null
           score?: string | null
+          search_criteria?: Json | null
           source?: string
           tags?: string[] | null
           type?: string
@@ -1282,6 +1294,7 @@ export type Database = {
           parent_offer_id: string | null
           responded_at: string | null
           status: Database["public"]["Enums"]["crm_offer_status"]
+          transaction_id: string | null
         }
         Insert: {
           agency_id: string
@@ -1304,6 +1317,7 @@ export type Database = {
           parent_offer_id?: string | null
           responded_at?: string | null
           status?: Database["public"]["Enums"]["crm_offer_status"]
+          transaction_id?: string | null
         }
         Update: {
           agency_id?: string
@@ -1326,6 +1340,7 @@ export type Database = {
           parent_offer_id?: string | null
           responded_at?: string | null
           status?: Database["public"]["Enums"]["crm_offer_status"]
+          transaction_id?: string | null
         }
         Relationships: [
           {
@@ -1347,6 +1362,13 @@ export type Database = {
             columns: ["parent_offer_id"]
             isOneToOne: false
             referencedRelation: "crm_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_offers_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -1417,6 +1439,7 @@ export type Database = {
       documents: {
         Row: {
           agency_id: string | null
+          contact_id: string | null
           created_at: string | null
           document_category: string | null
           expires_at: string | null
@@ -1436,6 +1459,7 @@ export type Database = {
         }
         Insert: {
           agency_id?: string | null
+          contact_id?: string | null
           created_at?: string | null
           document_category?: string | null
           expires_at?: string | null
@@ -1455,6 +1479,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string | null
+          contact_id?: string | null
           created_at?: string | null
           document_category?: string | null
           expires_at?: string | null
@@ -1472,7 +1497,15 @@ export type Database = {
           type?: string
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_messages_cache: {
         Row: {
@@ -1768,6 +1801,7 @@ export type Database = {
           risk_score: number | null
           sanctions_details: Json | null
           sanctions_status: string | null
+          screening_status: string | null
           source_of_funds_description: string | null
           source_of_funds_doc_id: string | null
           source_of_funds_type:
@@ -1800,6 +1834,7 @@ export type Database = {
           risk_score?: number | null
           sanctions_details?: Json | null
           sanctions_status?: string | null
+          screening_status?: string | null
           source_of_funds_description?: string | null
           source_of_funds_doc_id?: string | null
           source_of_funds_type?:
@@ -1832,6 +1867,7 @@ export type Database = {
           risk_score?: number | null
           sanctions_details?: Json | null
           sanctions_status?: string | null
+          screening_status?: string | null
           source_of_funds_description?: string | null
           source_of_funds_doc_id?: string | null
           source_of_funds_type?:
@@ -2428,6 +2464,8 @@ export type Database = {
           quality_flags: Json | null
           quality_score: number | null
           relevance_score: number | null
+          rent: number | null
+          rent_chf: number | null
           rooms: number | null
           source_created_at: string | null
           source_id: string
@@ -2512,6 +2550,8 @@ export type Database = {
           quality_flags?: Json | null
           quality_score?: number | null
           relevance_score?: number | null
+          rent?: number | null
+          rent_chf?: number | null
           rooms?: number | null
           source_created_at?: string | null
           source_id: string
@@ -2596,6 +2636,8 @@ export type Database = {
           quality_flags?: Json | null
           quality_score?: number | null
           relevance_score?: number | null
+          rent?: number | null
+          rent_chf?: number | null
           rooms?: number | null
           source_created_at?: string | null
           source_id?: string
@@ -2881,6 +2923,7 @@ export type Database = {
         Row: {
           agency_id: string
           buyer_user_id: string | null
+          channel: string | null
           contact_id: string | null
           contact_name: string
           contact_type: string
@@ -2895,6 +2938,7 @@ export type Database = {
         Insert: {
           agency_id: string
           buyer_user_id?: string | null
+          channel?: string | null
           contact_id?: string | null
           contact_name: string
           contact_type: string
@@ -2909,6 +2953,7 @@ export type Database = {
         Update: {
           agency_id?: string
           buyer_user_id?: string | null
+          channel?: string | null
           contact_id?: string | null
           contact_name?: string
           contact_type?: string
@@ -3257,6 +3302,7 @@ export type Database = {
           onboarding_completed: boolean | null
           onboarding_step: number | null
           phone: string | null
+          preferences: Json | null
           role: string
           spoken_languages: string[] | null
         }
@@ -3278,6 +3324,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
           phone?: string | null
+          preferences?: Json | null
           role?: string
           spoken_languages?: string[] | null
         }
@@ -3299,6 +3346,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
           phone?: string | null
+          preferences?: Json | null
           role?: string
           spoken_languages?: string[] | null
         }
@@ -3330,6 +3378,7 @@ export type Database = {
           energy_class: string | null
           energy_label: string | null
           external_regie: Json | null
+          favorites_count: number | null
           features: Json | null
           floor: number | null
           floor_plan_hotspots: Json | null
@@ -3361,6 +3410,7 @@ export type Database = {
           transaction_type: string
           type: Database["public"]["Enums"]["property_type"]
           updated_at: string | null
+          views_count: number | null
           year_built: number | null
         }
         Insert: {
@@ -3388,6 +3438,7 @@ export type Database = {
           energy_class?: string | null
           energy_label?: string | null
           external_regie?: Json | null
+          favorites_count?: number | null
           features?: Json | null
           floor?: number | null
           floor_plan_hotspots?: Json | null
@@ -3419,6 +3470,7 @@ export type Database = {
           transaction_type?: string
           type?: Database["public"]["Enums"]["property_type"]
           updated_at?: string | null
+          views_count?: number | null
           year_built?: number | null
         }
         Update: {
@@ -3446,6 +3498,7 @@ export type Database = {
           energy_class?: string | null
           energy_label?: string | null
           external_regie?: Json | null
+          favorites_count?: number | null
           features?: Json | null
           floor?: number | null
           floor_plan_hotspots?: Json | null
@@ -3477,6 +3530,7 @@ export type Database = {
           transaction_type?: string
           type?: Database["public"]["Enums"]["property_type"]
           updated_at?: string | null
+          views_count?: number | null
           year_built?: number | null
         }
         Relationships: [
@@ -3854,7 +3908,9 @@ export type Database = {
           current_period_end: string | null
           current_period_start: string | null
           id: string
+          interval: string | null
           plan: string
+          price: number | null
           status: string
           stripe_customer_id: string
           stripe_price_id: string | null
@@ -3869,7 +3925,9 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          interval?: string | null
           plan?: string
+          price?: number | null
           status?: string
           stripe_customer_id: string
           stripe_price_id?: string | null
@@ -3884,7 +3942,9 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          interval?: string | null
           plan?: string
+          price?: number | null
           status?: string
           stripe_customer_id?: string
           stripe_price_id?: string | null

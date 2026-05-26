@@ -1,10 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 // Database types are generated in src/types/database.ts. Wiring them via
-// createClient<Database>(...) is blocked: the baseline schema dumped from
-// prod is incomplete (missing several columns + RPCs added after the dump).
-// Activating typed client surfaces 10+ type errors that cascade as each is
-// fixed. Track via dedicated chip — a fresh `supabase db dump` against prod
-// is the prerequisite.
+// createClient<Database>(...) is BLOCKED by an unrecoverable schema drift:
+//
+//   - 3 tables exist in code but NOT in our baseline dump:
+//       property_visits, team_invitations, vendor_dossiers
+//     (the last two are recoverable from _archived/ migrations; the first
+//     is not — likely created later via Supabase Studio or sprint migration
+//     that never made it to the dump).
+//   - ~15 columns added to prod after the dump (we've restored most via
+//     20260526120000_restore_missing_columns.sql but more keep appearing
+//     as each round of fixes reveals new ones).
+//   - 192 → 136 type errors after restoring ~15 columns + 1 RPC; many of
+//     the remaining 136 cascade from the 3 missing tables.
+//
+// True unblock requires a fresh `supabase db dump` against prod (full
+// schema, including the 3 missing tables), then a thorough audit.
 
 // Real anon key for the MEGGA Supabase project (eayczugyrvmtqnnmvjod).
 // anon keys are PUBLIC BY DESIGN — their security relies on Row Level Security (RLS).
