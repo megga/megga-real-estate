@@ -11,10 +11,19 @@
 import { useCallback } from 'react'
 import { useLogAudit } from '@/hooks/useAuditLog'
 
+// IMPORTANT — naming convention: actions that PHYSICALLY happen (a real
+// Edge Function call, a real Supabase mutation, a real Resend send) use
+// the verb directly ('relance-sent'). Actions where the agent only marked
+// something as done in the UI without the system actually performing it
+// use the `-marked-` prefix to make the audit trail honest.
+//
+// The relance session currently writes -marked-* because the Resend
+// integration isn't wired yet. When that lands, switch back to the
+// direct verb forms.
 export type DashboardAiAction =
   | 'open-relance-session'
-  | 'relance-sent'
-  | 'relance-called'
+  | 'relance-marked-sent'
+  | 'relance-marked-called'
   | 'relance-postponed'
   | 'coach-cta-clicked'
   | 'levier-cta-clicked'

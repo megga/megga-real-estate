@@ -240,13 +240,22 @@ export default function DocumentGenerator() {
   }
 
   function handleDownload() {
-    const blob = new Blob(['Document preview'], { type: 'application/pdf' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${templateConfig?.name || 'document'}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
+    // ⚠️ DISABLED — the previous implementation downloaded a 16-byte text
+    // file containing the literal string 'Document preview' under a `.pdf`
+    // extension. That's a legal exposure on regulated documents (mandat
+    // exclusif, bon de visite, …) — an agent could believe they've
+    // generated a real document when they haven't.
+    //
+    // Real PDF generation (server-side pdf-lib renderer + INSERT into
+    // `documents` table) is a separate chip. Until then, surface the
+    // limitation honestly via the disabled banner below.
+    // eslint-disable-next-line no-alert
+    alert(
+      'Téléchargement PDF en développement.\n\n' +
+      "La génération de documents (mandat, bon de visite, etc.) sera disponible " +
+      "dans une prochaine release. Pour l'instant, utilisez votre éditeur habituel " +
+      "pour finaliser le document à partir de l'aperçu ci-dessus."
+    )
   }
 
   // Group fields by section
@@ -492,6 +501,21 @@ export default function DocumentGenerator() {
       {/* Step 2: Preview */}
       {step === 2 && templateConfig && generated && (
         <div className="space-y-6">
+          {/* Honest banner — real PDF generation isn't wired yet.
+              Without this, agents would download a 16-byte placeholder file
+              and believe they have a valid mandat. */}
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 flex items-start gap-3 text-amber-900">
+            <span className="text-base">⚠️</span>
+            <div className="text-sm">
+              <div className="font-semibold mb-0.5">Téléchargement PDF en développement</div>
+              <div className="text-xs leading-relaxed">
+                L'aperçu ci-dessous est correct, mais la génération du fichier PDF
+                final (mandat, bon de visite, …) sera disponible dans une prochaine
+                release. Utilisez votre éditeur habituel pour finaliser le document.
+              </div>
+            </div>
+          </div>
+
           {/* Preview card */}
           <div className="rounded-xl border border-theme-border overflow-hidden">
             <div className="px-5 py-3 border-b border-theme-border flex items-center justify-between">
