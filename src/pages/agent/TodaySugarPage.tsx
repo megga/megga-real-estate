@@ -11,6 +11,7 @@ import {
 } from '@/components/crm-sugar/tokens'
 import { CRM_AGENT, crmContactById } from '@/components/crm-sugar/mockData'
 import { useTodaySugarKpi } from '@/hooks/useTodaySugarKpi'
+import { useContactsSugar } from '@/hooks/useContactsSugar'
 import CRMIcon from '@/components/crm-sugar/CRMIcon'
 import {
   SugarTopNav, SugarIconRail, SugarFrame, SugarRoundIconBtn,
@@ -56,8 +57,19 @@ export default function TodaySugarPage() {
   // ─── KPIs live (Supabase) ───────────────────────────────────────────
   // Les 5 tuiles en tête de page lisent reminders / transactions / matches.
   // Les colonnes (relances/qualif/offres/comm) et la knowledge table restent
-  // mockées pour cette PR — chantier séparé.
+  // mockées pour cette PR — chantier séparé (rules d'aggrégation à définir).
   const kpi = useTodaySugarKpi()
+
+  // ─── Real agency contacts (used to decide demo vs empty state) ──────
+  // The journey columns below still render hardcoded demo labels
+  // ("Recontacter Marie Bertrand", etc.). Until the proper rules are
+  // designed (which contacts go into which column based on real reminders
+  // / transactions / KYC state), we toggle between:
+  //   - empty state    : agency has 0 real contacts → friendly CTA
+  //   - demo with banner: agency has real contacts → show the demo content
+  //     but flag it so the agent knows it's not their real data yet
+  const { contacts: realContacts, isLoading: contactsLoading } = useContactsSugar()
+  const hasRealAgencyContacts = !contactsLoading && realContacts.length > 0
 
   // ─── Page state ─────────────────────────────────────────────────────
   const [detailContact, setDetailContact] = useState<CrmContact | null>(null)
@@ -171,12 +183,18 @@ export default function TodaySugarPage() {
   const c008 = crmContactById('c-008')!
 
   // ─── Today's date label ─────────────────────────────────────────────
-  // Hard-coded to match the prototype's mock-data state (frozen on 1 May 2026 = vendredi).
-  // This stays consistent with `Aujourd'hui · 6 actions` in the mini calendar
-  // and the timestamps in the Knowledge table (2026-05-01).
+  // Real current date in fr-CH ("vendredi 26 mai 2026" etc.). The page
+  // previously hardcoded "vendredi 1er mai 2026" which made the dashboard
+  // feel stale every other day.
+  const todayLabel = new Date().toLocaleDateString('fr-CH', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
   const dateLabel = (
     <span style={{ fontSize: 13, color: sp.sub, marginLeft: 6, fontWeight: 500, textTransform: 'capitalize' }}>
-      vendredi 1<sup>er</sup> mai 2026
+      {todayLabel}
     </span>
   )
 
@@ -230,8 +248,85 @@ export default function TodaySugarPage() {
             </button>
           </div>
 
+          {/* DEMO MODE BANNER — visible when the journey columns show
+              hardcoded demo contacts (Marie, Sophie, …) on top of the
+              agent's real KPIs. Disappears once the journey rules are
+              wired to real reminders / transactions / KYC state. */}
+          {hasRealAgencyContacts && !focusMode && (
+            <div
+              role="status"
+              style={{
+                marginBottom: 16, padding: '10px 16px', borderRadius: 14,
+                background: dark ? 'rgba(245,158,11,0.10)' : '#FEF3C7',
+                color: dark ? '#FBBF24' : '#92400E',
+                border: `1px solid ${dark ? 'rgba(245,158,11,0.30)' : '#FCD34D'}`,
+                fontSize: 12.5, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}
+            >
+              <CRMIcon name="spark" size={14} stroke={dark ? '#FBBF24' : '#92400E'} />
+              <span>
+                <strong>Mode démo</strong> — Les KPIs en bas et le pipeline sont
+                réels. Le « Parcours du jour » ci-dessous affiche des actions
+                d'exemple en attendant la connexion aux reminders/transactions.
+              </span>
+            </div>
+          )}
+
           {focusMode ? (
             <SugarFocusView sp={sp} contacts={[c001, c004, c003]} onContactClick={setDetailContact} />
+          ) : !contactsLoading && !hasRealAgencyContacts ? (
+            // EMPTY STATE — fresh agency with no contacts yet. Avoid showing
+            // demo people (Sophie / Marie / …) on the dashboard of a brand
+            // new account; instead, surface a clear CTA.
+            <SugarFrame sp={sp} title="Parcours du jour">
+              <div style={{
+                padding: '64px 24px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+                textAlign: 'center',
+              }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: 999,
+                  background: sp.cardSubBg, display: 'grid', placeItems: 'center',
+                }}>
+                  <CRMIcon name="plus" size={32} stroke={sp.soft} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: sp.ink, marginBottom: 4 }}>
+                    Votre journée commence ici
+                  </div>
+                  <div style={{ fontSize: 13, color: sp.sub, maxWidth: 420, lineHeight: 1.5 }}>
+                    Importez ou créez vos premiers contacts pour voir vos relances,
+                    qualifications, offres et messages clients du jour s'afficher
+                    automatiquement.
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => navigate('/dashboard/contacts')}
+                    style={{
+                      height: 40, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer',
+                      background: sp.ink, color: sp.pageBg,
+                      fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                      boxShadow: sp.focusShadow,
+                    }}
+                  >
+                    + Créer un contact
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard/contacts/import')}
+                    style={{
+                      height: 40, padding: '0 18px', borderRadius: 999, cursor: 'pointer',
+                      background: 'transparent', color: sp.ink,
+                      border: `1px solid ${sp.cardBorder}`,
+                      fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                    }}
+                  >
+                    Importer un CSV
+                  </button>
+                </div>
+              </div>
+            </SugarFrame>
           ) : (
             <>
               {/* HERO FRAME — Customer Journey */}
