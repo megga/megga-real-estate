@@ -40,27 +40,30 @@ describe.skipIf(!HAS_KEYS)('RLS isolation — transactions', () => {
     await setup.cleanup()
   })
 
-  // NOTE: the only SELECT policy on `transactions` is `super_admin_read_all_transactions`.
-  // Regular agents do NOT have a SELECT policy on this table directly — they must
-  // read via an authorized view or RPC. So both "agent sees own deal" and "agent
-  // sees other deal" should return empty for non-super-admin users. That's still
-  // a valid isolation guarantee — strictly stronger than per-agency RLS.
-  it('agent A cannot SELECT any transaction directly (RLS deny by default)', async () => {
+  // Migration 20260526170000 added the agency-scoped policy set
+  // (`transactions_select|insert|update|delete`). Before that, transactions
+  // had ONLY a super_admin SELECT policy — meaning regular agents couldn't
+  // see, create, or modify any deal. The pipeline page was effectively
+  // broken in production for non-super-admins. These tests now assert the
+  // correct behavior: agents see their OWN agency's deals, never others'.
+  it('agent A SELECTs their own deal A', async () => {
     const { data } = await setup.clientA.from('transactions').select('id').eq('id', dealAId)
-    expect(data, `unexpected SELECT access to transactions for agent A`).toEqual([])
+    expect(data).toHaveLength(1)
+    expect(data?.[0]?.id).toBe(dealAId)
   })
 
-  it('agent A CANNOT see deal B either (cross-tenant guarantee)', async () => {
+  it('agent A CANNOT see deal B (cross-tenant guarantee)', async () => {
     const { data } = await setup.clientA.from('transactions').select('id').eq('id', dealBId)
     expect(data, `agent A leaked deal B (financial data!)`).toEqual([])
   })
 
-  it('agent B cannot SELECT any transaction directly (RLS deny by default)', async () => {
+  it('agent B SELECTs their own deal B', async () => {
     const { data } = await setup.clientB.from('transactions').select('id').eq('id', dealBId)
-    expect(data, `unexpected SELECT access to transactions for agent B`).toEqual([])
+    expect(data).toHaveLength(1)
+    expect(data?.[0]?.id).toBe(dealBId)
   })
 
-  it('agent B CANNOT see deal A either (cross-tenant guarantee)', async () => {
+  it('agent B CANNOT see deal A (cross-tenant guarantee)', async () => {
     const { data } = await setup.clientB.from('transactions').select('id').eq('id', dealAId)
     expect(data, `agent B leaked deal A (financial data!)`).toEqual([])
   })
