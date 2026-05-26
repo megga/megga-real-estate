@@ -22,6 +22,7 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/backend/**/*.{spec,test}.ts'],
     exclude: ['node_modules', 'dist', 'tests/e2e/**', 'tests/e2e-admin/**', 'tests/ai/**', 'tests/unit/**'],
+    setupFiles: ['./vitest.backend.setup.ts'],
     globals: true,
     // Backend tests touch a real DB → serial execution to avoid race conditions
     // on shared rows (until we implement per-test isolation via transactions).
