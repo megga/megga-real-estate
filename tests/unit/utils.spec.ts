@@ -16,15 +16,16 @@ describe('formatCHF', () => {
     expect(formatCHF('1250000')).toBe("CHF 1'250'000")
   })
 
-  // Note: the docstring promises "CHF —" for null/undefined, but the actual
-  // implementation coerces them to 0 via `?? 0`. The "CHF —" path only fires
-  // for genuinely non-numeric strings. Tests pin the real behaviour.
-  it('coerces null to 0 (docstring says "CHF —" but ?? 0 wins)', () => {
-    expect(formatCHF(null)).toBe('CHF 0')
+  it('returns "CHF —" for null (missing value, not zero)', () => {
+    expect(formatCHF(null)).toBe('CHF —')
   })
 
-  it('coerces undefined to 0 (same caveat)', () => {
-    expect(formatCHF(undefined)).toBe('CHF 0')
+  it('returns "CHF —" for undefined', () => {
+    expect(formatCHF(undefined)).toBe('CHF —')
+  })
+
+  it('returns "CHF —" for empty string (RHF reset state)', () => {
+    expect(formatCHF('')).toBe('CHF —')
   })
 
   it('returns "CHF —" for a non-numeric string', () => {
@@ -45,8 +46,8 @@ describe('formatRent', () => {
     expect(formatRent(2500)).toBe("CHF 2'500/mois")
   })
 
-  it('coerces null to 0 (consistent with formatCHF behaviour)', () => {
-    expect(formatRent(null)).toBe('CHF 0/mois')
+  it('returns "CHF —/mois" for null (missing value)', () => {
+    expect(formatRent(null)).toBe('CHF —/mois')
   })
 
   it('returns "CHF —/mois" for non-numeric string', () => {

@@ -15,11 +15,14 @@ export function cn(...inputs: ClassValue[]) {
  * Example: 720000 → "CHF 720'000"
  *
  * Type-defensive: accepts string/null/undefined safely (RHF watch() returns
- * strings from <input type="number">). Returns "CHF —" for invalid input
- * instead of crashing with `.toFixed is not a function`.
+ * strings from <input type="number">). Returns "CHF —" for missing or invalid
+ * input (null, undefined, empty string, non-numeric string) instead of
+ * crashing with `.toFixed is not a function` or pretending an absent value
+ * is zero.
  */
 export function formatCHF(amount: number | string | null | undefined): string {
-  const n = typeof amount === 'number' ? amount : Number(amount ?? 0)
+  if (amount === null || amount === undefined || amount === '') return 'CHF —'
+  const n = typeof amount === 'number' ? amount : Number(amount)
   if (!Number.isFinite(n)) return 'CHF —'
   const formatted = n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, "'")
   return `CHF ${formatted}`
