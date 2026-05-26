@@ -1,0 +1,87 @@
+name: Backend Integration Tests
+
+# Vitest backend suite: RLS isolation across 7 tables, RPCs, and Edge
+# Functions contract tests. Hits a real local Supabase instance spun up
+# in CI (Postgres + GoTrue + PostgREST + edge-runtime).
+#
+# Runs on every PR and every push to main. Independent of the E2E
+# workflow (e2e.yml) — different concerns, different failure modes.
+#
+# Local equivalent:
+#   1. supabase start
+#   2. npm run test:backend
+# (see vitest.backend.config.ts for the full setup notes.)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  backend:
+    name: Vitest backend (RLS + Edge Functions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase local
+        # Excludes services we don't test: Studio (admin UI), Inbucket (mail
+        # sink), imgproxy (image transforms), vector (logs ingestor),
+        # pg_prove (pgTAP runner — we use Vitest instead).
+        # Keeps: db, auth (gotrue), rest (postgrest), edge-runtime, realtime,
+        # storage — all touched by at least one spec.
+        run: supabase start -x studio,inbucket,imgproxy,vector,pg_prove
+
+      - name: Export Supabase credentials to GITHUB_ENV
+        # `supabase status -o env` exposes both key formats:
+        #   - ANON_KEY / SERVICE_ROLE_KEY     (legacy JWT)
+        #   - PUBLISHABLE_KEY / SECRET_KEY    (new sb_publishable_*/sb_secret_*)
+        # .env.test.local uses the new format → match it here for consistency.
+        # Both formats are accepted by createClient at runtime.
+        run: |
+          eval "$(supabase status -o env)"
+          {
+            echo "SUPABASE_TEST_URL=${API_URL:-http://127.0.0.1:54321}"
+            echo "SUPABASE_TEST_ANON_KEY=$PUBLISHABLE_KEY"
+            echo "SUPABASE_TEST_SERVICE_ROLE_KEY=$SECRET_KEY"
+          } >> $GITHUB_ENV
+
+      - name: Run backend tests
+        run: npm run test:backend
+
+      - name: Print Supabase logs on failure
+        if: failure()
+        run: |
+          echo "=== supabase status ==="
+          supabase status || true
+          echo "=== docker ps ==="
+          docker ps || true
+          echo "=== postgres logs ==="
+          docker logs supabase_db_megga-real-estate 2>&1 | tail -100 || true
+          echo "=== auth logs ==="
+          docker logs supabase_auth_megga-real-estate 2>&1 | tail -50 || true
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup || true
