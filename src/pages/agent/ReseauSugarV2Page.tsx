@@ -211,8 +211,9 @@ export default function ReseauSugarV2Page() {
             }}
           >
             <KycIcon name="alert" size={14} stroke={SP.pending} sw={2} />
-            Aperçu visuel · les vraies écritures (invitations, partage de biens, audit
-            trail RLS) arrivent dans une prochaine PR. Données mock pour l'instant.
+            <strong>En développement</strong> — Cette page (partenaires, biens partagés,
+            co-listings) est un aperçu visuel. Les données affichées sont des exemples,
+            aucune écriture n'est persistée. Disponible dans une prochaine release.
           </div>
 
           {/* Tabs */}

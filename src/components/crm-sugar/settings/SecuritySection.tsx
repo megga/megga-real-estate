@@ -32,20 +32,9 @@ const DEFAULT_SECURITY: SecurityData = {
   lastPwdChange: 'il y a 2 mois',
 }
 
-interface AuditEvent {
-  ts: string
-  action: string
-  ctx: string
-  kind: 'ok' | 'warn' | 'bad'
-}
-
-const AUDIT_LOG: AuditEvent[] = [
-  { ts: "Aujourd'hui, 09:42", action: 'Connexion réussie', ctx: 'Safari · Genève, CH', kind: 'ok' },
-  { ts: "Aujourd'hui, 08:15", action: 'Document Mandat-Cologny.pdf signé', ctx: 'DocuSign · Skribble', kind: 'ok' },
-  { ts: 'Hier, 18:42', action: 'Connexion sur nouvel appareil', ctx: 'iPad Air · Lausanne, CH', kind: 'warn' },
-  { ts: 'Hier, 14:20', action: 'Mot de passe modifié', ctx: 'Profil · authentifié', kind: 'ok' },
-  { ts: 'Il y a 3 jours', action: 'Tentative de connexion bloquée', ctx: 'Chrome · Berlin, DE · IP inconnue', kind: 'bad' },
-]
+// AuditEvent / AUDIT_LOG / AuditRow removed — the "Journal d'activité"
+// card was redundant with /dashboard/audit. The full event log lives
+// there and is wired to real `activity_events` data.
 
 const SESSIONS_COUNT = 4
 
@@ -698,80 +687,9 @@ function PasswordModal({ onClose, mode, setMode }: PasswordModalProps) {
   )
 }
 
-interface AuditRowProps {
-  e: AuditEvent
-  i: number
-}
-
-function AuditRow({ e, i }: AuditRowProps) {
-  const map: Record<AuditEvent['kind'], string> = {
-    ok: SET.ok,
-    warn: SET.warn,
-    bad: SET.bad,
-  }
-  const c = map[e.kind]
-  return (
-    <div
-      style={{
-        padding: '12px 22px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        borderTop: i > 0 ? `1px solid ${SET.line}` : 'none',
-      }}
-    >
-      <span
-        style={{
-          width: 7,
-          height: 7,
-          borderRadius: 999,
-          background: c,
-          flexShrink: 0,
-          boxShadow: `0 0 0 3px ${c}1A`,
-        }}
-      />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: SET.ink,
-            letterSpacing: -0.1,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {e.action}
-        </div>
-        <div
-          style={{
-            fontSize: 11,
-            color: SET.muted,
-            fontWeight: 500,
-            marginTop: 2,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {e.ctx}
-        </div>
-      </div>
-      <div
-        style={{
-          fontSize: 10.5,
-          color: SET.muted,
-          fontWeight: 600,
-          fontVariantNumeric: 'tabular-nums',
-          flexShrink: 0,
-        }}
-      >
-        {e.ts}
-      </div>
-    </div>
-  )
-}
+// AuditRow component removed alongside AUDIT_LOG (was rendering the
+// "Journal d'activité" card that we trimmed — full log lives at
+// /dashboard/audit).
 
 export function SecuritySection() {
   const [data, setData] = useState<SecurityData>(DEFAULT_SECURITY)
@@ -912,28 +830,19 @@ export function SecuritySection() {
             </div>
           </SetCard>
 
-          <SetCard
-            title="Journal d'activité"
-            sub={`Les ${AUDIT_LOG.length} derniers événements. Conservés 12 mois.`}
-            action={
-              <SetGhostBtn
-                size="sm"
-                icon={<SetIcon name="download" size={13} stroke={SET.inkSoft} />}
-              >
-                Exporter
-              </SetGhostBtn>
-            }
-            padding={0}
-          >
-            <div>
-              {AUDIT_LOG.map((e, i) => (
-                <AuditRow key={i} e={e} i={i} />
-              ))}
-            </div>
-          </SetCard>
+          {/* "Journal d'activité" card removed — Tier 3 trim (Julien call):
+              redundant with /dashboard/audit which already shows the full
+              nLPD audit log. Helpers (AUDIT_LOG seed + AuditRow) kept in
+              the file for now — small dead weight; will be removed when the
+              real audit-log API is wired (separate chip). */}
         </div>
 
-        {/* MFA / 2FA — port des protos crm-mfa-modals.jsx */}
+        {/* "Authentification à deux facteurs (2FA)" card + modals removed —
+            Tier 3 trim. The MFA toggle was UI-only (local state, no
+            Supabase backend). Re-add when MFA enrollment is properly
+            wired to auth.mfa via Supabase. SSOConnectionsCard stays
+            because it has a real OAuth flow. */}
+        {false && (
         <SetCard
           title="Authentification à deux facteurs (2FA)"
           sub={
@@ -1031,6 +940,7 @@ export function SecuritySection() {
             )}
           </div>
         </SetCard>
+        )}
 
         <SSOConnectionsCard />
       </div>
